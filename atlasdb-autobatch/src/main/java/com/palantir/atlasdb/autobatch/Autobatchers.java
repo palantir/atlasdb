@@ -89,7 +89,7 @@ public final class Autobatchers {
         private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
 
         private Observability observability = Observability.UNDECIDED;
-        private OptionalInt optionalBufferSize = OptionalInt.empty();
+        private OptionalInt bufferSize = OptionalInt.empty();
 
         @Nullable
         private String purpose;
@@ -114,23 +114,23 @@ public final class Autobatchers {
         }
 
         public AutobatcherBuilder<I, O> bufferSize(OptionalInt bufferSizeParam) {
-            this.optionalBufferSize = bufferSizeParam;
+            this.bufferSize = bufferSizeParam;
             return this;
         }
 
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
 
-            int bufferSize = optionalBufferSize.orElse(DEFAULT_BUFFER_SIZE);
+            int bufferSizeValue = bufferSize.orElse(DEFAULT_BUFFER_SIZE);
 
-            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(bufferSize);
+            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(bufferSizeValue);
 
-            EventHandler<BatchElement<I, O>> tracingHandler = new TracingEventHandler<>(handler, bufferSize);
+            EventHandler<BatchElement<I, O>> tracingHandler = new TracingEventHandler<>(handler, bufferSizeValue);
 
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());
 
-            return DisruptorAutobatcher.create(profiledHandler, bufferSize, purpose);
+            return DisruptorAutobatcher.create(profiledHandler, bufferSizeValue, purpose);
         }
     }
 }
