@@ -53,7 +53,6 @@ public class MultiClientConjureTimelockResourceTest {
 
     private Map<String, AsyncTimelockService> namespaces = new HashMap();
     private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap();
-
     private MultiClientConjureTimelockResource resource;
 
     @Before
