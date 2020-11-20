@@ -30,7 +30,7 @@ public class LeaderTimeCoalescingBatcher implements AutoCloseable {
     private final DisruptorAutobatcher<Namespace, LeaderTime> batcher;
 
     public LeaderTimeCoalescingBatcher(
-            AuthenticatingMultiClientConjureTimelockServiceImpl delegate, OptionalInt bufferSize) {
+            AuthenticatingMultiClientConjureTimelockService delegate, OptionalInt bufferSize) {
         this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate))
                 .bufferSize(bufferSize)
                 .safeLoggablePurpose("get-leader-times")
@@ -47,9 +47,9 @@ public class LeaderTimeCoalescingBatcher implements AutoCloseable {
     }
 
     static class LeaderTimeCoalescingConsumer implements CoalescingRequestFunction<Namespace, LeaderTime> {
-        private final AuthenticatingMultiClientConjureTimelockServiceImpl delegate;
+        private final AuthenticatingMultiClientConjureTimelockService delegate;
 
-        public LeaderTimeCoalescingConsumer(AuthenticatingMultiClientConjureTimelockServiceImpl delegate) {
+        public LeaderTimeCoalescingConsumer(AuthenticatingMultiClientConjureTimelockService delegate) {
             this.delegate = delegate;
         }
 
