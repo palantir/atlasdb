@@ -17,22 +17,9 @@
 package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
-import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 
-public class DialogueAdaptingMultiClientConjureTimelockService {
-    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
-
-    private final MultiClientConjureTimelockServiceBlocking dialogueDelegate;
-
-    public DialogueAdaptingMultiClientConjureTimelockService(
-            MultiClientConjureTimelockServiceBlocking dialogueDelegate) {
-        this.dialogueDelegate = dialogueDelegate;
-    }
-
-    public LeaderTimes leaderTimes(Set<Namespace> namespaces) {
-        return dialogueDelegate.leaderTimes(AUTH_HEADER, namespaces);
-    }
+public interface AuthenticatingMultiClientConjureTimelockService {
+    LeaderTimes leaderTimes(Set<Namespace> namespaces);
 }

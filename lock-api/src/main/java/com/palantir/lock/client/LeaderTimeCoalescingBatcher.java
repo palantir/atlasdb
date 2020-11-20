@@ -20,10 +20,8 @@ import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -32,7 +30,7 @@ public class LeaderTimeCoalescingBatcher implements AutoCloseable {
     private final DisruptorAutobatcher<Namespace, LeaderTime> batcher;
 
     public LeaderTimeCoalescingBatcher(
-            DialogueAdaptingMultiClientConjureTimelockService delegate, OptionalInt bufferSize) {
+            AuthenticatingMultiClientConjureTimelockServiceImpl delegate, OptionalInt bufferSize) {
         this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate))
                 .bufferSize(bufferSize)
                 .safeLoggablePurpose("get-leader-times")
@@ -49,9 +47,9 @@ public class LeaderTimeCoalescingBatcher implements AutoCloseable {
     }
 
     static class LeaderTimeCoalescingConsumer implements CoalescingRequestFunction<Namespace, LeaderTime> {
-        private final DialogueAdaptingMultiClientConjureTimelockService delegate;
+        private final AuthenticatingMultiClientConjureTimelockServiceImpl delegate;
 
-        public LeaderTimeCoalescingConsumer(DialogueAdaptingMultiClientConjureTimelockService delegate) {
+        public LeaderTimeCoalescingConsumer(AuthenticatingMultiClientConjureTimelockServiceImpl delegate) {
             this.delegate = delegate;
         }
 
