@@ -42,9 +42,10 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private RemoteTimelockServiceAdapter(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
-            LockWatchEventCache lockWatchEventCache) {
+            LockWatchEventCache lockWatchEventCache,
+            LeaderTimeGetter leaderTimeGetter) {
         this.rpcClient = rpcClient;
-        this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
+        this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
         this.commitTimestampGetter = CommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
@@ -54,7 +55,15 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache);
+        return create(rpcClient, conjureClient, lockWatchEventCache, new LegacyLeaderTimeGetter(conjureClient));
+    }
+
+    public static RemoteTimelockServiceAdapter create(
+            NamespacedTimelockRpcClient rpcClient,
+            NamespacedConjureTimelockService conjureClient,
+            LockWatchEventCache lockWatchEventCache,
+            LeaderTimeGetter leaderTimeGetter) {
+        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache, leaderTimeGetter);
     }
 
     @Override

@@ -23,6 +23,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Observability;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -88,6 +89,7 @@ public final class Autobatchers {
         private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
 
         private Observability observability = Observability.UNDECIDED;
+        private OptionalInt bufferSize = OptionalInt.empty();
 
         @Nullable
         private String purpose;
@@ -111,16 +113,24 @@ public final class Autobatchers {
             return this;
         }
 
+        public AutobatcherBuilder<I, O> bufferSize(OptionalInt bufferSizeParam) {
+            this.bufferSize = bufferSizeParam;
+            return this;
+        }
+
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
-            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
-            EventHandler<BatchElement<I, O>> tracingHandler = new TracingEventHandler<>(handler, DEFAULT_BUFFER_SIZE);
+            int bufferSizeValue = bufferSize.orElse(DEFAULT_BUFFER_SIZE);
+
+            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(bufferSizeValue);
+
+            EventHandler<BatchElement<I, O>> tracingHandler = new TracingEventHandler<>(handler, bufferSizeValue);
 
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());
 
-            return DisruptorAutobatcher.create(profiledHandler, DEFAULT_BUFFER_SIZE, purpose);
+            return DisruptorAutobatcher.create(profiledHandler, bufferSizeValue, purpose);
         }
     }
 }

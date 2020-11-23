@@ -164,7 +164,6 @@ allprojects {
                 'PublicConstructorForAbstractClass',
                 'RawTypes',
                 'ReadReturnValueIgnored',
-                'ReferenceEquality',
                 'ReturnValueIgnored',
                 'ReverseDnsLookup',
                 'SafeLoggingExceptionMessageFormat',

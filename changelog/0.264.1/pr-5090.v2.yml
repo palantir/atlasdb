@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: The TimeLock corruption detecting checks are now enabled. As of now,
+    all the violations are configured to only trigger alerts and not make TimeLock
+    shoot itself.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5090

@@ -205,8 +205,8 @@ final class ColumnFamilyDefinitions {
                 SafeArg.of("clusterVersion", clusterSideVersion));
     }
 
-    private static boolean equalsIgnoringClasspath(String class1, String class2) {
-        if (class1 == class2) {
+    static boolean equalsIgnoringClasspath(String class1, String class2) {
+        if (Objects.equals(class1, class2)) {
             return true;
         }
         if (class1 == null || class2 == null) {
