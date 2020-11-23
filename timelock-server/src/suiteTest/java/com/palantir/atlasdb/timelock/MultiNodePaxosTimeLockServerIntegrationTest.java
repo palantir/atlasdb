@@ -31,6 +31,9 @@ import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.LeaderTimes;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.suite.DbTimeLockSingleLeaderPaxosSuite;
@@ -48,6 +51,7 @@ import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.ConjureLockRequests;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -97,6 +101,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                     .toJavaDuration()
                     .plus(Duration.ofSeconds(1))
                     .toMillis());
+    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
 
     private NamespacedClients client;
 
@@ -482,6 +487,46 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         } finally {
             nonLeader.serverHolder().resetWireMock();
         }
+    }
+
+    @Test
+    public void sanityCheckMultiClientLeaderTime() {
+        Set<Namespace> expectedNamespaces = ImmutableSet.of(Namespace.of("client1"), Namespace.of("client2"));
+        LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(expectedNamespaces);
+
+        // leaderTimes for namespaces are computed by their respective underlying AsyncTimelockService instances
+        Set<UUID> leadershipIds = leaderTimes.getLeaderTimes().values().stream()
+                .map(LeaderTime::id)
+                .map(LeadershipId::id)
+                .collect(Collectors.toSet());
+        assertThat(leadershipIds).hasSameSizeAs(expectedNamespaces);
+    }
+
+    @Test
+    public void sanityCheckMultiClientLeaderTimeAgainstConjureTimelockService() {
+        Set<Namespace> expectedNamespaces = ImmutableSet.of(Namespace.of("alpha"), Namespace.of("beta"));
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(expectedNamespaces);
+
+        // Whether we hit the multi client endpoint or conjureTimelockService endpoint(services one client in one
+        // call), for a namespace, the underlying service to process the request is the same
+        leaderTimes.getLeaderTimes().forEach((namespace, leaderTime) -> {
+            LeaderTime conjureTimelockServiceLeaderTime = leader.client(namespace.get())
+                    .namespacedConjureTimelockService()
+                    .leaderTime();
+            assertThat(conjureTimelockServiceLeaderTime.id()).isEqualTo(leaderTime.id());
+        });
+    }
+
+    private LeaderTimes assertSanityAndGetLeaderTimes(Set<Namespace> expectedNamespaces) {
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
+
+        LeaderTimes leaderTimes = multiClientConjureTimelockService.leaderTimes(AUTH_HEADER, expectedNamespaces);
+        Set<Namespace> namespaces = leaderTimes.getLeaderTimes().keySet();
+        assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
+
+        return leaderTimes;
     }
 
     private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
