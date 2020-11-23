@@ -980,7 +980,7 @@ public abstract class TransactionManagers {
                 Optional.empty(),
                 newMinimalDialogueFactory(),
                 Optional.empty(),
-                multiClientBatcherProviders);
+                Optional.empty());
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
