@@ -53,7 +53,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
      * @param leaderConfig unused.
      * @param namespace unused.
      * @param unusedLongSupplier unused.
-     * @param initializeAsync
+     * @param initializeAsync initialize asynchronously
      * @return The requested KeyValueService instance
      */
     @Override
