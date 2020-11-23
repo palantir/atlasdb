@@ -347,7 +347,7 @@ public class TransactionManagersTest {
                         Optional.empty(),
                         reloadingFactory,
                         Optional.empty(),
-                        batcherProviders());
+                        Optional.empty());
 
         LockRequest lockRequest = LockRequest.builder(
                         ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
@@ -886,7 +886,7 @@ public class TransactionManagersTest {
                 Optional.empty(),
                 reloadingFactory,
                 Optional.empty(),
-                batcherProviders());
+                Optional.empty());
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -908,7 +908,7 @@ public class TransactionManagersTest {
                         Optional.empty(),
                         reloadingFactory,
                         Optional.empty(),
-                        batcherProviders());
+                        Optional.empty());
 
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
