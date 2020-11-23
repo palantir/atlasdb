@@ -22,12 +22,13 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 
-public class AuthInternalMultiClientConjureTimelockService implements InternalMultiClientConjureTimelockService {
+public class AuthenticatedInternalMultiClientConjureTimelockService
+        implements InternalMultiClientConjureTimelockService {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
 
     private final MultiClientConjureTimelockServiceBlocking delegate;
 
-    public AuthInternalMultiClientConjureTimelockService(MultiClientConjureTimelockServiceBlocking delegate) {
+    public AuthenticatedInternalMultiClientConjureTimelockService(MultiClientConjureTimelockServiceBlocking delegate) {
         this.delegate = delegate;
     }
 
