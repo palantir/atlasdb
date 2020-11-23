@@ -17,23 +17,9 @@
 package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
-import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 
-public class AuthenticatingMultiClientConjureTimelockServiceImpl
-        implements AuthenticatingMultiClientConjureTimelockService {
-    private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
-
-    private final MultiClientConjureTimelockServiceBlocking delegate;
-
-    public AuthenticatingMultiClientConjureTimelockServiceImpl(MultiClientConjureTimelockServiceBlocking delegate) {
-        this.delegate = delegate;
-    }
-
-    @Override
-    public LeaderTimes leaderTimes(Set<Namespace> namespaces) {
-        return delegate.leaderTimes(AUTH_HEADER, namespaces);
-    }
+public interface InternalMultiClientConjureTimelockService {
+    LeaderTimes leaderTimes(Set<Namespace> namespaces);
 }
