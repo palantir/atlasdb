@@ -53,6 +53,7 @@ license {
     exclude '**/SmoothRateLimiter.java'
     exclude '**/DiscoverableSubtypeResolver.java'
     exclude '**/ConjureTimelockServiceBlockingMetrics.java'
+    exclude '**/LeaderElectionMetrics.java'
 }
 
 ext {
@@ -62,6 +63,7 @@ ext {
 task generateSchemas {
     description = 'Re-generate code from AtlasDB schemas.'
     dependsOn classes, testClasses
+    finalizedBy format
 }
 
 afterEvaluate {

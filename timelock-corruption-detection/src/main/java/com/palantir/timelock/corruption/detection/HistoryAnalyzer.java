@@ -17,34 +17,73 @@
 package com.palantir.timelock.corruption.detection;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.paxos.ImmutableNamespaceAndUseCase;
+import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.timelock.history.PaxosAcceptorData;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public final class HistoryAnalyzer {
     private HistoryAnalyzer() {
         // do not create instance of this class
     }
 
+    public static CorruptionHealthReport corruptionHealthReportForHistory(
+            List<CompletePaxosHistoryForNamespaceAndUseCase> history) {
+
+        Map<NamespaceAndUseCase, CorruptionCheckViolation> namespaceAndUseCaseCorruptionCheckViolationMap =
+                history.stream()
+                        .collect(Collectors.toMap(
+                                HistoryAnalyzer::extractNamespaceAndUseCase,
+                                HistoryAnalyzer::corruptionCheckViolationLevelForNamespaceAndUseCase));
+
+        SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> namespacesExhibitingViolations = KeyedStream.stream(
+                        namespaceAndUseCaseCorruptionCheckViolationMap)
+                .mapEntries((k, v) -> Maps.immutableEntry(v, k))
+                .filterKeys(CorruptionCheckViolation::raiseErrorAlert)
+                .collectToSetMultimap();
+
+        return ImmutableCorruptionHealthReport.builder()
+                .violatingStatusesToNamespaceAndUseCase(namespacesExhibitingViolations)
+                .build();
+    }
+
+    private static NamespaceAndUseCase extractNamespaceAndUseCase(
+            CompletePaxosHistoryForNamespaceAndUseCase historyForNamespaceAndUseCase) {
+        return ImmutableNamespaceAndUseCase.builder()
+                .namespace(historyForNamespaceAndUseCase.namespace())
+                .useCase(historyForNamespaceAndUseCase.useCase())
+                .build();
+    }
+
     @VisibleForTesting
-    static List<CorruptionCheckViolation> violatedCorruptionChecksForNamespaceAndUseCase(
+    static CorruptionCheckViolation corruptionCheckViolationLevelForNamespaceAndUseCase(
             CompletePaxosHistoryForNamespaceAndUseCase history) {
-        return Stream.of(
-                        divergedLearners(history),
-                        learnedValueWithoutQuorum(history),
-                        greatestAcceptedValueNotLearned(history))
+        List<Function<CompletePaxosHistoryForNamespaceAndUseCase, CorruptionCheckViolation>> violationChecks =
+                ImmutableList.of(
+                        HistoryAnalyzer::divergedLearners,
+                        HistoryAnalyzer::learnedValueWithoutQuorum,
+                        HistoryAnalyzer::greatestAcceptedValueNotLearned);
+        return violationChecks.stream()
+                .map(check -> check.apply(history))
                 .filter(CorruptionCheckViolation::raiseErrorAlert)
-                .collect(Collectors.toList());
+                .findFirst()
+                .orElse(CorruptionCheckViolation.NONE);
     }
 
     @VisibleForTesting

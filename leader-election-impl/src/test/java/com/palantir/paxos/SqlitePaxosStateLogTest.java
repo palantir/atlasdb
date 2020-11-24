@@ -168,6 +168,17 @@ public class SqlitePaxosStateLogTest {
     }
 
     @Test
+    public void canTruncateAll() {
+        writeValueForRound(5L);
+        writeValueForRound(7L);
+        writeValueForRound(9L);
+        writeValueForRound(1L);
+
+        stateLog.truncateAllRounds();
+        assertThat(stateLog.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Test
     public void valuesAreDistinguishedAcrossLogNamespaces() throws IOException {
         PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_2, USE_CASE_1), dataSource);
         writeValueForRound(1L);

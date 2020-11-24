@@ -20,13 +20,13 @@ import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -45,7 +45,7 @@ class DistributionOutlierController {
 
     @VisibleForTesting
     DistributionOutlierController(Clock clock, double minimumMeanMultiple, double maximumMeanMultiple) {
-        this.gauges = Sets.newConcurrentHashSet();
+        this.gauges = ConcurrentHashMap.newKeySet();
         this.minimumMeanMultiple = minimumMeanMultiple;
         this.maximumMeanMultiple = maximumMeanMultiple;
         this.meanGauge = new CachedGauge<Double>(clock, REFRESH_INTERVAL.toNanos(), TimeUnit.NANOSECONDS) {

@@ -33,13 +33,13 @@ This can be (and is in AtlasDB) mitigated by having a random backoff between pro
 How we use Paxos
 ================
 
-The Timelock servers uses a Paxos based algorithm for two purposes:
+The TimeLock servers may use a Paxos based algorithm for two purposes:
 
-#. **Leadership election:** We choose who will be the leader in the Timelock cluster. The leader is the only server capable
+#. **Leadership election:** We choose who will be the leader in the TimeLock cluster. The leader is the only server capable
    of responding to lock and timestamp requests. Leader election is often preferable for performance reasons confirming
    you are the leader is more efficient than choosing the value to respond with.
-#. **Timestamp bound:** Timelock has an asynchronous process to increase the upper bound of timestamps that the leader is
-   allowed to hand out, and we choose this bound via Paxos.
+#. **Timestamp bound:** TimeLock needs to store upper bounds on timestamps that the leader is allowed to hand out.
+   If configured to use Paxos timestamp persistence, TimeLock chooses this bound via Paxos.
 
 It is worth noting that the Paxos implementations differ slightly for choosing a leader and choosing a timestamp bound.
 When choosing a leader, all servers can propose leadership and have the potential to be elected. However, once a leader

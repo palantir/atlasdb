@@ -17,7 +17,6 @@ package com.palantir.async.initializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -35,7 +34,7 @@ public class AsyncInitializerTest {
     private static final int ASYNC_INIT_DELAY = 10;
     private static final int FIVE = 5;
 
-    private class AlwaysFailingInitializer extends AsyncInitializer {
+    private static class AlwaysFailingInitializer extends AsyncInitializer {
         volatile int initializationAttempts = 0;
         DeterministicSchedulerShutdownAware deterministicScheduler;
 
@@ -97,7 +96,7 @@ public class AsyncInitializerTest {
 
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(RuntimeException.class)
-                .withFailMessage("Failed initializing");
+                .hasMessage("Failed initializing");
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Multiple calls tried to initialize the same instance.");
@@ -129,7 +128,7 @@ public class AsyncInitializerTest {
         };
 
         eventuallySuccessfulInitializer.initialize(true);
-        assertFalse(eventuallySuccessfulInitializer.isInitialized());
+        assertThat(eventuallySuccessfulInitializer.isInitialized()).isFalse();
         tickSchedulerFiveTimes(eventuallySuccessfulInitializer);
         assertThat(eventuallySuccessfulInitializer.isInitialized()).isTrue();
     }

@@ -1,4 +1,10 @@
 types:
+  imports:
+    Duration:
+      base-type: any
+      external:
+        java: java.time.Duration
+
   definitions:
     default-package: com.palantir.timelock.feedback
     objects:
@@ -17,6 +23,18 @@ types:
           p99: double
           oneMin: double
           errorRate: optional<double>
+      LeaderElectionDuration:
+        fields:
+          oldLeader: uuid
+          newLeader: uuid
+          duration: Duration
+      LeaderElectionStatistics:
+        fields:
+          p99: double
+          p95: double
+          mean: double
+          count: safelong
+          durationEstimate: optional<LeaderElectionDuration>
 
 services:
   TimeLockClientFeedbackService:
@@ -31,3 +49,11 @@ services:
           feedback: ConjureTimeLockClientFeedback
         docs: |
           The endpoint receives feedback reports from clients which are required for TimeLock Adjudication.
+      reportLeaderMetrics:
+        http: POST /reportLeaderMetrics
+        args:
+          statistics: LeaderElectionStatistics
+        docs: |
+          This endpoint recieves stats about Timelock leader election durations from all clients, then aggregates them
+          on the server side.
+

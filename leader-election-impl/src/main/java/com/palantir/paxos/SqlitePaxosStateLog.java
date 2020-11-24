@@ -86,6 +86,15 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
         execute(dao -> dao.truncate(namespace, useCase, toDeleteInclusive));
     }
 
+    @Override
+    public void truncateAllRounds() {
+        execute(dao -> {
+            OptionalLong greatestLogEntry = dao.getGreatestLogEntry(namespace, useCase);
+            greatestLogEntry.ifPresent(toDeleteInclusive -> dao.truncate(namespace, useCase, toDeleteInclusive));
+            return null;
+        });
+    }
+
     private <T> T execute(Function<Queries, T> call) {
         return jdbi.withExtension(Queries.class, call::apply);
     }

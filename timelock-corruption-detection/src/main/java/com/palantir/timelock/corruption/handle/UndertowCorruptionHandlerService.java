@@ -35,7 +35,7 @@ public class UndertowCorruptionHandlerService implements UndertowService {
         this.delegate = service;
         this.healthCheck = healthCheck;
         this.wrapper = handler -> exchange -> {
-            if (healthCheck.isHealthy()) {
+            if (!healthCheck.shouldRejectRequests()) {
                 handler.handleRequest(exchange);
             } else {
                 exchange.setStatusCode(StatusCodes.SERVICE_UNAVAILABLE);

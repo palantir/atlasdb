@@ -262,7 +262,7 @@ public final class CassandraKeyValueServices {
         // Be careful *NOT* to perform anything that will modify the buffer's position or limit
         byte[] bytes = new byte[buffer.limit() - buffer.position()];
         if (buffer.hasArray()) {
-            System.arraycopy(buffer.array(), buffer.position(), bytes, 0, bytes.length);
+            System.arraycopy(buffer.array(), buffer.arrayOffset() + buffer.position(), bytes, 0, bytes.length);
         } else {
             buffer.duplicate().get(bytes, buffer.position(), bytes.length);
         }

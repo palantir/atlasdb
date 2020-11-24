@@ -28,9 +28,16 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.common.time.NanoTime;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.client.LeasedLockTokenCreator;
+import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
+import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
@@ -48,6 +55,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -202,16 +210,6 @@ public class LockWatchEventCacheIntegrationTest {
                 LockWatchStateUpdate.success(
                         LEADER, 7L, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT, LOCK_EVENT_2)));
         verifyStage();
-    }
-
-    @Test
-    public void getCommitUpdateDoesNotContainCommitLocks() {
-        setupInitialState();
-        eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
-        verifyStage();
-
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(START_TS);
-        assertThat(commitUpdate.accept(new CommitUpdateVisitor())).containsExactlyInAnyOrder(DESCRIPTOR);
     }
 
     @Test
@@ -382,6 +380,21 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
+    public void clientPartiallyUpToDateDoesNotThrow() {
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
+
+        TransactionsLockWatchUpdate update = eventCache.getUpdateForTransactions(
+                Sets.union(TIMESTAMPS, TIMESTAMPS_2), Optional.of(LockWatchVersion.of(LEADER, 5L)));
+
+        assertThat(update.clearCache()).isFalse();
+        assertThat(update.events().size()).isEqualTo(1);
+        assertThat(update.startTsToSequence())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
+                        START_TS, LockWatchVersion.of(LEADER, 3L), 16L, LockWatchVersion.of(LEADER, 6L)));
+    }
+
+    @Test
     public void newEventsCauseOldEventsToBeDeleted() {
         eventCache = createEventCache(3);
         setupInitialState();
@@ -389,6 +402,28 @@ public class LockWatchEventCacheIntegrationTest {
         verifyStage();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
         verifyStage();
+    }
+
+    @Test
+    public void commitLocksAreCorrectlyFilteredOutUsingServerToken() {
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
+
+        // simulates the actual lock token that the client receives
+        ConjureLockToken serverToken = ConjureLockToken.of(COMMIT_TOKEN.getRequestId());
+        LockToken commitToken = LeasedLockTokenCreator.of(
+                serverToken,
+                Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(1L)), Duration.ZERO));
+        eventCache.processGetCommitTimestampsUpdate(
+                ImmutableSet.of(ImmutableTransactionUpdate.builder()
+                        .commitTs(5L)
+                        .startTs(START_TS)
+                        .writesToken(commitToken)
+                        .build()),
+                SUCCESS_2);
+
+        assertThat(eventCache.getCommitUpdate(START_TS).accept(new CommitUpdateVisitor()))
+                .containsExactlyInAnyOrder(DESCRIPTOR);
     }
 
     @Test

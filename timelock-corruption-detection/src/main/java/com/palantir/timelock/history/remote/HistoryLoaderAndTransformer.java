@@ -20,6 +20,7 @@ import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.HistoryQuery;
+import com.palantir.timelock.history.HistoryQuerySequenceBounds;
 import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.LogsForNamespaceAndUseCase;
 import com.palantir.timelock.history.PaxosLogWithAcceptedAndLearnedValues;
@@ -36,15 +37,25 @@ public final class HistoryLoaderAndTransformer {
 
     public static List<LogsForNamespaceAndUseCase> getLogsForHistoryQueries(
             LocalHistoryLoader localHistoryLoader, List<HistoryQuery> historyQueries) {
-        Map<NamespaceAndUseCase, Long> lastVerifiedSequences = historyQueries.stream()
-                .collect(Collectors.toMap(HistoryQuery::getNamespaceAndUseCase, HistoryQuery::getSeq, Math::min));
+        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> namespaceAndUseCaseWiseSequenceRangeToBeVerified =
+                historyQueries.stream()
+                        .collect(Collectors.toMap(
+                                HistoryQuery::getNamespaceAndUseCase,
+                                HistoryQuery::getSequenceBounds,
+                                HistoryLoaderAndTransformer::minimalLowerBoundResolver));
 
-        PaxosHistoryOnSingleNode localPaxosHistory = localHistoryLoader.getLocalPaxosHistory(lastVerifiedSequences);
+        PaxosHistoryOnSingleNode localPaxosHistory =
+                localHistoryLoader.getLocalPaxosHistory(namespaceAndUseCaseWiseSequenceRangeToBeVerified);
 
         return KeyedStream.stream(localPaxosHistory.history())
                 .mapEntries(HistoryLoaderAndTransformer::processHistory)
                 .values()
                 .collect(Collectors.toList());
+    }
+
+    private static HistoryQuerySequenceBounds minimalLowerBoundResolver(
+            HistoryQuerySequenceBounds bound1, HistoryQuerySequenceBounds bound2) {
+        return bound1.getLowerBoundInclusive() < bound2.getLowerBoundInclusive() ? bound1 : bound2;
     }
 
     private static Map.Entry<NamespaceAndUseCase, LogsForNamespaceAndUseCase> processHistory(

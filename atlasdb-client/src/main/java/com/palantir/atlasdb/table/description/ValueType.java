@@ -24,7 +24,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.IOException;
-import java.util.UUID;
 
 public enum ValueType {
     /**
@@ -787,7 +786,7 @@ public enum ValueType {
     },
     UUID {
         @Override
-        public UUID convertToJava(byte[] value, int offset) {
+        public java.util.UUID convertToJava(byte[] value, int offset) {
             com.palantir.logsafe.Preconditions.checkArgument(
                     offset + 16 <= value.length, "Field does not contain enough remaining bytes to hold a UUID");
             return EncodingUtils.decodeUUID(value, offset);
@@ -795,8 +794,8 @@ public enum ValueType {
 
         @Override
         public byte[] convertFromJava(Object value) {
-            com.palantir.logsafe.Preconditions.checkArgument(value == null || value instanceof UUID);
-            return EncodingUtils.encodeUUID((UUID) value);
+            com.palantir.logsafe.Preconditions.checkArgument(value == null || value instanceof java.util.UUID);
+            return EncodingUtils.encodeUUID((java.util.UUID) value);
         }
 
         @Override

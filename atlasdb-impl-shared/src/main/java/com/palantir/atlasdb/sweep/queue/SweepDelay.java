@@ -61,19 +61,19 @@ class SweepDelay {
     }
 
     long getNextPause(SweepIterationResult result) {
-        long lastDelay = SweepIterationResults.caseOf(result)
+        return SweepIterationResults.caseOf(result)
                 .success(this::updateCurrentPauseAndGet)
                 .unableToAcquireShard_(maxPauseMillis)
                 .insufficientConsistency_(BACKOFF)
                 .otherError_(maxPauseMillis)
                 .disabled_(BACKOFF);
-        sweepDelayMetricsUpdater.accept(lastDelay);
-        return lastDelay;
     }
 
     private long updateCurrentPauseAndGet(long numSwept) {
         long target = pauseTarget(numSwept);
-        return currentPause.updateAndGet(oldPause -> (4 * oldPause + target) / 5);
+        long newPause = currentPause.updateAndGet(oldPause -> (4 * oldPause + target) / 5);
+        sweepDelayMetricsUpdater.accept(newPause);
+        return newPause;
     }
 
     private long pauseTarget(long numSwept) {

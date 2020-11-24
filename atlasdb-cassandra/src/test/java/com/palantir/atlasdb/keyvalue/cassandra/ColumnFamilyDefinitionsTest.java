@@ -161,4 +161,22 @@ public class ColumnFamilyDefinitionsTest {
                 .describedAs("identical CFs should equal each other")
                 .isTrue();
     }
+
+    @Test
+    public void equalsIgnoringClasspath() {
+        assertThat(ColumnFamilyDefinitions.equalsIgnoringClasspath(null, null)).isTrue();
+        assertThat(ColumnFamilyDefinitions.equalsIgnoringClasspath("", "")).isTrue();
+        assertThat(ColumnFamilyDefinitions.equalsIgnoringClasspath("a", "a")).isTrue();
+        assertThat(ColumnFamilyDefinitions.equalsIgnoringClasspath("a.b", "a.b"))
+                .isTrue();
+        assertThat(ColumnFamilyDefinitions.equalsIgnoringClasspath("a.b", "b.b"))
+                .isTrue();
+
+        assertThat(ColumnFamilyDefinitions.equalsIgnoringClasspath(null, "")).isFalse();
+        assertThat(ColumnFamilyDefinitions.equalsIgnoringClasspath("", null)).isFalse();
+
+        assertThat(ColumnFamilyDefinitions.equalsIgnoringClasspath("a", "b")).isFalse();
+        assertThat(ColumnFamilyDefinitions.equalsIgnoringClasspath("a.b", "a.c"))
+                .isFalse();
+    }
 }

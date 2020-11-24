@@ -36,7 +36,9 @@ import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
+import com.palantir.atlasdb.timelock.adjudicate.LeaderElectionMetricAggregator;
 import com.palantir.atlasdb.timelock.adjudicate.TimeLockClientFeedbackResource;
+import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.v1.ConjureLockV1Resource;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
@@ -64,12 +66,11 @@ import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
+import com.palantir.timelock.corruption.detection.CorruptionHealthReport;
 import com.palantir.timelock.corruption.handle.CorruptionNotifierResource;
 import com.palantir.timelock.corruption.handle.JerseyCorruptionFilter;
 import com.palantir.timelock.corruption.handle.UndertowCorruptionHandlerService;
-import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.remote.TimeLockPaxosHistoryProviderResource;
-import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timelock.management.ImmutableTimestampStorage;
@@ -102,6 +103,7 @@ public class TimeLockAgent {
     private final PersistedSchemaVersion persistedSchemaVersion;
     private final HikariDataSource sqliteDataSource;
     private final FeedbackHandler feedbackHandler;
+    private final LeaderElectionMetricAggregator leaderElectionAggregator;
     private final TimeLockCorruptionComponents corruptionComponents;
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
@@ -207,6 +209,7 @@ public class TimeLockAgent {
         this.feedbackHandler = new FeedbackHandler(
                 metricsManager, () -> runtime.get().adjudication().enabled());
         this.corruptionComponents = paxosResources.timeLockCorruptionComponents();
+        this.leaderElectionAggregator = new LeaderElectionMetricAggregator(metricsManager);
     }
 
     private TimestampStorage getTimestampStorage() {
@@ -261,8 +264,6 @@ public class TimeLockAgent {
                 namespace -> namespaces.get(namespace).getTimelockService();
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
-        LocalHistoryLoader localHistoryLoader =
-                LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(sqliteDataSource));
 
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
@@ -276,12 +277,18 @@ public class TimeLockAgent {
                     presentUndertowRegistrar,
                     ConjureLockV1Resource.undertow(redirectRetryTargeter(), lockServiceGetter));
             registerCorruptionHandlerWrappedService(
-                    presentUndertowRegistrar, TimeLockPaxosHistoryProviderResource.undertow(localHistoryLoader));
+                    presentUndertowRegistrar,
+                    TimeLockPaxosHistoryProviderResource.undertow(corruptionComponents.localHistoryLoader()));
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar,
+                    MultiClientConjureTimelockResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
-            registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(localHistoryLoader));
+            registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
+            registrar.accept(
+                    MultiClientConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
         }
     }
 
@@ -289,9 +296,11 @@ public class TimeLockAgent {
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
-                    TimeLockClientFeedbackResource.undertow(feedbackHandler, this::isLeaderForClient));
+                    TimeLockClientFeedbackResource.undertow(
+                            feedbackHandler, this::isLeaderForClient, leaderElectionAggregator));
         } else {
-            registrar.accept(TimeLockClientFeedbackResource.jersey(feedbackHandler, this::isLeaderForClient));
+            registrar.accept(TimeLockClientFeedbackResource.jersey(
+                    feedbackHandler, this::isLeaderForClient, leaderElectionAggregator));
         }
     }
 
@@ -379,7 +388,7 @@ public class TimeLockAgent {
 
     // No runtime configuration at the moment.
     private void registerPaxosResource() {
-        paxosResources.resourcesForRegistration().forEach(registrar::accept);
+        paxosResources.resourcesForRegistration().forEach(registrar);
     }
 
     private void registerExceptionMappers() {
@@ -434,6 +443,10 @@ public class TimeLockAgent {
                 .leadershipContextFactory()
                 .leaderElectionHealthCheck()
                 .leaderElectionRateHealthReport();
+    }
+
+    public CorruptionHealthReport timeLockCorruptionHealthCheck() {
+        return corruptionComponents.timeLockCorruptionHealthCheck().localCorruptionReport();
     }
 
     public void shutdown() {

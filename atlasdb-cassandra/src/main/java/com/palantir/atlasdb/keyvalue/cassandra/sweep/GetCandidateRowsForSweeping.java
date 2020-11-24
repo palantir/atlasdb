@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
+import com.palantir.logsafe.Preconditions;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -104,6 +105,9 @@ public class GetCandidateRowsForSweeping {
 
         List<CandidateRowForSweeping> candidates = new ArrayList<>();
         cellsByRow.forEach((row, cells) -> {
+            Preconditions.checkState(row.hasArray(), "Expected an array backed buffer");
+            Preconditions.checkState(row.arrayOffset() == 0, "Buffer array must have no offset");
+            Preconditions.checkState(row.limit() == row.array().length, "Array length must match the limit");
             candidates.add(CandidateRowForSweeping.of(
                     row.array(),
                     cells.stream()

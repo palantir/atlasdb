@@ -16,158 +16,75 @@
 
 package com.palantir.timelock.corruption.detection;
 
+import static com.palantir.timelock.history.PaxosLogHistoryProgressTracker.MAX_ROWS_ALLOWED;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.palantir.paxos.Client;
-import com.palantir.paxos.ImmutableNamespaceAndUseCase;
-import com.palantir.paxos.PaxosAcceptorState;
-import com.palantir.paxos.PaxosStateLog;
-import com.palantir.paxos.PaxosValue;
-import com.palantir.paxos.SqliteConnections;
-import com.palantir.paxos.SqlitePaxosStateLog;
-import com.palantir.timelock.history.LocalHistoryLoader;
-import com.palantir.timelock.history.PaxosLogHistoryProvider;
-import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
-import com.palantir.timelock.history.models.AcceptorUseCase;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
-import com.palantir.timelock.history.models.LearnerUseCase;
-import com.palantir.timelock.history.remote.TimeLockPaxosHistoryProviderResource;
-import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
-import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.sql.DataSource;
-import org.immutables.value.Value;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class HistoryAnalyzerTest {
+public final class HistoryAnalyzerTest {
     @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
-
-    private static final Client CLIENT = Client.of("client");
-    private static final String USE_CASE = "useCase";
-    private static final String USE_CASE_LEARNER =
-            LearnerUseCase.createLearnerUseCase(USE_CASE).value();
-    private static final String USE_CASE_ACCEPTOR =
-            AcceptorUseCase.createAcceptorUseCase(USE_CASE).value();
-
-    private StateLogComponents localStateLogComponents;
-    private List<StateLogComponents> remoteStateLogComponents;
-    PaxosLogHistoryProvider paxosLogHistoryProvider;
-
-    @Before
-    public void setup() throws IOException {
-        localStateLogComponents = createLogComponentsForServer("randomFile1");
-        remoteStateLogComponents = ImmutableList.of(
-                createLogComponentsForServer("randomFile2"), createLogComponentsForServer("randomFile3"));
-        paxosLogHistoryProvider = new PaxosLogHistoryProvider(
-                localStateLogComponents.dataSource(),
-                remoteStateLogComponents.stream()
-                        .map(StateLogComponents::serverHistoryProvider)
-                        .collect(Collectors.toList()));
-    }
+    public TimeLockCorruptionDetectionHelper helper = new TimeLockCorruptionDetectionHelper();
 
     @Test
     public void correctlyPassesIfThereIsNotCorruption() {
-        writeLogsOnServer(localStateLogComponents, 1, 10);
-        remoteStateLogComponents.stream().forEach(server -> writeLogsOnServer(server, 1, 10));
+        helper.writeLogsOnDefaultLocalAndRemote(67, 298);
 
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
-        assertThat(HistoryAnalyzer.violatedCorruptionChecksForNamespaceAndUseCase(
+        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
+
+        assertThat(HistoryAnalyzer.corruptionCheckViolationLevelForNamespaceAndUseCase(
                         Iterables.getOnlyElement(historyForAll)))
-                .hasSize(0);
+                .isEqualTo(CorruptionCheckViolation.NONE);
+
+        helper.assertNoCorruptionViolations();
     }
 
     @Test
     public void detectCorruptionIfDifferentValuesAreLearnedInSameRound() {
         PaxosSerializationTestUtils.writePaxosValue(
-                localStateLogComponents.learnerLog(),
+                helper.getDefaultLocalServer().learnerLog(),
                 1,
                 PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 1));
-        remoteStateLogComponents.stream()
+        helper.getDefaultRemoteServerList()
                 .forEach(server -> PaxosSerializationTestUtils.writePaxosValue(
                         server.learnerLog(), 1, PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 5)));
-
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
+        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.DIVERGED_LEARNERS);
+
+        helper.assertViolationDetected(CorruptionCheckViolation.DIVERGED_LEARNERS);
     }
 
     @Test
     public void detectCorruptionIfLearnedValueIsNotAcceptedByQuorum() {
-        writeLogsOnServer(localStateLogComponents, 1, 10);
+        helper.writeLogsOnDefaultLocalServer(5, MAX_ROWS_ALLOWED);
 
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
+        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.NONE);
         assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
+
+        helper.assertViolationDetected(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
     }
 
     @Test
     public void detectCorruptionIfLearnedValueIsNotTheGreatestAcceptedValue() {
-        writeLogsOnServer(localStateLogComponents, 1, 5);
-        remoteStateLogComponents.stream().forEach(server -> writeLogsOnServer(server, 1, 5));
+        helper.writeLogsOnDefaultLocalAndRemote(9, MAX_ROWS_ALLOWED - 1);
+        helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(MAX_ROWS_ALLOWED / 2);
 
-        PaxosSerializationTestUtils.writeAcceptorStateForLogAndRound(
-                localStateLogComponents.acceptorLog(),
-                5,
-                Optional.of(PaxosSerializationTestUtils.createPaxosValueForRoundAndData(5, 105)));
-
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = paxosLogHistoryProvider.getHistory();
+        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
         assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.NONE);
         assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.NONE);
         assertThat(HistoryAnalyzer.greatestAcceptedValueNotLearned(Iterables.getOnlyElement(historyForAll)))
                 .isEqualTo(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
-    }
 
-    // utils
-    public Set<PaxosValue> writeLogsOnServer(StateLogComponents server, int start, int end) {
-        return PaxosSerializationTestUtils.writeToLogs(server.acceptorLog(), server.learnerLog(), start, end);
-    }
-
-    public StateLogComponents createLogComponentsForServer(String fileName) throws IOException {
-        DataSource dataSource = SqliteConnections.getPooledDataSource(
-                tempFolder.newFolder(fileName).toPath());
-        PaxosStateLog<PaxosValue> learnerLog =
-                SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER), dataSource);
-        PaxosStateLog<PaxosAcceptorState> acceptorLog =
-                SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR), dataSource);
-        LocalHistoryLoader history = LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
-        TimeLockPaxosHistoryProvider serverHistoryProvider = TimeLockPaxosHistoryProviderResource.jersey(history);
-        return StateLogComponents.builder()
-                .dataSource(dataSource)
-                .learnerLog(learnerLog)
-                .acceptorLog(acceptorLog)
-                .history(history)
-                .serverHistoryProvider(serverHistoryProvider)
-                .build();
-    }
-
-    @Value.Immutable
-    interface StateLogComponents {
-        DataSource dataSource();
-
-        PaxosStateLog<PaxosValue> learnerLog();
-
-        PaxosStateLog<PaxosAcceptorState> acceptorLog();
-
-        LocalHistoryLoader history();
-
-        TimeLockPaxosHistoryProvider serverHistoryProvider();
-
-        static ImmutableStateLogComponents.Builder builder() {
-            return ImmutableStateLogComponents.builder();
-        }
+        helper.assertViolationDetected(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
     }
 }

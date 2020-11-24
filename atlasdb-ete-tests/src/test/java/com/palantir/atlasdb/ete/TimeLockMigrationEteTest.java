@@ -131,7 +131,7 @@ public class TimeLockMigrationEteTest {
         // as() is not compatible with assertThatThrownBy - see
         // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
         softAssertions
-                .assertThat((catchThrowable(timestampClient::getFreshTimestamp)).getMessage())
+                .assertThat(catchThrowable(timestampClient::getFreshTimestamp).getMessage())
                 .contains("NOT_FOUND")
                 .as("no longer exposes an embedded timestamp service");
     }

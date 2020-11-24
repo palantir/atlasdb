@@ -46,7 +46,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
             ReentrantManagedConnectionSupplier connectionSupplier) {
-        Supplier<Connection> supplier = connectionSupplier::get;
+        Supplier<Connection> supplier = connectionSupplier;
         SQL sql = new SQL() {
             @Override
             protected SqlConfig getSqlConfig() {

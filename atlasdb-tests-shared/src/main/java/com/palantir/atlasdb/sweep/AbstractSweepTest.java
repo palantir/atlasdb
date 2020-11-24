@@ -38,6 +38,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -86,10 +87,14 @@ public abstract class AbstractSweepTest {
         this.tmManager = tmManager;
     }
 
+    protected CacheWarming getSsmCacheWarming() {
+        return CacheWarming.FULL;
+    }
+
     @Before
     public void setup() {
         kvs = kvsManager.getDefaultKvs();
-        ssm = SweepStrategyManagers.createDefault(kvs);
+        ssm = SweepStrategyManagers.create(kvs, getSsmCacheWarming());
         txManager = getManager();
         txService = TransactionServices.createRaw(kvs, txManager.getTimestampService(), false);
         SweepTestUtils.setupTables(kvs);

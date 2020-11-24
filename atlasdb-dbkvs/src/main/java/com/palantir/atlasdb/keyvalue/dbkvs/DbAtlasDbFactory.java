@@ -18,19 +18,15 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -84,39 +80,30 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs, Optional<DbTimestampCreationSetting> creationParameters, boolean initializeAsync) {
+            KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride, boolean initializeAsync) {
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronousy.");
+            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
 
+        Preconditions.checkArgument(
+                !tableReferenceOverride
+                        .map(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE::equals)
+                        .orElse(false),
+                "Cannot specify the DB TimeLock timestamp table as a timestamp table override!");
         Preconditions.checkArgument(
                 rawKvs instanceof ConnectionManagerAwareDbKvs,
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s",
                 rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
 
-        return PersistentTimestampServiceImpl.create(createTimestampBoundStore(creationParameters, dbkvs));
+        return PersistentTimestampServiceImpl.create(createTimestampBoundStore(tableReferenceOverride, dbkvs));
     }
 
     private static InDbTimestampBoundStore createTimestampBoundStore(
-            Optional<DbTimestampCreationSetting> creationParameters, ConnectionManagerAwareDbKvs dbkvs) {
-        return creationParameters
-                .map(params -> DbTimestampCreationSettings.caseOf(params)
-                        .multipleSeries((table, series) -> multiSeries(dbkvs, table, series))
-                        .singleSeries(table -> singleSeries(dbkvs, table)))
-                .orElseGet(() -> defaultTimestampBoundStore(dbkvs));
-    }
-
-    private static InDbTimestampBoundStore singleSeries(
-            ConnectionManagerAwareDbKvs dbkvs, Optional<TableReference> tableRef) {
+            Optional<TableReference> tableRef, ConnectionManagerAwareDbKvs dbkvs) {
         // Not using the table prefix here, as the tableRef should contain any necessary prefix.
         return tableRef.map(reference -> InDbTimestampBoundStore.create(dbkvs.getConnectionManager(), reference))
                 .orElseGet(() -> defaultTimestampBoundStore(dbkvs));
-    }
-
-    private static InDbTimestampBoundStore multiSeries(
-            ConnectionManagerAwareDbKvs dbkvs, TableReference tableRef, TimestampSeries series) {
-        return InDbTimestampBoundStore.createForMultiSeries(dbkvs.getConnectionManager(), tableRef, series);
     }
 
     private static InDbTimestampBoundStore defaultTimestampBoundStore(ConnectionManagerAwareDbKvs dbkvs) {
@@ -126,18 +113,9 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampStoreInvalidator createTimestampStoreInvalidator(
-            KeyValueService rawKvs, Optional<DbTimestampCreationSetting> creationParameters) {
+            KeyValueService rawKvs, Optional<TableReference> tableReference) {
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
-        return creationParameters
-                .map(params -> DbTimestampCreationSettings.caseOf(params)
-                        .singleSeries(table -> timestampStoreInvalidator(dbkvs, table))
-                        .otherwise(() -> {
-                            throw new SafeIllegalStateException(
-                                    "Invalidator must only be called by embedded DB timeLock that "
-                                            + "does not support multi series timestamp store. This is unexpected, "
-                                            + "please contact support.");
-                        }))
-                .orElseGet(() -> timestampStoreInvalidator(dbkvs, Optional.empty()));
+        return timestampStoreInvalidator(dbkvs, tableReference);
     }
 
     private TimestampStoreInvalidator timestampStoreInvalidator(

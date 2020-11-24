@@ -19,10 +19,10 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
@@ -129,20 +129,20 @@ public class LockServerOptions implements Serializable {
             return false;
         }
         LockServerOptions other = (LockServerOptions) obj;
-        return Objects.equal(isStandaloneServer(), other.isStandaloneServer())
-                && Objects.equal(getMaxAllowedLockTimeout(), other.getMaxAllowedLockTimeout())
-                && Objects.equal(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
-                && Objects.equal(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
-                && Objects.equal(getMaxNormalLockAge(), other.getMaxNormalLockAge())
-                && Objects.equal(getRandomBitCount(), other.getRandomBitCount())
-                && Objects.equal(getStuckTransactionTimeout(), other.getStuckTransactionTimeout())
-                && Objects.equal(getLockStateLoggerDir(), other.getLockStateLoggerDir())
-                && Objects.equal(slowLogTriggerMillis(), other.slowLogTriggerMillis());
+        return Objects.equals(isStandaloneServer(), other.isStandaloneServer())
+                && Objects.equals(getMaxAllowedLockTimeout(), other.getMaxAllowedLockTimeout())
+                && Objects.equals(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
+                && Objects.equals(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
+                && Objects.equals(getMaxNormalLockAge(), other.getMaxNormalLockAge())
+                && Objects.equals(getRandomBitCount(), other.getRandomBitCount())
+                && Objects.equals(getStuckTransactionTimeout(), other.getStuckTransactionTimeout())
+                && Objects.equals(getLockStateLoggerDir(), other.getLockStateLoggerDir())
+                && Objects.equals(slowLogTriggerMillis(), other.slowLogTriggerMillis());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(
+        return Objects.hash(
                 isStandaloneServer(),
                 getMaxAllowedLockTimeout(),
                 getMaxAllowedClockDrift(),

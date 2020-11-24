@@ -23,6 +23,7 @@ import com.palantir.lock.ConjureLockV1Service;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
+import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
@@ -83,7 +84,7 @@ public interface NamespacedClients {
 
     @Value.Derived
     default NamespacedConjureTimelockService namespacedConjureTimelockService() {
-        return new NamespacedConjureTimelockService(conjureTimelockService(), namespace());
+        return new NamespacedConjureTimelockServiceImpl(conjureTimelockService(), namespace());
     }
 
     @Value.Derived

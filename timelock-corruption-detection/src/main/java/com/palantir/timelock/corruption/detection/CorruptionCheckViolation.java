@@ -23,15 +23,15 @@ public enum CorruptionCheckViolation {
     ACCEPTED_VALUE_GREATER_THAN_LEARNED(true, false);
 
     private final boolean shouldRaiseErrorAlert;
-    private final boolean shouldShootTimeLock;
+    private final boolean shouldRejectRequests;
 
-    CorruptionCheckViolation(boolean shouldRaiseErrorAlert, boolean shouldShootTimeLock) {
+    CorruptionCheckViolation(boolean shouldRaiseErrorAlert, boolean shouldRejectRequests) {
         this.shouldRaiseErrorAlert = shouldRaiseErrorAlert;
-        this.shouldShootTimeLock = shouldShootTimeLock;
+        this.shouldRejectRequests = shouldRejectRequests;
     }
 
-    public boolean shootTimeLock() {
-        return shouldShootTimeLock;
+    public boolean shouldRejectRequests() {
+        return shouldRejectRequests;
     }
 
     public boolean raiseErrorAlert() {

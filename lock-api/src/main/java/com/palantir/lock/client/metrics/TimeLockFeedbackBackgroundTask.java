@@ -21,13 +21,16 @@ import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackS
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
+import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
+import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -52,6 +55,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private final String serviceName;
     private final String namespace;
     private final Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
+    private volatile Optional<LeaderElectionReportingTimelockService> leaderElectionReporter;
 
     private ScheduledFuture<?> task;
 
@@ -92,9 +96,12 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                                 .serviceName(serviceName)
                                 .namespace(namespace)
                                 .build();
-                        timeLockClientFeedbackServices
-                                .current()
-                                .forEach(service -> reportClientFeedbackToService(feedbackReport, service));
+                        timeLockClientFeedbackServices.current().forEach(service -> {
+                            reportClientFeedbackToService(feedbackReport, service);
+                            leaderElectionReporter
+                                    .map(LeaderElectionReportingTimelockService::getStatistics)
+                                    .ifPresent(stats -> reportLeaderElectionStatisticsToService(stats, service));
+                        });
                     } catch (Exception e) {
                         log.warn("A problem occurred while reporting client feedback for timeLock adjudication.", e);
                     }
@@ -104,6 +111,10 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                 TimeUnit.SECONDS);
     }
 
+    public void registerLeaderElectionStatistics(LeaderElectionReportingTimelockService conjureTimelock) {
+        this.leaderElectionReporter = Optional.of(conjureTimelock);
+    }
+
     private void reportClientFeedbackToService(
             ConjureTimeLockClientFeedback feedbackReport, TimeLockClientFeedbackService service) {
         try {
@@ -111,6 +122,15 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
         } catch (Exception e) {
             // we do not want this exception to bubble up so that feedback can be reported to other hosts
             log.warn("Failed to report feedback to TimeLock host.", e);
+        }
+    }
+
+    private void reportLeaderElectionStatisticsToService(
+            LeaderElectionStatistics electionStatistics, TimeLockClientFeedbackService service) {
+        try {
+            service.reportLeaderMetrics(AUTH_HEADER, electionStatistics);
+        } catch (Exception e) {
+            log.warn("Failed to report leader election statistics to TimeLock host.", e);
         }
     }
 

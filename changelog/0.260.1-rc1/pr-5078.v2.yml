@@ -1,0 +1,8 @@
+type: feature
+feature:
+  description: Adds a ProgressTracker to keep track of last verified sequence numbers
+    for respective (namespace, useCase) pairs for TimeLock corruption checks. This
+    ensures that TimeLock will resume corruption checks from after the lastVerifiedSequence
+    if the node is bounced.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5078

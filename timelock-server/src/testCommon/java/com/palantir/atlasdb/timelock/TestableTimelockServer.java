@@ -28,6 +28,7 @@ import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.paxos.BatchPingableLeader;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
@@ -192,6 +193,10 @@ public class TestableTimelockServer {
 
     public TimeLockManagementService timeLockManagementService() {
         return proxies.singleNode(serverHolder, TimeLockManagementService.class, ProxyMode.WIREMOCK);
+    }
+
+    public MultiClientConjureTimelockService multiClientService() {
+        return proxies.singleNode(serverHolder, MultiClientConjureTimelockService.class, ProxyMode.WIREMOCK);
     }
 
     private static final class SingleNodeProxyFactory implements ProxyFactory {

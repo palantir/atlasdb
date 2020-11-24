@@ -64,7 +64,7 @@ public class ProfilingKeyValueServiceTest {
         @Override
         public boolean matches(final Object argument) {
             LoggingEvent ev = (LoggingEvent) argument;
-            return ev.getLoggerName() == KvsProfilingLogger.SLOW_LOGGER_NAME && ev.getLevel() == Level.WARN;
+            return KvsProfilingLogger.SLOW_LOGGER_NAME.equals(ev.getLoggerName()) && ev.getLevel() == Level.WARN;
         }
     });
 
@@ -72,8 +72,7 @@ public class ProfilingKeyValueServiceTest {
         @Override
         public boolean matches(final Object argument) {
             LoggingEvent ev = (LoggingEvent) argument;
-            return ev.getLoggerName()
-                            == LoggerFactory.getLogger(KvsProfilingLogger.class).getName()
+            return LoggerFactory.getLogger(KvsProfilingLogger.class).getName().equals(ev.getLoggerName())
                     && ev.getLevel() == Level.TRACE;
         }
     });

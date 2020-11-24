@@ -52,7 +52,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     // we accumulate all clients that we've seen so far such that if we need to invalidate the cache and request a new
     // update, we receive a cache update that's consistent with the clients we've seen e.g. in the face of remote node
     // restarts or cache expirations
-    private final Set<Client> clientsSeenSoFar = Sets.newConcurrentHashSet();
+    private final Set<Client> clientsSeenSoFar = ConcurrentHashMap.newKeySet();
 
     // represents the cache digest with the highest timestamp that this client side cache has processed
     private final AtomicReference<TimestampedAcceptorCacheKey> latestCacheKey = new AtomicReference<>();

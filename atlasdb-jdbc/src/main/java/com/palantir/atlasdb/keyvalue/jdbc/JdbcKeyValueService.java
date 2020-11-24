@@ -360,16 +360,6 @@ public final class JdbcKeyValueService implements KeyValueService {
         return rows;
     }
 
-    private static RowN[] toRows(Map<Cell, Long> timestampByCell) {
-        RowN[] rows = new RowN[timestampByCell.size()];
-        int i = 0;
-        for (Map.Entry<Cell, Long> entry : timestampByCell.entrySet()) {
-            rows[i++] = row(
-                    new Object[] {entry.getKey().getRowName(), entry.getKey().getColumnName(), entry.getValue()});
-        }
-        return rows;
-    }
-
     private static RowN[] toRows(List<Map.Entry<Cell, Long>> cellTimestampPairs) {
         RowN[] rows = new RowN[cellTimestampPairs.size()];
         int i = 0;

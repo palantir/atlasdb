@@ -112,7 +112,7 @@ public class MetricNameUtilsTest {
     public void shouldReturnANameIfTryingToRegisterMetricWithExactlyTenTags() throws Exception {
         Map<String, String> tags =
                 IntStream.range(0, 10).boxed().collect(Collectors.toMap(i -> "tag" + i, i -> "tagVal" + i));
-        assertThat(tags.size()).isEqualTo(10);
+        assertThat(tags).hasSize(10);
         assertThat(MetricNameUtils.getMetricName(METRIC_NAME, tags)).contains(METRIC_NAME);
     }
 
@@ -120,7 +120,7 @@ public class MetricNameUtilsTest {
     public void shouldThrowIfTryingToRegisterMetricWithMoreThanTenTags() throws Exception {
         Map<String, String> tags =
                 IntStream.range(0, 11).boxed().collect(Collectors.toMap(i -> "tag" + i, i -> "tagVal" + i));
-        assertThat(tags.size()).isEqualTo(11);
+        assertThat(tags).hasSize(11);
         assertThatThrownBy(() -> MetricNameUtils.getMetricName(METRIC_NAME, tags))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Too many tags set on the metric metricName. "

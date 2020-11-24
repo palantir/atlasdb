@@ -298,6 +298,7 @@ public class WriteBatchingTransactionServiceTest {
         assertThat(exceptionCounter).hasValue(numRequests - 1);
     }
 
+    @SuppressWarnings("immutables:subtype")
     @Value.Immutable
     interface TestTransactionBatchElement extends BatchElement<WriteBatchingTransactionService.TimestampPair, Void> {
         static TestTransactionBatchElement of(long startTimestamp, long commitTimestamp) {

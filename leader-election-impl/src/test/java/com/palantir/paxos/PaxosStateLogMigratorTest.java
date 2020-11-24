@@ -51,6 +51,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class PaxosStateLogMigratorTest {
+    private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE =
+            ImmutableNamespaceAndUseCase.of(Client.of("client"), "UseCase");
+
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -127,6 +130,35 @@ public class PaxosStateLogMigratorTest {
                 .mapKeys(PaxosStateLogTestUtils::valueForRound)
                 .entries()
                 .forEach(entry -> assertThat(entry.getKey()).isEqualTo(entry.getValue()));
+        assertThat(source.getGreatestLogEntry()).isEqualTo(upperBound);
+    }
+
+    @Test
+    public void stillMigrateWhenValidationIsSkippedButAlsoTruncateSource() {
+        long lowerBound = 10;
+        long upperBound = 75;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        long bound = 60;
+        long expectedCutoff = bound - PaxosStateLogMigrator.SAFETY_BUFFER;
+        long cutoff = migrateFrom(source, OptionalLong.of(bound), true);
+
+        assertThat(cutoff).isEqualTo(expectedCutoff);
+        assertThat(migrationState.hasMigratedFromInitialState()).isTrue();
+        assertThat(migrationState.isInMigratedState()).isTrue();
+        assertThat(target.getLeastLogEntry()).isEqualTo(expectedCutoff);
+        assertThat(target.getGreatestLogEntry()).isEqualTo(upperBound);
+
+        LongStream.rangeClosed(lowerBound, expectedCutoff - 1)
+                .mapToObj(sequence -> readRoundUnchecked(target, sequence))
+                .map(Assertions::assertThat)
+                .forEach(AbstractAssert::isNull);
+        KeyedStream.of(LongStream.rangeClosed(expectedCutoff, upperBound).boxed())
+                .map(sequence -> getPaxosValue(target, sequence))
+                .mapKeys(PaxosStateLogTestUtils::valueForRound)
+                .entries()
+                .forEach(entry -> assertThat(entry.getKey()).isEqualTo(entry.getValue()));
+        assertThat(source.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Test
@@ -281,6 +313,8 @@ public class PaxosStateLogMigratorTest {
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
                 .migrationState(migrationState)
                 .migrateFrom(lowerBound)
+                .namespaceAndUseCase(NAMESPACE_AND_USE_CASE)
+                .skipValidationAndTruncateSourceIfMigrated(false)
                 .build();
 
         assertThatCode(() -> PaxosStateLogMigrator.migrateAndReturnCutoff(context))
@@ -303,6 +337,8 @@ public class PaxosStateLogMigratorTest {
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
                 .migrationState(migrationState)
                 .migrateFrom(lowerBound)
+                .namespaceAndUseCase(NAMESPACE_AND_USE_CASE)
+                .skipValidationAndTruncateSourceIfMigrated(false)
                 .build();
 
         assertThatThrownBy(() -> PaxosStateLogMigrator.migrateAndReturnCutoff(context))
@@ -386,6 +422,17 @@ public class PaxosStateLogMigratorTest {
     }
 
     @Test
+    public void doNotFailWhenAlreadyMigratedAndMigrateFromIncreasesButGreatestEntryIsMigrated() {
+        long lowerBound = 10;
+        long upperBound = 250;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.of(220));
+
+        assertThatCode(() -> migrateFrom(source, OptionalLong.of(300))).doesNotThrowAnyException();
+    }
+
+    @Test
     public void doNotFailWhenAlreadyMigratedAndSourceTruncatedFully() {
         long lowerBound = 10;
         long upperBound = 250;
@@ -397,17 +444,92 @@ public class PaxosStateLogMigratorTest {
         assertThatCode(() -> migrateFrom(source, OptionalLong.empty())).doesNotThrowAnyException();
     }
 
+    @Test
+    public void doNotFailWhenSourceAdvancedChangingCutoffOnSkippingValidation() {
+        long lowerBound = 10;
+        long upperBound = 25;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.empty());
+
+        insertValuesWithinBounds(upperBound + 50, upperBound + 50, source);
+        insertValuesWithinBounds(upperBound + 50, upperBound + 50, target);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.empty(), true)).doesNotThrowAnyException();
+        assertThat(source.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Test
+    public void doNotFailWhenSourceAdvancedWithoutChangingCutoffAndEntriesDoNotMatchOnSkippingValidation() {
+        long lowerBound = 10;
+        long upperBound = 25;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.empty());
+
+        insertValuesWithinBounds(upperBound + 1, upperBound + 1, source);
+        target.writeRound(upperBound + 1, PaxosStateLogTestUtils.valueForRound(upperBound + 2));
+        assertThatCode(() -> migrateFrom(source, OptionalLong.empty(), true)).doesNotThrowAnyException();
+        assertThat(source.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Test
+    public void doNotFailWhenSourceAdvancedWithoutChangingCutoffAndNoEntryInTargetOnSkippingValidation() {
+        long lowerBound = 10;
+        long upperBound = 25;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.empty());
+
+        insertValuesWithinBounds(upperBound + 1, upperBound + 1, source);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.empty(), true)).doesNotThrowAnyException();
+        assertThat(source.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Test
+    public void doNotFailWhenSourceAdvancedAndEntriesDoNotMatchWhenSpecifyingLowerBoundOnSkippingValidation() {
+        long lowerBound = 10;
+        long upperBound = 250;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.of(150));
+
+        source.writeRound(upperBound + 1, PaxosStateLogTestUtils.valueForRound(upperBound + 2));
+        insertValuesWithinBounds(upperBound + 1, upperBound + 100, target);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.of(150), true)).doesNotThrowAnyException();
+        assertThat(source.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Test
+    public void doNotFailWhenSourceAdvancedAndNoEntryInTargetWhenSpecifyingLowerBoundOnSkippingValidation() {
+        long lowerBound = 10;
+        long upperBound = 250;
+        insertValuesWithinBounds(lowerBound, upperBound, source);
+
+        migrateFrom(source, OptionalLong.of(150));
+
+        source.writeRound(upperBound + 1, PaxosStateLogTestUtils.valueForRound(upperBound + 2));
+        insertValuesWithinBounds(upperBound + 2, upperBound + 100, target);
+        assertThatCode(() -> migrateFrom(source, OptionalLong.of(150), true)).doesNotThrowAnyException();
+        assertThat(source.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
     private long migrateFrom(PaxosStateLog<PaxosValue> sourceLog) {
         return migrateFrom(sourceLog, OptionalLong.empty());
     }
 
     private long migrateFrom(PaxosStateLog<PaxosValue> sourceLog, OptionalLong lowerBound) {
+        return migrateFrom(sourceLog, lowerBound, false);
+    }
+
+    private long migrateFrom(PaxosStateLog<PaxosValue> sourceLog, OptionalLong lowerBound, boolean skipValidation) {
         return PaxosStateLogMigrator.migrateAndReturnCutoff(ImmutableMigrationContext.<PaxosValue>builder()
                 .sourceLog(sourceLog)
                 .destinationLog(target)
                 .hydrator(PaxosValue.BYTES_HYDRATOR)
                 .migrationState(migrationState)
                 .migrateFrom(lowerBound)
+                .namespaceAndUseCase(NAMESPACE_AND_USE_CASE)
+                .skipValidationAndTruncateSourceIfMigrated(skipValidation)
                 .build());
     }
 

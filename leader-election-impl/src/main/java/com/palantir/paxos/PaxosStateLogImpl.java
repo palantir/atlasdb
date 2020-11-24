@@ -17,6 +17,7 @@ package com.palantir.paxos;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
@@ -223,9 +224,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
             for (File file : files) {
                 long fileSeq = getSeqFromFilename(file);
                 if (fileSeq <= toDeleteInclusive) {
-                    if (file.delete()) {
-                        log.warn("failed to delete log file {}", file.getAbsolutePath());
-                    }
+                    deleteLogFile(file);
                 } else {
                     break;
                 }
@@ -235,10 +234,31 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         }
     }
 
+    @Override
+    public void truncateAllRounds() {
+        lock.writeLock().lock();
+        try {
+            File dir = new File(path);
+            getLogEntries(dir).forEach(PaxosStateLogImpl::deleteLogFile);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private static void deleteLogFile(File file) {
+        if (!file.delete()) {
+            log.warn(
+                    "Failed to delete log file for sequence {}, use case {}, and client {}.",
+                    SafeArg.of("sequence", file.getName()),
+                    SafeArg.of("use case", file.getParentFile().getName()),
+                    SafeArg.of("client", file.getParentFile().getParentFile().getName()));
+        }
+    }
+
     private List<File> getLogEntries(File dir) {
         File[] files = dir.listFiles();
         if (files == null) {
-            return null;
+            return ImmutableList.of();
         }
         return new ArrayList<>(Collections2.filter(Arrays.asList(files), nameIsALongPredicate()));
     }

@@ -24,31 +24,45 @@ import com.palantir.atlasdb.timelock.adjudicate.feedback.UndertowTimeLockClientF
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
+import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.function.Predicate;
 
 public final class TimeLockClientFeedbackResource implements UndertowTimeLockClientFeedbackService {
+    private final LeaderElectionMetricAggregator leaderElectionAggregator;
     private Predicate<Client> leadershipCheck;
     private FeedbackHandler feedbackHandler;
 
-    private TimeLockClientFeedbackResource(FeedbackHandler feedbackHandler, Predicate<Client> leadershipCheck) {
+    private TimeLockClientFeedbackResource(
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck,
+            LeaderElectionMetricAggregator leaderElectionAggregator) {
         this.feedbackHandler = feedbackHandler;
         this.leadershipCheck = leadershipCheck;
+        this.leaderElectionAggregator = leaderElectionAggregator;
     }
 
     public static TimeLockClientFeedbackResource create(
-            FeedbackHandler feedbackHandler, Predicate<Client> leadershipCheck) {
-        return new TimeLockClientFeedbackResource(feedbackHandler, leadershipCheck);
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck,
+            LeaderElectionMetricAggregator leaderElectionAggregator) {
+        return new TimeLockClientFeedbackResource(feedbackHandler, leadershipCheck, leaderElectionAggregator);
     }
 
-    public static UndertowService undertow(FeedbackHandler feedbackHandler, Predicate<Client> leadershipCheck) {
+    public static UndertowService undertow(
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck,
+            LeaderElectionMetricAggregator leaderElectionAggregator) {
         return TimeLockClientFeedbackServiceEndpoints.of(
-                TimeLockClientFeedbackResource.create(feedbackHandler, leadershipCheck));
+                TimeLockClientFeedbackResource.create(feedbackHandler, leadershipCheck, leaderElectionAggregator));
     }
 
     public static TimeLockClientFeedbackService jersey(
-            FeedbackHandler feedbackHandler, Predicate<Client> leadershipCheck) {
-        return new JerseyAdapter(TimeLockClientFeedbackResource.create(feedbackHandler, leadershipCheck));
+            FeedbackHandler feedbackHandler,
+            Predicate<Client> leadershipCheck,
+            LeaderElectionMetricAggregator leaderElectionAggregator) {
+        return new JerseyAdapter(
+                TimeLockClientFeedbackResource.create(feedbackHandler, leadershipCheck, leaderElectionAggregator));
     }
 
     @Override
@@ -56,6 +70,12 @@ public final class TimeLockClientFeedbackResource implements UndertowTimeLockCli
         if (leadershipCheck.test(getClient(feedbackReport))) {
             feedbackHandler.handle(feedbackReport);
         }
+        return Futures.immediateVoidFuture();
+    }
+
+    @Override
+    public ListenableFuture<Void> reportLeaderMetrics(AuthHeader authHeader, LeaderElectionStatistics statistics) {
+        leaderElectionAggregator.report(statistics);
         return Futures.immediateVoidFuture();
     }
 
@@ -73,6 +93,11 @@ public final class TimeLockClientFeedbackResource implements UndertowTimeLockCli
         @Override
         public void reportFeedback(AuthHeader authHeader, ConjureTimeLockClientFeedback feedbackReport) {
             delegate.reportFeedback(authHeader, feedbackReport);
+        }
+
+        @Override
+        public void reportLeaderMetrics(AuthHeader authHeader, LeaderElectionStatistics statistics) {
+            delegate.reportLeaderMetrics(authHeader, statistics);
         }
     }
 }
