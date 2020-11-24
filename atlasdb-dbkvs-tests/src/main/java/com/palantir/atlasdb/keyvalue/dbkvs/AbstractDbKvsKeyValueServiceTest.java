@@ -142,7 +142,7 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
         for (RowResult<T> rr : rowResults) {
             uniqueRows.add(rr.getRowName());
         }
-        assertThat(uniqueRows.size()).isEqualTo(expectedRows);
+        assertThat(uniqueRows).hasSize(expectedRows);
     }
 
     /**
