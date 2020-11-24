@@ -150,8 +150,8 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
-import com.palantir.lock.client.AuthenticatingMultiClientConjureTimelockService;
-import com.palantir.lock.client.AuthenticatingMultiClientConjureTimelockServiceImpl;
+import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
+import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
@@ -1235,9 +1235,9 @@ public abstract class TransactionManagers {
                 .orElseGet(() -> new LegacyLeaderTimeGetter(namespacedConjureTimelockService));
     }
 
-    private static Supplier<AuthenticatingMultiClientConjureTimelockService> getMultiClientTimelockServiceSupplier(
+    private static Supplier<InternalMultiClientConjureTimelockService> getMultiClientTimelockServiceSupplier(
             AtlasDbDialogueServiceProvider serviceProvider) {
-        return Suppliers.memoize(() -> new AuthenticatingMultiClientConjureTimelockServiceImpl(
+        return Suppliers.memoize(() -> new AuthenticatedInternalMultiClientConjureTimelockService(
                 serviceProvider.getMultiClientConjureTimelockService()));
     }
 
