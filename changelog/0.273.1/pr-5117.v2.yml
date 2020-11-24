@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: LockServiceImpl now interrupts all blocked threads upon closing.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5117
