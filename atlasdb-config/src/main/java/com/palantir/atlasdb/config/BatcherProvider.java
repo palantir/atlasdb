@@ -20,6 +20,5 @@ import com.palantir.lock.client.AuthenticatingMultiClientConjureTimelockService;
 import java.util.function.Supplier;
 
 public interface BatcherProvider<T> {
-    T getBatcher(
-            Supplier<AuthenticatingMultiClientConjureTimelockService> multiClientConjureTimelockService);
+    T getBatcher(Supplier<AuthenticatingMultiClientConjureTimelockService> multiClientConjureTimelockService);
 }

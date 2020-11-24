@@ -18,6 +18,7 @@ package com.palantir.atlasdb.factory;
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -152,8 +153,10 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.AuthenticatingMultiClientConjureTimelockService;
 import com.palantir.lock.client.AuthenticatingMultiClientConjureTimelockServiceImpl;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
-import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
+import com.palantir.lock.client.LeaderTimeGetter;
+import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
@@ -1200,18 +1203,11 @@ public abstract class TransactionManagers {
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
 
-        // todo(snanda)
-        log.info("Fetching batcher for namespace - {}", SafeArg.of("namespace", timelockNamespace));
-        AuthenticatingMultiClientConjureTimelockService multiClientConjureTimelockService =
-                new AuthenticatingMultiClientConjureTimelockServiceImpl(
-                        serviceProvider.getMultiClientConjureTimelockService());
-        Optional<LeaderTimeCoalescingBatcher> leaderTimeCoalescingBatcher = multiClientBatcherProviders
-                .map(MultiClientBatcherProviders::leaderTimeBatcherProvider)
-                .map(provider ->
-                        provider.getBatcher(timelockServerListConfig.get(), multiClientConjureTimelockService));
+        LeaderTimeGetter leaderTimeGetter = getLeaderTimeGetter(
+                timelockNamespace, multiClientBatcherProviders, serviceProvider, namespacedConjureTimelockService);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
-                namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache);
+                namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, leaderTimeGetter);
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
@@ -1225,6 +1221,24 @@ public abstract class TransactionManagers {
                 .addResources(remoteTimelockServiceAdapter::close)
                 .addResources(lockWatchManager::close)
                 .build();
+    }
+
+    private static LeaderTimeGetter getLeaderTimeGetter(
+            String timelockNamespace,
+            Optional<MultiClientBatcherProviders> multiClientBatcherProviders,
+            AtlasDbDialogueServiceProvider serviceProvider,
+            LeaderElectionReportingTimelockService namespacedConjureTimelockService) {
+        return multiClientBatcherProviders
+                .map(MultiClientBatcherProviders::leaderTimeBatcherProvider)
+                .map(provider -> provider.getBatcher(getMultiClientTimelockServiceSupplier(serviceProvider)))
+                .<LeaderTimeGetter>map(batcher -> new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, batcher))
+                .orElseGet(() -> new LegacyLeaderTimeGetter(namespacedConjureTimelockService));
+    }
+
+    private static Supplier<AuthenticatingMultiClientConjureTimelockService> getMultiClientTimelockServiceSupplier(
+            AtlasDbDialogueServiceProvider serviceProvider) {
+        return Suppliers.memoize(() -> new AuthenticatingMultiClientConjureTimelockServiceImpl(
+                serviceProvider.getMultiClientConjureTimelockService()));
     }
 
     private static LockAndTimestampServices createRawLeaderServices(
