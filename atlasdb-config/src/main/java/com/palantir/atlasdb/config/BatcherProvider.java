@@ -17,9 +17,9 @@
 package com.palantir.atlasdb.config;
 
 import com.palantir.lock.client.AuthenticatingMultiClientConjureTimelockService;
+import java.util.function.Supplier;
 
 public interface BatcherProvider<T> {
     T getBatcher(
-            ServerListConfig serverListConfig,
-            AuthenticatingMultiClientConjureTimelockService multiClientConjureTimelockService);
+            Supplier<AuthenticatingMultiClientConjureTimelockService> multiClientConjureTimelockService);
 }
