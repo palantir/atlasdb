@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.containers;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
@@ -50,7 +50,7 @@ public class CassandraCliParserTest {
                 + "UN  172.30.0.2  1.87 MB    512          69.6%           "
                 + "  58b310df-5ce2-4565-a479-0ed37e69b04f  rack1";
 
-        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(3));
+        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus)).isEqualTo(3);
     }
 
     @Test
@@ -68,12 +68,12 @@ public class CassandraCliParserTest {
                 + "UN  172.30.0.2  1.87 MB    512          69.6%           "
                 + "  58b310df-5ce2-4565-a479-0ed37e69b04f  rack1";
 
-        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(2));
+        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus)).isEqualTo(2);
     }
 
     @Test
     public void parsesCorruptResponseFromNodetoolStatusSilently() {
-        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(CORRUPT_STRING), is(0));
+        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(CORRUPT_STRING)).isEqualTo(0);
     }
 
     @Test
@@ -91,7 +91,7 @@ public class CassandraCliParserTest {
                 + "| {\"replication_factor\":\"3\"}\n"
                 + "\n"
                 + "(3 rows)";
-        assertThat(parser.parseSystemAuthReplicationFromCqlsh(output), is(4));
+        assertThat(parser.parseSystemAuthReplicationFromCqlsh(output)).isEqualTo(4);
     }
 
     @Test
@@ -114,7 +114,7 @@ public class CassandraCliParserTest {
             + " 'replication_factor': '2'}\n"
             + "\n"
             + "(5 rows)";
-        assertThat(parserThreeSeven.parseSystemAuthReplicationFromCqlsh(output), is(4));
+        assertThat(parserThreeSeven.parseSystemAuthReplicationFromCqlsh(output)).isEqualTo(4);
     }
 
     @Test(expected = IllegalArgumentException.class)

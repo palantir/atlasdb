@@ -122,17 +122,17 @@ public class SinglePingableLeaderTest {
 
     private void assertPingV2RequestsMadeAreLessThan(int count) {
         List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
-        assertThat(requests.size()).isLessThan(count);
+        assertThat(requests).hasSizeLessThan(count);
     }
 
     private void assertPingV2RequestsMadeAreExactly(int count) {
         List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING_V2)));
-        assertThat(requests.size()).isEqualTo(count);
+        assertThat(requests).hasSize(count);
     }
 
     private void assertLegacyPingRequestsMade(int count) {
         List<LoggedRequest> requests = WireMock.findAll(WireMock.getRequestedFor(WireMock.urlMatching(PING)));
-        assertThat(requests.size()).isEqualTo(count);
+        assertThat(requests).hasSize(count);
     }
 
     private void pingMultipleTimes(LeaderPinger pinger, int pingFrequency) {

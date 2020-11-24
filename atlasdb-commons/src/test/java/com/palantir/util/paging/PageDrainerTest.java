@@ -16,7 +16,7 @@
 package com.palantir.util.paging;
 
 import static java.lang.Math.min;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
 import com.google.common.collect.Iterables;
@@ -89,6 +89,6 @@ public class PageDrainerTest {
     private void assertGetsResultsUpTo(int limit) {
         PageDrainer<Integer> pageDrainer = new PageDrainer<Integer>(new SimplePager(PAGE_SIZE, limit));
         List<Integer> pages = pageDrainer.drainAllPages();
-        assertThat(pages, hasSize(limit));
+        assertThat(pages).hasSize(limit);
     }
 }
