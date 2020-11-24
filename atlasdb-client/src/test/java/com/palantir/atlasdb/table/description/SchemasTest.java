@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -53,18 +51,21 @@ public class SchemasTest {
 
     @Test
     public void testGetFullTableReferenceString() {
-        assertThat(Schemas.getTableReferenceString(TABLE_NAME, NAMESPACE)).isEqualTo("TableReference.createFromFullyQualifiedName(\"" + NAMESPACE.getName() + "."
-                        + TABLE_NAME + "\")");
+        assertThat(Schemas.getTableReferenceString(TABLE_NAME, NAMESPACE))
+                .isEqualTo("TableReference.createFromFullyQualifiedName(\"" + NAMESPACE.getName() + "." + TABLE_NAME
+                        + "\")");
     }
 
     @Test
     public void testGetFullTableReferenceStringLegacy() {
-        assertThat(Schemas.getTableReferenceString(TABLE_NAME, Namespace.create("met"))).isEqualTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")");
+        assertThat(Schemas.getTableReferenceString(TABLE_NAME, Namespace.create("met")))
+                .isEqualTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")");
     }
 
     @Test
     public void testGetFullTableReferenceStringEmptyNamespace() {
-        assertThat(Schemas.getTableReferenceString(TABLE_NAME, Namespace.EMPTY_NAMESPACE)).isEqualTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")");
+        assertThat(Schemas.getTableReferenceString(TABLE_NAME, Namespace.EMPTY_NAMESPACE))
+                .isEqualTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")");
     }
 
     @Test

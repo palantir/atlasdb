@@ -17,9 +17,6 @@ package com.palantir.atlasdb.stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -254,8 +251,9 @@ public class BlockConsumingInputStreamTest {
 
         // Should fail, because reallyBigGetter.expectedBlockLength() * blocksInMemory = Integer.MAX_VALUE - 7.
         int blocksInMemory = 8;
-        assertThat((long) reallyBigGetter.expectedBlockLength() * (long) blocksInMemory
-                        > StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD).describedAs("Test assumption violated: expectedBlockLength() * blocksInMemory > MAX_IN_MEMORY_THRESHOLD.").isTrue();
+        assertThat((long) reallyBigGetter.expectedBlockLength() * (long) blocksInMemory)
+                .as("Test assumption violated: expectedBlockLength() * blocksInMemory > MAX_IN_MEMORY_THRESHOLD.")
+                .isGreaterThan(StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD);
         BlockConsumingInputStream.create(reallyBigGetter, 9, blocksInMemory);
     }
 

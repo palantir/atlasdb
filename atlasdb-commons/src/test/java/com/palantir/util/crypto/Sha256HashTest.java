@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 import java.security.MessageDigest;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class Sha256HashTest {
@@ -31,7 +30,8 @@ public class Sha256HashTest {
         assertThat(digest.getAlgorithm()).isEqualTo("SHA-256");
         assertThat(digest).isNotSameAs(Sha256Hash.getMessageDigest());
         byte[] result = digest.digest("Hello World".getBytes(Charsets.UTF_8));
-        assertThat(BaseEncoding.base16().encode(result)).isEqualTo("A591A6D40BF420404A011733CFB7B190D62C65BF0BCDA32B57B277D9AD9F146E");
+        assertThat(BaseEncoding.base16().encode(result))
+                .isEqualTo("A591A6D40BF420404A011733CFB7B190D62C65BF0BCDA32B57B277D9AD9F146E");
         assertThat(result.length).isEqualTo(32);
     }
 }

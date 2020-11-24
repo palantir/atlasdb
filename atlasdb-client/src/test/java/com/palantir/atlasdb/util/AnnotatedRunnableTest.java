@@ -17,8 +17,6 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
@@ -108,7 +106,8 @@ public class AnnotatedRunnableTest {
             assertThat(expected.getMessage()).isEqualTo("test message");
             assertThat(expected.getSuppressed().length).isEqualTo(1);
             assertThat(expected.getSuppressed()[0]).isInstanceOf(SuppressedException.class);
-            assertThat(expected.getSuppressed()[0].getMessage()).isEqualTo("Error [java.lang.OutOfMemoryError: test message]"
+            assertThat(expected.getSuppressed()[0].getMessage())
+                    .isEqualTo("Error [java.lang.OutOfMemoryError: test message]"
                             + " occurred while processing thread (test thread name AnnotatedRunnableTest)");
         }
     }

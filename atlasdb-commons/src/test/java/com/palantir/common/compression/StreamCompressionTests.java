@@ -16,8 +16,6 @@
 package com.palantir.common.compression;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
 import com.google.common.io.ByteStreams;
 import java.io.ByteArrayInputStream;

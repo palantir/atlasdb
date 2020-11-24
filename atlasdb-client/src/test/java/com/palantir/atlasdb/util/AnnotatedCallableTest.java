@@ -17,9 +17,6 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -107,7 +104,8 @@ public class AnnotatedCallableTest {
             assertThat(expected.getMessage()).isEqualTo("test message");
             assertThat(expected.getSuppressed().length).isEqualTo(1);
             assertThat(expected.getSuppressed()[0]).isInstanceOf(SuppressedException.class);
-            assertThat(expected.getSuppressed()[0].getMessage()).isEqualTo("Error [java.lang.OutOfMemoryError: test message]"
+            assertThat(expected.getSuppressed()[0].getMessage())
+                    .isEqualTo("Error [java.lang.OutOfMemoryError: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)");
         }
     }
@@ -129,7 +127,8 @@ public class AnnotatedCallableTest {
             assertThat(expected.getMessage()).isEqualTo("test message");
             assertThat(expected.getSuppressed().length).isEqualTo(1);
             assertThat(expected.getSuppressed()[0]).isInstanceOf(SuppressedException.class);
-            assertThat(expected.getSuppressed()[0].getMessage()).isEqualTo("Exception [java.io.IOException: test message]"
+            assertThat(expected.getSuppressed()[0].getMessage())
+                    .isEqualTo("Exception [java.io.IOException: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)");
         }
     }
@@ -152,7 +151,8 @@ public class AnnotatedCallableTest {
             assertThat(expected.getMessage()).isEqualTo("test message");
             assertThat(expected.getSuppressed().length).isEqualTo(1);
             assertThat(expected.getSuppressed()[0]).isInstanceOf(SuppressedException.class);
-            assertThat(expected.getSuppressed()[0].getMessage()).isEqualTo("Exception [java.util.concurrent.ExecutionException: test message]"
+            assertThat(expected.getSuppressed()[0].getMessage())
+                    .isEqualTo("Exception [java.util.concurrent.ExecutionException: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)");
         }
     }
@@ -174,7 +174,8 @@ public class AnnotatedCallableTest {
             assertThat(expected.getMessage()).isEqualTo("test message");
             assertThat(expected.getSuppressed().length).isEqualTo(1);
             assertThat(expected.getSuppressed()[0]).isInstanceOf(SuppressedException.class);
-            assertThat(expected.getSuppressed()[0].getMessage()).isEqualTo("RuntimeException [java.lang.IllegalArgumentException: test message]"
+            assertThat(expected.getSuppressed()[0].getMessage())
+                    .isEqualTo("RuntimeException [java.lang.IllegalArgumentException: test message]"
                             + " occurred while processing thread (test thread name AnnotatedCallableTest)");
         }
     }

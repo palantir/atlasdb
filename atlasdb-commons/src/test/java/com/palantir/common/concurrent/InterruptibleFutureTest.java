@@ -17,7 +17,6 @@ package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;

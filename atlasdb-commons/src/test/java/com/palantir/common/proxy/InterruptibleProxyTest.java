@@ -17,10 +17,6 @@ package com.palantir.common.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
@@ -86,12 +82,20 @@ public class InterruptibleProxyTest {
         @SuppressWarnings("unchecked")
         List<String> proxy = InterruptibleProxy.newProxyInstance(List.class, strings, CancelDelegate.CANCEL);
         assertThat(proxy.get(0)).isEqualTo("Foo");
-                    assertThatThrownBy(() -> {Thread.currentThread().interrupt();
-            assertEquals("Foo", proxy.get(1));}).describedAs("Should be interrupted").isInstanceOf(PalantirInterruptedException.class);
+        assertThatThrownBy(() -> {
+                    Thread.currentThread().interrupt();
+                    assertThat(proxy.get(1000)).isEqualTo("Foo");
+                })
+                .describedAs("Should be interrupted")
+                .isInstanceOf(PalantirInterruptedException.class);
 
-                    assertThatThrownBy(() -> assertEquals("Foo", proxy.get(1000))).describedAs("Should throw exception").isInstanceOf(IndexOutOfBoundsException.class);
+        assertThatThrownBy(() -> assertThat(proxy.get(1000)).isEqualTo("Foo"))
+                .describedAs("Should throw exception")
+                .isInstanceOf(IndexOutOfBoundsException.class);
 
-                    assertThatThrownBy(() -> proxy.remove(0)).describedAs("Should be interrupted").isInstanceOf(PalantirInterruptedException.class);
+        assertThatThrownBy(() -> proxy.remove(0))
+                .describedAs("Should be interrupted")
+                .isInstanceOf(PalantirInterruptedException.class);
 
         barrier.await();
 

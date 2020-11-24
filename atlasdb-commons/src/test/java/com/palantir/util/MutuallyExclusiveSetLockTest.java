@@ -22,7 +22,6 @@ import com.palantir.util.MutuallyExclusiveSetLock.LockState;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -145,14 +144,18 @@ public class MutuallyExclusiveSetLockTest {
         locker.start();
         try {
             Thread.sleep(1000);
-            assertThat(setLock.isLocked(toLock)).describedAs("locks should be held by other thread").isFalse();
+            assertThat(setLock.isLocked(toLock))
+                    .describedAs("locks should be held by other thread")
+                    .isFalse();
             unlock = true;
             locker.join();
         } catch (InterruptedException e) {
             unlock = true;
             fail("unexpected interruption: " + e);
         }
-        assertThat(setLock.isLocked(toLock)).describedAs("locks should be held by other thread").isFalse();
+        assertThat(setLock.isLocked(toLock))
+                .describedAs("locks should be held by other thread")
+                .isFalse();
     }
 
     private Thread createThread(

@@ -16,11 +16,6 @@
 package com.palantir.atlasdb.tracing;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
 
 import com.palantir.tracing.AlwaysSampler;
 import com.palantir.tracing.Tracer;

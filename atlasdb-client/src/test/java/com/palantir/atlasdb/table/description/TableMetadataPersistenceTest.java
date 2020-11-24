@@ -23,7 +23,6 @@ import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.ArrayList;
 import java.util.Collection;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
