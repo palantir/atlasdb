@@ -110,21 +110,11 @@ types:
       LockWatchRequest:
         fields:
           references: set<LockWatchReference>
-      NamespacedLeaderTime:
+      Namespace:
+        alias: string
+      LeaderTimes:
         fields:
-          namespace: string
-          leaderTime: LeaderTime
-      NamespacedGetCommitTimestampsRequest:
-        fields:
-          namespace: string
-          numTimestamps: integer
-          lastKnownVersion: optional<ConjureIdentifiedVersion>
-      NamespacedGetCommitTimestampsResponse:
-        fields:
-          namespace: string
-          inclusiveLower: Long
-          inclusiveUpper: Long
-          lockWatchUpdate: LockWatchStateUpdate
+          leaderTimes: map<Namespace, LeaderTime>
 
 services:
   ConjureTimelockService:
@@ -203,14 +193,7 @@ services:
       leaderTimes:
         http: POST /lts
         args:
-          namespaces: set<string>
-        returns: list<NamespacedLeaderTime>
+          namespaces: set<Namespace>
+        returns: LeaderTimes
         docs: |
           Version of ConjureTimelockService#leaderTime endpoint for acquiring leaderTimes for a set of namespaces.
-      getCommitTimestamps:
-        http: POST /gcts
-        args:
-          requests: list<NamespacedGetCommitTimestampsRequest>
-        returns: list<NamespacedGetCommitTimestampsResponse>
-        docs: |
-          Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.
