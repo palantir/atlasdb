@@ -21,6 +21,5 @@ import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate
 public interface DbKeyValueService extends KeyValueService {
-
     String getTablePrefix();
 }
