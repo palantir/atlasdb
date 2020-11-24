@@ -14,9 +14,7 @@ dependencies {
 
   testCompile project(':atlasdb-config')
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
-  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
