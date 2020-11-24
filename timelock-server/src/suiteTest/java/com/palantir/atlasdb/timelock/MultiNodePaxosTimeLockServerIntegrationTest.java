@@ -31,12 +31,9 @@ import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
-import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
-import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.NamespacedGetCommitTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.NamespacedLeaderTime;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.suite.DbTimeLockSingleLeaderPaxosSuite;
@@ -60,12 +57,10 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tokens.auth.AuthHeader;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -495,18 +490,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void leaderCanProcessMultiClientLeaderTimeRequest() {
-        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
-        Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta");
-        List<NamespacedLeaderTime> leaderTimes =
-                multiClientConjureTimelockService.leaderTimes(AUTH_HEADER, expectedNamespaces);
-        Set<String> namespaces =
-                leaderTimes.stream().map(NamespacedLeaderTime::getNamespace).collect(Collectors.toSet());
-        assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
+    public void sanityCheckMultiClientLeaderTime() {
+        Set<Namespace> expectedNamespaces = ImmutableSet.of(Namespace.of("client1"), Namespace.of("client2"));
+        LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(expectedNamespaces);
 
-        Set<UUID> leadershipIds = leaderTimes.stream()
-                .map(NamespacedLeaderTime::getLeaderTime)
+        // leaderTimes for namespaces are computed by their respective underlying AsyncTimelockService instances
+        Set<UUID> leadershipIds = leaderTimes.getLeaderTimes().values().stream()
                 .map(LeaderTime::id)
                 .map(LeadershipId::id)
                 .collect(Collectors.toSet());
@@ -514,76 +503,30 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void leaderCanProcessMultiClientGetCommitTimestampRequest() {
-        MultiClientConjureTimelockService service =
-                cluster.currentLeaderFor(client.namespace()).multiClientService();
-        Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta");
-        List<NamespacedGetCommitTimestampsResponse> commitTimestamps = service.getCommitTimestamps(
-                AUTH_HEADER, defaultNamespacedGetCommitTimestampsRequests(expectedNamespaces));
-        Set<String> namespaces = commitTimestamps.stream()
-                .map(NamespacedGetCommitTimestampsResponse::getNamespace)
-                .collect(Collectors.toSet());
-        assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
-
-        Set<UUID> leadershipIds = commitTimestamps.stream()
-                .map(NamespacedGetCommitTimestampsResponse::getLockWatchUpdate)
-                .map(LockWatchStateUpdate::logId)
-                .collect(Collectors.toSet());
-        assertThat(leadershipIds).hasSameSizeAs(expectedNamespaces);
-    }
-
-    @Test
     public void sanityCheckMultiClientLeaderTimeAgainstConjureTimelockService() {
+        Set<Namespace> expectedNamespaces = ImmutableSet.of(Namespace.of("alpha"), Namespace.of("beta"));
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
-        Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta", "gamma");
-        List<NamespacedLeaderTime> leaderTimeResponses =
-                multiClientConjureTimelockService.leaderTimes(AUTH_HEADER, expectedNamespaces);
-        Set<String> namespacesWithLeaderTime = leaderTimeResponses.stream()
-                .map(NamespacedLeaderTime::getNamespace)
-                .collect(Collectors.toSet());
-        assertThat(namespacesWithLeaderTime).hasSameElementsAs(expectedNamespaces);
+        LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(expectedNamespaces);
 
         // Whether we hit the multi client endpoint or conjureTimelockService endpoint(services one client in one
         // call), for a namespace, the underlying service to process the request is the same
-        leaderTimeResponses.forEach(namespacedLeaderTime -> {
-            LeaderTime conjureTimelockServiceLeaderTime = leader.client(namespacedLeaderTime.getNamespace())
+        leaderTimes.getLeaderTimes().forEach((namespace, leaderTime) -> {
+            LeaderTime conjureTimelockServiceLeaderTime = leader.client(namespace.get())
                     .namespacedConjureTimelockService()
                     .leaderTime();
-            assertThat(conjureTimelockServiceLeaderTime.id())
-                    .isEqualTo(namespacedLeaderTime.getLeaderTime().id());
+            assertThat(conjureTimelockServiceLeaderTime.id()).isEqualTo(leaderTime.id());
         });
     }
 
-    @Test
-    public void sanityCheckMultiClientGetCommitTimestampsAgainstConjureTimelockService() {
+    private LeaderTimes assertSanityAndGetLeaderTimes(Set<Namespace> expectedNamespaces) {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        MultiClientConjureTimelockService service = leader.multiClientService();
-        Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta");
-        List<NamespacedGetCommitTimestampsResponse> commitTimestamps = service.getCommitTimestamps(
-                AUTH_HEADER, defaultNamespacedGetCommitTimestampsRequests(expectedNamespaces));
-        Set<String> namespaces = commitTimestamps.stream()
-                .map(NamespacedGetCommitTimestampsResponse::getNamespace)
-                .collect(Collectors.toSet());
+        MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
+
+        LeaderTimes leaderTimes = multiClientConjureTimelockService.leaderTimes(AUTH_HEADER, expectedNamespaces);
+        Set<Namespace> namespaces = leaderTimes.getLeaderTimes().keySet();
         assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
 
-        // Whether we hit the multi client endpoint or conjureTimelockService endpoint(services one client in one
-        // call), for a namespace, the underlying service to process the request is the same
-        commitTimestamps.forEach(namespacedGetCommitTimestampsResponse -> {
-            GetCommitTimestampsResponse conjureTimelockServiceGetCommitTimestampResponse = leader.client(
-                            namespacedGetCommitTimestampsResponse.getNamespace())
-                    .namespacedConjureTimelockService()
-                    .getCommitTimestamps(defaultCommitTimestampRequest());
-            assertThat(conjureTimelockServiceGetCommitTimestampResponse
-                            .getLockWatchUpdate()
-                            .logId())
-                    .isEqualTo(namespacedGetCommitTimestampsResponse
-                            .getLockWatchUpdate()
-                            .logId());
-            assertThat(conjureTimelockServiceGetCommitTimestampResponse.getInclusiveLower())
-                    .as("timestamps should contiguously increase per namespace if there are no elections.")
-                    .isEqualTo(namespacedGetCommitTimestampsResponse.getInclusiveUpper() + 1);
-        });
+        return leaderTimes;
     }
 
     private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
@@ -614,20 +557,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                                 .withFixedDelay(
                                         Ints.checkedCast(Duration.ofSeconds(2).toMillis())))
                         .build());
-    }
-
-    private List<NamespacedGetCommitTimestampsRequest> defaultNamespacedGetCommitTimestampsRequests(
-            Set<String> namespaces) {
-        return namespaces.stream()
-                .map(namespace -> NamespacedGetCommitTimestampsRequest.builder()
-                        .namespace(namespace)
-                        .numTimestamps(defaultCommitTimestampRequest().getNumTimestamps())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    private GetCommitTimestampsRequest defaultCommitTimestampRequest() {
-        return GetCommitTimestampsRequest.builder().numTimestamps(5).build();
     }
 
     private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {

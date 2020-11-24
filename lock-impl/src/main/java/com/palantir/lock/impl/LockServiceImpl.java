@@ -71,6 +71,7 @@ import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 import java.io.IOException;
@@ -213,7 +214,7 @@ public final class LockServiceImpl
     private final SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap =
             Multimaps.synchronizedSetMultimap(HashMultimap.<LockClient, LockRequest>create());
 
-    private final Set<Thread> indefinitelyBlockingThreads = ConcurrentHashMap.newKeySet();
+    private final Set<Thread> blockingThreads = ConcurrentHashMap.newKeySet();
 
     private final Multimap<LockClient, Long> versionIdMap = Multimaps.synchronizedMultimap(
             Multimaps.newMultimap(new HashMap<LockClient, Collection<Long>>(), TreeMultiset::create));
@@ -356,9 +357,9 @@ public final class LockServiceImpl
             throw new ServiceNotAvailableException("This lock server is shut down.");
         }
         try {
-            boolean indefinitelyBlocking = isIndefinitelyBlocking(request.getBlockingMode());
-            if (indefinitelyBlocking) {
-                indefinitelyBlockingThreads.add(Thread.currentThread());
+            boolean isBlocking = isBlocking(request.getBlockingMode());
+            if (isBlocking) {
+                blockingThreads.add(Thread.currentThread());
             }
             outstandingLockRequestMultimap.put(client, request);
             Map<LockDescriptor, LockClient> failedLocks = new HashMap<>();
@@ -444,7 +445,7 @@ public final class LockServiceImpl
             return new LockResponse(token, failedLocks);
         } finally {
             outstandingLockRequestMultimap.remove(client, request);
-            indefinitelyBlockingThreads.remove(Thread.currentThread());
+            blockingThreads.remove(Thread.currentThread());
             try {
                 for (Map.Entry<ClientAwareReadWriteLock, LockMode> entry : locks.entrySet()) {
                     entry.getKey().get(client, entry.getValue()).unlock();
@@ -486,9 +487,18 @@ public final class LockServiceImpl
                 UnsafeArg.of("lockDescriptions", lockDescriptions));
     }
 
-    private boolean isIndefinitelyBlocking(BlockingMode blockingMode) {
-        return BlockingMode.BLOCK_INDEFINITELY.equals(blockingMode)
-                || BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE.equals(blockingMode);
+    private boolean isBlocking(BlockingMode blockingMode) {
+        switch (blockingMode) {
+            case DO_NOT_BLOCK:
+                return false;
+            case BLOCK_UNTIL_TIMEOUT:
+            case BLOCK_INDEFINITELY:
+            case BLOCK_INDEFINITELY_THEN_RELEASE:
+                return true;
+            default:
+                throw new SafeIllegalStateException(
+                        "Unrecognized blockingMode", SafeArg.of("blockingMode", blockingMode));
+        }
     }
 
     private void tryLocks(
@@ -582,7 +592,8 @@ public final class LockServiceImpl
                 lock.lockInterruptibly();
                 return null;
             default:
-                throw new IllegalArgumentException("blockingMode = " + blockingMode);
+                throw new SafeIllegalStateException(
+                        "Unrecognized blockingMode", SafeArg.of("blockingMode", blockingMode));
         }
     }
 
@@ -1191,7 +1202,7 @@ public final class LockServiceImpl
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
             lockReapRunner.close();
-            indefinitelyBlockingThreads.forEach(Thread::interrupt);
+            blockingThreads.forEach(Thread::interrupt);
             callOnClose.run();
         }
     }
