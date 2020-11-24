@@ -54,7 +54,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.joda.time.format.ISODateTimeFormat;
 import org.junit.After;

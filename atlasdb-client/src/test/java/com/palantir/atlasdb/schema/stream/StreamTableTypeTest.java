@@ -16,9 +16,6 @@
 package com.palantir.atlasdb.schema.stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -35,20 +32,20 @@ public class StreamTableTypeTest {
     public void isStreamStoreValueTableReturnsTrueForTableWithEmptyNamespace() {
         String tableName = StreamTableType.VALUE.getTableName(TEST_TABLE);
         TableReference tableReference = TableReference.createWithEmptyNamespace(tableName);
-        assertTrue(StreamTableType.isStreamStoreValueTable(tableReference));
+        assertThat(StreamTableType.isStreamStoreValueTable(tableReference)).isTrue();
     }
 
     @Test
     public void isStreamStoreValueTableReturnsTrueForTableWithNamespace() {
         String tableName = StreamTableType.VALUE.getTableName(TEST_TABLE);
         TableReference tableReference = TableReference.create(TEST_NAMESPACE, tableName);
-        assertTrue(StreamTableType.isStreamStoreValueTable(tableReference));
+        assertThat(StreamTableType.isStreamStoreValueTable(tableReference)).isTrue();
     }
 
     @Test
     public void isStreamStoreValueTableReturnsFalseForTestTable() {
         TableReference tableReference = TableReference.createWithEmptyNamespace(TEST_TABLE);
-        assertFalse(StreamTableType.isStreamStoreValueTable(tableReference));
+        assertThat(StreamTableType.isStreamStoreValueTable(tableReference)).isFalse();
     }
 
     @Test
@@ -59,7 +56,7 @@ public class StreamTableTypeTest {
             String tableName = streamType.getTableName(TEST_TABLE);
             TableReference tableReference = TableReference.create(TEST_NAMESPACE, tableName);
 
-            assertFalse(StreamTableType.isStreamStoreValueTable(tableReference));
+            assertThat(StreamTableType.isStreamStoreValueTable(tableReference)).isFalse();
         }
     }
 
@@ -73,7 +70,7 @@ public class StreamTableTypeTest {
 
         TableReference indexTableFromValueTable = StreamTableType.getIndexTableFromValueTable(valueTable);
         assertThat(indexTableFromValueTable).isNotEqualTo(valueTable);
-        assertEquals(expectedIndexTable, indexTableFromValueTable);
+        assertThat(indexTableFromValueTable).isEqualTo(expectedIndexTable);
     }
 
     @Test
@@ -86,6 +83,6 @@ public class StreamTableTypeTest {
 
         TableReference indexTableFromValueTable = StreamTableType.getIndexTableFromValueTable(valueTable);
         assertThat(indexTableFromValueTable).isNotEqualTo(valueTable);
-        assertEquals(expectedIndexTable, indexTableFromValueTable);
+        assertThat(indexTableFromValueTable).isEqualTo(expectedIndexTable);
     }
 }

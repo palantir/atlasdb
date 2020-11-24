@@ -31,7 +31,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.junit.Before;

@@ -27,7 +27,6 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;

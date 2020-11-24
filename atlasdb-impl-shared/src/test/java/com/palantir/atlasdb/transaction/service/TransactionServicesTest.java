@@ -44,7 +44,6 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Test;

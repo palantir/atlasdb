@@ -26,7 +26,6 @@ import com.palantir.docker.compose.connection.DockerPort;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.ClassRule;

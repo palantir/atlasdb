@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.awaitility.Awaitility;
 import org.awaitility.Durations;

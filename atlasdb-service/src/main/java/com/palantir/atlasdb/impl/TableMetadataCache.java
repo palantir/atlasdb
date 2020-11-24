@@ -22,7 +22,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 

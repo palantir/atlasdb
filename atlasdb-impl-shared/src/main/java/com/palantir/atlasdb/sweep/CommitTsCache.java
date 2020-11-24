@@ -22,7 +22,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 public final class CommitTsCache {
     private static final Long ONE_MILLION = 1_000_000L;

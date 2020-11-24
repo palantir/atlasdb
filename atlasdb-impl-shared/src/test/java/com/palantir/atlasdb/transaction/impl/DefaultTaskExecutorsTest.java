@@ -22,7 +22,6 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 public class DefaultTaskExecutorsTest {

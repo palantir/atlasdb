@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.fail;
 
 import com.palantir.common.concurrent.PTExecutors;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.awaitility.Awaitility;

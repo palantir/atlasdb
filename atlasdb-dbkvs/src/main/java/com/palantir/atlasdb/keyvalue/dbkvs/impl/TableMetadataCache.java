@@ -20,7 +20,6 @@ import com.google.common.cache.CacheBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 public class TableMetadataCache {

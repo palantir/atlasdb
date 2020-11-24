@@ -25,7 +25,6 @@ import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;

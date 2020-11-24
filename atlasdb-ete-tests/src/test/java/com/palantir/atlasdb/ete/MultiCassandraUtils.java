@@ -20,7 +20,6 @@ import com.palantir.docker.compose.connection.Container;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 
 public final class MultiCassandraUtils {

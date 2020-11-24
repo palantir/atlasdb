@@ -21,7 +21,6 @@ import com.palantir.atlasdb.containers.UninitializedCassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.Test;

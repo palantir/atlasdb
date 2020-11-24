@@ -25,7 +25,6 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.Test;
 
