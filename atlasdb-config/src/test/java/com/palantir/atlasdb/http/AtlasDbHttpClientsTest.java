@@ -232,7 +232,7 @@ public class AtlasDbHttpClientsTest {
         assertThatThrownBy(client::getTestNumber).isInstanceOf(RuntimeException.class);
 
         servers.add(getUriForPort(availablePort1));
-        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME.getSeconds(), TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME);
 
         int response = client.getTestNumber();
         assertThat(response, equalTo(TEST_NUMBER_1));
@@ -255,7 +255,7 @@ public class AtlasDbHttpClientsTest {
                 .addServers(getUriForPort(availablePort2))
                 .sslConfiguration(SSL_CONFIG)
                 .build());
-        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME.getSeconds(), TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME);
         assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER_2));
     }
 

@@ -133,7 +133,7 @@ public final class NoSimultaneousServiceCheck {
                             + " served in an increasing order. We'll try again in {} ms to see if this remains the"
                             + " case.",
                     SafeArg.of("backoffMillis", backoff.toMillis()));
-            Uninterruptibles.sleepUninterruptibly(backoff.toMillis(), TimeUnit.MILLISECONDS);
+            Uninterruptibles.sleepUninterruptibly(backoff);
         }
         log.warn("We observed multiple services apparently serving timestamps simultaneously, but the timestamps"
                 + " were consistently served in increasing order.");

@@ -19,6 +19,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
@@ -27,7 +28,7 @@ public class TableMetadataCache {
 
     private final Cache<TableReference, TableMetadata> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)
-            .expireAfterWrite(1, TimeUnit.HOURS)
+            .expireAfterWrite(Duration.ofHours(1))
             .build();
     private final DbTableFactory dbTables;
 

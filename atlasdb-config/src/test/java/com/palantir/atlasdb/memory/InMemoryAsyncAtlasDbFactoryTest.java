@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.TimestampService;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
@@ -44,7 +45,7 @@ public class InMemoryAsyncAtlasDbFactoryTest {
         assertThat(kvs.isInitialized()).isFalse();
         assertThatThrownBy(kvs::getAllTableNames).isInstanceOf(NotInitializedException.class);
 
-        Awaitility.await().atMost(2, TimeUnit.SECONDS).until(kvs::isInitialized);
+        Awaitility.await().atMost(Duration.ofSeconds(2)).until(kvs::isInitialized);
         assertThat(kvs.getAllTableNames()).isEmpty();
     }
 
@@ -71,7 +72,7 @@ public class InMemoryAsyncAtlasDbFactoryTest {
         assertThat(timestampService.isInitialized()).isFalse();
         assertThatThrownBy(timestampService::getFreshTimestamp).isInstanceOf(NotInitializedException.class);
 
-        Awaitility.await().atMost(3, TimeUnit.SECONDS).until(timestampService::isInitialized);
+        Awaitility.await().atMost(Duration.ofSeconds(3)).until(timestampService::isInitialized);
         assertThat(timestampService.getFreshTimestamp()).isEqualTo(1L);
     }
 

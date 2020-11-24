@@ -33,6 +33,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -207,7 +208,7 @@ public class CoalescingSupplierTest {
                     .collect(Collectors.toList());
 
             // give the threads a chance to start
-            Uninterruptibles.sleepUninterruptibly(20, TimeUnit.MILLISECONDS);
+            Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(20));
             return new AsyncTasks(futures);
         }
 
@@ -248,7 +249,7 @@ public class CoalescingSupplierTest {
         @Override
         public Integer get() {
             while (isFrozen) {
-                Uninterruptibles.sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
+                Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(5));
             }
 
             return delegate.get();

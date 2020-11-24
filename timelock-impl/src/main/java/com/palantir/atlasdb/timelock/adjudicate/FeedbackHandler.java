@@ -26,6 +26,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +57,7 @@ public class FeedbackHandler {
                 metricsManager,
                 Caffeine.newBuilder()
                         .expireAfterWrite(
-                                Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES)
+                                Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES)
                         .build());
         this.useAdjudication = useAdjudication;
     }

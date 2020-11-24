@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +70,7 @@ public class FeedbackSinkTest {
 
     TimeLockClientFeedbackSink createSinkAndAddTestReport() {
         TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink.create(Caffeine.newBuilder()
-                .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES)
+                .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES)
                 .ticker(FAKE_TICKER)
                 .build());
         registerTestReport(timeLockClientFeedbackSink);

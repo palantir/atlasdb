@@ -26,6 +26,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.concurrent.CheckedRejectedExecutionException;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -40,7 +41,7 @@ import org.junit.Test;
 public class TimeLockPaxosExecutorsTest {
     private static final String TEST = "test";
     private static final Callable<Integer> BLOCKING_TASK = () -> {
-        Uninterruptibles.sleepUninterruptibly(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        Uninterruptibles.sleepUninterruptibly(Duration.ofNanos(Long.MAX_VALUE));
         return 42;
     };
 

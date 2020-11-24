@@ -128,7 +128,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                 return;
             } catch (Exception e) {
                 log.info("Failed to write a migration batch. Retrying after backoff.", e);
-                Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+                Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100));
             }
         }
         target.writeBatchOfRounds(batch);

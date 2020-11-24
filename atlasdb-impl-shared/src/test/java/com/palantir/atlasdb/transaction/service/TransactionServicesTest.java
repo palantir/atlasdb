@@ -42,6 +42,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
@@ -131,7 +132,7 @@ public class TransactionServicesTest {
 
     private void forceInstallV2() {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        Awaitility.await().atMost(1, TimeUnit.SECONDS).until(() -> {
+        Awaitility.await().atMost(Duration.ofSeconds(1)).until(() -> {
             transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(2);
             ((TimestampManagementService) timestampService)
                     .fastForwardTimestamp(timestampService.getFreshTimestamp() + 1_000_000);

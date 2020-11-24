@@ -34,6 +34,7 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -94,7 +95,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
                 .mapToObj(i -> executor.submit((Callable<Void>) () ->
                         txnManager.runTaskWithLocksWithRetry(() -> EXCLUSIVE_ADVISORY_LOCK_REQUEST, (txn, locks) -> {
                             assertTrue(isExecuting.compareAndSet(false, true));
-                            Uninterruptibles.sleepUninterruptibly(500L, TimeUnit.MILLISECONDS);
+                            Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(500L));
                             assertTrue(isExecuting.compareAndSet(true, false));
 
                             txn.put(TABLE, ImmutableMap.of(CELL, DATA));

@@ -204,7 +204,7 @@ public class AtlasDbDialogueServiceProviderTest {
     }
 
     private void scheduleServerRecoveryAfterFiveSeconds() {
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(5));
         setupServersToGiveOutTimestamps();
     }
 

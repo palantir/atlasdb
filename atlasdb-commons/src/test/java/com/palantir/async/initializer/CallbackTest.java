@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import com.palantir.common.concurrent.PTExecutors;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -84,7 +85,7 @@ public class CallbackTest {
         AtomicBoolean started = new AtomicBoolean(false);
 
         PTExecutors.newSingleThreadScheduledExecutor().execute(() -> slowCallback.runWithRetry(started));
-        Awaitility.waitAtMost(500L, TimeUnit.MILLISECONDS).until(started::get);
+        Awaitility.waitAtMost(Duration.ofMillis(500L)).until(started::get);
 
         slowCallback.blockUntilSafeToShutdown();
         assertThat(System.currentTimeMillis()).isGreaterThanOrEqualTo(start + 2000L);

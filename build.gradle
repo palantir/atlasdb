@@ -15,7 +15,7 @@ buildscript {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
         classpath 'com.netflix.nebula:gradle-info-plugin:7.1.4'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:17.2.1'
-        classpath 'com.palantir.baseline:gradle-baseline-java:3.44.0'
+        classpath 'com.palantir.baseline:gradle-baseline-java:3.54.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:4.22.0'
         classpath 'com.palantir.javaformat:gradle-palantir-java-format:1.0.1'
         classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.5'
@@ -30,7 +30,6 @@ buildscript {
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '5.1.0'
-    id 'com.palantir.configuration-resolver' version '0.4.0'
     id 'com.palantir.consistent-versions' version '1.26.1'
     id 'org.unbroken-dome.test-sets' version '2.1.1'
     id 'com.google.protobuf' version '0.8.10'
@@ -188,7 +187,6 @@ allprojects {
 }
 
 subprojects {
-    apply plugin: 'com.palantir.configuration-resolver'
     task allDeps(type: DependencyReportTask) {}
 }
 

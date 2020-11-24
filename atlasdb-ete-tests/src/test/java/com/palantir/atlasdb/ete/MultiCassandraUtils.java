@@ -18,6 +18,7 @@ package com.palantir.atlasdb.ete;
 import com.google.common.base.Throwables;
 import com.palantir.docker.compose.connection.Container;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
@@ -56,8 +57,8 @@ public final class MultiCassandraUtils {
 
     private static void waitForCassandraContainer(Container container) {
         Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
-                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(Duration.ofSeconds(60))
+                .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     // TODO (jkong): hack
                     String curlOutput = EteSetup.execCliCommand(

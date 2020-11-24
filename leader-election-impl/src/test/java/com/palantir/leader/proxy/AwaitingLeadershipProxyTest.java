@@ -37,6 +37,7 @@ import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
 import com.palantir.tracing.RenderTracingRule;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -149,12 +150,12 @@ public class AwaitingLeadershipProxyTest {
         when(leaderElectionService.isStillLeading(any(LeadershipToken.class)))
                 .thenAnswer($ -> {
                     // Strange number to be detectable in traces
-                    Uninterruptibles.sleepUninterruptibly(37, TimeUnit.MILLISECONDS);
+                    Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(37));
                     return Futures.immediateFuture(StillLeadingStatus.NO_QUORUM);
                 })
                 .thenAnswer($ -> {
                     // Strange number to be detectable in traces
-                    Uninterruptibles.sleepUninterruptibly(29, TimeUnit.MILLISECONDS);
+                    Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(29));
                     return Futures.immediateFuture(StillLeadingStatus.NO_QUORUM);
                 })
                 .thenReturn(inProgressCheck);
@@ -303,6 +304,6 @@ public class AwaitingLeadershipProxyTest {
 
     private void waitForLeadershipToBeGained() throws InterruptedException {
         verify(leaderElectionService, timeout(5_000)).blockOnBecomingLeader();
-        Uninterruptibles.sleepUninterruptibly(100L, TimeUnit.MILLISECONDS);
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
     }
 }

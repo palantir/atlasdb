@@ -127,8 +127,8 @@ public class TestableTimelockCluster implements TestRule {
 
     private void waitUntilReadyToServeNamespaces(List<String> namespaces) {
         Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
-                .pollInterval(500, TimeUnit.MILLISECONDS)
+                .atMost(Duration.ofSeconds(60))
+                .pollInterval(Duration.ofMillis(500))
                 .until(() -> {
                     try {
                         namespaces.forEach(namespace ->
