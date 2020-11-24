@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: AtlasDb can now be configured by its clients to use custom request
+    batcher for batching requests to leaderTime api on Timelock. In the absence of
+    custom batcher, we fall back to legacy leaderTime request coalescing batcher.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5128
