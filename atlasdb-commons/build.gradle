@@ -23,7 +23,6 @@ dependencies {
       exclude group: 'org.hamcrest'
     }
     testCompile group: 'org.hamcrest', name: 'hamcrest-core'
-    testCompile group: 'org.hamcrest', name: 'hamcrest-library'
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'org.awaitility', name: 'awaitility'
 }
