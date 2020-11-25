@@ -31,9 +31,9 @@ import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
+import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
-import org.awaitility.Durations;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -70,8 +70,8 @@ public class DbKvsRule implements TestRule {
 
     private void waitUntilDbkvsIsUp() {
         Awaitility.await()
-                .atMost(Durations.ONE_MINUTE)
-                .pollInterval(Durations.ONE_SECOND)
+                .atMost(Duration.ofMinutes(1))
+                .pollInterval(Duration.ofSeconds(1))
                 .until(canCreateKeyValueService());
     }
 

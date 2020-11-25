@@ -23,12 +23,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.awaitility.Awaitility;
-import org.awaitility.Durations;
 import org.junit.Test;
 
 public class AwaitedLocksCollectionTest {
@@ -102,7 +102,7 @@ public class AwaitedLocksCollectionTest {
 
     private void assertRequestsWereRemoved(UUID... requests) {
         Awaitility.await()
-                .atMost(Durations.ONE_SECOND)
+                .atMost(Duration.ofSeconds(1))
                 .pollInterval(5, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> {
                     for (UUID requestId : Arrays.asList(requests)) {
