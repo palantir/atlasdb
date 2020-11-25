@@ -46,7 +46,7 @@ task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
 
 task longTest(type: Test) {
     dependsOn prepareForEteTests
-    include '**/MultiCassandraTestSuite.class'
+    include '**/MultiCassandraTestSuite.class'AcceptCoalescingFunctionTests
 }
 
 task timeLockTest(type: Test) {

@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,8 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -51,24 +51,21 @@ public class SchemasTest {
 
     @Test
     public void testGetFullTableReferenceString() {
-        MatcherAssert.assertThat(
-                Schemas.getTableReferenceString(TABLE_NAME, NAMESPACE),
-                Matchers.equalTo("TableReference.createFromFullyQualifiedName(\"" + NAMESPACE.getName() + "."
-                        + TABLE_NAME + "\")"));
+        assertThat(Schemas.getTableReferenceString(TABLE_NAME, NAMESPACE))
+                .isEqualTo("TableReference.createFromFullyQualifiedName(\"" + NAMESPACE.getName() + "." + TABLE_NAME
+                        + "\")");
     }
 
     @Test
     public void testGetFullTableReferenceStringLegacy() {
-        MatcherAssert.assertThat(
-                Schemas.getTableReferenceString(TABLE_NAME, Namespace.create("met")),
-                Matchers.equalTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")"));
+        assertThat(Schemas.getTableReferenceString(TABLE_NAME, Namespace.create("met")))
+                .isEqualTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")");
     }
 
     @Test
     public void testGetFullTableReferenceStringEmptyNamespace() {
-        MatcherAssert.assertThat(
-                Schemas.getTableReferenceString(TABLE_NAME, Namespace.EMPTY_NAMESPACE),
-                Matchers.equalTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")"));
+        assertThat(Schemas.getTableReferenceString(TABLE_NAME, Namespace.EMPTY_NAMESPACE))
+                .isEqualTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")");
     }
 
     @Test
