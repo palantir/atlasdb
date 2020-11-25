@@ -21,5 +21,5 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TimeLockRequestBatcherProviders {
-    BatcherProvider<LeaderTimeCoalescingBatcher> leaderTimeBatcherProvider();
+    TimeLockRequestBatcherProvider<LeaderTimeCoalescingBatcher> leaderTimeBatcherProvider();
 }
