@@ -26,7 +26,6 @@ import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposalId;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.UUID;
 import org.junit.Test;
@@ -68,9 +67,12 @@ public class PrepareCoalescingFunctionTests {
         PrepareCoalescingFunction function = new PrepareCoalescingFunction(remote);
         Map<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosPromise> result = function.apply(requests.entries());
 
-        assertContains(result, CLIENT_1, client1seq1Id, promiseFor(client1seq1Id).value());
-        assertContains(result, CLIENT_1, client1seq2Id, promiseFor(client1seq2Id).value());
-        assertContains(result, CLIENT_2, client2seq1Id, promiseFor(client2seq1Id).value());
+        assertContains(
+                result, CLIENT_1, client1seq1Id, promiseFor(client1seq1Id).value());
+        assertContains(
+                result, CLIENT_1, client1seq2Id, promiseFor(client1seq2Id).value());
+        assertContains(
+                result, CLIENT_2, client2seq1Id, promiseFor(client2seq1Id).value());
     }
 
     private static PaxosProposalId proposalId() {
@@ -87,9 +89,9 @@ public class PrepareCoalescingFunctionTests {
                 .isTrue();
     }
 
-    private static <A, B, C> boolean contains(Map<Entry<A, B>, C> map, A first, B second, C third) {
-        return map.entrySet()
-                .stream()
-                .anyMatch(entry -> entry.getKey().equals(entry(first, second)) && entry.getValue().equals(third));
+    private static <A, B, C> boolean contains(Map<Map.Entry<A, B>, C> map, A first, B second, C third) {
+        return map.entrySet().stream()
+                .anyMatch(entry -> entry.getKey().equals(entry(first, second))
+                        && entry.getValue().equals(third));
     }
 }
