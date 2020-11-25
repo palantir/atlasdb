@@ -84,7 +84,7 @@ public class InterruptibleProxyTest {
         assertThat(proxy.get(0)).isEqualTo("Foo");
         assertThatThrownBy(() -> {
                     Thread.currentThread().interrupt();
-                    assertThat(proxy.get(1000)).isEqualTo("Foo");
+                    assertThat(proxy.get(1)).isEqualTo("Foo");
                 })
                 .describedAs("Should be interrupted")
                 .isInstanceOf(PalantirInterruptedException.class);
