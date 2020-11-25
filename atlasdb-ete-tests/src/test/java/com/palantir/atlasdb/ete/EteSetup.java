@@ -44,7 +44,6 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
-import org.awaitility.Durations;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 
@@ -66,7 +65,7 @@ public abstract class EteSetup {
     private static Duration waitDuration;
 
     public static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Durations.TWO_MINUTES);
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.ofMinutes(2));
     }
 
     public static RuleChain setupComposition(
@@ -76,7 +75,7 @@ public abstract class EteSetup {
 
     public static RuleChain setupComposition(
             Class<?> eteClass, String composeFile, List<String> availableClientNames, Map<String, String> environment) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Durations.TWO_MINUTES, environment);
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.ofMinutes(2), environment);
     }
 
     public static RuleChain setupComposition(
@@ -91,7 +90,7 @@ public abstract class EteSetup {
 
     public static RuleChain setupCompositionWithTimelock(
             Class<?> eteClass, String composeFile, List<String> availableClientNames, Map<String, String> environment) {
-        waitDuration = Durations.TWO_MINUTES;
+        waitDuration = Duration.ofMinutes(2);
         return setup(eteClass, composeFile, availableClientNames, environment, true);
     }
 
@@ -158,7 +157,7 @@ public abstract class EteSetup {
                 Awaitility.await()
                         .ignoreExceptions()
                         .atMost(waitDuration)
-                        .pollInterval(Durations.ONE_SECOND)
+                        .pollInterval(Duration.ofSeconds(1))
                         .until(serversAreReady());
             }
         };

@@ -67,16 +67,12 @@ public class PrepareCoalescingFunctionTests {
         PrepareCoalescingFunction function = new PrepareCoalescingFunction(remote);
         Map<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosPromise> result = function.apply(requests.entries());
 
-        assertThat(result)
-                .containsEntry(
-                        entry(CLIENT_1, client1seq1Id),
-                        promiseFor(client1seq1Id).value())
-                .containsEntry(
-                        entry(CLIENT_1, client1seq2Id),
-                        promiseFor(client1seq2Id).value())
-                .containsEntry(
-                        entry(CLIENT_2, client2seq1Id),
-                        promiseFor(client2seq1Id).value());
+        assertContains(
+                result, CLIENT_1, client1seq1Id, promiseFor(client1seq1Id).value());
+        assertContains(
+                result, CLIENT_1, client1seq2Id, promiseFor(client1seq2Id).value());
+        assertContains(
+                result, CLIENT_2, client2seq1Id, promiseFor(client2seq1Id).value());
     }
 
     private static PaxosProposalId proposalId() {
@@ -85,5 +81,17 @@ public class PrepareCoalescingFunctionTests {
 
     private static WithSeq<PaxosPromise> promiseFor(WithSeq<PaxosProposalId> proposalIdWithSeq) {
         return proposalIdWithSeq.map(proposalId -> PaxosPromise.accept(proposalId, null, null));
+    }
+
+    private static <A, B, C> void assertContains(Map<Map.Entry<A, B>, C> map, A first, B second, C third) {
+        assertThat(contains(map, first, second, third))
+                .as("Map contains desired entry")
+                .isTrue();
+    }
+
+    private static <A, B, C> boolean contains(Map<Map.Entry<A, B>, C> map, A first, B second, C third) {
+        return map.entrySet().stream()
+                .anyMatch(entry -> entry.getKey().equals(entry(first, second))
+                        && entry.getValue().equals(third));
     }
 }

@@ -50,7 +50,7 @@ public class AnnotatedRunnableTest {
         });
 
         runnable.run();
-        assertThat(hasRun.get()).isEqualTo(true);
+        assertThat(hasRun.get()).isTrue();
     }
 
     @Test
@@ -62,7 +62,7 @@ public class AnnotatedRunnableTest {
         });
 
         runnable.run();
-        assertThat(hasRun.get()).isEqualTo(true);
+        assertThat(hasRun.get()).isTrue();
     }
 
     @Test
@@ -74,7 +74,7 @@ public class AnnotatedRunnableTest {
         });
 
         runnable.run();
-        assertThat(hasRun.get()).isEqualTo(true);
+        assertThat(hasRun.get()).isTrue();
     }
 
     @Test
@@ -86,7 +86,7 @@ public class AnnotatedRunnableTest {
         });
 
         runnable.run();
-        assertThat(hasRun.get()).isEqualTo(true);
+        assertThat(hasRun.get()).isTrue();
     }
 
     @Test
@@ -104,7 +104,7 @@ public class AnnotatedRunnableTest {
         } catch (Throwable expected) {
             assertThat(expected).isInstanceOf(OutOfMemoryError.class);
             assertThat(expected.getMessage()).isEqualTo("test message");
-            assertThat(expected.getSuppressed().length).isEqualTo(1);
+            assertThat(expected.getSuppressed()).hasSize(1);
             assertThat(expected.getSuppressed()[0]).isInstanceOf(SuppressedException.class);
             assertThat(expected.getSuppressed()[0].getMessage())
                     .isEqualTo("Error [java.lang.OutOfMemoryError: test message]"

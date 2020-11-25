@@ -102,7 +102,7 @@ public class AnnotatedCallableTest {
         } catch (Throwable expected) {
             assertThat(expected).isInstanceOf(OutOfMemoryError.class);
             assertThat(expected.getMessage()).isEqualTo("test message");
-            assertThat(expected.getSuppressed().length).isEqualTo(1);
+            assertThat(expected.getSuppressed()).hasSize(1);
             assertThat(expected.getSuppressed()[0]).isInstanceOf(SuppressedException.class);
             assertThat(expected.getSuppressed()[0].getMessage())
                     .isEqualTo("Error [java.lang.OutOfMemoryError: test message]"
@@ -125,7 +125,7 @@ public class AnnotatedCallableTest {
         } catch (Throwable expected) {
             assertThat(expected).isInstanceOf(IOException.class);
             assertThat(expected.getMessage()).isEqualTo("test message");
-            assertThat(expected.getSuppressed().length).isEqualTo(1);
+            assertThat(expected.getSuppressed()).hasSize(1);
             assertThat(expected.getSuppressed()[0]).isInstanceOf(SuppressedException.class);
             assertThat(expected.getSuppressed()[0].getMessage())
                     .isEqualTo("Exception [java.io.IOException: test message]"
@@ -149,7 +149,7 @@ public class AnnotatedCallableTest {
         } catch (Throwable expected) {
             assertThat(expected).isInstanceOf(ExecutionException.class);
             assertThat(expected.getMessage()).isEqualTo("test message");
-            assertThat(expected.getSuppressed().length).isEqualTo(1);
+            assertThat(expected.getSuppressed()).hasSize(1);
             assertThat(expected.getSuppressed()[0]).isInstanceOf(SuppressedException.class);
             assertThat(expected.getSuppressed()[0].getMessage())
                     .isEqualTo("Exception [java.util.concurrent.ExecutionException: test message]"
@@ -172,7 +172,7 @@ public class AnnotatedCallableTest {
         } catch (Throwable expected) {
             assertThat(expected).isInstanceOf(RuntimeException.class);
             assertThat(expected.getMessage()).isEqualTo("test message");
-            assertThat(expected.getSuppressed().length).isEqualTo(1);
+            assertThat(expected.getSuppressed()).hasSize(1);
             assertThat(expected.getSuppressed()[0]).isInstanceOf(SuppressedException.class);
             assertThat(expected.getSuppressed()[0].getMessage())
                     .isEqualTo("RuntimeException [java.lang.IllegalArgumentException: test message]"

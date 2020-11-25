@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
-import org.awaitility.Durations;
 import org.awaitility.core.ThrowingRunnable;
 import org.junit.Before;
 import org.junit.Test;
@@ -147,8 +146,8 @@ public class AsyncTimeLockUnlockerTest {
 
     private void assertConditionEventuallyTrue(ThrowingRunnable throwingRunnable) {
         Awaitility.await()
-                .atMost(Durations.TEN_SECONDS)
-                .pollInterval(Durations.ONE_HUNDRED_MILLISECONDS)
+                .atMost(Duration.ofSeconds(10))
+                .pollInterval(Duration.ofMillis(100))
                 .untilAsserted(throwingRunnable);
     }
 }

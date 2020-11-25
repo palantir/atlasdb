@@ -48,7 +48,7 @@ public class InterruptibleFutureTest {
     @After
     public void after() throws InterruptedException {
         executor.shutdownNow();
-        assertThat(executor.awaitTermination(1, TimeUnit.MINUTES)).isEqualTo(true);
+        assertThat(executor.awaitTermination(1, TimeUnit.MINUTES)).isTrue();
     }
 
     @Test
