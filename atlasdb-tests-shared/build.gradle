@@ -16,7 +16,6 @@ dependencies {
 
   compile group: 'junit', name: 'junit'
   compile group: 'org.hamcrest', name: 'hamcrest-core'
-  compile group: 'org.hamcrest', name: 'hamcrest-library'
   compile group: 'org.assertj', name: 'assertj-core'
   compile group: 'org.mockito', name: 'mockito-core'
   compile group: "org.awaitility", name: "awaitility"
