@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.exception.NotInitializedException;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import org.awaitility.Awaitility;
 import org.junit.Test;
 
@@ -40,7 +40,7 @@ public class AsyncInitializeableInMemoryKvsTest {
         assertThat(kvs.isInitialized()).isFalse();
         assertThatThrownBy(kvs::getAllTableNames).isInstanceOf(NotInitializedException.class);
 
-        Awaitility.await().atMost(2, TimeUnit.SECONDS).until(kvs::isInitialized);
+        Awaitility.await().atMost(Duration.ofSeconds(2)).until(kvs::isInitialized);
         assertThat(kvs.getAllTableNames()).isEmpty();
     }
 }

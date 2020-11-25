@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.awaitility.Awaitility;
 import org.junit.Test;
@@ -103,7 +102,7 @@ public class AwaitedLocksCollectionTest {
     private void assertRequestsWereRemoved(UUID... requests) {
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))
-                .pollInterval(5, TimeUnit.MILLISECONDS)
+                .pollInterval(Duration.ofMillis(5))
                 .untilAsserted(() -> {
                     for (UUID requestId : Arrays.asList(requests)) {
                         assertThat(awaitedLocks.requestsById).doesNotContainKey(requestId);

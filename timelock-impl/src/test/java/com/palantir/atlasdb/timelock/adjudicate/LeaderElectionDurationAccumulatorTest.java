@@ -151,7 +151,7 @@ public class LeaderElectionDurationAccumulatorTest {
         Collections.shuffle(durations);
         durations.forEach(dur -> {
             accumulator.add(LeaderElectionDuration.of(oldLeader, newLeader, Duration.ofNanos(dur)));
-            Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
+            Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(1));
         });
     }
 }

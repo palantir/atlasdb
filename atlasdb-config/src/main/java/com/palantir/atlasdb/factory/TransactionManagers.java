@@ -176,6 +176,7 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -1280,7 +1281,7 @@ public abstract class TransactionManagers {
                     } catch (Throwable e) {
                         logAfter = logFailureToReadRemoteTimestampServerId(logAfter, e);
                     }
-                    Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+                    Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(1));
                 }
             });
 

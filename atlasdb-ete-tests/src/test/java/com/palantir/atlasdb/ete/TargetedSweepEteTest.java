@@ -24,7 +24,7 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
@@ -55,8 +55,8 @@ public class TargetedSweepEteTest {
         assertThat(todoClient.doesNotExistBeforeTimestamp(100L, ts)).isFalse();
 
         todoClient.addTodoWithIdAndReturnTimestamp(100L, TODO);
-        Awaitility.waitAtMost(2, TimeUnit.MINUTES)
-                .pollInterval(2, TimeUnit.SECONDS)
+        Awaitility.waitAtMost(Duration.ofMinutes(2))
+                .pollInterval(Duration.ofSeconds(2))
                 .until(() -> todoClient.doesNotExistBeforeTimestamp(100L, ts));
     }
 

@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
@@ -126,8 +126,8 @@ public class TimeLockMigratorTest {
 
     private static void waitUntilInitialized(TimeLockMigrator migrator) {
         Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
-                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofSeconds(1))
                 .until(migrator::isInitialized);
     }
 }

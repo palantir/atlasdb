@@ -45,7 +45,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -127,8 +126,8 @@ public class TestableTimelockCluster implements TestRule {
 
     private void waitUntilReadyToServeNamespaces(List<String> namespaces) {
         Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
-                .pollInterval(500, TimeUnit.MILLISECONDS)
+                .atMost(Duration.ofSeconds(60))
+                .pollInterval(Duration.ofMillis(500))
                 .until(() -> {
                     try {
                         namespaces.forEach(namespace ->

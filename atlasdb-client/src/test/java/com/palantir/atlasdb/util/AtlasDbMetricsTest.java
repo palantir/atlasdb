@@ -181,7 +181,7 @@ public final class AtlasDbMetricsTest {
                             // as opposed to a
                             // transformed future
                             Awaitility.await()
-                                    .atMost(ASYNC_DURATION_TTL.toMillis(), TimeUnit.MILLISECONDS)
+                                    .atMost(ASYNC_DURATION_TTL)
                                     .until(() -> taggedMetrics
                                                     .timer(metricName)
                                                     .getSnapshot()

@@ -29,6 +29,7 @@ dependencies {
     exclude(group: 'org.apache.ant', module: 'ant')
     exclude(group: 'com.github.rholder', module: 'snowball-stemmer')
     exclude(group: 'com.carrotsearch', module: 'hppc')
+    exclude group: 'org.apache.httpcomponents'
   }
 
   explicitShadow ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {

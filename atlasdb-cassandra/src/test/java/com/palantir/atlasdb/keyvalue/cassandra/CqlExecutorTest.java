@@ -30,7 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.junit.Before;
@@ -56,7 +56,7 @@ public class CqlExecutorTest {
         CqlResult result = new CqlResult();
         result.setRows(ImmutableList.of());
         when(queryExecutor.execute(any(), any())).thenAnswer(invocation -> {
-            Uninterruptibles.sleepUninterruptibly(queryDelayMillis, TimeUnit.MILLISECONDS);
+            Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(queryDelayMillis));
             return result;
         });
 

@@ -49,11 +49,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.joda.time.format.ISODateTimeFormat;
 import org.junit.After;
@@ -266,13 +266,13 @@ public class TestTimestampCommand {
 
     private void punch(TestAtlasDbServices services, TimestampService tss, Clock clock) {
         // this is a really hacky way of forcing a punch to test the datetime output
-        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.MILLISECONDS);
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(2));
         long punchTs = tss.getFreshTimestamps(1000).getUpperBound();
         PuncherStore puncherStore = KeyValueServicePuncherStore.create(services.getKeyValueService());
         Puncher puncher = SimplePuncher.create(
                 puncherStore, clock, Suppliers.ofInstance(AtlasDbConstants.DEFAULT_TRANSACTION_READ_TIMEOUT));
         puncher.punch(punchTs);
-        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.MILLISECONDS);
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(2));
     }
 
     private long getWallClockTimestamp(Scanner scanner) {

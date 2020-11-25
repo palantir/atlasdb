@@ -109,6 +109,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -190,7 +191,7 @@ public class TransactionManagersTest {
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
         originalAsyncMethod = TransactionManagers.runAsync;
         TransactionManagers.runAsync =
-                task -> Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(task::run);
+                task -> Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(task::run);
 
         availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(
                 aResponse().withStatus(200).withBody(("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
@@ -711,7 +712,7 @@ public class TransactionManagersTest {
         assertThat(manager.isInitialized()).isFalse();
         assertThatThrownBy(() -> manager.runTaskWithRetry(unused -> null)).isInstanceOf(NotInitializedException.class);
 
-        Awaitility.await().atMost(12, TimeUnit.SECONDS).until(manager::isInitialized);
+        Awaitility.await().atMost(Duration.ofSeconds(12)).until(manager::isInitialized);
 
         performTransaction(manager);
     }

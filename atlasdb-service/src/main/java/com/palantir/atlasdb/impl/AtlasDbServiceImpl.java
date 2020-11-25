@@ -46,12 +46,12 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.logsafe.Preconditions;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 
@@ -66,7 +66,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     private final KeyValueService kvs;
     private final TransactionManager txManager;
     private final Cache<TransactionToken, OpenTransaction> transactions =
-            CacheBuilder.newBuilder().expireAfterAccess(12, TimeUnit.HOURS).build();
+            CacheBuilder.newBuilder().expireAfterAccess(Duration.ofHours(12)).build();
     private final TableMetadataCache metadataCache;
 
     @Inject

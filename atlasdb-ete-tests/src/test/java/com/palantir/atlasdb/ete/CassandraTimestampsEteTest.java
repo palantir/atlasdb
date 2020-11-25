@@ -25,10 +25,10 @@ import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.atlasdb.todo.TodoSchema;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -122,8 +122,8 @@ public class CassandraTimestampsEteTest {
     }
 
     private void sweepUntilConditionSatisfied(BooleanSupplier predicate) {
-        Awaitility.waitAtMost(30, TimeUnit.SECONDS)
-                .pollInterval(1, TimeUnit.SECONDS)
+        Awaitility.waitAtMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     todoClient.runIterationOfTargetedSweep();
                     return predicate.getAsBoolean();
