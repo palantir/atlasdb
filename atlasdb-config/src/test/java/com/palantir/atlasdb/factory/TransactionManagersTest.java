@@ -26,11 +26,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -460,7 +455,8 @@ public class TransactionManagersTest {
                 .registrar(environment)
                 .build()
                 .serializable();
-        assertThat(metrics.getNames().stream().anyMatch(metricName -> metricName.contains(USER_AGENT_NAME))).isEqualTo(false);
+        assertThat(metrics.getNames().stream().anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)))
+                .isEqualTo(false);
     }
 
     @Test
@@ -577,11 +573,13 @@ public class TransactionManagersTest {
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(true)
                         .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
-                        .lockImmutableTsOnReadOnlyTransactions()).isEqualTo(true);
+                        .lockImmutableTsOnReadOnlyTransactions())
+                .isEqualTo(true);
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
                         .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
-                        .lockImmutableTsOnReadOnlyTransactions()).isEqualTo(false);
+                        .lockImmutableTsOnReadOnlyTransactions())
+                .isEqualTo(false);
     }
 
     @Test
@@ -596,11 +594,13 @@ public class TransactionManagersTest {
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
                         .withConsolidatedGrabImmutableTsLockFlag(transactionConfigLocking)
-                        .lockImmutableTsOnReadOnlyTransactions()).isEqualTo(true);
+                        .lockImmutableTsOnReadOnlyTransactions())
+                .isEqualTo(true);
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
                         .withConsolidatedGrabImmutableTsLockFlag(transactionConfigNotLocking)
-                        .lockImmutableTsOnReadOnlyTransactions()).isEqualTo(false);
+                        .lockImmutableTsOnReadOnlyTransactions())
+                .isEqualTo(false);
     }
 
     private TransactionManagers withLockImmutableTsOnReadOnlyTransaction(boolean option) {
@@ -643,7 +643,8 @@ public class TransactionManagersTest {
         when(migrator.isInitialized()).thenReturn(true);
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
 
-        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices)).isTrue();
+        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices))
+                .isTrue();
     }
 
     @Test
@@ -651,14 +652,16 @@ public class TransactionManagersTest {
         when(migrator.isInitialized()).thenReturn(false);
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
 
-        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices)).isFalse();
+        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices))
+                .isFalse();
     }
 
     @Test
     public void timeLockMigrationReportsReadyIfMigrationNotNeeded() {
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.empty());
 
-        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices)).isTrue();
+        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices))
+                .isTrue();
     }
 
     @Test
@@ -785,14 +788,16 @@ public class TransactionManagersTest {
     }
 
     private void assertThatTimeAndLockMetricsAreNotRecorded(String timestampMetric, String lockMetric) {
-        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount()).isEqualTo(0L);
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount())
+                .isEqualTo(0L);
         assertThat(metricsManager.getRegistry().timer(lockMetric).getCount()).isEqualTo(0L);
 
         TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
-        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount()).isEqualTo(0L);
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount())
+                .isEqualTo(0L);
         assertThat(metricsManager.getRegistry().timer(lockMetric).getCount()).isEqualTo(0L);
     }
 
@@ -805,15 +810,19 @@ public class TransactionManagersTest {
         MetricName lockMetricName =
                 MetricName.builder().safeName(lockMetric).putAllSafeTags(tags).build();
 
-        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount()).isEqualTo(0L);
-        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount()).isEqualTo(0L);
+        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount())
+                .isEqualTo(0L);
+        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount())
+                .isEqualTo(0L);
 
         TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
-        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount()).isEqualTo(1L);
-        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount()).isEqualTo(1L);
+        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount())
+                .isEqualTo(1L);
+        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount())
+                .isEqualTo(1L);
     }
 
     private void setUpForLocalServices() throws IOException {

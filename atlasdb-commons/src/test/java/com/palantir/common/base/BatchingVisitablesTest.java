@@ -17,10 +17,6 @@ package com.palantir.common.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -52,56 +48,102 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L));
 
         TokenBackedBasicResultsPage<Long, Long> page = BatchingVisitables.getFirstPage(visitor, 0);
-        assertThat(page.getResults()).describedAs("page results had wrong size!").isEmpty();
-        assertThat(page.moreResultsAvailable()).describedAs("page.moreResultsAvailable was wrong").isEqualTo(true);
+        assertThat(page.getResults())
+                .describedAs("page results had wrong size!")
+                .isEmpty();
+        assertThat(page.moreResultsAvailable())
+                .describedAs("page.moreResultsAvailable was wrong")
+                .isEqualTo(true);
 
         page = BatchingVisitables.getFirstPage(visitor, 1);
-        assertThat(page.getResults().size()).describedAs("page results had wrong size!").isEqualTo(1);
+        assertThat(page.getResults().size())
+                .describedAs("page results had wrong size!")
+                .isEqualTo(1);
         assertThat(page.getResults()).describedAs("page.getResults was wrong").isEqualTo(Lists.newArrayList(0L));
-        assertThat(page.moreResultsAvailable()).describedAs("page.moreResultsAvailable was wrong").isEqualTo(true);
+        assertThat(page.moreResultsAvailable())
+                .describedAs("page.moreResultsAvailable was wrong")
+                .isEqualTo(true);
 
         page = BatchingVisitables.getFirstPage(visitor, 3);
-        assertThat(page.getResults().size()).describedAs("page results had wrong size!").isEqualTo(3);
-        assertThat(page.getResults()).describedAs("page.getResults was wrong").isEqualTo(Lists.newArrayList(0L, 1L, 2L));
-        assertThat(page.moreResultsAvailable()).describedAs("page.moreResultsAvailable was wrong").isEqualTo(true);
+        assertThat(page.getResults().size())
+                .describedAs("page results had wrong size!")
+                .isEqualTo(3);
+        assertThat(page.getResults())
+                .describedAs("page.getResults was wrong")
+                .isEqualTo(Lists.newArrayList(0L, 1L, 2L));
+        assertThat(page.moreResultsAvailable())
+                .describedAs("page.moreResultsAvailable was wrong")
+                .isEqualTo(true);
 
         page = BatchingVisitables.getFirstPage(visitor, 4);
-        assertThat(page.getResults().size()).describedAs("page results had wrong size!").isEqualTo(4);
-        assertThat(page.getResults()).describedAs("page.getResults was wrong").isEqualTo(Lists.newArrayList(0L, 1L, 2L, 3L));
-        assertThat(page.moreResultsAvailable()).describedAs("page.moreResultsAvailable was wrong").isEqualTo(false);
+        assertThat(page.getResults().size())
+                .describedAs("page results had wrong size!")
+                .isEqualTo(4);
+        assertThat(page.getResults())
+                .describedAs("page.getResults was wrong")
+                .isEqualTo(Lists.newArrayList(0L, 1L, 2L, 3L));
+        assertThat(page.moreResultsAvailable())
+                .describedAs("page.moreResultsAvailable was wrong")
+                .isEqualTo(false);
 
         page = BatchingVisitables.getFirstPage(visitor, 7);
-        assertThat(page.getResults().size()).describedAs("page results had wrong size!").isEqualTo(4);
-        assertThat(page.getResults()).describedAs("page.getResults was wrong").isEqualTo(Lists.newArrayList(0L, 1L, 2L, 3L));
-        assertThat(page.moreResultsAvailable()).describedAs("page.moreResultsAvailable was wrong").isEqualTo(false);
+        assertThat(page.getResults().size())
+                .describedAs("page results had wrong size!")
+                .isEqualTo(4);
+        assertThat(page.getResults())
+                .describedAs("page.getResults was wrong")
+                .isEqualTo(Lists.newArrayList(0L, 1L, 2L, 3L));
+        assertThat(page.moreResultsAvailable())
+                .describedAs("page.moreResultsAvailable was wrong")
+                .isEqualTo(false);
 
-                    assertThatThrownBy(() -> BatchingVisitables.getFirstPage(visitor, -1)).describedAs("Should not allow visiting -1 elements.").isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> BatchingVisitables.getFirstPage(visitor, -1))
+                .describedAs("Should not allow visiting -1 elements.")
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void testMinMax() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L));
 
-        assertThat((long) BatchingVisitables.getMin(visitor)).describedAs("BatchingVisitables.getMin was wrong").isEqualTo(0L);
-        assertThat((long) BatchingVisitables.getMax(visitor)).describedAs("BatchingVisitables.getMax was wrong").isEqualTo(3L);
+        assertThat((long) BatchingVisitables.getMin(visitor))
+                .describedAs("BatchingVisitables.getMin was wrong")
+                .isEqualTo(0L);
+        assertThat((long) BatchingVisitables.getMax(visitor))
+                .describedAs("BatchingVisitables.getMax was wrong")
+                .isEqualTo(3L);
 
         BatchingVisitable<Pair<Long, Long>> pairedVisitable = ListVisitor.create(
                 Lists.newArrayList(Pair.create(0L, 0L), Pair.create(1L, 0L), Pair.create(0L, 1L), Pair.create(1L, 1L)));
 
         Ordering<Pair<Long, Long>> ordering = Pair.compareLhSide();
-        assertThat(BatchingVisitables.getMin(pairedVisitable, ordering, null)).describedAs("BatchingVisitables.getMin was wrong").isEqualTo(Pair.create(0L, 0L));
-        assertThat(BatchingVisitables.getMax(pairedVisitable, ordering, null)).describedAs("BatchingVisitables.getMax was wrong").isEqualTo(Pair.create(1L, 0L));
+        assertThat(BatchingVisitables.getMin(pairedVisitable, ordering, null))
+                .describedAs("BatchingVisitables.getMin was wrong")
+                .isEqualTo(Pair.create(0L, 0L));
+        assertThat(BatchingVisitables.getMax(pairedVisitable, ordering, null))
+                .describedAs("BatchingVisitables.getMax was wrong")
+                .isEqualTo(Pair.create(1L, 0L));
     }
 
     @Test
     public void testEmpty() {
-        assertThat(BatchingVisitables.isEmpty(BatchingVisitables.emptyBatchingVisitable())).describedAs("empty batching visitable should be empty!").isTrue();
-        assertThat(BatchingVisitables.count(BatchingVisitables.emptyBatchingVisitable())).describedAs("empty batching visitable should be empty!").isEqualTo(0);
+        assertThat(BatchingVisitables.isEmpty(BatchingVisitables.emptyBatchingVisitable()))
+                .describedAs("empty batching visitable should be empty!")
+                .isTrue();
+        assertThat(BatchingVisitables.count(BatchingVisitables.emptyBatchingVisitable()))
+                .describedAs("empty batching visitable should be empty!")
+                .isEqualTo(0);
 
         BatchingVisitable<Long> bv = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L));
-        assertThat(BatchingVisitables.isEmpty(bv)).describedAs("non-empty batching visitable should not be empty!").isFalse();
-        assertThat(BatchingVisitables.count(bv)).describedAs("visitable had wrong size").isEqualTo(4);
-        assertThat(BatchingVisitables.emptyBatchingVisitable().batchAccept(1, AbortingVisitors.alwaysFalse())).describedAs("empty visitable should always be true, even when told to visit an always-false place").isTrue();
+        assertThat(BatchingVisitables.isEmpty(bv))
+                .describedAs("non-empty batching visitable should not be empty!")
+                .isFalse();
+        assertThat(BatchingVisitables.count(bv))
+                .describedAs("visitable had wrong size")
+                .isEqualTo(4);
+        assertThat(BatchingVisitables.emptyBatchingVisitable().batchAccept(1, AbortingVisitors.alwaysFalse()))
+                .describedAs("empty visitable should always be true, even when told to visit an always-false place")
+                .isTrue();
     }
 
     @Test
@@ -209,7 +251,9 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitor =
                 ListVisitor.create(Lists.newArrayList(0L, 1L, 1L, 2L, 2L, 2L, 3L, 4L, 5L, 5L, 6L, 7L, 7L));
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(visitor);
-        assertThat(bv.unique().limit(4).immutableCopy()).describedAs("unexpected result for unique view").isEqualTo(ImmutableList.of(0L, 1L, 2L, 3L));
+        assertThat(bv.unique().limit(4).immutableCopy())
+                .describedAs("unexpected result for unique view")
+                .isEqualTo(ImmutableList.of(0L, 1L, 2L, 3L));
     }
 
     @Test
@@ -219,35 +263,67 @@ public class BatchingVisitablesTest {
         ImmutableList<Long> copy = limited.immutableCopy();
         assertThat(copy).describedAs("limit produced unexpected result").isEqualTo(ImmutableList.of(0L, 1L, 2L));
 
-        assertThat(limited.batchAccept(1, AbortingVisitors.alwaysFalse())).describedAs("alwaysFalse should be false").isFalse();
-        assertThat(limited.batchAccept(1, AbortingVisitors.alwaysTrue())).describedAs("alwaysTrue should be true").isTrue();
+        assertThat(limited.batchAccept(1, AbortingVisitors.alwaysFalse()))
+                .describedAs("alwaysFalse should be false")
+                .isFalse();
+        assertThat(limited.batchAccept(1, AbortingVisitors.alwaysTrue()))
+                .describedAs("alwaysTrue should be true")
+                .isTrue();
 
-        assertThat(limited.batchAccept(2, AbortingVisitors.alwaysTrue())).describedAs("alwaysTrue should be true twice").isTrue();
-        assertThat(limited.batchAccept(3, AbortingVisitors.alwaysTrue())).describedAs("alwaysTrue should be true thrice").isTrue();
+        assertThat(limited.batchAccept(2, AbortingVisitors.alwaysTrue()))
+                .describedAs("alwaysTrue should be true twice")
+                .isTrue();
+        assertThat(limited.batchAccept(3, AbortingVisitors.alwaysTrue()))
+                .describedAs("alwaysTrue should be true thrice")
+                .isTrue();
 
         CountingVisitor<Long> cv = new CountingVisitor<>();
-        assertThat(limited.batchAccept(2, AbortingVisitors.batching(cv))).describedAs("batchAccept should be true").isTrue();
+        assertThat(limited.batchAccept(2, AbortingVisitors.batching(cv)))
+                .describedAs("batchAccept should be true")
+                .isTrue();
         assertThat(cv.count).describedAs("CountingVisitor had wrong count").isEqualTo(3);
-        assertThat(limited.batchAccept(3, AbortingVisitors.batching(cv))).describedAs("batchAccept should be true").isTrue();
+        assertThat(limited.batchAccept(3, AbortingVisitors.batching(cv)))
+                .describedAs("batchAccept should be true")
+                .isTrue();
         assertThat(cv.count).describedAs("CountingVisitor had wrong count").isEqualTo(6);
-        assertThat(limited.batchAccept(4, AbortingVisitors.batching(cv))).describedAs("batchAccept should be true").isTrue();
+        assertThat(limited.batchAccept(4, AbortingVisitors.batching(cv)))
+                .describedAs("batchAccept should be true")
+                .isTrue();
         assertThat(cv.count).describedAs("CountingVisitor had wrong count").isEqualTo(9);
 
-        assertThat(limited.skip(3).batchAccept(1, AbortingVisitors.alwaysFalse())).describedAs("batchAccept should be trivially true after everything was skipped").isTrue();
+        assertThat(limited.skip(3).batchAccept(1, AbortingVisitors.alwaysFalse()))
+                .describedAs("batchAccept should be trivially true after everything was skipped")
+                .isTrue();
 
         LimitVisitor<Long> lv = new LimitVisitor<>(3);
-        assertThat(limited.batchAccept(1, AbortingVisitors.batching(lv))).describedAs("batchAccept should be false").isFalse();
+        assertThat(limited.batchAccept(1, AbortingVisitors.batching(lv)))
+                .describedAs("batchAccept should be false")
+                .isFalse();
         lv = new LimitVisitor<>(4);
-        assertThat(limited.batchAccept(1, AbortingVisitors.batching(lv))).describedAs("batchAccept should be true").isTrue();
+        assertThat(limited.batchAccept(1, AbortingVisitors.batching(lv)))
+                .describedAs("batchAccept should be true")
+                .isTrue();
         lv = new LimitVisitor<>(2);
-        assertThat(limited.batchAccept(1, AbortingVisitors.batching(lv))).describedAs("batchAccept should be false").isFalse();
+        assertThat(limited.batchAccept(1, AbortingVisitors.batching(lv)))
+                .describedAs("batchAccept should be false")
+                .isFalse();
 
-        assertThat(limited.hintBatchSize(10).batchAccept(1, AbortingVisitors.alwaysFalse())).describedAs("batchAccept should be false").isFalse();
-        assertThat(limited.hintBatchSize(10).skip(3).batchAccept(1, AbortingVisitors.alwaysFalse())).describedAs("batchAccept should be trivially true after everything was skipped").isTrue();
+        assertThat(limited.hintBatchSize(10).batchAccept(1, AbortingVisitors.alwaysFalse()))
+                .describedAs("batchAccept should be false")
+                .isFalse();
+        assertThat(limited.hintBatchSize(10).skip(3).batchAccept(1, AbortingVisitors.alwaysFalse()))
+                .describedAs("batchAccept should be trivially true after everything was skipped")
+                .isTrue();
 
-        assertThat(limited.limit(2).limit(4).size()).describedAs("smaller limits should precede larger limits").isEqualTo(2);
-        assertThat(limited.limit(4).limit(2).size()).describedAs("smaller limits should precede larger limits").isEqualTo(2);
-        assertThat(limited.limit(4).size()).describedAs("limited size shouldn't be greater than the original size!").isEqualTo(3);
+        assertThat(limited.limit(2).limit(4).size())
+                .describedAs("smaller limits should precede larger limits")
+                .isEqualTo(2);
+        assertThat(limited.limit(4).limit(2).size())
+                .describedAs("smaller limits should precede larger limits")
+                .isEqualTo(2);
+        assertThat(limited.limit(4).size())
+                .describedAs("limited size shouldn't be greater than the original size!")
+                .isEqualTo(3);
     }
 
     @Test
@@ -255,7 +331,9 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         BatchingVisitableView<Long> limited = BatchingVisitableView.of(visitor).limit(3);
         BatchingVisitableView<Long> concat = BatchingVisitables.concat(limited, visitor);
-        assertThat(concat.batchAccept(2, AbortingVisitors.batching(AbortingVisitors.alwaysTrue()))).describedAs("concatenated batchAccept should be true").isTrue();
+        assertThat(concat.batchAccept(2, AbortingVisitors.batching(AbortingVisitors.alwaysTrue())))
+                .describedAs("concatenated batchAccept should be true")
+                .isTrue();
     }
 
     static class CountingVisitor<T> implements AbortingVisitor<T, RuntimeException> {
@@ -287,22 +365,38 @@ public class BatchingVisitablesTest {
     public void testAnyAndAllForNonEmptyLists() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(visitor);
-        assertThat(bv.any(Predicates.alwaysTrue())).describedAs("any(true) should be true").isTrue();
-        assertThat(bv.all(Predicates.alwaysTrue())).describedAs("all(true) should be true").isTrue();
+        assertThat(bv.any(Predicates.alwaysTrue()))
+                .describedAs("any(true) should be true")
+                .isTrue();
+        assertThat(bv.all(Predicates.alwaysTrue()))
+                .describedAs("all(true) should be true")
+                .isTrue();
 
-        assertThat(bv.any(Predicates.alwaysFalse())).describedAs("any(false) should be false").isFalse();
-        assertThat(bv.all(Predicates.alwaysFalse())).describedAs("all(false) should be false").isFalse();
+        assertThat(bv.any(Predicates.alwaysFalse()))
+                .describedAs("any(false) should be false")
+                .isFalse();
+        assertThat(bv.all(Predicates.alwaysFalse()))
+                .describedAs("all(false) should be false")
+                .isFalse();
     }
 
     @Test
     public void testAnyAndAllForEmptyLists() {
         BatchingVisitable<Long> visitor = BatchingVisitables.emptyBatchingVisitable();
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(visitor);
-        assertThat(bv.any(Predicates.alwaysTrue())).describedAs("any(empty-set-of-trues) should be false").isFalse();
-        assertThat(bv.all(Predicates.alwaysTrue())).describedAs("all(empty-set-of-trues) should be true").isTrue();
+        assertThat(bv.any(Predicates.alwaysTrue()))
+                .describedAs("any(empty-set-of-trues) should be false")
+                .isFalse();
+        assertThat(bv.all(Predicates.alwaysTrue()))
+                .describedAs("all(empty-set-of-trues) should be true")
+                .isTrue();
 
-        assertThat(bv.any(Predicates.alwaysFalse())).describedAs("any(empty-set-of-falses) should be false").isFalse();
-        assertThat(bv.all(Predicates.alwaysFalse())).describedAs("all(empty-set-of-falses) should be true").isTrue();
+        assertThat(bv.any(Predicates.alwaysFalse()))
+                .describedAs("any(empty-set-of-falses) should be false")
+                .isFalse();
+        assertThat(bv.all(Predicates.alwaysFalse()))
+                .describedAs("all(empty-set-of-falses) should be true")
+                .isTrue();
     }
 
     @Test
@@ -311,11 +405,15 @@ public class BatchingVisitablesTest {
         BatchingVisitableView<Long> bv = BatchingVisitableView.of(infinite);
         long first = bv.filter(new TakeEvery<>(100)).getFirst();
         assertThat(first).describedAs("first element returned was wrong").isEqualTo(99L);
-        assertThat(infinite.count).describedAs("count of InfiniteVisitable didn't match").isEqualTo(100L);
+        assertThat(infinite.count)
+                .describedAs("count of InfiniteVisitable didn't match")
+                .isEqualTo(100L);
 
         first = bv.filter(new TakeEvery<>(100)).hintBatchSize(100).getFirst();
         assertThat(first).describedAs("first element returned was wrong").isEqualTo(199L);
-        assertThat(infinite.count).describedAs("count of InfiniteVisitable didn't match").isEqualTo(200L);
+        assertThat(infinite.count)
+                .describedAs("count of InfiniteVisitable didn't match")
+                .isEqualTo(200L);
     }
 
     static class InfiniteVisitable extends AbstractBatchingVisitable<Long> {
@@ -382,17 +480,33 @@ public class BatchingVisitablesTest {
         BatchingVisitable<Long> visitable = ListVisitor.create(longList);
         BatchingVisitableView<Long> view =
                 BatchingVisitables.visitWhile(BatchingVisitableView.of(visitable), input -> input.longValue() < 5L);
-        assertThat(view.size()).describedAs("visitWhile visited the wrong number of elements").isEqualTo(5L);
-        assertThat(view.getFirst().longValue()).describedAs("visitWhile visited the wrong element first").isEqualTo(0L);
-        assertThat(view.getLast().longValue()).describedAs("visitWhile visited the wrong element last").isEqualTo(4L);
-        assertThat(view.immutableCopy().containsAll(ImmutableSet.of(0L, 1L, 2L, 3L, 4L))).describedAs("visitWhile visited the wrong elements").isTrue();
+        assertThat(view.size())
+                .describedAs("visitWhile visited the wrong number of elements")
+                .isEqualTo(5L);
+        assertThat(view.getFirst().longValue())
+                .describedAs("visitWhile visited the wrong element first")
+                .isEqualTo(0L);
+        assertThat(view.getLast().longValue())
+                .describedAs("visitWhile visited the wrong element last")
+                .isEqualTo(4L);
+        assertThat(view.immutableCopy().containsAll(ImmutableSet.of(0L, 1L, 2L, 3L, 4L)))
+                .describedAs("visitWhile visited the wrong elements")
+                .isTrue();
 
         visitable = ListVisitor.create(Lists.reverse(longList));
         view = BatchingVisitables.visitWhile(BatchingVisitableView.of(visitable), input -> input.longValue() >= 5L);
-        assertThat(view.size()).describedAs("visitWhile visited the wrong number of elements").isEqualTo(5L);
-        assertThat(view.getFirst().longValue()).describedAs("visitWhile visited the wrong element first").isEqualTo(9L);
-        assertThat(view.getLast().longValue()).describedAs("visitWhile visited the wrong element last").isEqualTo(5L);
-        assertThat(view.immutableCopy().containsAll(ImmutableSet.of(5L, 6L, 7L, 8L, 9L))).describedAs("visitWhile visited the wrong elements").isTrue();
+        assertThat(view.size())
+                .describedAs("visitWhile visited the wrong number of elements")
+                .isEqualTo(5L);
+        assertThat(view.getFirst().longValue())
+                .describedAs("visitWhile visited the wrong element first")
+                .isEqualTo(9L);
+        assertThat(view.getLast().longValue())
+                .describedAs("visitWhile visited the wrong element last")
+                .isEqualTo(5L);
+        assertThat(view.immutableCopy().containsAll(ImmutableSet.of(5L, 6L, 7L, 8L, 9L)))
+                .describedAs("visitWhile visited the wrong elements")
+                .isTrue();
     }
 
     @Test
@@ -413,7 +527,9 @@ public class BatchingVisitablesTest {
                 BatchingVisitables.flatten(7, bv).immutableCopy().iterator();
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 10; j++) {
-                assertThat(iter.next()).describedAs("unexpected flattened result").isEqualTo("" + (char) ('a' + i) + (char) ('0' + j));
+                assertThat(iter.next())
+                        .describedAs("unexpected flattened result")
+                        .isEqualTo("" + (char) ('a' + i) + (char) ('0' + j));
             }
         }
     }

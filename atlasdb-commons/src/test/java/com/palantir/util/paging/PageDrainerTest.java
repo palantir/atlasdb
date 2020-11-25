@@ -17,7 +17,6 @@ package com.palantir.util.paging;
 
 import static java.lang.Math.min;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;

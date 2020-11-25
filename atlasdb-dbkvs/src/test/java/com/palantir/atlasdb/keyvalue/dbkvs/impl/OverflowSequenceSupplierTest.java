@@ -16,22 +16,18 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OverflowSequenceSupplier;
 import com.palantir.nexus.db.sql.SqlConnection;
-import org.assertj.core.api.HamcrestCondition;
 import org.junit.Test;
 
 public class OverflowSequenceSupplierTest {
 
     @Test
-    public void shouldGetConsecutiveOverflowIdsFromSameSupplier() throws Exception {
+    public void shouldGetConsecutiveOverflowIdsFromSameSupplier() {
         final ConnectionSupplier conns = mock(ConnectionSupplier.class);
         final SqlConnection sqlConnection = mock(SqlConnection.class);
 
@@ -46,7 +42,7 @@ public class OverflowSequenceSupplierTest {
     }
 
     @Test
-    public void shouldNotGetOverflowIdsWithOverlappingCachesFromDifferentSuppliers() throws Exception {
+    public void shouldNotGetOverflowIdsWithOverlappingCachesFromDifferentSuppliers() {
         final ConnectionSupplier conns = mock(ConnectionSupplier.class);
         final SqlConnection sqlConnection = mock(SqlConnection.class);
 
@@ -56,11 +52,11 @@ public class OverflowSequenceSupplierTest {
         long firstSequenceId = OverflowSequenceSupplier.create(conns, "a_").get();
         long secondSequenceId = OverflowSequenceSupplier.create(conns, "a_").get();
 
-        assertThat(secondSequenceId - firstSequenceId).is(new HamcrestCondition<>(greaterThanOrEqualTo(1000L)));
+        assertThat(secondSequenceId - firstSequenceId).isGreaterThanOrEqualTo(1000L);
     }
 
     @Test
-    public void shouldSkipValuesReservedByOtherSupplier() throws Exception {
+    public void shouldSkipValuesReservedByOtherSupplier() {
         final ConnectionSupplier conns = mock(ConnectionSupplier.class);
         final SqlConnection sqlConnection = mock(SqlConnection.class);
 

@@ -16,9 +16,6 @@
 package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -40,7 +37,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
-import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 public class LeadersTest {
@@ -88,7 +84,8 @@ public class LeadersTest {
         assertThat(paxosAcceptors.size()).isEqualTo(REMOTE_SERVICE_ADDRESSES.size() + 1);
         paxosAcceptors.forEach(object -> assertThat(object).isNotNull());
 
-        assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted()).isEqualTo(1L);
+        assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted())
+                .isEqualTo(1L);
         verify(localAcceptor).getLatestSequencePreparedOrAccepted();
         verifyNoMoreInteractions(localAcceptor);
     }
@@ -108,7 +105,8 @@ public class LeadersTest {
 
         assertThat(paxosAcceptors.size()).isEqualTo(1);
 
-        assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted()).isEqualTo(1L);
+        assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted())
+                .isEqualTo(1L);
         verify(localAcceptor).getLatestSequencePreparedOrAccepted();
         verifyNoMoreInteractions(localAcceptor);
     }

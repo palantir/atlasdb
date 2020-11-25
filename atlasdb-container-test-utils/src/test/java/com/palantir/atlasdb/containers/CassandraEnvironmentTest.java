@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.containers;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 import org.junit.Rule;

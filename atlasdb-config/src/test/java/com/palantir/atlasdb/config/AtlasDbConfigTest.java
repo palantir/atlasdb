@@ -18,11 +18,6 @@ package com.palantir.atlasdb.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -232,7 +227,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryConfigCanHaveEmptyNamespace() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertThat(kvsConfig.namespace()).describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default").isNotPresent();
+        assertThat(kvsConfig.namespace())
+                .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isNotPresent();
         ImmutableAtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .namespace(Optional.empty())
                 .keyValueService(kvsConfig)
@@ -242,7 +239,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryConfigWorksWithNonTestNamespace() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertThat(kvsConfig.namespace()).describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default").isNotPresent();
+        assertThat(kvsConfig.namespace())
+                .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isNotPresent();
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .namespace("clive")
                 .keyValueService(kvsConfig)
@@ -252,7 +251,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryConfigCannotHaveEmptyNamespaceWithEmptyTimelockClient() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertThat(kvsConfig.namespace()).describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default").isNotPresent();
+        assertThat(kvsConfig.namespace())
+                .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isNotPresent();
         assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                         .namespace(Optional.empty())
                         .keyValueService(kvsConfig)
@@ -267,7 +268,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryKeyspaceAndTimelockClientCanBeDifferent() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertThat(kvsConfig.namespace()).describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default").isNotPresent();
+        assertThat(kvsConfig.namespace())
+                .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isNotPresent();
         ImmutableAtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(kvsConfig)
                 .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
@@ -282,8 +285,7 @@ public class AtlasDbConfigTest {
                         .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(
-                        exception -> assertThat(exception.getMessage()).contains("config should be the same"));
+                .satisfies(exception -> assertThat(exception.getMessage()).contains("config should be the same"));
     }
 
     @Test
@@ -294,8 +296,7 @@ public class AtlasDbConfigTest {
                         .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(
-                        exception -> assertThat(exception.getMessage()).contains("config should be the same"));
+                .satisfies(exception -> assertThat(exception.getMessage()).contains("config should be the same"));
     }
 
     @Test
@@ -316,8 +317,7 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception ->
-                        assertThat(exception.getMessage()).contains("avoid potential data corruption"));
+                .satisfies(exception -> assertThat(exception.getMessage()).contains("avoid potential data corruption"));
     }
 
     @Test
@@ -329,8 +329,8 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception ->
-                        assertThat(exception.getMessage()).contains("atlas root-level namespace config"));
+                .satisfies(
+                        exception -> assertThat(exception.getMessage()).contains("atlas root-level namespace config"));
     }
 
     @Test
@@ -342,8 +342,8 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception ->
-                        assertThat(exception.getMessage()).contains("atlas root-level namespace config"));
+                .satisfies(
+                        exception -> assertThat(exception.getMessage()).contains("atlas root-level namespace config"));
     }
 
     @Test
@@ -355,8 +355,8 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception ->
-                        assertThat(exception.getMessage()).contains("atlas root-level namespace config"));
+                .satisfies(
+                        exception -> assertThat(exception.getMessage()).contains("atlas root-level namespace config"));
     }
 
     @Test
