@@ -159,7 +159,7 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     }
 
     private static void assertListsMatch(List<byte[]> result, List<byte[]> expected) {
-        assertThat(result).hasSize(expected.size());
+        assertThat(result).hasSameSizeAs(expected);
         for (int i = 0; i < result.size(); i++) {
             assertThat(expected.get(i)).isEqualTo(result.get(i));
         }
