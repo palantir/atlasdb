@@ -17,6 +17,7 @@
 package com.palantir.timelock.corruption.detection;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -37,6 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public final class HistoryAnalyzer {
     private HistoryAnalyzer() {
@@ -77,6 +79,7 @@ public final class HistoryAnalyzer {
         List<Function<CompletePaxosHistoryForNamespaceAndUseCase, CorruptionCheckViolation>> violationChecks =
                 ImmutableList.of(
                         HistoryAnalyzer::divergedLearners,
+                        HistoryAnalyzer::clockWentBackwards,
                         HistoryAnalyzer::learnedValueWithoutQuorum,
                         HistoryAnalyzer::greatestAcceptedValueNotLearned);
         return violationChecks.stream()
@@ -95,6 +98,14 @@ public final class HistoryAnalyzer {
                 })
                 ? CorruptionCheckViolation.NONE
                 : CorruptionCheckViolation.DIVERGED_LEARNERS;
+    }
+
+    @VisibleForTesting
+    static CorruptionCheckViolation clockWentBackwards(CompletePaxosHistoryForNamespaceAndUseCase history) {
+        return history.localAndRemoteLearnerAndAcceptorRecords().stream()
+                        .anyMatch(HistoryAnalyzer::clockWentBackwardsOnNode)
+                ? CorruptionCheckViolation.CLOCK_WENT_BACKWARDS
+                : CorruptionCheckViolation.NONE;
     }
 
     @VisibleForTesting
@@ -194,5 +205,36 @@ public final class HistoryAnalyzer {
     // This method is only used for paxos rounds run for timestamp consensus (leader paxos rounds are strictly ignored).
     private static byte[] getPaxosValueData(Optional<PaxosValue> learnedValue) {
         return learnedValue.map(PaxosValue::getData).orElse(null);
+    }
+
+    private static boolean clockWentBackwardsOnNode(ConsolidatedLearnerAndAcceptorRecord record) {
+        List<SequenceAndTimestampPair> seqAndTimestampPairs = KeyedStream.stream(record.record())
+                .map(val -> getPaxosValueData(val.learnedValue()))
+                .filter(Predicates.notNull())
+                .mapEntries((sequence, timestamp) -> Maps.immutableEntry(
+                        sequence, ImmutableSequenceAndTimestampPair.of(sequence, PtBytes.toLong(timestamp))))
+                .values()
+                .sorted(Comparator.comparingLong(SequenceAndTimestampPair::sequence))
+                .collect(Collectors.toList());
+
+        long greatestTimestampSoFar = -1L;
+        long currentTimestamp;
+        for (SequenceAndTimestampPair sequenceAndTimestampPair : seqAndTimestampPairs) {
+            currentTimestamp = sequenceAndTimestampPair.timestamp();
+            if (currentTimestamp <= greatestTimestampSoFar) {
+                return true;
+            }
+            greatestTimestampSoFar = currentTimestamp;
+        }
+        return false;
+    }
+
+    @Value.Immutable
+    interface SequenceAndTimestampPair {
+        @Value.Parameter
+        long sequence();
+
+        @Value.Parameter
+        long timestamp();
     }
 }
