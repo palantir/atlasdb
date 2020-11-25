@@ -75,6 +75,10 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
         return timeLockCorruptionTestSetup.getPaxosLogHistoryProvider().getHistory();
     }
 
+    public LocalTimestampInvariantsVerifier getLocalTimestampInvariantsVerifier() {
+        return timeLockCorruptionTestSetup.getLocalTimestampInvariantsVerifier();
+    }
+
     void assertNoCorruptionViolations() {
         assertThat(getViolationsToNamespaceToUseCaseMultimap().isEmpty()).isTrue();
     }

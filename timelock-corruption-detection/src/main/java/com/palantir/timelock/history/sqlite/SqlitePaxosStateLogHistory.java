@@ -82,6 +82,15 @@ public final class SqlitePaxosStateLogHistory {
                         querySequenceBounds.getUpperBoundInclusive())));
     }
 
+    public Map<Long, PaxosValue> getLearnerLogsInRange(
+            Client namespace, LearnerUseCase learnerUseCase, HistoryQuerySequenceBounds querySequenceBounds) {
+        return execute(dao -> dao.getLearnerLogsInRange(
+                namespace,
+                learnerUseCase.value(),
+                querySequenceBounds.getLowerBoundInclusive(),
+                querySequenceBounds.getUpperBoundInclusive()));
+    }
+
     public long getGreatestLogEntry(Client client, LearnerUseCase useCase) {
         return executeSqlitePaxosStateLogQuery(dao -> dao.getGreatestLogEntry(client, useCase.value()))
                 .orElse(PaxosAcceptor.NO_LOG_ENTRY);
@@ -99,11 +108,6 @@ public final class SqlitePaxosStateLogHistory {
         @SqlQuery("SELECT DISTINCT namespace, useCase FROM paxosLog")
         Set<NamespaceAndUseCase> getAllNamespaceAndUseCaseTuples();
 
-        //        TODO(snanda): For now, limit is based on approximation and has not been tested with remotes. We need
-        // to
-        //         revisit this once we have the remote history providers set up. Also, we may have to make it
-        // configurable to
-        //         accommodate the rate at which logs are being published.
         @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
                 + " :lowerBoundInclusive AND seq <= :upperBoundInclusive")
         Map<Long, PaxosValue> getLearnerLogsInRange(

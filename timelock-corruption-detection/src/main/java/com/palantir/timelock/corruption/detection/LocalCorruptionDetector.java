@@ -34,30 +34,44 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
             new NamedThreadFactory(CORRUPTION_DETECTOR_THREAD_PREFIX, true));
     private final LocalCorruptionHandler corruptionHandler;
     private final PaxosLogHistoryProvider historyProvider;
+    private final LocalTimestampInvariantsVerifier timestampInvariantsVerifier;
 
     private volatile CorruptionStatus localCorruptionState = CorruptionStatus.HEALTHY;
     private volatile CorruptionHealthReport localCorruptionReport = CorruptionHealthReport.defaultHealthyReport();
 
     public static LocalCorruptionDetector create(
-            PaxosLogHistoryProvider historyProvider, List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+            PaxosLogHistoryProvider historyProvider,
+            List<TimeLockCorruptionNotifier> corruptionNotifiers,
+            LocalTimestampInvariantsVerifier timestampInvariants) {
         LocalCorruptionDetector localCorruptionDetector =
-                new LocalCorruptionDetector(historyProvider, corruptionNotifiers);
+                new LocalCorruptionDetector(historyProvider, corruptionNotifiers, timestampInvariants);
 
         localCorruptionDetector.scheduleWithFixedDelay();
         return localCorruptionDetector;
     }
 
     private LocalCorruptionDetector(
-            PaxosLogHistoryProvider historyProvider, List<TimeLockCorruptionNotifier> corruptionNotifiers) {
+            PaxosLogHistoryProvider historyProvider,
+            List<TimeLockCorruptionNotifier> corruptionNotifiers,
+            LocalTimestampInvariantsVerifier timestampInvariantsVerifier) {
 
         this.historyProvider = historyProvider;
+        this.timestampInvariantsVerifier = timestampInvariantsVerifier;
         this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
     }
 
     private void scheduleWithFixedDelay() {
         executor.scheduleWithFixedDelay(
                 () -> {
-                    localCorruptionReport = analyzeHistoryAndBuildCorruptionHealthReport();
+                    CorruptionHealthReport paxosRoundCorruptionReport = analyzeHistoryAndBuildCorruptionHealthReport();
+                    CorruptionHealthReport timestampInvariantsReport =
+                            timestampInvariantsVerifier.timestampInvariantsHealthReport();
+                    localCorruptionReport = ImmutableCorruptionHealthReport.builder()
+                            .putAllViolatingStatusesToNamespaceAndUseCase(
+                                    paxosRoundCorruptionReport.violatingStatusesToNamespaceAndUseCase())
+                            .putAllViolatingStatusesToNamespaceAndUseCase(
+                                    timestampInvariantsReport.violatingStatusesToNamespaceAndUseCase())
+                            .build();
                     processLocalHealthReport();
                 },
                 TIMELOCK_CORRUPTION_ANALYSIS_INTERVAL.getSeconds(),
