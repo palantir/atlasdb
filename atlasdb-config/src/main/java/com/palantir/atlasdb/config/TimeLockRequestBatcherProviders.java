@@ -20,6 +20,6 @@ import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface MultiClientBatcherProviders {
+public interface TimeLockRequestBatcherProviders {
     BatcherProvider<LeaderTimeCoalescingBatcher> leaderTimeBatcherProvider();
 }

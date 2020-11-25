@@ -45,7 +45,7 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.config.MultiClientBatcherProviders;
+import com.palantir.atlasdb.config.TimeLockRequestBatcherProviders;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
@@ -252,7 +252,7 @@ public abstract class TransactionManagers {
 
     abstract UserAgent userAgent();
 
-    abstract Optional<MultiClientBatcherProviders> batcherProviders();
+    abstract Optional<TimeLockRequestBatcherProviders> batcherProviders();
 
     /**
      * Please use {@link #globalTaggedMetricRegistry()} instead. The publishing of metrics to the external metrics
@@ -1006,7 +1006,7 @@ public abstract class TransactionManagers {
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             ReloadingFactory reloadingFactory,
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
-            Optional<MultiClientBatcherProviders> multiClientBatcherProviders) {
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
                 config,
@@ -1019,7 +1019,7 @@ public abstract class TransactionManagers {
                 lockDiagnosticComponents,
                 reloadingFactory,
                 timeLockFeedbackBackgroundTask,
-                multiClientBatcherProviders);
+                timelockRequestBatcherProviders);
         return withMetrics(
                 metricsManager, withCorroboratingTimestampService(withRefreshingLockService(lockAndTimestampServices)));
     }
@@ -1076,7 +1076,7 @@ public abstract class TransactionManagers {
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             ReloadingFactory reloadingFactory,
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
-            Optional<MultiClientBatcherProviders> multiClientBatcherProviders) {
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
@@ -1093,7 +1093,7 @@ public abstract class TransactionManagers {
                     lockDiagnosticComponents,
                     reloadingFactory,
                     timeLockFeedbackBackgroundTask,
-                    multiClientBatcherProviders);
+                    timelockRequestBatcherProviders);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time);
         }
@@ -1126,7 +1126,7 @@ public abstract class TransactionManagers {
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             ReloadingFactory reloadingFactory,
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
-            Optional<MultiClientBatcherProviders> multiClientBatcherProviders) {
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders) {
         Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfig);
 
@@ -1140,7 +1140,7 @@ public abstract class TransactionManagers {
                 lockDiagnosticComponents,
                 reloadingFactory,
                 timeLockFeedbackBackgroundTask,
-                multiClientBatcherProviders);
+                timelockRequestBatcherProviders);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.managedTimestampService(), invalidator, config.initializeAsync());
@@ -1169,7 +1169,7 @@ public abstract class TransactionManagers {
             Optional<LockDiagnosticComponents> lockDiagnosticComponents,
             ReloadingFactory reloadingFactory,
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
-            Optional<MultiClientBatcherProviders> multiClientBatcherProviders) {
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders) {
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
 
@@ -1204,7 +1204,7 @@ public abstract class TransactionManagers {
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
 
         LeaderTimeGetter leaderTimeGetter = getLeaderTimeGetter(
-                timelockNamespace, multiClientBatcherProviders, serviceProvider, namespacedConjureTimelockService);
+                timelockNamespace, timelockRequestBatcherProviders, serviceProvider, namespacedConjureTimelockService);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, leaderTimeGetter);
@@ -1225,11 +1225,11 @@ public abstract class TransactionManagers {
 
     private static LeaderTimeGetter getLeaderTimeGetter(
             String timelockNamespace,
-            Optional<MultiClientBatcherProviders> multiClientBatcherProviders,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             AtlasDbDialogueServiceProvider serviceProvider,
             LeaderElectionReportingTimelockService namespacedConjureTimelockService) {
-        return multiClientBatcherProviders
-                .map(MultiClientBatcherProviders::leaderTimeBatcherProvider)
+        return timelockRequestBatcherProviders
+                .map(TimeLockRequestBatcherProviders::leaderTimeBatcherProvider)
                 .map(provider -> provider.getBatcher(getMultiClientTimelockServiceSupplier(serviceProvider)))
                 .<LeaderTimeGetter>map(batcher -> new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, batcher))
                 .orElseGet(() -> new LegacyLeaderTimeGetter(namespacedConjureTimelockService));
