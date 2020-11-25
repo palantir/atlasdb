@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: DbKvs can now be initialized asynchronously. Earlier, a service depending
+    on it would crash if the Db was not up at initialization time.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5093

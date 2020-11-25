@@ -74,7 +74,7 @@ public class PostgresMultiSequenceTimestampSeriesProviderTest {
         assertThat(clients).isSubsetOf(knownSeries);
     }
 
-    private static InDbTimestampBoundStore createDbTimestampBoundStore(
+    private static TimestampBoundStore createDbTimestampBoundStore(
             ConnectionManagerAwareDbKvs keyValueService, TimestampSeries series) {
         return InDbTimestampBoundStore.createForMultiSeries(
                 keyValueService.getConnectionManager(), AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, series);

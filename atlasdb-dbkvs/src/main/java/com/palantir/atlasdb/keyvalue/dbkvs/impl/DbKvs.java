@@ -36,17 +36,20 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Atomics;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -128,7 +131,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class DbKvs extends AbstractKeyValueService {
+public final class DbKvs extends AbstractKeyValueService implements DbKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
 
     public static final String ROW = "row_name";
@@ -146,11 +149,17 @@ public final class DbKvs extends AbstractKeyValueService {
     private final OverflowValueLoader overflowValueLoader;
     private final DbKvsGetRange getRangeStrategy;
     private final DbKvsGetCandidateCellsForSweeping getCandidateCellsForSweepingStrategy;
+    private final InitializingWrapper wrapper = new InitializingWrapper();
 
-    public static DbKvs create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
+    public static DbKeyValueService create(DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier) {
+        return create(config, sqlConnSupplier, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static DbKeyValueService create(
+            DbKeyValueServiceConfig config, SqlConnectionSupplier sqlConnSupplier, boolean initializeAsync) {
         DbKvs dbKvs = createNoInit(config.ddl(), sqlConnSupplier);
-        dbKvs.init();
-        return dbKvs;
+        dbKvs.wrapper.initialize(initializeAsync);
+        return dbKvs.wrapper.isInitialized() ? dbKvs : dbKvs.wrapper;
     }
 
     /**
@@ -1235,6 +1244,7 @@ public final class DbKvs extends AbstractKeyValueService {
         });
     }
 
+    @Override
     public String getTablePrefix() {
         return config.tablePrefix();
     }
@@ -1367,5 +1377,53 @@ public final class DbKvs extends AbstractKeyValueService {
 
     private interface ReadWriteTask<T> {
         T run(DbReadTable readTable, DbWriteTable writeTable);
+    }
+
+    class InitializingWrapper extends AsyncInitializer implements AutoDelegate_DbKeyValueService {
+        @Override
+        public DbKeyValueService delegate() {
+            checkInitialized();
+            return DbKvs.this;
+        }
+
+        @Override
+        public Collection<? extends KeyValueService> getDelegates() {
+            return ImmutableList.of(delegate());
+        }
+
+        @Override
+        protected void tryInitialize() {
+            DbKvs.this.init();
+        }
+
+        @Override
+        public boolean supportsCheckAndSet() {
+            return DbKvs.this.supportsCheckAndSet();
+        }
+
+        @Override
+        public CheckAndSetCompatibility getCheckAndSetCompatibility() {
+            return DbKvs.this.getCheckAndSetCompatibility();
+        }
+
+        @Override
+        public boolean shouldTriggerCompactions() {
+            return DbKvs.this.shouldTriggerCompactions();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return "DbKvs";
+        }
+
+        @Override
+        public void close() {
+            cancelInitialization(DbKvs.this::close);
+        }
+
+        @Override
+        public String getTablePrefix() {
+            return DbKvs.this.getTablePrefix();
+        }
     }
 }
