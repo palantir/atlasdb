@@ -32,6 +32,6 @@ public class Sha256HashTest {
         byte[] result = digest.digest("Hello World".getBytes(Charsets.UTF_8));
         assertThat(BaseEncoding.base16().encode(result))
                 .isEqualTo("A591A6D40BF420404A011733CFB7B190D62C65BF0BCDA32B57B277D9AD9F146E");
-        assertThat(result.length).isEqualTo(32);
+        assertThat(result).hasSize(32);
     }
 }

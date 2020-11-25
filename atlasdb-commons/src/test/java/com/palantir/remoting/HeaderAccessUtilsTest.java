@@ -70,7 +70,7 @@ public class HeaderAccessUtilsTest {
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
         assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(testMap, KEY_2, additionalCommand))
-                .isEqualTo(false);
+                .isFalse();
     }
 
     @Test
