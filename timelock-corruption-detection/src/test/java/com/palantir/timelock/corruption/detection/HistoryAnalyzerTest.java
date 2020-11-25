@@ -60,20 +60,6 @@ public final class HistoryAnalyzerTest {
     }
 
     @Test
-    public void detectCorruptionIfClockWentBackwardsOnNode() {
-        helper.writeLogsOnDefaultLocalServer(1, MAX_ROWS_ALLOWED - 1);
-        PaxosSerializationTestUtils.writePaxosValue(
-                helper.getDefaultLocalServer().learnerLog(),
-                5,
-                PaxosSerializationTestUtils.createPaxosValueForRoundAndData(5, 10));
-        List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
-        assertThat(HistoryAnalyzer.clockWentBackwards(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionCheckViolation.CLOCK_WENT_BACKWARDS);
-
-        helper.assertViolationDetected(CorruptionCheckViolation.CLOCK_WENT_BACKWARDS);
-    }
-
-    @Test
     public void detectCorruptionIfLearnedValueIsNotAcceptedByQuorum() {
         helper.writeLogsOnDefaultLocalServer(5, MAX_ROWS_ALLOWED);
 
