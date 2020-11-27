@@ -31,9 +31,9 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
+import java.time.Duration;
 import java.util.List;
 import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -84,8 +84,8 @@ public class PaxosTimeLockServerIntegrationTest {
         namespace1 = TIMELOCK.client(CLIENT_1);
         namespace2 = TIMELOCK.client(CLIENT_2);
         Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
-                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     try {
                         // Returns true only if this node is ready to serve timestamps and locks on all clients.

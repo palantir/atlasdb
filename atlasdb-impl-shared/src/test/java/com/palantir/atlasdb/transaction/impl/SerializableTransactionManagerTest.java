@@ -48,6 +48,7 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
+import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -236,11 +237,11 @@ public class SerializableTransactionManagerTest {
         ExecutorService tickerThread = PTExecutors.newSingleThreadExecutor(true);
         tickerThread.execute(() -> executorService.tick(1000, TimeUnit.MILLISECONDS));
 
-        Awaitility.waitAtMost(THREE, TimeUnit.SECONDS).until(blockingCallback::wasInvoked);
+        Awaitility.waitAtMost(Duration.ofSeconds(THREE)).until(blockingCallback::wasInvoked);
         assertFalse(manager.isInitialized());
 
         blockingCallback.stopBlocking();
-        Awaitility.waitAtMost(THREE, TimeUnit.SECONDS).until(manager::isInitialized);
+        Awaitility.waitAtMost(Duration.ofSeconds(THREE)).until(manager::isInitialized);
         tickerThread.shutdown();
     }
 
@@ -253,12 +254,12 @@ public class SerializableTransactionManagerTest {
         ExecutorService tickerThread = PTExecutors.newSingleThreadExecutor(true);
         tickerThread.execute(() -> executorService.tick(1000, TimeUnit.MILLISECONDS));
 
-        Awaitility.waitAtMost(THREE, TimeUnit.SECONDS).until(blockingCallback::wasInvoked);
+        Awaitility.waitAtMost(Duration.ofSeconds(THREE)).until(blockingCallback::wasInvoked);
         verify(mockKvs, atLeast(1)).getClusterAvailabilityStatus();
         assertThatThrownBy(manager::getKeyValueServiceStatus).isInstanceOf(NotInitializedException.class);
 
         blockingCallback.stopBlocking();
-        Awaitility.waitAtMost(THREE, TimeUnit.SECONDS).until(manager::isInitialized);
+        Awaitility.waitAtMost(Duration.ofSeconds(THREE)).until(manager::isInitialized);
         assertThat(manager.getKeyValueServiceStatus()).isEqualTo(KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS);
         tickerThread.shutdown();
     }

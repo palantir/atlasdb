@@ -28,6 +28,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.time.NanoTime;
@@ -376,6 +377,21 @@ public class LockWatchEventCacheIntegrationTest {
         assertThatThrownBy(() -> eventCache.getCommitUpdate(START_TS))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("start or commit info not processed for start timestamp");
+    }
+
+    @Test
+    public void clientPartiallyUpToDateDoesNotThrow() {
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
+
+        TransactionsLockWatchUpdate update = eventCache.getUpdateForTransactions(
+                Sets.union(TIMESTAMPS, TIMESTAMPS_2), Optional.of(LockWatchVersion.of(LEADER, 5L)));
+
+        assertThat(update.clearCache()).isFalse();
+        assertThat(update.events().size()).isEqualTo(1);
+        assertThat(update.startTsToSequence())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
+                        START_TS, LockWatchVersion.of(LEADER, 3L), 16L, LockWatchVersion.of(LEADER, 6L)));
     }
 
     @Test

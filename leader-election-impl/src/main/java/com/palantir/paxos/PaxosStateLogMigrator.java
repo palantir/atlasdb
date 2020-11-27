@@ -30,7 +30,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.immutables.value.Value;
@@ -128,7 +127,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                 return;
             } catch (Exception e) {
                 log.info("Failed to write a migration batch. Retrying after backoff.", e);
-                Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+                Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100));
             }
         }
         target.writeBatchOfRounds(batch);

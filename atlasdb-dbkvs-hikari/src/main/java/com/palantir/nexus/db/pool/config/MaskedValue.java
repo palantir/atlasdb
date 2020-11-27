@@ -15,11 +15,10 @@
  */
 package com.palantir.nexus.db.pool.config;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
-@JsonDeserialize(as = ImmutableMaskedValue.class)
 @JsonSerialize(as = ImmutableMaskedValue.class)
 @Value.Immutable(builder = false)
 public abstract class MaskedValue {
@@ -33,5 +32,15 @@ public abstract class MaskedValue {
 
     public String unmasked() {
         return value();
+    }
+
+    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+    static MaskedValue fromJson(String stringValue) {
+        return ImmutableMaskedValue.of(stringValue);
+    }
+
+    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+    static MaskedValue fromJson(ImmutableMaskedValue jsonValue) {
+        return jsonValue;
     }
 }

@@ -57,7 +57,7 @@ public class PaxosLogHistoryProgressTrackerTest {
 
     @Test
     public void getsInitialStateBoundsWhenNoDataInDB() {
-        assertSanityOfFetchedHistoryQuerySeqBounds(0, 499);
+        assertSanityOfFetchedHistoryQuerySeqBounds(0, MAX_ROWS_ALLOWED - 1);
     }
 
     @Test
@@ -99,7 +99,7 @@ public class PaxosLogHistoryProgressTrackerTest {
                 .build();
 
         progressTracker.updateProgressStateForNamespaceAndUseCase(NAMESPACE_AND_USE_CASE, bounds);
-        assertSanityOfFetchedHistoryQuerySeqBounds(0, 499);
+        assertSanityOfFetchedHistoryQuerySeqBounds(0, MAX_ROWS_ALLOWED - 1);
     }
 
     public void assertSanityOfFetchedHistoryQuerySeqBounds(long lowerBoundInclusive, long upperBoundInclusive) {

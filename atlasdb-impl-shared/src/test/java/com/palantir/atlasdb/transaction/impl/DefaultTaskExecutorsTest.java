@@ -19,9 +19,9 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.util.concurrent.Uninterruptibles;
+import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 public class DefaultTaskExecutorsTest {
@@ -30,7 +30,7 @@ public class DefaultTaskExecutorsTest {
         ExecutorService service = DefaultTaskExecutors.createDefaultDeleteExecutor();
         for (int i = 0; i < DefaultTaskExecutors.DEFAULT_QUEUE_CAPACITY + 1; i++) {
             service.submit(() -> {
-                Uninterruptibles.sleepUninterruptibly(1, TimeUnit.DAYS);
+                Uninterruptibles.sleepUninterruptibly(Duration.ofDays(1));
                 return 1;
             });
         }

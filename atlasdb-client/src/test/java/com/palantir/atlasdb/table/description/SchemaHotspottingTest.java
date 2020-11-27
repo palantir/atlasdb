@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import java.io.File;
@@ -161,13 +158,13 @@ public class SchemaHotspottingTest {
     public void testSuccessfulGenerationWhenTableHotspottingIgnored() throws IOException {
         File srcDir = temporaryFolder.getRoot();
         getIgnoredHotspottingSchema().renderTables(srcDir);
+        System.out.println(Arrays.asList(srcDir.list()));
 
-        assertThat(Arrays.asList(srcDir.list()), contains(equalTo("valid")));
+        assertThat(Arrays.asList(srcDir.list())).contains("valid");
 
         File validDirectory = srcDir.listFiles()[0];
-        assertThat(Arrays.asList(validDirectory.list()), contains(equalTo("package")));
-        assertThat(
-                Arrays.asList(validDirectory.listFiles()[0].list()),
-                containsInAnyOrder(equalTo(SCHEMA_NAME + "TableFactory.java"), equalTo(TABLE_NAME + "Table.java")));
+        assertThat(Arrays.asList(validDirectory.list())).contains("package");
+        assertThat(Arrays.asList(validDirectory.listFiles()[0].list()))
+                .contains(SCHEMA_NAME + "TableFactory.java", TABLE_NAME + "Table.java");
     }
 }

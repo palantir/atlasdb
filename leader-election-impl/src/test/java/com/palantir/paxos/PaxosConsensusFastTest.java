@@ -31,6 +31,7 @@ import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
 import java.util.SortedMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -207,7 +208,7 @@ public class PaxosConsensusFastTest {
         LeadershipToken token1 = state.gainLeadership(0);
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1))).isEqualTo(StillLeadingStatus.LEADING);
 
-        Awaitility.waitAtMost(5, TimeUnit.SECONDS).until(() -> state.leader(1).hostileTakeover());
+        Awaitility.waitAtMost(Duration.ofSeconds(5)).until(() -> state.leader(1).hostileTakeover());
         assertThat(Futures.getUnchecked(state.leader(0).isStillLeading(token1)))
                 .isEqualTo(StillLeadingStatus.NOT_LEADING);
         assertThat(state.leader(1).getCurrentTokenIfLeading()).isNotEmpty();

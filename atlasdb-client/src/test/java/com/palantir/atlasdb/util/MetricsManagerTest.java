@@ -86,7 +86,7 @@ public class MetricsManagerTest {
     @Test
     public void getTableNameTagFor_usesSafeTableNames() {
         Map<String, String> tag = metricsManager.getTableNameTagFor(table("safe"));
-        assertThat(tag.size()).isEqualTo(1);
+        assertThat(tag).hasSize(1);
         assertThat(tag).containsKey("tableName");
         assertThat(tag.get("tableName")).isEqualTo("safe");
     }
@@ -94,7 +94,7 @@ public class MetricsManagerTest {
     @Test
     public void getTableNameTagFor_unsafeTable() {
         Map<String, String> tag = metricsManager.getTableNameTagFor(table("unsafe"));
-        assertThat(tag.size()).isEqualTo(1);
+        assertThat(tag).hasSize(1);
         assertThat(tag).containsKey("tableName");
         assertThat(tag.get("tableName")).isEqualTo("unsafeTable");
     }

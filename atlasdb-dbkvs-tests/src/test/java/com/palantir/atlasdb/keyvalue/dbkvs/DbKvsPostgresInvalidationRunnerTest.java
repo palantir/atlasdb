@@ -95,7 +95,7 @@ public class DbKvsPostgresInvalidationRunnerTest {
         assertBoundNotReadableAfterBeingPoisoned();
     }
 
-    public InDbTimestampBoundStore getStore() {
+    public TimestampBoundStore getStore() {
         return InDbTimestampBoundStore.create(
                 kvs.getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,

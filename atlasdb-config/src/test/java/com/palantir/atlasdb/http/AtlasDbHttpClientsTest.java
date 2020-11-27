@@ -23,8 +23,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -58,7 +56,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.Consumes;
@@ -232,10 +229,10 @@ public class AtlasDbHttpClientsTest {
         assertThatThrownBy(client::getTestNumber).isInstanceOf(RuntimeException.class);
 
         servers.add(getUriForPort(availablePort1));
-        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME.getSeconds(), TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME);
 
         int response = client.getTestNumber();
-        assertThat(response, equalTo(TEST_NUMBER_1));
+        assertThat(response).isEqualTo(TEST_NUMBER_1);
         unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
     }
 
@@ -249,14 +246,14 @@ public class AtlasDbHttpClientsTest {
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 MetricsManagers.createForTests(), config::get, TestResource.class, AUXILIARY_REMOTING_PARAMETERS);
 
-        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER_1));
+        assertThat(testResource.getTestNumber()).isEqualTo(TEST_NUMBER_1);
 
         config.set(ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort2))
                 .sslConfiguration(SSL_CONFIG)
                 .build());
-        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME.getSeconds(), TimeUnit.SECONDS);
-        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER_2));
+        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME);
+        assertThat(testResource.getTestNumber()).isEqualTo(TEST_NUMBER_2);
     }
 
     private static String getUriForPort(int port) {

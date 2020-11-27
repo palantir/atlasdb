@@ -15,14 +15,9 @@
  */
 package com.palantir.atlasdb.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -90,7 +85,7 @@ public class AtlasDbConfigTest {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .build();
-        assertThat(config, not(nullValue()));
+        assertThat(config).isNotNull();
     }
 
     @Test(expected = IllegalStateException.class)
@@ -104,7 +99,7 @@ public class AtlasDbConfigTest {
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .leader(LEADER_CONFIG)
                 .build();
-        assertThat(config, not(nullValue()));
+        assertThat(config).isNotNull();
     }
 
     @Test
@@ -113,7 +108,7 @@ public class AtlasDbConfigTest {
                 .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
                 .timelock(TIMELOCK_CONFIG)
                 .build();
-        assertThat(config, not(nullValue()));
+        assertThat(config).isNotNull();
     }
 
     @Test
@@ -123,7 +118,7 @@ public class AtlasDbConfigTest {
                 .lock(SINGLETON_SERVER_LIST)
                 .timestamp(SINGLETON_SERVER_LIST)
                 .build();
-        assertThat(config, not(nullValue()));
+        assertThat(config).isNotNull();
     }
 
     @Test(expected = IllegalStateException.class)
@@ -199,7 +194,7 @@ public class AtlasDbConfigTest {
                         .leader(LEADER_CONFIG)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception -> assertThat(exception.getMessage(), containsString("config needs to be set")));
+                .satisfies(exception -> assertThat(exception.getMessage()).contains("config needs to be set"));
     }
 
     @Test
@@ -209,7 +204,7 @@ public class AtlasDbConfigTest {
                         .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception -> assertThat(exception.getMessage(), containsString("config should be present")));
+                .satisfies(exception -> assertThat(exception.getMessage()).contains("config should be present"));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -232,9 +227,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryConfigCanHaveEmptyNamespace() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertFalse(
-                "This test assumes the InMemoryAtlasDbConfig has no namespace by default",
-                kvsConfig.namespace().isPresent());
+        assertThat(kvsConfig.namespace())
+                .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isNotPresent();
         ImmutableAtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .namespace(Optional.empty())
                 .keyValueService(kvsConfig)
@@ -244,9 +239,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryConfigWorksWithNonTestNamespace() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertFalse(
-                "This test assumes the InMemoryAtlasDbConfig has no namespace by default",
-                kvsConfig.namespace().isPresent());
+        assertThat(kvsConfig.namespace())
+                .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isNotPresent();
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .namespace("clive")
                 .keyValueService(kvsConfig)
@@ -256,9 +251,9 @@ public class AtlasDbConfigTest {
     @Test
     public void inMemoryConfigCannotHaveEmptyNamespaceWithEmptyTimelockClient() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertFalse(
-                "This test assumes the InMemoryAtlasDbConfig has no namespace by default",
-                kvsConfig.namespace().isPresent());
+        assertThat(kvsConfig.namespace())
+                .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isNotPresent();
         assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
                         .namespace(Optional.empty())
                         .keyValueService(kvsConfig)
@@ -266,16 +261,16 @@ public class AtlasDbConfigTest {
                         .build())
                 .isInstanceOf(IllegalStateException.class)
                 .satisfies(exception ->
-                        assertThat(exception.getMessage(), containsString("TimeLock client should not be empty")));
+                        assertThat(exception.getMessage()).contains("TimeLock client should not be empty"));
     }
 
     // Documenting that for in-memory, we don't care what the timelock client is - it just has to be non-empty.
     @Test
     public void inMemoryKeyspaceAndTimelockClientCanBeDifferent() {
         InMemoryAtlasDbConfig kvsConfig = new InMemoryAtlasDbConfig();
-        assertFalse(
-                "This test assumes the InMemoryAtlasDbConfig has no namespace by default",
-                kvsConfig.namespace().isPresent());
+        assertThat(kvsConfig.namespace())
+                .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
+                .isNotPresent();
         ImmutableAtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(kvsConfig)
                 .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
@@ -290,8 +285,7 @@ public class AtlasDbConfigTest {
                         .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(
-                        exception -> assertThat(exception.getMessage(), containsString("config should be the same")));
+                .satisfies(exception -> assertThat(exception.getMessage()).contains("config should be the same"));
     }
 
     @Test
@@ -302,8 +296,7 @@ public class AtlasDbConfigTest {
                         .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(
-                        exception -> assertThat(exception.getMessage(), containsString("config should be the same")));
+                .satisfies(exception -> assertThat(exception.getMessage()).contains("config should be the same"));
     }
 
     @Test
@@ -324,8 +317,7 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception ->
-                        assertThat(exception.getMessage(), containsString("avoid potential data corruption")));
+                .satisfies(exception -> assertThat(exception.getMessage()).contains("avoid potential data corruption"));
     }
 
     @Test
@@ -337,8 +329,8 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception ->
-                        assertThat(exception.getMessage(), containsString("atlas root-level namespace config")));
+                .satisfies(
+                        exception -> assertThat(exception.getMessage()).contains("atlas root-level namespace config"));
     }
 
     @Test
@@ -350,8 +342,8 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception ->
-                        assertThat(exception.getMessage(), containsString("atlas root-level namespace config")));
+                .satisfies(
+                        exception -> assertThat(exception.getMessage()).contains("atlas root-level namespace config"));
     }
 
     @Test
@@ -363,8 +355,8 @@ public class AtlasDbConfigTest {
                         .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception ->
-                        assertThat(exception.getMessage(), containsString("atlas root-level namespace config")));
+                .satisfies(
+                        exception -> assertThat(exception.getMessage()).contains("atlas root-level namespace config"));
     }
 
     @Test
@@ -374,7 +366,7 @@ public class AtlasDbConfigTest {
                 .leader(LEADER_CONFIG)
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
-        assertThat(withSsl.leader().get().sslConfiguration(), is(SSL_CONFIG));
+        assertThat(withSsl.leader().get().sslConfiguration()).isEqualTo(SSL_CONFIG);
     }
 
     @Test
@@ -385,7 +377,7 @@ public class AtlasDbConfigTest {
                 .timestamp(SINGLETON_SERVER_LIST)
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
-        assertThat(withSsl.lock().get().sslConfiguration(), is(SSL_CONFIG));
+        assertThat(withSsl.lock().get().sslConfiguration()).isEqualTo(SSL_CONFIG);
     }
 
     @Test
@@ -395,7 +387,7 @@ public class AtlasDbConfigTest {
                 .timelock(TIMELOCK_CONFIG)
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
-        assertThat(withSsl.timelock().get().serversList().sslConfiguration(), is(SSL_CONFIG));
+        assertThat(withSsl.timelock().get().serversList().sslConfiguration()).isEqualTo(SSL_CONFIG);
     }
 
     @Test
@@ -406,7 +398,7 @@ public class AtlasDbConfigTest {
                 .timestamp(SINGLETON_SERVER_LIST)
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
-        assertThat(withSsl.timestamp().get().sslConfiguration(), is(SSL_CONFIG));
+        assertThat(withSsl.timestamp().get().sslConfiguration()).isEqualTo(SSL_CONFIG);
     }
 
     @Test
@@ -419,7 +411,7 @@ public class AtlasDbConfigTest {
                         .build())
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, OTHER_SSL_CONFIG);
-        assertThat(withSsl.leader().get().sslConfiguration(), is(SSL_CONFIG));
+        assertThat(withSsl.leader().get().sslConfiguration()).isEqualTo(SSL_CONFIG);
     }
 
     @Test
@@ -429,7 +421,7 @@ public class AtlasDbConfigTest {
                 .leader(LEADER_CONFIG)
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, NO_SSL_CONFIG);
-        assertThat(withSsl.leader().get().sslConfiguration(), is(NO_SSL_CONFIG));
+        assertThat(withSsl.leader().get().sslConfiguration()).isEqualTo(NO_SSL_CONFIG);
     }
 
     @Test

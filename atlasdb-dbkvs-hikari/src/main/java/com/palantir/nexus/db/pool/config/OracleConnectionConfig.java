@@ -240,6 +240,8 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     public static class Builder extends ImmutableOracleConnectionConfig.Builder {}
 
+    @JsonDeserialize(as = ImmutableServiceNameConfiguration.class)
+    @JsonSerialize(as = ImmutableServiceNameConfiguration.class)
     @Value.Immutable
     public interface ServiceNameConfiguration {
         String serviceName();

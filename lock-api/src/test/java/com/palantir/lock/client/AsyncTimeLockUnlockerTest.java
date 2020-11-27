@@ -28,16 +28,15 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
-import org.awaitility.Durations;
 import org.awaitility.core.ThrowingRunnable;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +59,7 @@ public class AsyncTimeLockUnlockerTest {
     @Test(timeout = 2_000)
     public void enqueueDoesNotBlock() {
         doAnswer(invocation -> {
-                    Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
+                    Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30));
                     return null;
                 })
                 .when(timelockService)
@@ -147,8 +146,8 @@ public class AsyncTimeLockUnlockerTest {
 
     private void assertConditionEventuallyTrue(ThrowingRunnable throwingRunnable) {
         Awaitility.await()
-                .atMost(Durations.TEN_SECONDS)
-                .pollInterval(Durations.ONE_HUNDRED_MILLISECONDS)
+                .atMost(Duration.ofSeconds(10))
+                .pollInterval(Duration.ofMillis(100))
                 .untilAsserted(throwingRunnable);
     }
 }
