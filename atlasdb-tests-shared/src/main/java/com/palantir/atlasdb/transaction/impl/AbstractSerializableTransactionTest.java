@@ -71,6 +71,7 @@ import com.palantir.logsafe.Preconditions;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Callable;
@@ -1089,6 +1090,29 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t3.commit();
 
         t2.commit();
+    }
+
+    @Test
+    public void testMultipleIteratorsWorkSafely() {
+        byte[] row = PtBytes.toBytes("row");
+        Cell cell = Cell.create(row, PtBytes.toBytes("col"));
+        byte[] value = PtBytes.toBytes("val");
+
+        Transaction t1 = startTransaction();
+        t1.put(TEST_TABLE, ImmutableMap.of(cell, value));
+        t1.commit();
+
+        Transaction t2 = startTransaction();
+        Map<byte[], Iterator<Entry<Cell, byte[]>>> iterators = t2.getRowsColumnRangeIterator(
+                TEST_TABLE,
+                ImmutableList.of(row),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
+
+        Iterator<Entry<Cell, byte[]>> iterator1 = iterators.get(row);
+        Iterator<Entry<Cell, byte[]>> iterator2 = iterators.get(row);
+        assertThat(iterator1.hasNext()).isTrue();
+        assertThat(iterator2.hasNext()).isTrue();
+        assertThat(iterator1.next()).isEqualTo(Maps.immutableEntry(cell, value));
     }
 
     @Test
