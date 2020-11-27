@@ -114,6 +114,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -125,6 +126,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.SortedMap;
@@ -1218,6 +1220,41 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         tx.getRowsColumnRange(TABLE, ImmutableList.of(row), new ColumnRangeSelection(null, null), 10)),
                 Map.Entry::getKey));
         assertEquals(ImmutableList.of(firstCell, secondCell), cells);
+    }
+
+    @Test
+    public void testGetRowsColumnRangeMultipleIteratorsWorkSafely() {
+        byte[] row = "foo".getBytes();
+        Cell cell = Cell.create(row, "a".getBytes());
+        byte[] value = new byte[1];
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(cell, value));
+            return null;
+        });
+
+        Transaction secondTxn = serializableTxManager.createNewTransaction();
+        Map<byte[], BatchingVisitable<Entry<Cell, byte[]>>> batchingVisitables = secondTxn.getRowsColumnRange(
+                TABLE,
+                ImmutableList.of(row),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+
+        BatchingVisitable<Entry<Cell, byte[]>> visitable1 = batchingVisitables.get(row);
+        List<Entry<Cell, byte[]>> entriesFromVisitable1 = new ArrayList<>();
+        BatchingVisitable<Entry<Cell, byte[]>> visitable2 = batchingVisitables.get(row);
+        visitable1.batchAccept(10, cells -> {
+            entriesFromVisitable1.addAll(cells);
+            return true;
+        });
+
+        assertThatThrownBy(() -> visitable2.batchAccept(10, cells -> true))
+                .isExactlyInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("This class has already been called once before");
+
+        Assertions.assertThat(Iterables.getOnlyElement(entriesFromVisitable1)).satisfies(entry -> {
+            Assertions.assertThat(entry.getKey()).isEqualTo(cell);
+            Assertions.assertThat(Arrays.equals(entry.getValue(), value)).isTrue();
+        });
     }
 
     @Test

@@ -106,6 +106,7 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -381,9 +382,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
-        return Maps.transformEntries(
-                getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection),
-                (row, iterator) -> BatchingVisitableFromIterable.create(iterator));
+        return KeyedStream.stream(getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection))
+                .map((row, iterator) -> BatchingVisitableFromIterable.create(iterator))
+                .collectToMap();
     }
 
     @Override
