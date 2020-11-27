@@ -68,6 +68,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -1112,7 +1113,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Iterator<Entry<Cell, byte[]>> iterator2 = iterators.get(row);
         assertThat(iterator1.hasNext()).isTrue();
         assertThat(iterator2.hasNext()).isTrue();
-        assertThat(iterator1.next()).isEqualTo(Maps.immutableEntry(cell, value));
+
+        Entry<Cell, byte[]> entry = iterator1.next();
+        assertThat(entry.getKey()).isEqualTo(cell);
+        assertThat(Arrays.equals(entry.getValue(), value)).isTrue();
     }
 
     @Test
