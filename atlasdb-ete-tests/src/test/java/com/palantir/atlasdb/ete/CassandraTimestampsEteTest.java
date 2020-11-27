@@ -88,7 +88,7 @@ public class CassandraTimestampsEteTest {
             throws IOException, InterruptedException {
         long firstWriteTimestamp = todoClient.addNamespacedTodoWithIdAndReturnTimestamp(ID, NAMESPACE, TODO);
         todoClient.addNamespacedTodoWithIdAndReturnTimestamp(ID, NAMESPACE, TODO_2);
-        sweepuntilNoValueExistsForNamespaceAtTimestamp(ID, firstWriteTimestamp, NAMESPACE);
+        sweepUntilNoValueExistsForNamespaceAtTimestamp(ID, firstWriteTimestamp, NAMESPACE);
 
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
 
@@ -116,7 +116,7 @@ public class CassandraTimestampsEteTest {
         sweepUntilConditionSatisfied(() -> todoClient.doesNotExistBeforeTimestamp(id, timestamp));
     }
 
-    private void sweepuntilNoValueExistsForNamespaceAtTimestamp(long id, long timestamp, String namespace) {
+    private void sweepUntilNoValueExistsForNamespaceAtTimestamp(long id, long timestamp, String namespace) {
         sweepUntilConditionSatisfied(
                 () -> todoClient.namespacedTodoDoesNotExistBeforeTimestamp(id, timestamp, namespace));
     }
