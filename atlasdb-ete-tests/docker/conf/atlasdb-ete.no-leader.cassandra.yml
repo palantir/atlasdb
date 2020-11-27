@@ -33,3 +33,4 @@ atlasDbRuntime:
     enabled: false
   targetedSweep:
     enabled: true
+    shards: 1 # required for CassandraTimestampsEteTest

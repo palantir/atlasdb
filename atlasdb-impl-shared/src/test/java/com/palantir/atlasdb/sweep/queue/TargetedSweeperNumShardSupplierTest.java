@@ -45,8 +45,8 @@ public class TargetedSweeperNumShardSupplierTest {
 
     @Test
     public void testDefaultValue() {
-        assertThat(setRuntimeAndGetNumShards(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS))
-                .isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        assertThat(setRuntimeAndGetNumShards(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS))
+                .isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
     }
 
     @Test
@@ -57,7 +57,7 @@ public class TargetedSweeperNumShardSupplierTest {
 
     @Test
     public void testProgressHigherValue() {
-        when(runtimeConfigSupplier.get()).thenReturn(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        when(runtimeConfigSupplier.get()).thenReturn(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
         progress.updateNumberOfShards(25);
         assertThat(numShardSupplier.get()).isEqualTo(25);
     }

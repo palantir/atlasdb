@@ -45,7 +45,7 @@ public abstract class TargetedSweepRuntimeConfig {
      */
     @Value.Default
     public int shards() {
-        return 8;
+        return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_SHARDS;
     }
 
     /**

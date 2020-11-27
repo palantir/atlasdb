@@ -182,8 +182,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void enqueueUpdatesNumberOfShards() {
-        assertThat(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS).isLessThan(DEFAULT_SHARDS);
-        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        assertThat(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS).isLessThan(DEFAULT_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS);
     }

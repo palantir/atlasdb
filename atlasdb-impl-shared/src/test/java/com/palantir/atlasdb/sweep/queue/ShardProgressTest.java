@@ -55,12 +55,12 @@ public class ShardProgressTest {
 
     @Test
     public void canReadInitialNumberOfShards() {
-        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
     }
 
     @Test
     public void canUpgradeNumberOfShardsIfPersistedDefaultValue() {
-        byte[] defaultValue = ShardProgress.createColumnValue(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        byte[] defaultValue = ShardProgress.createColumnValue(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
         CheckAndSetRequest request = progress.createNewCellRequest(ShardProgress.SHARD_COUNT_SAS, defaultValue);
         kvs.checkAndSet(request);
 
@@ -77,7 +77,7 @@ public class ShardProgressTest {
     @Test
     public void cannotUpdateNumberOfShardsToZero() {
         progress.updateNumberOfShards(0);
-        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
     }
 
     @Test
@@ -143,7 +143,7 @@ public class ShardProgressTest {
 
     @Test
     public void updatingTimestampsDoesNotAffectShardsAndViceVersa() {
-        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
         assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(INITIAL_TIMESTAMP);
         assertThat(progress.getLastSweptTimestamp(THOROUGH_TEN)).isEqualTo(INITIAL_TIMESTAMP);
 
