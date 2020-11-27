@@ -827,15 +827,15 @@ public class SerializableTransaction extends SnapshotTransaction {
                 tableRef, getTimestamp(), System.currentTimeMillis() - timeCreated);
     }
 
-    private BatchingVisitable<Entry<Cell, byte[]>> wrapWithColumnRangeChecking(
+    private BatchingVisitable<Map.Entry<Cell, byte[]>> wrapWithColumnRangeChecking(
             TableReference tableRef,
             BatchColumnRangeSelection columnRangeSelection,
             byte[] row,
-            BatchingVisitable<Entry<Cell, byte[]>> visitable) {
-        return new BatchingVisitable<Entry<Cell, byte[]>>() {
+            BatchingVisitable<Map.Entry<Cell, byte[]>> visitable) {
+        return new BatchingVisitable<Map.Entry<Cell, byte[]>>() {
             @Override
             public <K extends Exception> boolean batchAccept(
-                    int batchSize, AbortingVisitor<? super List<Entry<Cell, byte[]>>, K> visitor) throws K {
+                    int batchSize, AbortingVisitor<? super List<Map.Entry<Cell, byte[]>>, K> visitor) throws K {
                 boolean hitEnd = visitable.batchAccept(batchSize, items -> {
                     if (items.size() < batchSize) {
                         reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
@@ -851,13 +851,13 @@ public class SerializableTransaction extends SnapshotTransaction {
         };
     }
 
-    public Iterator<Entry<Cell, byte[]>> wrapIteratorWithBoundsChecking(
+    public Iterator<Map.Entry<Cell, byte[]>> wrapIteratorWithBoundsChecking(
             TableReference tableRef,
             BatchColumnRangeSelection columnRangeSelection,
             byte[] row,
-            Iterator<Entry<Cell, byte[]>> iterator) {
-        return new Iterator<Entry<Cell, byte[]>>() {
-            Entry<Cell, byte[]> next = null;
+            Iterator<Map.Entry<Cell, byte[]>> iterator) {
+        return new Iterator<Map.Entry<Cell, byte[]>>() {
+            Map.Entry<Cell, byte[]> next = null;
 
             @Override
             public boolean hasNext() {
@@ -876,11 +876,11 @@ public class SerializableTransaction extends SnapshotTransaction {
             }
 
             @Override
-            public Entry<Cell, byte[]> next() {
+            public Map.Entry<Cell, byte[]> next() {
                 if (!hasNext()) {
                     throw new NoSuchElementException();
                 }
-                Entry<Cell, byte[]> result = next;
+                Map.Entry<Cell, byte[]> result = next;
                 next = null;
                 return result;
             }

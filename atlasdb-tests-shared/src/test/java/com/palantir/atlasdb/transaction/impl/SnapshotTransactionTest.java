@@ -1234,14 +1234,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         });
 
         Transaction secondTxn = serializableTxManager.createNewTransaction();
-        Map<byte[], BatchingVisitable<Entry<Cell, byte[]>>> batchingVisitables = secondTxn.getRowsColumnRange(
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> batchingVisitables = secondTxn.getRowsColumnRange(
                 TABLE,
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
 
-        BatchingVisitable<Entry<Cell, byte[]>> visitable1 = batchingVisitables.get(row);
-        List<Entry<Cell, byte[]>> entriesFromVisitable1 = new ArrayList<>();
-        BatchingVisitable<Entry<Cell, byte[]>> visitable2 = batchingVisitables.get(row);
+        BatchingVisitable<Map.Entry<Cell, byte[]>> visitable1 = batchingVisitables.get(row);
+        List<Map.Entry<Cell, byte[]>> entriesFromVisitable1 = new ArrayList<>();
+        BatchingVisitable<Map.Entry<Cell, byte[]>> visitable2 = batchingVisitables.get(row);
         visitable1.batchAccept(10, cells -> {
             entriesFromVisitable1.addAll(cells);
             return true;

@@ -1107,15 +1107,15 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t1.commit();
 
         Transaction t2 = startTransaction();
-        Map<byte[], BatchingVisitable<Entry<Cell, byte[]>>> iterators = t2.getRowsColumnRange(
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> iterators = t2.getRowsColumnRange(
                 TEST_TABLE,
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
 
-        BatchingVisitable<Entry<Cell, byte[]>> visitable1 = iterators.get(row);
-        List<Entry<Cell, byte[]>> entriesFromVisitable1 = new ArrayList<>();
+        BatchingVisitable<Map.Entry<Cell, byte[]>> visitable1 = iterators.get(row);
+        List<Map.Entry<Cell, byte[]>> entriesFromVisitable1 = new ArrayList<>();
 
-        BatchingVisitable<Entry<Cell, byte[]>> visitable2 = iterators.get(row);
+        BatchingVisitable<Map.Entry<Cell, byte[]>> visitable2 = iterators.get(row);
 
         visitable1.batchAccept(10, cells -> {
             entriesFromVisitable1.addAll(cells);
@@ -1143,17 +1143,17 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t1.commit();
 
         Transaction t2 = startTransaction();
-        Map<byte[], Iterator<Entry<Cell, byte[]>>> iterators = t2.getRowsColumnRangeIterator(
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> iterators = t2.getRowsColumnRangeIterator(
                 TEST_TABLE,
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
 
-        Iterator<Entry<Cell, byte[]>> iterator1 = iterators.get(row);
-        Iterator<Entry<Cell, byte[]>> iterator2 = iterators.get(row);
+        Iterator<Map.Entry<Cell, byte[]>> iterator1 = iterators.get(row);
+        Iterator<Map.Entry<Cell, byte[]>> iterator2 = iterators.get(row);
         assertThat(iterator1.hasNext()).isTrue();
         assertThat(iterator2.hasNext()).isTrue();
 
-        Entry<Cell, byte[]> entry = iterator1.next();
+        Map.Entry<Cell, byte[]> entry = iterator1.next();
         assertThat(entry.getKey()).isEqualTo(cell);
         assertThat(Arrays.equals(entry.getValue(), value)).isTrue();
     }
