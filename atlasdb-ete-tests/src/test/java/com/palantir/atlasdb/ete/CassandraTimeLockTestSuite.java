@@ -33,7 +33,8 @@ import org.junit.runners.Suite;
     TimestampManagementEteTest.class,
     CoordinationEteTest.class,
     MultipleSchemaVersionsCoordinationEteTest.class,
-    LockWithTimelockEteTest.class
+    LockWithTimelockEteTest.class,
+    LockWatchEteTest.class
 })
 public class CassandraTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

@@ -14,25 +14,22 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.lock;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.v2.LockToken;
+import java.util.Set;
 import org.immutables.value.Value;
 
-/**
- * This is a record of a transaction that successfully retrieved a commit timestamp, along with the lock token it
- * acquired for its writes. Users MUST NOT assume that this transaction has successfully committed - it may or may not
- * have.
- */
 @Value.Immutable
-@JsonSerialize(as = ImmutableTransactionUpdate.class)
-@JsonDeserialize(as = ImmutableTransactionUpdate.class)
-public interface TransactionUpdate {
-    long startTs();
+@JsonSerialize(as = ImmutableWriteRequest.class)
+@JsonDeserialize(as = ImmutableWriteRequest.class)
+public interface WriteRequest {
+    TransactionId id();
 
-    long commitTs();
+    Set<String> rows();
 
-    LockToken writesToken();
+    static WriteRequest of(TransactionId id, String... rows) {
+        return ImmutableWriteRequest.builder().id(id).addRows(rows).build();
+    }
 }
