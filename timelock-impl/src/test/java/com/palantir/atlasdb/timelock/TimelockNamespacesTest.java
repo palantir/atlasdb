@@ -148,10 +148,10 @@ public class TimelockNamespacesTest {
 
     @Test
     public void pathsForTimelockAndLockWatchServicesAreNotValid() {
-        assertThat(TimelockNamespaces.isValidName.test("tl")).isFalse();
-        assertThat(TimelockNamespaces.isValidName.test("lw")).isFalse();
-        assertThat(TimelockNamespaces.isValidName.test("tlblah")).isTrue();
-        assertThat(TimelockNamespaces.isValidName.test("lwbleh")).isTrue();
+        assertThat(TimelockNamespaces.IS_VALID_NAME.test("tl")).isFalse();
+        assertThat(TimelockNamespaces.IS_VALID_NAME.test("lw")).isFalse();
+        assertThat(TimelockNamespaces.IS_VALID_NAME.test("tlblah")).isTrue();
+        assertThat(TimelockNamespaces.IS_VALID_NAME.test("lwbleh")).isTrue();
     }
 
     private void createMaximumNumberOfClients() {

@@ -51,6 +51,6 @@ public interface EteLockWatchResource {
 
     @POST
     @Path("set-table")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.TEXT_PLAIN)
     void setTable(String tableName);
 }

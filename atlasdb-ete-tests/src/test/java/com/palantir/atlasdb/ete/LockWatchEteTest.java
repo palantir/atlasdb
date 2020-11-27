@@ -58,7 +58,7 @@ public final class LockWatchEteTest {
 
     @Before
     public void before() {
-        String tableName = UUID.randomUUID().toString().substring(0, 16).replace("-", "X");
+        String tableName = UUID.randomUUID().toString().substring(0, 16).replace("-", "_");
         lockWatcher.setTable(tableName);
         this.tableReference = TableReference.create(SimpleEteLockWatchResource.NAMESPACE, tableName);
     }

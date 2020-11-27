@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toSet;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
@@ -42,9 +43,12 @@ public final class TimelockNamespaces {
     @VisibleForTesting
     static final String MAX_CLIENTS = "maxClients";
 
+    private static final Set<String> BANNED_CLIENTS = ImmutableSet.of("tl", "lw");
+    private static final String PATH_REGEX =
+            String.format("^(?!((%s)$))[a-zA-Z0-9_-]+$", String.join("|", BANNED_CLIENTS));
+
     @VisibleForTesting
-    static final Predicate<String> isValidName =
-            Pattern.compile("^(?!((tl|lw)$))[a-zA-Z0-9_-]+$").asPredicate();
+    static final Predicate<String> IS_VALID_NAME = Pattern.compile(PATH_REGEX).asPredicate();
 
     private static final Logger log = LoggerFactory.getLogger(TimelockNamespaces.class);
 
@@ -77,7 +81,7 @@ public final class TimelockNamespaces {
 
     private TimeLockServices createNewClient(String namespace) {
         Preconditions.checkArgument(
-                isValidName.test(namespace), "Invalid namespace", SafeArg.of("namespace", namespace));
+                IS_VALID_NAME.test(namespace), "Invalid namespace", SafeArg.of("namespace", namespace));
         Preconditions.checkArgument(
                 !namespace.equals(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 "The client name '%s' is reserved for the leader election service, and may not be " + "used.",

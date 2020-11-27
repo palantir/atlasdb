@@ -93,7 +93,7 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
 
     @Override
     public void setTable(String tableName) {
-        table = tableName.replace("\"", "");
+        table = tableName;
         lockWatchTable = TableReference.create(NAMESPACE, table);
         createTable();
     }
@@ -143,9 +143,8 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
 
         @Override
         public void throwIfConditionInvalid(long timestamp) {
-            if (startTs.filter(ts -> ts != timestamp).isPresent()) {
-                commitUpdate.set(lockWatchManager.getCommitUpdate(startTs.get()));
-            }
+            startTs.filter(ts -> ts != timestamp)
+                    .ifPresent(ts -> commitUpdate.set(lockWatchManager.getCommitUpdate(ts)));
         }
     }
 }
