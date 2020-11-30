@@ -46,7 +46,7 @@ public class LocalTimestampInvariantsVerifierTest {
         helper.forceTimestampToGoBackwards(MAX_ROWS_ALLOWED + DELTA + 1);
 
         // No signs of corruption in the first batch
-        helper.assertNoCorruptionViolations();
+        helper.assertLocalTimestampInvariantsStand();
 
         // Detects signs of corruption in the second batch
         helper.assertClockWentBackwards();

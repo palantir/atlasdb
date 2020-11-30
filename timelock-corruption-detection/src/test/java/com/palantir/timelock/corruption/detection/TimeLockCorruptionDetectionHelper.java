@@ -106,13 +106,21 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
     }
 
     void assertClockWentBackwards() {
+        assertLocalTimestampInvariants(ImmutableSet.of(CorruptionCheckViolation.CLOCK_WENT_BACKWARDS));
+    }
+
+    void assertLocalTimestampInvariantsStand() {
+        assertLocalTimestampInvariants(ImmutableSet.of());
+    }
+
+    private void assertLocalTimestampInvariants(Set<CorruptionCheckViolation> violations) {
         CorruptionHealthReport corruptionHealthReport = timeLockCorruptionTestSetup
                 .getLocalTimestampInvariantsVerifier()
                 .timestampInvariantsHealthReport();
         assertThat(corruptionHealthReport
-                        .violatingStatusesToNamespaceAndUseCase()
-                        .keySet())
-                .containsExactly(CorruptionCheckViolation.CLOCK_WENT_BACKWARDS);
+                .violatingStatusesToNamespaceAndUseCase()
+                .keySet())
+                .hasSameElementsAs(violations);
     }
 
     void forceTimestampToGoBackwards(int round) {
