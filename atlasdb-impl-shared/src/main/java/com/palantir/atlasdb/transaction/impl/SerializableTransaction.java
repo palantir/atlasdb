@@ -88,6 +88,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -194,7 +195,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 super.getRowsColumnRange(tableRef, rows, columnRangeSelection);
         return KeyedStream.stream(ret)
                 .map((row, visitable) -> wrapWithColumnRangeChecking(tableRef, columnRangeSelection, row, visitable))
-                .collectTo(() -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
+                .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
     @Override
