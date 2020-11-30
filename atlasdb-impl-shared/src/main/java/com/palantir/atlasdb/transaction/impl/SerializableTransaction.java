@@ -214,7 +214,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 super.getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
         return KeyedStream.stream(ret)
                 .map((row, iterator) -> wrapIteratorWithBoundsChecking(tableRef, columnRangeSelection, row, iterator))
-                .collectToMap();
+                .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
     @Override
