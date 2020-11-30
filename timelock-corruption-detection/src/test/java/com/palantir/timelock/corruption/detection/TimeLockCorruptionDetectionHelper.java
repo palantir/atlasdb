@@ -118,8 +118,8 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
                 .getLocalTimestampInvariantsVerifier()
                 .timestampInvariantsHealthReport();
         assertThat(corruptionHealthReport
-                .violatingStatusesToNamespaceAndUseCase()
-                .keySet())
+                        .violatingStatusesToNamespaceAndUseCase()
+                        .keySet())
                 .hasSameElementsAs(violations);
     }
 

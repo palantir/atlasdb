@@ -51,21 +51,26 @@ public class LocalTimestampInvariantsVerifier {
     }
 
     public CorruptionHealthReport timestampInvariantsHealthReport() {
-        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> historyQueries =
-                getNamespaceAndUseCaseToHistoryQuerySeqBoundsMap();
-        Set<NamespaceAndUseCase> corruptNamespaces = KeyedStream.stream(
-                historyQueries)
-                .filterEntries(this::timestampWentBackwardsForNamespace)
-                .keys()
-                .collect(Collectors.toSet());
-        progressTracker.updateProgressState(historyQueries);
         SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> namespacesExhibitingViolations = KeyedStream.of(
-                        corruptNamespaces)
+                        getCorruptNamespaceAndUseCases())
                 .mapKeys(_u -> CorruptionCheckViolation.CLOCK_WENT_BACKWARDS)
                 .collectToSetMultimap();
         return ImmutableCorruptionHealthReport.builder()
                 .violatingStatusesToNamespaceAndUseCase(namespacesExhibitingViolations)
                 .build();
+    }
+
+    private Set<NamespaceAndUseCase> getCorruptNamespaceAndUseCases() {
+        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> historyQueries = KeyedStream.of(
+                        getNamespaceAndUseCaseTuples().stream())
+                .map(progressTracker::getNextPaxosLogSequenceRangeToBeVerified)
+                .collectToMap();
+        Set<NamespaceAndUseCase> corruptNamespaces = KeyedStream.stream(historyQueries)
+                .filterEntries(this::timestampWentBackwardsForNamespace)
+                .keys()
+                .collect(Collectors.toSet());
+        progressTracker.updateProgressState(historyQueries);
+        return corruptNamespaces;
     }
 
     private boolean timestampWentBackwardsForNamespace(
@@ -96,14 +101,11 @@ public class LocalTimestampInvariantsVerifier {
                 .collect(Collectors.toSet());
     }
 
-    private Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> getNamespaceAndUseCaseToHistoryQuerySeqBoundsMap() {
-        return KeyedStream.of(getNamespaceAndUseCaseTuples().stream())
-                .map(progressTracker::getNextPaxosLogSequenceRangeToBeVerified)
-                .collectToMap();
-    }
-
+    /**
+     * This is done to catch inversions at the end of a batch.
+     * */
     private HistoryQuerySequenceBounds getQueryBoundsWithDelta(HistoryQuerySequenceBounds sequenceBounds) {
         return HistoryQuerySequenceBounds.of(
-                sequenceBounds.getLowerBoundInclusive() - DELTA, sequenceBounds.getUpperBoundInclusive() + DELTA);
+                sequenceBounds.getLowerBoundInclusive(), sequenceBounds.getUpperBoundInclusive() + DELTA);
     }
 }

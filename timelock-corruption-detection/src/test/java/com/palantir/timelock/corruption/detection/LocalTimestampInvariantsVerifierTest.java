@@ -41,8 +41,15 @@ public class LocalTimestampInvariantsVerifierTest {
     }
 
     @Test
+    public void detectIfClockWentBackwardsAtBatchStart() {
+        helper.writeLogsOnDefaultLocalServer(1, 2 * MAX_ROWS_ALLOWED);
+        helper.forceTimestampToGoBackwards(MAX_ROWS_ALLOWED);
+        helper.assertClockWentBackwards();
+    }
+
+    @Test
     public void detectIfClockWentBackwardsInLaterBatch() {
-        helper.writeLogsOnDefaultLocalAndRemote(1, MAX_ROWS_ALLOWED * 2);
+        helper.writeLogsOnDefaultLocalAndRemote(1, 2 * MAX_ROWS_ALLOWED);
         helper.forceTimestampToGoBackwards(MAX_ROWS_ALLOWED + DELTA + 1);
 
         // No signs of corruption in the first batch
