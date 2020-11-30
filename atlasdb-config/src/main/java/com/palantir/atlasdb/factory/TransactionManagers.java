@@ -153,6 +153,7 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
+import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockRefreshingLockService;
@@ -252,7 +253,7 @@ public abstract class TransactionManagers {
 
     abstract UserAgent userAgent();
 
-    abstract Optional<TimeLockRequestBatcherProviders> batcherProviders();
+    abstract Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders();
 
     /**
      * Please use {@link #globalTaggedMetricRegistry()} instead. The publishing of metrics to the external metrics
@@ -420,7 +421,7 @@ public abstract class TransactionManagers {
                 lockDiagnosticComponents(),
                 reloadingFactory(),
                 timeLockFeedbackBackgroundTask,
-                batcherProviders());
+                timelockRequestBatcherProviders());
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -1228,11 +1229,15 @@ public abstract class TransactionManagers {
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             AtlasDbDialogueServiceProvider serviceProvider,
             LeaderElectionReportingTimelockService namespacedConjureTimelockService) {
-        return timelockRequestBatcherProviders
-                .map(TimeLockRequestBatcherProviders::leaderTimeBatcherProvider)
-                .map(provider -> provider.getBatcher(getMultiClientTimelockServiceSupplier(serviceProvider)))
-                .<LeaderTimeGetter>map(batcher -> new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, batcher))
-                .orElseGet(() -> new LegacyLeaderTimeGetter(namespacedConjureTimelockService));
+
+        if (!timelockRequestBatcherProviders.isPresent()) {
+            return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
+        }
+
+        LeaderTimeCoalescingBatcher batcher = timelockRequestBatcherProviders.get()
+                .leaderTimeBatcherProvider()
+                .getBatcher(getMultiClientTimelockServiceSupplier(serviceProvider));
+        return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, batcher);
     }
 
     private static Supplier<InternalMultiClientConjureTimelockService> getMultiClientTimelockServiceSupplier(
