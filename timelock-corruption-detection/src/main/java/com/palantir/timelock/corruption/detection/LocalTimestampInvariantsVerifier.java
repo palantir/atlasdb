@@ -51,11 +51,14 @@ public class LocalTimestampInvariantsVerifier {
     }
 
     public CorruptionHealthReport timestampInvariantsHealthReport() {
+        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> historyQueries =
+                getNamespaceAndUseCaseToHistoryQuerySeqBoundsMap();
         Set<NamespaceAndUseCase> corruptNamespaces = KeyedStream.stream(
-                        getNamespaceAndUseCaseToHistoryQuerySeqBoundsMap())
+                historyQueries)
                 .filterEntries(this::timestampWentBackwardsForNamespace)
                 .keys()
                 .collect(Collectors.toSet());
+        progressTracker.updateProgressState(historyQueries);
         SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> namespacesExhibitingViolations = KeyedStream.of(
                         corruptNamespaces)
                 .mapKeys(_u -> CorruptionCheckViolation.CLOCK_WENT_BACKWARDS)
