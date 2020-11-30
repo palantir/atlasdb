@@ -143,6 +143,7 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -384,7 +385,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return KeyedStream.stream(getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection))
                 .map((row, iterator) -> BatchingVisitableFromIterable.create(iterator))
-                .collectToMap();
+                .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
     @Override

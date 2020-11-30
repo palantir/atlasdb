@@ -82,7 +82,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -195,7 +194,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 super.getRowsColumnRange(tableRef, rows, columnRangeSelection);
         return KeyedStream.stream(ret)
                 .map((row, visitable) -> wrapWithColumnRangeChecking(tableRef, columnRangeSelection, row, visitable))
-                .collectToMap();
+                .collectTo(() -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
     }
 
     @Override
