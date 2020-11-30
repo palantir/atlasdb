@@ -16,10 +16,9 @@
 
 package com.palantir.timelock.corruption.detection;
 
+import static com.palantir.timelock.corruption.detection.LocalTimestampInvariantsVerifier.DELTA;
 import static com.palantir.timelock.history.PaxosLogHistoryProgressTracker.MAX_ROWS_ALLOWED;
-import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -30,13 +29,26 @@ public class LocalTimestampInvariantsVerifierTest {
     @Test
     public void detectCorruptionIfClockWentBackwardsOnNode() {
         helper.writeLogsOnDefaultLocalServer(1, MAX_ROWS_ALLOWED - 1);
-        PaxosSerializationTestUtils.writePaxosValue(
-                helper.getDefaultLocalServer().learnerLog(),
-                5,
-                PaxosSerializationTestUtils.createPaxosValueForRoundAndData(5, 10));
-        CorruptionHealthReport corruptionHealthReport =
-                helper.getLocalTimestampInvariantsVerifier().timestampInvariantsHealthReport();
-        assertThat(corruptionHealthReport.violatingStatusesToNamespaceAndUseCase().keySet())
-                .containsExactly(CorruptionCheckViolation.CLOCK_WENT_BACKWARDS);
+        helper.forceTimestampToGoBackwards(5);
+        helper.assertClockWentBackwards();
+    }
+
+    @Test
+    public void detectIfClockWentBackwardsAtBatchEnd() {
+        helper.writeLogsOnDefaultLocalServer(1, MAX_ROWS_ALLOWED);
+        helper.forceTimestampToGoBackwards(MAX_ROWS_ALLOWED - 1);
+        helper.assertClockWentBackwards();
+    }
+
+    @Test
+    public void detectIfClockWentBackwardsInLaterBatch() {
+        helper.writeLogsOnDefaultLocalAndRemote(1, MAX_ROWS_ALLOWED * 2);
+        helper.forceTimestampToGoBackwards(MAX_ROWS_ALLOWED + DELTA + 1);
+
+        // No signs of corruption in the first batch
+        helper.assertNoCorruptionViolations();
+
+        // Detects signs of corruption in the second batch
+        helper.assertClockWentBackwards();
     }
 }
