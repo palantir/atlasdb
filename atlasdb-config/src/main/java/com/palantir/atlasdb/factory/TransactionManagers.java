@@ -1234,7 +1234,8 @@ public abstract class TransactionManagers {
             return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
         }
 
-        LeaderTimeCoalescingBatcher batcher = timelockRequestBatcherProviders.get()
+        LeaderTimeCoalescingBatcher batcher = timelockRequestBatcherProviders
+                .get()
                 .leaderTimeBatcherProvider()
                 .getBatcher(getMultiClientTimelockServiceSupplier(serviceProvider));
         return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, batcher);
