@@ -28,6 +28,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -47,34 +48,38 @@ public final class AwaitingLeadership {
      */
     private final AtomicReference<LeadershipToken> leadershipTokenRef;
     private volatile boolean isClosed;
-    private volatile boolean canCreateDelegate;
+    private final AtomicBoolean canServiceRequest;
 
-    public AwaitingLeadership(
+    private AwaitingLeadership(
             LeaderElectionService leaderElectionService) {
         this.leaderElectionService = leaderElectionService;
         this.executor = PTExecutors.newSingleThreadExecutor();
         this.leadershipTokenRef = new AtomicReference<>();
-        this.canCreateDelegate = false;
+        this.canServiceRequest = new AtomicBoolean();
         this.isClosed = false;
-
-        tryToGainLeadership();
     }
 
-    public boolean markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
+    public static AwaitingLeadership create(LeaderElectionService leaderElectionService) {
+        AwaitingLeadership awaitingLeadership = new AwaitingLeadership(leaderElectionService);
+        awaitingLeadership.tryToGainLeadership();
+        return awaitingLeadership;
+    }
+
+    public void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         log.warn("Lost leadership", cause);
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
+            canServiceRequest.set(false);
             tryToGainLeadership();
-            return true;
         }
-        return false;
+        throw notCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
     }
 
     public ListenableFuture<StillLeadingStatus> getStillLeading(LeadershipToken leadershipToken) {
         return leaderElectionService.isStillLeading(leadershipToken);
     }
 
-    public boolean canCreateAndSetDelegate() {
-        return Boolean.valueOf(canCreateDelegate);
+    public boolean canServiceRequest() {
+        return Boolean.valueOf(canServiceRequest.get());
     }
 
     public void close() {
@@ -134,16 +139,15 @@ public final class AwaitingLeadership {
 
     private void onGainedLeadership(LeadershipToken leadershipToken) {
         log.debug("Gained leadership, getting delegate to start serving calls");
-        canCreateDelegate = true; //todo Snanda
+        canServiceRequest.set(true); //todo Snanda
 
         if (isClosed) {
-            return; // i am supposed to clear the delegate - clearDelegate()
+            canServiceRequest.set(false);
         } else {
             leadershipTokenRef.set(leadershipToken);
             log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
         }
     }
-
 
     @VisibleForTesting
     LeadershipToken getLeadershipToken() {
