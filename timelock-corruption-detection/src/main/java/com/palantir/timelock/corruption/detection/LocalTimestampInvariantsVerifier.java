@@ -17,7 +17,6 @@
 package com.palantir.timelock.corruption.detection;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -31,6 +30,7 @@ import com.palantir.timelock.history.util.UseCaseUtils;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -48,7 +48,7 @@ public class LocalTimestampInvariantsVerifier {
     @VisibleForTesting
     public static final int LEARNER_LOG_BATCH_SIZE_LIMIT = 250;
 
-    public static final long MIN_SEQUENCE_TO_BE_VERIFIED = -1L;
+    public static final long MIN_SEQUENCE_TO_BE_VERIFIED = Long.MIN_VALUE;
 
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
     private Map<NamespaceAndUseCase, Long> minInclusiveSeqBoundsToBeVerified = new ConcurrentHashMap<>();
@@ -72,7 +72,7 @@ public class LocalTimestampInvariantsVerifier {
     private CorruptionCheckViolation timestampInvariantsViolationLevel(NamespaceAndUseCase namespaceAndUseCase) {
         Stream<Long> expectedSortedTimestamps = KeyedStream.stream(getLearnerLogs(namespaceAndUseCase))
                 .map(PaxosValue::getData)
-                .filter(Predicates.notNull())
+                .filter(Objects::nonNull)
                 .mapEntries((sequence, timestamp) -> Maps.immutableEntry(sequence, PtBytes.toLong(timestamp)))
                 .entries()
                 .sorted(Comparator.comparingLong(Map.Entry::getKey))

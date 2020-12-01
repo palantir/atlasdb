@@ -67,8 +67,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
                     CorruptionHealthReport timestampInvariantsReport =
                             timestampInvariantsVerifier.timestampInvariantsHealthReport();
                     localCorruptionReport = ImmutableCorruptionHealthReport.builder()
-                            .putAllViolatingStatusesToNamespaceAndUseCase(
-                                    paxosRoundCorruptionReport.violatingStatusesToNamespaceAndUseCase())
+                            .from(paxosRoundCorruptionReport)
                             .putAllViolatingStatusesToNamespaceAndUseCase(
                                     timestampInvariantsReport.violatingStatusesToNamespaceAndUseCase())
                             .build();

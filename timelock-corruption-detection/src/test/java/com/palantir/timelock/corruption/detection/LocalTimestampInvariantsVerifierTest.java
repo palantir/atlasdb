@@ -26,60 +26,69 @@ public class LocalTimestampInvariantsVerifierTest {
     public TimeLockCorruptionDetectionHelper helper = new TimeLockCorruptionDetectionHelper();
 
     @Test
-    public void detectCorruptionIfClockWentBackwardsOnNode() {
+    public void detectsClockWentBackwardsOnNode() {
         helper.writeLogsOnDefaultLocalServer(1, LEARNER_LOG_BATCH_SIZE_LIMIT - 1);
-        helper.forceTimestampToGoBackwards(5);
-        helper.assertClockWentBackwards();
+        helper.createTimestampInversion(5);
+        helper.assertClockGoesBackwardsInNextBatch();
     }
 
     @Test
-    public void detectIfClockWentBackwardsAtBatchStart() {
+    public void detectsClockWentBackwardsForDiscontinuousLogs() {
+        helper.writeLogsOnDefaultLocalServer(1, 27);
+        helper.writeLogsOnDefaultLocalServer(LEARNER_LOG_BATCH_SIZE_LIMIT, LEARNER_LOG_BATCH_SIZE_LIMIT + 97);
+
+        helper.createTimestampInversion(72);
+        helper.assertClockGoesBackwardsInNextBatch();
+    }
+
+    @Test
+    public void detectsClockWentBackwardsAtBatchStart() {
         helper.writeLogsOnDefaultLocalServer(1, LEARNER_LOG_BATCH_SIZE_LIMIT);
-        helper.forceTimestampToGoBackwards(1);
-        helper.assertClockWentBackwards();
+        helper.createTimestampInversion(1);
+        helper.assertClockGoesBackwardsInNextBatch();
     }
 
     @Test
-    public void detectIfClockWentBackwardsAtBatchEnd() {
+    public void detectsClockWentBackwardsAtBatchEnd() {
         helper.writeLogsOnDefaultLocalServer(1, LEARNER_LOG_BATCH_SIZE_LIMIT);
-        helper.forceTimestampToGoBackwards(LEARNER_LOG_BATCH_SIZE_LIMIT / 2);
-        helper.assertClockWentBackwards();
+        helper.createTimestampInversion(LEARNER_LOG_BATCH_SIZE_LIMIT - 1);
+        helper.assertClockGoesBackwardsInNextBatch();
     }
 
     @Test
-    public void detectIfClockWentBackwardsStartOfNextBatch() {
+    public void detectsClockWentBackwardsStartOfNextBatch() {
         helper.writeLogsOnDefaultLocalServer(1, 2 * LEARNER_LOG_BATCH_SIZE_LIMIT);
-        helper.forceTimestampToGoBackwards(LEARNER_LOG_BATCH_SIZE_LIMIT);
+        helper.createTimestampInversion(LEARNER_LOG_BATCH_SIZE_LIMIT);
 
         // No signs of corruption in the first batch
-        helper.assertLocalTimestampInvariantsStand();
+        helper.assertLocalTimestampInvariantsStandInNextBatch();
 
         // Detects signs of corruption in the second batch
-        helper.assertClockWentBackwards();
+        helper.assertClockGoesBackwardsInNextBatch();
     }
 
     @Test
-    public void detectIfClockWentBackwardsInLaterBatch() {
+    public void detectsClockWentBackwardsInLaterBatch() {
         helper.writeLogsOnDefaultLocalAndRemote(1, 2 * LEARNER_LOG_BATCH_SIZE_LIMIT);
-        helper.forceTimestampToGoBackwards(3 * LEARNER_LOG_BATCH_SIZE_LIMIT / 2);
+        helper.createTimestampInversion(3 * LEARNER_LOG_BATCH_SIZE_LIMIT / 2);
 
         // No signs of corruption in the first batch
-        helper.assertLocalTimestampInvariantsStand();
+        helper.assertLocalTimestampInvariantsStandInNextBatch();
 
         // Detects signs of corruption in the second batch
-        helper.assertClockWentBackwards();
+        helper.assertClockGoesBackwardsInNextBatch();
     }
 
     @Test
     public void resetsProgressIfNotEnoughLogsForVerification() {
-        helper.writeLogsOnDefaultLocalServer(1, 1);
-        // No signs of corruption
-        helper.assertLocalTimestampInvariantsStand();
+        helper.createTimestampInversion(1);
+
+        // No signs of corruption since there aren't enough logs
+        helper.assertLocalTimestampInvariantsStandInNextBatch();
 
         helper.writeLogsOnDefaultLocalServer(2, LEARNER_LOG_BATCH_SIZE_LIMIT);
-        helper.forceTimestampToGoBackwards(LEARNER_LOG_BATCH_SIZE_LIMIT / 2);
 
         // Detects signs of corruption in the now corrupt first batch of logs
-        helper.assertClockWentBackwards();
+        helper.assertClockGoesBackwardsInNextBatch();
     }
 }

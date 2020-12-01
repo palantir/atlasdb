@@ -105,12 +105,19 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
         return timeLockCorruptionTestSetup.createStatLogForNamespaceAndUseCase(namespaceAndUseCase);
     }
 
-    void assertClockWentBackwards() {
+    void assertClockGoesBackwardsInNextBatch() {
         assertLocalTimestampInvariants(ImmutableSet.of(CorruptionCheckViolation.CLOCK_WENT_BACKWARDS));
     }
 
-    void assertLocalTimestampInvariantsStand() {
+    void assertLocalTimestampInvariantsStandInNextBatch() {
         assertLocalTimestampInvariants(ImmutableSet.of());
+    }
+
+    void createTimestampInversion(int round) {
+        PaxosSerializationTestUtils.writePaxosValue(
+                getDefaultLocalServer().learnerLog(),
+                round,
+                PaxosSerializationTestUtils.createPaxosValueForRoundAndData(round, round * 100));
     }
 
     private void assertLocalTimestampInvariants(Set<CorruptionCheckViolation> violations) {
@@ -121,13 +128,6 @@ public final class TimeLockCorruptionDetectionHelper implements TestRule {
                         .violatingStatusesToNamespaceAndUseCase()
                         .keySet())
                 .hasSameElementsAs(violations);
-    }
-
-    void forceTimestampToGoBackwards(int round) {
-        PaxosSerializationTestUtils.writePaxosValue(
-                getDefaultLocalServer().learnerLog(),
-                round,
-                PaxosSerializationTestUtils.createPaxosValueForRoundAndData(round, round * 100));
     }
 
     private static void writeLogsOnServer(StateLogComponents server, int startInclusive, int endInclusive) {
