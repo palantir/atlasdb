@@ -33,14 +33,18 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.logsafe.SafeArg;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Value.Immutable
 interface ClientLogEvents {
+    Logger log = LoggerFactory.getLogger(ClientLogEvents.class);
 
     LockWatchEvents events();
 
@@ -99,6 +103,10 @@ interface ClientLogEvents {
         Range<Long> rangeToTest = Range.closed(lowerBound, upperBound);
         events().versionRange().ifPresent(eventsRange -> {
             if (!eventsRange.encloses(rangeToTest)) {
+                log.warn(
+                        "Events do not enclose the required version",
+                        SafeArg.of("lowerBound", lowerBound),
+                        SafeArg.of("upperBound", upperBound));
                 throw new TransactionLockWatchFailedException("Events do not enclose the required versions");
             }
         });
