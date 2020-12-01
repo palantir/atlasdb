@@ -38,12 +38,20 @@ import java.util.stream.Stream;
 import javax.sql.DataSource;
 import one.util.streamex.StreamEx;
 
+/**
+ * This class validates that timestamp bounds increase with increasing sequence numbers.
+ *
+ * The validation is done batch wise, e.g. [1, n], [n, 2 * n - 1] and so on. Two consecutive batches share
+ * boundaries, this is expected and is done to catch inversion at batch end.
+ * */
 public class LocalTimestampInvariantsVerifier {
     @VisibleForTesting
     public static final int LEARNER_LOG_BATCH_SIZE_LIMIT = 250;
 
+    public static final long MIN_SEQUENCE_TO_BE_VERIFIED = -1L;
+
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
-    private Map<NamespaceAndUseCase, Long> minSeqBoundToBeVerified = new ConcurrentHashMap<>();
+    private Map<NamespaceAndUseCase, Long> minInclusiveSeqBoundsToBeVerified = new ConcurrentHashMap<>();
 
     public LocalTimestampInvariantsVerifier(DataSource dataSource) {
         this.sqlitePaxosStateLogHistory = SqlitePaxosStateLogHistory.create(dataSource);
@@ -96,15 +104,16 @@ public class LocalTimestampInvariantsVerifier {
     }
 
     private void updateMinSeqToBeVerified(NamespaceAndUseCase namespaceAndUseCase, Map<Long, PaxosValue> minSeq) {
-        minSeqBoundToBeVerified.put(namespaceAndUseCase, Collections.max(minSeq.keySet()));
+        minInclusiveSeqBoundsToBeVerified.put(namespaceAndUseCase, Collections.max(minSeq.keySet()));
     }
 
     private long getMinSeqToBeVerified(NamespaceAndUseCase namespaceAndUseCase) {
-        return minSeqBoundToBeVerified.computeIfAbsent(namespaceAndUseCase, _u -> -1L);
+        return minInclusiveSeqBoundsToBeVerified.computeIfAbsent(
+                namespaceAndUseCase, _u -> MIN_SEQUENCE_TO_BE_VERIFIED);
     }
 
     private void resetMinSequenceToBeVerified(NamespaceAndUseCase namespaceAndUseCase) {
-        minSeqBoundToBeVerified.put(namespaceAndUseCase, -1L);
+        minInclusiveSeqBoundsToBeVerified.put(namespaceAndUseCase, MIN_SEQUENCE_TO_BE_VERIFIED);
     }
 
     private ImmutableNamespaceAndUseCase getNamespaceAndUseCasePrefix(NamespaceAndUseCase namespaceAndUseCase) {

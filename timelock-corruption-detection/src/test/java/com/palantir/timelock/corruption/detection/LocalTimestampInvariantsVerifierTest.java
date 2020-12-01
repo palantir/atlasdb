@@ -33,6 +33,13 @@ public class LocalTimestampInvariantsVerifierTest {
     }
 
     @Test
+    public void detectIfClockWentBackwardsAtBatchStart() {
+        helper.writeLogsOnDefaultLocalServer(1, LEARNER_LOG_BATCH_SIZE_LIMIT);
+        helper.forceTimestampToGoBackwards(1);
+        helper.assertClockWentBackwards();
+    }
+
+    @Test
     public void detectIfClockWentBackwardsAtBatchEnd() {
         helper.writeLogsOnDefaultLocalServer(1, LEARNER_LOG_BATCH_SIZE_LIMIT);
         helper.forceTimestampToGoBackwards(LEARNER_LOG_BATCH_SIZE_LIMIT / 2);
@@ -40,7 +47,7 @@ public class LocalTimestampInvariantsVerifierTest {
     }
 
     @Test
-    public void detectIfClockWentBackwardsAtBatchStart() {
+    public void detectIfClockWentBackwardsStartOfNextBatch() {
         helper.writeLogsOnDefaultLocalServer(1, 2 * LEARNER_LOG_BATCH_SIZE_LIMIT);
         helper.forceTimestampToGoBackwards(LEARNER_LOG_BATCH_SIZE_LIMIT);
 

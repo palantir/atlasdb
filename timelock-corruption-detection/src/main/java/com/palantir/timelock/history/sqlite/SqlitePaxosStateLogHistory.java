@@ -83,9 +83,9 @@ public final class SqlitePaxosStateLogHistory {
     }
 
     public Map<Long, PaxosValue> getLearnerLogsSince(
-            Client namespace, LearnerUseCase learnerUseCase, long minSequence, int learnerLogBatchSizeLimit) {
-        return execute(dao ->
-                dao.getLearnerLogsSince(namespace, learnerUseCase.value(), minSequence, learnerLogBatchSizeLimit));
+            Client namespace, LearnerUseCase learnerUseCase, long lowerBoundInclusive, int learnerLogBatchSizeLimit) {
+        return execute(dao -> dao.getLearnerLogsSince(
+                namespace, learnerUseCase.value(), lowerBoundInclusive, learnerLogBatchSizeLimit));
     }
 
     public long getGreatestLogEntry(Client client, LearnerUseCase useCase) {
