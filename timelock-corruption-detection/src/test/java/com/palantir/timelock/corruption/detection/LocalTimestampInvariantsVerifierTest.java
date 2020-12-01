@@ -16,8 +16,7 @@
 
 package com.palantir.timelock.corruption.detection;
 
-import static com.palantir.timelock.corruption.detection.LocalTimestampInvariantsVerifier.DELTA;
-import static com.palantir.timelock.history.PaxosLogHistoryProgressTracker.MAX_ROWS_ALLOWED;
+import static com.palantir.timelock.corruption.detection.LocalTimestampInvariantsVerifier.LEARNER_LOG_BATCH_SIZE_LIMIT;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,34 +27,52 @@ public class LocalTimestampInvariantsVerifierTest {
 
     @Test
     public void detectCorruptionIfClockWentBackwardsOnNode() {
-        helper.writeLogsOnDefaultLocalServer(1, MAX_ROWS_ALLOWED - 1);
+        helper.writeLogsOnDefaultLocalServer(1, LEARNER_LOG_BATCH_SIZE_LIMIT - 1);
         helper.forceTimestampToGoBackwards(5);
         helper.assertClockWentBackwards();
     }
 
     @Test
     public void detectIfClockWentBackwardsAtBatchEnd() {
-        helper.writeLogsOnDefaultLocalServer(1, MAX_ROWS_ALLOWED);
-        helper.forceTimestampToGoBackwards(MAX_ROWS_ALLOWED - 1);
+        helper.writeLogsOnDefaultLocalServer(1, LEARNER_LOG_BATCH_SIZE_LIMIT);
+        helper.forceTimestampToGoBackwards(LEARNER_LOG_BATCH_SIZE_LIMIT / 2);
         helper.assertClockWentBackwards();
     }
 
     @Test
     public void detectIfClockWentBackwardsAtBatchStart() {
-        helper.writeLogsOnDefaultLocalServer(1, 2 * MAX_ROWS_ALLOWED);
-        helper.forceTimestampToGoBackwards(MAX_ROWS_ALLOWED);
-        helper.assertClockWentBackwards();
-    }
-
-    @Test
-    public void detectIfClockWentBackwardsInLaterBatch() {
-        helper.writeLogsOnDefaultLocalAndRemote(1, 2 * MAX_ROWS_ALLOWED);
-        helper.forceTimestampToGoBackwards(MAX_ROWS_ALLOWED + DELTA + 1);
+        helper.writeLogsOnDefaultLocalServer(1, 2 * LEARNER_LOG_BATCH_SIZE_LIMIT);
+        helper.forceTimestampToGoBackwards(LEARNER_LOG_BATCH_SIZE_LIMIT);
 
         // No signs of corruption in the first batch
         helper.assertLocalTimestampInvariantsStand();
 
         // Detects signs of corruption in the second batch
+        helper.assertClockWentBackwards();
+    }
+
+    @Test
+    public void detectIfClockWentBackwardsInLaterBatch() {
+        helper.writeLogsOnDefaultLocalAndRemote(1, 2 * LEARNER_LOG_BATCH_SIZE_LIMIT);
+        helper.forceTimestampToGoBackwards(3 * LEARNER_LOG_BATCH_SIZE_LIMIT / 2);
+
+        // No signs of corruption in the first batch
+        helper.assertLocalTimestampInvariantsStand();
+
+        // Detects signs of corruption in the second batch
+        helper.assertClockWentBackwards();
+    }
+
+    @Test
+    public void resetsProgressIfNotEnoughLogsForVerification() {
+        helper.writeLogsOnDefaultLocalServer(1, 1);
+        // No signs of corruption
+        helper.assertLocalTimestampInvariantsStand();
+
+        helper.writeLogsOnDefaultLocalServer(2, LEARNER_LOG_BATCH_SIZE_LIMIT);
+        helper.forceTimestampToGoBackwards(LEARNER_LOG_BATCH_SIZE_LIMIT / 2);
+
+        // Detects signs of corruption in the now corrupt first batch of logs
         helper.assertClockWentBackwards();
     }
 }

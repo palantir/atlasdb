@@ -82,13 +82,10 @@ public final class SqlitePaxosStateLogHistory {
                         querySequenceBounds.getUpperBoundInclusive())));
     }
 
-    public Map<Long, PaxosValue> getLearnerLogsInRange(
-            Client namespace, LearnerUseCase learnerUseCase, HistoryQuerySequenceBounds querySequenceBounds) {
-        return execute(dao -> dao.getLearnerLogsInRange(
-                namespace,
-                learnerUseCase.value(),
-                querySequenceBounds.getLowerBoundInclusive(),
-                querySequenceBounds.getUpperBoundInclusive()));
+    public Map<Long, PaxosValue> getLearnerLogsSince(
+            Client namespace, LearnerUseCase learnerUseCase, long minSequence, int learnerLogBatchSizeLimit) {
+        return execute(dao ->
+                dao.getLearnerLogsSince(namespace, learnerUseCase.value(), minSequence, learnerLogBatchSizeLimit));
     }
 
     public long getGreatestLogEntry(Client client, LearnerUseCase useCase) {
@@ -123,5 +120,13 @@ public final class SqlitePaxosStateLogHistory {
                 @Bind("useCase") String useCase,
                 @Bind("lowerBoundInclusive") long lowerBoundInclusive,
                 @Bind("upperBoundInclusive") long upperBoundInclusive);
+
+        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
+                + " :lowerBoundInclusive ORDER BY seq ASC LIMIT :limit")
+        Map<Long, PaxosValue> getLearnerLogsSince(
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("lowerBoundInclusive") long lowerBoundInclusive,
+                @Bind("limit") long learnerLogBatchSizeLimit);
     }
 }

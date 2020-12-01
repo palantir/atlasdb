@@ -25,14 +25,14 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosValue;
-import com.palantir.timelock.history.HistoryQuerySequenceBounds;
-import com.palantir.timelock.history.PaxosLogHistoryProgressTracker;
 import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
@@ -40,45 +40,29 @@ import one.util.streamex.StreamEx;
 
 public class LocalTimestampInvariantsVerifier {
     @VisibleForTesting
-    static final int DELTA = 5;
+    public static final int LEARNER_LOG_BATCH_SIZE_LIMIT = 250;
 
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
-    private final PaxosLogHistoryProgressTracker progressTracker;
+    private Map<NamespaceAndUseCase, Long> minSeqBoundToBeVerified = new ConcurrentHashMap<>();
 
     public LocalTimestampInvariantsVerifier(DataSource dataSource) {
         this.sqlitePaxosStateLogHistory = SqlitePaxosStateLogHistory.create(dataSource);
-        this.progressTracker = new PaxosLogHistoryProgressTracker(dataSource, sqlitePaxosStateLogHistory);
     }
 
     public CorruptionHealthReport timestampInvariantsHealthReport() {
         SetMultimap<CorruptionCheckViolation, NamespaceAndUseCase> namespacesExhibitingViolations = KeyedStream.of(
-                        getCorruptNamespaceAndUseCases())
-                .mapKeys(_u -> CorruptionCheckViolation.CLOCK_WENT_BACKWARDS)
+                        getNamespaceAndUseCaseTuples())
+                .map(this::timestampInvariantsViolationLevel)
+                .filter(CorruptionCheckViolation::raiseErrorAlert)
+                .mapEntries((k, v) -> Maps.immutableEntry(v, k))
                 .collectToSetMultimap();
         return ImmutableCorruptionHealthReport.builder()
                 .violatingStatusesToNamespaceAndUseCase(namespacesExhibitingViolations)
                 .build();
     }
 
-    private Set<NamespaceAndUseCase> getCorruptNamespaceAndUseCases() {
-        Map<NamespaceAndUseCase, HistoryQuerySequenceBounds> historyQueries = KeyedStream.of(
-                        getNamespaceAndUseCaseTuples().stream())
-                .map(progressTracker::getNextPaxosLogSequenceRangeToBeVerified)
-                .collectToMap();
-        Set<NamespaceAndUseCase> corruptNamespaces = KeyedStream.stream(historyQueries)
-                .filterEntries(this::timestampWentBackwardsForNamespace)
-                .keys()
-                .collect(Collectors.toSet());
-        progressTracker.updateProgressState(historyQueries);
-        return corruptNamespaces;
-    }
-
-    private boolean timestampWentBackwardsForNamespace(
-            NamespaceAndUseCase namespaceAndUseCase, HistoryQuerySequenceBounds historyQuerySequenceBounds) {
-        LearnerUseCase useCase = LearnerUseCase.createLearnerUseCase(namespaceAndUseCase.useCase());
-        Map<Long, PaxosValue> learnerLogsInRange = sqlitePaxosStateLogHistory.getLearnerLogsInRange(
-                namespaceAndUseCase.namespace(), useCase, getQueryBoundsWithDelta(historyQuerySequenceBounds));
-        Stream<Long> expectedSortedTimestamps = KeyedStream.stream(learnerLogsInRange)
+    private CorruptionCheckViolation timestampInvariantsViolationLevel(NamespaceAndUseCase namespaceAndUseCase) {
+        Stream<Long> expectedSortedTimestamps = KeyedStream.stream(getLearnerLogs(namespaceAndUseCase))
                 .map(PaxosValue::getData)
                 .filter(Predicates.notNull())
                 .mapEntries((sequence, timestamp) -> Maps.immutableEntry(sequence, PtBytes.toLong(timestamp)))
@@ -86,8 +70,41 @@ public class LocalTimestampInvariantsVerifier {
                 .sorted(Comparator.comparingLong(Map.Entry::getKey))
                 .map(Map.Entry::getValue);
         return StreamEx.of(expectedSortedTimestamps)
-                .pairMap((first, second) -> first >= second)
-                .anyMatch(x -> x);
+                        .pairMap((first, second) -> first >= second)
+                        .anyMatch(x -> x)
+                ? CorruptionCheckViolation.CLOCK_WENT_BACKWARDS
+                : CorruptionCheckViolation.NONE;
+    }
+
+    private Map<Long, PaxosValue> getLearnerLogs(NamespaceAndUseCase namespaceAndUseCase) {
+        long minSeqToBeVerified = getMinSeqToBeVerified(namespaceAndUseCase);
+        LearnerUseCase useCase = LearnerUseCase.createLearnerUseCase(namespaceAndUseCase.useCase());
+
+        Map<Long, PaxosValue> learnerLogsSince = sqlitePaxosStateLogHistory.getLearnerLogsSince(
+                namespaceAndUseCase.namespace(), useCase, minSeqToBeVerified, LEARNER_LOG_BATCH_SIZE_LIMIT);
+
+        if (notEnoughLogsForVerification(learnerLogsSince)) {
+            resetMinSequenceToBeVerified(namespaceAndUseCase);
+        } else {
+            updateMinSeqToBeVerified(namespaceAndUseCase, learnerLogsSince);
+        }
+        return learnerLogsSince;
+    }
+
+    private boolean notEnoughLogsForVerification(Map<Long, PaxosValue> learnerLogsSince) {
+        return learnerLogsSince.size() <= 1;
+    }
+
+    private void updateMinSeqToBeVerified(NamespaceAndUseCase namespaceAndUseCase, Map<Long, PaxosValue> minSeq) {
+        minSeqBoundToBeVerified.put(namespaceAndUseCase, Collections.max(minSeq.keySet()));
+    }
+
+    private long getMinSeqToBeVerified(NamespaceAndUseCase namespaceAndUseCase) {
+        return minSeqBoundToBeVerified.computeIfAbsent(namespaceAndUseCase, _u -> -1L);
+    }
+
+    private void resetMinSequenceToBeVerified(NamespaceAndUseCase namespaceAndUseCase) {
+        minSeqBoundToBeVerified.put(namespaceAndUseCase, -1L);
     }
 
     private ImmutableNamespaceAndUseCase getNamespaceAndUseCasePrefix(NamespaceAndUseCase namespaceAndUseCase) {
@@ -99,13 +116,5 @@ public class LocalTimestampInvariantsVerifier {
         return sqlitePaxosStateLogHistory.getAllNamespaceAndUseCaseTuples().stream()
                 .map(this::getNamespaceAndUseCasePrefix)
                 .collect(Collectors.toSet());
-    }
-
-    /**
-     * This is done to catch inversions at the end of a batch.
-     * */
-    private HistoryQuerySequenceBounds getQueryBoundsWithDelta(HistoryQuerySequenceBounds sequenceBounds) {
-        return HistoryQuerySequenceBounds.of(
-                sequenceBounds.getLowerBoundInclusive(), sequenceBounds.getUpperBoundInclusive() + DELTA);
     }
 }
