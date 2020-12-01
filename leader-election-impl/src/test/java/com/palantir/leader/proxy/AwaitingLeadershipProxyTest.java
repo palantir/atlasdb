@@ -60,7 +60,6 @@ public class AwaitingLeadershipProxyTest {
     private final LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
     private final Runnable mockRunnable = mock(Runnable.class);
     private final Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
-    private final AwaitingLeadership awaitingLeadership = new AwaitingLeadership(leaderElectionService);
 
     @Rule
     public final ExpectedException expect = ExpectedException.none();
@@ -82,7 +81,7 @@ public class AwaitingLeadershipProxyTest {
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() {
         Runnable proxy =
-                ServiceProxy.newProxyInstance(awaitingLeadership, Runnable.class, delegateSupplier);
+                ServiceProxy.newProxyInstance(getAwaitingLeadership(), Runnable.class, delegateSupplier);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -106,7 +105,8 @@ public class AwaitingLeadershipProxyTest {
     @Test
     public void listenableFutureMethodsDoNotBlockWhenNotLeading() throws ExecutionException, InterruptedException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
-        ReturnsListenableFuture proxy = ServiceProxy.newProxyInstance(awaitingLeadership,
+        ReturnsListenableFuture proxy = ServiceProxy.newProxyInstance(
+                getAwaitingLeadership(),
                 ReturnsListenableFuture.class, () -> listenableFuture);
         waitForLeadershipToBeGained();
 
@@ -124,7 +124,8 @@ public class AwaitingLeadershipProxyTest {
     @Test
     public void listenableFutureMethodsDoNotBlockWhenLeading() throws InterruptedException, ExecutionException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
-        ReturnsListenableFuture proxy = ServiceProxy.newProxyInstance(awaitingLeadership,
+        ReturnsListenableFuture proxy = ServiceProxy.newProxyInstance(
+                getAwaitingLeadership(),
                 ReturnsListenableFuture.class, () -> listenableFuture);
         waitForLeadershipToBeGained();
 
@@ -142,7 +143,8 @@ public class AwaitingLeadershipProxyTest {
     @Test
     public void listenableFutureMethodsRetryProxyFailures() throws InterruptedException, ExecutionException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
-        ReturnsListenableFuture proxy = ServiceProxy.newProxyInstance(awaitingLeadership,
+        ReturnsListenableFuture proxy = ServiceProxy.newProxyInstance(
+                getAwaitingLeadership(),
                 ReturnsListenableFuture.class, () -> listenableFuture);
         waitForLeadershipToBeGained();
 
@@ -177,7 +179,7 @@ public class AwaitingLeadershipProxyTest {
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
 
         Runnable proxy =
-                ServiceProxy.newProxyInstance(awaitingLeadership, Runnable.class, delegateSupplier);
+                ServiceProxy.newProxyInstance(getAwaitingLeadership(), Runnable.class, delegateSupplier);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -248,7 +250,7 @@ public class AwaitingLeadershipProxyTest {
                 .thenReturn(leadershipToken);
 
         Runnable proxy =
-                ServiceProxy.newProxyInstance(awaitingLeadership, Runnable.class, delegateSupplier);
+                ServiceProxy.newProxyInstance(getAwaitingLeadership(), Runnable.class, delegateSupplier);
 
         Thread.sleep(1000); // wait for retrying on gaining leadership
 
@@ -299,7 +301,11 @@ public class AwaitingLeadershipProxyTest {
     }
 
     private Callable proxyFor(Callable fn) {
-        return ServiceProxy.newProxyInstance(awaitingLeadership, Callable.class, () -> fn);
+        return ServiceProxy.newProxyInstance(getAwaitingLeadership(), Callable.class, () -> fn);
+    }
+
+    private AwaitingLeadership getAwaitingLeadership() {
+        return AwaitingLeadership.create(leaderElectionService);
     }
 
     private void waitForLeadershipToBeGained() throws InterruptedException {

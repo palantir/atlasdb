@@ -160,8 +160,21 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
             return delegate;
         }
 
-        if (awaitingLeadership.canCreateAndSetDelegate()) {
-            createAndSetDelegate();
+        if (awaitingLeadership.canServiceRequest()) {
+            // We are now the leader, we should create a delegate so we can service calls
+            while (delegate == null) {
+                try {
+                    delegate = delegateSupplier.get();
+                } catch (Throwable t) {
+                    log.error("problem creating delegate", t);
+                    if (isClosed) {
+                        break; // todo
+                    }
+                }
+            }
+
+            // Do not modify, hide, or remove this line without considering impact on correctness.
+            delegateRef.set(delegate);
         }
 
         return delegateRef.get();
@@ -184,26 +197,6 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
         throw new RuntimeException(exception.getCause());
     }
 
-    private boolean createAndSetDelegate() {
-        // We are now the leader, we should create a delegate so we can service calls
-        T delegate = null;
-        while (delegate == null) {
-            try {
-                delegate = delegateSupplier.get();
-            } catch (Throwable t) {
-                log.error("problem creating delegate", t);
-                if (isClosed) {
-                    return false;
-                }
-            }
-        }
-
-        // Do not modify, hide, or remove this line without considering impact on correctness.
-        delegateRef.set(delegate);
-        return true;
-    }
-
-
     private void clearDelegate() {
         Object delegate = delegateRef.getAndSet(null);
         if (delegate instanceof Closeable) {
@@ -216,22 +209,12 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
         }
     }
 
-    public void handleNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
-        if (awaitingLeadership.markAsNotLeading(leadershipToken, cause)) {
-            // this is fine in the case that this node has been elected leader again (i.e. with a different leadership
-            // token). `onGainedLeadership` guarantees that the delegate will be refreshed *before* we get a new
-            // leadershipToken. We're closing here instead of relying on the close in `onGainedLeadership` to reclaim
-            // resources and does not affect correctness.
-
-            // if we were to move this above or below the CAS, we could race with `onGainedLeadership` and end up
-            // clearing `delegateRef`.
-            try {
-                clearDelegate();
-            } catch (Throwable t) {
-                // If close fails we should still try to gain leadership
-            }
-            // todo snanda)
+    private void handleNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
+        try {
+            clearDelegate();
+        } catch (Throwable t) {
+            // If close fails we should still try to gain leadership
         }
-        throw awaitingLeadership.notCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
+        awaitingLeadership.markAsNotLeading(leadershipToken, cause);
     }
 }
