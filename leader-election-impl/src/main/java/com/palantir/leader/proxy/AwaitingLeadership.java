@@ -134,7 +134,7 @@ public final class AwaitingLeadership implements AutoCloseable {
         log.debug("Gained leadership, getting delegate to start serving calls");
 
         if (isClosed) {
-            return; // todo snanda
+            return;
         } else {
             leadershipTokenRef.set(leadershipToken);
             log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
