@@ -242,7 +242,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         Set<LeaderTime> leaderTimes = new HashSet<>();
         leaderTimes.add(client.namespacedConjureTimelockService().leaderTime());
 
-        int leaderElectionCount = 100;
+        int leaderElectionCount = 11;
         for (int i = 0; i < leaderElectionCount; i++) {
             cluster.failoverToNewLeader(client.namespace());
 
