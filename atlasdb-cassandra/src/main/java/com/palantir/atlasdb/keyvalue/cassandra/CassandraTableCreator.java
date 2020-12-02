@@ -84,7 +84,7 @@ class CassandraTableCreator {
                 .compactionOptions(getCompaction(appendHeavyReadLight))
                 .compactStorage()
                 .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
-                .dcLocalReadRepairChance(0.1)
+                .dcLocalReadRepairChance(0.0)
                 .gcGraceSeconds(config.gcGraceSeconds())
                 .minIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
                 .maxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
