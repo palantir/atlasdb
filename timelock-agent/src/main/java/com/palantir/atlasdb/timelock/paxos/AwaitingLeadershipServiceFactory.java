@@ -28,5 +28,4 @@ public class AwaitingLeadershipServiceFactory {
         return awaitingLeaderships.computeIfAbsent(
                 leaderElectionService, _u -> AwaitingLeadership.create(leaderElectionService));
     }
-
 }
