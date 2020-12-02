@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class AwaitingLeadership {
+public final class AwaitingLeadership implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadership.class);
 
     private static final Duration GAIN_LEADERSHIP_BACKOFF = Duration.ofMillis(500);
@@ -73,6 +73,8 @@ public final class AwaitingLeadership {
         return leaderElectionService.isStillLeading(leadershipToken);
     }
 
+    @Override
+    // Have to register close
     public void close() {
         log.debug("Closing leadership proxy");
         isClosed = true;
