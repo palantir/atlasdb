@@ -47,7 +47,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ServiceProxy<T> extends AbstractInvocationHandler {
+public final class ServiceProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ServiceProxy.class);
 
     private static final int MAX_NO_QUORUM_RETRIES = 10;
