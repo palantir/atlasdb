@@ -25,10 +25,8 @@ public class AwaitingLeadershipServiceFactory {
     private final Map<LeaderElectionService, AwaitingLeadership> awaitingLeaderships = new ConcurrentHashMap<>();
 
     public AwaitingLeadership create(LeaderElectionService leaderElectionService) {
-        AwaitingLeadership awaitingLeadership = awaitingLeaderships.computeIfAbsent(
+        return awaitingLeaderships.computeIfAbsent(
                 leaderElectionService, _u -> AwaitingLeadership.create(leaderElectionService));
-        System.out.println("We have created - " + awaitingLeaderships.size() + " leadership awaiting services.");
-        return awaitingLeadership;
     }
 
 }

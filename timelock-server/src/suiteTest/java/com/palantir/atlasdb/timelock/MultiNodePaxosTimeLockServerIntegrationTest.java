@@ -238,6 +238,24 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void leaderIdChangesAcrossFailoversStressTest() {
+        Set<LeaderTime> leaderTimes = new HashSet<>();
+        leaderTimes.add(client.namespacedConjureTimelockService().leaderTime());
+
+        int leaderElectionCount = 100;
+        for (int i = 0; i < leaderElectionCount; i++) {
+            cluster.failoverToNewLeader(client.namespace());
+
+            LeaderTime leaderTime = client.namespacedConjureTimelockService().leaderTime();
+
+            leaderTimes.forEach(previousLeaderTime ->
+                    assertThat(previousLeaderTime.isComparableWith(leaderTime)).isFalse());
+            leaderTimes.add(leaderTime);
+        }
+        assertThat(leaderTimes.size()).isEqualTo(leaderElectionCount + 1);
+    }
+
+    @Test
     public void locksAreInvalidatedAcrossFailovers() {
         LockToken token =
                 client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
