@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
@@ -66,6 +67,7 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
     private final AtomicReference<T> delegateRef;
     private final AtomicReference<LeadershipToken> maybeValidLeadershipTokenRef;
     private final Class<T> interfaceClass;
+    private final CoalescingSupplier<LeadershipToken> leadershipTokenCoalescingSupplier;
     private volatile boolean isClosed;
 
     private ServiceProxy(AwaitingLeadership awaitingLeadership, Supplier<T> delegateSupplier, Class<T> interfaceClass) {
@@ -74,6 +76,7 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
         this.delegateRef = new AtomicReference<>();
         this.maybeValidLeadershipTokenRef = new AtomicReference<>();
         this.interfaceClass = interfaceClass;
+        this.leadershipTokenCoalescingSupplier = new CoalescingSupplier<>(this::getLeadershipToken);
         this.isClosed = false;
     }
 
@@ -94,7 +97,7 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
             return null;
         }
 
-        final LeadershipToken leadershipToken = getLeadershipToken();
+        final LeadershipToken leadershipToken = leadershipTokenCoalescingSupplier.get();
 
         T maybeValidDelegate = delegateRef.get();
 
@@ -155,6 +158,8 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
 
     // checks the local ref of leadership token as we need to refresh the delegateRef in that case if the token has
     // changed.
+    // This can be accessed by multiple threads. In order to save all of the requests from locking-unlocking `this`
+    // while trying to update maybeValidLeadershipTokenRef, this method is protected by CoalescingSupplier
     private LeadershipToken getLeadershipToken() {
         if (!awaitingLeadership.isStillCurrentToken(maybeValidLeadershipTokenRef.get())) {
             // we need to clear out existing resources if leadership token has been updated
@@ -164,17 +169,18 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
         return maybeValidLeadershipTokenRef.get();
     }
 
-    private void handleLeadershipUpdate() {
-        maybeValidLeadershipTokenRef.set(null);
-        clearDelegate();
-    }
-
-    private void tryToUpdateLeadershipToken() {
+    // This method refreshes the delegateRef which can be a very expensive operation. This should be executed exactly
+    // once for one leadershipToken update.
+    private synchronized void tryToUpdateLeadershipToken() {
+        if (awaitingLeadership.isStillCurrentToken(maybeValidLeadershipTokenRef.get())) {
+            return;
+        }
         // throws if we are not leading anymore.
         LeadershipToken leadershipToken = awaitingLeadership.getLeadershipToken();
 
         // The refreshing of delegate is not happening in a separate thread anymore, which is why for now I am
         // cutting out the blocking refreshing of delegateRef here. Maybe we can retry x times?
+
         T delegate = null;
         try {
             delegate = delegateSupplier.get();
@@ -192,6 +198,11 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
                 log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
             }
         }
+    }
+
+    private void handleLeadershipUpdate() {
+        maybeValidLeadershipTokenRef.set(null);
+        clearDelegate();
     }
 
     private RuntimeException handleDelegateThrewException(
@@ -226,6 +237,8 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
     // todo - right now there is no way to release resources quickly. In the case where a different instance of proxy
     //  causes AwaitingLeadership to realize loss of leadership, we wait till a request comes in to our proxy to release
     //  the delegateRef.
+    //  This is okay fow now as it is not worse than what how current impl of AwaitingLeadershipProxy handles resource
+    //  claiming.
     private void handleNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         if (maybeValidLeadershipTokenRef.compareAndSet(leadershipToken, null)) {
             clearDelegate();
