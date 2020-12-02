@@ -176,7 +176,7 @@ public final class AwaitingLeadership implements Closeable {
                 .orElseGet(() -> new NotCurrentLeaderException(message, cause));
     }
 
-    private NotCurrentLeaderException notCurrentLeaderException(String message) {
+    NotCurrentLeaderException notCurrentLeaderException(String message) {
         return notCurrentLeaderException(message, null /* cause */);
     }
 }
