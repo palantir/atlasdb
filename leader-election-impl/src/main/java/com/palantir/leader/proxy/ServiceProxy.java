@@ -166,7 +166,14 @@ public final class ServiceProxy<T> extends AbstractInvocationHandler {
             handleLeadershipUpdate();
             tryToUpdateLeadershipToken();
         }
-        return maybeValidLeadershipTokenRef.get();
+
+        LeadershipToken leadershipToken = maybeValidLeadershipTokenRef.get();
+        if (leadershipToken == null) {
+            // We have to always throw if we are not the leader, so that notCurrentLeaderException is caught and
+            // request is redirected accordingly.
+            throw awaitingLeadership.notCurrentLeaderException("method invoked on a non-leader");
+        }
+        return leadershipToken;
     }
 
     // This method refreshes the delegateRef which can be a very expensive operation. This should be executed exactly
