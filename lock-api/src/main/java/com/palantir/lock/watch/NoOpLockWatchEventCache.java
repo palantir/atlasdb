@@ -18,7 +18,6 @@ package com.palantir.lock.watch;
 
 import com.palantir.lock.watch.LockWatchStateUpdate.Snapshot;
 import com.palantir.lock.watch.LockWatchStateUpdate.Success;
-import com.palantir.lock.watch.LockWatchStateUpdate.Visitor;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -49,13 +48,13 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
 
     @Override
     public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
-        currentVersion = Optional.of(extractVersionFromUpdate(update));
+        updateVersion(extractVersionFromUpdate(update));
     }
 
     @Override
     public void processGetCommitTimestampsUpdate(
             Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update) {
-        currentVersion = Optional.of(extractVersionFromUpdate(update));
+        updateVersion(extractVersionFromUpdate(update));
     }
 
     @Override
@@ -76,17 +75,26 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {}
 
-    private static LockWatchVersion extractVersionFromUpdate(LockWatchStateUpdate update) {
-        return LockWatchVersion.of(update.logId(), update.accept(new Visitor<Long>() {
+    private void updateVersion(Optional<LockWatchVersion> maybeNewVersion) {
+        currentVersion = maybeNewVersion.map(newVersion -> currentVersion
+                .filter(current -> current.id().equals(newVersion.id()) && current.version() > newVersion.version())
+                .orElse(newVersion));
+    }
+
+    private Optional<LockWatchVersion> extractVersionFromUpdate(LockWatchStateUpdate update) {
+        return update.accept(new LockWatchStateUpdate.Visitor<Optional<LockWatchVersion>>() {
+
             @Override
-            public Long visit(Success success) {
-                return success.lastKnownVersion();
+            public Optional<LockWatchVersion> visit(Success success) {
+                return currentVersion
+                        .filter(current -> current.id().equals(success.logId()))
+                        .map(_unused -> LockWatchVersion.of(success.logId(), success.lastKnownVersion()));
             }
 
             @Override
-            public Long visit(Snapshot snapshot) {
-                return snapshot.lastKnownVersion();
+            public Optional<LockWatchVersion> visit(Snapshot snapshot) {
+                return Optional.of(LockWatchVersion.of(snapshot.logId(), snapshot.lastKnownVersion()));
             }
-        }));
+        });
     }
 }

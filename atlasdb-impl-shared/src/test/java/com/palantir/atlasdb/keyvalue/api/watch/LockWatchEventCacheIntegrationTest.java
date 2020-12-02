@@ -128,9 +128,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Before
     public void before() {
-        realEventCache = createEventCache(5);
-        fakeCache = NoOpLockWatchEventCache.create();
-        eventCache = new DuplicatingLockWatchEventCache(realEventCache, fakeCache);
+        createEventCache(5);
         part = 1;
     }
 
@@ -220,7 +218,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void getCommitUpdateIsInvalidatedAllIfEventsHaveBeenDeleted() {
-        eventCache = createEventCache(2);
+        createEventCache(2);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS_2);
@@ -245,7 +243,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void getEventsForTransactionsReturnsSnapshotWithOldEvents() {
-        eventCache = createEventCache(3);
+        createEventCache(3);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         eventCache.removeTransactionStateFromCache(START_TS);
@@ -372,7 +370,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void timestampEventsRetentionedThrows() {
-        eventCache = createEventCache(1);
+        createEventCache(1);
         setupInitialState();
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
 
@@ -402,7 +400,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void newEventsCauseOldEventsToBeDeleted() {
-        eventCache = createEventCache(3);
+        createEventCache(3);
         setupInitialState();
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
         verifyStage();
@@ -446,8 +444,10 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SNAPSHOT);
     }
 
-    private static LockWatchEventCacheImpl createEventCache(int maxSize) {
-        return new LockWatchEventCacheImpl(LockWatchEventLog.create(maxSize));
+    private void createEventCache(int maxSize) {
+        fakeCache = NoOpLockWatchEventCache.create();
+        realEventCache = new LockWatchEventCacheImpl(LockWatchEventLog.create(maxSize));
+        eventCache = new DuplicatingLockWatchEventCache(realEventCache, fakeCache);
     }
 
     private static final class CommitUpdateVisitor implements CommitUpdate.Visitor<Set<LockDescriptor>> {
