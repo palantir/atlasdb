@@ -80,8 +80,7 @@ public class AwaitingLeadershipProxyTest {
     // We're asserting that calling .equals on a proxy does not redirect
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() {
-        Runnable proxy =
-                ServiceProxy.newProxyInstance(getAwaitingLeadership(), Runnable.class, delegateSupplier);
+        Runnable proxy = ServiceProxy.newProxyInstance(getAwaitingLeadership(), Runnable.class, delegateSupplier);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -106,8 +105,7 @@ public class AwaitingLeadershipProxyTest {
     public void listenableFutureMethodsDoNotBlockWhenNotLeading() throws ExecutionException, InterruptedException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy = ServiceProxy.newProxyInstance(
-                getAwaitingLeadership(),
-                ReturnsListenableFuture.class, () -> listenableFuture);
+                getAwaitingLeadership(), ReturnsListenableFuture.class, () -> listenableFuture);
         waitForLeadershipToBeGained();
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
@@ -124,8 +122,7 @@ public class AwaitingLeadershipProxyTest {
     public void listenableFutureMethodsDoNotBlockWhenLeading() throws InterruptedException, ExecutionException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy = ServiceProxy.newProxyInstance(
-                getAwaitingLeadership(),
-                ReturnsListenableFuture.class, () -> listenableFuture);
+                getAwaitingLeadership(), ReturnsListenableFuture.class, () -> listenableFuture);
         waitForLeadershipToBeGained();
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
@@ -143,8 +140,7 @@ public class AwaitingLeadershipProxyTest {
     public void listenableFutureMethodsRetryProxyFailures() throws InterruptedException, ExecutionException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy = ServiceProxy.newProxyInstance(
-                getAwaitingLeadership(),
-                ReturnsListenableFuture.class, () -> listenableFuture);
+                getAwaitingLeadership(), ReturnsListenableFuture.class, () -> listenableFuture);
         waitForLeadershipToBeGained();
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
@@ -177,8 +173,7 @@ public class AwaitingLeadershipProxyTest {
         when(leaderElectionService.isStillLeading(any(LeadershipToken.class)))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
 
-        Runnable proxy =
-                ServiceProxy.newProxyInstance(getAwaitingLeadership(), Runnable.class, delegateSupplier);
+        Runnable proxy = ServiceProxy.newProxyInstance(getAwaitingLeadership(), Runnable.class, delegateSupplier);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -248,8 +243,7 @@ public class AwaitingLeadershipProxyTest {
                 .thenThrow(new RuntimeException())
                 .thenReturn(leadershipToken);
 
-        Runnable proxy =
-                ServiceProxy.newProxyInstance(getAwaitingLeadership(), Runnable.class, delegateSupplier);
+        Runnable proxy = ServiceProxy.newProxyInstance(getAwaitingLeadership(), Runnable.class, delegateSupplier);
 
         Thread.sleep(1000); // wait for retrying on gaining leadership
 
