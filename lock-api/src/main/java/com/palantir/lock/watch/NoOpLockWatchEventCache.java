@@ -16,6 +16,9 @@
 
 package com.palantir.lock.watch;
 
+import com.palantir.lock.watch.LockWatchStateUpdate.Snapshot;
+import com.palantir.lock.watch.LockWatchStateUpdate.Success;
+import com.palantir.lock.watch.LockWatchStateUpdate.Visitor;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
     public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
     private static final LockWatchVersion FAKE_VERSION = LockWatchVersion.of(UUID.randomUUID(), -1L);
+    private Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     private NoOpLockWatchEventCache() {
         // singleton
@@ -38,15 +42,19 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
 
     @Override
     public Optional<LockWatchVersion> lastKnownVersion() {
-        return Optional.empty();
+        return currentVersion;
     }
 
     @Override
-    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {}
+    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
+        currentVersion = Optional.of(extractVersionFromUpdate(update));
+    }
 
     @Override
     public void processGetCommitTimestampsUpdate(
-            Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update) {}
+            Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update) {
+        currentVersion = Optional.of(extractVersionFromUpdate(update));
+    }
 
     @Override
     public CommitUpdate getCommitUpdate(long startTs) {
@@ -58,11 +66,25 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return ImmutableTransactionsLockWatchUpdate.builder()
                 .clearCache(true)
-                .startTsToSequence(
-                        startTimestamps.stream().collect(Collectors.toMap(startTs -> startTs, $ -> FAKE_VERSION)))
+                .startTsToSequence(startTimestamps.stream()
+                        .collect(Collectors.toMap(startTs -> startTs, $ -> currentVersion.orElse(FAKE_VERSION))))
                 .build();
     }
 
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {}
+
+    private static LockWatchVersion extractVersionFromUpdate(LockWatchStateUpdate update) {
+        return LockWatchVersion.of(update.logId(), update.accept(new Visitor<Long>() {
+            @Override
+            public Long visit(Success success) {
+                return success.lastKnownVersion();
+            }
+
+            @Override
+            public Long visit(Snapshot snapshot) {
+                return snapshot.lastKnownVersion();
+            }
+        }));
+    }
 }
