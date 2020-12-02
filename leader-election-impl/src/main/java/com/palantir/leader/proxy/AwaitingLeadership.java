@@ -24,6 +24,7 @@ import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.io.Closeable;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -33,7 +34,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class AwaitingLeadership implements AutoCloseable {
+public final class AwaitingLeadership implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadership.class);
 
     private static final Duration GAIN_LEADERSHIP_BACKOFF = Duration.ofMillis(500);
