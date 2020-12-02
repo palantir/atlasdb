@@ -21,6 +21,7 @@ import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.health.LeaderElectionHealthCheck;
+import com.palantir.leader.proxy.AwaitingLeadership;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
@@ -112,6 +113,11 @@ public abstract class LeadershipContextFactory
     }
 
     @Value.Derived
+    AwaitingLeadershipServiceFactory awaitingLeadershipFactory() {
+        return new AwaitingLeadershipServiceFactory();
+    }
+
+    @Value.Derived
     public LeaderElectionHealthCheck leaderElectionHealthCheck() {
         return new LeaderElectionHealthCheck(Instant::now);
     }
@@ -126,10 +132,14 @@ public abstract class LeadershipContextFactory
 
         BatchingLeaderElectionService leaderElectionService =
                 leaderElectionServiceFactory().create(clientAwareComponents);
+        AwaitingLeadership awaitingLeadership = awaitingLeadershipFactory().create(leaderElectionService);
+
         return ImmutableLeadershipContext.builder()
                 .leadershipMetrics(clientAwareComponents.leadershipMetrics())
                 .leaderElectionService(leaderElectionService)
+                .awaitingLeadership(awaitingLeadership)
                 .addCloseables(leaderElectionService)
+                .addCloseables(awaitingLeadership)
                 .addAllCloseables(leaderPingerFactory().closeables())
                 .build();
     }
