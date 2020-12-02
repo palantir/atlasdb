@@ -61,7 +61,7 @@ public final class SingleLeaderPaxosSuite {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestableTimelockCluster> params() {
-        return ImmutableSet.of(NON_BATCHED_TIMESTAMP_PAXOS);
+        return ImmutableSet.of(NON_BATCHED_TIMESTAMP_PAXOS, BATCHED_TIMESTAMP_PAXOS, BATCHED_PAXOS);
     }
 
     @Rule
