@@ -44,9 +44,11 @@ import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
@@ -116,7 +118,9 @@ public class LockWatchEventCacheIntegrationTest {
         }
     }
 
-    private LockWatchEventCacheImpl eventCache;
+    private LockWatchEventCacheImpl realEventCache;
+    private LockWatchEventCache fakeCache;
+    private LockWatchEventCache eventCache;
     private int part;
 
     @Rule
@@ -124,7 +128,9 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Before
     public void before() {
-        eventCache = createEventCache(5);
+        realEventCache = createEventCache(5);
+        fakeCache = NoOpLockWatchEventCache.create();
+        eventCache = new DuplicatingLockWatchEventCache(realEventCache, fakeCache);
         part = 1;
     }
 
@@ -135,7 +141,7 @@ public class LockWatchEventCacheIntegrationTest {
                 .registerModule(new GuavaModule());
         try {
             Path path = Paths.get(BASE + name.getMethodName() + "/event-cache-" + part + ".json");
-            LockWatchEventCacheState eventCacheState = eventCache.getStateForTesting();
+            LockWatchEventCacheState eventCacheState = realEventCache.getStateForTesting();
 
             if (MODE.isDev()) {
                 mapper.writeValue(path.toFile(), eventCacheState);

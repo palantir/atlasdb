@@ -74,7 +74,7 @@ public interface NamespacedClients {
 
     @Value.Default
     default LockWatchEventCache lockWatchEventCache() {
-        return NoOpLockWatchEventCache.INSTANCE;
+        return NoOpLockWatchEventCache.create();
     }
 
     @Value.Derived

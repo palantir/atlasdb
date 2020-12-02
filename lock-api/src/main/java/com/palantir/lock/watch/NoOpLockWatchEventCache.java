@@ -31,8 +31,10 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     private static final LockWatchVersion FAKE_VERSION = LockWatchVersion.of(UUID.randomUUID(), -1L);
     private Optional<LockWatchVersion> currentVersion = Optional.empty();
 
-    private NoOpLockWatchEventCache() {
-        // singleton
+    private NoOpLockWatchEventCache() {}
+
+    public static LockWatchEventCache create() {
+        return new NoOpLockWatchEventCache();
     }
 
     @Override

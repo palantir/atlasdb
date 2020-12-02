@@ -46,7 +46,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     public static LockWatchEventCache create(MetricsManager metricsManager) {
         return ResilientLockWatchEventCache.newProxyInstance(
                 new LockWatchEventCacheImpl(LockWatchEventLog.create(MAX_EVENTS)),
-                NoOpLockWatchEventCache.INSTANCE,
+                NoOpLockWatchEventCache.create(),
                 metricsManager);
     }
 

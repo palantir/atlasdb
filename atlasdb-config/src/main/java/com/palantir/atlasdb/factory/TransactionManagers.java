@@ -1471,12 +1471,12 @@ public abstract class TransactionManagers {
 
         @Value.Default
         default LockWatchManager lockWatcher() {
-            return NoOpLockWatchManager.INSTANCE;
+            return NoOpLockWatchManager.create();
         }
 
         @Value.Default
         default LockWatchEventCache eventCache() {
-            return NoOpLockWatchEventCache.INSTANCE;
+            return NoOpLockWatchEventCache.create();
         }
 
         @Value.Derived
