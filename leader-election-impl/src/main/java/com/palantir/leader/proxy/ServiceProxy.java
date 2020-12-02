@@ -163,7 +163,7 @@ public final class ServiceProxy<T> extends AbstractInvocationHandler {
     private LeadershipToken getLeadershipToken() {
         if (!awaitingLeadership.isStillCurrentToken(maybeValidLeadershipTokenRef.get())) {
             // we need to clear out existing resources if leadership token has been updated
-            handleLeadershipUpdate();
+            claimResourcesOnLeadershipUpdate();
             tryToUpdateLeadershipToken();
         }
 
@@ -207,11 +207,6 @@ public final class ServiceProxy<T> extends AbstractInvocationHandler {
         }
     }
 
-    private void handleLeadershipUpdate() {
-        maybeValidLeadershipTokenRef.set(null);
-        clearDelegate();
-    }
-
     private RuntimeException handleDelegateThrewException(
             LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
         if (exception.getCause() instanceof ServiceNotAvailableException
@@ -235,16 +230,21 @@ public final class ServiceProxy<T> extends AbstractInvocationHandler {
             try {
                 ((Closeable) delegate).close();
             } catch (IOException ex) {
-                // we don't want to rethrow here; we're likely on a background thread
+                // todo - suppressing the exception for now
                 log.warn("problem closing delegate", ex);
             }
         }
     }
 
+    private void claimResourcesOnLeadershipUpdate() {
+        maybeValidLeadershipTokenRef.set(null);
+        clearDelegate();
+    }
+
     // todo - right now there is no way to release resources quickly. In the case where a different instance of proxy
     //  causes AwaitingLeadership to realize loss of leadership, we wait till a request comes in to our proxy to release
     //  the delegateRef.
-    //  This is okay fow now as it is not worse than what how current impl of AwaitingLeadershipProxy handles resource
+    //  This is okay considering it is not worse than how current impl of AwaitingLeadershipProxy handles resource
     //  claiming.
     private void handleNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         if (maybeValidLeadershipTokenRef.compareAndSet(leadershipToken, null)) {
