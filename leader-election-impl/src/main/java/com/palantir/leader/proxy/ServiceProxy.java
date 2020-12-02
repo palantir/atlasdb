@@ -31,6 +31,7 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
 import java.io.Closeable;
@@ -63,24 +64,22 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
     private final AwaitingLeadership awaitingLeadership;
     private final Supplier<T> delegateSupplier;
     private final AtomicReference<T> delegateRef;
+    private final AtomicReference<LeadershipToken> maybeValidLeadershipTokenRef;
     private final Class<T> interfaceClass;
     private volatile boolean isClosed;
 
-    private ServiceProxy(
-            AwaitingLeadership awaitingLeadership,
-            Supplier<T> delegateSupplier,
-            Class<T> interfaceClass) {
+    private ServiceProxy(AwaitingLeadership awaitingLeadership, Supplier<T> delegateSupplier, Class<T> interfaceClass) {
         this.awaitingLeadership = awaitingLeadership;
         this.delegateSupplier = delegateSupplier;
         this.delegateRef = new AtomicReference<>();
+        this.maybeValidLeadershipTokenRef = new AtomicReference<>();
         this.interfaceClass = interfaceClass;
         this.isClosed = false;
     }
 
-    public static <U> U newProxyInstance(AwaitingLeadership awaitingLeadership,
-            Class<U> interfaceClass, Supplier<U> delegateSupplier) {
-        ServiceProxy<U> proxy =
-                new ServiceProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
+    public static <U> U newProxyInstance(
+            AwaitingLeadership awaitingLeadership, Class<U> interfaceClass, Supplier<U> delegateSupplier) {
+        ServiceProxy<U> proxy = new ServiceProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
 
         return (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy);
@@ -95,9 +94,9 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
             return null;
         }
 
-        final LeadershipToken leadershipToken = awaitingLeadership.getLeadershipToken();
+        final LeadershipToken leadershipToken = getLeadershipToken();
 
-        T maybeValidDelegate = getMaybeValidDelegate();
+        T maybeValidDelegate = delegateRef.get();
 
         ListenableFuture<StillLeadingStatus> leadingFuture = Tracers.wrapListenableFuture(
                 "validate-leadership",
@@ -154,30 +153,48 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
         }
     }
 
-    private T getMaybeValidDelegate() {
-        T delegate = delegateRef.get();
-        if (delegate != null) {
-            return delegate;
+    // checks the local ref of leadership token, if the token has not changed, no-op. If the token does change,
+    // we need to refresh the delegateRef in that case if the token has changed.
+    private LeadershipToken getLeadershipToken() {
+        if (!awaitingLeadership.isStillCurrentToken(maybeValidLeadershipTokenRef.get())) {
+            updateLeadershipToken();
+        }
+        return maybeValidLeadershipTokenRef.get();
+    }
+
+    private void updateLeadershipToken() {
+        LeadershipToken leadershipToken;
+        try {
+            leadershipToken = awaitingLeadership.getLeadershipToken(); // this throws if we are not leading anymore.
+        } catch (NotCurrentLeaderException e) {
+            maybeValidLeadershipTokenRef.set(null);
+            clearDelegate();
+            throw e;
         }
 
-        if (awaitingLeadership.canServiceRequest()) {
-            // We are now the leader, we should create a delegate so we can service calls
-            while (delegate == null) {
-                try {
-                    delegate = delegateSupplier.get();
-                } catch (Throwable t) {
-                    log.error("problem creating delegate", t);
-                    if (isClosed) {
-                        break; // todo
-                    }
+        // The refreshing of delegate is not happening in a separate thread anymore. This looks bad.
+        T delegate = null;
+        while (delegate == null) {
+            try {
+                delegate = delegateSupplier.get();
+            } catch (Throwable t) {
+                log.error("problem creating delegate", t);
+                if (isClosed) {
+                    return; // It is okay to return here as clearDelegate will be called when close method is called.
+                    // If another request comes and the delegate is not cleared out, we throw.
                 }
             }
-
-            // Do not modify, hide, or remove this line without considering impact on correctness.
-            delegateRef.set(delegate);
         }
 
-        return delegateRef.get();
+        // Do not modify, hide, or remove this line without considering impact on correctness.
+        delegateRef.set(delegate);
+
+        if (isClosed) {
+            clearDelegate();
+        } else {
+            maybeValidLeadershipTokenRef.set(leadershipToken);
+            log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
+        }
     }
 
     private RuntimeException handleDelegateThrewException(
@@ -190,8 +207,8 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
         // in case of a leader election.
         if (exception.getCause() instanceof InterruptedException
                 && !awaitingLeadership.isStillCurrentToken(leadershipToken)) {
-            throw awaitingLeadership.notCurrentLeaderException("received an interrupt due to leader election.",
-                    exception.getCause());
+            throw awaitingLeadership.notCurrentLeaderException(
+                    "received an interrupt due to leader election.", exception.getCause());
         }
         Throwables.propagateIfPossible(exception.getCause(), Exception.class);
         throw new RuntimeException(exception.getCause());
@@ -209,12 +226,15 @@ public class ServiceProxy<T> extends AbstractInvocationHandler {
         }
     }
 
+    // todo - right now there is no way to release resources quickly. In the case where a different instance of proxy
+    //  causes AwaitingLeadership to realize loss of leadership, we wait till a request comes in to our proxy to release
+    //  the delegateRef.
     private void handleNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
-        try {
+        // todo - will have to reset the personal leadership token
+        if (maybeValidLeadershipTokenRef.compareAndSet(leadershipToken, null)) {
             clearDelegate();
-        } catch (Throwable t) {
-            // If close fails we should still try to gain leadership
+            awaitingLeadership.markAsNotLeading(leadershipToken, cause);
         }
-        awaitingLeadership.markAsNotLeading(leadershipToken, cause);
+        throw awaitingLeadership.notCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
     }
 }
