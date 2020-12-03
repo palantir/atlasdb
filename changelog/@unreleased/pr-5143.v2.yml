@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Add further logging to Timelock to log the current watched references.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5143
