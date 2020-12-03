@@ -26,9 +26,15 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.EntireTable;
+import com.palantir.lock.watch.LockWatchReferences.ExactCell;
+import com.palantir.lock.watch.LockWatchReferences.ExactRow;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchReferences.RowPrefix;
+import com.palantir.lock.watch.LockWatchReferences.RowRange;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.logsafe.SafeArg;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -39,6 +45,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Note on concurrency: We use a fair read write lock mechanism and synchronisation as follows:
@@ -57,6 +65,8 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings("UnstableApiUsage")
 public class LockWatchingServiceImpl implements LockWatchingService {
+    private static final Logger log = LoggerFactory.getLogger(LockWatchingServiceImpl.class);
+
     private final LockEventLog lockEventLog;
     private final AtomicReference<LockWatches> watches = new AtomicReference<>(LockWatches.create());
     private final ReadWriteLock watchesLock = new ReentrantReadWriteLock(true);
@@ -73,7 +83,14 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
         Optional<LockWatches> changes = addToWatches(locksToWatch);
+        changes.ifPresent(changedWatches -> {
+            Set<EntireTable> newTablesWatched = extractOnlyEntireTableWatches(changedWatches.references());
+            log.info("New tables watched", SafeArg.of("newTablesTables", newTablesWatched));
+        });
         changes.ifPresent(this::logLockWatchEvent);
+        Set<EntireTable> allWatchedTables =
+                extractOnlyEntireTableWatches(watches.get().references());
+        log.info("All tables currently watched", SafeArg.of("allWatchedTables", allWatchedTables));
     }
 
     @Override
@@ -141,5 +158,38 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         } finally {
             watchesLock.readLock().unlock();
         }
+    }
+
+    private Set<EntireTable> extractOnlyEntireTableWatches(Set<LockWatchReference> references) {
+        return references.stream()
+                .map(reference -> reference.accept(new LockWatchReferences.Visitor<Optional<EntireTable>>() {
+                    @Override
+                    public Optional<EntireTable> visit(EntireTable reference) {
+                        return Optional.of(reference);
+                    }
+
+                    @Override
+                    public Optional<EntireTable> visit(RowPrefix reference) {
+                        return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<EntireTable> visit(RowRange reference) {
+                        return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<EntireTable> visit(ExactRow reference) {
+                        return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<EntireTable> visit(ExactCell reference) {
+                        return Optional.empty();
+                    }
+                }))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
     }
 }
