@@ -87,7 +87,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         Set<LockWatchReference> allReferences = watches.get().references();
         log.info(
                 "All references currently watched",
-                SafeArg.of("sizeOfReferences", allReferences),
+                SafeArg.of("sizeOfReferences", allReferences.size()),
                 UnsafeArg.of("allWatchedTables", allReferences));
     }
 
