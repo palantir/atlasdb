@@ -1,9 +1,6 @@
 type: fix
 fix:
-  description: Calling registerWatches now tells the lockWatchManager to _only_ watch
-    those watches, instead of adding it to the set of all registered watches so far.
-    Note that this does not affect Timelock (which will still contain all watches
-    registered so far), but rolling Timelock will mean that the LockWatchManager now
-    only re-registers the latest requested watches.
+  description: LockWatchManager now only re-registers the latest requested watches
+    as opposed to all watches registered up to that point.
   links:
   - https://github.com/palantir/atlasdb/pull/5146
