@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -64,11 +65,13 @@ public final class LockWatchManagerImplTest {
     public void onlyWatchCurrentWatches() {
         Set<LockWatchReference> firstReferences = ImmutableSet.of(lockWatchReference1, lockWatchReference2);
         manager.registerWatches(firstReferences);
-        verify(lockWatchingService)
+        // at least once as a background task also sends a startWatching request periodically, and this can race in the
+        // test.
+        verify(lockWatchingService, atLeastOnce())
                 .startWatching(
                         LockWatchRequest.builder().references(firstReferences).build());
         manager.registerWatches(ImmutableSet.of(lockWatchReference1));
-        verify(lockWatchingService)
+        verify(lockWatchingService, atLeastOnce())
                 .startWatching(LockWatchRequest.builder()
                         .references(lockWatchReference1)
                         .build());
