@@ -28,7 +28,7 @@ public final class NoOpLockWatchManager extends LockWatchManager {
     public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();
 
     @Override
-    public void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {
+    public void registerPreciselyWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {
         // Ignored
     }
 

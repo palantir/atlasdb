@@ -26,10 +26,11 @@ import java.util.Set;
 
 public abstract class LockWatchManager {
     /**
-     * Registers a set of lock watches.
+     * Registers precisely a set of lock watches. Lock watches registered on a previous invocation of this method will
+     * not be remembered.
      */
     @Idempotent
-    public abstract void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
+    public abstract void registerPreciselyWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
 
     // These methods are hidden on purpose as they should not be generally available, only for brave souls!
 

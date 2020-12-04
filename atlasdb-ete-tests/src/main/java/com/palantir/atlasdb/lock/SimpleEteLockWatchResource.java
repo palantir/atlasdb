@@ -103,7 +103,8 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
         keyValueService.createTable(lockWatchTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
         transactionManager
                 .getLockWatchManager()
-                .registerWatches(ImmutableSet.of(LockWatchReferences.entireTable(lockWatchTable.getQualifiedName())));
+                .registerPreciselyWatches(
+                        ImmutableSet.of(LockWatchReferences.entireTable(lockWatchTable.getQualifiedName())));
     }
 
     private Map<Cell, byte[]> getValueMap(Set<String> rows) {
