@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: If the lock watch user version is X, and the transaction versions are
+    [Y, Z], and X < Y-1000, then only check that events enclose [Y,Z] instead of [X,
+    Z] (which will always fail).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5145
