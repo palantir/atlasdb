@@ -380,6 +380,22 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
+    public void veryFarBehindClientDoesNotCauseEncloseCheckToThrow() {
+        LockWatchStateUpdate.Snapshot snapshot =
+                LockWatchStateUpdate.snapshot(LEADER, 5000L, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of());
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS, snapshot);
+
+        TransactionsLockWatchUpdate update =
+                eventCache.getUpdateForTransactions(TIMESTAMPS, Optional.of(LockWatchVersion.of(LEADER, 0L)));
+        assertThat(update.clearCache()).isTrue();
+        assertThat(update.events())
+                .containsExactly(LockWatchCreatedEvent.builder(ImmutableSet.of(), ImmutableSet.of(DESCRIPTOR_2))
+                        .build(5000L));
+        assertThat(update.startTsToSequence())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(START_TS, LockWatchVersion.of(LEADER, 5000L)));
+    }
+
+    @Test
     public void clientPartiallyUpToDateDoesNotThrow() {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);

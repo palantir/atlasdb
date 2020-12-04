@@ -65,9 +65,12 @@ interface ClientLogEvents {
          Case 3: client is completely up-to-date. Here, we don't need to check for any versions.
          Case 4: client has no version. Then we expect that the events returned at least enclose the versions of
                  the transactions.
+         Case 5: the client is very far behind, but still has a version. In this case, we should not check based on the
+                 client version, but rather the lower bound of the timestamp mapping.
         */
         verifyReturnedEventsEnclosesTransactionVersions(
                 lastKnownVersion
+                        .filter(_unused -> !clearCache())
                         .map(LockWatchVersion::version)
                         .map(version -> version + 1)
                         .orElseGet(() -> timestampMapping.versionRange().lowerEndpoint()),
