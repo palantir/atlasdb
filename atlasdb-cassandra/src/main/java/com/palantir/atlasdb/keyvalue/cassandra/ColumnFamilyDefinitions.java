@@ -110,7 +110,7 @@ final class ColumnFamilyDefinitions {
 
         // explicitly set fields to default values
         cf.setCaching("KEYS_ONLY");
-        cf.setDclocal_read_repair_chance(0.1);
+        cf.setDclocal_read_repair_chance(0.0);
         cf.setTriggers(ImmutableList.of());
         cf.setCells_per_row_to_cache("0");
         cf.setMin_index_interval(CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL);
