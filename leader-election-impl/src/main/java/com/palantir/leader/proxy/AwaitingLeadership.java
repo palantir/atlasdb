@@ -59,7 +59,7 @@ public final class AwaitingLeadership implements Closeable {
 
     public static AwaitingLeadership create(LeaderElectionService leaderElectionService) {
         AwaitingLeadership awaitingLeadership = new AwaitingLeadership(leaderElectionService);
-        awaitingLeadership.tryToGainLeadership();
+        // awaitingLeadership.tryToGainLeadership();
         return awaitingLeadership;
     }
 
