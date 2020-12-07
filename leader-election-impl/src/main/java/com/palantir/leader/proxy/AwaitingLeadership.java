@@ -82,7 +82,7 @@ public final class AwaitingLeadership implements Closeable {
         executor.shutdownNow();
     }
 
-    private void tryToGainLeadership() {
+    void tryToGainLeadership() {
         Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
         if (currentToken.isPresent()) {
             onGainedLeadership(currentToken.get());
