@@ -43,8 +43,7 @@ public class HostLocationSupplierTest {
         Supplier<Optional<HostLocation>> hostLocationSupplier =
                 new HostLocationSupplier(ec2SnitchSupplier, ec2LocationSupplier, Optional.empty());
 
-        assertThat(hostLocationSupplier.get())
-                .isEqualTo(ec2LocationSupplier.get());
+        assertThat(hostLocationSupplier.get()).isEqualTo(ec2LocationSupplier.get());
     }
 
     @Test
