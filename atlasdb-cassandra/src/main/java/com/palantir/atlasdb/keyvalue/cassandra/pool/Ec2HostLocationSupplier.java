@@ -20,10 +20,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.logsafe.Preconditions;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.function.Supplier;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Returns the client's datacenter and rack derived from Cassandra's Ec2Snitch.
@@ -31,7 +34,9 @@ import okhttp3.Response;
  * AWS has an endpoint that returns the datacenter and rack (in Cassandra terms) - this request will fail if not on AWS.
  * The reply comes in the form "datacenter"+"rack", e.g. "us-east-1a", where datacenter is "us-east-1" and rack is "a".
  */
-public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
+public final class Ec2HostLocationSupplier implements Supplier<Optional<HostLocation>> {
+
+    private static final Logger log = LoggerFactory.getLogger(Ec2HostLocationSupplier.class);
 
     /*
        This is a supplier to avoid class loading races breaking downstream internal products.
@@ -39,7 +44,7 @@ public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
     private static final Supplier<OkHttpClient> client = Suppliers.memoize(() -> new OkHttpClient.Builder().build());
 
     @Override
-    public HostLocation get() {
+    public Optional<HostLocation> get() {
         try {
             Response response = client.get()
                     .newCall(new Request.Builder()
@@ -49,9 +54,13 @@ public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
                     .execute();
             Preconditions.checkState(response.isSuccessful(), "Getting AWS host metadata was not successful");
 
-            return parseHostLocation(response.body().string());
+            return Optional.of(parseHostLocation(response.body().string()));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.warn(
+                    "Could not query AWS host metadata to retrieve the host location. "
+                            + "We are either not running on AWS or don't have access to the AWS host metadata service",
+                    e);
+            return Optional.empty();
         }
     }
 
