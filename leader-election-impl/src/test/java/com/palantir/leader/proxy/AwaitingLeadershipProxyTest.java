@@ -215,7 +215,6 @@ public class AwaitingLeadershipProxyTest {
         assertThatThrownBy(proxy::call).isInstanceOf(InterruptedException.class).hasMessage(TEST_MESSAGE);
     }
 
-
     @Test
     // todo snanda this behaviour has changed
     public void shouldGainLeadershipImmediatelyIfAlreadyLeading() throws Exception {
