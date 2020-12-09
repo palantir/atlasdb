@@ -168,6 +168,7 @@ public final class ServiceProxy<T> extends AbstractInvocationHandler {
             tryToUpdateLeadershipToken();
         }
 
+        System.out.println(awaitingLeadership.isStillCurrentToken(maybeValidLeadershipTokenRef.get()));
         LeadershipToken leadershipToken = maybeValidLeadershipTokenRef.get();
         if (leadershipToken == null) {
             // We have to always throw if we are not the leader, so that notCurrentLeaderException is caught and

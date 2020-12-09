@@ -76,12 +76,7 @@ public final class AwaitingLeadership implements Closeable {
     }
 
     private void tryToGainLeadership() {
-        Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
-        if (currentToken.isPresent()) {
-            onGainedLeadership(currentToken.get());
-        } else {
-            tryToGainLeadershipAsync();
-        }
+        tryToGainLeadershipAsync();
     }
 
     private void tryToGainLeadershipAsync() {
@@ -110,18 +105,24 @@ public final class AwaitingLeadership implements Closeable {
     }
 
     private boolean gainLeadershipBlocking() {
-        log.debug("Block until gained leadership");
-        try {
-            LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
-            onGainedLeadership(leadershipToken);
+        Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
+        if (currentToken.isPresent()) {
+            onGainedLeadership(currentToken.get());
             return true;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("attempt to gain leadership interrupted", e);
-        } catch (Throwable e) {
-            log.error("problem blocking on leadership", e);
+        } else {
+            log.debug("Block until gained leadership");
+            try {
+                LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
+                onGainedLeadership(leadershipToken);
+                return true;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("attempt to gain leadership interrupted", e);
+            } catch (Throwable e) {
+                log.error("problem blocking on leadership", e);
+            }
+            return false;
         }
-        return false;
     }
 
     private void onGainedLeadership(LeadershipToken leadershipToken) {
@@ -131,8 +132,22 @@ public final class AwaitingLeadership implements Closeable {
             return;
         } else {
             updateLeadershipTokenIfNewToken(leadershipToken);
+            leadershipTokenRef.set(leadershipToken);
             log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
         }
+    }
+
+    // Super-expensive -> only to be executed by executor thread
+    // We want to setting up different instance of same leadershipToken due to the equality checks in
+    // isStillCurrentToken and markAsNotLeading to avoid false negatives
+    private void updateLeadershipTokenIfNewToken(LeadershipToken leadershipToken) {
+        LeadershipToken currentLeadershipToken = leadershipTokenRef.get();
+
+        if (currentLeadershipToken != null && currentLeadershipToken.sameAs(leadershipToken)) {
+            return;
+        }
+
+        leadershipTokenRef.set(leadershipToken);
     }
 
     @VisibleForTesting
@@ -162,16 +177,6 @@ public final class AwaitingLeadership implements Closeable {
         return leadershipToken == leadershipTokenRef.get();
     }
 
-    private void updateLeadershipTokenIfNewToken(LeadershipToken leadershipToken) {
-        LeadershipToken currentLeadershipToken = leadershipTokenRef.get();
-
-        // if (currentLeadershipToken != null && currentLeadershipToken.sameAs(leadershipToken)) {
-        //     return;
-        // }
-
-        leadershipTokenRef.set(leadershipToken);
-    }
-
     NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
         return leaderElectionService
                 .getRecentlyPingedLeaderHost()
@@ -185,20 +190,8 @@ public final class AwaitingLeadership implements Closeable {
 
     public void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         log.warn("Lost leadership", cause);
-        if (compareAndSetLeadershipToken(leadershipToken)) {
-            leadershipTokenRef.set(null);
+        if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
             tryToGainLeadership();
         }
-    }
-
-    // this is horrible
-    private synchronized boolean compareAndSetLeadershipToken(LeadershipToken leadershipToken) {
-        LeadershipToken currentLeadershipToken = leadershipTokenRef.get();
-        if (currentLeadershipToken == leadershipToken || currentLeadershipToken.sameAs(leadershipToken)) {
-            leadershipTokenRef.set(leadershipToken);
-            return true;
-        }
-
-        return false;
     }
 }
