@@ -83,7 +83,7 @@ public final class ServiceProxy<T> extends AbstractInvocationHandler {
     public static <U> U newProxyInstance(
             AwaitingLeadership awaitingLeadership, Class<U> interfaceClass, Supplier<U> delegateSupplier) {
         ServiceProxy<U> proxy = new ServiceProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
-        awaitingLeadership.tryToGainLeadership();
+        // awaitingLeadership.tryToGainLeadership();
 
         return (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy);
