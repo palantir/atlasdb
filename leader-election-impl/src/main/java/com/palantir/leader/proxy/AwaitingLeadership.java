@@ -172,9 +172,9 @@ public final class AwaitingLeadership implements Closeable {
     private void updateLeadershipTokenIfNewToken(LeadershipToken leadershipToken) {
         LeadershipToken currentLeadershipToken = leadershipTokenRef.get();
 
-        if (currentLeadershipToken != null && currentLeadershipToken.sameAs(leadershipToken)) {
-            return;
-        }
+        // if (currentLeadershipToken != null && currentLeadershipToken.sameAs(leadershipToken)) {
+        //     return;
+        // }
 
         leadershipTokenRef.set(leadershipToken);
     }
