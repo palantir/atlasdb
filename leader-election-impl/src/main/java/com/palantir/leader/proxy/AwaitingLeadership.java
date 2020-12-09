@@ -63,13 +63,6 @@ public final class AwaitingLeadership implements Closeable {
         return awaitingLeadership;
     }
 
-    public void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
-        log.warn("Lost leadership", cause);
-        if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
-            tryToGainLeadership();
-        }
-    }
-
     public ListenableFuture<StillLeadingStatus> getStillLeading(LeadershipToken leadershipToken) {
         return leaderElectionService.isStillLeading(leadershipToken);
     }
@@ -188,5 +181,27 @@ public final class AwaitingLeadership implements Closeable {
 
     NotCurrentLeaderException notCurrentLeaderException(String message) {
         return notCurrentLeaderException(message, null /* cause */);
+    }
+
+    // this is horrible
+    public synchronized void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
+        log.warn("Lost leadership", cause);
+        if (isSameAsCurrentLeadershipToken(leadershipToken)) {
+            leadershipTokenRef.set(null);
+            tryToGainLeadership();
+        }
+    }
+
+    private boolean isSameAsCurrentLeadershipToken(LeadershipToken leadershipToken) {
+        LeadershipToken currentLeadershipToken = leadershipTokenRef.get();
+        if (currentLeadershipToken == leadershipToken) {
+            return true;
+        }
+
+        if (currentLeadershipToken == null) {
+            return false;
+        }
+
+        return currentLeadershipToken.sameAs(leadershipToken);
     }
 }
