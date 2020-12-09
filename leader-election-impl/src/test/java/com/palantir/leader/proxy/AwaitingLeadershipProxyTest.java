@@ -60,7 +60,6 @@ public class AwaitingLeadershipProxyTest {
     private final LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
     private final Runnable mockRunnable = mock(Runnable.class);
     private final Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
-    private final AwaitingLeadership awaitingLeadership = AwaitingLeadership.create(leaderElectionService);
 
     @Rule
     public final ExpectedException expect = ExpectedException.none();
@@ -299,7 +298,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     private AwaitingLeadership getAwaitingLeadership() {
-        return awaitingLeadership;
+        return AwaitingLeadership.create(leaderElectionService);
     }
 
     private void waitForLeadershipToBeGained() throws InterruptedException {

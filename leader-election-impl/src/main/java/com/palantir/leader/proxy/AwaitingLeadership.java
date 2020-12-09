@@ -59,7 +59,7 @@ public final class AwaitingLeadership implements Closeable {
 
     public static AwaitingLeadership create(LeaderElectionService leaderElectionService) {
         AwaitingLeadership awaitingLeadership = new AwaitingLeadership(leaderElectionService);
-        // awaitingLeadership.tryToGainLeadership();
+        awaitingLeadership.tryToGainLeadership();
         return awaitingLeadership;
     }
 
@@ -75,7 +75,7 @@ public final class AwaitingLeadership implements Closeable {
         executor.shutdownNow();
     }
 
-    void tryToGainLeadership() {
+    private void tryToGainLeadership() {
         Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
         if (currentToken.isPresent()) {
             onGainedLeadership(currentToken.get());
@@ -183,25 +183,22 @@ public final class AwaitingLeadership implements Closeable {
         return notCurrentLeaderException(message, null /* cause */);
     }
 
-    // this is horrible
-    public synchronized void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
+    public void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         log.warn("Lost leadership", cause);
-        if (isSameAsCurrentLeadershipToken(leadershipToken)) {
+        if (compareAndSetLeadershipToken(leadershipToken)) {
             leadershipTokenRef.set(null);
             tryToGainLeadership();
         }
     }
 
-    private boolean isSameAsCurrentLeadershipToken(LeadershipToken leadershipToken) {
+    // this is horrible
+    private synchronized boolean compareAndSetLeadershipToken(LeadershipToken leadershipToken) {
         LeadershipToken currentLeadershipToken = leadershipTokenRef.get();
-        if (currentLeadershipToken == leadershipToken) {
+        if (currentLeadershipToken == leadershipToken || currentLeadershipToken.sameAs(leadershipToken)) {
+            leadershipTokenRef.set(leadershipToken);
             return true;
         }
 
-        if (currentLeadershipToken == null) {
-            return false;
-        }
-
-        return currentLeadershipToken.sameAs(leadershipToken);
+        return false;
     }
 }
