@@ -26,14 +26,14 @@ import org.slf4j.LoggerFactory;
 public final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
 
     private final Supplier<String> snitchSupplier;
-    private final Supplier<HostLocation> ec2Supplier;
+    private final Supplier<Optional<HostLocation>> ec2Supplier;
     private final Optional<HostLocation> overrideLocation;
 
     private static final Logger log = LoggerFactory.getLogger(HostLocationSupplier.class);
 
     public HostLocationSupplier(
             Supplier<String> snitchSupplier,
-            Supplier<HostLocation> ec2Supplier,
+            Supplier<Optional<HostLocation>> ec2Supplier,
             Optional<HostLocation> overrideLocation) {
         this.snitchSupplier = Suppliers.memoize(snitchSupplier::get);
         this.ec2Supplier = Suppliers.memoize(ec2Supplier::get);
@@ -56,7 +56,7 @@ public final class HostLocationSupplier implements Supplier<Optional<HostLocatio
 
             switch (snitch) {
                 case "org.apache.cassandra.locator.Ec2Snitch":
-                    return Optional.of(ec2Supplier.get());
+                    return ec2Supplier.get();
                 default:
                     return Optional.empty();
             }
