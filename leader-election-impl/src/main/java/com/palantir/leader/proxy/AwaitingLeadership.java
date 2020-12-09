@@ -137,7 +137,7 @@ public final class AwaitingLeadership implements Closeable {
         if (isClosed) {
             return;
         } else {
-            leadershipTokenRef.set(leadershipToken);
+            updateLeadershipTokenIfNewToken(leadershipToken);
             log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
         }
     }
@@ -166,14 +166,17 @@ public final class AwaitingLeadership implements Closeable {
     }
 
     boolean isStillCurrentToken(LeadershipToken leadershipToken) {
+        return leadershipToken == leadershipTokenRef.get();
+    }
+
+    private void updateLeadershipTokenIfNewToken(LeadershipToken leadershipToken) {
         LeadershipToken currentLeadershipToken = leadershipTokenRef.get();
-        if (leadershipToken == currentLeadershipToken) {
-            return true;
+
+        if (leadershipToken == currentLeadershipToken || currentLeadershipToken.sameAs(leadershipToken)) {
+            return;
         }
-        if (leadershipToken == null || currentLeadershipToken == null) {
-            return false;
-        }
-        return currentLeadershipToken.sameAs(leadershipToken);
+
+        leadershipTokenRef.set(leadershipToken);
     }
 
     NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
