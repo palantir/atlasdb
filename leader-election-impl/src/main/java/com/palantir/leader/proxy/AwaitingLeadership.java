@@ -166,7 +166,10 @@ public final class AwaitingLeadership implements Closeable {
     }
 
     boolean isStillCurrentToken(LeadershipToken leadershipToken) {
-        return leadershipTokenRef.get() == leadershipToken;
+        if (leadershipToken == null || leadershipTokenRef.get() == null) {
+            return leadershipTokenRef.get() == leadershipToken;
+        }
+        return leadershipTokenRef.get().sameAs(leadershipToken);
     }
 
     NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
