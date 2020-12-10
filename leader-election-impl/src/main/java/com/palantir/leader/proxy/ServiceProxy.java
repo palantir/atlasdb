@@ -89,7 +89,7 @@ public final class ServiceProxy<T> extends AbstractInvocationHandler {
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        if (awaitingLeadership.isClosed() || (method.getName().equals("close") && args.length == 0)) {
+        if (method.getName().equals("close") && args.length == 0) {
             log.debug("Closing leadership proxy");
             isClosed = true;
             clearDelegate();
