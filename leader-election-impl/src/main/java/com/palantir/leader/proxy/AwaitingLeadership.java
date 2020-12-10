@@ -182,8 +182,6 @@ public final class AwaitingLeadership implements Closeable {
     // accessed by multiple instances of serviceProxy
     public void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         log.warn("Lost leadership", cause);
-        if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
-            tryToGainLeadership();
-        }
+        tryToGainLeadership();
     }
 }
