@@ -139,7 +139,7 @@ public abstract class LeadershipContextFactory
                 .leaderElectionService(leaderElectionService)
                 .awaitingLeadership(awaitingLeadership)
                 .addCloseables(leaderElectionService)
-                .addCloseables(awaitingLeadership)
+                .addCloseables(awaitingLeadershipFactory())
                 .addAllCloseables(leaderPingerFactory().closeables())
                 .build();
     }
