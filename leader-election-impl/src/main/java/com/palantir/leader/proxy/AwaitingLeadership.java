@@ -73,7 +73,6 @@ public final class AwaitingLeadership implements Closeable {
     public void close() {
         log.debug("Closing leadership proxy");
         isClosed = true;
-        leadershipTokenRef.set(null);
         executor.shutdownNow();
     }
 
