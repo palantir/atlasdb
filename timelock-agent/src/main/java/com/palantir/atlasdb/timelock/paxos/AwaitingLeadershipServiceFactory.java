@@ -18,14 +18,25 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadership;
+import java.io.Closeable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class AwaitingLeadershipServiceFactory {
+public class AwaitingLeadershipServiceFactory implements Closeable {
     private final Map<LeaderElectionService, AwaitingLeadership> awaitingLeaderships = new ConcurrentHashMap<>();
 
     public AwaitingLeadership create(LeaderElectionService leaderElectionService) {
         return awaitingLeaderships.computeIfAbsent(
                 leaderElectionService, _u -> AwaitingLeadership.create(leaderElectionService));
+    }
+
+    @Override
+    public void close() {
+        awaitingLeaderships.keySet().forEach(k -> {
+            AwaitingLeadership awaitingLeadership = awaitingLeaderships.remove(k);
+            if (awaitingLeadership != null) {
+                awaitingLeadership.close();
+            }
+        });
     }
 }
