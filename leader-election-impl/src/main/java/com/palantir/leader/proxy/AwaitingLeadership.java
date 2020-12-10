@@ -132,7 +132,6 @@ public final class AwaitingLeadership implements Closeable {
             return;
         } else {
             updateLeadershipTokenIfNewToken(leadershipToken);
-            leadershipTokenRef.set(leadershipToken);
             log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
         }
     }
