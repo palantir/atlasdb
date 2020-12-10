@@ -63,7 +63,7 @@ public final class AwaitingLeadership implements Closeable {
         return awaitingLeadership;
     }
 
-    //multi threaded as original implementation
+    // multi threaded as original implementation
     public ListenableFuture<StillLeadingStatus> getStillLeading(LeadershipToken leadershipToken) {
         return leaderElectionService.isStillLeading(leadershipToken);
     }
