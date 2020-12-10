@@ -51,7 +51,7 @@ class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
         mainCache.processStartTransactionsUpdate(startTimestamps, update);
         secondaryCache.processStartTransactionsUpdate(startTimestamps, update);
-        validateVersionParity();
+        validateVersionEquality();
     }
 
     @Override
@@ -59,7 +59,7 @@ class DuplicatingLockWatchEventCache implements LockWatchEventCache {
             Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update) {
         mainCache.processGetCommitTimestampsUpdate(transactionUpdates, update);
         secondaryCache.processGetCommitTimestampsUpdate(transactionUpdates, update);
-        validateVersionParity();
+        validateVersionEquality();
     }
 
     @Override
@@ -78,7 +78,7 @@ class DuplicatingLockWatchEventCache implements LockWatchEventCache {
         mainCache.removeTransactionStateFromCache(startTimestamp);
     }
 
-    private void validateVersionParity() {
+    private void validateVersionEquality() {
         assertThat(mainCache.lastKnownVersion()).isEqualTo(secondaryCache.lastKnownVersion());
     }
 }
