@@ -83,15 +83,13 @@ public final class ServiceProxy<T> extends AbstractInvocationHandler {
     public static <U> U newProxyInstance(
             AwaitingLeadership awaitingLeadership, Class<U> interfaceClass, Supplier<U> delegateSupplier) {
         ServiceProxy<U> proxy = new ServiceProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
-        // awaitingLeadership.tryToGainLeadership();
-
         return (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy);
     }
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        if (method.getName().equals("close") && args.length == 0) {
+        if (awaitingLeadership.isClosed() || (method.getName().equals("close") && args.length == 0)) {
             log.debug("Closing leadership proxy");
             isClosed = true;
             clearDelegate();
@@ -168,7 +166,6 @@ public final class ServiceProxy<T> extends AbstractInvocationHandler {
             tryToUpdateLeadershipToken();
         }
 
-        System.out.println(awaitingLeadership.isStillCurrentToken(maybeValidLeadershipTokenRef.get()));
         LeadershipToken leadershipToken = maybeValidLeadershipTokenRef.get();
         if (leadershipToken == null) {
             // We have to always throw if we are not the leader, so that notCurrentLeaderException is caught and

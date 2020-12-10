@@ -63,6 +63,7 @@ public final class AwaitingLeadership implements Closeable {
         return awaitingLeadership;
     }
 
+    //multi threaded as original implementation
     public ListenableFuture<StillLeadingStatus> getStillLeading(LeadershipToken leadershipToken) {
         return leaderElectionService.isStillLeading(leadershipToken);
     }
@@ -72,11 +73,21 @@ public final class AwaitingLeadership implements Closeable {
     public void close() {
         log.debug("Closing leadership proxy");
         isClosed = true;
+        leadershipTokenRef.set(null);
         executor.shutdownNow();
     }
 
+    public boolean isClosed() {
+        return isClosed;
+    }
+
     private void tryToGainLeadership() {
-        tryToGainLeadershipAsync();
+        Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
+        if (currentToken.isPresent()) {
+            onGainedLeadership(currentToken.get());
+        } else {
+            tryToGainLeadershipAsync();
+        }
     }
 
     private void tryToGainLeadershipAsync() {
@@ -105,24 +116,18 @@ public final class AwaitingLeadership implements Closeable {
     }
 
     private boolean gainLeadershipBlocking() {
-        Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
-        if (currentToken.isPresent()) {
-            onGainedLeadership(currentToken.get());
+        log.debug("Block until gained leadership");
+        try {
+            LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
+            onGainedLeadership(leadershipToken);
             return true;
-        } else {
-            log.debug("Block until gained leadership");
-            try {
-                LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
-                onGainedLeadership(leadershipToken);
-                return true;
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("attempt to gain leadership interrupted", e);
-            } catch (Throwable e) {
-                log.error("problem blocking on leadership", e);
-            }
-            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("attempt to gain leadership interrupted", e);
+        } catch (Throwable e) {
+            log.error("problem blocking on leadership", e);
         }
+        return false;
     }
 
     private void onGainedLeadership(LeadershipToken leadershipToken) {
@@ -131,22 +136,9 @@ public final class AwaitingLeadership implements Closeable {
         if (isClosed) {
             return;
         } else {
-            updateLeadershipTokenIfNewToken(leadershipToken);
+            leadershipTokenRef.set(leadershipToken);
             log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
         }
-    }
-
-    // Super-expensive -> only to be executed by executor thread
-    // We want to setting up different instance of same leadershipToken due to the equality checks in
-    // isStillCurrentToken and markAsNotLeading to avoid false negatives
-    private void updateLeadershipTokenIfNewToken(LeadershipToken leadershipToken) {
-        LeadershipToken currentLeadershipToken = leadershipTokenRef.get();
-
-        if (currentLeadershipToken != null && currentLeadershipToken.sameAs(leadershipToken)) {
-            return;
-        }
-
-        leadershipTokenRef.set(leadershipToken);
     }
 
     @VisibleForTesting
@@ -187,6 +179,7 @@ public final class AwaitingLeadership implements Closeable {
         return notCurrentLeaderException(message, null /* cause */);
     }
 
+    // accessed by multiple instances of serviceProxy
     public void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         log.warn("Lost leadership", cause);
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
