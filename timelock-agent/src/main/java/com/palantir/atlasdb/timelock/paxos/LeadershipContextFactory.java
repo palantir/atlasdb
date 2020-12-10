@@ -112,7 +112,7 @@ public abstract class LeadershipContextFactory
         return new LeaderElectionServiceFactory();
     }
 
-    @Value.Derived
+    @Value.Lazy
     AwaitingLeadershipServiceFactory awaitingLeadershipFactory() {
         return new AwaitingLeadershipServiceFactory();
     }
