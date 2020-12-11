@@ -18,14 +18,9 @@ package com.palantir.atlasdb.transaction.api;
 /**
  * Indicates that we timed out while trying to obtain necessary locks during a transaction.
  */
-public class TransactionLockAcquisitionTimeoutException extends TransactionFailedException {
+public class TransactionLockAcquisitionTimeoutException extends TransactionFailedRetriableException {
 
     public TransactionLockAcquisitionTimeoutException(String message) {
         super(message);
-    }
-
-    @Override
-    public boolean canTransactionBeRetried() {
-        return false;
     }
 }
