@@ -30,8 +30,6 @@ import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlRow;
-import org.apache.cassandra.thrift.KsDef;
-import org.apache.cassandra.thrift.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,18 +59,6 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
 
     public FunctionCheckedException<CassandraClient, Map<String, String>, Exception> getHostnamesByIp() {
         return client -> {
-            KsDef systemPalantir;
-            try {
-                systemPalantir = client.describe_keyspace(SYSTEM_PALANTIR_KEYSPACE);
-            } catch (NotFoundException e) {
-                logger.debug("Did not find keyspace with hostnames by ip, moving on without them");
-                return ImmutableMap.of();
-            }
-            if (isCfNotPresent(systemPalantir, HOSTNAMES_BY_IP_TABLE)) {
-                logger.debug("Did not find table with hostnames by ip, moving on without them");
-                return ImmutableMap.of();
-            }
-
             CqlQuery query = CqlQuery.builder()
                     .safeQueryFormat("SELECT * FROM \"%s\".\"%s\";")
                     .addArgs(
@@ -85,10 +71,6 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
                             row -> getNamedColumnValue(row, IP_COLUMN),
                             row -> getNamedColumnValue(row, HOSTNAME_COLUMN)));
         };
-    }
-
-    private boolean isCfNotPresent(KsDef ksDef, String cfName) {
-        return ksDef.getCf_defs().stream().noneMatch(cfDef -> cfDef.name.equals(cfName));
     }
 
     private static String getNamedColumnValue(CqlRow row, String columnName) {

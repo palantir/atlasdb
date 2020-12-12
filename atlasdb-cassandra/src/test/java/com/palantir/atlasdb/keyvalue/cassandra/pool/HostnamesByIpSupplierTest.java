@@ -54,17 +54,9 @@ public class HostnamesByIpSupplierTest {
             new HostnamesByIpSupplier(() -> new DummyClientPool(client));
 
     @Test
-    public void keyspaceNotAccessibleDoesNotError() throws Exception {
-        when(client.describe_keyspace("system_palantir")).thenThrow(new NotFoundException());
-
-        assertThatCode(hostnamesByIpSupplier::get).doesNotThrowAnyException();
-        assertThat(hostnamesByIpSupplier.get()).isEmpty();
-    }
-
-    @Test
-    public void tableNotAccessibleDoesNotError() throws Exception {
-        when(client.describe_keyspace("system_palantir"))
-                .thenReturn(new KsDef("system_palantir", "", ImmutableList.of()));
+    public void keyspaceOrTableNotAccessibleDoesNotError() throws Exception {
+        when(client.execute_cql3_query(any(CqlQuery.class), Compression.NONE, ConsistencyLevel.LOCAL_ONE))
+                .thenThrow(new InvalidRequestException());
 
         assertThatCode(hostnamesByIpSupplier::get).doesNotThrowAnyException();
         assertThat(hostnamesByIpSupplier.get()).isEmpty();
