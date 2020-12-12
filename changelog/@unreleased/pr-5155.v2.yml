@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Make HostnamesByIp work with Cassandra 3.x
+  links:
+  - https://github.com/palantir/atlasdb/pull/5155
