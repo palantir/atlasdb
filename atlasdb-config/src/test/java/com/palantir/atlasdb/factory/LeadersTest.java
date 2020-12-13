@@ -61,7 +61,7 @@ public class LeadersTest {
                 PaxosLearner.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
-        assertThat(paxosLearners.size()).isEqualTo(REMOTE_SERVICE_ADDRESSES.size() + 1);
+        assertThat(paxosLearners).hasSize(REMOTE_SERVICE_ADDRESSES.size() + 1);
         paxosLearners.forEach(object -> assertThat(object).isNotNull());
         assertThat(Iterables.getLast(paxosLearners).getGreatestLearnedValue()).isEqualTo(presentPaxosValue);
         verify(localLearner).getGreatestLearnedValue();
@@ -81,7 +81,7 @@ public class LeadersTest {
                 PaxosAcceptor.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
-        assertThat(paxosAcceptors.size()).isEqualTo(REMOTE_SERVICE_ADDRESSES.size() + 1);
+        assertThat(paxosAcceptors).hasSize(REMOTE_SERVICE_ADDRESSES.size() + 1);
         paxosAcceptors.forEach(object -> assertThat(object).isNotNull());
 
         assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted())
@@ -103,7 +103,7 @@ public class LeadersTest {
                 PaxosAcceptor.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
-        assertThat(paxosAcceptors.size()).isEqualTo(1);
+        assertThat(paxosAcceptors).hasSize(1);
 
         assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted())
                 .isEqualTo(1L);

@@ -458,7 +458,7 @@ public class TransactionManagersTest {
                 .build()
                 .serializable();
         assertThat(metrics.getNames().stream().anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)))
-                .isEqualTo(false);
+                .isFalse();
     }
 
     @Test
@@ -576,12 +576,12 @@ public class TransactionManagersTest {
         assertThat(withLockImmutableTsOnReadOnlyTransaction(true)
                         .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
                         .lockImmutableTsOnReadOnlyTransactions())
-                .isEqualTo(true);
+                .isTrue();
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
                         .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
                         .lockImmutableTsOnReadOnlyTransactions())
-                .isEqualTo(false);
+                .isFalse();
     }
 
     @Test
@@ -597,12 +597,12 @@ public class TransactionManagersTest {
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
                         .withConsolidatedGrabImmutableTsLockFlag(transactionConfigLocking)
                         .lockImmutableTsOnReadOnlyTransactions())
-                .isEqualTo(true);
+                .isTrue();
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
                         .withConsolidatedGrabImmutableTsLockFlag(transactionConfigNotLocking)
                         .lockImmutableTsOnReadOnlyTransactions())
-                .isEqualTo(false);
+                .isFalse();
     }
 
     private TransactionManagers withLockImmutableTsOnReadOnlyTransaction(boolean option) {
@@ -721,25 +721,25 @@ public class TransactionManagersTest {
     @Test
     public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, false);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isEqualTo(true);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
     public void kvsRecordsSweepStatsIfSweepQueueWritesDisabledButTargetedSweepEnabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, true);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isEqualTo(true);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
     public void kvsRecordsSweepStatsIfSweepQueueWritesEnabledButTargetedSweepDisabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, false);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isEqualTo(true);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
     public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, true);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isEqualTo(false);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isFalse();
     }
 
     private KeyValueService initializeKeyValueServiceWithSweepSettings(

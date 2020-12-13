@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -39,18 +40,18 @@ public class SimpleCleanerTest {
 
     @Test
     public void isInitializedWhenPrerequisitesAreInitialized() {
-        assertTrue(simpleCleaner.isInitialized());
+        assertThat(simpleCleaner.isInitialized()).isTrue();
     }
 
     @Test
     public void isNotInitializedWhenScrubberIsNotInitialized() {
         when(mockScrubber.isInitialized()).thenReturn(false);
-        assertFalse(simpleCleaner.isInitialized());
+        assertThat(simpleCleaner.isInitialized()).isFalse();
     }
 
     @Test
     public void isInitializedWhenPuncherIsNotInitialized() {
         when(mockPuncher.isInitialized()).thenReturn(false);
-        assertFalse(simpleCleaner.isInitialized());
+        assertThat(simpleCleaner.isInitialized()).isFalse();
     }
 }
