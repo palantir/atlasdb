@@ -68,12 +68,8 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
@@ -1093,68 +1089,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t3.commit();
 
         t2.commit();
-    }
-
-    @Test
-    public void testGetRowsColumnRangeMultipleIteratorsWorkSafely() {
-        byte[] row = PtBytes.toBytes("ryan");
-        Cell cell = Cell.create(row, PtBytes.toBytes("c"));
-        byte[] value = PtBytes.toBytes("victor");
-
-        Transaction t1 = startTransaction();
-        t1.put(TEST_TABLE, ImmutableMap.of(cell, value));
-        t1.commit();
-
-        Transaction t2 = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> iterators = t2.getRowsColumnRange(
-                TEST_TABLE,
-                ImmutableList.of(row),
-                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
-
-        BatchingVisitable<Map.Entry<Cell, byte[]>> visitable1 = iterators.get(row);
-        List<Map.Entry<Cell, byte[]>> entriesFromVisitable1 = new ArrayList<>();
-
-        BatchingVisitable<Map.Entry<Cell, byte[]>> visitable2 = iterators.get(row);
-
-        visitable1.batchAccept(10, cells -> {
-            entriesFromVisitable1.addAll(cells);
-            return true;
-        });
-
-        assertThatThrownBy(() -> visitable2.batchAccept(10, cells -> true))
-                .isExactlyInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("This class has already been called once before");
-
-        assertThat(Iterables.getOnlyElement(entriesFromVisitable1)).satisfies(entry -> {
-            assertThat(entry.getKey()).isEqualTo(cell);
-            assertThat(Arrays.equals(entry.getValue(), value)).isTrue();
-        });
-    }
-
-    @Test
-    public void testGetRowsColumnRangeIteratorMultipleIteratorsWorkSafely() {
-        byte[] row = PtBytes.toBytes("row");
-        Cell cell = Cell.create(row, PtBytes.toBytes("col"));
-        byte[] value = PtBytes.toBytes("val");
-
-        Transaction t1 = startTransaction();
-        t1.put(TEST_TABLE, ImmutableMap.of(cell, value));
-        t1.commit();
-
-        Transaction t2 = startTransaction();
-        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> iterators = t2.getRowsColumnRangeIterator(
-                TEST_TABLE,
-                ImmutableList.of(row),
-                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
-
-        Iterator<Map.Entry<Cell, byte[]>> iterator1 = iterators.get(row);
-        Iterator<Map.Entry<Cell, byte[]>> iterator2 = iterators.get(row);
-        assertThat(iterator1.hasNext()).isTrue();
-        assertThat(iterator2.hasNext()).isTrue();
-
-        Map.Entry<Cell, byte[]> entry = iterator1.next();
-        assertThat(entry.getKey()).isEqualTo(cell);
-        assertThat(Arrays.equals(entry.getValue(), value)).isTrue();
     }
 
     @Test
