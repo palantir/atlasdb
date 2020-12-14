@@ -70,6 +70,7 @@ import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -87,6 +88,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -191,23 +193,9 @@ public class SerializableTransaction extends SnapshotTransaction {
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> ret =
                 super.getRowsColumnRange(tableRef, rows, columnRangeSelection);
-        return Maps.transformEntries(ret, (row, visitable) -> new BatchingVisitable<Map.Entry<Cell, byte[]>>() {
-            @Override
-            public <K extends Exception> boolean batchAccept(
-                    int batchSize, AbortingVisitor<? super List<Map.Entry<Cell, byte[]>>, K> visitor) throws K {
-                boolean hitEnd = visitable.batchAccept(batchSize, items -> {
-                    if (items.size() < batchSize) {
-                        reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
-                    }
-                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, items);
-                    return visitor.visit(items);
-                });
-                if (hitEnd) {
-                    reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
-                }
-                return hitEnd;
-            }
-        });
+        return KeyedStream.stream(ret)
+                .map((row, visitable) -> wrapWithColumnRangeChecking(tableRef, columnRangeSelection, row, visitable))
+                .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
     @Override
@@ -224,35 +212,9 @@ public class SerializableTransaction extends SnapshotTransaction {
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> ret =
                 super.getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
-        return Maps.transformEntries(ret, (row, iterator) -> new Iterator<Map.Entry<Cell, byte[]>>() {
-            Map.Entry<Cell, byte[]> next = null;
-
-            @Override
-            public boolean hasNext() {
-                if (next != null) {
-                    return true;
-                }
-
-                if (iterator.hasNext()) {
-                    next = iterator.next();
-                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, Collections.singletonList(next));
-                    return true;
-                }
-
-                reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
-                return false;
-            }
-
-            @Override
-            public Map.Entry<Cell, byte[]> next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                Map.Entry<Cell, byte[]> result = next;
-                next = null;
-                return result;
-            }
-        });
+        return KeyedStream.stream(ret)
+                .map((row, iterator) -> wrapIteratorWithBoundsChecking(tableRef, columnRangeSelection, row, iterator))
+                .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
     @Override
@@ -863,6 +825,66 @@ public class SerializableTransaction extends SnapshotTransaction {
         log.info("Serializable conflict", LoggingArgs.tableRef(tableRef));
         throw TransactionSerializableConflictException.create(
                 tableRef, getTimestamp(), System.currentTimeMillis() - timeCreated);
+    }
+
+    private BatchingVisitable<Map.Entry<Cell, byte[]>> wrapWithColumnRangeChecking(
+            TableReference tableRef,
+            BatchColumnRangeSelection columnRangeSelection,
+            byte[] row,
+            BatchingVisitable<Map.Entry<Cell, byte[]>> visitable) {
+        return new BatchingVisitable<Map.Entry<Cell, byte[]>>() {
+            @Override
+            public <K extends Exception> boolean batchAccept(
+                    int batchSize, AbortingVisitor<? super List<Map.Entry<Cell, byte[]>>, K> visitor) throws K {
+                boolean hitEnd = visitable.batchAccept(batchSize, items -> {
+                    if (items.size() < batchSize) {
+                        reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                    }
+                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, items);
+                    return visitor.visit(items);
+                });
+                if (hitEnd) {
+                    reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                }
+                return hitEnd;
+            }
+        };
+    }
+
+    public Iterator<Map.Entry<Cell, byte[]>> wrapIteratorWithBoundsChecking(
+            TableReference tableRef,
+            BatchColumnRangeSelection columnRangeSelection,
+            byte[] row,
+            Iterator<Map.Entry<Cell, byte[]>> iterator) {
+        return new Iterator<Map.Entry<Cell, byte[]>>() {
+            Map.Entry<Cell, byte[]> next = null;
+
+            @Override
+            public boolean hasNext() {
+                if (next != null) {
+                    return true;
+                }
+
+                if (iterator.hasNext()) {
+                    next = iterator.next();
+                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, Collections.singletonList(next));
+                    return true;
+                }
+
+                reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                return false;
+            }
+
+            @Override
+            public Map.Entry<Cell, byte[]> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                Map.Entry<Cell, byte[]> result = next;
+                next = null;
+                return result;
+            }
+        };
     }
 
     @Value.Immutable
