@@ -16,8 +16,6 @@
 
 package com.palantir.lock.watch;
 
-import com.palantir.lock.watch.LockWatchStateUpdate.Snapshot;
-import com.palantir.lock.watch.LockWatchStateUpdate.Success;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -77,22 +75,35 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
 
     private void updateVersion(Optional<LockWatchVersion> maybeNewVersion) {
         currentVersion = maybeNewVersion.map(newVersion -> currentVersion
-                .filter(current -> current.id().equals(newVersion.id()) && current.version() > newVersion.version())
+                .map(current -> {
+                    if (current.id().equals(newVersion.id()) && current.version() > newVersion.version()) {
+                        return current;
+                    } else {
+                        return newVersion;
+                    }
+                })
                 .orElse(newVersion));
     }
 
+    /**
+     * This method mirrors the way in which we extract versions from state updates in the real implementation of
+     * {@link LockWatchEventCache}. Notably, while a success update does contain all the necessary information to
+     * construct an update, we cannot use that update if the leader has changed - we must have a snapshot after a leader
+     * change. Thus, this method may return empty even though there is a version on the update (and this is the only
+     * case in which an empty may be returned).
+     */
     private Optional<LockWatchVersion> extractVersionFromUpdate(LockWatchStateUpdate update) {
         return update.accept(new LockWatchStateUpdate.Visitor<Optional<LockWatchVersion>>() {
 
             @Override
-            public Optional<LockWatchVersion> visit(Success success) {
+            public Optional<LockWatchVersion> visit(LockWatchStateUpdate.Success success) {
                 return currentVersion
                         .filter(current -> current.id().equals(success.logId()))
                         .map(_unused -> LockWatchVersion.of(success.logId(), success.lastKnownVersion()));
             }
 
             @Override
-            public Optional<LockWatchVersion> visit(Snapshot snapshot) {
+            public Optional<LockWatchVersion> visit(LockWatchStateUpdate.Snapshot snapshot) {
                 return Optional.of(LockWatchVersion.of(snapshot.logId(), snapshot.lastKnownVersion()));
             }
         });
