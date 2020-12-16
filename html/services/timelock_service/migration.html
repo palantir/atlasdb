@@ -187,6 +187,12 @@
             
   <div class="section" id="migration-to-timelock-server">
 <span id="timelock-migration"></span><h1>Migration to Timelock Server<a class="headerlink" href="#migration-to-timelock-server" title="Permalink to this headline">¶</a></h1>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">The scope of this document covers migrations of AtlasDB-using services from using an embedded timestamp and lock
+service to using TimeLock. In particular, migrations of the timestamp bound persistence method are NOT covered
+here, and attempting to do this procedure incorrectly runs a risk of <strong>SEVERE DATA CORRUPTION</strong>.</p>
+</div>
 <div class="section" id="why-migration">
 <h2>Why Migration?<a class="headerlink" href="#why-migration" title="Permalink to this headline">¶</a></h2>
 <p>AtlasDB assumes that timestamps returned by the timestamp service are monotonically increasing. In order to preserve
@@ -203,11 +209,12 @@ nodes in step 4. Otherwise, there is a risk of <strong>SEVERE DATA CORRUPTION</s
 </div>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">Automated migrations are only implemented for Cassandra. If you are using any other KVS, please follow the
-instructions at <a class="reference internal" href="manual-migration.html#manual-timelock-migration"><span class="std std-ref">Manual Migration to Timelock Server</span></a>.</p>
+<p class="last">Automated migrations are only implemented for Cassandra, and from AtlasDB 0.253.2 onwards DbKVS.
+If you are using any other KVS, please follow the instructions at <a class="reference internal" href="manual-migration.html#manual-timelock-migration"><span class="std std-ref">Manual Migration to Timelock Server</span></a>.</p>
 </div>
 <ol class="arabic simple">
-<li>Confirm that your AtlasDB installation is backed by Cassandra KVS.</li>
+<li>Confirm that your AtlasDB installation is backed by Cassandra KVS, or you are using DbKVS and your version of AtlasDB
+is at least 0.253.2.</li>
 <li>(Optional) Take a fresh timestamp from your AtlasDB services, using the fresh timestamp CLI or the
 <code class="docutils literal notranslate"><span class="pre">/timestamp/fresh-timestamp</span></code> endpoint. This step is not strictly required, but may be useful for verification.</li>
 <li>Add the <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock client configuration</span></a> to your service.</li>

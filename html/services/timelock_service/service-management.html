@@ -209,19 +209,19 @@ Leave TimeLock running; you’ll need it for the remaining steps.</p>
 <h3>Step 2: Get a Fresh Timestamp for the Old Namespace<a class="headerlink" href="#step-2-get-a-fresh-timestamp-for-the-old-namespace" title="Permalink to this headline">¶</a></h3>
 <p>If we get a fresh timestamp for the old namespace, we know that all timestamps old clients have seen must be strictly
 less than the fresh timestamp. This may be obtained through the fresh timestamp endpoint.</p>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">timelock</span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">old_namespace</span><span class="o">/</span><span class="n">timelock</span><span class="o">/</span><span class="n">fresh</span><span class="o">-</span><span class="n">timestamp</span>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">iXPOST</span> <span class="o">&lt;</span><span class="n">protocol</span><span class="o">&gt;</span><span class="p">:</span><span class="o">//&lt;</span><span class="n">host</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">port</span><span class="o">&gt;/</span><span class="n">timelock</span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">tl</span><span class="o">/</span><span class="n">ts</span><span class="o">/</span><span class="n">old_namespace</span> \
+  <span class="o">--</span><span class="n">data</span> <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Authorization: Bearer q&quot;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span>
 </pre></div>
 </div>
-<p>A cluster of TimeLock servers elects a single leader, so if you contact a node that is not the leader you’ll receive a
-<code class="docutils literal notranslate"><span class="pre">NotCurrentLeaderException</span></code> and an HTTP 503. In this case, try the same request on other nodes until you find the
-leader.</p>
+<p>A cluster of TimeLock servers elects a single leader, so if you contact a node that is not the leader you’ll receive
+either a HTTP 503 or 308. In this case, try the same request on other nodes until you find the leader.</p>
 <p>Note down the value of the timestamp returned. From here on out, we’ll refer to this as <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
 </div>
 <div class="section" id="step-3-fast-forward-on-the-new-namespace">
 <h3>Step 3: Fast Forward on the New Namespace<a class="headerlink" href="#step-3-fast-forward-on-the-new-namespace" title="Permalink to this headline">¶</a></h3>
 <p>We now want to fast forward the new namespace to <code class="docutils literal notranslate"><span class="pre">TS</span></code>. This may be done through the timestamp management endpoints
 on TimeLock.</p>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>curl -XPOST localhost:8080/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp=TS
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>curl -XPOST &lt;protocol&gt;://&lt;host:&lt;port&gt;/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp=TS
 </pre></div>
 </div>
 <p>As before, this command needs to be run on the TimeLock leader.
@@ -233,6 +233,10 @@ of the timestamp service as far as clients are concerned have been preserved.</p
 </div>
 <div class="section" id="step-4-optional-cleanup-on-timelock">
 <h3>Step 4 (Optional): Cleanup on TimeLock<a class="headerlink" href="#step-4-optional-cleanup-on-timelock" title="Permalink to this headline">¶</a></h3>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">This section is written under the assumption you are using Paxos for timestamp bound persistence.</p>
+</div>
 <p>TimeLock will continue to hold references to the old client in memory until it is next bounced, and the logs for
 previous rounds of the Paxos protocol will be preserved. Generally, these have a very small footprint and it’s thus
 okay to leave them around.</p>

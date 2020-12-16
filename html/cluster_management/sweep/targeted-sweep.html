@@ -283,8 +283,40 @@ run read-only transactions on tables that are swept using the THOROUGH strategy 
 upgrade, if the new strategy is CONSERVATIVE, we may still have old entries in the thorough sweep queue, and therefore
 sweep those cells using the THOROUGH strategy. Both of these cases have correctness implications for read-only
 transactions.</p>
+<p>At its schema layer, AtlasDB also supports a third sweep strategy, THOROUGH_MIGRATION. While this strategy is enabled,
+entries are written to the CONSERVATIVE sweep queue, but read transactions are also required to check that they still
+hold the immutable timestamp lock (as if we were using the THOROUGH sweep strategy). This avoids the aforementioned
+correctness implications: any read-only transactions that may ever run concurrently with targeted sweep will also check
+the immutable timestamp lock.</p>
+<div class="section" id="conservative-to-thorough">
+<h3>CONSERVATIVE to THOROUGH<a class="headerlink" href="#conservative-to-thorough" title="Permalink to this headline">¶</a></h3>
 <dl class="docutils">
-<dt>The safe way to change the sweep strategy from THOROUGH to CONSERVATIVE:</dt>
+<dt>Thus, a way of changing sweep strategy from CONSERVATIVE to THOROUGH while avoiding downtime is as follows:</dt>
+<dd><ol class="first last arabic simple">
+<li>Roll service nodes from a version with CONSERVATIVE sweep strategy to one with THOROUGH_MIGRATION.</li>
+<li>Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with THOROUGH.
+During this roll, the queue to which cell references are enqueued will vary depending on the individual node.
+However, all read transactions will check the immutable timestamp lock, so it’s okay for some values to be
+THOROUGH swept.</li>
+</ol>
+</dd>
+</dl>
+<p>This process may also be performed as a shutdown upgrade from CONSERVATIVE to THOROUGH (where ALL nodes are shut down
+before any is restarted with the new table metadata).</p>
+</div>
+<div class="section" id="thorough-to-conservative">
+<h3>THOROUGH to CONSERVATIVE<a class="headerlink" href="#thorough-to-conservative" title="Permalink to this headline">¶</a></h3>
+<dl class="docutils">
+<dt>The process here needs to account for the existence of old entries written to the THOROUGH sweep queue.</dt>
+<dd><ol class="first last arabic simple">
+<li>Roll service nodes from a version with THOROUGH sweep strategy to one with THOROUGH_MIGRATION.
+This is safe; see step 2 above.</li>
+<li>Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade. This can be verified by
+consulting the <code class="docutils literal notranslate"><span class="pre">millisSinceLastSweptTs</span></code> targeted sweep metric.</li>
+<li>Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with CONSERVATIVE.</li>
+</ol>
+</dd>
+<dt>This process may also be performed as a single shutdown upgrade from THOROUGH to CONSERVATIVE:</dt>
 <dd><ol class="first last arabic simple">
 <li>Shut down all the nodes.</li>
 <li>Start AtlasDB with the new table metadata, but <strong>do not use read-only transactions on the table yet</strong>.</li>
@@ -293,13 +325,8 @@ consulting the <code class="docutils literal notranslate"><span class="pre">mill
 <li>We are now guaranteed to perform no more thorough sweeps on the table and can run read-only transactions.</li>
 </ol>
 </dd>
-<dt>The safe way to change sweep strategy from CONSERVATIVE to THOROUGH:</dt>
-<dd><ol class="first last arabic simple">
-<li>Shut down all the nodes.</li>
-<li>Start AtlasDB with the new table metadata.</li>
-</ol>
-</dd>
 </dl>
+</div>
 </div>
 </div>
 

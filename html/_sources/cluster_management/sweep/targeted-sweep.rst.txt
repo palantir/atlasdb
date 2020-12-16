@@ -77,13 +77,38 @@ upgrade, if the new strategy is CONSERVATIVE, we may still have old entries in t
 sweep those cells using the THOROUGH strategy. Both of these cases have correctness implications for read-only
 transactions.
 
-The safe way to change the sweep strategy from THOROUGH to CONSERVATIVE:
+At its schema layer, AtlasDB also supports a third sweep strategy, THOROUGH_MIGRATION. While this strategy is enabled,
+entries are written to the CONSERVATIVE sweep queue, but read transactions are also required to check that they still
+hold the immutable timestamp lock (as if we were using the THOROUGH sweep strategy). This avoids the aforementioned
+correctness implications: any read-only transactions that may ever run concurrently with targeted sweep will also check
+the immutable timestamp lock.
+
+CONSERVATIVE to THOROUGH
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Thus, a way of changing sweep strategy from CONSERVATIVE to THOROUGH while avoiding downtime is as follows:
+  1. Roll service nodes from a version with CONSERVATIVE sweep strategy to one with THOROUGH_MIGRATION.
+  2. Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with THOROUGH.
+     During this roll, the queue to which cell references are enqueued will vary depending on the individual node.
+     However, all read transactions will check the immutable timestamp lock, so it's okay for some values to be
+     THOROUGH swept.
+
+This process may also be performed as a shutdown upgrade from CONSERVATIVE to THOROUGH (where ALL nodes are shut down
+before any is restarted with the new table metadata).
+
+THOROUGH to CONSERVATIVE
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The process here needs to account for the existence of old entries written to the THOROUGH sweep queue.
+  1. Roll service nodes from a version with THOROUGH sweep strategy to one with THOROUGH_MIGRATION.
+     This is safe; see step 2 above.
+  2. Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade. This can be verified by
+     consulting the ``millisSinceLastSweptTs`` targeted sweep metric.
+  3. Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with CONSERVATIVE.
+
+This process may also be performed as a single shutdown upgrade from THOROUGH to CONSERVATIVE:
   1. Shut down all the nodes.
   2. Start AtlasDB with the new table metadata, but **do not use read-only transactions on the table yet**.
   3. Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade. This can be verified by
      consulting the ``millisSinceLastSweptTs`` targeted sweep metric.
   4. We are now guaranteed to perform no more thorough sweeps on the table and can run read-only transactions.
-
-The safe way to change sweep strategy from CONSERVATIVE to THOROUGH:
-   1. Shut down all the nodes.
-   2. Start AtlasDB with the new table metadata.
