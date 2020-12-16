@@ -19,7 +19,7 @@ cd build/
 # Just to report status of repo in the build output
 git status
 git config user.email "pd-atlasdb-team@palantir.com"
-git config user.name $CIRCLE_PROJECT_USERNAME
+git config user.name "atlasdb"
 
 # Add and commmit changes to gh-pages
 git add .
