@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import org.junit.Test;

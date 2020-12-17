@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -42,21 +40,24 @@ public class CandidateGroupingIteratorTest {
 
     @Test
     public void singleCellInOnePage() {
-        assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "x", 20L))))).isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", 2L, false, 10L, 20L))));
+        assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "x", 20L)))))
+                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", 2L, false, 10L, 20L))));
     }
 
     @Test
     public void singleCellSpanningTwoPages() {
         assertThat(group(ImmutableList.of(
                         ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "x", 20L)),
-                        ImmutableList.of(cellTs("a", "x", 30L))))).isEqualTo(ImmutableList.of(
+                        ImmutableList.of(cellTs("a", "x", 30L)))))
+                .isEqualTo(ImmutableList.of(
                         ImmutableList.of(), ImmutableList.of(candidate("a", "x", 3L, false, 10L, 20L, 30L))));
     }
 
     @Test
     public void severalCellsInSinglePage() {
         assertThat(group(ImmutableList.of(
-                        ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "y", 10L), cellTs("b", "y", 10L))))).isEqualTo(ImmutableList.of(ImmutableList.of(
+                        ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "y", 10L), cellTs("b", "y", 10L)))))
+                .isEqualTo(ImmutableList.of(ImmutableList.of(
                         candidate("a", "x", 1L, false, 10L),
                         candidate("a", "y", 2L, false, 10L),
                         candidate("b", "y", 3L, false, 10L))));
@@ -64,12 +65,14 @@ public class CandidateGroupingIteratorTest {
 
     @Test
     public void latestValueEmpty() {
-        assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L, false), cellTs("a", "x", 20L, true))))).isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", 2L, true, 10L, 20L))));
+        assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L, false), cellTs("a", "x", 20L, true)))))
+                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", 2L, true, 10L, 20L))));
     }
 
     @Test
     public void nonLatestValueEmpty() {
-        assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L, true), cellTs("a", "x", 20L, false))))).isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", 2L, false, 10L, 20L))));
+        assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L, true), cellTs("a", "x", 20L, false)))))
+                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", 2L, false, 10L, 20L))));
     }
 
     @Test

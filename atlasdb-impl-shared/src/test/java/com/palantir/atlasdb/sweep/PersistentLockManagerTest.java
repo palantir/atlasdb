@@ -17,10 +17,6 @@ package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -284,7 +280,9 @@ public class PersistentLockManagerTest {
     public void noOpPersistentLockDoesNotThrow() {
         PersistentLockManager noOpManager =
                 new PersistentLockManager(metricsManager, new NoOpPersistentLockService(), 0L);
-        assertThat(noOpManager.tryAcquirePersistentLock()).describedAs("NoOpPersistentLockService should return true when acquiring lock").isTrue();
+        assertThat(noOpManager.tryAcquirePersistentLock())
+                .describedAs("NoOpPersistentLockService should return true when acquiring lock")
+                .isTrue();
         noOpManager.releasePersistentLock();
     }
 
@@ -292,8 +290,12 @@ public class PersistentLockManagerTest {
     public void noOpPersistentLockCanLockTwice() {
         PersistentLockManager noOpManager =
                 new PersistentLockManager(metricsManager, new NoOpPersistentLockService(), 0L);
-        assertThat(noOpManager.tryAcquirePersistentLock()).describedAs("NoOpPersistentLockService should return true when acquiring lock").isTrue();
-        assertThat(noOpManager.tryAcquirePersistentLock()).describedAs("NoOpPersistentLockService should return true when acquiring lock for the second time").isTrue();
+        assertThat(noOpManager.tryAcquirePersistentLock())
+                .describedAs("NoOpPersistentLockService should return true when acquiring lock")
+                .isTrue();
+        assertThat(noOpManager.tryAcquirePersistentLock())
+                .describedAs("NoOpPersistentLockService should return true when acquiring lock for the second time")
+                .isTrue();
     }
 
     private void whenWeGetTheLockFirstTimeAndThenHoldItForever() {

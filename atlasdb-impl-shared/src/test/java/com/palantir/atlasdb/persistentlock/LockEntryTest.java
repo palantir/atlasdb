@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.persistentlock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -109,7 +107,8 @@ public class LockEntryTest {
 
     @Test
     public void confirmJsonOnDiskBackCompatMaintainedDeserialization() {
-        assertThat(LockEntry.fromStoredValue(asUtf8Bytes(JSON_LOCK_SERIALIZATION))).isEqualTo(LOCK_ENTRY);
+        assertThat(LockEntry.fromStoredValue(asUtf8Bytes(JSON_LOCK_SERIALIZATION)))
+                .isEqualTo(LOCK_ENTRY);
     }
 
     @Test

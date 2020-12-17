@@ -123,7 +123,8 @@ public class RowsColumnRangeBatchRequestsTest {
 
         for (RowsColumnRangeBatchRequest partition : partitions) {
             assertThat(partition.getRowsToLoadFully().isEmpty()
-                    || partition.getColumnRangeSelection().equals(request.getColumnRangeSelection())).isTrue();
+                            || partition.getColumnRangeSelection().equals(request.getColumnRangeSelection()))
+                    .isTrue();
         }
     }
 

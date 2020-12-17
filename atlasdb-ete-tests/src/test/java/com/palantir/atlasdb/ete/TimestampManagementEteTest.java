@@ -18,8 +18,6 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 
 import com.palantir.atlasdb.timestamp.EteTimestampResource;
 import org.assertj.core.api.HamcrestCondition;

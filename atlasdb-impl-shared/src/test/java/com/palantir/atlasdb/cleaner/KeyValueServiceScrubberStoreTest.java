@@ -33,7 +33,6 @@ import com.palantir.common.base.BatchingVisitables;
 import java.util.List;
 import java.util.SortedMap;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -63,7 +62,8 @@ public class KeyValueServiceScrubberStoreTest {
         TableReference ref = TableReference.fromString("foo.bar");
         long timestamp = 10;
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell, ref), timestamp, 1000);
-        assertThat(getScrubQueue()).isEqualTo(ImmutableList.of(ImmutableSortedMap.of(timestamp, ImmutableMultimap.of(ref, cell))));
+        assertThat(getScrubQueue())
+                .isEqualTo(ImmutableList.of(ImmutableSortedMap.of(timestamp, ImmutableMultimap.of(ref, cell))));
         scrubStore.markCellsAsScrubbed(ImmutableMap.of(ref, ImmutableMultimap.of(cell, timestamp)), 1000);
         assertThat(getScrubQueue()).isEmpty();
     }
@@ -79,7 +79,8 @@ public class KeyValueServiceScrubberStoreTest {
         long timestamp2 = 20;
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell1, ref1, cell2, ref1), timestamp1, 1000);
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell1, ref1, cell3, ref2), timestamp2, 1000);
-        assertThat(getScrubQueue()).isEqualTo(ImmutableList.of(ImmutableSortedMap.of(
+        assertThat(getScrubQueue())
+                .isEqualTo(ImmutableList.of(ImmutableSortedMap.of(
                         timestamp1, ImmutableMultimap.of(ref1, cell2),
                         timestamp2, ImmutableMultimap.of(ref2, cell3, ref1, cell1))));
         scrubStore.markCellsAsScrubbed(
@@ -87,7 +88,8 @@ public class KeyValueServiceScrubberStoreTest {
                         ref2, ImmutableMultimap.of(cell3, timestamp2),
                         ref1, ImmutableMultimap.of(cell1, timestamp1, cell1, timestamp2)),
                 1000);
-        assertThat(getScrubQueue()).isEqualTo(ImmutableList.of(ImmutableSortedMap.of(timestamp1, ImmutableMultimap.of(ref1, cell2))));
+        assertThat(getScrubQueue())
+                .isEqualTo(ImmutableList.of(ImmutableSortedMap.of(timestamp1, ImmutableMultimap.of(ref1, cell2))));
     }
 
     private List<SortedMap<Long, Multimap<TableReference, Cell>>> getScrubQueue() {

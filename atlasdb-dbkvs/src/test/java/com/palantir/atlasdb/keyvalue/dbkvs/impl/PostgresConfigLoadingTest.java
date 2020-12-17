@@ -16,10 +16,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
@@ -56,8 +52,8 @@ public class PostgresConfigLoadingTest {
         // Our connectionTimeout is instead translated to "connectTimeout", which is how long a connection
         // can be open for.
         ConnectionConfig connectionConfig = getConnectionConfig();
-        assertThat(connectionConfig.getHikariConfig().getConnectionTimeout()).isEqualTo((long)
-                connectionConfig.getCheckoutTimeout());
+        assertThat(connectionConfig.getHikariConfig().getConnectionTimeout())
+                .isEqualTo((long) connectionConfig.getCheckoutTimeout());
     }
 
     @Test
@@ -79,7 +75,8 @@ public class PostgresConfigLoadingTest {
     public void testPasswordIsMasked() throws IOException {
         ConnectionConfig connectionConfig = getConnectionConfig();
         assertThat(connectionConfig.getDbPassword().unmasked()).isEqualTo("testpassword");
-        assertThat(connectionConfig.getHikariProperties().getProperty("password")).isEqualTo("testpassword");
+        assertThat(connectionConfig.getHikariProperties().getProperty("password"))
+                .isEqualTo("testpassword");
         assertThat(connectionConfig.toString()).doesNotContain("testpassword");
         assertThat(connectionConfig.toString()).contains("REDACTED");
     }
@@ -102,6 +99,8 @@ public class PostgresConfigLoadingTest {
     private void verifyHikariProperty(ConnectionConfig connectionConfig, String property, int expectedValueSeconds) {
         Properties hikariProps = connectionConfig.getHikariConfig().getDataSourceProperties();
 
-        assertThat(Integer.valueOf(hikariProps.getProperty(property))).describedAs(String.format("Hikari property %s should be populated from connectionConfig", property)).isEqualTo(expectedValueSeconds);
+        assertThat(Integer.valueOf(hikariProps.getProperty(property)))
+                .describedAs(String.format("Hikari property %s should be populated from connectionConfig", property))
+                .isEqualTo(expectedValueSeconds);
     }
 }

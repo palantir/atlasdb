@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class DbKvsPartitionersTest {
@@ -41,7 +40,8 @@ public class DbKvsPartitionersTest {
                 3, 2);
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
 
-        assertThat(partitioned).isEqualTo(ImmutableList.of(
+        assertThat(partitioned)
+                .isEqualTo(ImmutableList.of(
                         ImmutableMap.of(0, 5),
                         ImmutableMap.of(
                                 1, 1,
@@ -58,7 +58,8 @@ public class DbKvsPartitionersTest {
                 4, 3);
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
 
-        assertThat(partitioned).isEqualTo(ImmutableList.of(
+        assertThat(partitioned)
+                .isEqualTo(ImmutableList.of(
                         ImmutableMap.of(
                                 0, 3,
                                 3, 2),
@@ -76,7 +77,8 @@ public class DbKvsPartitionersTest {
                 1, 99);
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
         assertThat(partitioned.size()).isEqualTo(20);
-        assertThat(partitioned.get(0)).isEqualTo(ImmutableMap.of(
+        assertThat(partitioned.get(0))
+                .isEqualTo(ImmutableMap.of(
                         0, 1,
                         1, 4));
         for (int i = 1; i < 20; i++) {

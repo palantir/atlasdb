@@ -17,8 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.emptyArray;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.isEmptyString;
 
 import com.google.common.collect.ImmutableList;
@@ -150,8 +148,10 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(false, DBType.ORACLE, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery()).isEqualTo(" AND (row_name >= ? AND (row_name > ? OR col_name > ? OR (col_name = ? AND ts >= ?)))");
-        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS)));
+        assertThat(query.getQuery())
+                .isEqualTo(" AND (row_name >= ? AND (row_name > ? OR col_name > ? OR (col_name = ? AND ts >= ?)))");
+        assertThat(query.getArgs())
+                .is(new HamcrestCondition<>(arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS)));
     }
 
     @Test
@@ -160,8 +160,10 @@ public class RangePredicateHelperTest {
         RangePredicateHelper.create(true, DBType.ORACLE, builder).startCellTsInclusive(ROW_NAME, COL_NAME, TS);
         FullQuery query = builder.build();
 
-        assertThat(query.getQuery()).isEqualTo(" AND (row_name <= ? AND (row_name < ? OR col_name < ? OR (col_name = ? AND ts <= ?)))");
-        assertThat(query.getArgs()).is(new HamcrestCondition<>(arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS)));
+        assertThat(query.getQuery())
+                .isEqualTo(" AND (row_name <= ? AND (row_name < ? OR col_name < ? OR (col_name = ? AND ts <= ?)))");
+        assertThat(query.getArgs())
+                .is(new HamcrestCondition<>(arrayContaining(ROW_NAME, ROW_NAME, COL_NAME, COL_NAME, TS)));
     }
 
     @Test
