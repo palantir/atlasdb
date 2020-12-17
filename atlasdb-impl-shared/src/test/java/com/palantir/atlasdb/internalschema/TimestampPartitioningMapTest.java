@@ -89,7 +89,7 @@ public class TimestampPartitioningMapTest {
                 .copyInstallingNewValue(TIMESTAMP_1, 2)
                 .copyInstallingNewValue(TIMESTAMP_2, 2)
                 .copyInstallingNewValue(TIMESTAMP_3, 2);
-        assertThat(newMap.rangeMapView().asMapOfRanges().size()).isEqualTo(2);
+        assertThat(newMap.rangeMapView().asMapOfRanges()).hasSize(2);
     }
 
     @Test
@@ -98,7 +98,7 @@ public class TimestampPartitioningMapTest {
                 .copyInstallingNewValue(TIMESTAMP_1, 2)
                 .copyInstallingNewValue(TIMESTAMP_2, 1)
                 .copyInstallingNewValue(TIMESTAMP_3, 2);
-        assertThat(newMap.rangeMapView().asMapOfRanges().size()).isEqualTo(4);
+        assertThat(newMap.rangeMapView().asMapOfRanges()).hasSize(4);
     }
 
     @Test
