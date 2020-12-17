@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -150,6 +148,6 @@ public class WhereClausesTest {
         for (int i = 0; i < actualArgs.size(); i++) {
             assertThat((byte[]) actualArgs.get(i)).isEqualTo(expectedArgs.get(i));
         }
-        assertThat(actualArgs.size()).isEqualTo(expectedArgs.size());
+        assertThat(actualArgs).hasSameSizeAs(expectedArgs);
     }
 }

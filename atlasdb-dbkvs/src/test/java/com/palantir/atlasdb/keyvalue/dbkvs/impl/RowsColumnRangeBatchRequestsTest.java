@@ -24,7 +24,6 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -136,7 +135,7 @@ public class RowsColumnRangeBatchRequestsTest {
             if (i < partitions.size() - 1) {
                 assertThat(actualPartitionSize).isEqualTo(expectedSize);
             } else {
-                assertThat(actualPartitionSize <= expectedSize).isTrue();
+                assertThat(actualPartitionSize).isLessThanOrEqualTo(expectedSize);
             }
         }
     }
