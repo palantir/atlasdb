@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
@@ -25,7 +26,11 @@ import java.util.Optional;
 import java.util.Set;
 
 public final class NoOpLockWatchManager extends LockWatchManager {
-    public static final LockWatchManager INSTANCE = new NoOpLockWatchManager();
+    private final LockWatchEventCache eventCache = NoOpLockWatchEventCache.create();
+
+    public static LockWatchManager create() {
+        return new NoOpLockWatchManager();
+    }
 
     @Override
     public void registerPreciselyWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {
@@ -34,17 +39,17 @@ public final class NoOpLockWatchManager extends LockWatchManager {
 
     @Override
     boolean isEnabled() {
-        return NoOpLockWatchEventCache.INSTANCE.isEnabled();
+        return eventCache.isEnabled();
     }
 
     @Override
     CommitUpdate getCommitUpdate(long startTs) {
-        return NoOpLockWatchEventCache.INSTANCE.getCommitUpdate(startTs);
+        return eventCache.getCommitUpdate(startTs);
     }
 
     @Override
     TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
-        return NoOpLockWatchEventCache.INSTANCE.getUpdateForTransactions(startTimestamps, version);
+        return eventCache.getUpdateForTransactions(startTimestamps, version);
     }
 }

@@ -44,9 +44,11 @@ import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
@@ -116,7 +118,9 @@ public class LockWatchEventCacheIntegrationTest {
         }
     }
 
-    private LockWatchEventCacheImpl eventCache;
+    private LockWatchEventCacheImpl realEventCache;
+    private LockWatchEventCache fakeCache;
+    private LockWatchEventCache eventCache;
     private int part;
 
     @Rule
@@ -124,7 +128,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Before
     public void before() {
-        eventCache = createEventCache(5);
+        createEventCache(5);
         part = 1;
     }
 
@@ -135,7 +139,7 @@ public class LockWatchEventCacheIntegrationTest {
                 .registerModule(new GuavaModule());
         try {
             Path path = Paths.get(BASE + name.getMethodName() + "/event-cache-" + part + ".json");
-            LockWatchEventCacheState eventCacheState = eventCache.getStateForTesting();
+            LockWatchEventCacheState eventCacheState = realEventCache.getStateForTesting();
 
             if (MODE.isDev()) {
                 mapper.writeValue(path.toFile(), eventCacheState);
@@ -214,7 +218,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void getCommitUpdateIsInvalidatedAllIfEventsHaveBeenDeleted() {
-        eventCache = createEventCache(2);
+        createEventCache(2);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS_2);
@@ -239,7 +243,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void getEventsForTransactionsReturnsSnapshotWithOldEvents() {
-        eventCache = createEventCache(3);
+        createEventCache(3);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         eventCache.removeTransactionStateFromCache(START_TS);
@@ -366,7 +370,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void timestampEventsRetentionedThrows() {
-        eventCache = createEventCache(1);
+        createEventCache(1);
         setupInitialState();
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
 
@@ -412,7 +416,7 @@ public class LockWatchEventCacheIntegrationTest {
 
     @Test
     public void newEventsCauseOldEventsToBeDeleted() {
-        eventCache = createEventCache(3);
+        createEventCache(3);
         setupInitialState();
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
         verifyStage();
@@ -456,8 +460,10 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SNAPSHOT);
     }
 
-    private static LockWatchEventCacheImpl createEventCache(int maxSize) {
-        return new LockWatchEventCacheImpl(LockWatchEventLog.create(maxSize));
+    private void createEventCache(int maxSize) {
+        fakeCache = NoOpLockWatchEventCache.create();
+        realEventCache = new LockWatchEventCacheImpl(LockWatchEventLog.create(maxSize));
+        eventCache = new DuplicatingLockWatchEventCache(realEventCache, fakeCache);
     }
 
     private static final class CommitUpdateVisitor implements CommitUpdate.Visitor<Set<LockDescriptor>> {

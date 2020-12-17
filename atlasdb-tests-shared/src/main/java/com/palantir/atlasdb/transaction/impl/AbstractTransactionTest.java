@@ -138,7 +138,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 metricsManager,
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.INSTANCE,
+                NoOpLockWatchManager.create(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimestamp,
