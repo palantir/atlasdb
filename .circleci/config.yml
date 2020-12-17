@@ -95,12 +95,15 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
       - attach_workspace: { at: . }
+      - add_ssh_keys:
+          fingerprints:
+            - "20:d7:2c:43:a2:d9:38:86:45:c0:70:cc:c9:87:95:5b"
       - run: sudo apt-get update
       - run: sudo apt-get install python python-pip
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
-            if [ $CIRCLE_PROJECT_USERNAME = 'atlasdb' ] && [ -z $CIRCLE_PR_NUMBER ]; then
+            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
               if [[ "${CIRCLE_BRANCH}" =~ develop ]]; then
                 ./scripts/circle-ci/publish-github-page.sh
                 curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
