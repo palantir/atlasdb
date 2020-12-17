@@ -103,7 +103,8 @@ jobs:
             if [ $CIRCLE_PROJECT_USERNAME = 'atlasdb' ] && [ -z $CIRCLE_PR_NUMBER ]; then
               if [[ "${CIRCLE_BRANCH}" =~ develop ]]; then
                 ./scripts/circle-ci/publish-github-page.sh
-                curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
+                # Internal publishing from an external CircleCI is... not a thing.
+                # curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
               else
                 echo "Internal and external docs are typically published from develop, not ${CIRCLE_BRANCH}."
               fi
