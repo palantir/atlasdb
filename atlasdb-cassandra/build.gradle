@@ -37,7 +37,7 @@ dependencies {
   }
   explicitShadow group: 'com.google.guava', name: 'guava'
 
-  explicitShadow 'org.apache.commons:commons-pool2:2.4.2'
+  explicitShadow 'org.apache.commons:commons-pool2:2.9.0'
 
   explicitShadow group: 'com.palantir.conjure.java.api', name: 'ssl-config'
   explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'keystores'
