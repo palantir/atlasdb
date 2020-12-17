@@ -39,6 +39,7 @@ io.netty:* = 4.1.49.Final
 joda-time:joda-time = 2.10.7
 junit:junit = 4.13.1
 net.jcip:jcip-annotations = 1.0
+org.apache.commons:commons-pool2 = 2.9.0
 org.assertj:assertj-* = 3.14.0
 org.awaitility:awaitility = 4.0.3
 org.clojure:clojure = 1.8.0
