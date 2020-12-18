@@ -107,7 +107,7 @@ public class LockWatchEventCacheIntegrationTest {
     private static final Set<Long> TIMESTAMPS = ImmutableSet.of(START_TS);
     private static final Set<Long> TIMESTAMPS_2 = ImmutableSet.of(16L);
     private static final String BASE = "src/test/resources/lockwatch-event-cache-output/";
-    private static final Mode MODE = Mode.DEV;
+    private static final Mode MODE = Mode.CI;
 
     private enum Mode {
         DEV,
