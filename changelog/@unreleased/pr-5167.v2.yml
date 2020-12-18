@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: Lock Watches no longer generate client updates instructing users to
+    clear their caches after a snapshot if they indicate that their last known version
+    _is_ the version of the snapshot. Previously, whenever a snapshot was taken, we
+    would insist that clients always clear their cache, even after they have demonstrated
+    that they knew about the snapshot.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5167
