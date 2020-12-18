@@ -158,11 +158,10 @@ public class LockWatchEventCacheIntegrationTest {
     public void emptySuccessesFollowingSnapshotsDoNotCauseAdditionalCacheClearance() {
         LockWatchStateUpdate snapshot =
                 LockWatchStateUpdate.snapshot(LEADER, 3L, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of());
-        LockWatchStateUpdate emptySuccess =
-                LockWatchStateUpdate.success(LEADER, 3L, ImmutableList.of());
-        LockWatchEvent lockEvent = LockEvent.builder(ImmutableSet.of(DESCRIPTOR_3), COMMIT_TOKEN).build(4L);
-        LockWatchStateUpdate success =
-                LockWatchStateUpdate.success(LEADER, 4L, ImmutableList.of(lockEvent));
+        LockWatchStateUpdate emptySuccess = LockWatchStateUpdate.success(LEADER, 3L, ImmutableList.of());
+        LockWatchEvent lockEvent =
+                LockEvent.builder(ImmutableSet.of(DESCRIPTOR_3), COMMIT_TOKEN).build(4L);
+        LockWatchStateUpdate success = LockWatchStateUpdate.success(LEADER, 4L, ImmutableList.of(lockEvent));
 
         setupInitialState();
         verifyStage();
@@ -170,30 +169,42 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(1L), snapshot);
         verifyStage();
 
-        assertThat(eventCache.getUpdateForTransactions(ImmutableSet.of(1L), Optional.of(LockWatchVersion.of(LEADER,
-                2L))).clearCache()).isTrue();
-        assertThat(eventCache.getUpdateForTransactions(ImmutableSet.of(1L), Optional.of(LockWatchVersion.of(LEADER,
-                3L))).clearCache()).isFalse();
+        assertThat(eventCache
+                        .getUpdateForTransactions(ImmutableSet.of(1L), Optional.of(LockWatchVersion.of(LEADER, 2L)))
+                        .clearCache())
+                .isTrue();
+        assertThat(eventCache
+                        .getUpdateForTransactions(ImmutableSet.of(1L), Optional.of(LockWatchVersion.of(LEADER, 3L)))
+                        .clearCache())
+                .isFalse();
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(2L), emptySuccess);
         verifyStage();
 
-        assertThat(eventCache.getUpdateForTransactions(ImmutableSet.of(2L), Optional.of(LockWatchVersion.of(LEADER,
-                3L))).clearCache()).isFalse();
+        assertThat(eventCache
+                        .getUpdateForTransactions(ImmutableSet.of(2L), Optional.of(LockWatchVersion.of(LEADER, 3L)))
+                        .clearCache())
+                .isFalse();
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(3L), emptySuccess);
         verifyStage();
 
-        assertThat(eventCache.getUpdateForTransactions(ImmutableSet.of(3L), Optional.of(LockWatchVersion.of(LEADER,
-                3L))).clearCache()).isFalse();
+        assertThat(eventCache
+                        .getUpdateForTransactions(ImmutableSet.of(3L), Optional.of(LockWatchVersion.of(LEADER, 3L)))
+                        .clearCache())
+                .isFalse();
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(99L), success);
         verifyStage();
 
-        assertThat(eventCache.getUpdateForTransactions(ImmutableSet.of(99L), Optional.of(LockWatchVersion.of(LEADER,
-                3L))).events()).containsExactly(lockEvent);
-        assertThat(eventCache.getUpdateForTransactions(ImmutableSet.of(99L), Optional.of(LockWatchVersion.of(LEADER,
-                4L))).events()).isEmpty();
+        assertThat(eventCache
+                        .getUpdateForTransactions(ImmutableSet.of(99L), Optional.of(LockWatchVersion.of(LEADER, 3L)))
+                        .events())
+                .containsExactly(lockEvent);
+        assertThat(eventCache
+                        .getUpdateForTransactions(ImmutableSet.of(99L), Optional.of(LockWatchVersion.of(LEADER, 4L)))
+                        .events())
+                .isEmpty();
     }
 
     @Test

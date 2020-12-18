@@ -58,8 +58,8 @@ final class LockWatchEventLog {
         Optional<LockWatchVersion> startVersion = lastKnownVersion.map(this::createStartVersion);
         LockWatchVersion currentVersion = getLatestVersionAndVerify(endVersion);
 
-        if (!startVersion.isPresent() || differentLeaderOrTooFarBehind(
-                currentVersion, lastKnownVersion.get(), startVersion.get())) {
+        if (!startVersion.isPresent()
+                || differentLeaderOrTooFarBehind(currentVersion, lastKnownVersion.get(), startVersion.get())) {
             return new ClientLogEvents.Builder()
                     .clearCache(true)
                     .events(new LockWatchEvents.Builder()
