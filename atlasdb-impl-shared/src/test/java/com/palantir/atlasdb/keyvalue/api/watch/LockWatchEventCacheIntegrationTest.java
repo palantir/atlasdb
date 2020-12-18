@@ -171,7 +171,9 @@ public class LockWatchEventCacheIntegrationTest {
         verifyStage();
 
         assertThat(eventCache.getUpdateForTransactions(ImmutableSet.of(1L), Optional.of(LockWatchVersion.of(LEADER,
-                3L))).clearCache()).isTrue();
+                2L))).clearCache()).isTrue();
+        assertThat(eventCache.getUpdateForTransactions(ImmutableSet.of(1L), Optional.of(LockWatchVersion.of(LEADER,
+                3L))).clearCache()).isFalse();
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(2L), emptySuccess);
         verifyStage();

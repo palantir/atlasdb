@@ -29,7 +29,6 @@ final class LockWatchEventLog {
     private final ClientLockWatchSnapshot snapshot;
     private final VersionedEventStore eventStore;
     private Optional<LockWatchVersion> latestVersion = Optional.empty();
-    private Optional<LockWatchVersion> lastSuccessfulVersion = Optional.empty();
 
     static LockWatchEventLog create(int maxEvents) {
         return new LockWatchEventLog(ClientLockWatchSnapshot.create(), maxEvents);
@@ -109,7 +108,7 @@ final class LockWatchEventLog {
         if (!startVersion.id().equals(currentVersion.id())) {
             return true;
         }
-        if (lastSuccessfulVersion.filter(lastKnownVersion::equals).isPresent()) {
+        if (latestVersion.filter(lastKnownVersion::equals).isPresent()) {
             return false;
         }
         return !eventStore.containsEntryLessThanOrEqualTo(startVersion.version());
@@ -146,10 +145,6 @@ final class LockWatchEventLog {
             assertNoEventsAreMissing(events);
             latestVersion = Optional.of(LockWatchVersion.of(success.logId(), eventStore.putAll(events)));
         }
-
-        if (!lastSuccessfulVersion.isPresent() || success.lastKnownVersion() >= lastSuccessfulVersion.get().version()) {
-            lastSuccessfulVersion = Optional.of(LockWatchVersion.of(success.logId(), success.lastKnownVersion()));
-        }
     }
 
     private void assertNoEventsAreMissing(LockWatchEvents events) {
@@ -174,14 +169,12 @@ final class LockWatchEventLog {
         eventStore.clear();
         snapshot.resetWithSnapshot(snapshotUpdate);
         latestVersion = Optional.of(LockWatchVersion.of(snapshotUpdate.logId(), snapshotUpdate.lastKnownVersion()));
-        lastSuccessfulVersion = Optional.empty();
     }
 
     private void processFailed() {
         eventStore.clear();
         snapshot.reset();
         latestVersion = Optional.empty();
-        lastSuccessfulVersion = Optional.empty();
     }
 
     private final class ProcessingVisitor implements LockWatchStateUpdate.Visitor<CacheUpdate> {
