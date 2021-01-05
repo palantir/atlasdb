@@ -284,7 +284,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         poolConfig.setTestWhileIdle(true);
 
         poolConfig.setJmxNamePrefix(CassandraLogHelper.host(host));
-        poolConfig.setEvictionPolicy(new LoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()));
+        poolConfig.setEvictionPolicy(new NonEvictionLoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()));
         GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
         registerMetrics(pool);
         log.info("Creating a Cassandra client pool for {} with the configuration {}",
@@ -328,10 +328,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         poolMetrics.registerPoolMetric(metric, gauge, poolNumber);
     }
 
-    private static class LoggingEvictionPolicy<T> implements EvictionPolicy<T> {
+    private static class NonEvictionLoggingEvictionPolicy<T> implements EvictionPolicy<T> {
         private final EvictionPolicy<T> delegate;
 
-        private LoggingEvictionPolicy(EvictionPolicy<T> delegate) {
+        private NonEvictionLoggingEvictionPolicy(EvictionPolicy<T> delegate) {
             this.delegate = delegate;
         }
 
@@ -339,7 +339,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         public boolean evict(
                 EvictionConfig config, PooledObject<T> underTest, int idleCount) {
             boolean delegateResult = delegate.evict(config, underTest, idleCount);
-            if (log.isDebugEnabled()) {
+            // PDS-146088: the issue manifests with failures to evict anything
+            if (!delegateResult && log.isDebugEnabled()) {
                 log.debug("Attempted to evict an object from the Cassandra client pool",
                         SafeArg.of("underTestState", underTest.getState()),
                         SafeArg.of("idleState", underTest.getIdleTimeMillis()),
