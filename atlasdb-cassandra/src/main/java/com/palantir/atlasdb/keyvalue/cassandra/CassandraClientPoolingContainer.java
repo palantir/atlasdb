@@ -329,7 +329,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         poolMetrics.registerPoolMetric(metric, gauge, poolNumber);
     }
 
-    private static class NonEvictionLoggingEvictionPolicy<T> implements EvictionPolicy<T> {
+    private static final class NonEvictionLoggingEvictionPolicy<T> implements EvictionPolicy<T> {
         private final EvictionPolicy<T> delegate;
 
         private NonEvictionLoggingEvictionPolicy(EvictionPolicy<T> delegate) {
