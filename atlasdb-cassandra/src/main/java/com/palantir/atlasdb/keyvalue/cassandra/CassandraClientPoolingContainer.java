@@ -342,12 +342,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             // PDS-146088: the issue manifests with failures to evict anything
             if (!delegateResult && log.isDebugEnabled()) {
                 log.debug(
-                        "Attempted to evict an object from the Cassandra client pool",
+                        "Considered an object to be evicted from the Cassandra client pool, but did not evict it",
                         SafeArg.of("underTestState", underTest.getState()),
                         SafeArg.of("idleState", underTest.getIdleTimeMillis()),
                         SafeArg.of("idleCount", idleCount),
-                        SafeArg.of("evictionConfig", config),
-                        SafeArg.of("decisionOnEvicting", delegateResult));
+                        SafeArg.of("evictionConfig", config));
             }
             return delegateResult;
         }
