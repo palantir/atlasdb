@@ -39,6 +39,10 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
+import org.apache.commons.pool2.impl.EvictionConfig;
+import org.apache.commons.pool2.impl.EvictionPolicy;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.transport.TFramedTransport;
@@ -254,7 +258,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      */
     private GenericObjectPool<CassandraClient> createClientPool() {
         CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(metricsManager, host, config);
-        GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
+        GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 
         poolConfig.setMinIdle(config.poolSize());
         poolConfig.setMaxIdle(config.maxConnectionBurstSize());
@@ -280,8 +284,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         poolConfig.setTestWhileIdle(true);
 
         poolConfig.setJmxNamePrefix(CassandraLogHelper.host(host));
+        poolConfig.setEvictionPolicy(new LoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()));
         GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
         registerMetrics(pool);
+        log.info("Creating a Cassandra client pool for {} with the configuration {}",
+                SafeArg.of("host", host),
+                SafeArg.of("poolConfig", poolConfig));
         return pool;
     }
 
@@ -318,5 +326,28 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     private void registerPoolMetric(CassandraClientPoolHostLevelMetric metric, Gauge<Long> gauge) {
         poolMetrics.registerPoolMetric(metric, gauge, poolNumber);
+    }
+
+    private static class LoggingEvictionPolicy<T> implements EvictionPolicy<T> {
+        private final EvictionPolicy<T> delegate;
+
+        private LoggingEvictionPolicy(EvictionPolicy<T> delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public boolean evict(
+                EvictionConfig config, PooledObject<T> underTest, int idleCount) {
+            boolean delegateResult = delegate.evict(config, underTest, idleCount);
+            if (log.isDebugEnabled()) {
+                log.debug("Attempted to evict an object from the Cassandra client pool",
+                        SafeArg.of("underTestState", underTest.getState()),
+                        SafeArg.of("idleState", underTest.getIdleTimeMillis()),
+                        SafeArg.of("idleCount", idleCount),
+                        SafeArg.of("evictionConfig", config),
+                        SafeArg.of("decisionOnEvicting", delegateResult));
+            }
+            return delegateResult;
+        }
     }
 }
