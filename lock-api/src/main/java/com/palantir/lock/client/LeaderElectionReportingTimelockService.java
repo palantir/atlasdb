@@ -170,8 +170,9 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         boolean election = !newLeader.equals(currentLeader);
 
         if (election) {
-            if (leaderId != newLeader) {
-                log.info("Apparent leader change from {} to {}.",
+            if (!leaderId.equals(newLeader)) {
+                log.info(
+                        "Apparent leader change from {} to {}.",
                         SafeArg.of("old leader", leaderId),
                         SafeArg.of("new leader", newLeader));
             }
@@ -244,7 +245,8 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
                 durationToNextLeader(lowerBounds, upperBounds, leaders, secondToLastLongTermLeader);
         if (leaderElectionDuration.isPresent() && !leaderElectionDuration.get().equals(lastComputedDuration)) {
             lastComputedDuration = leaderElectionDuration.get();
-            log.info("Computed new leader election duration estimate {}.",
+            log.info(
+                    "Computed new leader election duration estimate {}.",
                     SafeArg.of("leader election duration", leaderElectionDuration.get()));
         }
         return leaderElectionDuration;
