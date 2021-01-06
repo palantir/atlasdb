@@ -170,7 +170,7 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         boolean election = !newLeader.equals(currentLeader);
 
         if (election) {
-            if (!leaderId.equals(newLeader)) {
+            if (!newLeader.equals(leaderId)) {
                 log.info(
                         "Apparent leader change from {} to {}.",
                         SafeArg.of("old leader", leaderId),
