@@ -27,7 +27,7 @@ import java.util.Set;
 public final class NoOpLockWatchManager extends LockWatchManager {
     private final LockWatchEventCache eventCache;
 
-    public NoOpLockWatchManager(LockWatchEventCache eventCache) {
+    private NoOpLockWatchManager(LockWatchEventCache eventCache) {
         this.eventCache = eventCache;
     }
 
