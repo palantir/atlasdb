@@ -32,14 +32,6 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class ClientOptions {
-    static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
-            .connectTimeout(Duration.ofMillis(100))
-            .readTimeout(Duration.ofSeconds(65))
-            .backoffSlotSize(Duration.ofMillis(5))
-            .failedUrlCooldown(Duration.ofMillis(1))
-            .maxNumRetries(5)
-            .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
-            .build();
 
     public abstract Duration connectTimeout();
 
