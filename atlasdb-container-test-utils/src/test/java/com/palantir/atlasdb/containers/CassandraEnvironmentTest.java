@@ -68,7 +68,7 @@ public class CassandraEnvironmentTest {
 
     private void assertCassandraEnvironmentContains(String version, String maxHeapSize, String heapNewsize) {
         Map<String, String> variables = CassandraEnvironment.get();
-        assertThat(variables.size()).isEqualTo(3);
+        assertThat(variables).hasSize(3);
         assertThat(variables.get(CassandraEnvironment.CASSANDRA_VERSION)).isEqualTo(version);
         assertThat(variables.get(CassandraEnvironment.CASSANDRA_MAX_HEAP_SIZE)).isEqualTo(maxHeapSize);
         assertThat(variables.get(CassandraEnvironment.CASSANDRA_HEAP_NEWSIZE)).isEqualTo(heapNewsize);

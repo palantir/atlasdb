@@ -53,49 +53,49 @@ public class BatchingVisitablesTest {
                 .isEmpty();
         assertThat(page.moreResultsAvailable())
                 .describedAs("page.moreResultsAvailable was wrong")
-                .isEqualTo(true);
+                .isTrue();
 
         page = BatchingVisitables.getFirstPage(visitor, 1);
-        assertThat(page.getResults().size())
+        assertThat(page.getResults())
                 .describedAs("page results had wrong size!")
-                .isEqualTo(1);
+                .hasSize(1);
         assertThat(page.getResults()).describedAs("page.getResults was wrong").isEqualTo(Lists.newArrayList(0L));
         assertThat(page.moreResultsAvailable())
                 .describedAs("page.moreResultsAvailable was wrong")
-                .isEqualTo(true);
+                .isTrue();
 
         page = BatchingVisitables.getFirstPage(visitor, 3);
-        assertThat(page.getResults().size())
+        assertThat(page.getResults())
                 .describedAs("page results had wrong size!")
-                .isEqualTo(3);
+                .hasSize(3);
         assertThat(page.getResults())
                 .describedAs("page.getResults was wrong")
                 .isEqualTo(Lists.newArrayList(0L, 1L, 2L));
         assertThat(page.moreResultsAvailable())
                 .describedAs("page.moreResultsAvailable was wrong")
-                .isEqualTo(true);
+                .isTrue();
 
         page = BatchingVisitables.getFirstPage(visitor, 4);
-        assertThat(page.getResults().size())
+        assertThat(page.getResults())
                 .describedAs("page results had wrong size!")
-                .isEqualTo(4);
+                .hasSize(4);
         assertThat(page.getResults())
                 .describedAs("page.getResults was wrong")
                 .isEqualTo(Lists.newArrayList(0L, 1L, 2L, 3L));
         assertThat(page.moreResultsAvailable())
                 .describedAs("page.moreResultsAvailable was wrong")
-                .isEqualTo(false);
+                .isFalse();
 
         page = BatchingVisitables.getFirstPage(visitor, 7);
-        assertThat(page.getResults().size())
+        assertThat(page.getResults())
                 .describedAs("page results had wrong size!")
-                .isEqualTo(4);
+                .hasSize(4);
         assertThat(page.getResults())
                 .describedAs("page.getResults was wrong")
                 .isEqualTo(Lists.newArrayList(0L, 1L, 2L, 3L));
         assertThat(page.moreResultsAvailable())
                 .describedAs("page.moreResultsAvailable was wrong")
-                .isEqualTo(false);
+                .isFalse();
 
         assertThatThrownBy(() -> BatchingVisitables.getFirstPage(visitor, -1))
                 .describedAs("Should not allow visiting -1 elements.")
@@ -150,15 +150,15 @@ public class BatchingVisitablesTest {
     public void testPageSize() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L));
         visitor.batchAccept(5, item -> {
-            assertThat(item.size()).describedAs("batched item had wrong size").isEqualTo(5);
+            assertThat(item).describedAs("batched item had wrong size").hasSize(5);
             return false;
         });
         visitor.batchAccept(1, item -> {
-            assertThat(item.size()).describedAs("batched item had wrong size").isEqualTo(1);
+            assertThat(item).describedAs("batched item had wrong size").hasSize(1);
             return false;
         });
         visitor.batchAccept(2, item -> {
-            assertThat(item.size()).describedAs("batched item had wrong size").isEqualTo(2);
+            assertThat(item).describedAs("batched item had wrong size").hasSize(2);
             return true;
         });
 
@@ -173,7 +173,7 @@ public class BatchingVisitablesTest {
         });
 
         visitor.batchAccept(20, item -> {
-            assertThat(item.size()).describedAs("batched item had wrong size").isEqualTo(6);
+            assertThat(item).describedAs("batched item had wrong size").hasSize(6);
             return true;
         });
     }
@@ -182,7 +182,7 @@ public class BatchingVisitablesTest {
     public void testBatchHints() {
         BatchingVisitable<Long> visitor = ListVisitor.create(Lists.newArrayList(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L));
         Function<List<Long>, List<String>> trans = input -> {
-            assertThat(input.size()).describedAs("batched item had wrong size").isEqualTo(2);
+            assertThat(input).describedAs("batched item had wrong size").hasSize(2);
             return Lists.transform(input, Functions.toStringFunction());
         };
         BatchingVisitableView<String> visitable =
@@ -190,7 +190,7 @@ public class BatchingVisitablesTest {
         final Mutable<Boolean> hasTripped = Mutables.newMutable();
         visitable.batchAccept(10000, item -> {
             hasTripped.set(true);
-            assertThat(item.size()).describedAs("batched item had wrong size").isEqualTo(8);
+            assertThat(item).describedAs("batched item had wrong size").hasSize(8);
             return false;
         });
         assertThat(hasTripped.get()).describedAs("should have been tripped!").isTrue();
@@ -222,7 +222,7 @@ public class BatchingVisitablesTest {
         final Mutable<Boolean> hasTripped = Mutables.newMutable();
         AbortingVisitor<List<Object>, RuntimeException> bv = item -> {
             hasTripped.set(true);
-            assertThat(item.size()).describedAs("batched item had wrong size").isEqualTo(8);
+            assertThat(item).describedAs("batched item had wrong size").hasSize(8);
             return false;
         };
         AbortingVisitor<List<Long>, RuntimeException> wrap = AbortingVisitors.wrapBatching(bv);
@@ -237,7 +237,7 @@ public class BatchingVisitablesTest {
         final Mutable<Boolean> hasTripped = Mutables.newMutable();
         AbortingVisitor<List<? extends Long>, RuntimeException> bv = item -> {
             hasTripped.set(true);
-            assertThat(item.size()).describedAs("batched item had wrong size").isEqualTo(8);
+            assertThat(item).describedAs("batched item had wrong size").hasSize(8);
             return false;
         };
         AbortingVisitor<List<Long>, RuntimeException> wrap = AbortingVisitors.wrapBatching(bv);
