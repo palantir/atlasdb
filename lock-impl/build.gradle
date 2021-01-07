@@ -13,6 +13,7 @@ dependencies {
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
+  testCompileOnly 'org.immutables:value::annotations'
 
   testCompile project(":flake-rule")
   testCompile group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
