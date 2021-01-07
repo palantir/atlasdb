@@ -19,7 +19,6 @@ package com.palantir.timelock.corruption.detection;
 public enum CorruptionCheckViolation {
     NONE(false, false),
     DIVERGED_LEARNERS(true, false), // this is false for now
-    CLOCK_WENT_BACKWARDS(true, false), // this is false for now
     VALUE_LEARNED_WITHOUT_QUORUM(true, false),
     ACCEPTED_VALUE_GREATER_THAN_LEARNED(true, false);
 

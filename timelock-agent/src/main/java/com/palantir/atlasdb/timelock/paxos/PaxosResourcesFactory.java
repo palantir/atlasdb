@@ -36,7 +36,6 @@ import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
 import com.palantir.timelock.corruption.detection.LocalCorruptionDetector;
-import com.palantir.timelock.corruption.detection.LocalTimestampInvariantsVerifier;
 import com.palantir.timelock.corruption.detection.RemoteCorruptionDetector;
 import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.PaxosLogHistoryProvider;
@@ -254,10 +253,8 @@ public final class PaxosResourcesFactory {
         PaxosLogHistoryProvider historyProvider =
                 new PaxosLogHistoryProvider(dataSource, remoteClients.getRemoteHistoryProviders());
 
-        LocalTimestampInvariantsVerifier timestampInvariantsVerifier = new LocalTimestampInvariantsVerifier(dataSource);
-
-        LocalCorruptionDetector localCorruptionDetector = LocalCorruptionDetector.create(
-                historyProvider, remoteClients.getRemoteCorruptionNotifiers(), timestampInvariantsVerifier);
+        LocalCorruptionDetector localCorruptionDetector =
+                LocalCorruptionDetector.create(historyProvider, remoteClients.getRemoteCorruptionNotifiers());
 
         CorruptionHealthCheck healthCheck =
                 new CorruptionHealthCheck(localCorruptionDetector, remoteCorruptionDetector);

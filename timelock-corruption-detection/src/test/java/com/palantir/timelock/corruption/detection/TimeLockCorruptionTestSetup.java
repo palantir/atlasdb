@@ -50,7 +50,6 @@ public final class TimeLockCorruptionTestSetup implements TestRule {
     private DataSource remoteDataSource1;
     private DataSource remoteDataSource2;
     private PaxosLogHistoryProvider paxosLogHistoryProvider;
-    private LocalTimestampInvariantsVerifier localTimestampInvariantsVerifier;
 
     private StateLogComponents defaultLocalServer;
     private List<StateLogComponents> defaultRemoteServerList;
@@ -88,7 +87,6 @@ public final class TimeLockCorruptionTestSetup implements TestRule {
         defaultRemoteServerList = ImmutableList.of(
                 createLogComponentsForServer(remoteDataSource1), createLogComponentsForServer(remoteDataSource2));
         paxosLogHistoryProvider = paxosLogHistoryProvider();
-        localTimestampInvariantsVerifier = new LocalTimestampInvariantsVerifier(localDataSource);
     }
 
     private PaxosLogHistoryProvider paxosLogHistoryProvider() {
@@ -124,10 +122,6 @@ public final class TimeLockCorruptionTestSetup implements TestRule {
 
     List<StateLogComponents> getDefaultRemoteServerList() {
         return defaultRemoteServerList;
-    }
-
-    public LocalTimestampInvariantsVerifier getLocalTimestampInvariantsVerifier() {
-        return localTimestampInvariantsVerifier;
     }
 
     private static StateLogComponents createLogComponentsForServer(DataSource dataSource) {

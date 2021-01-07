@@ -82,12 +82,6 @@ public final class SqlitePaxosStateLogHistory {
                         querySequenceBounds.getUpperBoundInclusive())));
     }
 
-    public Map<Long, PaxosValue> getLearnerLogsSince(
-            Client namespace, LearnerUseCase learnerUseCase, long lowerBoundInclusive, int learnerLogBatchSizeLimit) {
-        return execute(dao -> dao.getLearnerLogsSince(
-                namespace, learnerUseCase.value(), lowerBoundInclusive, learnerLogBatchSizeLimit));
-    }
-
     public long getGreatestLogEntry(Client client, LearnerUseCase useCase) {
         return executeSqlitePaxosStateLogQuery(dao -> dao.getGreatestLogEntry(client, useCase.value()))
                 .orElse(PaxosAcceptor.NO_LOG_ENTRY);
@@ -105,6 +99,11 @@ public final class SqlitePaxosStateLogHistory {
         @SqlQuery("SELECT DISTINCT namespace, useCase FROM paxosLog")
         Set<NamespaceAndUseCase> getAllNamespaceAndUseCaseTuples();
 
+        //        TODO(snanda): For now, limit is based on approximation and has not been tested with remotes. We need
+        // to
+        //         revisit this once we have the remote history providers set up. Also, we may have to make it
+        // configurable to
+        //         accommodate the rate at which logs are being published.
         @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
                 + " :lowerBoundInclusive AND seq <= :upperBoundInclusive")
         Map<Long, PaxosValue> getLearnerLogsInRange(
@@ -120,13 +119,5 @@ public final class SqlitePaxosStateLogHistory {
                 @Bind("useCase") String useCase,
                 @Bind("lowerBoundInclusive") long lowerBoundInclusive,
                 @Bind("upperBoundInclusive") long upperBoundInclusive);
-
-        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
-                + " :lowerBoundInclusive ORDER BY seq ASC LIMIT :limit")
-        Map<Long, PaxosValue> getLearnerLogsSince(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("lowerBoundInclusive") long lowerBoundInclusive,
-                @Bind("limit") long learnerLogBatchSizeLimit);
     }
 }
