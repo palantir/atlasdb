@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import java.net.InetSocketAddress;
 
-public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
+class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
     public CassandraKeyValueServiceInstrumentation() {
         super(9160, "cassandra-docker-compose.yml");
