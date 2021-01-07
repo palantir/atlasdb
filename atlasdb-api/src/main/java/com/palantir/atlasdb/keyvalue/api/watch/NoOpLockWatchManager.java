@@ -20,16 +20,19 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Optional;
 import java.util.Set;
 
 public final class NoOpLockWatchManager extends LockWatchManager {
-    private final LockWatchEventCache eventCache = NoOpLockWatchEventCache.create();
+    private final LockWatchEventCache eventCache;
 
-    public static LockWatchManager create() {
-        return new NoOpLockWatchManager();
+    private NoOpLockWatchManager(LockWatchEventCache eventCache) {
+        this.eventCache = eventCache;
+    }
+
+    public static LockWatchManager create(LockWatchEventCache eventCache) {
+        return new NoOpLockWatchManager(eventCache);
     }
 
     @Override

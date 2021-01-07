@@ -46,6 +46,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
@@ -266,12 +267,13 @@ public class SerializableTransactionManagerTest {
 
     private TransactionManager getManagerWithCallback(
             boolean initializeAsync, Callback<TransactionManager> callBack, ScheduledExecutorService executor) {
+        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
         return SerializableTransactionManager.create(
                 MetricsManagers.createForTests(),
                 mockKvs,
                 mockTimelockService,
-                NoOpLockWatchManager.create(),
-                NoOpLockWatchEventCache.create(),
+                NoOpLockWatchManager.create(lockWatchEventCache),
+                lockWatchEventCache,
                 mockTimestampManagementService,
                 null, // lockService
                 mock(TransactionService.class),

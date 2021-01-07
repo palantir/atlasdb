@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
-    public static final LockWatchEventCache INSTANCE = new NoOpLockWatchEventCache();
     private static final LockWatchVersion FAKE_VERSION = LockWatchVersion.of(UUID.randomUUID(), -1L);
     private Optional<LockWatchVersion> currentVersion = Optional.empty();
 

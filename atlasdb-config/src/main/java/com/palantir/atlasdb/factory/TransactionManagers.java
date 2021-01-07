@@ -1471,7 +1471,7 @@ public abstract class TransactionManagers {
 
         @Value.Default
         default LockWatchManager lockWatcher() {
-            return NoOpLockWatchManager.create();
+            return NoOpLockWatchManager.create(eventCache());
         }
 
         @Value.Default

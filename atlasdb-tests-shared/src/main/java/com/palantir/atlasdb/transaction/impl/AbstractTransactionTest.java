@@ -80,6 +80,7 @@ import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -138,7 +139,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 metricsManager,
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.create(),
+                NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimestamp,
