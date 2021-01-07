@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.factory.ImmutableTransactionManagerConsistencyResult;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
+import com.palantir.atlasdb.factory.TransactionManagerConsistencyResults;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
 import com.palantir.exception.NotInitializedException;
@@ -31,7 +32,7 @@ public class ConsistencyCheckRunnerTest {
     private static final RuntimeException EXCEPTION_2 = new RuntimeException("worse");
 
     private static final TransactionManagerConsistencyCheck CONSISTENT_CHECK =
-            getConsistencyCheckReturning(TransactionManagerConsistencyResult.CONSISTENT_RESULT);
+            getConsistencyCheckReturning(TransactionManagerConsistencyResults.CONSISTENT_RESULT);
     private static final TransactionManagerConsistencyCheck INDETERMINATE_CHECK =
             getConsistencyCheckReturning(ImmutableTransactionManagerConsistencyResult.builder()
                     .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.INDETERMINATE)

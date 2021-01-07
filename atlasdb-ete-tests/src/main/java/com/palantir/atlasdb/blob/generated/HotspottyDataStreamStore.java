@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.blob.generated;
 
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -84,7 +85,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
     private final BlobSchemaTableFactory tables;
 
     private HotspottyDataStreamStore(TransactionManager txManager, BlobSchemaTableFactory tables) {
-        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        this(txManager, tables, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 
     private HotspottyDataStreamStore(TransactionManager txManager, BlobSchemaTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {

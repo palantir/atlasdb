@@ -23,7 +23,9 @@ import org.immutables.value.Value;
  * determine that it is safe (or, at least, not obviously unsafe) to service requests.
  */
 @Value.Immutable
+@SuppressWarnings("ClassInitializationDeadlock")
 public interface TransactionManagerConsistencyResult {
+    @Deprecated
     TransactionManagerConsistencyResult CONSISTENT_RESULT = ImmutableTransactionManagerConsistencyResult.builder()
             .consistencyState(ConsistencyState.CONSISTENT)
             .build();

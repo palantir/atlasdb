@@ -20,10 +20,13 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.OptionalLong;
 import org.immutables.value.Value;
+import org.immutables.value.Value.Style.ImplementationVisibility;
 
 @Value.Immutable
+@Value.Style(visibility = ImplementationVisibility.PACKAGE)
 @JsonSerialize(as = ImmutableLockWatchInfo.class)
 @JsonDeserialize(as = ImmutableLockWatchInfo.class)
+@SuppressWarnings("ClassInitializationDeadlock")
 public interface LockWatchInfo {
     /**
      * Used to denote lock watch info for locks that are not watched, or more generally, for locks for which the state
