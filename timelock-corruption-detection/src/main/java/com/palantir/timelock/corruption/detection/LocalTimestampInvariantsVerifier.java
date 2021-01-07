@@ -78,7 +78,7 @@ public class LocalTimestampInvariantsVerifier {
                 .sorted(Comparator.comparingLong(Map.Entry::getKey))
                 .map(Map.Entry::getValue);
         return StreamEx.of(expectedSortedTimestamps)
-                        .pairMap((first, second) -> first >= second)
+                        .pairMap((first, second) -> first > second)
                         .anyMatch(x -> x)
                 ? CorruptionCheckViolation.CLOCK_WENT_BACKWARDS
                 : CorruptionCheckViolation.NONE;
