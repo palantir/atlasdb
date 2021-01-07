@@ -18,12 +18,35 @@ package com.palantir.timelock.corruption.detection;
 
 import static com.palantir.timelock.corruption.detection.LocalTimestampInvariantsVerifier.LEARNER_LOG_BATCH_SIZE_LIMIT;
 
+import com.palantir.timelock.corruption.detection.TimeLockCorruptionTestSetup.StateLogComponents;
+import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
+import java.util.stream.IntStream;
 import org.junit.Rule;
 import org.junit.Test;
 
 public class LocalTimestampInvariantsVerifierTest {
     @Rule
     public TimeLockCorruptionDetectionHelper helper = new TimeLockCorruptionDetectionHelper();
+
+    @Test
+    public void isHealthyIfTimestampsAreIncreasing() {
+        // write increasing timestamp values in range [1, LEARNER_LOG_BATCH_SIZE_LIMIT - 1]
+        helper.writeLogsOnDefaultLocalServer(1, LEARNER_LOG_BATCH_SIZE_LIMIT - 1);
+        helper.assertLocalTimestampInvariantsStandInNextBatch();
+    }
+
+    @Test
+    public void isHealthyIfTimestampsAreNonDecreasing() {
+        StateLogComponents localServer = helper.getDefaultLocalServer();
+        // write a constant timestamp value in range [1, LEARNER_LOG_BATCH_SIZE_LIMIT - 1]
+        IntStream.rangeClosed(1, LEARNER_LOG_BATCH_SIZE_LIMIT - 1)
+                .boxed()
+                .forEach(round -> PaxosSerializationTestUtils.writePaxosValue(
+                        localServer.learnerLog(),
+                        round,
+                        PaxosSerializationTestUtils.createPaxosValueForRoundAndData(round, 5)));
+        helper.assertLocalTimestampInvariantsStandInNextBatch();
+    }
 
     @Test
     public void detectsClockWentBackwardsOnNode() {
