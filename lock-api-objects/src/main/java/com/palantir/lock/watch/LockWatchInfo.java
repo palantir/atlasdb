@@ -20,10 +20,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.OptionalLong;
 import org.immutables.value.Value;
-import org.immutables.value.Value.Style.ImplementationVisibility;
 
 @Value.Immutable
-@Value.Style(visibility = ImplementationVisibility.PACKAGE)
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @JsonSerialize(as = ImmutableLockWatchInfo.class)
 @JsonDeserialize(as = ImmutableLockWatchInfo.class)
 @SuppressWarnings("ClassInitializationDeadlock")

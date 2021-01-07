@@ -19,6 +19,8 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@SuppressWarnings("ClassInitializationDeadlock")
 abstract class Token {
     @Nullable
     abstract byte[] row();
