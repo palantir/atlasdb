@@ -28,6 +28,7 @@ public interface StreamStorePersistenceConfiguration {
     @Deprecated
     StreamStorePersistenceConfiguration DEFAULT_CONFIG =
             ImmutableStreamStorePersistenceConfiguration.builder().build();
+
     /**
      * The number of blocks that a nontransactional storeStream() will store before pausing for
      * writePauseDurationMillis. For example, if a value of 5 is specified, then storeStream() will
