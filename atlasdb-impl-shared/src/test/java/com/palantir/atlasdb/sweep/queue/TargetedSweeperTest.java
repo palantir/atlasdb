@@ -948,7 +948,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         // second iteration should only contain writes corresponding to timestamp 1000 + minCellsToReachBatchSize
         sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
         verify(spiedKvs, atLeast(2)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
-        assertThat(map.getValue().size()).isEqualTo(relativePrime);
+        assertThat(map.getValue()).hasSize(relativePrime);
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(0)))
                 .isEqualTo(maxTsForFinePartition(0));
     }
@@ -978,7 +978,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         // second iteration of sweep should contain the remaining write
         sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
         verify(spiedKvs, atLeast(2)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
-        assertThat(map.getValue().size()).isEqualTo(1);
+        assertThat(map.getValue()).hasSize(1);
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(0)))
                 .isEqualTo(maxTsForFinePartition(0));
     }

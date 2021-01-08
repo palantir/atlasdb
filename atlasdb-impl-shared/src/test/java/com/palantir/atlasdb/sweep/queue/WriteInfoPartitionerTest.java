@@ -129,7 +129,7 @@ public class WriteInfoPartitionerTest {
                 getWriteInfo(THOROUGH, 0, 0, 100L));
 
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
-        assertThat(partitions.size()).isEqualTo(6);
+        assertThat(partitions).hasSize(6);
     }
 
     @Test

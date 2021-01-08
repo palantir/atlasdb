@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -139,7 +138,7 @@ public class NextTableToSweepProviderTest {
         whenGettingNextTableToSweep();
 
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
-        Assert.assertTrue(tableToSweep.isPresent());
+        assertThat(tableToSweep).isPresent();
         assertThat(ImmutableSet.of(table("table2"), table("table3"), table("table4")))
                 .contains(tableToSweep.get().getTableRef());
     }
@@ -264,23 +263,25 @@ public class NextTableToSweepProviderTest {
 
     private void thenProviderReturnsEmpty() {
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
-        Assert.assertFalse("expected to not have chosen a table!", tableToSweep.isPresent());
+        assertThat(tableToSweep)
+                .describedAs("expected to not have chosen a table!")
+                .isNotPresent();
     }
 
     private void thenTableChosenIs(TableReference table) {
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
-        Assert.assertTrue("expected to have chosen a table!", tableToSweep.isPresent());
+        assertThat(tableToSweep).describedAs("expected to have chosen a table!").isPresent();
         assertThat(tableToSweep.get().getTableRef()).isEqualTo(table);
     }
 
     private void thenTableIsChosenAtLeastOnce(TableReference table) {
-        Assert.assertTrue(
-                "expected table " + table + " to be chosen at least once, but wasn't!",
-                tablesToSweep.stream()
+        assertThat(tablesToSweep.stream()
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .map(TableToSweep::getTableRef)
-                        .anyMatch(chosenTable -> chosenTable.equals(table)));
+                        .anyMatch(chosenTable -> chosenTable.equals(table)))
+                .describedAs("expected table " + table + " to be chosen at least once, but wasn't!")
+                .isTrue();
     }
 
     // helpers

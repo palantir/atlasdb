@@ -103,7 +103,7 @@ public abstract class AbstractTimestampServiceTests {
 
         repeat(ONE_MILLION, () -> uniqueTimestamps.add(timestampService.getFreshTimestamp()));
 
-        Assertions.assertThat(uniqueTimestamps.size()).isEqualTo((int) ONE_MILLION);
+        Assertions.assertThat(uniqueTimestamps).hasSize((int) ONE_MILLION);
     }
 
     @Test(expected = IllegalArgumentException.class)
