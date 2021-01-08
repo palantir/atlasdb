@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.jackson;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -22,7 +24,6 @@ import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.ValueType;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class AtlasDeserializersTest {
@@ -37,7 +38,7 @@ public class AtlasDeserializersTest {
         byte[] row = AtlasDeserializers.deserializeRow(NAME_METADATA_DESCRIPTION, jsonNode);
         byte[] expectedRow = Bytes.concat(
                 ValueType.FIXED_LONG.convertFromString("68"), ValueType.STRING.convertFromString("Smeagol"));
-        Assert.assertArrayEquals(expectedRow, row);
+        assertThat(row).isEqualTo(expectedRow);
     }
 
     @Test
@@ -46,6 +47,6 @@ public class AtlasDeserializersTest {
         byte[] row = AtlasDeserializers.deserializeRow(NAME_METADATA_DESCRIPTION, jsonNode);
         byte[] expectedRow = Bytes.concat(
                 ValueType.FIXED_LONG.convertFromString("68"), ValueType.STRING.convertFromString("Smeagol"));
-        Assert.assertArrayEquals(expectedRow, row);
+        assertThat(row).isEqualTo(expectedRow);
     }
 }

@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -52,7 +54,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.LongSupplier;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -145,8 +146,10 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         List<SweepPriority> priorities =
                 txManager.runTaskReadOnly(tx -> SweepPriorityStoreImpl.create(kvs, SweepTableFactory.of(), false)
                         .loadNewPriorities(tx));
-        Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_1)));
-        Assert.assertTrue(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_2)));
+        assertThat(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_1)))
+                .isTrue();
+        assertThat(priorities.stream().anyMatch(p -> p.tableRef().equals(TABLE_2)))
+                .isTrue();
     }
 
     protected abstract KeyValueService getKeyValueService();
@@ -158,12 +161,12 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             while (iter.hasNext()) {
                 RowResult<Set<Long>> rr = iter.next();
                 numCells += rr.getColumns().size();
-                Assert.assertTrue(
-                        String.format("Found unswept values in %s!", tableRef.getQualifiedName()),
-                        rr.getColumns().values().stream()
-                                .allMatch(s -> s.size() == 1 || (conservative && s.size() == 2 && s.contains(-1L))));
+                assertThat(rr.getColumns().values().stream()
+                                .allMatch(s -> s.size() == 1 || (conservative && s.size() == 2 && s.contains(-1L))))
+                        .describedAs(String.format("Found unswept values in %s!", tableRef.getQualifiedName()))
+                        .isTrue();
             }
-            Assert.assertEquals(expectedCells, numCells);
+            assertThat(numCells).isEqualTo(expectedCells);
         }
     }
 

@@ -54,7 +54,7 @@ public class SweepableCellFilterTest {
         SweepableCellFilter filter =
                 new SweepableCellFilter(commitTsCache, Sweeper.CONSERVATIVE, sweepTimestampHigherThanCommitTimestamp);
         List<CellToSweep> cells = filter.getCellsToSweep(candidates).cells();
-        assertThat(cells.size()).isEqualTo(1);
+        assertThat(cells).hasSize(1);
         assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(LOW_START_TS);
     }
 
@@ -99,7 +99,7 @@ public class SweepableCellFilterTest {
                 .thenReturn(ImmutableMap.of(LOW_START_TS, TransactionConstants.FAILED_COMMIT_TS));
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.CONSERVATIVE, HIGH_START_TS);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
-        assertThat(cells.size()).isEqualTo(1);
+        assertThat(cells).hasSize(1);
         assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(LOW_START_TS);
     }
 
@@ -113,7 +113,7 @@ public class SweepableCellFilterTest {
         when(mockTransactionService.get(anyCollection())).thenReturn(ImmutableMap.of(LOW_START_TS, LOW_COMMIT_TS));
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.THOROUGH, HIGH_START_TS);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
-        assertThat(cells.size()).isEqualTo(1);
+        assertThat(cells).hasSize(1);
         assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(LOW_START_TS);
     }
 
@@ -127,7 +127,7 @@ public class SweepableCellFilterTest {
         when(mockTransactionService.get(anyCollection())).thenReturn(ImmutableMap.of());
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.THOROUGH, HIGH_START_TS);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
-        assertThat(cells.size()).isEqualTo(1);
+        assertThat(cells).hasSize(1);
         assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(Value.INVALID_VALUE_TIMESTAMP);
     }
 
@@ -159,7 +159,7 @@ public class SweepableCellFilterTest {
                 new SweepableCellFilter(commitTsCache, Sweeper.THOROUGH, sweepTimestampHigherThanCommitTimestamp);
         BatchOfCellsToSweep result = filter.getCellsToSweep(candidates);
         assertThat(result.lastCellExamined()).isEqualTo(ANOTHER_CELL);
-        assertThat(result.cells().size()).isEqualTo(2);
+        assertThat(result.cells()).hasSize(2);
         assertThat(result.numCellTsPairsExamined()).isEqualTo(3L);
         assertThat(result.cells().get(0).sortedTimestamps()).containsExactly(LOW_START_TS);
         assertThat(result.cells().get(1).sortedTimestamps()).containsExactly(HIGH_START_TS);

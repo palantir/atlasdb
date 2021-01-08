@@ -76,7 +76,7 @@ public class DbKvsPartitionersTest {
                 0, 1,
                 1, 99);
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
-        assertThat(partitioned.size()).isEqualTo(20);
+        assertThat(partitioned).hasSize(20);
         assertThat(partitioned.get(0))
                 .isEqualTo(ImmutableMap.of(
                         0, 1,

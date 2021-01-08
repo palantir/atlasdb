@@ -117,6 +117,6 @@ public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
 
     private void assertLatestValueInCellEquals(Cell cell, Value value) {
         Map<Cell, Value> result = getTestKvs().get(TEST_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
-        assertThat(result.get(cell)).isEqualTo(value);
+        assertThat(result).containsEntry(cell, value);
     }
 }

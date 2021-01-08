@@ -222,7 +222,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     public void canReadMultipleEntriesInSingleShardSameTransactionNotDedicated() {
         List<WriteInfo> writes = writeToCellsInFixedShard(sweepableCells, TS, 10, TABLE_CONS);
         SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_FINE_PARTITION, TS - 1, TS + 1);
-        assertThat(conservativeBatch.writes().size()).isEqualTo(10);
+        assertThat(conservativeBatch.writes()).hasSize(10);
         assertThat(conservativeBatch.writes()).hasSameElementsAs(writes);
     }
 
@@ -230,7 +230,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     public void canReadMultipleEntriesInSingleShardSameTransactionOneDedicated() {
         List<WriteInfo> writes = writeToCellsInFixedShard(sweepableCells, TS, MAX_CELLS_GENERIC * 2 + 1, TABLE_CONS);
         SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_FINE_PARTITION, TS - 1, TS + 1);
-        assertThat(conservativeBatch.writes().size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
+        assertThat(conservativeBatch.writes()).hasSize(MAX_CELLS_GENERIC * 2 + 1);
         assertThat(conservativeBatch.writes()).hasSameElementsAs(writes);
     }
 
@@ -248,7 +248,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         expectedResult.addAll(first.subList(middle.size(), first.size()));
 
         SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_FINE_PARTITION, TS - 1, TS + 3);
-        assertThat(conservativeBatch.writes().size()).isEqualTo(MAX_CELLS_GENERIC * 2 + 1);
+        assertThat(conservativeBatch.writes()).hasSize(MAX_CELLS_GENERIC * 2 + 1);
         assertThat(conservativeBatch.writes()).hasSameElementsAs(expectedResult);
     }
 
@@ -274,7 +274,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
             writeCommittedConservativeRowForTimestamp(i, iterationWrites);
         }
         SweepBatch conservativeBatch = readConservative(0, 0L, -1L, SMALL_SWEEP_TS);
-        assertThat(conservativeBatch.writes().size()).isEqualTo(SWEEP_BATCH_SIZE + 5);
+        assertThat(conservativeBatch.writes()).hasSize(SWEEP_BATCH_SIZE + 5);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(5);
         SweepMetricsAssert.assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(10 * iterationWrites + 1);
         SweepMetricsAssert.assertThat(metricsManager).hasEntriesReadConservativeEqualTo(5 * iterationWrites);
@@ -289,7 +289,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
             writeCommittedConservativeRowZero(i, iterationWrites);
         }
         SweepBatch conservativeBatch = readConservative(0, 0L, -1L, SMALL_SWEEP_TS);
-        assertThat(conservativeBatch.writes().size()).isEqualTo(iterationWrites);
+        assertThat(conservativeBatch.writes()).hasSize(iterationWrites);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(5);
         SweepMetricsAssert.assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(10 * iterationWrites + 1);
         SweepMetricsAssert.assertThat(metricsManager).hasEntriesReadConservativeEqualTo(5 * iterationWrites);
@@ -318,7 +318,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         List<WriteInfo> writes = writeCommittedConservativeRowForTimestamp(TS + 1, MAX_CELLS_DEDICATED + 1);
 
         SweepBatch conservativeBatch = readConservative(0, TS_FINE_PARTITION, TS, TS + 2);
-        assertThat(conservativeBatch.writes().size()).isEqualTo(writes.size());
+        assertThat(conservativeBatch.writes()).hasSize(writes.size());
         assertThat(conservativeBatch.writes()).contains(writes.get(0), writes.get(writes.size() - 1));
     }
 

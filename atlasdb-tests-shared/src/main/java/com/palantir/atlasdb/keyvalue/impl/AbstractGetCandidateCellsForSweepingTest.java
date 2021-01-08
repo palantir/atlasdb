@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -212,7 +211,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 }
             }
         }
-        assertEquals((1 + 50) * 50 / 2, expectedCells.size());
+        assertThat(expectedCells.size()).isEqualTo((1 + 50) * 50 / 2);
         builder.store();
         List<CandidateCellForSweeping> candidates = getAllCandidates(ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)
@@ -221,9 +220,8 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 .shouldDeleteGarbageCollectionSentinels(false)
                 .batchSizeHint(1)
                 .build());
-        assertEquals(
-                expectedCells,
-                candidates.stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()));
+        assertThat(candidates.stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()))
+                .isEqualTo(expectedCells);
     }
 
     protected List<CandidateCellForSweeping> getAllCandidates(CandidateCellForSweepingRequest request) {
