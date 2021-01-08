@@ -263,7 +263,9 @@ public class NextTableToSweepProviderTest {
 
     private void thenProviderReturnsEmpty() {
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
-        assertThat(tableToSweep).describedAs("expected to not have chosen a table!").isNotPresent();
+        assertThat(tableToSweep)
+                .describedAs("expected to not have chosen a table!")
+                .isNotPresent();
     }
 
     private void thenTableChosenIs(TableReference table) {

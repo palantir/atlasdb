@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -34,7 +33,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.assertj.core.api.HamcrestCondition;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -517,11 +515,11 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
     }
 
     private void thenTableHasPriority(TableReference table) {
-        assertThat(priorities.get(table)).is(new HamcrestCondition<>(greaterThan(0.0)));
+        assertThat(priorities.get(table)).isGreaterThan(0.0);
     }
 
     private void thenTableHasPriority(SweepPriorityHistory sweepPriorityHistory) {
-        assertThat(priorities.get(sweepPriorityHistory.tableRef)).is(new HamcrestCondition<>(greaterThan(0.0)));
+        assertThat(priorities.get(sweepPriorityHistory.tableRef)).isGreaterThan(0.0);
     }
 
     private void thenTableHasZeroPriority(SweepPriorityHistory sweepPriorityHistory) {
@@ -536,13 +534,13 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
             SweepPriorityHistory higherPriorityTable, SweepPriorityHistory lowerPriorityTable) {
         double priority1 = priorities.get(higherPriorityTable.tableRef);
         double priority2 = priorities.get(lowerPriorityTable.tableRef);
-        assertThat(priority1).is(new HamcrestCondition<>(greaterThan(priority2)));
+        assertThat(priority1).isGreaterThan(priority2);
     }
 
     private void thenHasHighestPriority(SweepPriorityHistory highPriorityTable) {
         // Don't want to constrain implementation to use MAX_DOUBLE in case we do something more nuanced in the future.
         double priority = priorities.get(highPriorityTable.tableRef);
-        assertThat(priority).is(new HamcrestCondition<>(greaterThan(1_000_000.0)));
+        assertThat(priority).isGreaterThan(1_000_000.0);
     }
 
     // helpers

@@ -16,9 +16,6 @@
 package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -32,7 +29,6 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import java.math.BigInteger;
 import java.util.Collections;
-import org.assertj.core.api.HamcrestCondition;
 import org.junit.Test;
 
 public class SynchronousLockClientTest {
@@ -58,8 +54,10 @@ public class SynchronousLockClientTest {
     public void lockRequestIsWrite() throws InterruptedException {
         when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer(invocation -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
-            assertThat(request.getLocks())
-                    .is(new HamcrestCondition<>(contains(hasProperty("lockMode", is(LockMode.WRITE)))));
+            assertThat(request.getLocks().stream()
+                            .filter(lock -> lock.getLockMode().equals(LockMode.WRITE))
+                            .findAny())
+                    .isPresent();
             return null;
         });
         LOCK_CLIENT.lock(CLIENT, LOCK_NAME);
