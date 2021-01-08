@@ -22,10 +22,12 @@ import org.immutables.value.Value.Immutable;
 public class SweepQueueReader {
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
-    private final ReadBatchingRuntimeConfig runtime;
+    private final ReadBatchingRuntimeContext runtime;
 
     SweepQueueReader(
-            SweepableTimestamps sweepableTimestamps, SweepableCells sweepableCells, ReadBatchingRuntimeConfig runtime) {
+            SweepableTimestamps sweepableTimestamps,
+            SweepableCells sweepableCells,
+            ReadBatchingRuntimeContext runtime) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;
         this.runtime = runtime;
@@ -52,8 +54,8 @@ public class SweepQueueReader {
     }
 
     @Immutable
-    public interface ReadBatchingRuntimeConfig {
-        ReadBatchingRuntimeConfig DEFAULT = ImmutableReadBatchingRuntimeConfig.builder()
+    public interface ReadBatchingRuntimeContext {
+        ReadBatchingRuntimeContext DEFAULT = ReadBatchingRuntimeContext.builder()
                 .maximumPartitions(() -> 1)
                 .cellsThreshold(() -> SweepQueueUtils.SWEEP_BATCH_SIZE)
                 .build();
@@ -61,5 +63,9 @@ public class SweepQueueReader {
         IntSupplier maximumPartitions();
 
         IntSupplier cellsThreshold();
+
+        static ImmutableReadBatchingRuntimeContext.Builder builder() {
+            return ImmutableReadBatchingRuntimeContext.builder();
+        }
     }
 }
