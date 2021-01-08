@@ -30,14 +30,16 @@ class SweepBatchAccumulator {
     private final Set<Long> finePartitions = new HashSet<>();
     private final List<SweepableCellsTable.SweepableCellsRow> accumulatedDedicatedRows = new ArrayList<>();
     private final long sweepTimestamp;
+    private final int batchSizeThreshold;
 
     private long progressTimestamp;
     private long entriesRead = 0;
     private boolean anyBatchesPresent = false;
     private boolean nextBatchAvailable = true;
 
-    SweepBatchAccumulator(long sweepTimestamp, long progressTimestamp) {
+    SweepBatchAccumulator(long sweepTimestamp, int batchSizeThreshold, long progressTimestamp) {
         this.sweepTimestamp = sweepTimestamp;
+        this.batchSizeThreshold = batchSizeThreshold;
         this.progressTimestamp = progressTimestamp;
     }
 
@@ -76,7 +78,7 @@ class SweepBatchAccumulator {
     }
 
     boolean shouldAcceptAdditionalBatch() {
-        return accumulatedWrites.size() < SweepQueueUtils.SWEEP_BATCH_SIZE
+        return accumulatedWrites.size() < batchSizeThreshold
                 && nextBatchAvailable
                 && progressTimestamp < (sweepTimestamp - 1);
     }

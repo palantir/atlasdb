@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.IntSupplier;
 import java.util.function.LongConsumer;
 
 /**
@@ -44,11 +45,13 @@ class SweepDelay {
     private final long maxPauseMillis;
     private final LongConsumer sweepDelayMetricsUpdater;
     private final AtomicLong currentPause;
+    private final IntSupplier readBatchThreshold;
 
-    SweepDelay(long configPause, LongConsumer sweepDelayMetricsUpdater) {
+    SweepDelay(long configPause, LongConsumer sweepDelayMetricsUpdater, IntSupplier readBatchThreshold) {
         this.maxPauseMillis = Math.max(DEFAULT_MAX_PAUSE_MILLIS, configPause);
         this.initialPause = Math.max(MIN_PAUSE_MILLIS, configPause);
         this.sweepDelayMetricsUpdater = sweepDelayMetricsUpdater;
+        this.readBatchThreshold = readBatchThreshold;
         this.currentPause = new AtomicLong(initialPause);
     }
 
@@ -77,9 +80,9 @@ class SweepDelay {
     }
 
     private long pauseTarget(long numSwept) {
-        if (numSwept <= BATCH_CELLS_LOW_THRESHOLD) {
+        if (numSwept <= Math.min(BATCH_CELLS_LOW_THRESHOLD, readBatchThreshold.getAsInt() - 1)) {
             return maxPauseMillis;
-        } else if (numSwept >= SweepQueueUtils.SWEEP_BATCH_SIZE) {
+        } else if (numSwept >= readBatchThreshold.getAsInt()) {
             return MIN_PAUSE_MILLIS;
         }
         return initialPause;

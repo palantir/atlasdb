@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class SweepBatchAccumulatorTest {
+    private static final int BATCH_SIZE = 100;
     private static final long SWEEP_TIMESTAMP = 3141592L;
     private static final long PROGRESS_TIMESTAMP = 16180L;
     private static final TableReference TABLE_REFERENCE_1 = TableReference.createWithEmptyNamespace("table");
@@ -52,7 +53,7 @@ public class SweepBatchAccumulatorTest {
 
     @Before
     public void setUp() {
-        accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, PROGRESS_TIMESTAMP);
+        accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, BATCH_SIZE, PROGRESS_TIMESTAMP);
     }
 
     @Test
@@ -226,6 +227,20 @@ public class SweepBatchAccumulatorTest {
     public void rejectsBatchesOnceSweepTimestampIsReached() {
         accumulator.accumulateBatch(
                 SweepBatch.of(ImmutableList.of(WRITE_INFO_1), NO_DEDICATED_ROWS, SWEEP_TIMESTAMP - 1));
+        assertThat(accumulator.shouldAcceptAdditionalBatch()).isFalse();
+    }
+
+    @Test
+    public void rejectsBatchesOnceCellLimitIsReached() {
+        accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, 3, PROGRESS_TIMESTAMP);
+        accumulator.accumulateBatch(
+                SweepBatch.of(ImmutableList.of(WRITE_INFO_1), NO_DEDICATED_ROWS, PROGRESS_TIMESTAMP + 177));
+        accumulator.accumulateBatch(
+                SweepBatch.of(ImmutableList.of(WRITE_INFO_2), NO_DEDICATED_ROWS, PROGRESS_TIMESTAMP + 288));
+
+        assertThat(accumulator.shouldAcceptAdditionalBatch()).isTrue();
+        accumulator.accumulateBatch(
+                SweepBatch.of(ImmutableList.of(WRITE_INFO_1), NO_DEDICATED_ROWS, PROGRESS_TIMESTAMP + 577));
         assertThat(accumulator.shouldAcceptAdditionalBatch()).isFalse();
     }
 }
