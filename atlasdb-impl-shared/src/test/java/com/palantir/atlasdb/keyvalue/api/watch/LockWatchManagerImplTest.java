@@ -17,10 +17,16 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +42,12 @@ public final class LockWatchManagerImplTest {
     @Mock
     private NamespacedConjureLockWatchingService lockWatchingService;
 
+    @Mock
+    private LockWatchReference lockWatchReference1;
+
+    @Mock
+    private LockWatchReference lockWatchReference2;
+
     private LockWatchManager manager;
 
     @Before
@@ -47,5 +59,21 @@ public final class LockWatchManagerImplTest {
     public void testDelegatesIsEnabled() {
         when(lockWatchEventCache.isEnabled()).thenReturn(false);
         assertThat(manager.isEnabled()).isFalse();
+    }
+
+    @Test
+    public void onlyWatchCurrentWatches() {
+        Set<LockWatchReference> firstReferences = ImmutableSet.of(lockWatchReference1, lockWatchReference2);
+        manager.registerPreciselyWatches(firstReferences);
+        // at least once as a background task also sends a startWatching request periodically, and this can race in the
+        // test.
+        verify(lockWatchingService, atLeastOnce())
+                .startWatching(
+                        LockWatchRequest.builder().references(firstReferences).build());
+        manager.registerPreciselyWatches(ImmutableSet.of(lockWatchReference1));
+        verify(lockWatchingService, atLeastOnce())
+                .startWatching(LockWatchRequest.builder()
+                        .references(lockWatchReference1)
+                        .build());
     }
 }

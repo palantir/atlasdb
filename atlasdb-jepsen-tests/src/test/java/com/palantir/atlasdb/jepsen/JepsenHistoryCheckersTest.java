@@ -30,7 +30,7 @@ public class JepsenHistoryCheckersTest {
         JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithTimestampCheckers();
 
         assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.TIMESTAMP_CHECKERS, checker);
-        assertThat(checker.getCheckers()).hasSize(JepsenHistoryCheckers.TIMESTAMP_CHECKERS.size());
+        assertThat(checker.getCheckers()).hasSameSizeAs(JepsenHistoryCheckers.TIMESTAMP_CHECKERS);
     }
 
     @Test
@@ -38,7 +38,7 @@ public class JepsenHistoryCheckersTest {
         JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithLockCheckers();
 
         assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.LOCK_CHECKERS, checker);
-        assertThat(checker.getCheckers()).hasSize(JepsenHistoryCheckers.LOCK_CHECKERS.size());
+        assertThat(checker.getCheckers()).hasSameSizeAs(JepsenHistoryCheckers.LOCK_CHECKERS);
     }
 
     @Test

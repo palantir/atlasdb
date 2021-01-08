@@ -123,7 +123,7 @@ public class PerformanceResultsTest {
         }
 
         // Hypothesis that means are the same cannot be rejected with confidence more than 0.5
-        assertThat(TestUtils.tTest(stats, downSampledStats, 1 - 0.5)).isEqualTo(false);
+        assertThat(TestUtils.tTest(stats, downSampledStats, 1 - 0.5)).isFalse();
         // The typical p value is 0.05, but I went with 0.5 because I can
         assertThat(TestUtils.homoscedasticTTest(stats, downSampledStats)).isGreaterThan(0.5d);
     }

@@ -16,6 +16,8 @@
 
 package com.palantir.lock.watch;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.v2.LockToken;
 import org.immutables.value.Value;
 
@@ -25,6 +27,8 @@ import org.immutables.value.Value;
  * have.
  */
 @Value.Immutable
+@JsonSerialize(as = ImmutableTransactionUpdate.class)
+@JsonDeserialize(as = ImmutableTransactionUpdate.class)
 public interface TransactionUpdate {
     long startTs();
 

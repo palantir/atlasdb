@@ -23,37 +23,37 @@ public class CassandraApiVersionTest {
     @Test
     public void version_19_36_0_does_not_support_cas() {
         CassandraApiVersion version = new CassandraApiVersion("19.36.0");
-        assertThat(version.supportsCheckAndSet()).isEqualTo(false);
+        assertThat(version.supportsCheckAndSet()).isFalse();
     }
 
     @Test
     public void version_19_37_0_supports_cas() {
         CassandraApiVersion version = new CassandraApiVersion("19.37.0");
-        assertThat(version.supportsCheckAndSet()).isEqualTo(true);
+        assertThat(version.supportsCheckAndSet()).isTrue();
     }
 
     @Test
     public void version_19_38_0_supports_cas() {
         CassandraApiVersion version = new CassandraApiVersion("19.38.0");
-        assertThat(version.supportsCheckAndSet()).isEqualTo(true);
+        assertThat(version.supportsCheckAndSet()).isTrue();
     }
 
     @Test
     public void version_20_1_0_supports_cas() {
         CassandraApiVersion version = new CassandraApiVersion("20.1.0");
-        assertThat(version.supportsCheckAndSet()).isEqualTo(true);
+        assertThat(version.supportsCheckAndSet()).isTrue();
     }
 
     @Test
     public void version_18_40_0_does_not_support_cas() {
         CassandraApiVersion version = new CassandraApiVersion("18.40.0");
-        assertThat(version.supportsCheckAndSet()).isEqualTo(false);
+        assertThat(version.supportsCheckAndSet()).isFalse();
     }
 
     @Test
     public void version_20_40_1_supports_cas() {
         CassandraApiVersion version = new CassandraApiVersion("20.40.1");
-        assertThat(version.supportsCheckAndSet()).isEqualTo(true);
+        assertThat(version.supportsCheckAndSet()).isTrue();
     }
 
     @Test(expected = UnsupportedOperationException.class)

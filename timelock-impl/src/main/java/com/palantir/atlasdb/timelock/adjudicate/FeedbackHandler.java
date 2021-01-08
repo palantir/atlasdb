@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -55,8 +54,7 @@ public class FeedbackHandler {
         this.timeLockClientFeedbackSink = TimeLockClientFeedbackSink.createAndInstrument(
                 metricsManager,
                 Caffeine.newBuilder()
-                        .expireAfterWrite(
-                                Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES)
+                        .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES)
                         .build());
         this.useAdjudication = useAdjudication;
     }

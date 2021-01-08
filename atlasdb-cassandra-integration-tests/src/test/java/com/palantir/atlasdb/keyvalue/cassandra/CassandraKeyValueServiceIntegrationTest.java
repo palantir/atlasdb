@@ -580,7 +580,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                         .build())
                 .setBloom_filter_fp_chance(0.1)
                 .setCaching("KEYS_ONLY")
-                .setDclocal_read_repair_chance(0.1)
+                .setDclocal_read_repair_chance(0.0)
                 .setMemtable_flush_period_in_ms(0)
                 .setDefault_time_to_live(0)
                 .setSpeculative_retry("NONE")

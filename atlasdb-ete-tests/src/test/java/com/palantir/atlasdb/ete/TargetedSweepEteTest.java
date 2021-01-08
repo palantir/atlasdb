@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -24,10 +23,9 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import org.awaitility.Awaitility;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class TargetedSweepEteTest {
@@ -55,8 +53,8 @@ public class TargetedSweepEteTest {
         assertThat(todoClient.doesNotExistBeforeTimestamp(100L, ts)).isFalse();
 
         todoClient.addTodoWithIdAndReturnTimestamp(100L, TODO);
-        Awaitility.waitAtMost(2, TimeUnit.MINUTES)
-                .pollInterval(2, TimeUnit.SECONDS)
+        Awaitility.waitAtMost(Duration.ofMinutes(2))
+                .pollInterval(Duration.ofSeconds(2))
                 .until(() -> todoClient.doesNotExistBeforeTimestamp(100L, ts));
     }
 
@@ -107,16 +105,16 @@ public class TargetedSweepEteTest {
     }
 
     private void assertDeleted(long idx, long hash, long meta, long val) {
-        Assert.assertThat(todoClient.numberOfCellsDeleted(INDEX_TABLE), equalTo(idx));
-        Assert.assertThat(todoClient.numberOfCellsDeleted(HASH_TABLE), equalTo(hash));
-        Assert.assertThat(todoClient.numberOfCellsDeleted(METADATA_TABLE), equalTo(meta));
-        Assert.assertThat(todoClient.numberOfCellsDeleted(VALUES_TABLE), equalTo(val));
+        assertThat(todoClient.numberOfCellsDeleted(INDEX_TABLE)).isEqualTo(idx);
+        assertThat(todoClient.numberOfCellsDeleted(HASH_TABLE)).isEqualTo(hash);
+        assertThat(todoClient.numberOfCellsDeleted(METADATA_TABLE)).isEqualTo(meta);
+        assertThat(todoClient.numberOfCellsDeleted(VALUES_TABLE)).isEqualTo(val);
     }
 
     private void assertDeletedAndSwept(long idx, long hash, long meta, long val) {
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(INDEX_TABLE), equalTo(idx));
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(HASH_TABLE), equalTo(hash));
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(METADATA_TABLE), equalTo(meta));
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(VALUES_TABLE), equalTo(val));
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(INDEX_TABLE)).isEqualTo(idx);
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(HASH_TABLE)).isEqualTo(hash);
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(METADATA_TABLE)).isEqualTo(meta);
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(VALUES_TABLE)).isEqualTo(val);
     }
 }

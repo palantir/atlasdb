@@ -69,7 +69,7 @@ public class FeedbackSinkTest {
 
     TimeLockClientFeedbackSink createSinkAndAddTestReport() {
         TimeLockClientFeedbackSink timeLockClientFeedbackSink = TimeLockClientFeedbackSink.create(Caffeine.newBuilder()
-                .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES)
+                .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES)
                 .ticker(FAKE_TICKER)
                 .build());
         registerTestReport(timeLockClientFeedbackSink);

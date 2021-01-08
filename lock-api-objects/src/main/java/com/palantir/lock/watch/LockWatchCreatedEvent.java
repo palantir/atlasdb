@@ -25,7 +25,6 @@ import java.util.Set;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @JsonSerialize(as = ImmutableLockWatchCreatedEvent.class)
 @JsonDeserialize(as = ImmutableLockWatchCreatedEvent.class)
 @JsonTypeName(LockWatchCreatedEvent.TYPE)

@@ -46,6 +46,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -247,12 +248,13 @@ public class TransactionManagerTest extends TransactionTestSetup {
         TimelockService timelock = mock(TimelockService.class);
         TimestampManagementService timeManagement = mock(TimestampManagementService.class);
         LockService mockLockService = mock(LockService.class);
+        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
                 timelock,
-                NoOpLockWatchManager.INSTANCE,
-                NoOpLockWatchEventCache.INSTANCE,
+                NoOpLockWatchManager.create(lockWatchEventCache),
+                lockWatchEventCache,
                 timeManagement,
                 mockLockService,
                 transactionService,

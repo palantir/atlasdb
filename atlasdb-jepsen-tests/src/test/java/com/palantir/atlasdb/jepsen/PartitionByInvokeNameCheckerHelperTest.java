@@ -123,7 +123,7 @@ public class PartitionByInvokeNameCheckerHelperTest {
         CheckerResult checkerResult = runPartitionChecker(() -> identityChecker, eventList);
 
         assertThat(checkerResult.valid()).isFalse();
-        assertThat(checkerResult.errors().size()).isEqualTo(eventList.size());
+        assertThat(checkerResult.errors()).hasSize(eventList.size());
         assertThat(checkerResult.errors()).containsOnlyElementsOf(eventList);
     }
 

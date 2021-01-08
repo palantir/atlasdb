@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Bump Apache commons-pool from 2.4.2 to 2.9.0.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5162

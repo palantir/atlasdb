@@ -32,6 +32,7 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
@@ -328,7 +329,7 @@ public class AsyncLockServiceEteTest {
         Stopwatch timer = Stopwatch.createStarted();
         long buffer = 250L;
         while (timer.elapsed(TimeUnit.MILLISECONDS) < timeout.getTimeMillis() + buffer) {
-            Uninterruptibles.sleepUninterruptibly(buffer, TimeUnit.MILLISECONDS);
+            Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(buffer));
         }
     }
 

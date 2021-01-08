@@ -44,7 +44,7 @@ public class EventTest {
         Event event = Event.fromKeywordMap(keywordMap);
 
         assertThat(event).isInstanceOf(InfoEvent.class);
-        assertThat(((InfoEvent) event).value().isPresent()).isFalse();
+        assertThat(((InfoEvent) event).value()).isNotPresent();
     }
 
     @Test

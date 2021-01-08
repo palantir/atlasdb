@@ -68,6 +68,8 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -321,8 +323,8 @@ public class StreamStoreRenderer {
                             StreamId,
                             ", StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());");
                     line();
-                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();");
-                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();");
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToStoredMetadata = new HashMap<>();");
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToUnstoredMetadata = new HashMap<>();");
                     line("for (Entry<", StreamId, ", StreamMetadata> e : streamIdsToMetadata.entrySet()) {");
                     {
                         line("long streamId = e.getKey();");
@@ -355,7 +357,7 @@ public class StreamStoreRenderer {
                     line("}");
                     line("putHashIndexTask(t, rowsToStoredMetadata);");
                     line();
-                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToMetadata = Maps.newHashMap();");
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToMetadata = new HashMap<>();");
                     line("rowsToMetadata.putAll(rowsToStoredMetadata);");
                     line("rowsToMetadata.putAll(rowsToUnstoredMetadata);");
                     line("mdTable.putMetadata(rowsToMetadata);");
@@ -449,7 +451,7 @@ public class StreamStoreRenderer {
                             "Map<",
                             StreamMetadataRow,
                             ", StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));");
-                    line("Map<", StreamId, ", StreamMetadata> ret = Maps.newHashMap();");
+                    line("Map<", StreamId, ", StreamMetadata> ret = new HashMap<>();");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : metadatas.entrySet()) {");
                     {
                         line("ret.put(e.getKey().getId(), e.getValue());");
@@ -481,7 +483,7 @@ public class StreamStoreRenderer {
                             ", ",
                             StreamHashAidxColumnValue,
                             "> m = idx.getRowsMultimap(rows);");
-                    line("Map<", StreamId, ", Sha256Hash> hashForStreams = Maps.newHashMap();");
+                    line("Map<", StreamId, ", Sha256Hash> hashForStreams = new HashMap<>();");
                     line("for (", StreamHashAidxRow, " r : m.keySet()) {");
                     {
                         line("for (", StreamHashAidxColumnValue, " v : m.get(r)) {");
@@ -501,7 +503,7 @@ public class StreamStoreRenderer {
                     line("}");
                     line("Map<", StreamId, ", StreamMetadata> metadata = getMetadata(t, hashForStreams.keySet());");
                     line();
-                    line("Map<Sha256Hash, ", StreamId, "> ret = Maps.newHashMap();");
+                    line("Map<Sha256Hash, ", StreamId, "> ret = new HashMap<>();");
                     line("for (Map.Entry<", StreamId, ", StreamMetadata> e : metadata.entrySet()) {");
                     {
                         line("if (e.getValue().getStatus() != Status.STORED) {");
@@ -522,7 +524,7 @@ public class StreamStoreRenderer {
             private void getHashIndexRowsForHashes() {
                 line("private Set<", StreamHashAidxRow, "> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {");
                 {
-                    line("Set<", StreamHashAidxRow, "> rows = Sets.newHashSet();");
+                    line("Set<", StreamHashAidxRow, "> rows = new HashSet<>();");
                     line("for (Sha256Hash h : hashes) {");
                     {
                         line("rows.add(", StreamHashAidxRow, ".of(h));");
@@ -541,7 +543,7 @@ public class StreamStoreRenderer {
                         StreamId,
                         "> ids) {");
                 {
-                    line("Set<", StreamMetadataRow, "> rows = Sets.newHashSet();");
+                    line("Set<", StreamMetadataRow, "> rows = new HashSet<>();");
                     line("for (", StreamId, " id : ids) {");
                     {
                         line("rows.add(", StreamMetadataRow, ".of(id));");
@@ -573,7 +575,7 @@ public class StreamStoreRenderer {
                         line("        \"Should only index successfully stored streams.\");");
                         line();
                         line("Sha256Hash hash = Sha256Hash.EMPTY;");
-                        line("if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {");
+                        line("if (!ByteString.EMPTY.equals(metadata.getHash())) {");
                         {
                             line("hash = new Sha256Hash(metadata.getHash().toByteArray());");
                         }
@@ -606,7 +608,7 @@ public class StreamStoreRenderer {
                     }
                     line("}");
 
-                    line("Set<", StreamMetadataRow, "> smRows = Sets.newHashSet();");
+                    line("Set<", StreamMetadataRow, "> smRows = new HashSet<>();");
                     line(
                             "Multimap<",
                             StreamHashAidxRow,
@@ -621,7 +623,7 @@ public class StreamStoreRenderer {
                     line(StreamMetadataTable, " table = tables.get", StreamMetadataTable, "(t);");
                     line("Map<", StreamMetadataRow, ", StreamMetadata> metadatas = table.getMetadatas(smRows);");
 
-                    line("Set<", StreamValueRow, "> streamValueToDelete = Sets.newHashSet();");
+                    line("Set<", StreamValueRow, "> streamValueToDelete = new HashSet<>();");
                     line("for (Entry<", StreamMetadataRow, ", StreamMetadata> e : metadatas.entrySet()) {");
                     {
                         line(StreamId, " streamId = e.getKey().getId();");
@@ -634,7 +636,7 @@ public class StreamStoreRenderer {
 
                         line("ByteString streamHash = e.getValue().getHash();");
                         line("Sha256Hash hash = Sha256Hash.EMPTY;");
-                        line("if (streamHash != com.google.protobuf.ByteString.EMPTY) {");
+                        line("if (!ByteString.EMPTY.equals(streamHash)) {");
                         {
                             line("hash = new Sha256Hash(streamHash.toByteArray());");
                         }
@@ -664,7 +666,7 @@ public class StreamStoreRenderer {
                         "> ids) {");
                 {
                     line(StreamMetadataTable, " metaTable = tables.get", StreamMetadataTable, "(t);");
-                    line("Set<", StreamMetadataRow, "> rows = Sets.newHashSet();");
+                    line("Set<", StreamMetadataRow, "> rows = new HashSet<>();");
                     line("for (", StreamId, " id : ids) {");
                     {
                         line("rows.add(", StreamMetadataRow, ".of(id));");
@@ -794,6 +796,7 @@ public class StreamStoreRenderer {
                 line("package ", packageName, ";");
                 line();
                 line("import java.util.Map;");
+                line("import java.util.HashSet;");
                 line("import java.util.Set;");
                 line();
                 line("import com.google.common.collect.Sets;");
@@ -911,6 +914,7 @@ public class StreamStoreRenderer {
                 line();
                 line("import java.util.Iterator;");
                 line("import java.util.Map;");
+                line("import java.util.HashSet;");
                 line("import java.util.Set;");
                 line("import java.util.stream.Collectors;");
                 line();
@@ -950,7 +954,7 @@ public class StreamStoreRenderer {
                     line(StreamIndexTable, " indexTable = tables.get", StreamIndexTable, "(t);");
                     line("Set<", StreamMetadataRow, "> rowsWithNoIndexEntries =");
                     line("                executeUnreferencedStreamDiagnostics(indexTable, rows);");
-                    line("Set<", StreamId, "> toDelete = Sets.newHashSet();");
+                    line("Set<", StreamId, "> toDelete = new HashSet<>();");
                     line("Map<", StreamMetadataRow, ", StreamMetadata> currentMetadata =");
                     line("        metaTable.getMetadatas(rows);");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : currentMetadata.entrySet()) {");
@@ -1013,7 +1017,7 @@ public class StreamStoreRenderer {
                                 + " convertToIdsForLogging(unreferencedStreamsByIterator)),");
                         line("        SafeArg.of(\"unreferencedByMultimap\","
                                 + " convertToIdsForLogging(unreferencedStreamsByMultimap)));");
-                        line("return Sets.newHashSet();");
+                        line("return new HashSet<>();");
                     }
                     line("} else {");
                     {
@@ -1115,6 +1119,8 @@ public class StreamStoreRenderer {
         MessageDigest.class,
         Collection.class,
         Optional.class,
+        HashMap.class,
+        HashSet.class,
         Map.class,
         Map.Entry.class,
         Set.class,

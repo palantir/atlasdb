@@ -27,7 +27,7 @@ import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +62,7 @@ public class ReadPunchTableCommand extends SingleBackendCommand {
         }
 
         Instant epochTimeInstant = Instant.ofEpochSecond(epochTime);
-        ZonedDateTime date = ZonedDateTime.ofInstant(epochTimeInstant, ZoneId.systemDefault());
+        ZonedDateTime date = ZonedDateTime.ofInstant(epochTimeInstant, ZoneOffset.UTC);
         printer.info(
                 "Input {} in epoch millis is {}",
                 SafeArg.of("epochMillis", epochTime),

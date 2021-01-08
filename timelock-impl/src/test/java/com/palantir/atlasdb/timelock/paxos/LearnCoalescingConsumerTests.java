@@ -26,10 +26,10 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosValue;
+import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,7 +75,7 @@ public class LearnCoalescingConsumerTests {
 
         // since remote requests are fired off and we don't wait for responses, we have to verify that they're called,
         // *eventually*
-        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> verify(remote).learn(remoteRequest));
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> verify(remote).learn(remoteRequest));
     }
 
     private static PaxosValue paxosValue(long round) {

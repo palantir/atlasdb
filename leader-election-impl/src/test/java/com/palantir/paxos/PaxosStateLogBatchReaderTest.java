@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -102,7 +101,7 @@ public class PaxosStateLogBatchReaderTest {
     @Test
     public void executionsGetBatched() throws IOException {
         when(mockLog.readRound(anyLong())).thenAnswer(invocation -> {
-            Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+            Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100));
             return valueForRound((long) invocation.getArguments()[0]).persistToBytes();
         });
 

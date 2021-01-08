@@ -133,7 +133,7 @@ public class SweepableCellFilterParametrizedTest {
     private CellToSweep getCellsToSweepFor() {
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, sweeper, SWEEP_TS);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
-        assertThat(cells.size()).isEqualTo(1);
+        assertThat(cells).hasSize(1);
         return Iterables.getOnlyElement(cells);
     }
 

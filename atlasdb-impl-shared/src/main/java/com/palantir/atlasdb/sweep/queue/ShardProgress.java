@@ -52,7 +52,9 @@ public class ShardProgress {
      * Returns the persisted number of shards for the sweep queue.
      */
     public int getNumberOfShards() {
-        return maybeGet(SHARD_COUNT_SAS).map(Long::intValue).orElse(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        return maybeGet(SHARD_COUNT_SAS)
+                .map(Long::intValue)
+                .orElse(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
     }
 
     /**
@@ -157,7 +159,8 @@ public class ShardProgress {
 
     private static boolean isDefaultValue(ShardAndStrategy shardAndStrategy, long oldVal) {
         return SweepQueueUtils.firstSweep(oldVal)
-                || (shardAndStrategy == SHARD_COUNT_SAS && oldVal == AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+                || (shardAndStrategy == SHARD_COUNT_SAS
+                        && oldVal == AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
     }
 
     static CheckAndSetRequest createNewCellRequest(ShardAndStrategy shardAndStrategy, byte[] colValNew) {

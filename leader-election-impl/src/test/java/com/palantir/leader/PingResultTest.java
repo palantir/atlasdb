@@ -50,7 +50,7 @@ public class PingResultTest {
 
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
             PingResult deserializedPingResult = (PingResult) in.readObject();
-            assertThat(deserializedPingResult.isLeader()).isEqualTo(true);
+            assertThat(deserializedPingResult.isLeader()).isTrue();
             assertThat(deserializedPingResult.timeLockVersion()).isEqualTo(Optional.of(timeLockVersion));
         }
     }

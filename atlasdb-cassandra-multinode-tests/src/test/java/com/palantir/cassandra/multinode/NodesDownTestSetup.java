@@ -24,8 +24,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.connection.DockerPort;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.ClassRule;
@@ -76,8 +76,8 @@ public abstract class NodesDownTestSetup {
     private static void killCassandraContainer(String containerName) throws IOException, InterruptedException {
         CONTAINERS.getContainer(containerName).kill();
         DockerPort containerPort = new DockerPort(containerName, CASSANDRA_THRIFT_PORT, CASSANDRA_THRIFT_PORT);
-        Awaitility.waitAtMost(10, TimeUnit.SECONDS)
-                .pollInterval(2, TimeUnit.SECONDS)
+        Awaitility.waitAtMost(Duration.ofSeconds(10))
+                .pollInterval(Duration.ofSeconds(2))
                 .until(() -> !containerPort.isListeningNow());
     }
 }

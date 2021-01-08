@@ -92,7 +92,7 @@ public class TicketsEncodingStrategyTest {
     public void storesLargeCommitTimestampsCompactly() {
         long highTimestamp = Long.MAX_VALUE - 1;
         byte[] commitTimestampEncoding = STRATEGY.encodeCommitTimestampAsValue(highTimestamp, highTimestamp + 1);
-        assertThat(commitTimestampEncoding.length).isEqualTo(1);
+        assertThat(commitTimestampEncoding).hasSize(1);
         assertThat(STRATEGY.decodeValueAsCommitTimestamp(highTimestamp, commitTimestampEncoding))
                 .isEqualTo(highTimestamp + 1);
     }
@@ -115,7 +115,7 @@ public class TicketsEncodingStrategyTest {
         Map<ByteString, List<Cell>> cellsGroupedByRow =
                 associatedCells.stream().collect(Collectors.groupingBy(cell -> ByteString.copyFrom(cell.getRowName())));
         for (List<Cell> cellsInEachRow : cellsGroupedByRow.values()) {
-            assertThat(cellsInEachRow.size()).isEqualTo(elementsExpectedPerRow);
+            assertThat(cellsInEachRow).hasSize(elementsExpectedPerRow);
         }
     }
 
@@ -127,7 +127,7 @@ public class TicketsEncodingStrategyTest {
                 .map(Cell::getRowName)
                 .map(ByteString::copyFrom)
                 .collect(Collectors.toSet());
-        assertThat(rowNamesForInitialRows.size()).isEqualTo(numPartitions);
+        assertThat(rowNamesForInitialRows).hasSize(numPartitions);
 
         // This test may be too strong.
         Map<Integer, Integer> rowsKeyedByFirstFourBits =
@@ -138,7 +138,7 @@ public class TicketsEncodingStrategyTest {
                         .collect(Collectors.toMap(
                                 Map.Entry::getKey, entry -> entry.getValue().size()));
         assertThat(rowsKeyedByFirstFourBits.values()).containsOnly(1);
-        assertThat(rowsKeyedByFirstFourBits.size()).isEqualTo(16);
+        assertThat(rowsKeyedByFirstFourBits).hasSize(16);
     }
 
     @Test
@@ -169,6 +169,6 @@ public class TicketsEncodingStrategyTest {
                 .boxed()
                 .map(STRATEGY::encodeStartTimestampAsCell)
                 .collect(Collectors.toSet());
-        assertThat(convertedCells.size()).isEqualTo(timestamps.length);
+        assertThat(convertedCells).hasSize(timestamps.length);
     }
 }

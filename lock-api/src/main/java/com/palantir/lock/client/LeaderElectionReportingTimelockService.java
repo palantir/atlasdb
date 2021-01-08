@@ -36,6 +36,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.timelock.feedback.LeaderElectionDuration;
 import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -54,12 +55,17 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LeaderElectionReportingTimelockService implements NamespacedConjureTimelockService {
+    private static final Logger log = LoggerFactory.getLogger(LeaderElectionReportingTimelockService.class);
+
     private final NamespacedConjureTimelockService delegate;
     private volatile LeaderElectionMetrics metrics;
     private final Clock clock;
     private volatile UUID leaderId = null;
+    private volatile LeaderElectionDuration lastComputedDuration = null;
     private Map<UUID, Instant> leadershipUpperBound = new ConcurrentHashMap<>();
     private Map<UUID, Instant> leadershipLowerBound = new ConcurrentHashMap<>();
 
@@ -164,6 +170,12 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         boolean election = !newLeader.equals(currentLeader);
 
         if (election) {
+            if (!newLeader.equals(leaderId)) {
+                log.info(
+                        "Apparent leader change from {} to {}.",
+                        SafeArg.of("old leader", leaderId),
+                        SafeArg.of("new leader", newLeader));
+            }
             leaderId = newLeader;
         }
 
@@ -229,13 +241,22 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
         }
 
         UUID secondToLastLongTermLeader = sortedLongTermLeaders.get(sortedLongTermLeaders.size() - 2);
-        return durationToNextLeader(lowerBounds, upperBounds, leaders, secondToLastLongTermLeader);
+        Optional<LeaderElectionDuration> leaderElectionDuration =
+                durationToNextLeader(lowerBounds, upperBounds, leaders, secondToLastLongTermLeader);
+        if (leaderElectionDuration.isPresent() && !leaderElectionDuration.get().equals(lastComputedDuration)) {
+            lastComputedDuration = leaderElectionDuration.get();
+            log.info(
+                    "Computed new leader election duration estimate {}.",
+                    SafeArg.of("leader election duration", leaderElectionDuration.get()));
+        }
+        return leaderElectionDuration;
     }
 
     private void clearOldLongTermLeaders(List<UUID> sortedLongTermLeaders) {
         for (int i = 0; i < sortedLongTermLeaders.size() - 2; i++) {
             leadershipLowerBound.remove(sortedLongTermLeaders.get(i));
             leadershipUpperBound.remove(sortedLongTermLeaders.get(i));
+            log.info("Cleared old long term leader {}.", SafeArg.of("id", sortedLongTermLeaders.get(i)));
         }
     }
 

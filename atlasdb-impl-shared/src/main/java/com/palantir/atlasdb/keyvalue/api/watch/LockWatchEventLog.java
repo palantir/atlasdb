@@ -58,7 +58,8 @@ final class LockWatchEventLog {
         Optional<LockWatchVersion> startVersion = lastKnownVersion.map(this::createStartVersion);
         LockWatchVersion currentVersion = getLatestVersionAndVerify(endVersion);
 
-        if (!startVersion.isPresent() || differentLeaderOrTooFarBehind(currentVersion, startVersion.get())) {
+        if (!startVersion.isPresent()
+                || differentLeaderOrTooFarBehind(currentVersion, lastKnownVersion.get(), startVersion.get())) {
             return new ClientLogEvents.Builder()
                     .clearCache(true)
                     .events(new LockWatchEvents.Builder()
@@ -102,9 +103,15 @@ final class LockWatchEventLog {
                 .build();
     }
 
-    private boolean differentLeaderOrTooFarBehind(LockWatchVersion currentVersion, LockWatchVersion startVersion) {
-        return !startVersion.id().equals(currentVersion.id())
-                || !eventStore.containsEntryLessThanOrEqualTo(startVersion.version());
+    private boolean differentLeaderOrTooFarBehind(
+            LockWatchVersion currentVersion, LockWatchVersion lastKnownVersion, LockWatchVersion startVersion) {
+        if (!startVersion.id().equals(currentVersion.id())) {
+            return true;
+        }
+        if (latestVersion.filter(lastKnownVersion::equals).isPresent()) {
+            return false;
+        }
+        return !eventStore.containsEntryLessThanOrEqualTo(startVersion.version());
     }
 
     private LockWatchVersion createStartVersion(LockWatchVersion startVersion) {

@@ -18,10 +18,10 @@ package com.palantir.atlasdb.sweep;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 public final class CommitTsCache {
     private static final Long ONE_MILLION = 1_000_000L;
@@ -30,7 +30,7 @@ public final class CommitTsCache {
     private CommitTsCache(TransactionService transactionService, long maxSize) {
         cache = Caffeine.newBuilder()
                 .maximumSize(maxSize)
-                .expireAfterAccess(5, TimeUnit.MINUTES)
+                .expireAfterAccess(Duration.ofMinutes(5))
                 .build(new AbortingCommitTsLoader(transactionService));
     }
 

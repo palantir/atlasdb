@@ -56,7 +56,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.MediaType;
 import org.junit.Before;
 import org.junit.Rule;
@@ -204,7 +203,7 @@ public class AtlasDbDialogueServiceProviderTest {
     }
 
     private void scheduleServerRecoveryAfterFiveSeconds() {
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(5));
         setupServersToGiveOutTimestamps();
     }
 

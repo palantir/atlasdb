@@ -103,7 +103,7 @@ public class SafeShutdownRunnerTest {
     private void closeAndAssertNumberOfTimeouts(SafeShutdownRunner runner, int number) {
         assertThatThrownBy(runner::close).isInstanceOf(RuntimeException.class).satisfies(exception -> {
             Throwable[] suppressed = exception.getSuppressed();
-            assertThat(suppressed.length).isEqualTo(number);
+            assertThat(suppressed).hasSize(number);
             Stream.of(suppressed).forEach(th -> assertThat(th).isInstanceOf(TimeoutException.class));
         });
     }

@@ -45,6 +45,7 @@ import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Assume;
@@ -161,7 +162,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 MetricsManagers.createForTests(),
                 keyValueService,
                 timelockService,
-                NoOpLockWatchManager.INSTANCE,
+                NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),

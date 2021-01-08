@@ -29,6 +29,8 @@ import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -39,6 +41,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Note on concurrency: We use a fair read write lock mechanism and synchronisation as follows:
@@ -57,6 +61,8 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings("UnstableApiUsage")
 public class LockWatchingServiceImpl implements LockWatchingService {
+    private static final Logger log = LoggerFactory.getLogger(LockWatchingServiceImpl.class);
+
     private final LockEventLog lockEventLog;
     private final AtomicReference<LockWatches> watches = new AtomicReference<>(LockWatches.create());
     private final ReadWriteLock watchesLock = new ReentrantReadWriteLock(true);
@@ -73,7 +79,16 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
         Optional<LockWatches> changes = addToWatches(locksToWatch);
+        changes.ifPresent(changedWatches -> log.info(
+                "New references watched",
+                SafeArg.of("sizeOfReferences", changedWatches.references().size()),
+                UnsafeArg.of("references", changedWatches.references())));
         changes.ifPresent(this::logLockWatchEvent);
+        Set<LockWatchReference> allReferences = watches.get().references();
+        log.info(
+                "All references currently watched",
+                SafeArg.of("sizeOfReferences", allReferences.size()),
+                UnsafeArg.of("allWatchedTables", allReferences));
     }
 
     @Override

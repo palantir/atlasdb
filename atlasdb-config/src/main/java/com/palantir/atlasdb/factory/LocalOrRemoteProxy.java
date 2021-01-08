@@ -22,6 +22,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -64,7 +65,7 @@ final class LocalOrRemoteProxy<T> extends AbstractInvocationHandler {
             } catch (InvocationTargetException e) {
                 Throwable targetException = e.getCause();
                 if (targetException instanceof NotCurrentLeaderException) {
-                    Uninterruptibles.sleepUninterruptibly(10, TimeUnit.MILLISECONDS);
+                    Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(10));
                     continue;
                 }
                 throw targetException;

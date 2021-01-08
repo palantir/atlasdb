@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: LockWatchManager now only re-registers the latest requested watches
+    as opposed to all watches registered up to that point.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5146

@@ -24,11 +24,11 @@ import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.timestamp.TimestampService;
 import java.io.File;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.awaitility.Awaitility;
-import org.awaitility.Durations;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -159,8 +159,8 @@ public class TimeLockMigrationEteTest {
     private static void waitUntil(Callable<Boolean> condition) {
         Awaitility.await()
                 .ignoreExceptions()
-                .atMost(Durations.TWO_MINUTES)
-                .pollInterval(Durations.TWO_SECONDS)
+                .atMost(Duration.ofMinutes(2))
+                .pollInterval(Duration.ofSeconds(2))
                 .until(condition);
     }
 

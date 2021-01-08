@@ -96,11 +96,11 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
                                 .serviceName(serviceName)
                                 .namespace(namespace)
                                 .build();
+                        Optional<LeaderElectionStatistics> maybeStatistics =
+                                leaderElectionReporter.map(LeaderElectionReportingTimelockService::getStatistics);
                         timeLockClientFeedbackServices.current().forEach(service -> {
                             reportClientFeedbackToService(feedbackReport, service);
-                            leaderElectionReporter
-                                    .map(LeaderElectionReportingTimelockService::getStatistics)
-                                    .ifPresent(stats -> reportLeaderElectionStatisticsToService(stats, service));
+                            maybeStatistics.ifPresent(stats -> reportLeaderElectionStatisticsToService(stats, service));
                         });
                     } catch (Exception e) {
                         log.warn("A problem occurred while reporting client feedback for timeLock adjudication.", e);

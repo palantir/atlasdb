@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,7 +38,6 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.function.Function;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,7 +82,7 @@ public class ScrubberTest {
 
         Scrubber theScrubber = getScrubber(mockKvs, mockStore, transactions);
 
-        assertTrue(theScrubber.isInitialized());
+        assertThat(theScrubber.isInitialized()).isTrue();
     }
 
     @Test
@@ -96,7 +94,7 @@ public class ScrubberTest {
 
         Scrubber theScrubber = getScrubber(mockKvs, mockStore, transactions);
 
-        assertFalse(theScrubber.isInitialized());
+        assertThat(theScrubber.isInitialized()).isFalse();
     }
 
     @Test
@@ -108,7 +106,7 @@ public class ScrubberTest {
 
         Scrubber theScrubber = getScrubber(mockKvs, mockStore, transactions);
 
-        assertFalse(theScrubber.isInitialized());
+        assertThat(theScrubber.isInitialized()).isFalse();
     }
 
     @Test
@@ -142,7 +140,7 @@ public class ScrubberTest {
 
         List<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue =
                 BatchingVisitables.copyToList(scrubStore.getBatchingVisitableScrubQueue(Long.MAX_VALUE, null, null));
-        Assert.assertEquals(ImmutableList.of(), scrubQueue);
+        assertThat(scrubQueue).isEmpty();
     }
 
     private Scrubber getScrubber(

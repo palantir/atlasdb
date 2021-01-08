@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -24,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import java.util.Optional;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -77,40 +78,40 @@ public abstract class AbstractSweepProgressStoreTest {
 
     @Test
     public void testLoadEmpty() {
-        Assert.assertFalse(progressStore.loadProgress(TABLE).isPresent());
+        assertThat(progressStore.loadProgress(TABLE)).isNotPresent();
     }
 
     @Test
     public void testSaveAndLoad() {
         progressStore.saveProgress(PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(TABLE));
+        assertThat(progressStore.loadProgress(TABLE)).isEqualTo(Optional.of(PROGRESS));
     }
 
     @Test
     public void testOtherTablesDoNotConflict() {
         progressStore.saveProgress(PROGRESS);
-        Assert.assertFalse(progressStore.loadProgress(OTHER_TABLE).isPresent());
+        assertThat(progressStore.loadProgress(OTHER_TABLE)).isNotPresent();
 
         progressStore.saveProgress(OTHER_PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(TABLE));
+        assertThat(progressStore.loadProgress(TABLE)).isEqualTo(Optional.of(PROGRESS));
     }
 
     @Test
     public void testOverwrite() {
         progressStore.saveProgress(PROGRESS);
         progressStore.saveProgress(SECOND_PROGRESS);
-        Assert.assertEquals(Optional.of(SECOND_PROGRESS), progressStore.loadProgress(TABLE));
+        assertThat(progressStore.loadProgress(TABLE)).isEqualTo(Optional.of(SECOND_PROGRESS));
     }
 
     @Test
     public void testClearOne() {
         progressStore.saveProgress(PROGRESS);
         progressStore.saveProgress(OTHER_PROGRESS);
-        Assert.assertEquals(Optional.of(PROGRESS), progressStore.loadProgress(TABLE));
+        assertThat(progressStore.loadProgress(TABLE)).isEqualTo(Optional.of(PROGRESS));
 
         progressStore.clearProgress(TABLE);
-        Assert.assertFalse(progressStore.loadProgress(TABLE).isPresent());
-        Assert.assertEquals(Optional.of(OTHER_PROGRESS), progressStore.loadProgress(OTHER_TABLE));
+        assertThat(progressStore.loadProgress(TABLE)).isNotPresent();
+        assertThat(progressStore.loadProgress(OTHER_TABLE)).isEqualTo(Optional.of(OTHER_PROGRESS));
     }
 
     @Test
@@ -119,7 +120,7 @@ public abstract class AbstractSweepProgressStoreTest {
         progressStore.clearProgress(TABLE);
         progressStore.saveProgress(SECOND_PROGRESS);
 
-        Assert.assertEquals(Optional.of(SECOND_PROGRESS), progressStore.loadProgress(TABLE));
+        assertThat(progressStore.loadProgress(TABLE)).isEqualTo(Optional.of(SECOND_PROGRESS));
     }
 
     @Test
@@ -128,7 +129,7 @@ public abstract class AbstractSweepProgressStoreTest {
         progressStore.clearProgress(TABLE);
         progressStore.clearProgress(TABLE);
 
-        Assert.assertFalse(progressStore.loadProgress(TABLE).isPresent());
+        assertThat(progressStore.loadProgress(TABLE)).isNotPresent();
     }
 
     @Test
@@ -139,7 +140,7 @@ public abstract class AbstractSweepProgressStoreTest {
 
         // Enforce initialisation, which is where we expect the legacy value to be read.
         SweepProgressStore newProgressStore = SweepProgressStoreImpl.create(kvs, false);
-        Assert.assertEquals(Optional.of(PROGRESS), newProgressStore.loadProgress(TABLE));
+        assertThat(newProgressStore.loadProgress(TABLE)).isEqualTo(Optional.of(PROGRESS));
     }
 
     @Test
@@ -150,11 +151,11 @@ public abstract class AbstractSweepProgressStoreTest {
 
         // Enforce initialisation, which is where we expect the legacy value to be read.
         SweepProgressStore newProgressStore = SweepProgressStoreImpl.create(kvs, false);
-        Assert.assertEquals(Optional.of(PROGRESS), newProgressStore.loadProgress(TABLE));
+        assertThat(newProgressStore.loadProgress(TABLE)).isEqualTo(Optional.of(PROGRESS));
         newProgressStore.saveProgress(SECOND_PROGRESS);
 
         // This will fail if the legacy value is not removed by the initialisation of newProgressStore
         SweepProgressStore newerProgressStore = SweepProgressStoreImpl.create(kvs, false);
-        Assert.assertEquals(Optional.of(SECOND_PROGRESS), newerProgressStore.loadProgress(TABLE));
+        assertThat(newerProgressStore.loadProgress(TABLE)).isEqualTo(Optional.of(SECOND_PROGRESS));
     }
 }

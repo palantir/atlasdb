@@ -468,12 +468,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue) {
+        LockWatchEventCache eventCache = NoOpLockWatchEventCache.create();
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.INSTANCE,
-                NoOpLockWatchEventCache.INSTANCE,
+                NoOpLockWatchManager.create(eventCache),
+                eventCache,
                 timestampManagementService,
                 lockService,
                 transactionService,

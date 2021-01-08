@@ -25,10 +25,10 @@ import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.atlasdb.todo.TodoSchema;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -88,7 +88,7 @@ public class CassandraTimestampsEteTest {
             throws IOException, InterruptedException {
         long firstWriteTimestamp = todoClient.addNamespacedTodoWithIdAndReturnTimestamp(ID, NAMESPACE, TODO);
         todoClient.addNamespacedTodoWithIdAndReturnTimestamp(ID, NAMESPACE, TODO_2);
-        sweepuntilNoValueExistsForNamespaceAtTimestamp(ID, firstWriteTimestamp, NAMESPACE);
+        sweepUntilNoValueExistsForNamespaceAtTimestamp(ID, firstWriteTimestamp, NAMESPACE);
 
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
 
@@ -116,14 +116,14 @@ public class CassandraTimestampsEteTest {
         sweepUntilConditionSatisfied(() -> todoClient.doesNotExistBeforeTimestamp(id, timestamp));
     }
 
-    private void sweepuntilNoValueExistsForNamespaceAtTimestamp(long id, long timestamp, String namespace) {
+    private void sweepUntilNoValueExistsForNamespaceAtTimestamp(long id, long timestamp, String namespace) {
         sweepUntilConditionSatisfied(
                 () -> todoClient.namespacedTodoDoesNotExistBeforeTimestamp(id, timestamp, namespace));
     }
 
     private void sweepUntilConditionSatisfied(BooleanSupplier predicate) {
-        Awaitility.waitAtMost(30, TimeUnit.SECONDS)
-                .pollInterval(1, TimeUnit.SECONDS)
+        Awaitility.waitAtMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     todoClient.runIterationOfTargetedSweep();
                     return predicate.getAsBoolean();

@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: TimelockResource no longer supports namespaces that start with `lw`
+    (in addition to the current banned prefix of `tl`).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5102

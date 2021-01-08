@@ -25,7 +25,7 @@ import javax.ws.rs.PathParam;
 /**
  * DO NOT add new endpoints in here. Instead, define them as Conjure endpoints.
  */
-@Path("/{namespace: (?!tl/)[a-zA-Z0-9_-]+}")
+@Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}")
 @Deprecated
 public final class TimeLockResource {
     private final TimelockNamespaces namespaces;
