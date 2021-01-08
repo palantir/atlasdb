@@ -101,8 +101,8 @@ public abstract class TargetedSweepRuntimeConfig {
     }
 
     /**
-     * This parameter can be set to reduce the batch size threshold that an iteration of targeted sweep will try not to
-     * exceed.
+     * This parameter can be set to set the batch size threshold that an iteration of targeted sweep will try not to
+     * exceed. This value must not exceed {@link SweepQueueUtils#MAX_CELLS_DEDICATED}.
      *
      * Must be less than or equal to {@link com.palantir.atlasdb.sweep.queue.SweepQueueUtils#SWEEP_BATCH_SIZE}
      */
@@ -122,10 +122,10 @@ public abstract class TargetedSweepRuntimeConfig {
     @Value.Check
     public void checkBatchCellThreshold() {
         Preconditions.checkArgument(
-                batchCellThreshold() <= SweepQueueUtils.SWEEP_BATCH_SIZE,
-                "This configuration can only be used to reduce the batch size from the default max value.",
+                batchCellThreshold() <= SweepQueueUtils.MAX_CELLS_DEDICATED,
+                "This configuration cannot be set to exceed the maximum number of cells in a dedicated row.",
                 SafeArg.of("config batch size", batchCellThreshold()),
-                SafeArg.of("default max batch size", SweepQueueUtils.SWEEP_BATCH_SIZE));
+                SafeArg.of("max cells in a dedicated row", SweepQueueUtils.MAX_CELLS_DEDICATED));
     }
 
     public static TargetedSweepRuntimeConfig defaultTargetedSweepRuntimeConfig() {
