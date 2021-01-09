@@ -47,7 +47,7 @@ public class TracingKvsTest extends AbstractKeyValueServiceTest {
     public void setUp() throws Exception {
         Tracer.initTrace(Optional.of(true), getClass().getSimpleName() + "." + Math.random());
         Tracer.subscribe(TEST_OBSERVER_NAME, new TestSpanObserver());
-        Tracer.startSpan("test", SpanType.LOCAL);
+        Tracer.fastStartSpan("test", SpanType.LOCAL);
         super.setUp();
     }
 

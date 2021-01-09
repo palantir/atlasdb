@@ -115,7 +115,7 @@ public class AwaitingLeadershipProxyTest {
         ListenableFuture<?> future = proxy.future();
         assertThat(future).isNotDone();
         inProgressCheck.set(StillLeadingStatus.NOT_LEADING);
-        assertThat(future.isDone());
+        assertThat(future).isDone();
         expect.expectCause(isA(NotCurrentLeaderException.class));
         future.get();
     }

@@ -29,6 +29,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+@SuppressWarnings("CheckReturnValue")
 public final class PersistentStorageConfigTests {
     private static final File CURRENT_WORKING_DIR = Files.currentFolder();
 

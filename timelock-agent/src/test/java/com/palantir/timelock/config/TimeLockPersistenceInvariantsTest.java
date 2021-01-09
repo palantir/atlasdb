@@ -125,6 +125,7 @@ public class TimeLockPersistenceInvariantsTest {
         return mockFile;
     }
 
+    @SuppressWarnings("CheckReturnValue")
     private void assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.Builder configBuilder) {
         PaxosInstallConfiguration installConfiguration = configBuilder.build();
         ImmutableTimeLockInstallConfiguration.builder()

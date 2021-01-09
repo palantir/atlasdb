@@ -28,6 +28,7 @@ import java.util.Optional;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+@SuppressWarnings("CheckReturnValue")
 public class AtlasDbConfigTest {
     private static final KeyValueServiceConfig KVS_CONFIG_WITHOUT_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final KeyValueServiceConfig KVS_CONFIG_WITH_OTHER_NAMESPACE = mock(KeyValueServiceConfig.class);

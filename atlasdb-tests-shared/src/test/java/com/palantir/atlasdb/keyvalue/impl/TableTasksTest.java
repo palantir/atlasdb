@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -153,7 +152,7 @@ public class TableTasksTest {
                 10,
                 1,
                 stats,
-                (transaction, partialDiff) -> Iterators.size(partialDiff));
+                (transaction, partialDiff) -> partialDiff.forEachRemaining(_unused -> {}));
         long sourceOnlyCells = 0;
         long commonCells = 0;
         for (Map.Entry<Integer, Integer> cell : keys1.entries()) {

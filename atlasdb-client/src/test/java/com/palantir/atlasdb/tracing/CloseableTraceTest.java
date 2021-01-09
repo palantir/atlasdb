@@ -42,7 +42,7 @@ public class CloseableTraceTest {
     public void after() throws Exception {
         Tracer.unsubscribe(NAME);
         Tracer.setSampler(AlwaysSampler.INSTANCE);
-        Tracer.completeSpan();
+        Tracer.fastCompleteSpan();
     }
 
     @Test

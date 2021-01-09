@@ -116,7 +116,6 @@ allprojects {
                 'CacheLoaderNull',
                 'CatchBlockLogException',
                 'CatchFail',
-                'CheckReturnValue',
                 'ClassNewInstance',
                 'CloseableProvides',
                 'DangerousCompletableFutureUsage',
