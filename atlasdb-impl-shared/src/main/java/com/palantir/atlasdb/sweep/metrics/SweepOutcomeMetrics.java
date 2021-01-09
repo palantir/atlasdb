@@ -35,8 +35,8 @@ import org.immutables.value.Value;
 
 @Value.Enclosing
 public final class SweepOutcomeMetrics {
-    public static final List<SweepOutcome> LEGACY_OUTCOMES = Arrays.asList(SweepOutcome.values());
-    public static final List<SweepOutcome> TARGETED_OUTCOMES = ImmutableList.of(
+    public static final ImmutableList<SweepOutcome> LEGACY_OUTCOMES = ImmutableList.copyOf(SweepOutcome.values());
+    public static final ImmutableList<SweepOutcome> TARGETED_OUTCOMES = ImmutableList.of(
             SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE,
             SweepOutcome.SUCCESS,
             SweepOutcome.ERROR,

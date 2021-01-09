@@ -35,7 +35,6 @@ import com.palantir.paxos.PaxosValue;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Supplier;
 import org.junit.Test;
 
@@ -44,7 +43,8 @@ public class LeadersTest {
     private static final SslConfiguration SSL_CONFIGURATION =
             SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
     private static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
-    private static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("https://foo:1234", "https://bar:5678");
+    private static final ImmutableSet<String> REMOTE_SERVICE_ADDRESSES =
+            ImmutableSet.of("https://foo:1234", "https://bar:5678");
     private static final Supplier<RemotingClientConfig> REMOTING_CLIENT_CONFIG = () -> RemotingClientConfigs.DEFAULT;
 
     @Test

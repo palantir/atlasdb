@@ -35,7 +35,6 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.List;
-import java.util.Map;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -45,14 +44,14 @@ public class LoggingArgsTest {
     private static final String ARG_NAME = "argName";
     private static final TableReference SAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.safe");
     private static final TableReference UNSAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.bar");
-    private static final List<TableReference> LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES =
-            Lists.newArrayList(SAFE_TABLE_REFERENCE, UNSAFE_TABLE_REFERENCE);
+    private static final ImmutableList<TableReference> LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES =
+            ImmutableList.of(SAFE_TABLE_REFERENCE, UNSAFE_TABLE_REFERENCE);
     private static final byte[] SAFE_TABLE_METADATA = AtlasDbConstants.GENERIC_TABLE_METADATA;
     private static final byte[] UNSAFE_TABLE_METADATA = TableMetadata.builder()
             .nameLogSafety(TableMetadataPersistence.LogSafety.UNSAFE)
             .build()
             .persistToBytes();
-    private static final Map<TableReference, byte[]> TABLE_REF_TO_METADATA = ImmutableMap.of(
+    private static final ImmutableMap<TableReference, byte[]> TABLE_REF_TO_METADATA = ImmutableMap.of(
             SAFE_TABLE_REFERENCE, SAFE_TABLE_METADATA,
             UNSAFE_TABLE_REFERENCE, UNSAFE_TABLE_METADATA);
 

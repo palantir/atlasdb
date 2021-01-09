@@ -30,15 +30,14 @@ import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocato
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
-import java.util.List;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Test;
 
 @SuppressWarnings("unchecked") // Mocks of parameterised types
 public class DelegatingClientAwareManagedTimestampServiceTest {
-    private static final List<Integer> RESIDUE_ONE = ImmutableList.of(1);
-    private static final List<Integer> RESIDUE_TWO = ImmutableList.of(2);
+    private static final ImmutableList<Integer> RESIDUE_ONE = ImmutableList.of(1);
+    private static final ImmutableList<Integer> RESIDUE_TWO = ImmutableList.of(2);
 
     private static final UUID UUID_ONE = UUID.randomUUID();
     private static final UUID UUID_TWO = UUID.randomUUID();

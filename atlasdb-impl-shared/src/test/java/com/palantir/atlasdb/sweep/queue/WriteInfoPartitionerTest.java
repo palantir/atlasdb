@@ -47,7 +47,7 @@ public class WriteInfoPartitionerTest {
     private static final TableReference CONSERVATIVE = getTableRef("conservative");
     private static final TableReference CONSERVATIVE2 = getTableRef("conservative2");
     private static final TableReference THOROUGH = getTableRef("thorough");
-    private static final Map<TableReference, byte[]> METADATA_MAP = ImmutableMap.of(
+    private static final ImmutableMap<TableReference, byte[]> METADATA_MAP = ImmutableMap.of(
             NOTHING, metadataBytes(TableMetadataPersistence.SweepStrategy.NOTHING),
             CONSERVATIVE, metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),
             CONSERVATIVE2, metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE),

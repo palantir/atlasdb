@@ -30,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -40,7 +39,7 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
     private static final TableReference UPPER_UPPER = TableReference.createFromFullyQualifiedName("TEST.TABLE");
     private static final TableReference LOWER_UPPER = TableReference.createFromFullyQualifiedName("test.TABLE");
     private static final TableReference LOWER_LOWER = TableReference.createFromFullyQualifiedName("test.table");
-    private static final List<TableReference> TABLES = ImmutableList.of(UPPER_UPPER, LOWER_UPPER, LOWER_LOWER);
+    private static final ImmutableList<TableReference> TABLES = ImmutableList.of(UPPER_UPPER, LOWER_UPPER, LOWER_LOWER);
     private static final byte[] BYTE_ARRAY = new byte[] {1};
     private static final byte[] SECOND_BYTE_ARRAY = new byte[] {2};
     private static final Cell CELL = Cell.create(BYTE_ARRAY, BYTE_ARRAY);

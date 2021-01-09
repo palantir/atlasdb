@@ -26,7 +26,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.IntStream;
 import org.junit.Test;
 
@@ -35,7 +34,8 @@ public class TransactionOutcomeMetricsTest {
 
     private static final TableReference SAFE_REFERENCE_1 = TableReference.create(NAMESPACE, "safe1");
     private static final TableReference SAFE_REFERENCE_2 = TableReference.create(NAMESPACE, "safe2");
-    private static final Set<TableReference> SAFE_REFERENCES = ImmutableSet.of(SAFE_REFERENCE_1, SAFE_REFERENCE_2);
+    private static final ImmutableSet<TableReference> SAFE_REFERENCES =
+            ImmutableSet.of(SAFE_REFERENCE_1, SAFE_REFERENCE_2);
 
     private static final TableReference UNSAFE_REFERENCE_1 = TableReference.create(NAMESPACE, "PII");
     private static final TableReference UNSAFE_REFERENCE_2 = TableReference.create(NAMESPACE, "topSecret");

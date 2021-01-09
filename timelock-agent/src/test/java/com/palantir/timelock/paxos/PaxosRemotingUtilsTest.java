@@ -38,7 +38,7 @@ import java.util.Optional;
 import org.junit.Test;
 
 public class PaxosRemotingUtilsTest {
-    private static final List<String> CLUSTER_URIS = ImmutableList.of("foo:1", "bar:2", "baz:3");
+    private static final ImmutableList<String> CLUSTER_URIS = ImmutableList.of("foo:1", "bar:2", "baz:3");
 
     private static final ClusterConfiguration NO_SSL_CLUSTER = ImmutableDefaultClusterConfiguration.builder()
             .localServer("foo:1")

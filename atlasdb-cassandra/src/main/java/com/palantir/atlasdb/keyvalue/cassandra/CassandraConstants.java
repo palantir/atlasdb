@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Set;
 
 public final class CassandraConstants {
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
@@ -29,7 +28,7 @@ public final class CassandraConstants {
     static final String NETWORK_STRATEGY = "org.apache.cassandra.locator.NetworkTopologyStrategy";
 
     // They're both ordered, we just had to change the name to accommodate datastax client-side driver handling
-    static final Set<String> ALLOWED_PARTITIONERS = ImmutableSet.of(
+    static final ImmutableSet<String> ALLOWED_PARTITIONERS = ImmutableSet.of(
             "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbPartitioner",
             "com.palantir.atlasdb.keyvalue.cassandra.dht.AtlasDbOrderedPartitioner",
             "org.apache.cassandra.dht.ByteOrderedPartitioner");

@@ -35,7 +35,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,13 +43,13 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class SweepableCellFilterParametrizedTest {
-    private static final Set<Boolean> BOOLEANS = ImmutableSet.of(true, false);
+    private static final ImmutableSet<Boolean> BOOLEANS = ImmutableSet.of(true, false);
 
     private static final Cell SINGLE_CELL =
             Cell.create("cellRow".getBytes(StandardCharsets.UTF_8), "cellCol".getBytes(StandardCharsets.UTF_8));
-    private static final List<Long> COMMITTED_BEFORE = ImmutableList.of(10L, 20L, 30L, 40L);
-    private static final List<Long> COMMITTED_AFTER = ImmutableList.of(13L, 23L, 33L);
-    private static final List<Long> ABORTED_TS = ImmutableList.of(16L, 26L, 36L);
+    private static final ImmutableList<Long> COMMITTED_BEFORE = ImmutableList.of(10L, 20L, 30L, 40L);
+    private static final ImmutableList<Long> COMMITTED_AFTER = ImmutableList.of(13L, 23L, 33L);
+    private static final ImmutableList<Long> ABORTED_TS = ImmutableList.of(16L, 26L, 36L);
     private static final long SWEEP_TS = 50L;
     private static final long LAST_TS = SWEEP_TS - 5;
 

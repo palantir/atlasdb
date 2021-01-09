@@ -22,7 +22,6 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import java.util.Set;
 
 public final class TransactionConstants {
     private TransactionConstants() {
@@ -45,7 +44,7 @@ public final class TransactionConstants {
 
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
     public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
-    public static final Set<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS =
+    public static final ImmutableSet<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS =
             ImmutableSet.of(DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION, TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
 
     public static byte[] getValueForTimestamp(long transactionTimestamp) {

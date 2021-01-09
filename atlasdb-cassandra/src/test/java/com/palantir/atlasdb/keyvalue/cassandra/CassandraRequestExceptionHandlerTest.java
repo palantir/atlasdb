@@ -25,8 +25,6 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import java.net.SocketTimeoutException;
 import java.util.Collection;
 import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.TimedOutException;
@@ -42,25 +40,26 @@ public class CassandraRequestExceptionHandlerTest {
     private static final int MAX_RETRIES_PER_HOST = 3;
     private static final int MAX_RETRIES_TOTAL = 6;
 
-    private static final Set<Exception> CONNECTION_EXCEPTIONS = ImmutableSet.of(
+    private static final ImmutableSet<Exception> CONNECTION_EXCEPTIONS = ImmutableSet.of(
             new SocketTimeoutException(MESSAGE),
             new CassandraClientFactory.ClientCreationFailedException(MESSAGE, CAUSE));
-    private static final Set<Exception> TRANSIENT_EXCEPTIONS = ImmutableSet.of(new TTransportException());
-    private static final Set<Exception> INDICATIVE_OF_CASSANDRA_LOAD_EXCEPTIONS = ImmutableSet.of(
+    private static final ImmutableSet<Exception> TRANSIENT_EXCEPTIONS = ImmutableSet.of(new TTransportException());
+    private static final ImmutableSet<Exception> INDICATIVE_OF_CASSANDRA_LOAD_EXCEPTIONS = ImmutableSet.of(
             new NoSuchElementException(),
             new TimedOutException(),
             new UnavailableException(),
             new InsufficientConsistencyException(MESSAGE));
-    private static final Set<Exception> FAST_FAILOVER_EXCEPTIONS = ImmutableSet.of(new InvalidRequestException());
-    private static final Set<Exception> ALL_EXCEPTIONS = Stream.of(
+    private static final ImmutableSet<Exception> FAST_FAILOVER_EXCEPTIONS =
+            ImmutableSet.of(new InvalidRequestException());
+    private static final ImmutableSet<Exception> ALL_EXCEPTIONS = Stream.of(
                     CONNECTION_EXCEPTIONS,
                     TRANSIENT_EXCEPTIONS,
                     INDICATIVE_OF_CASSANDRA_LOAD_EXCEPTIONS,
                     FAST_FAILOVER_EXCEPTIONS)
             .flatMap(Collection::stream)
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
 
-    private static final Set<Exception> NOT_IMPLICATING_NODES_EXCEPTIONS =
+    private static final ImmutableSet<Exception> NOT_IMPLICATING_NODES_EXCEPTIONS =
             ImmutableSet.of(new InsufficientConsistencyException(MESSAGE), new NoSuchElementException());
 
     private boolean currentMode = true;

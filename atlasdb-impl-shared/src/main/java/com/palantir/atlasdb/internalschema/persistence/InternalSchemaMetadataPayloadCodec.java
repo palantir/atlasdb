@@ -24,7 +24,6 @@ import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -40,7 +39,7 @@ public final class InternalSchemaMetadataPayloadCodec {
      * Mapping of supported schema versions to transforms that are able to deserialize serialized representations of
      * the metadata object associated with that version to a common {@link InternalSchemaMetadata} object.
      */
-    private static final Map<Integer, Function<byte[], InternalSchemaMetadata>> SUPPORTED_DECODERS =
+    private static final ImmutableMap<Integer, Function<byte[], InternalSchemaMetadata>> SUPPORTED_DECODERS =
             ImmutableMap.of(LATEST_VERSION, InternalSchemaMetadataPayloadCodec::decodeViaJson);
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();

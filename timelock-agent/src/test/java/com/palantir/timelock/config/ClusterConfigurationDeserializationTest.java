@@ -26,14 +26,13 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
-import java.util.Set;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class ClusterConfigurationDeserializationTest {
     private static final String LOCAL_SERVER = "https://server-2:8421";
-    private static final Set<String> SERVERS =
+    private static final ImmutableSet<String> SERVERS =
             ImmutableSet.of("https://server-1:8421", LOCAL_SERVER, "https://server-3:8421");
 
     private static final File CLUSTER_CONFIG_NO_TYPE_INFO = getClusterConfigFile("no-type-info");

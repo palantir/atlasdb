@@ -149,7 +149,6 @@ allprojects {
                 'MockitoInternalUsage',
                 'ModifiedButNotUsed',
                 'ModifyCollectionInEnhancedForLoop',
-                'MutableConstantField',
                 'NarrowingCompoundAssignment',
                 'NonAtomicVolatileUpdate',
                 'NullOptional',

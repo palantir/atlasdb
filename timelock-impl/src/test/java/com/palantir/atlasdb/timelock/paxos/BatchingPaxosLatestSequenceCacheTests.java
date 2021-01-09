@@ -43,7 +43,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
     private static final Client CLIENT_1 = Client.of("client-1");
     private static final Client CLIENT_2 = Client.of("client-2");
     private static final Client CLIENT_3 = Client.of("client-3");
-    private static final Map<Client, PaxosLong> INITIAL_UPDATES = ImmutableMap.<Client, PaxosLong>builder()
+    private static final ImmutableMap<Client, PaxosLong> INITIAL_UPDATES = ImmutableMap.<Client, PaxosLong>builder()
             .put(CLIENT_1, PaxosLong.of(5L))
             .put(CLIENT_2, PaxosLong.of(10L))
             .put(CLIENT_3, PaxosLong.of(15L))

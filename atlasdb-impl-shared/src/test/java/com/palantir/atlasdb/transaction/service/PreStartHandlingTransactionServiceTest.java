@@ -32,7 +32,6 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.util.List;
 import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
@@ -49,10 +48,12 @@ public class PreStartHandlingTransactionServiceTest {
     private static final long NEGATIVE_TIMESTAMP = -125L;
     private static final long BEFORE_TIME_TIMESTAMP = AtlasDbConstants.STARTING_TS - 1;
 
-    private static final List<Long> TWO_VALID_TIMESTAMPS =
+    private static final ImmutableList<Long> TWO_VALID_TIMESTAMPS =
             ImmutableList.of(START_TIMESTAMP, UNCOMMITTED_START_TIMESTAMP);
-    private static final List<Long> ONE_VALID_ONE_INVALID_TIMESTAMP = ImmutableList.of(START_TIMESTAMP, ZERO_TIMESTAMP);
-    private static final List<Long> TWO_INVALID_TIMESTAMPS = ImmutableList.of(ZERO_TIMESTAMP, NEGATIVE_TIMESTAMP);
+    private static final ImmutableList<Long> ONE_VALID_ONE_INVALID_TIMESTAMP =
+            ImmutableList.of(START_TIMESTAMP, ZERO_TIMESTAMP);
+    private static final ImmutableList<Long> TWO_INVALID_TIMESTAMPS =
+            ImmutableList.of(ZERO_TIMESTAMP, NEGATIVE_TIMESTAMP);
 
     @Before
     public void setUpMocks() {

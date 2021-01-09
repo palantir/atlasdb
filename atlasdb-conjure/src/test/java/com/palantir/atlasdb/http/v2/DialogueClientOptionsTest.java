@@ -28,13 +28,12 @@ import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.nio.file.Paths;
-import java.util.List;
 import org.junit.Test;
 
 public class DialogueClientOptionsTest {
     private static final String SERVICE_NAME = "service";
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(SERVICE_NAME, "1.2.3"));
-    private static final List<String> SERVERS = ImmutableList.of("apple", "banana", "cherry", "dewberry");
+    private static final ImmutableList<String> SERVERS = ImmutableList.of("apple", "banana", "cherry", "dewberry");
     private static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(Paths.get("a", "b"));
 
     private static final AuxiliaryRemotingParameters REMOTING_PARAMETERS_EXTENDED_TIMEOUT =

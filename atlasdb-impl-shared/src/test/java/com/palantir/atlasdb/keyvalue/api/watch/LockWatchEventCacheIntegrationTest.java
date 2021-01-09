@@ -99,13 +99,14 @@ public class LockWatchEventCacheIntegrationTest {
     private static final LockWatchStateUpdate SUCCESS = LockWatchStateUpdate.success(
             LEADER, SUCCESS_VERSION, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT));
     private static final long START_TS = 1L;
-    private static final Set<TransactionUpdate> COMMIT_UPDATE = ImmutableSet.of(ImmutableTransactionUpdate.builder()
-            .startTs(START_TS)
-            .commitTs(5L)
-            .writesToken(COMMIT_TOKEN)
-            .build());
-    private static final Set<Long> TIMESTAMPS = ImmutableSet.of(START_TS);
-    private static final Set<Long> TIMESTAMPS_2 = ImmutableSet.of(16L);
+    private static final ImmutableSet<TransactionUpdate> COMMIT_UPDATE =
+            ImmutableSet.of(ImmutableTransactionUpdate.builder()
+                    .startTs(START_TS)
+                    .commitTs(5L)
+                    .writesToken(COMMIT_TOKEN)
+                    .build());
+    private static final ImmutableSet<Long> TIMESTAMPS = ImmutableSet.of(START_TS);
+    private static final ImmutableSet<Long> TIMESTAMPS_2 = ImmutableSet.of(16L);
     private static final String BASE = "src/test/resources/lockwatch-event-cache-output/";
     private static final Mode MODE = Mode.CI;
 

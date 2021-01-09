@@ -29,7 +29,6 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -37,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import java.nio.charset.StandardCharsets;
-import java.util.Set;
 import org.junit.Test;
 import org.mockito.InOrder;
 
@@ -46,8 +44,8 @@ public class CellsSweeperShould {
     private static final Cell SINGLE_CELL =
             Cell.create("cellRow".getBytes(StandardCharsets.UTF_8), "cellCol".getBytes(StandardCharsets.UTF_8));
 
-    private static final Set<Cell> SINGLE_CELL_SET = ImmutableSet.of(SINGLE_CELL);
-    private static final Multimap<Cell, Long> SINGLE_CELL_TS_PAIR = ImmutableMultimap.<Cell, Long>builder()
+    private static final ImmutableSet<Cell> SINGLE_CELL_SET = ImmutableSet.of(SINGLE_CELL);
+    private static final ImmutableMultimap<Cell, Long> SINGLE_CELL_TS_PAIR = ImmutableMultimap.<Cell, Long>builder()
             .putAll(
                     Cell.create(
                             "cellPairRow".getBytes(StandardCharsets.UTF_8),
