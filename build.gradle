@@ -147,7 +147,6 @@ allprojects {
                 'MissingSummary',
                 'MixedMutabilityReturnType',
                 'MockitoInternalUsage',
-                'ModifiedButNotUsed',
                 'ModifyCollectionInEnhancedForLoop',
                 'NarrowingCompoundAssignment',
                 'NonAtomicVolatileUpdate',

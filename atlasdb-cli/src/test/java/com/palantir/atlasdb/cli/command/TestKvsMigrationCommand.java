@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cli.command;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ObjectArrays;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
@@ -132,11 +131,9 @@ public class TestKvsMigrationCommand {
         for (int i = 0; i < numTables; i++) {
             TableReference table = getTableRef(i);
             services.getTransactionManager().runTaskThrowOnConflict(t -> {
-                ImmutableSet.Builder<Cell> toRead = ImmutableSet.builder();
                 ImmutableMap.Builder<Cell, byte[]> expectedBuilder = ImmutableMap.builder();
                 for (int j = 0; j < numEntriesPerTable; j++) {
                     Cell cell = Cell.create(PtBytes.toBytes("row" + j), PtBytes.toBytes("col"));
-                    toRead.add(cell);
                     expectedBuilder.put(cell, PtBytes.toBytes("val" + j));
                 }
                 Map<Cell, byte[]> expected = expectedBuilder.build();
