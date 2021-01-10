@@ -57,13 +57,6 @@ public class PuncherTest {
     private final PuncherStore puncherStore;
     private final KeyValueService kvs;
 
-    private final Clock clock = new Clock() {
-        @Override
-        public long getTimeMillis() {
-            return timeMillis;
-        }
-    };
-
     public PuncherTest(PuncherStore puncherStore, KeyValueService kvs) {
         this.puncherStore = puncherStore;
         this.kvs = kvs;
@@ -77,6 +70,8 @@ public class PuncherTest {
     }
 
     long timeMillis = 0;
+
+    private final Clock clock = () -> timeMillis;
 
     final long firstPunchTimestamp = 33L;
     final long secondPunchTimestamp = 35L;
