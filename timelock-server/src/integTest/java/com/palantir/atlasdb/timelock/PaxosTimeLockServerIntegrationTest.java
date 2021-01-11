@@ -32,8 +32,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
-import java.util.List;
-import java.util.SortedMap;
 import org.awaitility.Awaitility;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -52,7 +50,8 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_3 = "test3";
     private static final String LEARNER = "learner";
     private static final String ACCEPTOR = "acceptor";
-    private static final List<String> NAMESPACES = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3, LEARNER, ACCEPTOR);
+    private static final ImmutableList<String> NAMESPACES =
+            ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3, LEARNER, ACCEPTOR);
     private static final String INVALID_CLIENT = "test2\b";
 
     private static final long ONE_MILLION = 1000000;
@@ -61,7 +60,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static final String LOCK_CLIENT_NAME = "remoteLock-client-name";
     private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
-    private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP = ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
+    private static final ImmutableSortedMap<LockDescriptor, LockMode> LOCK_MAP =
+            ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
 
     private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
     private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
