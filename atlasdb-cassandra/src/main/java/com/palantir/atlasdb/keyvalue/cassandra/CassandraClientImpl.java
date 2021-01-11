@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.apache.cassandra.thrift.CASResult;
@@ -62,7 +61,7 @@ public class CassandraClientImpl implements CassandraClient {
     private volatile AtomicReference<Throwable> invalidated = new AtomicReference<>();
 
     // Client is considered to be invalid if a blacklisted exception is thrown.
-    private static final Set<Class> BLACKLISTED_EXCEPTIONS =
+    private static final ImmutableSet<Class> BLACKLISTED_EXCEPTIONS =
             ImmutableSet.of(TTransportException.class, TProtocolException.class, NoSuchElementException.class);
 
     public CassandraClientImpl(Cassandra.Client client) {

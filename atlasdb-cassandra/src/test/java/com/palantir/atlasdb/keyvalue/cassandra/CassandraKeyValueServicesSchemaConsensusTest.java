@@ -27,8 +27,6 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Set;
 import org.apache.thrift.TException;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -38,7 +36,7 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     private static CassandraKeyValueServiceConfig waitingConfig = mock(CassandraKeyValueServiceConfig.class);
     private static CassandraClient client = mock(CassandraClient.class);
 
-    private static final Set<InetSocketAddress> FIVE_SERVERS = ImmutableSet.of(
+    private static final ImmutableSet<InetSocketAddress> FIVE_SERVERS = ImmutableSet.of(
             new InetSocketAddress("1", 1),
             new InetSocketAddress("2", 1),
             new InetSocketAddress("3", 1),
@@ -48,9 +46,9 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     private static final String VERSION_1 = "v1";
     private static final String VERSION_2 = "v2";
     private static final String VERSION_UNREACHABLE = "UNREACHABLE";
-    private static final List<String> QUORUM_OF_NODES = ImmutableList.of("1", "2", "3");
-    private static final List<String> REST_OF_NODES = ImmutableList.of("4", "5");
-    private static final List<String> ALL_NODES = ImmutableList.of("1", "2", "3", "4", "5");
+    private static final ImmutableList<String> QUORUM_OF_NODES = ImmutableList.of("1", "2", "3");
+    private static final ImmutableList<String> REST_OF_NODES = ImmutableList.of("4", "5");
+    private static final ImmutableList<String> ALL_NODES = ImmutableList.of("1", "2", "3", "4", "5");
 
     @BeforeClass
     public static void initializeMocks() {

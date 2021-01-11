@@ -367,7 +367,7 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds((int) expectedTimeout.getTime())
                 .build();
-        TransactionManagers.builder()
+        TransactionManager tm = TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
@@ -382,6 +382,7 @@ public class TransactionManagersTest {
                         ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
                 .build();
         assertThat(lockRequest.getLockTimeout()).isEqualTo(expectedTimeout);
+        tm.close();
     }
 
     @Test
@@ -449,7 +450,7 @@ public class TransactionManagersTest {
                 .build();
 
         MetricRegistry metrics = new MetricRegistry();
-        TransactionManagers.builder()
+        TransactionManager tm = TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
@@ -459,6 +460,7 @@ public class TransactionManagersTest {
                 .serializable();
         assertThat(metrics.getNames().stream().anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)))
                 .isFalse();
+        tm.close();
     }
 
     @Test
@@ -561,7 +563,7 @@ public class TransactionManagersTest {
             assertThatCode(localOrRemoteLock::currentTimeMillis)
                     .as("proxy correctly handles interrupts")
                     .isInstanceOf(SafeIllegalStateException.class);
-            assertThat(Thread.currentThread().isInterrupted());
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {
             // clear the interrupt flag to avoid affecting future tests
             Thread.interrupted();

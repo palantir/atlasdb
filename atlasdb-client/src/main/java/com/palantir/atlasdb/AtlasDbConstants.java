@@ -23,7 +23,6 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import java.util.Set;
 
 public final class AtlasDbConstants {
     private AtlasDbConstants() {
@@ -98,7 +97,7 @@ public final class AtlasDbConstants {
     public static final long DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS = 60_000;
     public static final int THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS = 10_000_000;
 
-    public static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
+    public static final ImmutableSet<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             TransactionConstants.TRANSACTIONS2_TABLE,
             PUNCH_TABLE,
@@ -116,14 +115,14 @@ public final class AtlasDbConstants {
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
      */
-    public static final Set<TableReference> ATOMIC_TABLES = ImmutableSet.of(
+    public static final ImmutableSet<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             TransactionConstants.TRANSACTIONS2_TABLE,
             NAMESPACE_TABLE,
             PERSISTED_LOCKS_TABLE,
             COORDINATION_TABLE);
 
-    public static final Set<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED =
+    public static final ImmutableSet<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED =
             ImmutableSet.of(TableReference.createWithEmptyNamespace("resync_object"));
 
     public static final long DEFAULT_TRANSACTION_READ_TIMEOUT = 60 * 60 * 1000; // one hour

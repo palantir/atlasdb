@@ -123,6 +123,7 @@ public class ExecutorInheritableThreadLocalTest {
     }
 
     @Test
+    @SuppressWarnings("CheckReturnValue")
     public void testSameThread() {
         local.set("whatup");
         ListeningExecutorService sameThreadExecutor = MoreExecutors.newDirectExecutorService();

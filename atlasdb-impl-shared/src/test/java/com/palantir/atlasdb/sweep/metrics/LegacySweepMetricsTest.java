@@ -42,7 +42,7 @@ public class LegacySweepMetricsTest {
     private static final String CELLS_SWEPT = AtlasDbMetricNames.CELLS_SWEPT;
     private static final String TIME_SPENT_SWEEPING = AtlasDbMetricNames.TIME_SPENT_SWEEPING;
 
-    private static final List<String> CURRENT_VALUE_LONG_METRIC_NAMES =
+    private static final ImmutableList<String> CURRENT_VALUE_LONG_METRIC_NAMES =
             ImmutableList.of(CELLS_EXAMINED, CELLS_SWEPT, TIME_SPENT_SWEEPING);
 
     private static final SweepResults SWEEP_RESULTS = SweepResults.builder()

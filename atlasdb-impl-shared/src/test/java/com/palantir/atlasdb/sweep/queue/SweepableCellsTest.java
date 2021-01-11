@@ -109,10 +109,10 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     @Test
     public void readDoesNotReturnValuesFromUncommittedTransactionsAndAbortsThem() {
         writeToDefaultCellUncommitted(sweepableCells, TS + 1, TABLE_CONS);
-        assertThat(!isTransactionAborted(TS + 1));
+        assertThat(isTransactionAborted(TS + 1)).isFalse();
 
         SweepBatch conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS);
-        assertThat(isTransactionAborted(TS + 1));
+        assertThat(isTransactionAborted(TS + 1)).isTrue();
         assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
     }
 

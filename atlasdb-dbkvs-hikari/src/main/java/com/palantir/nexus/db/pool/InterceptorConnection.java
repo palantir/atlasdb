@@ -26,7 +26,6 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-import java.util.Map;
 
 /**
  * Allows you to intercept and override methods in {@link Connection}.
@@ -34,7 +33,7 @@ import java.util.Map;
 public final class InterceptorConnection extends AbstractInvocationHandler implements InvocationHandler {
     private final Connection delegate;
 
-    private static final Map<String, Class<? extends Statement>> INTERCEPT_METHODS =
+    private static final ImmutableMap<String, Class<? extends Statement>> INTERCEPT_METHODS =
             ImmutableMap.<String, Class<? extends Statement>>builder()
                     .put("createStatement", Statement.class)
                     .put("prepareCall", CallableStatement.class)

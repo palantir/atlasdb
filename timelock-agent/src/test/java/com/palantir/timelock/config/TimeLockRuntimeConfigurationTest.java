@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
+@SuppressWarnings("CheckReturnValue")
 public class TimeLockRuntimeConfigurationTest {
     @Test
     public void canCreateWithZeroClients() {

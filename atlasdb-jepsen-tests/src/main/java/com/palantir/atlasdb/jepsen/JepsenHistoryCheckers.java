@@ -34,11 +34,11 @@ public final class JepsenHistoryCheckers {
     }
 
     @VisibleForTesting
-    static final List<Supplier<Checker>> TIMESTAMP_CHECKERS =
+    static final ImmutableList<Supplier<Checker>> TIMESTAMP_CHECKERS =
             ImmutableList.of(MonotonicChecker::new, NonOverlappingReadsMonotonicChecker::new, UniquenessChecker::new);
 
     @VisibleForTesting
-    static final List<Supplier<Checker>> LOCK_CHECKERS = ImmutableList.of(
+    static final ImmutableList<Supplier<Checker>> LOCK_CHECKERS = ImmutableList.of(
             () -> new PartitionByInvokeNameCheckerHelper(IsolatedProcessCorrectnessChecker::new),
             () -> new PartitionByInvokeNameCheckerHelper(LockCorrectnessChecker::new),
             () -> new PartitionByInvokeNameCheckerHelper(RefreshCorrectnessChecker::new));

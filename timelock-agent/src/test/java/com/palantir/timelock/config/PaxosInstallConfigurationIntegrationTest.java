@@ -165,6 +165,7 @@ public class PaxosInstallConfigurationIntegrationTest {
         throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 
+    @SuppressWarnings("CheckReturnValue")
     private static void attemptConstructTopLevelConfigWithoutOverrides(
             PaxosInstallConfiguration paxosInstallConfiguration) {
         ImmutableTimeLockInstallConfiguration.builder()

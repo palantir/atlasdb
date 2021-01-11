@@ -23,7 +23,8 @@ import java.util.SortedSet;
 import java.util.stream.Collectors;
 
 public class ImportRenderer extends Renderer {
-    private static final List<String> IMPORT_PREFIXES = ImmutableList.of("java.", "javax.", "org.", "com.", "net.");
+    private static final ImmutableList<String> IMPORT_PREFIXES =
+            ImmutableList.of("java.", "javax.", "org.", "com.", "net.");
     private final Collection<Class<?>> imports;
 
     public ImportRenderer(Renderer parent, Collection<Class<?>> imports) {

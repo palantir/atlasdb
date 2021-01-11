@@ -24,7 +24,7 @@ import org.junit.Test;
 public class PaxosTimeLockUriUtilsTest {
     private static final String ADDRESS_1 = "foo:1234";
     private static final String ADDRESS_2 = "bar:5678";
-    private static final Set<String> ADDRESSES = ImmutableSet.of(ADDRESS_1, ADDRESS_2);
+    private static final ImmutableSet<String> ADDRESSES = ImmutableSet.of(ADDRESS_1, ADDRESS_2);
 
     private static final String CLIENT = "testClient";
 

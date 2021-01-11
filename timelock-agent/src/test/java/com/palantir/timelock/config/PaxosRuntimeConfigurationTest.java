@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
+@SuppressWarnings("CheckReturnValue")
 public class PaxosRuntimeConfigurationTest {
     private static final long POSITIVE_LONG = 1L;
     private static final long NEGATIVE_LONG = -1L;

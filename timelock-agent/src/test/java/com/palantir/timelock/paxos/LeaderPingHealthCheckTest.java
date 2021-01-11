@@ -36,7 +36,7 @@ public class LeaderPingHealthCheckTest {
     private static final Client CLIENT1 = Client.of("client-1");
     private static final Client CLIENT2 = Client.of("client-2");
     private static final Client CLIENT3 = Client.of("client-3");
-    private static final Set<Client> ALL_CLIENTS = ImmutableSet.of(CLIENT1, CLIENT2, CLIENT3);
+    private static final ImmutableSet<Client> ALL_CLIENTS = ImmutableSet.of(CLIENT1, CLIENT2, CLIENT3);
     private static final NamespaceTracker TRACKER = () -> ALL_CLIENTS;
 
     @Test

@@ -67,7 +67,7 @@ public class QosCassandraClientTest {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final SlicePredicate SLICE_PREDICATE =
             SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ONE);
-    private static final Map<ByteBuffer, List<ColumnOrSuperColumn>> MULTIGET_RESULT =
+    private static final ImmutableMap<ByteBuffer, List<ColumnOrSuperColumn>> MULTIGET_RESULT =
             ImmutableMap.of(ROW_KEY, ImmutableList.of(new ColumnOrSuperColumn()));
     private static final ImmutableMap<ByteBuffer, Map<String, List<Mutation>>> BATCH_MUTATE_ARG =
             ImmutableMap.of(ROW_KEY, ImmutableMap.of());

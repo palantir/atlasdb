@@ -93,7 +93,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             params().iterator().next();
 
     private static final LockDescriptor LOCK = StringLockDescriptor.of("foo");
-    private static final Set<LockDescriptor> LOCKS = ImmutableSet.of(LOCK);
+    private static final ImmutableSet<LockDescriptor> LOCKS = ImmutableSet.of(LOCK);
 
     private static final int DEFAULT_LOCK_TIMEOUT_MS = 10_000;
     private static final int LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS =

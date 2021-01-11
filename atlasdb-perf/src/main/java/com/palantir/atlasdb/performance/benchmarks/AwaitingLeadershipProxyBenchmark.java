@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import java.util.ArrayList;
 import java.util.List;
@@ -90,17 +91,20 @@ public class AwaitingLeadershipProxyBenchmark {
         }
     }
 
+    private enum SingletonLeadershipToken implements LeadershipToken {
+        INSTANCE;
+
+        @Override
+        public boolean sameAs(LeadershipToken token) {
+            return token == INSTANCE;
+        }
+    }
+
     private enum FakeLeaderElectionService implements LeaderElectionService {
         INSTANCE;
 
         private static final ListeningScheduledExecutorService executor =
                 MoreExecutors.listeningDecorator(PTExecutors.newScheduledThreadPool(4));
-        private static final LeadershipToken token = new LeadershipToken() {
-            @Override
-            public boolean sameAs(LeadershipToken other) {
-                return other == this;
-            }
-        };
 
         @Override
         public void markNotEligibleForLeadership() {}
@@ -112,12 +116,12 @@ public class AwaitingLeadershipProxyBenchmark {
 
         @Override
         public LeadershipToken blockOnBecomingLeader() {
-            return token;
+            return SingletonLeadershipToken.INSTANCE;
         }
 
         @Override
         public Optional<LeadershipToken> getCurrentTokenIfLeading() {
-            return Optional.of(token);
+            return Optional.of(SingletonLeadershipToken.INSTANCE);
         }
 
         @Override

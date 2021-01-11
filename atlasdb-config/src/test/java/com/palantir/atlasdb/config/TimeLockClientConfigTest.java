@@ -64,11 +64,13 @@ public class TimeLockClientConfigTest {
     }
 
     @Test
+    @SuppressWarnings("CheckReturnValue")
     public void canCreateWithoutClientSpecified() {
         ImmutableTimeLockClientConfig.builder().serversList(SERVERS_LIST).build();
     }
 
     @Test
+    @SuppressWarnings("CheckReturnValue")
     public void tmelockClientCannotBeAnEmptyString() {
         assertThatThrownBy(() -> ImmutableTimeLockClientConfig.builder()
                         .client("")

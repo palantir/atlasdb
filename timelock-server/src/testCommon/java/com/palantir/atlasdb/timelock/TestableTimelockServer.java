@@ -51,7 +51,7 @@ import java.util.stream.Stream;
 
 public class TestableTimelockServer {
 
-    private static final Set<Client> PSEUDO_LEADERSHIP_CLIENT_SET =
+    private static final ImmutableSet<Client> PSEUDO_LEADERSHIP_CLIENT_SET =
             ImmutableSet.of(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
     private final TimeLockServerHolder serverHolder;
     private final TestProxies proxies;

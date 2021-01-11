@@ -322,7 +322,7 @@ public class AsyncLockServiceEteTest {
     public void leaderIdFromLockWatchingServiceIsSameAsLeaderClock() {
         LeaderTime leaderTime = service.leaderTime();
         LockWatchStateUpdate lockWatchUpdate = lockWatchingService.getWatchStateUpdate(Optional.empty());
-        assertThat(leaderTime.id().id().equals(lockWatchUpdate.logId()));
+        assertThat(leaderTime.id().id()).isEqualTo(lockWatchUpdate.logId());
     }
 
     private static void waitForTimeout(TimeLimit timeout) {

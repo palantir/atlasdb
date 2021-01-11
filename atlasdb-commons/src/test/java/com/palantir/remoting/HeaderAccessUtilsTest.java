@@ -34,11 +34,12 @@ public class HeaderAccessUtilsTest {
     private static final ImmutableList<String> VALUE_2 = ImmutableList.of("ls", "du", "cut");
     private static final ImmutableList<String> VALUE_3 = ImmutableList.of();
 
-    private static final Map<String, Collection<String>> HEADERS = ImmutableMap.<String, Collection<String>>builder()
-            .put(KEY_1, VALUE_1)
-            .put(KEY_2, VALUE_2)
-            .put(KEY_3, VALUE_3)
-            .build();
+    private static final ImmutableMap<String, Collection<String>> HEADERS =
+            ImmutableMap.<String, Collection<String>>builder()
+                    .put(KEY_1, VALUE_1)
+                    .put(KEY_2, VALUE_2)
+                    .put(KEY_3, VALUE_3)
+                    .build();
 
     @Test
     public void caseInsensitiveContainsEntryIgnoresCaseOnKeys() {

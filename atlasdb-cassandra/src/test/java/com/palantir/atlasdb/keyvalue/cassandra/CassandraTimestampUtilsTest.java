@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.util.Pair;
 import java.util.List;
-import java.util.Map;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
@@ -47,7 +46,7 @@ public class CassandraTimestampUtilsTest {
     private static final byte[] CQL_FAILURE = {0};
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
-    private static final Map<String, Pair<byte[], byte[]>> CAS_MAP_TWO_COLUMNS =
+    private static final ImmutableMap<String, Pair<byte[], byte[]>> CAS_MAP_TWO_COLUMNS =
             ImmutableMap.<String, Pair<byte[], byte[]>>builder()
                     .put(COLUMN_NAME_1, Pair.create(EMPTY_BYTE_ARRAY, VALUE_1))
                     .put(COLUMN_NAME_2, Pair.create(EMPTY_BYTE_ARRAY, VALUE_2))

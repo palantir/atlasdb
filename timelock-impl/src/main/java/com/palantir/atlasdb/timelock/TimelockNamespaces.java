@@ -43,7 +43,7 @@ public final class TimelockNamespaces {
     @VisibleForTesting
     static final String MAX_CLIENTS = "maxClients";
 
-    private static final Set<String> BANNED_CLIENTS = ImmutableSet.of("tl", "lw");
+    private static final ImmutableSet<String> BANNED_CLIENTS = ImmutableSet.of("tl", "lw");
     private static final String PATH_REGEX =
             String.format("^(?!((%s)$))[a-zA-Z0-9_-]+$", String.join("|", BANNED_CLIENTS));
 

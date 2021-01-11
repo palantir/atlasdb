@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class JepsenHistoryCheckerTest {
-    private static final Map<Keyword, ?> INFO_EVENT = ImmutableMap.of(
+    private static final ImmutableMap<Keyword, ?> INFO_EVENT = ImmutableMap.of(
             Keyword.intern("type"),
             "info",
             Keyword.intern("process"),
@@ -41,7 +41,7 @@ public class JepsenHistoryCheckerTest {
             "function",
             Keyword.intern("time"),
             12345L);
-    private static final Map<Keyword, ?> INVOKE_EVENT = ImmutableMap.of(
+    private static final ImmutableMap<Keyword, ?> INVOKE_EVENT = ImmutableMap.of(
             Keyword.intern("type"),
             "invoke",
             Keyword.intern("process"),
@@ -50,7 +50,7 @@ public class JepsenHistoryCheckerTest {
             "function",
             Keyword.intern("time"),
             0L);
-    private static final Map<Keyword, ?> UNRECOGNISED_EVENT = ImmutableMap.of(Keyword.intern("foo"), "bar");
+    private static final ImmutableMap<Keyword, ?> UNRECOGNISED_EVENT = ImmutableMap.of(Keyword.intern("foo"), "bar");
 
     @Test
     public void correctHistoryShouldReturnValidAndNoErrors() {

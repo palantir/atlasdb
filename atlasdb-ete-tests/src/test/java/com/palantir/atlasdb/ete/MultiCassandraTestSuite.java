@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationEteTest;
-import java.util.List;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -37,7 +36,7 @@ import org.junit.runners.Suite;
     LockWithoutTimelockEteTest.class
 })
 public class MultiCassandraTestSuite extends EteSetup {
-    private static final List<String> CLIENTS = ImmutableList.of("ete1");
+    private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(

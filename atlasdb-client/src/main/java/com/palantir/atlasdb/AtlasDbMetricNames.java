@@ -16,7 +16,6 @@
 package com.palantir.atlasdb;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Set;
 
 public final class AtlasDbMetricNames {
 
@@ -65,7 +64,7 @@ public final class AtlasDbMetricNames {
     public static final String LAG_MILLIS = "millisSinceLastSweptTs";
     public static final String BATCH_SIZE_MEAN = "batchSizeMean";
     public static final String SWEEP_DELAY = "sweepDelay";
-    public static final Set<String> TARGETED_SWEEP_PROGRESS_METRIC_NAMES = ImmutableSet.of(
+    public static final ImmutableSet<String> TARGETED_SWEEP_PROGRESS_METRIC_NAMES = ImmutableSet.of(
             ENQUEUED_WRITES,
             ENTRIES_READ,
             TOMBSTONES_PUT,
