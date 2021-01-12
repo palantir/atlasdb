@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -53,12 +57,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
     @Test
     public void testNeedArguments() {
         TableMigratorBuilder builder = new TableMigratorBuilder();
-        try {
-            builder.build();
-            Assert.fail();
-        } catch (Exception e) {
-            // expected
-        }
+                    assertThatThrownBy(() -> builder.build()).isInstanceOf(Exception.class);
     }
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Table/IndexDefinition syntax
@@ -156,8 +155,8 @@ public class TableMigratorTest extends AtlasDbTestCase {
                             public boolean visit(RowResult<byte[]> item) throws RuntimeException {
                                 Iterable<Map.Entry<Cell, byte[]>> cells = item.getCells();
                                 Map.Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
-                                Assert.assertEquals(theCell, entry.getKey());
-                                Assert.assertArrayEquals(theValue, entry.getValue());
+                                assertThat(entry.getKey()).isEqualTo(theCell);
+                                assertThat(entry.getValue()).isEqualTo(theValue);
                                 count.increment();
                                 return true;
                             }
@@ -165,6 +164,6 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 return null;
             });
         }
-        Assert.assertEquals(2L, count.longValue());
+        assertThat(count.longValue()).isEqualTo(2L);
     }
 }

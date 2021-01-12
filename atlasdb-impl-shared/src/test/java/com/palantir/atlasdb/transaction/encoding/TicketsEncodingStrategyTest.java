@@ -169,6 +169,6 @@ public class TicketsEncodingStrategyTest {
                 .boxed()
                 .map(STRATEGY::encodeStartTimestampAsCell)
                 .collect(Collectors.toSet());
-        assertThat(convertedCells).hasSize(timestamps.length);
+        assertThat(convertedCells).hasSameSizeAs(timestamps);
     }
 }

@@ -115,9 +115,7 @@ public class RangeRequestsTest {
     }
 
     private void assertNextPrevEqualsOrig(byte[] value) {
-        Assert.assertTrue(Arrays.equals(
-                value, RangeRequests.nextLexicographicName(RangeRequests.previousLexicographicName(value))));
-        Assert.assertTrue(Arrays.equals(
-                value, RangeRequests.previousLexicographicName(RangeRequests.nextLexicographicName(value))));
+        assertThat(value).isEqualTo(RangeRequests.nextLexicographicName(RangeRequests.previousLexicographicName(value)));
+        assertThat(value).isEqualTo(RangeRequests.previousLexicographicName(RangeRequests.nextLexicographicName(value)));
     }
 }

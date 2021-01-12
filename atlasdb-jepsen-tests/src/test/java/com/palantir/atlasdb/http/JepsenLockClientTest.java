@@ -79,7 +79,7 @@ public class JepsenLockClientTest {
     @Test
     public void refreshSingleReturnsTokenIfCanBeRefreshed() throws InterruptedException {
         when(mockClient.refresh(any())).then(REPLY_WITH_FIRST_TOKEN);
-        assertThat(LOCK_TOKEN).isEqualTo(client.refreshSingle(LOCK_TOKEN));
+        assertThat(client.refreshSingle(LOCK_TOKEN)).isEqualTo(LOCK_TOKEN);
     }
 
     @Test

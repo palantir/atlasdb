@@ -211,7 +211,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 }
             }
         }
-        assertThat(expectedCells.size()).isEqualTo((1 + 50) * 50 / 2);
+        assertThat(expectedCells).hasSize((1 + 50) * 50 / 2);
         builder.store();
         List<CandidateCellForSweeping> candidates = getAllCandidates(ImmutableCandidateCellForSweepingRequest.builder()
                 .startRowInclusive(PtBytes.EMPTY_BYTE_ARRAY)

@@ -63,15 +63,15 @@ public class TracingKvsTest extends AbstractKeyValueServiceTest {
                     spans.size(),
                     spans.stream().map(Span::getOperation).collect(Collectors.toList()));
             if (Tracer.isTraceObservable()) {
-                assertThat(finishedSpan.isPresent()).isTrue();
+                assertThat(finishedSpan).isPresent();
                 assertThat(finishedSpan.get().getOperation()).isEqualTo("test");
                 String traceId = finishedSpan.get().getTraceId();
                 assertThat(traceId).isNotNull();
                 assertThat(traceId).isNotEmpty();
                 assertThat(spans).isNotEmpty();
-                assertThat(spans.size())
+                assertThat(spans)
                         .describedAs("Should include root test span and additional KVS method spans %s", spans)
-                        .isGreaterThanOrEqualTo(1);
+                        .hasSizeGreaterThanOrEqualTo(1);
                 assertThat(spans.stream()
                                 .filter(span -> !Objects.equals(traceId, span.getTraceId()))
                                 .map(Span::getTraceId)

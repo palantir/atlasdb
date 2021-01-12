@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -79,7 +80,7 @@ public class CommitLockTest extends TransactionTestSetup {
 
         PreCommitCondition rowLocksAcquired = ignored -> {
             LockResponse response = acquireRowLock(ROW);
-            assertFalse(response.wasSuccessful());
+            assertThat(response.wasSuccessful()).isFalse();
         };
 
         commitWriteWith(rowLocksAcquired, conflictHandler);
@@ -91,7 +92,7 @@ public class CommitLockTest extends TransactionTestSetup {
 
         PreCommitCondition cellLocksAcquired = ignored -> {
             LockResponse response = acquireCellLock(ROW, COLUMN);
-            assertFalse(response.wasSuccessful());
+            assertThat(response.wasSuccessful()).isFalse();
         };
 
         commitWriteWith(cellLocksAcquired, conflictHandler);
@@ -103,7 +104,7 @@ public class CommitLockTest extends TransactionTestSetup {
 
         PreCommitCondition canAcquireRowLock = ignored -> {
             LockResponse response = acquireRowLock(ROW);
-            assertTrue(response.wasSuccessful());
+            assertThat(response.wasSuccessful()).isTrue();
         };
 
         commitWriteWith(canAcquireRowLock, conflictHandler);
@@ -116,7 +117,7 @@ public class CommitLockTest extends TransactionTestSetup {
         PreCommitCondition canAcquireCellLock = ignored -> {
             LockResponse response = acquireCellLock(ROW, COLUMN);
             // current lock implementation allows you to get a cell lock on a row that is already locked
-            assertTrue(response.wasSuccessful());
+            assertThat(response.wasSuccessful()).isTrue();
         };
 
         commitWriteWith(canAcquireCellLock, conflictHandler);
@@ -130,8 +131,8 @@ public class CommitLockTest extends TransactionTestSetup {
             LockResponse cellLockResponse = acquireCellLock(ROW, COLUMN);
             LockResponse rowLockResponse = acquireRowLock(ROW);
 
-            assertFalse(cellLockResponse.wasSuccessful());
-            assertFalse(rowLockResponse.wasSuccessful());
+            assertThat(cellLockResponse.wasSuccessful()).isFalse();
+            assertThat(rowLockResponse.wasSuccessful()).isFalse();
         };
 
         commitWriteWith(cellAndRowLockAcquired, conflictHandler);
@@ -143,7 +144,7 @@ public class CommitLockTest extends TransactionTestSetup {
 
         PreCommitCondition canAcquireLockOnDifferentCell = ignored -> {
             LockResponse response = acquireCellLock(ROW, OTHER_COLUMN);
-            assertTrue(response.wasSuccessful());
+            assertThat(response.wasSuccessful()).isTrue();
         };
 
         commitWriteWith(canAcquireLockOnDifferentCell, conflictHandler);

@@ -15,7 +15,8 @@
  */
 package com.palantir.atlasdb.schema;
 
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import java.util.regex.Pattern;
@@ -28,12 +29,7 @@ public class NamespaceTest {
     }
 
     private void expectFailure(String string, Pattern pattern) {
-        try {
-            Namespace.create(string, pattern);
-            fail("Namespace '" + string + "' was not supposed to match pattern '" + pattern + "'");
-        } catch (Exception e) {
-            // success
-        }
+                    assertThatThrownBy(() -> Namespace.create(string, pattern)).describedAs("Namespace '" + string + "' was not supposed to match pattern '" + pattern + "'").isInstanceOf(Exception.class);
     }
 
     @Test

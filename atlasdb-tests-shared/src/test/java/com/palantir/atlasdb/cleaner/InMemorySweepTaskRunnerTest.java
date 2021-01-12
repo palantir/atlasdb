@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -41,6 +43,6 @@ public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
 
         IntStream.rangeClosed(1, 50_000).forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
         Optional<SweepResults> results = completeSweep(TABLE_NAME, 100_000, 1);
-        Assert.assertEquals(50_000 - 1, results.get().getStaleValuesDeleted());
+        assertThat(results.get().getStaleValuesDeleted()).isEqualTo(50_000 - 1);
     }
 }

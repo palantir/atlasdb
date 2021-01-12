@@ -117,7 +117,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                 runSweep(cellsSweeper, spiedSweepRunner, 8, 1, 4);
         List<List<Cell>> sweptCells = sweptCellsAndSweepResults.getLhSide();
 
-        assertThat(sweptCells.size()).isEqualTo(1);
+        assertThat(sweptCells).hasSize(1);
         assertThat(sweptCells.get(0)).isEqualTo(SMALL_LIST_OF_CELLS);
     }
 
@@ -215,7 +215,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(results.getStaleValuesDeleted()).isEqualTo(4);
         assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(5);
         assertThat(getFromDefaultColumn("foo", 200)).isEqualTo("buzz");
-        assertThat(getFromDefaultColumn("foo", 124)).isEqualTo("");
+        assertThat(getFromDefaultColumn("foo", 124)).isEmpty();
         assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(-1L, 125L));
     }
 
@@ -269,7 +269,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         // this check is a nuance of SweepTaskRunner: the value at timestamp 125 is actually eligible for deletion,
         // but we don't delete it on the first pass due to the later uncommitted value. below we sweep again and make
         // sure it's deleted
-        assertThat(getFromDefaultColumn("foo", 200)).isEqualTo("");
+        assertThat(getFromDefaultColumn("foo", 200)).isEmpty();
         assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(125L));
 
         results = completeSweep(175).get();
