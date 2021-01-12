@@ -29,15 +29,15 @@ public class RangeRequestTest {
         assertThat(end.length).isEqualTo(0);
         end = RangeRequest.builder().prefixRange(new byte[] {-2}).build().getEndExclusive();
         assertThat(end.length).isEqualTo(1);
-        assertThat(end[0]).isEqualTo(-1);
+        assertThat(end[0]).isEqualTo((byte) -1);
 
         end = RangeRequest.builder().prefixRange(new byte[] {0, -1}).build().getEndExclusive();
         assertThat(end.length).isEqualTo(1);
-        assertThat(end[0]).isEqualTo(1);
+        assertThat(end[0]).isEqualTo((byte) 1);
 
         end = RangeRequest.builder().prefixRange(new byte[] {0, -1, 0}).build().getEndExclusive();
         assertThat(end.length).isEqualTo(3);
-        assertThat(end[2]).isEqualTo(1);
+        assertThat(end[2]).isEqualTo((byte) 1);
     }
 
     @Test
