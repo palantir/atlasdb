@@ -55,7 +55,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
     @Test
     public void testNeedArguments() {
         TableMigratorBuilder builder = new TableMigratorBuilder();
-        assertThatThrownBy(() -> builder.build()).isInstanceOf(Exception.class);
+        assertThatThrownBy(builder::build).isInstanceOf(Exception.class);
     }
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Table/IndexDefinition syntax
