@@ -24,7 +24,6 @@ import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 

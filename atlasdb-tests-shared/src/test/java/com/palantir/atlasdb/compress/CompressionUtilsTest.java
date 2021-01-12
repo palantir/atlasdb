@@ -16,9 +16,6 @@
 package com.palantir.atlasdb.compress;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import java.util.Arrays;

@@ -17,7 +17,6 @@ package com.palantir.atlasdb.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -50,14 +49,13 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class TableMigratorTest extends AtlasDbTestCase {
     @Test
     public void testNeedArguments() {
         TableMigratorBuilder builder = new TableMigratorBuilder();
-                    assertThatThrownBy(() -> builder.build()).isInstanceOf(Exception.class);
+        assertThatThrownBy(() -> builder.build()).isInstanceOf(Exception.class);
     }
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Table/IndexDefinition syntax

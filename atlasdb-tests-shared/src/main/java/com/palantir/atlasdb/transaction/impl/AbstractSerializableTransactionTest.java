@@ -18,8 +18,6 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -79,7 +77,6 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import org.junit.Assert;
 import org.junit.Test;
 
 @SuppressWarnings("CheckReturnValue")
@@ -209,7 +206,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         withdrawMoney(t2, false, false);
 
         t1.commit();
-                    assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -225,7 +222,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         withdrawMoney(t2, false, false);
 
         t2.commit();
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test(expected = TransactionFailedRetriableException.class)
@@ -272,7 +269,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         withdrawMoney(t2, false, true);
 
         t1.commit();
-                    assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -288,7 +285,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         withdrawMoney(t2, false, true);
 
         t2.commit();
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test(expected = TransactionFailedRetriableException.class)
@@ -364,7 +361,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         assertThat(get(readOnly, "row1", "col1")).isEqualTo(newValue);
         assertThat(get(readOnly, "row2", "col1")).isEqualTo(initialValue);
 
-                    assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -392,7 +389,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         assertThat(get(readOnly, "row1", "col1")).isEqualTo(newValue2);
         assertThat(get(readOnly, "row2", "col1")).isEqualTo(initialValue);
 
-                    assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -432,7 +429,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row0", "col1", initialValue);
         t2.commit();
 
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -452,7 +449,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row3", "col1", initialValue);
         t2.commit();
 
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -472,7 +469,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row3", "col1", initialValue);
         t2.commit();
 
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -492,7 +489,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row2", "col1", "101");
         t2.commit();
 
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -545,11 +542,12 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Test
     public void testColumnRangeReadUnsupported() {
         Transaction t1 = startTransaction();
-                    assertThatThrownBy(() -> t1.getRowsColumnRange(
-                    TEST_TABLE,
-                    ImmutableList.of(PtBytes.toBytes("row1")),
-                    new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
-                    1)).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> t1.getRowsColumnRange(
+                        TEST_TABLE,
+                        ImmutableList.of(PtBytes.toBytes("row1")),
+                        new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                        1))
+                .isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
@@ -584,7 +582,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row1", "col0", "v0_0");
         t2.commit();
 
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -608,7 +606,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row1", "col0", "v0_0");
         t2.commit();
 
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -632,7 +630,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row1", "col", "v");
         t2.commit();
 
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -657,7 +655,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row1", "col", "v");
         t2.commit();
 
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -716,7 +714,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TEST_TABLE,
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        assertThat(BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()))).isNull();
+        assertThat(BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values())))
+                .isNull();
         // Write to avoid the read only path.
         put(t1, "row1_1", "col0", "v0");
 
@@ -724,7 +723,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row1", "col", "v0");
         t2.commit();
 
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -744,7 +743,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t2, "row1", "col", "v0");
         t2.commit();
 
-                    assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t1.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -818,7 +817,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t3, "row1", "col0", "v0");
         t3.commit();
 
-                    assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test
@@ -842,7 +841,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         put(t3, "row1", "col0", "v0");
         t3.commit();
 
-                    assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
+        assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
     @Test

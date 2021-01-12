@@ -17,16 +17,6 @@ package com.palantir.atlasdb.schema.stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -731,7 +721,9 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     private void assertStreamDoesNotExist(final long streamId) {
-        assertThat(getStream(streamId)).describedAs("This element should have been deleted").isNotPresent();
+        assertThat(getStream(streamId))
+                .describedAs("This element should have been deleted")
+                .isNotPresent();
     }
 
     private void runConflictingTasksConcurrently(long streamId, TwoConflictingTasks tasks) throws InterruptedException {
@@ -741,11 +733,14 @@ public class StreamTest extends AtlasDbTestCase {
         ExecutorService exec = PTExecutors.newFixedThreadPool(2);
 
         Future<?> firstFuture = exec.submit(() -> {
-                            assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(t -> {
-                    tasks.startFirstAndFail(t, streamId);
-                    letOtherTaskFinish(firstLatch, secondLatch);
-                    return null;
-                })).describedAs("Because we concurrently wrote, we should have failed with TransactionConflictException.").isInstanceOf(TransactionConflictException.class);
+            assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(t -> {
+                        tasks.startFirstAndFail(t, streamId);
+                        letOtherTaskFinish(firstLatch, secondLatch);
+                        return null;
+                    }))
+                    .describedAs(
+                            "Because we concurrently wrote, we should have failed with TransactionConflictException.")
+                    .isInstanceOf(TransactionConflictException.class);
         });
 
         firstLatch.await();

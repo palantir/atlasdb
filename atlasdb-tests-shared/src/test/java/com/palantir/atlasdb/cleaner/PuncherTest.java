@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.cleaner;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -114,9 +113,12 @@ public class PuncherTest {
         timeMillis += 60000L;
         assertThat((long) timestampSupplier.get()).isEqualTo(thirdPunchTimestamp);
 
-        assertThat(puncherStore.getMillisForTimestamp(firstTimestampToGetMillis)).isEqualTo(firstExpectedMillis);
-        assertThat(puncherStore.getMillisForTimestamp(secondTimestampToGetMillis)).isEqualTo(secondExpectedMillis);
-        assertThat(puncherStore.getMillisForTimestamp(thirdTimestampToGetMillis)).isEqualTo(secondExpectedMillis);
+        assertThat(puncherStore.getMillisForTimestamp(firstTimestampToGetMillis))
+                .isEqualTo(firstExpectedMillis);
+        assertThat(puncherStore.getMillisForTimestamp(secondTimestampToGetMillis))
+                .isEqualTo(secondExpectedMillis);
+        assertThat(puncherStore.getMillisForTimestamp(thirdTimestampToGetMillis))
+                .isEqualTo(secondExpectedMillis);
     }
 
     @Test
