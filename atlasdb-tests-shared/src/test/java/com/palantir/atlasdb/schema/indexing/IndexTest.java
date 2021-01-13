@@ -82,12 +82,9 @@ public class IndexTest extends AtlasDbTestCase {
                     DataTable.Index2IdxTable.of(getTableFactory().getDataTable(txn));
             DataTable.Index3IdxTable index3 =
                     DataTable.Index3IdxTable.of(getTableFactory().getDataTable(txn));
-            assertThat(index1.getRange(RangeRequest.builder().build()).count() == 1)
-                    .isTrue();
-            assertThat(index2.getRange(RangeRequest.builder().build()).count() == 1)
-                    .isTrue();
-            assertThat(index3.getRange(RangeRequest.builder().build()).count() == 1)
-                    .isTrue();
+            assertThat(index1.getRange(RangeRequest.builder().build()).count()).isEqualTo(1L);
+            assertThat(index2.getRange(RangeRequest.builder().build()).count()).isEqualTo(1L);
+            assertThat(index3.getRange(RangeRequest.builder().build()).count()).isEqualTo(1L);
             return null;
         });
     }
