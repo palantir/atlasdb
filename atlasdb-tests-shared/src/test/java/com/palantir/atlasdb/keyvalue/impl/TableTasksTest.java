@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.base.Suppliers;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -51,7 +53,6 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -175,11 +176,11 @@ public class TableTasksTest {
             }
         }
 
-        Assert.assertEquals(commonCells, cellsInCommon.get());
-        Assert.assertEquals(sourceOnlyCells, cellsOnlyInSource.get());
-        Assert.assertEquals(disjointRows, rowsOnlyInSource.get());
-        Assert.assertEquals(commonRows, rowsCompletelyInCommon.get());
-        Assert.assertEquals(partialRows, rowsPartiallyInCommon.get());
-        Assert.assertEquals(keys1.keySet().size(), rowsVisited.get());
+        assertThat(cellsInCommon.get()).isEqualTo(commonCells);
+        assertThat(cellsOnlyInSource.get()).isEqualTo(sourceOnlyCells);
+        assertThat(rowsOnlyInSource.get()).isEqualTo(disjointRows);
+        assertThat(rowsCompletelyInCommon.get()).isEqualTo(commonRows);
+        assertThat(rowsPartiallyInCommon.get()).isEqualTo(partialRows);
+        assertThat(rowsVisited.get()).isEqualTo(keys1.keySet().size());
     }
 }

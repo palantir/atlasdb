@@ -318,7 +318,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         List<WriteInfo> writes = writeCommittedConservativeRowForTimestamp(TS + 1, MAX_CELLS_DEDICATED + 1);
 
         SweepBatch conservativeBatch = readConservative(0, TS_FINE_PARTITION, TS, TS + 2);
-        assertThat(conservativeBatch.writes()).hasSize(writes.size());
+        assertThat(conservativeBatch.writes()).hasSameSizeAs(writes);
         assertThat(conservativeBatch.writes()).contains(writes.get(0), writes.get(writes.size() - 1));
     }
 

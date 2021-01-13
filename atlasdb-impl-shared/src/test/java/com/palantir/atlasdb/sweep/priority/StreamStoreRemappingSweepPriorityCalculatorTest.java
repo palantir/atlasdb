@@ -501,17 +501,17 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
     // Then
     private void thenNoTablesToSweep() {
-        assertThat(priorities.isEmpty()).isEqualTo(true);
+        assertThat(priorities).isEmpty();
     }
 
     private void thenOnlyTablePrioritisedIs(TableReference table) {
-        assertThat(priorities.size()).isEqualTo(1);
-        assertThat(priorities.containsKey(table)).isEqualTo(true);
+        assertThat(priorities).hasSize(1);
+        assertThat(priorities).containsKey(table);
     }
 
     private void thenOnlyTablePrioritisedIs(SweepPriorityHistory sweepPriorityHistory) {
-        assertThat(priorities.size()).isEqualTo(1);
-        assertThat(priorities.containsKey(sweepPriorityHistory.tableRef)).isEqualTo(true);
+        assertThat(priorities).hasSize(1);
+        assertThat(priorities).containsKey(sweepPriorityHistory.tableRef);
     }
 
     private void thenTableHasPriority(TableReference table) {
@@ -527,7 +527,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
     }
 
     private void thenNumberOfTablesIs(int expectedNumberOfTables) {
-        assertThat(priorities.size()).isEqualTo(expectedNumberOfTables);
+        assertThat(priorities).hasSize(expectedNumberOfTables);
     }
 
     private void thenFirstTableHasHigherPriorityThanSecond(

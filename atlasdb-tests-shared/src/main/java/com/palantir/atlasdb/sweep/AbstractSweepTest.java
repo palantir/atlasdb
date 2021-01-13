@@ -126,7 +126,7 @@ public abstract class AbstractSweepTest {
         });
 
         assertThat(getFromDefaultColumn("foo", 150)).isEqualTo("baz");
-        assertThat(getFromDefaultColumn("foo", 80)).isEqualTo("");
+        assertThat(getFromDefaultColumn("foo", 80)).isEmpty();
         assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(-1L, 100L));
     }
 
@@ -159,7 +159,7 @@ public abstract class AbstractSweepTest {
         });
 
         assertThat(getFromDefaultColumn("foo", 200)).isEqualTo("buzz");
-        assertThat(getFromDefaultColumn("foo", 124)).isEqualTo("");
+        assertThat(getFromDefaultColumn("foo", 124)).isEmpty();
         assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(-1L, 125L));
     }
 
@@ -268,7 +268,7 @@ public abstract class AbstractSweepTest {
             assertThat(results.getCellTsPairsExamined()).isGreaterThanOrEqualTo(1);
         });
 
-        assertThat(getFromDefaultColumn("foo", 150)).isEqualTo("");
+        assertThat(getFromDefaultColumn("foo", 150)).isEmpty();
         assertThat(getAllTsFromDefaultColumn("foo")).isEqualTo(ImmutableSet.of(-1L, 50L));
     }
 

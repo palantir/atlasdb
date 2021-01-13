@@ -19,9 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
-import java.util.Arrays;
 import java.util.Random;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class RangeRequestsTest {
@@ -115,9 +113,9 @@ public class RangeRequestsTest {
     }
 
     private void assertNextPrevEqualsOrig(byte[] value) {
-        Assert.assertTrue(Arrays.equals(
-                value, RangeRequests.nextLexicographicName(RangeRequests.previousLexicographicName(value))));
-        Assert.assertTrue(Arrays.equals(
-                value, RangeRequests.previousLexicographicName(RangeRequests.nextLexicographicName(value))));
+        assertThat(value)
+                .isEqualTo(RangeRequests.nextLexicographicName(RangeRequests.previousLexicographicName(value)));
+        assertThat(value)
+                .isEqualTo(RangeRequests.previousLexicographicName(RangeRequests.nextLexicographicName(value)));
     }
 }
