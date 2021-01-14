@@ -45,6 +45,7 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
     }
 
     private void flush() {
+        long start = System.nanoTime();
         try {
             Map<T, R> results = function.apply(pending.keySet());
             pending.forEach((argument, future) -> {
@@ -60,6 +61,7 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
         } catch (Throwable t) {
             pending.forEach((unused, future) -> future.setException(t));
         }
+        // System.out.println("Blah " + (System.nanoTime() - start));
         pending.clear();
     }
 }

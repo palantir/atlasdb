@@ -17,10 +17,13 @@
 package com.palantir.atlasdb.performance.benchmarks;
 
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.lmax.disruptor.SleepingWaitStrategy;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import java.time.Duration;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -35,14 +38,15 @@ import org.openjdk.jmh.annotations.Warmup;
 public class AutobatcherBenchmarks {
     private static final DisruptorAutobatcher<Integer, Integer> autobatcher =
             Autobatchers.coalescing(new Handler())
+                    .waitStrategy(new SleepingWaitStrategy())
                     .bufferSize(OptionalInt.of(512))
                     .safeLoggablePurpose("test")
                     .build();
 
     @Benchmark
-    @Threads(256)
-    @Warmup(time = 15)
-    @Measurement(time = 15)
+    @Threads(512)
+    @Warmup(time = 5)
+    @Measurement(time = 10)
     public int coalescingBatching() {
         return AtlasFutures.getUnchecked(autobatcher.apply(1));
     }
@@ -52,6 +56,7 @@ public class AutobatcherBenchmarks {
         @Override
         public Map<Integer, Integer> apply(Set<Integer> request) {
             Map<Integer, Integer> map = Maps.newHashMapWithExpectedSize(request.size());
+            Uninterruptibles.sleepUninterruptibly(Duration.ofNanos(1500000));
             request.forEach(num -> map.put(num, num));
             return map;
         }

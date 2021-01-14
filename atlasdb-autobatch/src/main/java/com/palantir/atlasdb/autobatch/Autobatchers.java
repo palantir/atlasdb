@@ -121,8 +121,8 @@ public final class Autobatchers {
             return this;
         }
 
-        public AutobatcherBuilder<I, O> waitStrategy(WaitStrategy waitStrategy) {
-            this.waitStrategy = Optional.of(waitStrategy);
+        public AutobatcherBuilder<I, O> waitStrategy(WaitStrategy waitStrategyParam) {
+            this.waitStrategy = Optional.of(waitStrategyParam);
             return this;
         }
 

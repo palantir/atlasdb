@@ -18,8 +18,10 @@ package com.palantir.atlasdb.performance.benchmarks;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.concurrent.CoalescingSupplier;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -44,14 +46,17 @@ public class CoalescingSupplierBenchmarks {
             };
 
     @Benchmark
-    @Threads(256)
-    @Warmup(time = 15)
-    @Measurement(time = 15)
+    @Threads(512)
+    @Warmup(time = 5)
+    @Measurement(time = 10)
     public int coalescing() {
         return AtlasFutures.getUnchecked(Futures.immediateFuture(getTimer(threadId.get()).get()));
     }
 
     private CoalescingSupplier<Integer> getTimer(Integer id) {
-        return map.computeIfAbsent(id, u -> new CoalescingSupplier(() -> id));
+        return map.computeIfAbsent(id, u -> new CoalescingSupplier(() -> {
+            Uninterruptibles.sleepUninterruptibly(Duration.ofNanos(1500000));
+            return id;
+        }));
     }
 }
