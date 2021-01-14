@@ -36,7 +36,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class TimeLockManagementResource implements UndertowTimeLockManagementService {
-    private static final Set<String> FILTERED_NAMESPACES = ImmutableSet.of(
+    private static final ImmutableSet<String> FILTERED_NAMESPACES = ImmutableSet.of(
             PaxosTimeLockConstants.LEARNER_PAXOS_NAMESPACE, PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
 
     private final Set<PersistentNamespaceLoader> namespaceLoaders;
