@@ -36,6 +36,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class TimeLockManagementResource implements UndertowTimeLockManagementService {
+    private static final Set<String> FILTERED_NAMESPACES = ImmutableSet.of(
+            PaxosTimeLockConstants.LEARNER_PAXOS_NAMESPACE, PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
+
     private final Set<PersistentNamespaceLoader> namespaceLoaders;
     private final TimelockNamespaces timelockNamespaces;
     private final ConjureResourceExceptionHandler exceptionHandler;
@@ -79,9 +82,13 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         return Futures.immediateFuture(namespaceLoaders.stream()
                 .map(PersistentNamespaceLoader::getAllPersistedNamespaces)
                 .flatMap(Set::stream)
-                .filter(namespace -> !namespace.value().equals(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE))
+                .filter(TimeLockManagementResource::filterNamespaces)
                 .map(Client::value)
                 .collect(Collectors.toSet()));
+    }
+
+    private static boolean filterNamespaces(Client namespace) {
+        return !FILTERED_NAMESPACES.contains(namespace.value());
     }
 
     @Override
