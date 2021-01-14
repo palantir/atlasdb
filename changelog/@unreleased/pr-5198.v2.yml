@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: The `learner` namespace is now filtered out of the results from calling `getNamespaces` on Timelock's management service.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5198
