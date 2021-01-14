@@ -19,10 +19,12 @@ package com.palantir.atlasdb.autobatch;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.WaitStrategy;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Observability;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -90,6 +92,7 @@ public final class Autobatchers {
 
         private Observability observability = Observability.UNDECIDED;
         private OptionalInt bufferSize = OptionalInt.empty();
+        private Optional<WaitStrategy> waitStrategy = Optional.empty();
 
         @Nullable
         private String purpose;
@@ -118,6 +121,11 @@ public final class Autobatchers {
             return this;
         }
 
+        public AutobatcherBuilder<I, O> waitStrategy(WaitStrategy waitStrategy) {
+            this.waitStrategy = Optional.of(waitStrategy);
+            return this;
+        }
+
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
 
@@ -130,7 +138,7 @@ public final class Autobatchers {
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());
 
-            return DisruptorAutobatcher.create(profiledHandler, bufferSizeValue, purpose);
+            return DisruptorAutobatcher.create(profiledHandler, bufferSizeValue, purpose, waitStrategy);
         }
     }
 }
