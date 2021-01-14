@@ -52,6 +52,6 @@ public class CoalescingSupplierBenchmarks {
     }
 
     private CoalescingSupplier<Integer> getTimer(Integer id) {
-        return map.computeIfAbsent(id, u -> new CoalescingSupplier(() -> 1));
+        return map.computeIfAbsent(id, u -> new CoalescingSupplier(() -> id));
     }
 }
