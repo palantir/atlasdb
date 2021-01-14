@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.performance.benchmarks.table;
+package com.palantir.atlasdb.performance.benchmarks;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
