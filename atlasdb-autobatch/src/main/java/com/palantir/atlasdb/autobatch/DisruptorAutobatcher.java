@@ -166,12 +166,12 @@ public final class DisruptorAutobatcher<T, R>
             int bufferSize,
             String safeLoggablePurpose,
             Optional<WaitStrategy> waitStrategy) {
-        Disruptor<DisruptorBatchElement<T, R>> disruptor =
-                new Disruptor<>(DisruptorBatchElement::new,
-                        bufferSize,
-                        threadFactory(safeLoggablePurpose),
-                        ProducerType.MULTI,
-                        waitStrategy.orElseGet(BlockingWaitStrategy::new));
+        Disruptor<DisruptorBatchElement<T, R>> disruptor = new Disruptor<>(
+                DisruptorBatchElement::new,
+                bufferSize,
+                threadFactory(safeLoggablePurpose),
+                ProducerType.MULTI,
+                waitStrategy.orElseGet(BlockingWaitStrategy::new));
         disruptor.handleEventsWith(
                 (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
