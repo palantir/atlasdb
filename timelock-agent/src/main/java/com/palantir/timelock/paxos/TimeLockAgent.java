@@ -84,9 +84,12 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
+    private static final Logger log = LoggerFactory.getLogger(TimeLockAgent.class);
     // Schema version from 2 onwards are on SQLite
     static final Long SCHEMA_VERSION = 3L;
 
@@ -215,8 +218,10 @@ public class TimeLockAgent {
     private TimestampStorage getTimestampStorage() {
         TsBoundPersisterConfiguration timestampBoundPersistence = install.timestampBoundPersistence();
         if (timestampBoundPersistence instanceof PaxosTsBoundPersisterConfiguration) {
+            log.info("Starting TimeLock with Paxos timestamp persistence");
             return createPaxosBasedTimestampStorage();
         } else if (timestampBoundPersistence instanceof DatabaseTsBoundPersisterConfiguration) {
+            log.info("Starting TimeLock with DB timestamp persistence");
             return createDatabaseTimestampStorage((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence);
         }
         throw new RuntimeException(
