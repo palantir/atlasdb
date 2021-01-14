@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.performance.cli;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.performance.BenchmarkParam;
 import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
 import com.palantir.atlasdb.performance.PerformanceResults;
@@ -112,6 +113,7 @@ public class AtlasDbPerfCli {
     }
 
     private static void run(AtlasDbPerfCli cli) throws Exception {
+        runJmh(cli, ImmutableList.of());
         if (cli.dbUris != null) {
             runJmh(cli, getDockerUris(cli));
         } else {
