@@ -22,6 +22,7 @@ import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
@@ -32,26 +33,27 @@ import org.openjdk.jmh.annotations.Warmup;
 
 @State(Scope.Benchmark)
 public class AutobatcherBenchmarks {
-    DisruptorAutobatcher<Integer, Integer> autobatcher =
-            Autobatchers.coalescing(Bla.INSTANCE)
+    private static final DisruptorAutobatcher<Integer, Integer> autobatcher =
+            Autobatchers.coalescing(new Handler())
+                    .bufferSize(OptionalInt.of(512))
                     .safeLoggablePurpose("test")
                     .build();
 
     @Benchmark
     @Threads(256)
-    @Warmup(time = 1)
-    @Measurement(time = 6)
-    public int test() {
+    @Warmup(time = 15)
+    @Measurement(time = 15)
+    public int coalescingBatching() {
         return AtlasFutures.getUnchecked(autobatcher.apply(1));
     }
 
-    private enum Bla implements CoalescingRequestFunction<Integer, Integer> {
-        INSTANCE;
-
+    @State(Scope.Benchmark)
+    private static class Handler implements CoalescingRequestFunction<Integer, Integer> {
         @Override
         public Map<Integer, Integer> apply(Set<Integer> request) {
             Map<Integer, Integer> map = Maps.newHashMapWithExpectedSize(request.size());
             request.forEach(num -> map.put(num, num));
-            return map;        }
+            return map;
+        }
     }
 }

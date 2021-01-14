@@ -45,8 +45,8 @@ public class CoalescingSupplierBenchmarks {
 
     @Benchmark
     @Threads(256)
-    @Warmup(time = 2)
-    @Measurement(time = 6)
+    @Warmup(time = 15)
+    @Measurement(time = 15)
     public int coalescing() {
         return AtlasFutures.getUnchecked(Futures.immediateFuture(getTimer(threadId.get()).get()));
     }
