@@ -20,14 +20,18 @@ import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.TimeoutException;
+import com.lmax.disruptor.WaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.dsl.ProducerType;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.DetachedSpan;
 import java.io.Closeable;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
@@ -158,9 +162,16 @@ public final class DisruptorAutobatcher<T, R>
     }
 
     static <T, R> DisruptorAutobatcher<T, R> create(
-            EventHandler<BatchElement<T, R>> eventHandler, int bufferSize, String safeLoggablePurpose) {
-        Disruptor<DisruptorBatchElement<T, R>> disruptor =
-                new Disruptor<>(DisruptorBatchElement::new, bufferSize, threadFactory(safeLoggablePurpose));
+            EventHandler<BatchElement<T, R>> eventHandler,
+            int bufferSize,
+            String safeLoggablePurpose,
+            Optional<WaitStrategy> waitStrategy) {
+        Disruptor<DisruptorBatchElement<T, R>> disruptor = new Disruptor<>(
+                DisruptorBatchElement::new,
+                bufferSize,
+                threadFactory(safeLoggablePurpose),
+                ProducerType.MULTI,
+                waitStrategy.orElseGet(BlockingWaitStrategy::new));
         disruptor.handleEventsWith(
                 (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
