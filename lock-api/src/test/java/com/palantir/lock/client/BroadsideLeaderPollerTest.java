@@ -57,11 +57,12 @@ public class BroadsideLeaderPollerTest {
 
     @Test
     public void routesRequestsCorrectly() {
-        when(authenticatedService.leaderTimes(any())).thenReturn(LeaderTimes.builder()
-                .leaderTimes(NAMESPACE_1, LEADER_TIME_1)
-                .leaderTimes(NAMESPACE_2, LEADER_TIME_2)
-                .leaderTimes(NAMESPACE_3, LEADER_TIME_3)
-                .build());
+        when(authenticatedService.leaderTimes(any()))
+                .thenReturn(LeaderTimes.builder()
+                        .leaderTimes(NAMESPACE_1, LEADER_TIME_1)
+                        .leaderTimes(NAMESPACE_2, LEADER_TIME_2)
+                        .leaderTimes(NAMESPACE_3, LEADER_TIME_3)
+                        .build());
 
         assertThat(serviceBackedPoller.get(NAMESPACE_1)).isEqualTo(LEADER_TIME_1);
         assertThat(serviceBackedPoller.get(NAMESPACE_2)).isEqualTo(LEADER_TIME_2);
@@ -72,11 +73,12 @@ public class BroadsideLeaderPollerTest {
 
     @Test
     public void buildsRequests() {
-        when(authenticatedService.leaderTimes(any())).thenReturn(LeaderTimes.builder()
-                .leaderTimes(NAMESPACE_1, LEADER_TIME_1)
-                .leaderTimes(NAMESPACE_2, LEADER_TIME_2)
-                .leaderTimes(NAMESPACE_3, LEADER_TIME_3)
-                .build());
+        when(authenticatedService.leaderTimes(any()))
+                .thenReturn(LeaderTimes.builder()
+                        .leaderTimes(NAMESPACE_1, LEADER_TIME_1)
+                        .leaderTimes(NAMESPACE_2, LEADER_TIME_2)
+                        .leaderTimes(NAMESPACE_3, LEADER_TIME_3)
+                        .build());
 
         assertThat(serviceBackedPoller.get(NAMESPACE_1)).isEqualTo(LEADER_TIME_1);
         assertThat(serviceBackedPoller.get(NAMESPACE_2)).isEqualTo(LEADER_TIME_2);
@@ -87,9 +89,10 @@ public class BroadsideLeaderPollerTest {
 
     @Test
     public void throwsIfResponseRepeatedlyDoesNotContainNamespace() {
-        when(authenticatedService.leaderTimes(any())).thenReturn(LeaderTimes.builder()
-                .leaderTimes(NAMESPACE_3, LEADER_TIME_3)
-                .build());
+        when(authenticatedService.leaderTimes(any()))
+                .thenReturn(LeaderTimes.builder()
+                        .leaderTimes(NAMESPACE_3, LEADER_TIME_3)
+                        .build());
 
         assertThatThrownBy(() -> serviceBackedPoller.get(NAMESPACE_1))
                 .isInstanceOf(SafeIllegalStateException.class)
@@ -100,16 +103,18 @@ public class BroadsideLeaderPollerTest {
 
     @Test
     public void simulation() {
-        when(authenticatedService.leaderTimes(any())).thenReturn(LeaderTimes.builder()
-                .leaderTimes(NAMESPACE_1, LEADER_TIME_1)
-                .build());
+        when(authenticatedService.leaderTimes(any()))
+                .thenReturn(LeaderTimes.builder()
+                        .leaderTimes(NAMESPACE_1, LEADER_TIME_1)
+                        .build());
 
         ExecutorService executorService = PTExecutors.newFixedThreadPool(16);
         List<Future<LeaderTime>> leaderTimeFutures = Lists.newArrayList();
         for (int request = 0; request < 512; request++) {
             leaderTimeFutures.add(executorService.submit(() -> serviceBackedPoller.get(NAMESPACE_1)));
         }
-        leaderTimeFutures.forEach(future -> assertThat(Futures.getUnchecked(future)).isEqualTo(LEADER_TIME_1));
+        leaderTimeFutures.forEach(
+                future -> assertThat(Futures.getUnchecked(future)).isEqualTo(LEADER_TIME_1));
 
         assertThat(mockingDetails(authenticatedService).getInvocations().size())
                 .as("some requests were autobatched")

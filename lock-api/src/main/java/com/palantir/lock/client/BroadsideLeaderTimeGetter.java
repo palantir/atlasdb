@@ -23,9 +23,7 @@ public class BroadsideLeaderTimeGetter implements LeaderTimeGetter {
     private final BroadsideLeaderPoller broadsideLeaderPoller;
     private final Namespace namespace;
 
-    public BroadsideLeaderTimeGetter(
-            BroadsideLeaderPoller broadsideLeaderPoller,
-            Namespace namespace) {
+    public BroadsideLeaderTimeGetter(BroadsideLeaderPoller broadsideLeaderPoller, Namespace namespace) {
         this.broadsideLeaderPoller = broadsideLeaderPoller;
         this.namespace = namespace;
     }

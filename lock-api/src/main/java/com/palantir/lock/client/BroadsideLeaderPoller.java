@@ -38,9 +38,7 @@ public final class BroadsideLeaderPoller {
     private final Set<Namespace> namespaces;
 
     @VisibleForTesting
-    BroadsideLeaderPoller(
-            Supplier<LeaderTimes> leaderTimesSupplier,
-            Set<Namespace> namespaces) {
+    BroadsideLeaderPoller(Supplier<LeaderTimes> leaderTimesSupplier, Set<Namespace> namespaces) {
         this.leaderTimesSupplier = leaderTimesSupplier;
         this.namespaces = namespaces;
     }
@@ -60,9 +58,10 @@ public final class BroadsideLeaderPoller {
                 return leaderTime;
             }
         }
-        log.warn("Failed to get leader time for a namespace, despite multiple attempts!",
+        log.warn(
+                "Failed to get leader time for a namespace, despite multiple attempts!",
                 SafeArg.of("namespace", namespace));
-        throw new SafeIllegalStateException("Failed to get leader time for a namespace",
-                SafeArg.of("namespace", namespace));
+        throw new SafeIllegalStateException(
+                "Failed to get leader time for a namespace", SafeArg.of("namespace", namespace));
     }
 }
