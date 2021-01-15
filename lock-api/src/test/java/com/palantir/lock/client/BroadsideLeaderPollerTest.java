@@ -27,7 +27,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -36,6 +35,7 @@ import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -109,7 +109,7 @@ public class BroadsideLeaderPollerTest {
                         .build());
 
         ExecutorService executorService = PTExecutors.newFixedThreadPool(16);
-        List<Future<LeaderTime>> leaderTimeFutures = Lists.newArrayList();
+        List<Future<LeaderTime>> leaderTimeFutures = new ArrayList<>();
         for (int request = 0; request < 512; request++) {
             leaderTimeFutures.add(executorService.submit(() -> serviceBackedPoller.get(NAMESPACE_1)));
         }
