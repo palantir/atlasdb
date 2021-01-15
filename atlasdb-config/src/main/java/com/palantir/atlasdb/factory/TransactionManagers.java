@@ -151,11 +151,12 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
+import com.palantir.lock.client.BroadsideLeaderPoller;
+import com.palantir.lock.client.BroadsideLeaderTimeGetter;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
-import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
@@ -1206,7 +1207,7 @@ public abstract class TransactionManagers {
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
 
         LeaderTimeGetter leaderTimeGetter = getLeaderTimeGetter(
-                timelockNamespace, timelockRequestBatcherProviders, serviceProvider, namespacedConjureTimelockService);
+                timelockNamespace, timelockRequestBatcherProviders, serviceProvider);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, leaderTimeGetter);
@@ -1228,11 +1229,13 @@ public abstract class TransactionManagers {
     private static LeaderTimeGetter getLeaderTimeGetter(
             String timelockNamespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
-            AtlasDbDialogueServiceProvider serviceProvider,
-            LeaderElectionReportingTimelockService namespacedConjureTimelockService) {
+            AtlasDbDialogueServiceProvider serviceProvider) {
 
         if (!timelockRequestBatcherProviders.isPresent()) {
-            return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
+            return new BroadsideLeaderTimeGetter(
+                    BroadsideLeaderPoller.create(getMultiClientTimelockServiceSupplier(serviceProvider).get()),
+                    com.palantir.atlasdb.timelock.api.Namespace.of(timelockNamespace)
+            );
         }
 
         LeaderTimeCoalescingBatcher batcher = timelockRequestBatcherProviders
