@@ -45,7 +45,7 @@ public final class BroadsideLeaderPoller {
         this.namespaces = namespaces;
     }
 
-    public static BroadsideLeaderPoller create(AuthenticatedInternalMultiClientConjureTimelockService timelockService) {
+    public static BroadsideLeaderPoller create(InternalMultiClientConjureTimelockService timelockService) {
         Set<Namespace> namespaces = Sets.newConcurrentHashSet();
         return new BroadsideLeaderPoller(
                 new CoalescingSupplier<>(() -> timelockService.leaderTimes(namespaces)), namespaces);
