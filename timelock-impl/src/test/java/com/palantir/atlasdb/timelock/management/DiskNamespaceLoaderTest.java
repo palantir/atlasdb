@@ -88,7 +88,6 @@ public class DiskNamespaceLoaderTest {
                 .getRoot()
                 .toPath()
                 .resolve(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
-                .resolve(PaxosTimeLockConstants.LEARNER_PAXOS_NAMESPACE)
                 .resolve(PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE)
                 .resolve(namespace)
                 .toFile()
