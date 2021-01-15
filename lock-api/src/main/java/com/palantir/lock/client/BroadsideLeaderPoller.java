@@ -17,7 +17,6 @@
 package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.concurrent.CoalescingSupplier;
@@ -26,6 +25,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,7 @@ public final class BroadsideLeaderPoller {
     }
 
     public static BroadsideLeaderPoller create(InternalMultiClientConjureTimelockService timelockService) {
-        Set<Namespace> namespaces = Sets.newConcurrentHashSet();
+        Set<Namespace> namespaces = ConcurrentHashMap.newKeySet();
         return new BroadsideLeaderPoller(
                 new CoalescingSupplier<>(() -> timelockService.leaderTimes(namespaces)), namespaces);
     }
