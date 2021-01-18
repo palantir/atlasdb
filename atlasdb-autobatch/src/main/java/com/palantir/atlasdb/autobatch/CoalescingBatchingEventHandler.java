@@ -56,7 +56,8 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
                 results = function.apply(pending.keySet());
             }
             try (CloseableTracer unused = CloseableTracer.startSpan("set-futures:" + useCase)) {
-                log.info("The autobatcher function is running, and it saw {} results for the use case {}",
+                log.info(
+                        "The autobatcher function is running, and it saw {} results for the use case {}",
                         SafeArg.of("futuresToSet", pending.size()),
                         SafeArg.of("useCase", useCase));
                 pending.forEach((argument, future) -> {

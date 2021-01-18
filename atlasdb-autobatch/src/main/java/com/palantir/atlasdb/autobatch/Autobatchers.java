@@ -63,8 +63,8 @@ public final class Autobatchers {
      * @see CoalescingRequestConsumer
      */
     public static <I, O> AutobatcherBuilder<I, O> coalescing(CoalescingRequestFunction<I, O> function, String useCase) {
-        return new AutobatcherBuilder<>(bufferSize -> new CoalescingBatchingEventHandler<>(function, bufferSize,
-                useCase));
+        return new AutobatcherBuilder<>(
+                bufferSize -> new CoalescingBatchingEventHandler<>(function, bufferSize, useCase));
     }
 
     public static <O> AutobatcherBuilder<SupplierKey, O> coalescing(Supplier<O> supplier) {
