@@ -144,27 +144,27 @@ public class BroadsideLeaderPollerTest {
     @Test
     public void multiClientSimulation() {
         Map<Namespace, LeaderTime> canonicalTimes = KeyedStream.of(
-                IntStream.range(0, 256).boxed().collect(Collectors.toList()))
+                        IntStream.range(0, 256).boxed().collect(Collectors.toList()))
                 .mapKeys(index -> Namespace.of("n" + index))
                 .map(unused -> LeaderTime.of(LeadershipId.random(), NanoTime.now()))
                 .collectToMap();
 
         when(authenticatedService.leaderTimes(any())).thenAnswer(invocationOnMock -> {
             Set<Namespace> namespaces = invocationOnMock.getArgument(0);
-            return LeaderTimes.of(KeyedStream.of(namespaces.stream())
-                    .map(canonicalTimes::get)
-                    .collectToMap());
+            return LeaderTimes.of(
+                    KeyedStream.of(namespaces.stream()).map(canonicalTimes::get).collectToMap());
         });
 
         ExecutorService executorService = PTExecutors.newFixedThreadPool(16);
-        Multimap<Namespace, Future<LeaderTime>> leaderTimeFutures = MultimapBuilder.hashKeys().arrayListValues().build();
+        Multimap<Namespace, Future<LeaderTime>> leaderTimeFutures =
+                MultimapBuilder.hashKeys().arrayListValues().build();
         for (int request = 0; request < 1024; request++) {
             Namespace namespace = Namespace.of("n" + (request % 256));
             leaderTimeFutures.put(namespace, executorService.submit(() -> serviceBackedPoller.get(namespace)));
         }
 
-        leaderTimeFutures.forEach(
-                (namespace, future) -> assertThat(Futures.getUnchecked(future)).isEqualTo(canonicalTimes.get(namespace)));
+        leaderTimeFutures.forEach((namespace, future) ->
+                assertThat(Futures.getUnchecked(future)).isEqualTo(canonicalTimes.get(namespace)));
 
         assertThat(mockingDetails(authenticatedService).getInvocations().size())
                 .as("some requests were autobatched")

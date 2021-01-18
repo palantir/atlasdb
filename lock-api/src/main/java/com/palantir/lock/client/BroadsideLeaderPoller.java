@@ -57,8 +57,9 @@ public final class BroadsideLeaderPoller {
             if (leaderTime != null) {
                 return leaderTime;
             }
-            log.info("Failed to get leader time for a namespace. This is unexpected and probably indicates an"
-                    + " AtlasDB bug, but we will try again as this is likely to be transient.",
+            log.info(
+                    "Failed to get leader time for a namespace. This is unexpected and probably indicates an"
+                            + " AtlasDB bug, but we will try again as this is likely to be transient.",
                     SafeArg.of("namespace", namespace));
         }
         log.warn(
