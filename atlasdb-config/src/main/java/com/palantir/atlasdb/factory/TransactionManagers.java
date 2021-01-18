@@ -1206,7 +1206,7 @@ public abstract class TransactionManagers {
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
 
         LeaderTimeGetter leaderTimeGetter = getLeaderTimeGetter(
-                namespacedConjureTimelockService, timelockNamespace, timelockRequestBatcherProviders, serviceProvider);
+                timelockNamespace, timelockRequestBatcherProviders, serviceProvider, namespacedConjureTimelockService);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, leaderTimeGetter);
@@ -1226,10 +1226,10 @@ public abstract class TransactionManagers {
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(
-            LeaderElectionReportingTimelockService namespacedConjureTimelockService,
             String timelockNamespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
-            AtlasDbDialogueServiceProvider serviceProvider) {
+            AtlasDbDialogueServiceProvider serviceProvider,
+            LeaderElectionReportingTimelockService namespacedConjureTimelockService) {
 
         if (!timelockRequestBatcherProviders.isPresent()) {
             return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
