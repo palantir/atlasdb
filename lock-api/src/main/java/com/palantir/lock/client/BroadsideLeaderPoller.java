@@ -30,6 +30,11 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Makes requests to TimeLock for multiple leader times, based on the entire history of namespaces known to this
+ * instance of this class. The idea here is that on a stable, busy stack, the overhead of doing this is near zero
+ * (since all namespaces have requests), and we can simply re-use the existing set that was used to send the request.
+ */
 public final class BroadsideLeaderPoller {
     private static final Logger log = LoggerFactory.getLogger(BroadsideLeaderPoller.class);
     private static final int MAXIMUM_ATTEMPTS = 5;
