@@ -60,7 +60,8 @@ public class CoalescingBatchingEventHandlerTests {
 
         when(function.apply(ImmutableSet.of(request1))).thenReturn(ImmutableMap.of(request1, response));
 
-        CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5);
+        CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5,
+                useCase);
         Future<Response> response1 = addToBatch(handler, request1);
         Future<Response> response2 = addToBatch(handler, request2);
         Future<Response> response3 = addAndEndBatch(handler, request3);
@@ -82,7 +83,8 @@ public class CoalescingBatchingEventHandlerTests {
                         request1, responseFor1,
                         request2, responseFor2));
 
-        CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5);
+        CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5,
+                useCase);
 
         Future<Response> response1Future = addToBatch(handler, request1);
         Future<Response> response2Future = addAndEndBatch(handler, request2);
@@ -99,7 +101,8 @@ public class CoalescingBatchingEventHandlerTests {
 
         when(function.apply(ImmutableSet.of(request1, request2))).thenReturn(ImmutableMap.of(request1, responseFor1));
 
-        CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5);
+        CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5,
+                useCase);
 
         Future<Response> response1Future = addToBatch(handler, request1);
         Future<Response> response2Future = addAndEndBatch(handler, request2);
@@ -124,7 +127,8 @@ public class CoalescingBatchingEventHandlerTests {
                 .thenReturn(ImmutableMap.of(request, secondInvocation))
                 .thenThrow(new AssertionError("should not reach here"));
 
-        CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5);
+        CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5,
+                useCase);
         Future<Response> firstInvocationResponse = addAndEndBatch(handler, request);
         Future<Response> secondInvocationResponse = addAndEndBatch(handler, request);
 
@@ -143,7 +147,8 @@ public class CoalescingBatchingEventHandlerTests {
 
         when(function.apply(anySet())).thenThrow(exception);
 
-        CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5);
+        CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5,
+                useCase);
         Future<Response> firstInvocationResponse = addToBatch(handler, ImmutableRequest.of(5));
         Future<Response> secondInvocationResponse = addAndEndBatch(handler, ImmutableRequest.of(10));
 

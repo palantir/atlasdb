@@ -16,9 +16,11 @@
 
 package com.palantir.lock.client;
 
+import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.lock.v2.LeaderTime;
 
 public interface LeaderTimeGetter extends AutoCloseable {
+    @Timed
     LeaderTime leaderTime();
 
     @Override
