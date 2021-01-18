@@ -67,6 +67,11 @@ public final class Autobatchers {
                 bufferSize -> new CoalescingBatchingEventHandler<>(function, bufferSize, useCase));
     }
 
+    public static <I, O> AutobatcherBuilder<I, O> coalescing(CoalescingRequestFunction<I, O> function) {
+        return new AutobatcherBuilder<>(
+                bufferSize -> new CoalescingBatchingEventHandler<>(function, bufferSize, "magic"));
+    }
+
     public static <O> AutobatcherBuilder<SupplierKey, O> coalescing(Supplier<O> supplier) {
         return coalescing(new CoalescingRequestSupplier<>(supplier), "unknown");
     }
