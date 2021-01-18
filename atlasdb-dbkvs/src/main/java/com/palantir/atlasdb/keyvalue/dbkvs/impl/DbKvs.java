@@ -684,7 +684,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
                     @Override
                     protected TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getFirstPage() {
                         return getTimestampsPage(
-                                tableRef, rangeRequest, timestamp, maxRangeOfTimestampsBatchSize, Token.INITIAL);
+                                tableRef, rangeRequest, timestamp, maxRangeOfTimestampsBatchSize, Tokens.INITIAL);
                     }
 
                     @Override
