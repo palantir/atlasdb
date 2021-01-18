@@ -1205,8 +1205,8 @@ public abstract class TransactionManagers {
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
 
-        LeaderTimeGetter leaderTimeGetter =
-                getLeaderTimeGetter(timelockNamespace, timelockRequestBatcherProviders, serviceProvider);
+        LeaderTimeGetter leaderTimeGetter = getLeaderTimeGetter(
+                namespacedConjureTimelockService, timelockNamespace, timelockRequestBatcherProviders, serviceProvider);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, leaderTimeGetter);
