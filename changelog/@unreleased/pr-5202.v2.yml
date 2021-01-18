@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Implemented `BroadsideLeaderTimeGetter`, which makes requests to TimeLock for multiple leader times, based on the entire history of namespaces known to this instance of this class. The idea here is that on a stable, busy stack, the overhead of doing this is near zero (since all namespaces have requests), and we can simply re-use the existing set that was used to send the request.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5202
