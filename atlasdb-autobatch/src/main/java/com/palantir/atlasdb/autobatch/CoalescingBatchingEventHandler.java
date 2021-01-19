@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
-
     private static final Logger log = LoggerFactory.getLogger(CoalescingBatchingEventHandler.class);
 
     private final CoalescingRequestFunction<T, R> function;
@@ -45,6 +44,8 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
     }
 
     private void flush() {
+        long startTime = System.nanoTime();
+        int size = pending.size();
         try {
             Map<T, R> results = function.apply(pending.keySet());
             pending.forEach((argument, future) -> {
@@ -61,5 +62,10 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
             pending.forEach((unused, future) -> future.setException(t));
         }
         pending.clear();
+        log.info(
+                "The start - {} and end times - {} of leaderTime call for batchSize - {}",
+                SafeArg.of("startTime", startTime),
+                SafeArg.of("endTime", System.nanoTime()),
+                SafeArg.of("namespace", size));
     }
 }
