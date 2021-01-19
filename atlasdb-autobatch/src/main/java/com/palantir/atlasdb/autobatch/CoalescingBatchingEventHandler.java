@@ -66,6 +66,6 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
                 "The start - {} and end times - {} of leaderTime call for batchSize - {}",
                 SafeArg.of("startTime", startTime),
                 SafeArg.of("endTime", System.nanoTime()),
-                SafeArg.of("namespace", size));
+                SafeArg.of("size", size));
     }
 }
