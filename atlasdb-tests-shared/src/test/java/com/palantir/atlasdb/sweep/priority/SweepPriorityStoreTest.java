@@ -17,14 +17,6 @@ package com.palantir.atlasdb.sweep.priority;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.OptionalLong;
-import java.util.concurrent.ExecutorService;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -34,6 +26,12 @@ import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.SweepTestUtils;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
+import java.util.List;
+import java.util.OptionalLong;
+import java.util.concurrent.ExecutorService;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class SweepPriorityStoreTest {
     private ExecutorService exec;
