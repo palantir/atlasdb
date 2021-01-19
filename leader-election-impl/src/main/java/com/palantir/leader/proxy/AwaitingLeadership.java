@@ -140,7 +140,7 @@ public final class AwaitingLeadership implements Closeable {
         log.debug("Gained leadership, getting delegate to start serving calls");
 
         if (leaderClock.get() == null) {
-            leaderClock.compareAndSet(null, ImmutableLeadershipClock.builder().build());
+            leaderClock.compareAndSet(null, LeadershipClock.create());
         }
 
         if (isClosed) {

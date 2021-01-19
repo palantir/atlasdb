@@ -517,7 +517,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .map(LeaderTime::id)
                 .map(LeadershipId::id)
                 .collect(Collectors.toSet());
-        assertThat(leadershipIds).hasSameSizeAs(expectedNamespaces);
+        assertThat(leadershipIds).hasSize(1);
     }
 
     @Test
