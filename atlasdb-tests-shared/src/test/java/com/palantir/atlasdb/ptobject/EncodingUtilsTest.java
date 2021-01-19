@@ -67,7 +67,7 @@ public class EncodingUtilsTest {
             assertThat(EncodingUtils.decodeVarString(EncodingUtils.encodeVarString(str))
                             .getBytes())
                     .isEqualTo(str.getBytes());
-            assertThat(EncodingUtils.encodeVarString(str).length).isEqualTo(EncodingUtils.sizeOfVarString(str));
+            assertThat(EncodingUtils.encodeVarString(str)).hasSize(EncodingUtils.sizeOfVarString(str));
         }
     }
 

@@ -249,8 +249,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
 
     private void assertLatestEntryBeforeTsIs(long getTs, TableReference tableRef, Cell cell, byte[] data, long ts) {
         Value expected = Value.create(data, ts);
-        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, getTs)).get(cell))
-                .isEqualTo(expected);
+        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, getTs))).containsEntry(cell, expected);
     }
 
     private long putWriteAndFailOnPreCommitConditionReturningStartTimestamp(WriteReference writeRef) {
@@ -267,9 +266,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
 
     private void assertNoEntryForCellInKvs(TableReference tableRef, Cell cell) {
         assertThat(keyValueService
-                        .get(tableRef, ImmutableMap.of(cell, Long.MAX_VALUE))
-                        .get(cell))
-                .isNull();
+                        .get(tableRef, ImmutableMap.of(cell, Long.MAX_VALUE))).doesNotContainKey(cell);
     }
 
     private void useOneSweepQueueShard() {
@@ -278,8 +275,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
 
     private void assertOnlySentinelBeforeTs(TableReference tableRef, Cell cell, long ts) {
         Value sentinel = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, ts)).get(cell))
-                .isEqualTo(sentinel);
+        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, ts))).containsEntry(cell, sentinel);
     }
 
     private Long writeInTransactionAndGetStartTimestamp(WriteReference writeRef) {
