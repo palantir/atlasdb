@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.leader.proxy.LeadershipClock;
 import java.util.concurrent.ScheduledExecutorService;
 import org.junit.Test;
 
@@ -30,7 +31,10 @@ public class AsyncLockServiceTest {
         ScheduledExecutorService reaperExecutor = PTExecutors.newSingleThreadScheduledExecutor();
         ScheduledExecutorService timeoutExecutor = PTExecutors.newSingleThreadScheduledExecutor();
         AsyncLockService asyncLockService = AsyncLockService.createDefault(
-                new LockLog(MetricsManagers.createForTests().getRegistry(), () -> 1L), reaperExecutor, timeoutExecutor);
+                LeadershipClock::create,
+                new LockLog(MetricsManagers.createForTests().getRegistry(), () -> 1L),
+                reaperExecutor,
+                timeoutExecutor);
 
         asyncLockService.close();
         assertThat(reaperExecutor.isShutdown()).isTrue();

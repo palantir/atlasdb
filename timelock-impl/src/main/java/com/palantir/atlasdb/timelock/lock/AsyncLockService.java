@@ -19,8 +19,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
+import com.palantir.leader.proxy.LeadershipClock;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import java.io.Closeable;
@@ -29,6 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,16 +54,29 @@ public class AsyncLockService implements Closeable {
      *
      * Executors here are assumed to be owned by this service, and will be shut down when {@link #close()} is called.
      *
+     *
+     * @param leadershipClockSupplier centrally maintained leader clock
      * @param lockLog lock logger
      * @param reaperExecutor executor for reaping locks that have not been refreshed by clients
      * @param timeoutExecutor executor for timing out lock requests that have blocked for longer than permitted
      * @return an asynchronous lock service
      */
     public static AsyncLockService createDefault(
-            LockLog lockLog, ScheduledExecutorService reaperExecutor, ScheduledExecutorService timeoutExecutor) {
+            Supplier<LeadershipClock> leadershipClockSupplier,
+            LockLog lockLog,
+            ScheduledExecutorService reaperExecutor,
+            ScheduledExecutorService timeoutExecutor) {
+        LeadershipClock leadershipClock = leadershipClockSupplier.get();
 
-        LeaderClock clock = LeaderClock.create();
-
+        LeaderClock clock;
+        if (leadershipClock == null) {
+            log.error("This should never happen!");
+            clock = LeaderClock.create();
+        } else {
+            clock = new LeaderClock(
+                    LeadershipId.create(leadershipClock.leadershipId()),
+                    leadershipClock.clock());
+        }
         HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
         LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks, clock.id());
         LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);

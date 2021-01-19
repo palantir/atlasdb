@@ -21,6 +21,7 @@ import com.google.common.io.Closer;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadership;
+import com.palantir.leader.proxy.LeadershipClock;
 import com.palantir.leader.proxy.ServiceProxy;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.paxos.HealthCheckPinger;
@@ -83,6 +84,10 @@ public class LeadershipComponents {
 
     public boolean requestHostileTakeover(Client client) {
         return getOrCreateNewLeadershipContext(client).leaderElectionService().hostileTakeover();
+    }
+
+    public Supplier<LeadershipClock> getLeaderClock(Client client) {
+        return getOrCreateNewLeadershipContext(client).awaitingLeadership().getLeaderClock();
     }
 
     private LeadershipContext getOrCreateNewLeadershipContext(Client client) {

@@ -33,7 +33,7 @@ public class AwaitingLeadershipServiceFactory implements Closeable {
     @Override
     public void close() {
         awaitingLeaderships.keySet().forEach(k -> {
-            AwaitingLeadership awaitingLeadership = awaitingLeaderships.remove(k);
+            AwaitingLeadership awaitingLeadership = awaitingLeaderships.get(k);
             if (awaitingLeadership != null) {
                 awaitingLeadership.close();
             }

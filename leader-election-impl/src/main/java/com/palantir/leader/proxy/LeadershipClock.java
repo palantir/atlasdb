@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.leader.proxy;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.palantir.common.time.NanoTime;
 import java.util.UUID;
+import java.util.function.Supplier;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-public abstract class LeadershipId {
-    @JsonValue
-    @Value.Parameter
-    public abstract UUID id();
-
-    @JsonCreator
-    public static LeadershipId create(UUID uuid) {
-        return ImmutableLeadershipId.builder().id(uuid).build();
+public interface LeadershipClock {
+    @Value.Default
+    default UUID leadershipId() {
+        return UUID.randomUUID();
     }
 
-    public static LeadershipId random() {
-        return create(UUID.randomUUID());
+    @Value.Default
+    default Supplier<NanoTime> clock() {
+        return NanoTime::now;
+    }
+
+    static LeadershipClock create() {
+        return ImmutableLeadershipClock.builder().build();
     }
 }

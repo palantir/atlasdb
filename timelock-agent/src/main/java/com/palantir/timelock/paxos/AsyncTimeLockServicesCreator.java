@@ -29,6 +29,7 @@ import com.palantir.atlasdb.timelock.paxos.LeadershipComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.leader.proxy.LeadershipClock;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
@@ -63,6 +64,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     @Override
     public TimeLockServices createTimeLockServices(
             Client client,
+            Supplier<LeadershipClock> clock,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
@@ -71,7 +73,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         AsyncTimelockService asyncTimelockService = leadershipComponents.wrapInLeadershipProxy(
                 client,
                 AsyncTimelockService.class,
-                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
+                () -> createRawAsyncTimelockService(clock, client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
 
         AsyncTimelockResource asyncTimelockResource =
                 new AsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
@@ -88,7 +90,10 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private AsyncTimelockService createRawAsyncTimelockService(
-            Client client, Supplier<ManagedTimestampService> timestampServiceSupplier, LockLog maybeEnhancedLockLog) {
+            Supplier<LeadershipClock> clock,
+            Client client,
+            Supplier<ManagedTimestampService> timestampServiceSupplier,
+            LockLog maybeEnhancedLockLog) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
                 PTExecutors.newSingleThreadScheduledExecutor(
                         new NamedThreadFactory("async-lock-reaper-" + client, true)),
@@ -100,7 +105,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 metricsManager.getRegistry(),
                 "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
-                AsyncLockService.createDefault(maybeEnhancedLockLog, reaperExecutor, timeoutExecutor),
+                AsyncLockService.createDefault(clock, maybeEnhancedLockLog, reaperExecutor, timeoutExecutor),
                 timestampServiceSupplier.get(),
                 maybeEnhancedLockLog);
     }

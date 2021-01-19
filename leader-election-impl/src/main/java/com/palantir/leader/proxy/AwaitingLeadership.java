@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,11 +50,13 @@ public final class AwaitingLeadership implements Closeable {
     private final AtomicReference<LeadershipToken> leadershipTokenRef;
 
     private volatile boolean isClosed;
+    private final AtomicReference<LeadershipClock> leaderClock;
 
     private AwaitingLeadership(LeaderElectionService leaderElectionService) {
         this.leaderElectionService = leaderElectionService;
         this.executor = PTExecutors.newSingleThreadExecutor();
         this.leadershipTokenRef = new AtomicReference<>();
+        this.leaderClock = new AtomicReference<>();
         this.isClosed = false;
     }
 
@@ -78,6 +81,10 @@ public final class AwaitingLeadership implements Closeable {
 
     public boolean isClosed() {
         return isClosed;
+    }
+
+    public Supplier<LeadershipClock> getLeaderClock() {
+        return leaderClock::get;
     }
 
     private void tryToGainLeadership() {
@@ -132,6 +139,10 @@ public final class AwaitingLeadership implements Closeable {
     private void onGainedLeadership(LeadershipToken leadershipToken) {
         log.debug("Gained leadership, getting delegate to start serving calls");
 
+        if (leaderClock.get() == null) {
+            leaderClock.compareAndSet(null, ImmutableLeadershipClock.builder().build());
+        }
+
         if (isClosed) {
             return;
         } else {
@@ -182,6 +193,7 @@ public final class AwaitingLeadership implements Closeable {
     public void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         log.warn("Lost leadership", cause);
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
+            leaderClock.set(null);
             tryToGainLeadership();
         }
     }
