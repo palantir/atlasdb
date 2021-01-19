@@ -30,8 +30,8 @@ import java.util.Set;
 public class LeaderTimeCoalescingBatcher implements AutoCloseable {
     private final DisruptorAutobatcher<Namespace, LeaderTime> batcher;
 
-    public LeaderTimeCoalescingBatcher(InternalMultiClientConjureTimelockService delegate, OptionalInt bufferSize,
-            WaitStrategy strategy) {
+    public LeaderTimeCoalescingBatcher(
+            InternalMultiClientConjureTimelockService delegate, OptionalInt bufferSize, WaitStrategy strategy) {
         this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate))
                 .bufferSize(bufferSize)
                 .waitStrategy(strategy)
