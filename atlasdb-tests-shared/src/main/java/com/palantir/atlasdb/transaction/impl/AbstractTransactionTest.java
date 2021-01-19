@@ -1401,7 +1401,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         put(t2, "row1", "col1", "v2");
 
         t1.commit();
-                    assertThatThrownBy(() -> t2.commit()).describedAs("Expected write-write conflict.").isInstanceOf(TransactionConflictException.class);
+                    assertThatThrownBy(t2::commit).describedAs("Expected write-write conflict.").isInstanceOf(TransactionConflictException.class);
     }
 
     @Test
@@ -1413,7 +1413,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         put(t2, "row1", "col1", "v2");
 
         t1.commit();
-                    assertThatThrownBy(() -> t2.commit()).describedAs("Expected write-write conflict.").isInstanceOf(TransactionConflictException.class);
+                    assertThatThrownBy(t2::commit).describedAs("Expected write-write conflict.").isInstanceOf(TransactionConflictException.class);
     }
 
     @Test
