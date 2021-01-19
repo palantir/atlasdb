@@ -16,7 +16,6 @@
 package com.palantir.nexus.db.sql;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -61,8 +60,8 @@ public class SQLStringTest {
                 "insert foo into bar; /* UnregisteredSQLString */ insert foo into bar");
         String canonicalBatch = "insertfoointobar;insertfoointobar";
 
-        testBatch.forEach(
-                sql -> assertThat(SQLString.canonicalizeStringAndRemoveWhitespaceEntirely(sql)).isEqualTo(canonicalBatch));
+        testBatch.forEach(sql -> assertThat(SQLString.canonicalizeStringAndRemoveWhitespaceEntirely(sql))
+                .isEqualTo(canonicalBatch));
     }
 
     @Test

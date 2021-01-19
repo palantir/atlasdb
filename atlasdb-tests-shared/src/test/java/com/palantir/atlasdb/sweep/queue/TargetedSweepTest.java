@@ -265,8 +265,8 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     }
 
     private void assertNoEntryForCellInKvs(TableReference tableRef, Cell cell) {
-        assertThat(keyValueService
-                        .get(tableRef, ImmutableMap.of(cell, Long.MAX_VALUE))).doesNotContainKey(cell);
+        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, Long.MAX_VALUE)))
+                .doesNotContainKey(cell);
     }
 
     private void useOneSweepQueueShard() {
