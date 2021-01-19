@@ -15,7 +15,7 @@
  */
 package com.palantir.nexus.db.sql;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -40,7 +40,7 @@ public class SQLStringTest {
                 "  /* UnregisteredSQLString */insert foo into bar ");
         String canonicalQuery = "insert foo into bar";
 
-        testQuery.forEach(sql -> assertEquals(canonicalQuery, SQLString.canonicalizeString(sql)));
+        testQuery.forEach(sql -> assertThat(SQLString.canonicalizeString(sql)).isEqualTo(canonicalQuery));
     }
 
     @Test
@@ -50,7 +50,7 @@ public class SQLStringTest {
                 "insert foo into bar; /* UnregisteredSQLString */ insert foo into bar");
         String canonicalBatch = "insert foo into bar; insert foo into bar";
 
-        testBatch.forEach(sql -> assertEquals(canonicalBatch, SQLString.canonicalizeString(sql)));
+        testBatch.forEach(sql -> assertThat(SQLString.canonicalizeString(sql)).isEqualTo(canonicalBatch));
     }
 
     @Test
@@ -60,13 +60,13 @@ public class SQLStringTest {
                 "insert foo into bar; /* UnregisteredSQLString */ insert foo into bar");
         String canonicalBatch = "insertfoointobar;insertfoointobar";
 
-        testBatch.forEach(
-                sql -> assertEquals(canonicalBatch, SQLString.canonicalizeStringAndRemoveWhitespaceEntirely(sql)));
+        testBatch.forEach(sql -> assertThat(SQLString.canonicalizeStringAndRemoveWhitespaceEntirely(sql))
+                .isEqualTo(canonicalBatch));
     }
 
     @Test
     public void testCanonicalizeBlanks() throws Exception {
         List<String> testBatch = ImmutableList.of("", " ", " ;; ; ");
-        testBatch.forEach(sql -> assertEquals("", SQLString.canonicalizeString(sql)));
+        testBatch.forEach(sql -> assertThat(SQLString.canonicalizeString(sql)).isEqualTo(""));
     }
 }

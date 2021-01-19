@@ -335,7 +335,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         } else {
             account2 -= 150;
         }
-        assertThat(account1 + account2 >= 0).isTrue();
+        assertThat(account1 + account2).isGreaterThanOrEqualTo(0);
         if (account) {
             put(txn, "row1", "col1", String.valueOf(account1));
         } else {
