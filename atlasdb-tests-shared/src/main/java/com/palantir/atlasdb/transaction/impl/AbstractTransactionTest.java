@@ -17,12 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -576,7 +570,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                         .getResults()
                         .iterator()
                         .next()
-                        .getRowName())).isEqualTo("row0");
+                        .getRowName()))
+                .isEqualTo("row0");
     }
 
     @Test
@@ -601,7 +596,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                         .getResults()
                         .iterator()
                         .next()
-                        .getRowName())).isEqualTo("row99");
+                        .getRowName()))
+                .isEqualTo("row99");
     }
 
     @Test
@@ -1261,7 +1257,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                     }
                     MapEntries.putAll(vals, item.getCells());
                     if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
-                        assertThat(new String(item.getColumns().get("col1".getBytes()))).isEqualTo("v5");
+                        assertThat(new String(item.getColumns().get("col1".getBytes())))
+                                .isEqualTo("v5");
                         assertThat(IterableView.of(item.getCells()).size()).isEqualTo(3);
                     }
                     return true;
@@ -1314,10 +1311,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testWriteFailsOnReadOnly() {
-                    assertThatThrownBy(() -> getManager().runTaskReadOnly((TransactionTask<Void, RuntimeException>) t -> {
-                put(t, "row1", "col1", "v1");
-                return null;
-            })).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> getManager().runTaskReadOnly((TransactionTask<Void, RuntimeException>) t -> {
+                    put(t, "row1", "col1", "v1");
+                    return null;
+                }))
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test
@@ -1401,7 +1399,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         put(t2, "row1", "col1", "v2");
 
         t1.commit();
-                    assertThatThrownBy(t2::commit).describedAs("Expected write-write conflict.").isInstanceOf(TransactionConflictException.class);
+        assertThatThrownBy(t2::commit)
+                .describedAs("Expected write-write conflict.")
+                .isInstanceOf(TransactionConflictException.class);
     }
 
     @Test
@@ -1413,7 +1413,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         put(t2, "row1", "col1", "v2");
 
         t1.commit();
-                    assertThatThrownBy(t2::commit).describedAs("Expected write-write conflict.").isInstanceOf(TransactionConflictException.class);
+        assertThatThrownBy(t2::commit)
+                .describedAs("Expected write-write conflict.")
+                .isInstanceOf(TransactionConflictException.class);
     }
 
     @Test
@@ -1783,7 +1785,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         byte[] metadataForTable = keyValueService.getMetadataForTable(TEST_TABLE);
-        assertThat(metadataForTable == null || Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, metadataForTable)).isTrue();
+        assertThat(metadataForTable == null || Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, metadataForTable))
+                .isTrue();
         byte[] bytes = TableMetadata.allDefault().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         byte[] bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
@@ -1880,10 +1883,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         for (int i = 0; i < getRangesWithPrefetchingImpl.size(); i++) {
             assertThat(BatchingVisitables.copyToList(getRangesWithPrefetchingImpl.get(i))
-                            .size()).isEqualTo(expectedRangeSize);
+                            .size())
+                    .isEqualTo(expectedRangeSize);
             assertThat(BatchingVisitables.copyToList(getRangesInParallelImpl.get(i))
-                            .size()).isEqualTo(expectedRangeSize);
-            assertThat(BatchingVisitables.copyToList(getRangesLazyImpl.get(i)).size()).isEqualTo(expectedRangeSize);
+                            .size())
+                    .isEqualTo(expectedRangeSize);
+            assertThat(BatchingVisitables.copyToList(getRangesLazyImpl.get(i)).size())
+                    .isEqualTo(expectedRangeSize);
         }
     }
 
