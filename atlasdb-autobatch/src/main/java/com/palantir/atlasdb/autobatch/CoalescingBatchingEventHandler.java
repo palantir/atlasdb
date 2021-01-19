@@ -48,6 +48,11 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
         int size = pending.size();
         try {
             Map<T, R> results = function.apply(pending.keySet());
+            log.info(
+                    "The start - {} and end times - {} of leaderTime call for batchSize - {}",
+                    SafeArg.of("startTime", startTime),
+                    SafeArg.of("endTime", System.nanoTime()),
+                    SafeArg.of("size", size));
             pending.forEach((argument, future) -> {
                 if (results.containsKey(argument)) {
                     future.set(results.get(argument));
@@ -62,10 +67,5 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
             pending.forEach((unused, future) -> future.setException(t));
         }
         pending.clear();
-        log.info(
-                "The start - {} and end times - {} of leaderTime call for batchSize - {}",
-                SafeArg.of("startTime", startTime),
-                SafeArg.of("endTime", System.nanoTime()),
-                SafeArg.of("size", size));
     }
 }
