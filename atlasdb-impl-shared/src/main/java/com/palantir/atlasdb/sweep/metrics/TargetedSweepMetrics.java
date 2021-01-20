@@ -301,9 +301,9 @@ public class TargetedSweepMetrics {
     @JsonSerialize(as = ImmutableMetricsConfiguration.class)
     @JsonDeserialize(as = ImmutableMetricsConfiguration.class)
     @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     @SuppressWarnings("ClassInitializationDeadlock")
     public interface MetricsConfiguration {
+        @Deprecated
         MetricsConfiguration DEFAULT = ImmutableMetricsConfiguration.builder().build();
 
         /**

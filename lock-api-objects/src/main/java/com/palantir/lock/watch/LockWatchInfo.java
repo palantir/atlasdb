@@ -24,13 +24,10 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableLockWatchInfo.class)
 @JsonDeserialize(as = ImmutableLockWatchInfo.class)
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @SuppressWarnings("ClassInitializationDeadlock")
 public interface LockWatchInfo {
-    /**
-     * Used to denote lock watch info for locks that are not watched, or more generally, for locks for which the state
-     * is currently unknown.
-     */
+
+    @Deprecated
     LockWatchInfo UNKNOWN = ImmutableLockWatchInfo.of(State.NOT_WATCHED, OptionalLong.empty());
 
     @Value.Parameter

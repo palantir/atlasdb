@@ -59,6 +59,7 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
+import com.palantir.lock.LockServerConfigs;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.RemoteLockService;
@@ -225,7 +226,7 @@ public final class LockServiceImpl
     /** Creates a new lock server instance with default options. */
     // TODO (jtamer) read lock server options from a prefs file
     public static LockServiceImpl create() {
-        return create(LockServerOptions.DEFAULT);
+        return create(LockServerConfigs.DEFAULT);
     }
 
     /** Creates a new lock server instance with the given options. */

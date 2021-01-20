@@ -28,6 +28,7 @@ import com.palantir.lock.LockCollections;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockResponse;
+import com.palantir.lock.LockServerConfigs;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
@@ -67,7 +68,7 @@ public class LockServiceSerDeTest {
 
     @Test
     public void testSerialisationAndDeserialisationOfDefaultLockServerOptions() throws Exception {
-        LockServerOptions lockServerOptions = LockServerOptions.DEFAULT;
+        LockServerOptions lockServerOptions = LockServerConfigs.DEFAULT;
         ObjectMapper mapper = new ObjectMapper();
         String serializedForm = mapper.writeValueAsString(lockServerOptions);
         LockServerOptions deserialzedLockServerOptions = mapper.readValue(serializedForm, LockServerOptions.class);

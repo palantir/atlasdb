@@ -45,7 +45,7 @@ public interface PaxosInstallConfiguration {
     @JsonProperty("sqlite-persistence")
     @Value.Default
     default SqlitePaxosPersistenceConfiguration sqlitePersistence() {
-        return SqlitePaxosPersistenceConfiguration.DEFAULT;
+        return SqlitePaxosPersistenceConfigurations.DEFAULT;
     }
 
     /**
