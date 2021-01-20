@@ -1232,7 +1232,7 @@ public abstract class TransactionManagers {
             LeaderElectionReportingTimelockService namespacedConjureTimelockService) {
 
         if (!timelockRequestBatcherProviders.isPresent()) {
-            return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
+            return new LegacyLeaderTimeGetter(namespacedConjureTimelockService, timelockNamespace);
         }
 
         LeaderTimeCoalescingBatcher batcher = timelockRequestBatcherProviders

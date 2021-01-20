@@ -44,15 +44,15 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
     }
 
     private void flush() {
-        long startTime = System.nanoTime();
-        int size = pending.size();
+        // long startTime = System.nanoTime();
+        // int size = pending.size();
         try {
             Map<T, R> results = function.apply(pending.keySet());
-            log.info(
-                    "The start - {} and end times - {} of leaderTime call for batchSize - {}",
-                    SafeArg.of("startTime", startTime),
-                    SafeArg.of("endTime", System.nanoTime()),
-                    SafeArg.of("size", size));
+            // log.info(
+            //         "The start - {} and end times - {} of leaderTime call for batchSize - {}",
+            //         SafeArg.of("startTime", startTime),
+            //         SafeArg.of("endTime", System.nanoTime()),
+            //         SafeArg.of("size", size));
             pending.forEach((argument, future) -> {
                 if (results.containsKey(argument)) {
                     future.set(results.get(argument));

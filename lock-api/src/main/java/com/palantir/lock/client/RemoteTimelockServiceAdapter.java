@@ -55,7 +55,11 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache) {
-        return create(rpcClient, conjureClient, lockWatchEventCache, new LegacyLeaderTimeGetter(conjureClient));
+        return create(
+                rpcClient,
+                conjureClient,
+                lockWatchEventCache,
+                new LegacyLeaderTimeGetter(conjureClient, "test-namespace"));
     }
 
     public static RemoteTimelockServiceAdapter create(

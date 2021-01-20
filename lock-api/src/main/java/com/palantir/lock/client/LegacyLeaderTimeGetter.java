@@ -16,19 +16,34 @@
 
 package com.palantir.lock.client;
 
-import com.palantir.common.concurrent.CoalescingSupplier;
+import com.palantir.common.concurrent.ParameterizedCoalescingSupplier;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.logsafe.SafeArg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LegacyLeaderTimeGetter implements LeaderTimeGetter {
-    private final CoalescingSupplier<LeaderTime> time;
+    private static final Logger log = LoggerFactory.getLogger(LegacyLeaderTimeGetter.class);
 
-    public LegacyLeaderTimeGetter(NamespacedConjureTimelockService delegate) {
-        this.time = new CoalescingSupplier<>(delegate::leaderTime);
+    private final ParameterizedCoalescingSupplier<LeaderTime> time;
+    private final String namespace;
+
+    public LegacyLeaderTimeGetter(NamespacedConjureTimelockService delegate, String namespace) {
+        this.time = new ParameterizedCoalescingSupplier<>(namespace, delegate::leaderTime);
+        this.namespace = namespace;
     }
 
     @Override
     public LeaderTime leaderTime() {
-        return time.get();
+        long startTime = System.nanoTime();
+        LeaderTime leaderTime = time.get();
+        log.info(
+                "The start - {} and end times - {} to fetch leaderTime using "
+                        + "respective coalescingSupplier call for namespace - {}",
+                SafeArg.of("startTime", startTime),
+                SafeArg.of("endTime", System.nanoTime()),
+                SafeArg.of("leaderTimeGetterReqNamespace", namespace));
+        return leaderTime;
     }
 
     @Override
