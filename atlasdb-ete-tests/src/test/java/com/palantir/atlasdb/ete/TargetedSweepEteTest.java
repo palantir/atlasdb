@@ -26,6 +26,7 @@ import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
 import java.time.Duration;
 import org.awaitility.Awaitility;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TargetedSweepEteTest {
@@ -59,6 +60,8 @@ public class TargetedSweepEteTest {
     }
 
     @Test
+    // Not for production
+    @Ignore
     public void targetedSweepSmallStreamsTest() {
         // store 5 streams, marking 4 as unused
         StreamTestUtils.storeFiveStreams(todoClient, 20);
