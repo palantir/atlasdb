@@ -151,7 +151,7 @@ public class TimeLockAgent {
                 userAgent,
                 persistedSchemaVersion,
                 installationContext.sqliteDataSource());
-        agent.createAndRegisterResources();
+        agent.createAndRegisterResources(install.minTimeLockRequestDurationInMillis());
         return agent;
     }
 
@@ -247,7 +247,7 @@ public class TimeLockAgent {
                 .build();
     }
 
-    private void createAndRegisterResources() {
+    private void createAndRegisterResources(int minTimeLockRequestDurationInMillis) {
         registerTimeLockCorruptionJerseyFilter();
         registerTimeLockCorruptionNotifiers();
         registerPaxosResource();
@@ -274,7 +274,8 @@ public class TimeLockAgent {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    ConjureTimelockResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
+                    ConjureTimelockResource.undertow(
+                            redirectRetryTargeter(), asyncTimelockServiceGetter, minTimeLockRequestDurationInMillis));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     ConjureLockWatchingResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
@@ -286,14 +287,16 @@ public class TimeLockAgent {
                     TimeLockPaxosHistoryProviderResource.undertow(corruptionComponents.localHistoryLoader()));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    MultiClientConjureTimelockResource.undertow(redirectRetryTargeter(), asyncTimelockServiceGetter));
+                    MultiClientConjureTimelockResource.undertow(
+                            redirectRetryTargeter(), asyncTimelockServiceGetter, minTimeLockRequestDurationInMillis));
         } else {
-            registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
+            registrar.accept(ConjureTimelockResource.jersey(
+                    redirectRetryTargeter(), asyncTimelockServiceGetter, minTimeLockRequestDurationInMillis));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter(), lockServiceGetter));
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
-            registrar.accept(
-                    MultiClientConjureTimelockResource.jersey(redirectRetryTargeter(), asyncTimelockServiceGetter));
+            registrar.accept(MultiClientConjureTimelockResource.jersey(
+                    redirectRetryTargeter(), asyncTimelockServiceGetter, minTimeLockRequestDurationInMillis));
         }
     }
 

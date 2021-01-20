@@ -65,8 +65,8 @@ public class ConjureTimelockResourceTest {
 
     @Before
     public void before() {
-        resource = new ConjureTimelockResource(TARGETER, unused -> timelockService);
-        service = ConjureTimelockResource.jersey(TARGETER, unused -> timelockService);
+        resource = new ConjureTimelockResource(TARGETER, unused -> timelockService, 4);
+        service = ConjureTimelockResource.jersey(TARGETER, unused -> timelockService, 4);
         when(timelockService.leaderTime()).thenReturn(Futures.immediateFuture(leaderTime));
     }
 

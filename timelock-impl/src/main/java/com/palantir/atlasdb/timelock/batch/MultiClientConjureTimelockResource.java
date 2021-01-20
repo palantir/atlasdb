@@ -22,6 +22,7 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
@@ -34,6 +35,7 @@ import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockServi
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,23 +46,32 @@ import java.util.stream.Collectors;
 public final class MultiClientConjureTimelockResource implements UndertowMultiClientConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final Function<String, AsyncTimelockService> timelockServices;
+    private final Duration minDuration;
 
     @VisibleForTesting
     MultiClientConjureTimelockResource(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, AsyncTimelockService> timelockServices,
+            int minTimeLockRequestDurationInMillis) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
+        this.minDuration = Duration.ofMillis(minTimeLockRequestDurationInMillis);
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return MultiClientConjureTimelockServiceEndpoints.of(
-                new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, AsyncTimelockService> timelockServices,
+            int minTimeLockRequestDurationInMillis) {
+        return MultiClientConjureTimelockServiceEndpoints.of(new MultiClientConjureTimelockResource(
+                redirectRetryTargeter, timelockServices, minTimeLockRequestDurationInMillis));
     }
 
     public static MultiClientConjureTimelockService jersey(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return new JerseyAdapter(new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, AsyncTimelockService> timelockServices,
+            int minTimeLockRequestDurationInMillis) {
+        return new JerseyAdapter(new MultiClientConjureTimelockResource(
+                redirectRetryTargeter, timelockServices, minTimeLockRequestDurationInMillis));
     }
 
     @Override
@@ -68,10 +79,10 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         List<ListenableFuture<Map.Entry<Namespace, LeaderTime>>> futures =
                 namespaces.stream().map(this::getNamespacedLeaderTimes).collect(Collectors.toList());
 
-        return handleExceptions(() -> Futures.transform(
+        return handleExceptions(() -> killTimeLock(() -> Futures.transform(
                 Futures.allAsList(futures),
                 entryList -> LeaderTimes.of(ImmutableMap.copyOf(entryList)),
-                MoreExecutors.directExecutor()));
+                MoreExecutors.directExecutor())));
     }
 
     private ListenableFuture<Map.Entry<Namespace, LeaderTime>> getNamespacedLeaderTimes(Namespace namespace) {
@@ -80,6 +91,22 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         return Futures.transform(
                 leaderTimeListenableFuture,
                 leaderTime -> Maps.immutableEntry(namespace, leaderTime),
+                MoreExecutors.directExecutor());
+    }
+
+    private <T> ListenableFuture<T> killTimeLock(Supplier<ListenableFuture<T>> task) {
+        long startTime = System.nanoTime();
+
+        return Futures.transform(
+                task.get(),
+                result -> {
+                    try {
+                        return result;
+                    } finally {
+                        Uninterruptibles.sleepUninterruptibly(
+                                Duration.ofNanos(minDuration.toNanos() - (System.nanoTime() - startTime)));
+                    }
+                },
                 MoreExecutors.directExecutor());
     }
 

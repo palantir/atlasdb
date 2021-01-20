@@ -57,7 +57,7 @@ public class MultiClientConjureTimelockResourceTest {
 
     @Before
     public void before() {
-        resource = new MultiClientConjureTimelockResource(TARGETER, this::getServiceForClient);
+        resource = new MultiClientConjureTimelockResource(TARGETER, this::getServiceForClient, 4);
     }
 
     @Test

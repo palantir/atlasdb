@@ -38,6 +38,11 @@ public interface TimeLockInstallConfiguration {
     ClusterConfiguration cluster();
 
     @Value.Default
+    default int minTimeLockRequestDurationInMillis() {
+        return 4;
+    }
+
+    @Value.Default
     default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {
         return false;
     }

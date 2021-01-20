@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
@@ -58,6 +59,7 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
@@ -66,52 +68,63 @@ import java.util.function.Supplier;
 public final class ConjureTimelockResource implements UndertowConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final Function<String, AsyncTimelockService> timelockServices;
+    private final Duration minDuration;
 
     @VisibleForTesting
     ConjureTimelockResource(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, AsyncTimelockService> timelockServices,
+            int minTimeLockRequestDurationInMillis) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
+        this.minDuration = Duration.ofMillis(minTimeLockRequestDurationInMillis);
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return ConjureTimelockServiceEndpoints.of(new ConjureTimelockResource(redirectRetryTargeter, timelockServices));
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, AsyncTimelockService> timelockServices,
+            int minTimeLockRequestDurationInMillis) {
+        return ConjureTimelockServiceEndpoints.of(new ConjureTimelockResource(
+                redirectRetryTargeter, timelockServices, minTimeLockRequestDurationInMillis));
     }
 
     public static ConjureTimelockService jersey(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
-        return new JerseyAdapter(new ConjureTimelockResource(redirectRetryTargeter, timelockServices));
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, AsyncTimelockService> timelockServices,
+            int minTimeLockRequestDurationInMillis) {
+        return new JerseyAdapter(new ConjureTimelockResource(
+                redirectRetryTargeter, timelockServices, minTimeLockRequestDurationInMillis));
     }
 
     @Override
     public ListenableFuture<ConjureStartTransactionsResponse> startTransactions(
             AuthHeader authHeader, String namespace, ConjureStartTransactionsRequest request) {
-        return handleExceptions(() -> forNamespace(namespace).startTransactionsWithWatches(request));
+        return handleExceptions(
+                () -> killTimeLock(() -> forNamespace(namespace).startTransactionsWithWatches(request)));
     }
 
     @Override
     public ListenableFuture<ConjureGetFreshTimestampsResponse> getFreshTimestamps(
             AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
-        return handleExceptions(() -> {
+        return handleExceptions(() -> killTimeLock(() -> {
             ListenableFuture<TimestampRange> rangeFuture =
                     forNamespace(namespace).getFreshTimestampsAsync(request.getNumTimestamps());
             return Futures.transform(
                     rangeFuture,
                     range -> ConjureGetFreshTimestampsResponse.of(range.getLowerBound(), range.getUpperBound()),
                     MoreExecutors.directExecutor());
-        });
+        }));
     }
 
     @Override
     public ListenableFuture<LeaderTime> leaderTime(AuthHeader authHeader, String namespace) {
-        return handleExceptions(() -> forNamespace(namespace).leaderTime());
+        return handleExceptions(() -> killTimeLock(() -> forNamespace(namespace).leaderTime()));
     }
 
     @Override
     public ListenableFuture<ConjureLockResponse> lock(
             AuthHeader authHeader, String namespace, ConjureLockRequest request) {
-        return handleExceptions(() -> {
+        return handleExceptions(() -> killTimeLock(() -> {
             IdentifiedLockRequest lockRequest = ImmutableIdentifiedLockRequest.builder()
                     .lockDescriptors(fromConjureLockDescriptors(request.getLockDescriptors()))
                     .clientDescription(request.getClientDescription())
@@ -127,13 +140,13 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                                     ConjureLockToken.of(success.getToken().getRequestId()), success.getLease())),
                             failure -> ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()))),
                     MoreExecutors.directExecutor());
-        });
+        }));
     }
 
     @Override
     public ListenableFuture<ConjureWaitForLocksResponse> waitForLocks(
             AuthHeader authHeader, String namespace, ConjureLockRequest request) {
-        return handleExceptions(() -> {
+        return handleExceptions(() -> killTimeLock(() -> {
             WaitForLocksRequest lockRequest = ImmutableWaitForLocksRequest.builder()
                     .lockDescriptors(fromConjureLockDescriptors(request.getLockDescriptors()))
                     .clientDescription(request.getClientDescription())
@@ -146,7 +159,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     tokenFuture,
                     token -> ConjureWaitForLocksResponse.of(token.wasSuccessful()),
                     MoreExecutors.directExecutor());
-        });
+        }));
     }
 
     private static Set<LockDescriptor> fromConjureLockDescriptors(Set<ConjureLockDescriptor> lockDescriptors) {
@@ -160,20 +173,20 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     @Override
     public ListenableFuture<ConjureRefreshLocksResponse> refreshLocks(
             AuthHeader authHeader, String namespace, ConjureRefreshLocksRequest request) {
-        return handleExceptions(() -> Futures.transform(
+        return handleExceptions(() -> killTimeLock(() -> Futures.transform(
                 forNamespace(namespace).refreshLockLeases(fromConjureLockTokens(request.getTokens())),
                 refreshed -> ConjureRefreshLocksResponse.of(
                         toConjureLockTokens(refreshed.refreshedTokens()), refreshed.getLease()),
-                MoreExecutors.directExecutor()));
+                MoreExecutors.directExecutor())));
     }
 
     @Override
     public ListenableFuture<ConjureUnlockResponse> unlock(
             AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
-        return handleExceptions(() -> Futures.transform(
+        return handleExceptions(() -> killTimeLock(() -> Futures.transform(
                 forNamespace(namespace).unlock(fromConjureLockTokens(request.getTokens())),
                 unlocked -> ConjureUnlockResponse.of(toConjureLockTokens(unlocked)),
-                MoreExecutors.directExecutor()));
+                MoreExecutors.directExecutor())));
     }
 
     private static Set<LockToken> fromConjureLockTokens(Set<ConjureLockToken> lockTokens) {
@@ -195,10 +208,30 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     @Override
     public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(
             AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
-        return handleExceptions(() -> forNamespace(namespace)
+        return handleExceptions(() -> killTimeLock(() -> forNamespace(namespace)
                 .getCommitTimestamps(
                         request.getNumTimestamps(),
-                        request.getLastKnownVersion().map(this::toIdentifiedVersion)));
+                        request.getLastKnownVersion().map(this::toIdentifiedVersion))));
+    }
+
+    private <T> ListenableFuture<T> killTimeLock(Supplier<ListenableFuture<T>> task) {
+        long startTime = System.nanoTime();
+
+        return Futures.transform(
+                task.get(),
+                result -> {
+                    try {
+                        return result;
+                    } finally {
+                        Uninterruptibles.sleepUninterruptibly(
+                                Duration.ofNanos(minDuration.toNanos() - (System.nanoTime() - startTime)));
+                    }
+                },
+                MoreExecutors.directExecutor());
+    }
+
+    public static void main(String[] args) {
+        Uninterruptibles.sleepUninterruptibly(Duration.ofNanos(-9999999999L));
     }
 
     private AsyncTimelockService forNamespace(String namespace) {
