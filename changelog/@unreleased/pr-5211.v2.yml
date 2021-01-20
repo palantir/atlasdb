@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: 'Reduce load on TL: TL takes at least configurable amount of time to respond'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5211
