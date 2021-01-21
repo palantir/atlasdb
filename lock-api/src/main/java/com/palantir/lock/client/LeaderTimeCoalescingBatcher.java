@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import com.lmax.disruptor.WaitStrategy;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -37,6 +38,19 @@ public class LeaderTimeCoalescingBatcher implements AutoCloseable {
         this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate),
                 Duration.ofMillis(minimumOperationDurationMillis))
                 .bufferSize(bufferSize)
+                .safeLoggablePurpose("get-leader-times")
+                .build();
+    }
+
+    public LeaderTimeCoalescingBatcher(
+            InternalMultiClientConjureTimelockService delegate,
+            OptionalInt bufferSize,
+            long minimumOperationDurationMillis,
+            WaitStrategy waitStrategy) {
+        this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate),
+                Duration.ofMillis(minimumOperationDurationMillis))
+                .bufferSize(bufferSize)
+                .waitStrategy(waitStrategy)
                 .safeLoggablePurpose("get-leader-times")
                 .build();
     }
