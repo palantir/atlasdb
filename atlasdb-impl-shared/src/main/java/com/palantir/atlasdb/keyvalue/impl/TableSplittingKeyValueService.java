@@ -65,6 +65,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
         return create(delegates, delegateByTable, delegateByNamespace);
     }
 
+    @SuppressWarnings("IdentityHashMapUsage")
     public static TableSplittingKeyValueService create(
             List<KeyValueService> delegates,
             Map<TableReference, KeyValueService> delegateByTable,
