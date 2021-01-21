@@ -40,8 +40,8 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
         this(function, bufferSize, Duration.ZERO);
     }
 
-    CoalescingBatchingEventHandler(CoalescingRequestFunction<T, R> function, int bufferSize,
-            Duration minimumOperationTime) {
+    CoalescingBatchingEventHandler(
+            CoalescingRequestFunction<T, R> function, int bufferSize, Duration minimumOperationTime) {
         this.function = function;
         this.pending = HashMultimap.create(bufferSize, 5);
         this.minimumOperationTime = minimumOperationTime;
@@ -82,8 +82,7 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
         } finally {
             Duration operationDuration = stopwatch.elapsed();
             Uninterruptibles.sleepUninterruptibly(
-                    minimumOperationTime.minus(operationDuration).toNanos(),
-                    TimeUnit.NANOSECONDS);
+                    minimumOperationTime.minus(operationDuration).toNanos(), TimeUnit.NANOSECONDS);
         }
         pending.clear();
     }

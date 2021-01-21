@@ -1209,7 +1209,10 @@ public abstract class TransactionManagers {
                 metricsManager.getRegistry(),
                 LeaderTimeGetter.class,
                 getLeaderTimeGetter(
-                timelockNamespace, timelockRequestBatcherProviders, serviceProvider, namespacedConjureTimelockService));
+                        timelockNamespace,
+                        timelockRequestBatcherProviders,
+                        serviceProvider,
+                        namespacedConjureTimelockService));
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, leaderTimeGetter);

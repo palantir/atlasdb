@@ -67,10 +67,10 @@ public final class Autobatchers {
         return coalescing(function, Duration.ZERO);
     }
 
-    public static <I, O> AutobatcherBuilder<I, O> coalescing(CoalescingRequestFunction<I, O> function,
-            Duration minimumOperationTime) {
-        return new AutobatcherBuilder<>(bufferSize -> new CoalescingBatchingEventHandler<>(
-                function, bufferSize, minimumOperationTime));
+    public static <I, O> AutobatcherBuilder<I, O> coalescing(
+            CoalescingRequestFunction<I, O> function, Duration minimumOperationTime) {
+        return new AutobatcherBuilder<>(
+                bufferSize -> new CoalescingBatchingEventHandler<>(function, bufferSize, minimumOperationTime));
     }
 
     public static <O> AutobatcherBuilder<SupplierKey, O> coalescing(Supplier<O> supplier) {

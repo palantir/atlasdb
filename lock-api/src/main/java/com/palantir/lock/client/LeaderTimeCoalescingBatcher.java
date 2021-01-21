@@ -35,8 +35,8 @@ public class LeaderTimeCoalescingBatcher implements AutoCloseable {
             InternalMultiClientConjureTimelockService delegate,
             OptionalInt bufferSize,
             long minimumOperationDurationMillis) {
-        this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate),
-                Duration.ofMillis(minimumOperationDurationMillis))
+        this.batcher = Autobatchers.coalescing(
+                        new LeaderTimeCoalescingConsumer(delegate), Duration.ofMillis(minimumOperationDurationMillis))
                 .bufferSize(bufferSize)
                 .safeLoggablePurpose("get-leader-times")
                 .build();
@@ -47,8 +47,8 @@ public class LeaderTimeCoalescingBatcher implements AutoCloseable {
             OptionalInt bufferSize,
             long minimumOperationDurationMillis,
             WaitStrategy waitStrategy) {
-        this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate),
-                Duration.ofMillis(minimumOperationDurationMillis))
+        this.batcher = Autobatchers.coalescing(
+                        new LeaderTimeCoalescingConsumer(delegate), Duration.ofMillis(minimumOperationDurationMillis))
                 .bufferSize(bufferSize)
                 .waitStrategy(waitStrategy)
                 .safeLoggablePurpose("get-leader-times")
