@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
+@SuppressWarnings("InvalidThrowsLink")
 public class AsyncResult<T> {
 
     private final CompletableFuture<T> future;
