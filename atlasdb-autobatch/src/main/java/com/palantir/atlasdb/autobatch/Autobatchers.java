@@ -22,6 +22,7 @@ import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.WaitStrategy;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Observability;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -63,11 +64,17 @@ public final class Autobatchers {
      * @see CoalescingRequestConsumer
      */
     public static <I, O> AutobatcherBuilder<I, O> coalescing(CoalescingRequestFunction<I, O> function) {
-        return new AutobatcherBuilder<>(bufferSize -> new CoalescingBatchingEventHandler<>(function, bufferSize));
+        return coalescing(function, Duration.ZERO);
+    }
+
+    public static <I, O> AutobatcherBuilder<I, O> coalescing(CoalescingRequestFunction<I, O> function,
+            Duration minimumOperationTime) {
+        return new AutobatcherBuilder<>(bufferSize -> new CoalescingBatchingEventHandler<>(
+                function, bufferSize, minimumOperationTime));
     }
 
     public static <O> AutobatcherBuilder<SupplierKey, O> coalescing(Supplier<O> supplier) {
-        return coalescing(new CoalescingRequestSupplier<>(supplier));
+        return coalescing(new CoalescingRequestSupplier<>(supplier), Duration.ZERO);
     }
 
     /**

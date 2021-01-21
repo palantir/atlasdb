@@ -22,6 +22,7 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
+import java.time.Duration;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -29,8 +30,12 @@ import java.util.Set;
 public class LeaderTimeCoalescingBatcher implements AutoCloseable {
     private final DisruptorAutobatcher<Namespace, LeaderTime> batcher;
 
-    public LeaderTimeCoalescingBatcher(InternalMultiClientConjureTimelockService delegate, OptionalInt bufferSize) {
-        this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate))
+    public LeaderTimeCoalescingBatcher(
+            InternalMultiClientConjureTimelockService delegate,
+            OptionalInt bufferSize,
+            long minimumOperationDurationMillis) {
+        this.batcher = Autobatchers.coalescing(new LeaderTimeCoalescingConsumer(delegate),
+                Duration.ofMillis(minimumOperationDurationMillis))
                 .bufferSize(bufferSize)
                 .safeLoggablePurpose("get-leader-times")
                 .build();

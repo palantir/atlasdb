@@ -1205,8 +1205,11 @@ public abstract class TransactionManagers {
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
 
-        LeaderTimeGetter leaderTimeGetter = getLeaderTimeGetter(
-                timelockNamespace, timelockRequestBatcherProviders, serviceProvider, namespacedConjureTimelockService);
+        LeaderTimeGetter leaderTimeGetter = AtlasDbMetrics.instrumentTimed(
+                metricsManager.getRegistry(),
+                LeaderTimeGetter.class,
+                getLeaderTimeGetter(
+                timelockNamespace, timelockRequestBatcherProviders, serviceProvider, namespacedConjureTimelockService));
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, leaderTimeGetter);

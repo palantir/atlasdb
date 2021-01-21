@@ -32,6 +32,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -100,7 +101,7 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
         this.cacheHit = taggedMetricRegistry.meter(CACHE_HIT);
         this.cacheMiss = taggedMetricRegistry.meter(CACHE_MISS);
         this.cacheNuke = taggedMetricRegistry.counter(CACHE_NUKE);
-        this.valuePutter = Autobatchers.coalescing(new WriteBatcher<>(this))
+        this.valuePutter = Autobatchers.coalescing(new WriteBatcher<>(this), Duration.ZERO)
                 .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
         Gauge<Integer> cacheSizeGauge =
