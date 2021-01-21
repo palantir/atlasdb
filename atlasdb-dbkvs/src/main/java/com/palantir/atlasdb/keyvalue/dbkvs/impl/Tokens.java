@@ -21,5 +21,4 @@ public final class Tokens {
 
     public static final Token INITIAL =
             ImmutableToken.builder().shouldSkip(false).build();
-
 }

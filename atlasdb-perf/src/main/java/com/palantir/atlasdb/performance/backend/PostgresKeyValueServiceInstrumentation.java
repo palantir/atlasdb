@@ -22,7 +22,7 @@ import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 import java.net.InetSocketAddress;
 
-class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
+public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
     public PostgresKeyValueServiceInstrumentation() {
         super(5432, "postgres-docker-compose.yml");
