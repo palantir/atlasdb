@@ -140,7 +140,6 @@ import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
-import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.leader.proxy.LeadershipCoordinator;
@@ -1260,11 +1259,10 @@ public abstract class TransactionManagers {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LocalPaxosServices localPaxosServices =
                 Leaders.createAndRegisterLocalServices(metricsManager, env, leaderConfig, userAgent);
-        LeaderElectionService leader = localPaxosServices.leaderElectionService();
+
         LeadershipCoordinator leadershipCoordinator = localPaxosServices.leadershipCoordinator();
         LockService localLock =
-                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock,
-                        leadershipCoordinator);
+                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leadershipCoordinator);
 
         ManagedTimestampService managedTimestampProxy =
                 AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time, leadershipCoordinator);
