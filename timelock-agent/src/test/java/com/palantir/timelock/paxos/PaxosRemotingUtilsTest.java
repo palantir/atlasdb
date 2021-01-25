@@ -122,7 +122,8 @@ public class PaxosRemotingUtilsTest {
     public void canGetSslConfiguration() {
         assertThat(PaxosRemotingUtils.getSslConfigurationOptional(SSL_TIMELOCK))
                 .isEqualTo(Optional.of(SSL_CONFIGURATION));
-        assertThat(PaxosRemotingUtils.getSslConfigurationOptional(NO_SSL_TIMELOCK)).isNotPresent();
+        assertThat(PaxosRemotingUtils.getSslConfigurationOptional(NO_SSL_TIMELOCK))
+                .isNotPresent();
     }
 
     @Test
