@@ -16,7 +16,6 @@
 package com.palantir.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -91,7 +90,7 @@ public class PaxosRemotingUtilsTest {
         for (int i = 0; i < nodes; i++) {
             acceptorList.add(null);
         }
-        assertEquals(expected, PaxosRemotingUtils.getQuorumSize(acceptorList));
+        assertThat(PaxosRemotingUtils.getQuorumSize(acceptorList)).isEqualTo(expected);
     }
 
     @Test
@@ -124,7 +123,7 @@ public class PaxosRemotingUtilsTest {
         assertThat(PaxosRemotingUtils.getSslConfigurationOptional(SSL_TIMELOCK))
                 .isEqualTo(Optional.of(SSL_CONFIGURATION));
         assertThat(PaxosRemotingUtils.getSslConfigurationOptional(NO_SSL_TIMELOCK))
-                .isEqualTo(Optional.empty());
+                .isNotPresent();
     }
 
     @Test

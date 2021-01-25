@@ -15,9 +15,7 @@
  */
 package com.palantir.lock;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
@@ -69,25 +67,25 @@ public class LockDescriptorTest {
     }
 
     private void testAsciiLockDescriptors(String lockId) {
-        assertThat(StringLockDescriptor.of(lockId).toString(), equalTo(expectedLockDescriptorToString(lockId)));
+        assertThat(StringLockDescriptor.of(lockId).toString()).isEqualTo(expectedLockDescriptorToString(lockId));
 
-        assertThat(
-                ByteArrayLockDescriptor.of(stringToBytes(lockId)).toString(),
-                equalTo(expectedLockDescriptorToString(lockId)));
+        assertThat(ByteArrayLockDescriptor.of(stringToBytes(lockId)).toString())
+                .isEqualTo(expectedLockDescriptorToString(lockId));
     }
 
     private void testEncodedLockDescriptors(String lockId) {
-        assertThat(StringLockDescriptor.of(lockId).toString(), equalTo(expectedEncodedLockDescriptorToString(lockId)));
+        assertThat(StringLockDescriptor.of(lockId).toString()).isEqualTo(expectedEncodedLockDescriptorToString(lockId));
 
         testEncodedLockId(stringToBytes(lockId));
     }
 
     private void testEncodedLockId(byte[] bytes) {
-        assertThat(ByteArrayLockDescriptor.of(bytes).toString(), equalTo(expectedEncodedLockDescriptorToString(bytes)));
+        assertThat(ByteArrayLockDescriptor.of(bytes).toString())
+                .isEqualTo(expectedEncodedLockDescriptorToString(bytes));
     }
 
     private static String expectedLockDescriptorToString(String lockId) {
-        assertNotNull(lockId);
+        assertThat(lockId).isNotNull();
         return "LockDescriptor [" + lockId + "]";
     }
 
@@ -96,7 +94,7 @@ public class LockDescriptorTest {
     }
 
     private static String expectedEncodedLockDescriptorToString(byte[] lockId) {
-        assertNotNull(lockId);
+        assertThat(lockId).isNotNull();
         return "LockDescriptor [" + BaseEncoding.base16().encode(lockId) + "]";
     }
 

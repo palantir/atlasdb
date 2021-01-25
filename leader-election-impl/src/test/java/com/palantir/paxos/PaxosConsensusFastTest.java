@@ -17,11 +17,7 @@ package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import com.google.common.util.concurrent.Futures;
 import com.palantir.common.concurrent.PTExecutors;
@@ -96,16 +92,14 @@ public class PaxosConsensusFastTest {
     public void loseQuorum() {
         LeadershipToken token = state.gainLeadership(0);
         knockOutQuorumNotIncludingZero();
-        assertNotSame(
-                "leader cannot maintain leadership without quorum",
-                state.leader(0).isStillLeading(token),
-                StillLeadingStatus.LEADING);
+        assertThat(StillLeadingStatus.LEADING)
+                .describedAs("leader cannot maintain leadership without quorum")
+                .isNotSameAs(state.leader(0).isStillLeading(token));
         state.comeUp(1);
         state.gainLeadership(0);
-        assertNotSame(
-                "leader can confirm leadership with quorum",
-                state.leader(0).isStillLeading(token),
-                StillLeadingStatus.NOT_LEADING);
+        assertThat(StillLeadingStatus.NOT_LEADING)
+                .describedAs("leader can confirm leadership with quorum")
+                .isNotSameAs(state.leader(0).isStillLeading(token));
     }
 
     @Test
@@ -145,7 +139,9 @@ public class PaxosConsensusFastTest {
         });
         // Don't check leadership immediately after gaining it, since quorum might get lost.
         LeadershipToken token2 = state.gainLeadershipWithoutCheckingAfter(0);
-        assertTrue("leader can confirm leadership with quorum", token.sameAs(token2));
+        assertThat(token.sameAs(token2))
+                .describedAs("leader can confirm leadership with quorum")
+                .isTrue();
         future.cancel(true);
         exec.shutdown();
         exec.awaitTermination(10, TimeUnit.SECONDS);
@@ -166,9 +162,9 @@ public class PaxosConsensusFastTest {
         // read back from log
         try {
             byte[] bytes = log.readRound(seq);
-            assertNotNull(bytes);
+            assertThat(bytes).isNotNull();
             PaxosValue paxosValue = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(bytes);
-            assertEquals(paxosValue.getLeaderUUID(), leaderUuid);
+            assertThat(leaderUuid).isEqualTo(paxosValue.getLeaderUUID());
         } catch (IOException e1) {
             fail("IO exception when reading log");
         }
