@@ -39,6 +39,7 @@ import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.leader.proxy.LeadershipCoordinator;
 import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.LeaderPingerContext;
@@ -190,10 +191,13 @@ public final class Leaders {
 
         List<PingableLeader> remotePingableLeaders =
                 otherLeaders.stream().map(LeaderPingerContext::pinger).collect(Collectors.toList());
+        BatchingLeaderElectionService batchingLeaderElectionService =
+                new BatchingLeaderElectionService(leaderElectionService);
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
-                .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
+                .leaderElectionService(batchingLeaderElectionService)
+                .leadershipCoordinator(LeadershipCoordinator.create(batchingLeaderElectionService))
                 .localPingableLeader(pingableLeader)
                 .remotePingableLeaders(remotePingableLeaders)
                 .build();
@@ -276,6 +280,8 @@ public final class Leaders {
         PaxosLearner ourLearner();
 
         LeaderElectionService leaderElectionService();
+
+        LeadershipCoordinator leadershipCoordinator();
 
         PingableLeader localPingableLeader();
 

@@ -81,7 +81,7 @@ public class AwaitingLeadershipProxyTest {
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() {
         Runnable proxy =
-                AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, leaderElectionService);
+                AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, getLeadershipCoordinator());
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy).isEqualTo(proxy);
@@ -106,7 +106,7 @@ public class AwaitingLeadershipProxyTest {
     public void listenableFutureMethodsDoNotBlockWhenNotLeading() throws ExecutionException, InterruptedException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy = AwaitingLeadershipProxy.newProxyInstance(
-                ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
+                ReturnsListenableFuture.class, () -> listenableFuture, getLeadershipCoordinator());
         waitForLeadershipToBeGained();
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
@@ -123,7 +123,7 @@ public class AwaitingLeadershipProxyTest {
     public void listenableFutureMethodsDoNotBlockWhenLeading() throws InterruptedException, ExecutionException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy = AwaitingLeadershipProxy.newProxyInstance(
-                ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
+                ReturnsListenableFuture.class, () -> listenableFuture, getLeadershipCoordinator());
         waitForLeadershipToBeGained();
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
@@ -141,7 +141,7 @@ public class AwaitingLeadershipProxyTest {
     public void listenableFutureMethodsRetryProxyFailures() throws InterruptedException, ExecutionException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy = AwaitingLeadershipProxy.newProxyInstance(
-                ReturnsListenableFuture.class, () -> listenableFuture, leaderElectionService);
+                ReturnsListenableFuture.class, () -> listenableFuture, getLeadershipCoordinator());
         waitForLeadershipToBeGained();
 
         SettableFuture<StillLeadingStatus> inProgressCheck = SettableFuture.create();
@@ -175,7 +175,7 @@ public class AwaitingLeadershipProxyTest {
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
 
         Runnable proxy =
-                AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, leaderElectionService);
+                AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, getLeadershipCoordinator());
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy).isEqualTo(proxy);
@@ -246,7 +246,7 @@ public class AwaitingLeadershipProxyTest {
                 .thenReturn(leadershipToken);
 
         Runnable proxy =
-                AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, leaderElectionService);
+                AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, getLeadershipCoordinator());
 
         Thread.sleep(1000); // wait for retrying on gaining leadership
 
@@ -297,7 +297,11 @@ public class AwaitingLeadershipProxyTest {
     }
 
     private Callable proxyFor(Callable fn) {
-        return AwaitingLeadershipProxy.newProxyInstance(Callable.class, () -> fn, leaderElectionService);
+        return AwaitingLeadershipProxy.newProxyInstance(Callable.class, () -> fn, getLeadershipCoordinator());
+    }
+
+    private LeadershipCoordinator getLeadershipCoordinator() {
+        return LeadershipCoordinator.create(leaderElectionService);
     }
 
     private void waitForLeadershipToBeGained() throws InterruptedException {
