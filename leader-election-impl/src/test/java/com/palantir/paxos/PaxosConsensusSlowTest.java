@@ -15,8 +15,7 @@
  */
 package com.palantir.paxos;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.concurrent.CompletionService;
@@ -65,13 +64,13 @@ public class PaxosConsensusSlowTest {
         for (int i = 0; i < NUM_POTENTIAL_LEADERS - 1; i++) {
             try {
                 if (i + 1 < QUORUM_SIZE) {
-                    assertNull(
-                            "proposer should continue to block without quorum",
-                            leadershipCompletionService.poll(NO_QUORUM_POLL_WAIT_TIME_IN_MS, TimeUnit.MILLISECONDS));
+                    assertThat(leadershipCompletionService.poll(NO_QUORUM_POLL_WAIT_TIME_IN_MS, TimeUnit.MILLISECONDS))
+                            .describedAs("proposer should continue to block without quorum")
+                            .isNull();
                 } else {
-                    assertNotNull(
-                            "proposer should get leadership with quorum",
-                            leadershipCompletionService.poll(QUORUM_POLL_WAIT_TIME_IN_MS, TimeUnit.MILLISECONDS));
+                    assertThat(leadershipCompletionService.poll(QUORUM_POLL_WAIT_TIME_IN_MS, TimeUnit.MILLISECONDS))
+                            .describedAs("proposer should get leadership with quorum")
+                            .isNotNull();
                     return;
                 }
             } catch (InterruptedException ignored) {

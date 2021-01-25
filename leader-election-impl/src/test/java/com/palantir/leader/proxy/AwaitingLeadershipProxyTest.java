@@ -84,8 +84,8 @@ public class AwaitingLeadershipProxyTest {
                 AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, leaderElectionService);
 
         assertThat(proxy.hashCode()).isNotNull();
-        assertThat(proxy.equals(proxy)).isTrue();
-        assertThat(proxy.equals(null)).isFalse();
+        assertThat(proxy).isEqualTo(proxy);
+        assertThat(proxy).isNotEqualTo(null);
         assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");
     }
 
@@ -178,8 +178,8 @@ public class AwaitingLeadershipProxyTest {
                 AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, leaderElectionService);
 
         assertThat(proxy.hashCode()).isNotNull();
-        assertThat(proxy.equals(proxy)).isTrue();
-        assertThat(proxy.equals(null)).isFalse();
+        assertThat(proxy).isEqualTo(proxy);
+        assertThat(proxy).isNotEqualTo(null);
         assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");
     }
 

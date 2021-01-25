@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
@@ -33,7 +34,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,7 +62,7 @@ public class LockRefreshingLockServiceTest {
         LockResponse lock = server.lockWithFullLockResponse(LockClient.ANONYMOUS, builder.build());
         Thread.sleep(10000);
         Set<HeldLocksToken> refreshTokens = server.refreshTokens(ImmutableList.of(lock.getToken()));
-        Assert.assertEquals(1, refreshTokens.size());
+        assertThat(refreshTokens.size()).isEqualTo(1);
     }
 
     @Test

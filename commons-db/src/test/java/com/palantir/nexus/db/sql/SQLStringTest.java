@@ -67,6 +67,6 @@ public class SQLStringTest {
     @Test
     public void testCanonicalizeBlanks() throws Exception {
         List<String> testBatch = ImmutableList.of("", " ", " ;; ; ");
-        testBatch.forEach(sql -> assertThat(SQLString.canonicalizeString(sql)).isEqualTo(""));
+        testBatch.forEach(sql -> assertThat(SQLString.canonicalizeString(sql)).isEmpty());
     }
 }

@@ -76,14 +76,14 @@ public class LeadershipElectionCheckTest {
         long healthCheckDeactivationPeriod = LeaderElectionHealthCheck.HEALTH_CHECK_DEACTIVATION_PERIOD.getSeconds();
 
         now.addAndGet(healthCheckDeactivationPeriod + 1);
-        assertThat(check.isWithinDeactivationWindow()).isEqualTo(true);
+        assertThat(check.isWithinDeactivationWindow()).isTrue();
 
         check.registerClient(CLIENT_1, leaderElectionServiceMetrics);
         now.addAndGet(healthCheckDeactivationPeriod / 2);
-        assertThat(check.isWithinDeactivationWindow()).isEqualTo(true);
+        assertThat(check.isWithinDeactivationWindow()).isTrue();
 
         now.addAndGet(healthCheckDeactivationPeriod / 2 + 1);
-        assertThat(check.isWithinDeactivationWindow()).isEqualTo(false);
+        assertThat(check.isWithinDeactivationWindow()).isFalse();
     }
 
     @Test

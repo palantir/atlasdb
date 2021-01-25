@@ -15,9 +15,10 @@
  */
 package com.palantir.example.profile;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.palantir.example.profile.schema.generated.UserProfileTable.CookiesIdxTable.CookiesIdxColumn;
 import java.util.UUID;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class CookiesIdxColumnTest {
@@ -26,7 +27,7 @@ public class CookiesIdxColumnTest {
         UUID uuid = new UUID(3, 4);
         CookiesIdxColumn column1 = CookiesIdxColumn.of(new byte[] {1}, new byte[] {2, 4}, uuid);
         CookiesIdxColumn column2 = CookiesIdxColumn.of(new byte[] {1}, new byte[] {2, 4}, uuid);
-        Assert.assertEquals(column1.hashCode(), column2.hashCode());
+        assertThat(column2.hashCode()).isEqualTo(column1.hashCode());
     }
 
     @Test
@@ -34,6 +35,6 @@ public class CookiesIdxColumnTest {
         UUID uuid = new UUID(5, 6);
         CookiesIdxColumn column1 = CookiesIdxColumn.of(new byte[] {1, 3}, new byte[] {2, 4}, uuid);
         CookiesIdxColumn column2 = CookiesIdxColumn.of(new byte[] {1, 2}, new byte[] {2, 4}, uuid);
-        Assert.assertNotEquals(column1.hashCode(), column2.hashCode());
+        assertThat(column2.hashCode()).isNotEqualTo(column1.hashCode());
     }
 }

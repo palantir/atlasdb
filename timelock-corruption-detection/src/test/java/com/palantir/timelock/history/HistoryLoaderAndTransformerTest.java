@@ -169,11 +169,11 @@ public class HistoryLoaderAndTransformerTest {
     private LogsForNamespaceAndUseCase sanityCheckLoadedHistory(
             List<LogsForNamespaceAndUseCase> paxosHistory, int logCount) {
 
-        assertThat(paxosHistory.size()).isEqualTo(1);
+        assertThat(paxosHistory).hasSize(1);
 
         LogsForNamespaceAndUseCase logsForNamespaceAndUseCase = paxosHistory.get(0);
         assertThat(logsForNamespaceAndUseCase.getNamespaceAndUseCase()).isEqualTo(DEFAULT_NAMESPACE_AND_USE_CASE);
-        assertThat(logsForNamespaceAndUseCase.getLogs().size()).isEqualTo(logCount);
+        assertThat(logsForNamespaceAndUseCase.getLogs()).hasSize(logCount);
 
         return logsForNamespaceAndUseCase;
     }
