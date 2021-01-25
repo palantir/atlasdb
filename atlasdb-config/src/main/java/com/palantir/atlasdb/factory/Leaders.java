@@ -279,6 +279,7 @@ public final class Leaders {
 
         PaxosLearner ourLearner();
 
+        @Deprecated
         LeaderElectionService leaderElectionService();
 
         LeadershipCoordinator leadershipCoordinator();
