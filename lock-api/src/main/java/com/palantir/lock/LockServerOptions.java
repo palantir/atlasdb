@@ -129,15 +129,15 @@ public class LockServerOptions implements Serializable {
             return false;
         }
         LockServerOptions other = (LockServerOptions) obj;
-        return Objects.equals(isStandaloneServer(), other.isStandaloneServer())
+        return isStandaloneServer() == other.isStandaloneServer()
+                && slowLogTriggerMillis() == other.slowLogTriggerMillis()
+                && getRandomBitCount() == other.getRandomBitCount()
                 && Objects.equals(getMaxAllowedLockTimeout(), other.getMaxAllowedLockTimeout())
                 && Objects.equals(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
                 && Objects.equals(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
                 && Objects.equals(getMaxNormalLockAge(), other.getMaxNormalLockAge())
-                && Objects.equals(getRandomBitCount(), other.getRandomBitCount())
                 && Objects.equals(getStuckTransactionTimeout(), other.getStuckTransactionTimeout())
-                && Objects.equals(getLockStateLoggerDir(), other.getLockStateLoggerDir())
-                && Objects.equals(slowLogTriggerMillis(), other.slowLogTriggerMillis());
+                && Objects.equals(getLockStateLoggerDir(), other.getLockStateLoggerDir());
     }
 
     @Override
