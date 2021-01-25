@@ -924,7 +924,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t1.delete(TABLE, ImmutableSet.of(cell));
         t2.delete(TABLE, ImmutableSet.of(cell));
         t1.commit();
-        assertThatThrownBy(() -> t2.commit()).isInstanceOf(TransactionConflictException.class);
+        assertThatThrownBy(t2::commit).isInstanceOf(TransactionConflictException.class);
     }
 
     @Test(expected = IllegalArgumentException.class)
