@@ -440,7 +440,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                                 RangeRequest.builder().build(),
                                 RangeRequest.builder().build()),
                         1);
-        assertThat(ranges.size()).isGreaterThanOrEqualTo(1);
+        assertThat(ranges).hasSizeGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -456,7 +456,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges =
                 keyValueService.getFirstBatchForRanges(
                         TEST_TABLE, ImmutableList.of(allRange, oneRange, allRangeBatch), 1);
-        assertThat(ranges.get(allRange).getResults().size()).isGreaterThanOrEqualTo(1);
+        assertThat(ranges.get(allRange).getResults()).hasSizeGreaterThanOrEqualTo(1);
         assertThat(ranges.get(allRangeBatch).getResults()).hasSize(2);
         assertThat(ranges.get(allRangeBatch).moreResultsAvailable()).isFalse();
         assertThat(ranges.get(oneRange).getResults()).hasSize(1);
@@ -907,7 +907,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         assertThat(Iterables.getOnlyElement(columnRange.keySet())).isEqualTo(row);
         BatchingVisitable<Map.Entry<Cell, byte[]>> batchingVisitable = Iterables.getOnlyElement(columnRange.values());
         List<Map.Entry<Cell, byte[]>> results = BatchingVisitables.copyToList(batchingVisitable);
-        assertThat(results).hasSize(expected.size());
+        assertThat(results).hasSameSizeAs(expected);
         for (int i = 0; i < expected.size(); i++) {
             assertThat(results.get(i).getKey()).isEqualTo(expected.get(i).getKey());
             assertThat(results.get(i).getValue()).isEqualTo(expected.get(i).getValue());
@@ -922,7 +922,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         assertThat(Iterables.getOnlyElement(columnRange.keySet())).isEqualTo(row);
         Iterator<Map.Entry<Cell, byte[]>> iterator = Iterables.getOnlyElement(columnRange.values());
         List<Map.Entry<Cell, byte[]>> results = Lists.newArrayList(iterator);
-        assertThat(results).hasSize(expected.size());
+        assertThat(results).hasSameSizeAs(expected);
         for (int i = 0; i < expected.size(); i++) {
             assertThat(results.get(i).getKey()).isEqualTo(expected.get(i).getKey());
             assertThat(results.get(i).getValue()).isEqualTo(expected.get(i).getValue());
@@ -1878,8 +1878,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         List<BatchingVisitable<RowResult<byte[]>>> getRangesLazyImpl =
                 t.getRangesLazy(TEST_TABLE, rangeRequests).collect(Collectors.toList());
 
-        assertThat(getRangesLazyImpl).hasSize(getRangesWithPrefetchingImpl.size());
-        assertThat(getRangesInParallelImpl).hasSize(getRangesLazyImpl.size());
+        assertThat(getRangesLazyImpl).hasSameSizeAs(getRangesWithPrefetchingImpl);
+        assertThat(getRangesInParallelImpl).hasSameSizeAs(getRangesLazyImpl);
 
         for (int i = 0; i < getRangesWithPrefetchingImpl.size(); i++) {
             assertThat(BatchingVisitables.copyToList(getRangesWithPrefetchingImpl.get(i)))

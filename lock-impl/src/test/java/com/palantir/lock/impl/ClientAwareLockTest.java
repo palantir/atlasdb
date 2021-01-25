@@ -15,6 +15,9 @@
  */
 package com.palantir.lock.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.concurrent.InterruptibleFuture;
 import com.palantir.common.concurrent.PTExecutors;
@@ -31,7 +34,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,85 +75,46 @@ public final class ClientAwareLockTest {
     /** Tests using an anonymous (non-reentrant) client. */
     @Test
     public void testAnonymousClient() throws InterruptedException {
-        Assert.assertNull(anonymousReadLock.tryLock());
-        Assert.assertNotNull(anonymousWriteLock.tryLock());
-        Assert.assertNotNull(anonymousWriteLock.tryLock(10, TimeUnit.MILLISECONDS));
+        assertThat(anonymousReadLock.tryLock()).isNull();
+        assertThat(anonymousWriteLock.tryLock()).isNotNull();
+        assertThat(anonymousWriteLock.tryLock(10, TimeUnit.MILLISECONDS)).isNotNull();
         anonymousReadLock.lock();
         anonymousReadLock.unlock();
         anonymousReadLock.unlock();
-        Assert.assertNull(anonymousWriteLock.tryLock(10, TimeUnit.MILLISECONDS));
-        Assert.assertNotNull(anonymousReadLock.tryLock(10, TimeUnit.MILLISECONDS));
-        Assert.assertNotNull(anonymousWriteLock.tryLock());
+        assertThat(anonymousWriteLock.tryLock(10, TimeUnit.MILLISECONDS)).isNull();
+        assertThat(anonymousReadLock.tryLock(10, TimeUnit.MILLISECONDS)).isNotNull();
+        assertThat(anonymousWriteLock.tryLock()).isNotNull();
         anonymousWriteLock.unlock();
     }
 
     /** Tests that things fail when they should. */
     @Test
     public void testIllegalActions() throws InterruptedException {
-        try {
-            knownClientReadLock.unlock();
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected: no locks held. */
-        }
-        try {
-            knownClientWriteLock.unlock();
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected: no locks held. */
-        }
+        assertThatThrownBy(() -> knownClientReadLock.unlock()).isInstanceOf(IllegalMonitorStateException.class);
+        assertThatThrownBy(() -> knownClientWriteLock.unlock()).isInstanceOf(IllegalMonitorStateException.class);
         knownClientReadLock.lock();
-        try {
-            knownClientWriteLock.tryLock();
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected: can't grab write lock while holding only read lock. */
-        }
-        try {
-            knownClientWriteLock.tryLock(10, TimeUnit.MILLISECONDS);
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected: can't grab write lock while holding only read lock. */
-        }
+        assertThatThrownBy(() -> knownClientWriteLock.tryLock()).isInstanceOf(IllegalMonitorStateException.class);
+        assertThatThrownBy(() -> knownClientWriteLock.tryLock(10, TimeUnit.MILLISECONDS))
+                .isInstanceOf(IllegalMonitorStateException.class);
     }
 
     /** Tests changing the owner of locks. */
     @Test
     public void testChangeOwner() {
-        try {
-            knownClientReadLock.changeOwner(LockClient.ANONYMOUS);
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected; no locks held. */
-        }
-        try {
-            knownClientWriteLock.changeOwner(LockClient.ANONYMOUS);
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected; no locks held. */
-        }
+        assertThatThrownBy(() -> knownClientReadLock.changeOwner(LockClient.ANONYMOUS))
+                .isInstanceOf(IllegalMonitorStateException.class);
+        assertThatThrownBy(() -> knownClientWriteLock.changeOwner(LockClient.ANONYMOUS))
+                .isInstanceOf(IllegalMonitorStateException.class);
         knownClientWriteLock.lock();
         knownClientReadLock.lock();
-        try {
-            knownClientReadLock.changeOwner(LockClient.ANONYMOUS);
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected; holding both read and write locks. */
-        }
-        try {
-            knownClientWriteLock.changeOwner(LockClient.ANONYMOUS);
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected; holding both read and write locks. */
-        }
+        assertThatThrownBy(() -> knownClientReadLock.changeOwner(LockClient.ANONYMOUS))
+                .isInstanceOf(IllegalMonitorStateException.class);
+        assertThatThrownBy(() -> knownClientWriteLock.changeOwner(LockClient.ANONYMOUS))
+                .isInstanceOf(IllegalMonitorStateException.class);
         knownClientReadLock.unlock();
         knownClientWriteLock.lock();
-        try {
-            knownClientWriteLock.changeOwner(LockClient.ANONYMOUS);
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected; holding two write locks. */
-        }
+        assertThatThrownBy(() -> knownClientWriteLock.changeOwner(LockClient.ANONYMOUS))
+                .isInstanceOf(IllegalMonitorStateException.class);
         knownClientWriteLock.unlock();
         knownClientWriteLock.changeOwner(LockClient.ANONYMOUS);
         anonymousWriteLock.unlock();
@@ -167,9 +130,9 @@ public final class ClientAwareLockTest {
     public void testTimedTryLockCanSucceed() throws Exception {
         anonymousReadLock.lock();
         Future<?> future = executor.submit((Callable<Void>) () -> {
-            Assert.assertNotNull(anonymousWriteLock.tryLock(10, TimeUnit.MILLISECONDS));
+            assertThat(anonymousWriteLock.tryLock(10, TimeUnit.MILLISECONDS)).isNotNull();
             barrier.await();
-            Assert.assertNull(anonymousWriteLock.tryLock(100, TimeUnit.MILLISECONDS));
+            assertThat(anonymousWriteLock.tryLock(100, TimeUnit.MILLISECONDS)).isNull();
             return null;
         });
         barrier.await();
@@ -177,9 +140,9 @@ public final class ClientAwareLockTest {
         anonymousReadLock.unlock();
         future.get();
         future = executor.submit((Callable<Void>) () -> {
-            Assert.assertNotNull(anonymousReadLock.tryLock(10, TimeUnit.MILLISECONDS));
+            assertThat(anonymousReadLock.tryLock(10, TimeUnit.MILLISECONDS)).isNotNull();
             barrier.await();
-            Assert.assertNull(anonymousReadLock.tryLock(100, TimeUnit.MILLISECONDS));
+            assertThat(anonymousReadLock.tryLock(100, TimeUnit.MILLISECONDS)).isNull();
             return null;
         });
         barrier.await();
@@ -193,17 +156,17 @@ public final class ClientAwareLockTest {
     @Test
     public void testTimedTryLockCanFail() throws Exception {
         anonymousReadLock.lock();
-        Assert.assertNull(anonymousReadLock.tryLock());
+        assertThat(anonymousReadLock.tryLock()).isNull();
         anonymousReadLock.unlock();
         Future<?> future1 = executor.submit((Callable<Void>) () -> {
             barrier.await();
-            Assert.assertNotNull(anonymousWriteLock.tryLock(100, TimeUnit.MILLISECONDS));
+            assertThat(anonymousWriteLock.tryLock(100, TimeUnit.MILLISECONDS)).isNotNull();
             return null;
         });
         barrier.await();
         Thread.sleep(10);
         Future<?> future2 = executor.submit(() -> {
-            Assert.assertNotNull(anonymousReadLock.tryLock());
+            assertThat(anonymousReadLock.tryLock()).isNotNull();
             anonymousReadLock.lock();
         });
         try {
@@ -229,9 +192,8 @@ public final class ClientAwareLockTest {
         addLockToQueue(anonymousReadLock, orderingQueue, "five");
         anonymousReadLock.unlock();
         anonymousWriteLock.lock();
-        Assert.assertEquals(
-                ImmutableList.of("one", "two", "two", "three", "four", "five", "five"),
-                ImmutableList.copyOf(orderingQueue));
+        assertThat(ImmutableList.copyOf(orderingQueue))
+                .isEqualTo(ImmutableList.of("one", "two", "two", "three", "four", "five", "five"));
         anonymousWriteLock.unlock();
     }
 
@@ -256,9 +218,9 @@ public final class ClientAwareLockTest {
             @Override
             public Void call() throws Exception {
                 barrier.await();
-                Assert.assertFalse(Thread.interrupted());
+                assertThat(Thread.interrupted()).isFalse();
                 anonymousWriteLock.lock();
-                Assert.assertTrue(Thread.interrupted());
+                assertThat(Thread.interrupted()).isTrue();
                 return null;
             }
         };
@@ -279,44 +241,30 @@ public final class ClientAwareLockTest {
         InterruptibleFuture<?> futureToCancel = new InterruptibleFuture<Void>() {
             @Override
             public Void call() throws Exception {
-                Assert.assertFalse(Thread.interrupted());
+                assertThat(Thread.interrupted()).isFalse();
                 barrier.await();
-                try {
-                    knownClientWriteLock.tryLock(1, TimeUnit.SECONDS);
-                    Assert.fail();
-                } catch (InterruptedException expected) {
-                    /* Expected. */
-                }
+                assertThatThrownBy(() -> knownClientWriteLock.tryLock(1, TimeUnit.SECONDS))
+                        .isInstanceOf(InterruptedException.class);
                 return null;
             }
         };
         executor.execute(futureToCancel);
         barrier.await();
-        try {
-            futureToCancel.get(10, TimeUnit.MILLISECONDS);
-            Assert.fail();
-        } catch (TimeoutException expected) {
-            /* Expected. */
-        }
+        assertThatThrownBy(() -> futureToCancel.get(10, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
         Future<?> futureToSucceed = executor.submit((Callable<Void>) () -> {
-            Assert.assertNotNull(anonymousReadLock.tryLock());
+            assertThat(anonymousReadLock.tryLock()).isNotNull();
             barrier.await();
             anonymousReadLock.lock();
             return null;
         });
         barrier.await();
-        try {
-            futureToSucceed.get(10, TimeUnit.MILLISECONDS);
-            Assert.fail();
-        } catch (TimeoutException expected) {
-            /* Expected. */
-        }
+        assertThatThrownBy(() -> futureToSucceed.get(10, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
         futureToCancel.cancel(true);
         futureToCancel.get(1000, TimeUnit.MILLISECONDS);
         anonymousWriteLock.unlock();
         futureToSucceed.get(1000, TimeUnit.MILLISECONDS);
         anonymousReadLock.unlock();
-        Assert.assertNull(knownClientWriteLock.tryLock());
+        assertThat(knownClientWriteLock.tryLock()).isNull();
         knownClientWriteLock.unlock();
     }
 
@@ -324,35 +272,26 @@ public final class ClientAwareLockTest {
     @Test
     public void testFreezing() throws InterruptedException {
         knownClientReadLock.lock();
-        try {
-            knownClientReadLock.unlockAndFreeze();
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected. */
-        }
+        assertThatThrownBy(() -> knownClientReadLock.unlockAndFreeze())
+                .isInstanceOf(IllegalMonitorStateException.class);
         anonymousReadLock.lock();
         knownClientReadLock.unlock();
         anonymousReadLock.unlock();
         anonymousWriteLock.lock();
-        try {
-            anonymousWriteLock.unlockAndFreeze();
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected. */
-        }
+        assertThatThrownBy(() -> anonymousWriteLock.unlockAndFreeze()).isInstanceOf(IllegalMonitorStateException.class);
         anonymousWriteLock.unlock();
         knownClientWriteLock.lock();
         knownClientWriteLock.unlockAndFreeze();
-        Assert.assertNull(knownClientWriteLock.tryLock());
-        Assert.assertNull(knownClientReadLock.tryLock());
+        assertThat(knownClientWriteLock.tryLock()).isNull();
+        assertThat(knownClientReadLock.tryLock()).isNull();
         knownClientReadLock.unlock();
-        Assert.assertNull(knownClientWriteLock.tryLock(10, TimeUnit.MILLISECONDS));
+        assertThat(knownClientWriteLock.tryLock(10, TimeUnit.MILLISECONDS)).isNull();
         knownClientWriteLock.unlockAndFreeze();
-        Assert.assertNotNull(knownClientWriteLock.tryLock());
-        Assert.assertNotNull(knownClientWriteLock.tryLock(10, TimeUnit.MILLISECONDS));
-        Assert.assertNotNull(knownClientReadLock.tryLock());
+        assertThat(knownClientWriteLock.tryLock()).isNotNull();
+        assertThat(knownClientWriteLock.tryLock(10, TimeUnit.MILLISECONDS)).isNotNull();
+        assertThat(knownClientReadLock.tryLock()).isNotNull();
         knownClientWriteLock.unlock();
-        Assert.assertNull(knownClientReadLock.tryLock(10, TimeUnit.MILLISECONDS));
+        assertThat(knownClientReadLock.tryLock(10, TimeUnit.MILLISECONDS)).isNull();
         knownClientReadLock.unlock();
     }
 
@@ -362,7 +301,7 @@ public final class ClientAwareLockTest {
         InterruptibleFuture<?> future = new InterruptibleFuture<Void>() {
             @Override
             public Void call() throws Exception {
-                Assert.assertFalse(Thread.interrupted());
+                assertThat(Thread.interrupted()).isFalse();
                 barrier.await();
                 anonymousWriteLock.lock();
                 return null;
@@ -370,20 +309,10 @@ public final class ClientAwareLockTest {
         };
         executor.execute(future);
         barrier.await();
-        try {
-            future.get(10, TimeUnit.MILLISECONDS);
-            Assert.fail();
-        } catch (TimeoutException expected) {
-            /* Expected. */
-        }
-        Assert.assertNull(knownClientReadLock.tryLock());
+        assertThatThrownBy(() -> future.get(10, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+        assertThat(knownClientReadLock.tryLock()).isNull();
         knownClientReadLock.unlock();
-        try {
-            future.get(10, TimeUnit.MILLISECONDS);
-            Assert.fail();
-        } catch (TimeoutException expected) {
-            /* Expected. */
-        }
+        assertThatThrownBy(() -> future.get(10, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
         knownClientReadLock.unlock();
         future.get(5, TimeUnit.SECONDS);
         anonymousWriteLock.unlock();
@@ -392,14 +321,15 @@ public final class ClientAwareLockTest {
     /** Tests that our objects have {@code toString()} methods defined. */
     @Test
     public void testToStrings() {
-        Assert.assertEquals("client", client.getClientId());
-        Assert.assertEquals("lock", readWriteLock.getDescriptor().getLockIdAsString());
+        assertThat(client.getClientId()).isEqualTo("client");
+        assertThat(readWriteLock.getDescriptor().getLockIdAsString()).isEqualTo("lock");
         assertGoodToString(readWriteLock);
         assertGoodToString(anonymousReadLock);
         assertGoodToString(knownClientWriteLock);
     }
 
     private void assertGoodToString(Object object) {
-        Assert.assertTrue(object.toString().startsWith(object.getClass().getSimpleName() + "{"));
+        assertThat(object.toString().startsWith(object.getClass().getSimpleName() + "{"))
+                .isTrue();
     }
 }

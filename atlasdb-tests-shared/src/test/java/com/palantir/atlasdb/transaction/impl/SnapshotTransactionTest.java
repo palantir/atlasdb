@@ -359,13 +359,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testImmutableTs() throws Exception {
         final long firstTs = timestampService.getFreshTimestamp();
         long startTs = txManager.runTaskThrowOnConflict(t -> {
-            assertThat(firstTs < txManager.getImmutableTimestamp()).isTrue();
-            assertThat(txManager.getImmutableTimestamp() < t.getTimestamp()).isTrue();
-            assertThat(t.getTimestamp() < timestampService.getFreshTimestamp()).isTrue();
+            assertThat(firstTs).isLessThan(txManager.getImmutableTimestamp());
+            assertThat(txManager.getImmutableTimestamp()).isLessThan(t.getTimestamp());
+            assertThat(t.getTimestamp()).isLessThan(timestampService.getFreshTimestamp());
             return t.getTimestamp();
         });
-        assertThat(firstTs < txManager.getImmutableTimestamp()).isTrue();
-        assertThat(startTs < txManager.getImmutableTimestamp()).isTrue();
+        assertThat(firstTs).isLessThan(txManager.getImmutableTimestamp());
+        assertThat(startTs).isLessThan(txManager.getImmutableTimestamp());
     }
 
     // If lock happens concurrent with get, we aren't sure that we can rollback the transaction

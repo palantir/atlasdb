@@ -15,9 +15,8 @@
  */
 package com.palantir.timestamp;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,7 +39,7 @@ public class AtomicTimestampTests {
     public void shouldIncreaseTheValueToAHigherNumber() {
         TimestampRange range = timestamp.incrementBy(10);
 
-        assertThat(range.getUpperBound(), is(INITIAL_TIMESTAMP + 10));
+        assertThat(range.getUpperBound()).isEqualTo(INITIAL_TIMESTAMP + 10);
     }
 
     @Test
@@ -57,7 +56,7 @@ public class AtomicTimestampTests {
 
         waitForExecutorToFinish();
 
-        assertThat(timestamp.incrementBy(1).getUpperBound(), is(INITIAL_TIMESTAMP + 101));
+        assertThat(timestamp.incrementBy(1).getUpperBound()).isEqualTo(INITIAL_TIMESTAMP + 101);
     }
 
     private void waitForExecutorToFinish() throws InterruptedException {
