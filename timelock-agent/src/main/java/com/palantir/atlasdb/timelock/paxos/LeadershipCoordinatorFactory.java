@@ -22,10 +22,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LeadershipCoordinatorFactory {
-    private final Map<LeaderElectionService, LeadershipCoordinator> awaitingLeaderships = new ConcurrentHashMap<>();
+    private final Map<LeaderElectionService, LeadershipCoordinator> leadershipCoordinators = new ConcurrentHashMap<>();
 
     public LeadershipCoordinator create(LeaderElectionService leaderElectionService) {
-        return awaitingLeaderships.computeIfAbsent(
+        LeadershipCoordinator leadershipCoordinator = leadershipCoordinators.computeIfAbsent(
                 leaderElectionService, _u -> LeadershipCoordinator.create(leaderElectionService));
+        leadershipCoordinator.start();
+        return leadershipCoordinator;
     }
 }

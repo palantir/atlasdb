@@ -42,9 +42,9 @@ public class LeadershipCoordinator implements Closeable {
     private final LeaderElectionService leaderElectionService;
     private final ExecutorService executor;
     /**
-     * This is used as the handoff point between the executor doing the blocking
-     * and the invocation calls.  It is set by the executor after the delegateRef is set.
-     * It is cleared out by invoke which will close the delegate and spawn a new blocking task.
+     * This is used as the handoff point between the executor doing the blocking and the invocation calls.  It is set by
+     * the executor after the delegateRef is set. It is cleared out by invoke which will close the delegate and spawn a
+     * new blocking task.
      */
     private final AtomicReference<LeadershipToken> leadershipTokenRef;
 
@@ -61,6 +61,10 @@ public class LeadershipCoordinator implements Closeable {
         LeadershipCoordinator leadershipCoordinator = new LeadershipCoordinator(leaderElectionService);
         leadershipCoordinator.tryToGainLeadership();
         return leadershipCoordinator;
+    }
+
+    public void start() {
+        tryToGainLeadership();
     }
 
     ListenableFuture<StillLeadingStatus> getStillLeading(LeadershipToken leadershipToken) {
