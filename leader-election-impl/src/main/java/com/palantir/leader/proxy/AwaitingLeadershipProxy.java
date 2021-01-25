@@ -98,7 +98,6 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
 
         final LeadershipToken leadershipToken = leadershipTokenCoalescingSupplier.get();
-
         T maybeValidDelegate = delegateRef.get();
 
         ListenableFuture<StillLeadingStatus> leadingFuture = Tracers.wrapListenableFuture(
@@ -240,13 +239,20 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     /**
-     * Right now there is no way to release resources quickly. In the case where a different instance of proxy
-     * causes AwaitingLeadership to realize loss of leadership, we wait till a request comes in to our proxy to release
-     * the delegateRef.
+     * Right now there is no way to release resources quickly. In the event of loss of leadership, we wait till the
+     * LeadershipCoordinator has updated its state. Then, the next request can release the delegateRef in
+     * `getLeadershipToken`.
      */
     private void handleNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         if (maybeValidLeadershipTokenRef.compareAndSet(leadershipToken, null)) {
-            clearDelegate();
+            // We are not clearing delegateTokenRef here. This is fine as we are relying on `getLeadershipToken` to
+            // claim the resources for the next request if this node loses leadership.
+            // If this node gains leadership again (i.e. with a different leadership token),
+            // `tryToUpdateLeadershipToken` guarantees that the delegate will be refreshed *before* we get a new
+            // leadershipToken.
+            // If we were to clearDelegateRef here or outside the CAS, we could race with
+            // `tryToUpdateLeadershipToken` and end up clearing `delegateRef`.
+
             leadershipCoordinator.markAsNotLeading(leadershipToken, cause);
         }
         throw leadershipCoordinator.notCurrentLeaderException(

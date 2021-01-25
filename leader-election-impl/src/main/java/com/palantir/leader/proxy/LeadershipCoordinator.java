@@ -72,8 +72,8 @@ public final class LeadershipCoordinator implements Closeable {
     }
 
     void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
-        log.warn("Lost leadership", cause);
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
+            log.warn("Lost leadership", cause);
             tryToGainLeadership();
         }
     }
