@@ -97,6 +97,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             return null;
         }
 
+        // This calls `getLeadershipToken` which can refresh the delegateRef and leadershipTokenRef if
+        // maybeValidLeadershipTokenRef is not the current leader token.
+        // Do not modify order, hide, or remove following two lines without considering impact on correctness.
         final LeadershipToken leadershipToken = leadershipTokenCoalescingSupplier.get();
         T maybeValidDelegate = delegateRef.get();
 

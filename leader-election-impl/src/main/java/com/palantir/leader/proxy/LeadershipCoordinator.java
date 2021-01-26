@@ -16,6 +16,7 @@
 
 package com.palantir.leader.proxy;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
@@ -63,6 +64,8 @@ public final class LeadershipCoordinator implements Closeable {
         return leadershipCoordinator;
     }
 
+    // This is O(clients)
+    @VisibleForTesting
     public void start() {
         tryToGainLeadership();
     }
