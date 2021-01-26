@@ -294,9 +294,8 @@ public class AwaitingLeadershipProxyTest {
         MyCloseable proxyA =
                 AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mockA, leadershipCoordinator);
 
-        MyCloseable proxyB =
-                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mock(CloseableImpl.class),
-                        leadershipCoordinator);
+        MyCloseable proxyB = AwaitingLeadershipProxy.newProxyInstance(
+                MyCloseable.class, () -> mock(CloseableImpl.class), leadershipCoordinator);
 
         // Wait to gain leadership
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
@@ -339,9 +338,8 @@ public class AwaitingLeadershipProxyTest {
         MyCloseable proxyA =
                 AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mockA, leadershipCoordinator);
 
-        MyCloseable proxyB =
-                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mock(CloseableImpl.class),
-                        leadershipCoordinator);
+        MyCloseable proxyB = AwaitingLeadershipProxy.newProxyInstance(
+                MyCloseable.class, () -> mock(CloseableImpl.class), leadershipCoordinator);
 
         // Wait to gain leadership
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
