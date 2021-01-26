@@ -344,9 +344,6 @@ public class AwaitingLeadershipProxyTest {
             return null;
         });
 
-        // Wait to gain leadership
-        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
-
         proxyA.val();
         verify(mockA, times(1)).close();
     }
@@ -406,6 +403,9 @@ public class AwaitingLeadershipProxyTest {
 
         when(leaderElectionService.isStillLeading(newLeadershipToken))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.LEADING));
+
+        // Wait to gain leadership
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
     }
 
     private Callable proxyFor(Callable fn) {
