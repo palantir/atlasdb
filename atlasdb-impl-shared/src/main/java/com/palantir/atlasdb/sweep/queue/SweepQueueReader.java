@@ -54,7 +54,9 @@ public class SweepQueueReader {
     }
 
     @Immutable
+    @SuppressWarnings("ClassInitializationDeadlock")
     public interface ReadBatchingRuntimeContext {
+        @Deprecated
         ReadBatchingRuntimeContext DEFAULT = ReadBatchingRuntimeContext.builder()
                 .maximumPartitions(() -> 1)
                 .cellsThreshold(() -> SweepQueueUtils.SWEEP_BATCH_SIZE)
