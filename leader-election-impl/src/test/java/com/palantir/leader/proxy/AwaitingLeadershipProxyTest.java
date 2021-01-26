@@ -108,7 +108,7 @@ public class AwaitingLeadershipProxyTest {
         void val();
     }
 
-    private class CloseableImpl implements MyCloseable {
+    private static class CloseableImpl implements MyCloseable {
         @Override
         public void val() {}
 
