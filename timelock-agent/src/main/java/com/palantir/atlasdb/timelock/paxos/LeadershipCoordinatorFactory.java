@@ -25,9 +25,7 @@ public class LeadershipCoordinatorFactory {
     private final Map<LeaderElectionService, LeadershipCoordinator> leadershipCoordinators = new ConcurrentHashMap<>();
 
     public LeadershipCoordinator create(LeaderElectionService leaderElectionService) {
-        LeadershipCoordinator leadershipCoordinator = leadershipCoordinators.computeIfAbsent(
+        return leadershipCoordinators.computeIfAbsent(
                 leaderElectionService, _u -> LeadershipCoordinator.create(leaderElectionService));
-        leadershipCoordinator.start();
-        return leadershipCoordinator;
     }
 }
