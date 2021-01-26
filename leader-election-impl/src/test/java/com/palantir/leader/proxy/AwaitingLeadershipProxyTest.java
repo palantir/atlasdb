@@ -108,14 +108,6 @@ public class AwaitingLeadershipProxyTest {
         void val();
     }
 
-    private static class CloseableImpl implements MyCloseable {
-        @Override
-        public void val() {}
-
-        @Override
-        public void close() {}
-    }
-
     @Test
     public void listenableFutureMethodsDoNotBlockWhenNotLeading() throws ExecutionException, InterruptedException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
@@ -270,7 +262,7 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     public void shouldClearDelegateUponLosingLeadership() throws Exception {
-        CloseableImpl mock = mock(CloseableImpl.class);
+        MyCloseable mock = mock(MyCloseable.class);
         MyCloseable proxy =
                 AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mock, getLeadershipCoordinator());
         waitForLeadershipToBeGained();
@@ -289,13 +281,13 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     public void shouldClearDelegateIfLeadershipLossIsRealizedByAnotherProxy() throws Exception {
-        CloseableImpl mockA = mock(CloseableImpl.class);
+        MyCloseable mockA = mock(MyCloseable.class);
         LeadershipCoordinator leadershipCoordinator = getLeadershipCoordinator();
         MyCloseable proxyA =
                 AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mockA, leadershipCoordinator);
 
         MyCloseable proxyB = AwaitingLeadershipProxy.newProxyInstance(
-                MyCloseable.class, () -> mock(CloseableImpl.class), leadershipCoordinator);
+                MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
         // Wait to gain leadership
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
@@ -316,7 +308,7 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     public void shouldClearDelegateIfLeadershipTokenIsRefreshed() throws Exception {
-        CloseableImpl mock = mock(CloseableImpl.class);
+        MyCloseable mock = mock(MyCloseable.class);
         MyCloseable proxy =
                 AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mock, getLeadershipCoordinator());
         waitForLeadershipToBeGained();
@@ -333,13 +325,13 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     public void shouldClearDelegateIfLeadershipTokenIsRefreshedByAnotherProxy() throws Exception {
-        CloseableImpl mockA = mock(CloseableImpl.class);
+        MyCloseable mockA = mock(MyCloseable.class);
         LeadershipCoordinator leadershipCoordinator = getLeadershipCoordinator();
         MyCloseable proxyA =
                 AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mockA, leadershipCoordinator);
 
         MyCloseable proxyB = AwaitingLeadershipProxy.newProxyInstance(
-                MyCloseable.class, () -> mock(CloseableImpl.class), leadershipCoordinator);
+                MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
         // Wait to gain leadership
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
