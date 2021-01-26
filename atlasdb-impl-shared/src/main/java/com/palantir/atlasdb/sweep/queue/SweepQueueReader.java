@@ -53,12 +53,14 @@ public class SweepQueueReader {
         return accumulator.toSweepBatch();
     }
 
+    public static final ReadBatchingRuntimeContext DEFAULT_READ_BATCHING_RUNTIME_CONTEXT =
+            ReadBatchingRuntimeContext.builder()
+                    .maximumPartitions(() -> 1)
+                    .cellsThreshold(() -> SweepQueueUtils.SWEEP_BATCH_SIZE)
+                    .build();
+
     @Immutable
     public interface ReadBatchingRuntimeContext {
-        ReadBatchingRuntimeContext DEFAULT = ReadBatchingRuntimeContext.builder()
-                .maximumPartitions(() -> 1)
-                .cellsThreshold(() -> SweepQueueUtils.SWEEP_BATCH_SIZE)
-                .build();
 
         IntSupplier maximumPartitions();
 
