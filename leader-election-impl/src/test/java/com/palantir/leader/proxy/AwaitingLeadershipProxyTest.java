@@ -23,6 +23,7 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +38,7 @@ import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
 import com.palantir.tracing.RenderTracingRule;
+import java.io.Closeable;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -100,6 +102,18 @@ public class AwaitingLeadershipProxyTest {
         public ListenableFuture<?> future() {
             return future;
         }
+    }
+
+    private interface MyCloseable extends Closeable {
+        void val();
+    }
+
+    private class CloseableImpl implements MyCloseable {
+        @Override
+        public void val() {}
+
+        @Override
+        public void close() {}
     }
 
     @Test
@@ -254,6 +268,99 @@ public class AwaitingLeadershipProxyTest {
         verify(leaderElectionService, atLeast(2)).blockOnBecomingLeader();
     }
 
+    @Test
+    public void shouldClearDelegateUponLosingLeadership() throws Exception {
+        CloseableImpl mock = mock(CloseableImpl.class);
+        MyCloseable proxy =
+                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mock, getLeadershipCoordinator());
+        waitForLeadershipToBeGained();
+
+        proxy.val();
+        Callable callable = () -> {
+            proxy.val();
+            return null;
+        };
+        loseLeadership(callable);
+        assertThatThrownBy(callable::call)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessage("method invoked on a non-leader");
+        verify(mock, times(1)).close();
+    }
+
+    @Test
+    public void shouldClearDelegateIfLeadershipLossIsRealizedByAnotherProxy() throws Exception {
+        CloseableImpl mockA = mock(CloseableImpl.class);
+        LeadershipCoordinator leadershipCoordinator = getLeadershipCoordinator();
+        MyCloseable proxyA =
+                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mockA, leadershipCoordinator);
+
+        MyCloseable proxyB =
+                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mock(CloseableImpl.class),
+                        leadershipCoordinator);
+
+        // Wait to gain leadership
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+
+        proxyA.val();
+        proxyB.val();
+
+        loseLeadership(() -> {
+            proxyB.val();
+            return null;
+        });
+
+        assertThatThrownBy(proxyA::val)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessage("method invoked on a non-leader");
+        verify(mockA, times(1)).close();
+    }
+
+    @Test
+    public void shouldClearDelegateIfLeadershipTokenIsRefreshed() throws Exception {
+        CloseableImpl mock = mock(CloseableImpl.class);
+        MyCloseable proxy =
+                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mock, getLeadershipCoordinator());
+        waitForLeadershipToBeGained();
+
+        proxy.val();
+        refreshLeadershipToken(() -> {
+            proxy.val();
+            return null;
+        });
+
+        proxy.val();
+        verify(mock, times(1)).close();
+    }
+
+    @Test
+    public void shouldClearDelegateIfLeadershipTokenIsRefreshedByAnotherProxy() throws Exception {
+        CloseableImpl mockA = mock(CloseableImpl.class);
+        LeadershipCoordinator leadershipCoordinator = getLeadershipCoordinator();
+        MyCloseable proxyA =
+                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mockA, leadershipCoordinator);
+
+        MyCloseable proxyB =
+                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mock(CloseableImpl.class),
+                        leadershipCoordinator);
+
+        // Wait to gain leadership
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+
+        proxyA.val();
+        proxyB.val();
+
+        refreshLeadershipToken(() -> {
+            proxyB.val();
+            return null;
+        });
+
+        // Wait to gain leadership
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+
+        proxyA.val();
+        verify(mockA, times(1)).close();
+    }
+
     @SuppressWarnings("IllegalThrows")
     private Void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
         CountDownLatch delegateCallStarted = new CountDownLatch(1);
@@ -294,6 +401,21 @@ public class AwaitingLeadershipProxyTest {
         assertThatThrownBy(proxy::call)
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessage("method invoked on a non-leader (leadership lost)");
+    }
+
+    private void refreshLeadershipToken(Callable proxy) throws InterruptedException {
+        LeadershipToken newLeadershipToken = mock(LeadershipToken.class);
+        when(leaderElectionService.isStillLeading(leadershipToken))
+                .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
+        when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> newLeadershipToken);
+
+        // make a call so the proxy will realize that it has lost leadership
+        assertThatThrownBy(proxy::call)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessage("method invoked on a non-leader (leadership lost)");
+
+        when(leaderElectionService.isStillLeading(newLeadershipToken))
+                .thenReturn(Futures.immediateFuture(StillLeadingStatus.LEADING));
     }
 
     private Callable proxyFor(Callable fn) {
