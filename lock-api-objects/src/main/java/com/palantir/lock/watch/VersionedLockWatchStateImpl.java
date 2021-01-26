@@ -63,7 +63,7 @@ public class VersionedLockWatchStateImpl implements VersionedLockWatchState {
         if (watchedRanges.contains(lockDescriptor)) {
             return LockWatchInfo.of(LockWatchInfo.State.UNLOCKED, OptionalLong.empty());
         }
-        return LockWatchInfo.UNKNOWN;
+        return LockWatchInfos.UNKNOWN;
     }
 
     @Override

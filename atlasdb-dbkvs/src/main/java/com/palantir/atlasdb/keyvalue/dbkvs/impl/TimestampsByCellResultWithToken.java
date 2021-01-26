@@ -34,7 +34,7 @@ final class TimestampsByCellResultWithToken {
     final SetMultimap<Cell, Long> entries;
     private SetMultimap<Cell, Long> rowBuffer;
     private boolean moreResults = false;
-    private Token token = Token.INITIAL;
+    private Token token = Tokens.INITIAL;
     private final boolean reverse;
 
     private TimestampsByCellResultWithToken(ClosableIterator<AgnosticLightResultRow> iterator, boolean reverse) {

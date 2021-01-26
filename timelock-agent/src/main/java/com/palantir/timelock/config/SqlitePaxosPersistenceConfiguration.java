@@ -25,7 +25,9 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableSqlitePaxosPersistenceConfiguration.class)
 @JsonSerialize(as = ImmutableSqlitePaxosPersistenceConfiguration.class)
 @Value.Immutable
+@SuppressWarnings("ClassInitializationDeadlock")
 public interface SqlitePaxosPersistenceConfiguration {
+    @Deprecated
     SqlitePaxosPersistenceConfiguration DEFAULT = ImmutableSqlitePaxosPersistenceConfiguration.builder()
             .dataDirectory(new File("var/data/sqlitePaxos"))
             .build();

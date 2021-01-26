@@ -35,9 +35,12 @@ import org.immutables.value.Value;
  */
 @JsonDeserialize(builder = LockServerOptions.SerializationProxy.class)
 @Value.Immutable
+@SuppressWarnings("ClassInitializationDeadlock")
 public class LockServerOptions implements Serializable {
     private static final long serialVersionUID = 2930574230723753879L;
-    public static final LockServerOptions DEFAULT = builder().build();
+
+    @Deprecated
+    public static final LockServerOptions DEFAULT = LockServerOptions.builder().build();
 
     /**
      * Returns <code>true</code> if this is a standalone lock server or

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import javax.annotation.Nullable;
-import org.immutables.value.Value;
+package com.palantir.lock.watch;
 
-@Value.Immutable
-@SuppressWarnings("ClassInitializationDeadlock")
-abstract class Token {
-    @Nullable
-    abstract byte[] row();
+import com.palantir.lock.watch.LockWatchInfo.State;
+import java.util.OptionalLong;
 
-    @Nullable
-    abstract byte[] col();
+public final class LockWatchInfos {
+    private LockWatchInfos() {}
 
-    abstract boolean shouldSkip();
-
-    @Deprecated
-    public static final Token INITIAL =
-            ImmutableToken.builder().shouldSkip(false).build();
+    /**
+     * Used to denote lock watch info for locks that are not watched, or more generally, for locks for which the state
+     * is currently unknown.
+     */
+    public static final LockWatchInfo UNKNOWN = ImmutableLockWatchInfo.of(State.NOT_WATCHED, OptionalLong.empty());
 }

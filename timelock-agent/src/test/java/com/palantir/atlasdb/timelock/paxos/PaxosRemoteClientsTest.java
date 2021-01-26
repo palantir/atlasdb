@@ -34,7 +34,7 @@ import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
-import com.palantir.timelock.config.SqlitePaxosPersistenceConfiguration;
+import com.palantir.timelock.config.SqlitePaxosPersistenceConfigurations;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
 import java.util.Optional;
@@ -58,7 +58,7 @@ public class PaxosRemoteClientsTest {
         paxosInstallConfiguration = ImmutablePaxosInstallConfiguration.builder()
                 .isNewService(false)
                 .dataDirectory(temporaryFolder.getRoot())
-                .sqlitePersistence(SqlitePaxosPersistenceConfiguration.DEFAULT)
+                .sqlitePersistence(SqlitePaxosPersistenceConfigurations.DEFAULT)
                 .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)
                 .build();
         installConfiguration = ImmutableTimeLockInstallConfiguration.builder()

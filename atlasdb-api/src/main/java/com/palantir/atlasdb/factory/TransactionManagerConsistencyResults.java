@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import javax.annotation.Nullable;
-import org.immutables.value.Value;
+package com.palantir.atlasdb.factory;
 
-@Value.Immutable
-@SuppressWarnings("ClassInitializationDeadlock")
-abstract class Token {
-    @Nullable
-    abstract byte[] row();
+import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult.ConsistencyState;
 
-    @Nullable
-    abstract byte[] col();
+public final class TransactionManagerConsistencyResults {
+    private TransactionManagerConsistencyResults() {}
 
-    abstract boolean shouldSkip();
-
-    @Deprecated
-    public static final Token INITIAL =
-            ImmutableToken.builder().shouldSkip(false).build();
+    public static final TransactionManagerConsistencyResult CONSISTENT_RESULT =
+            ImmutableTransactionManagerConsistencyResult.builder()
+                    .consistencyState(ConsistencyState.CONSISTENT)
+                    .build();
 }

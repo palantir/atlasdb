@@ -23,7 +23,9 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableStreamStorePersistenceConfiguration.class)
 @JsonDeserialize(as = ImmutableStreamStorePersistenceConfiguration.class)
 @Value.Immutable
+@SuppressWarnings("ClassInitializationDeadlock")
 public interface StreamStorePersistenceConfiguration {
+    @Deprecated
     StreamStorePersistenceConfiguration DEFAULT_CONFIG =
             ImmutableStreamStorePersistenceConfiguration.builder().build();
 

@@ -48,7 +48,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     private final StreamCompression compression;
 
     protected AbstractPersistentStreamStore(TransactionManager txManager, StreamCompression compression) {
-        this(txManager, compression, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        this(txManager, compression, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 
     protected AbstractPersistentStreamStore(

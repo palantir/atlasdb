@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.performance.schema.generated;
 
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -84,7 +85,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
     private final StreamTestTableFactory tables;
 
     private ValueStreamStore(TransactionManager txManager, StreamTestTableFactory tables) {
-        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        this(txManager, tables, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 
     private ValueStreamStore(TransactionManager txManager, StreamTestTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {

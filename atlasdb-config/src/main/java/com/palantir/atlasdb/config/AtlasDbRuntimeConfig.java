@@ -23,6 +23,7 @@ import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -98,7 +99,7 @@ public abstract class AtlasDbRuntimeConfig {
 
     @Value.Default
     public StreamStorePersistenceConfiguration streamStorePersistence() {
-        return StreamStorePersistenceConfiguration.DEFAULT_CONFIG;
+        return StreamStorePersistenceConfigurations.DEFAULT_CONFIG;
     }
 
     @Value.Default

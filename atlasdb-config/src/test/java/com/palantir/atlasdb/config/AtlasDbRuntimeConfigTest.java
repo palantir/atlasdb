@@ -17,7 +17,7 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import org.junit.Test;
 
 public class AtlasDbRuntimeConfigTest {
@@ -36,6 +36,6 @@ public class AtlasDbRuntimeConfigTest {
     @Test
     public void configWithoutSpecifyingStreamPersistenceConfigHasDefaultConfig() {
         AtlasDbRuntimeConfig config = AtlasDbRuntimeConfig.defaultRuntimeConfig();
-        assertThat(config.streamStorePersistence()).isEqualTo(StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        assertThat(config.streamStorePersistence()).isEqualTo(StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 }

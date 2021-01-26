@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+@SuppressWarnings("ClassInitializationDeadlock")
 public abstract class KeyValueServiceInstrumentation {
 
     private final int kvsPort;

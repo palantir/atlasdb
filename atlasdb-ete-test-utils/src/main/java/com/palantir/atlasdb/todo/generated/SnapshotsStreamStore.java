@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.todo.generated;
 
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -84,7 +85,7 @@ public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
     private final TodoSchemaTableFactory tables;
 
     private SnapshotsStreamStore(TransactionManager txManager, TodoSchemaTableFactory tables) {
-        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        this(txManager, tables, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 
     private SnapshotsStreamStore(TransactionManager txManager, TodoSchemaTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {

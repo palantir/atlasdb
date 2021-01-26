@@ -298,10 +298,12 @@ public class TargetedSweepMetrics {
         }
     }
 
-    @Value.Immutable
     @JsonSerialize(as = ImmutableMetricsConfiguration.class)
     @JsonDeserialize(as = ImmutableMetricsConfiguration.class)
+    @Value.Immutable
+    @SuppressWarnings("ClassInitializationDeadlock")
     public interface MetricsConfiguration {
+        @Deprecated
         MetricsConfiguration DEFAULT = ImmutableMetricsConfiguration.builder().build();
 
         /**

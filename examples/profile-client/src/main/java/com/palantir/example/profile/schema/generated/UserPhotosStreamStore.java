@@ -1,5 +1,6 @@
 package com.palantir.example.profile.schema.generated;
 
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -82,7 +83,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     private final ProfileTableFactory tables;
 
     private UserPhotosStreamStore(TransactionManager txManager, ProfileTableFactory tables) {
-        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        this(txManager, tables, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 
     private UserPhotosStreamStore(TransactionManager txManager, ProfileTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {

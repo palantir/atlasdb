@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
+import com.palantir.atlasdb.factory.TransactionManagerConsistencyResults;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
 import com.palantir.common.base.Throwables;
@@ -65,7 +66,7 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
                 .map(check -> check.apply(resource))
                 .max(Comparator.comparingLong(
                         result -> result.consistencyState().severity()))
-                .orElse(TransactionManagerConsistencyResult.CONSISTENT_RESULT);
+                .orElse(TransactionManagerConsistencyResults.CONSISTENT_RESULT);
     }
 
     private void processAggregatedResult(TransactionManagerConsistencyResult consistencyResult) {

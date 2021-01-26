@@ -146,6 +146,7 @@ import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockRpcClient;
+import com.palantir.lock.LockServerConfigs;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
@@ -229,7 +230,7 @@ public abstract class TransactionManagers {
 
     @Value.Default
     LockServerOptions lockServerOptions() {
-        return LockServerOptions.DEFAULT;
+        return LockServerConfigs.DEFAULT;
     }
 
     @Value.Default
