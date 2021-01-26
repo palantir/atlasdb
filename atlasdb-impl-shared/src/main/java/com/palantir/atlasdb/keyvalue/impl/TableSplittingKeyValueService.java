@@ -70,7 +70,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
             Map<TableReference, KeyValueService> delegateByTable,
             Map<Namespace, KeyValueService> delegateByNamespace) {
         // See comment in get all table names for why we do this.
-        Map<KeyValueService, Void> map = new IdentityHashMap<KeyValueService, Void>(delegates.size());
+        IdentityHashMap<KeyValueService, Void> map = new IdentityHashMap<KeyValueService, Void>(delegates.size());
         for (KeyValueService delegate : delegates) {
             map.put(delegate, null);
         }
