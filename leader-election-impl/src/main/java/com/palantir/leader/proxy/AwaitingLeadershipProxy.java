@@ -193,6 +193,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         // throws NotCurrentLeaderException.
         LeadershipToken leadershipToken = leadershipCoordinator.getLeadershipToken();
 
+        log.debug("Getting delegate to start serving calls.");
         T delegate = null;
         try {
             delegate = delegateSupplier.get();

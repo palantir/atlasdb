@@ -168,7 +168,7 @@ public final class LeadershipCoordinator implements Closeable {
     }
 
     private void onGainedLeadership(LeadershipToken leadershipToken) {
-        log.debug("Gained leadership, getting delegate to start serving calls");
+        log.debug("Gained leadership!");
 
         if (isClosed) {
             return;
