@@ -174,7 +174,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         LeadershipToken leadershipToken = maybeValidLeadershipTokenRef.get();
         if (leadershipToken == null) {
             // reclaim delegate resources if leadership cannot be gained
-            claimResourcesOnLeadershipUpdate();
+            clearDelegate();
             throw leadershipCoordinator.notCurrentLeaderException("method invoked on a non-leader");
         }
         return leadershipToken;
@@ -189,6 +189,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         if (leadershipCoordinator.isStillCurrentToken(maybeValidLeadershipTokenRef.get())) {
             return;
         }
+
+        // throws NotCurrentLeaderException.
         LeadershipToken leadershipToken = leadershipCoordinator.getLeadershipToken();
 
         T delegate = null;
