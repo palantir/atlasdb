@@ -30,8 +30,8 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LeadershipStateKeeper<T> {
-    private static final Logger log = LoggerFactory.getLogger(LeadershipStateKeeper.class);
+public class LeadershipStateManager<T> {
+    private static final Logger log = LoggerFactory.getLogger(LeadershipStateManager.class);
 
     private final CoalescingSupplier<LeadershipToken> leadershipTokenCoalescingSupplier;
     private final LeadershipCoordinator leadershipCoordinator;
@@ -40,7 +40,7 @@ public class LeadershipStateKeeper<T> {
     private final Supplier<T> delegateSupplier;
     private volatile boolean isClosed;
 
-    public LeadershipStateKeeper(LeadershipCoordinator leadershipCoordinator, Supplier<T> delegateSupplier) {
+    public LeadershipStateManager(LeadershipCoordinator leadershipCoordinator, Supplier<T> delegateSupplier) {
         this.leadershipTokenCoalescingSupplier = new CoalescingSupplier<>(this::getOrUpdateLeadershipToken);
         this.leadershipCoordinator = leadershipCoordinator;
         this.delegateSupplier = delegateSupplier;

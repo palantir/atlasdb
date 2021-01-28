@@ -29,7 +29,7 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.leader.proxy.LeadershipStateKeeper.LeadershipState;
+import com.palantir.leader.proxy.LeadershipStateManager.LeadershipState;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.CloseableTracer;
@@ -61,7 +61,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private final LeadershipCoordinator leadershipCoordinator;
     private final Class<T> interfaceClass;
 
-    private final LeadershipStateKeeper<T> leadershipStateKeeper;
+    private final LeadershipStateManager<T> leadershipStateManager;
     private volatile boolean isClosed;
 
     private AwaitingLeadershipProxy(
@@ -69,7 +69,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         Preconditions.checkNotNull(delegateSupplier, "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.leadershipCoordinator = leadershipCoordinator;
         this.interfaceClass = interfaceClass;
-        this.leadershipStateKeeper = new LeadershipStateKeeper<>(leadershipCoordinator, delegateSupplier);
+        this.leadershipStateManager = new LeadershipStateManager<>(leadershipCoordinator, delegateSupplier);
         this.isClosed = false;
     }
 
@@ -86,11 +86,11 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         if (method.getName().equals("close") && args.length == 0) {
             log.debug("Closing leadership proxy");
             isClosed = true;
-            leadershipStateKeeper.close();
+            leadershipStateManager.close();
             return null;
         }
 
-        LeadershipState<T> leadershipState = leadershipStateKeeper.getLeadershipState();
+        LeadershipState<T> leadershipState = leadershipStateManager.getLeadershipState();
         final LeadershipToken leadershipToken = leadershipState.leadershipToken();
         T maybeValidDelegate = leadershipState.delegate();
 
@@ -107,7 +107,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
                         return Futures.submitAsync(
                                 () -> {
-                                    leadershipStateKeeper.handleNotLeading(leadershipToken, null /* cause */);
+                                    leadershipStateManager.handleNotLeading(leadershipToken, null /* cause */);
                                     throw new AssertionError("should not reach here");
                                 },
                                 executionExecutor);
@@ -156,7 +156,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
         if (exception.getCause() instanceof ServiceNotAvailableException
                 || exception.getCause() instanceof NotCurrentLeaderException) {
-            leadershipStateKeeper.handleNotLeading(leadershipToken, exception.getCause());
+            leadershipStateManager.handleNotLeading(leadershipToken, exception.getCause());
         }
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.

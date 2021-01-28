@@ -96,7 +96,7 @@ public final class LeadershipCoordinator implements Closeable {
 
             if (leadershipToken == null) {
                 // If leadershipToken is still null, then someone's the leader, but it isn't us.
-                throw notCurrentLeaderException("method invoked on a non-leader");
+                throw notCurrentLeaderException(maybeLeader, "method invoked on a non-leader", null /* cause */);
             }
         }
 
@@ -107,15 +107,19 @@ public final class LeadershipCoordinator implements Closeable {
         return leadershipToken == leadershipTokenRef.get();
     }
 
-    NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
-        return leaderElectionService
-                .getRecentlyPingedLeaderHost()
-                .map(hostAndPort -> new NotCurrentLeaderException(message, cause, hostAndPort))
-                .orElseGet(() -> new NotCurrentLeaderException(message, cause));
-    }
-
     NotCurrentLeaderException notCurrentLeaderException(String message) {
         return notCurrentLeaderException(message, null /* cause */);
+    }
+
+    NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
+        return notCurrentLeaderException(leaderElectionService.getRecentlyPingedLeaderHost(), message, cause);
+    }
+
+    private NotCurrentLeaderException notCurrentLeaderException(
+            Optional<HostAndPort> recentlyPingedLeaderHost, String message, @Nullable Throwable cause) {
+        return recentlyPingedLeaderHost
+                .map(hostAndPort -> new NotCurrentLeaderException(message, cause, hostAndPort))
+                .orElseGet(() -> new NotCurrentLeaderException(message, cause));
     }
 
     private void tryToGainLeadership() {
