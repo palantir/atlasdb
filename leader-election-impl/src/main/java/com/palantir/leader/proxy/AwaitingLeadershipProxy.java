@@ -24,26 +24,22 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.proxy.LeadershipStateKeeper.LeadershipState;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
 import java.io.Closeable;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,22 +59,17 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             status -> status != StillLeadingStatus.NO_QUORUM);
 
     private final LeadershipCoordinator leadershipCoordinator;
-    private final Supplier<T> delegateSupplier;
-    private final AtomicReference<T> delegateRef;
-    private final AtomicReference<LeadershipToken> maybeValidLeadershipTokenRef;
     private final Class<T> interfaceClass;
-    private final CoalescingSupplier<LeadershipToken> leadershipTokenCoalescingSupplier;
+
+    private final LeadershipStateKeeper<T> leadershipStateKeeper;
     private volatile boolean isClosed;
 
     private AwaitingLeadershipProxy(
             LeadershipCoordinator leadershipCoordinator, Supplier<T> delegateSupplier, Class<T> interfaceClass) {
         Preconditions.checkNotNull(delegateSupplier, "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.leadershipCoordinator = leadershipCoordinator;
-        this.delegateSupplier = delegateSupplier;
-        this.delegateRef = new AtomicReference<>();
-        this.maybeValidLeadershipTokenRef = new AtomicReference<>();
         this.interfaceClass = interfaceClass;
-        this.leadershipTokenCoalescingSupplier = new CoalescingSupplier<>(this::getLeadershipToken);
+        this.leadershipStateKeeper = new LeadershipStateKeeper<>(leadershipCoordinator, delegateSupplier);
         this.isClosed = false;
     }
 
@@ -95,15 +86,13 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         if (method.getName().equals("close") && args.length == 0) {
             log.debug("Closing leadership proxy");
             isClosed = true;
-            clearDelegate();
+            leadershipStateKeeper.close();
             return null;
         }
 
-        // This calls `getLeadershipToken` which can refresh the delegateRef and leadershipTokenRef if
-        // maybeValidLeadershipTokenRef is not the current leader token.
-        // Do not modify order, hide, or remove following two lines without considering impact on correctness.
-        final LeadershipToken leadershipToken = leadershipTokenCoalescingSupplier.get();
-        T maybeValidDelegate = delegateRef.get();
+        LeadershipState<T> leadershipState = leadershipStateKeeper.getLeadershipState();
+        final LeadershipToken leadershipToken = leadershipState.leadershipToken();
+        T maybeValidDelegate = leadershipState.delegate();
 
         ListenableFuture<StillLeadingStatus> leadingFuture = Tracers.wrapListenableFuture(
                 "validate-leadership",
@@ -118,7 +107,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
                         return Futures.submitAsync(
                                 () -> {
-                                    handleNotLeading(leadershipToken, null /* cause */);
+                                    leadershipStateKeeper.handleNotLeading(leadershipToken, null /* cause */);
                                     throw new AssertionError("should not reach here");
                                 },
                                 executionExecutor);
@@ -163,64 +152,11 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
     }
 
-    /**
-     * Checks the local ref of leadership token. We need to refresh the delegateRef in case the token has
-     * changed.
-     * This code can be accessed by multiple threads. In order to save all of the requests from locking-unlocking
-     * `this` while trying to update maybeValidLeadershipTokenRef, the invocations are batched using CoalescingSupplier.
-     */
-    @GuardedBy("leadershipTokenCoalescingSupplier")
-    private LeadershipToken getLeadershipToken() {
-        if (!leadershipCoordinator.isStillCurrentToken(maybeValidLeadershipTokenRef.get())) {
-            // we need to clear out existing resources if leadership token has been updated
-            claimResourcesOnLeadershipUpdate();
-            tryToUpdateLeadershipToken();
-        }
-
-        LeadershipToken leadershipToken = maybeValidLeadershipTokenRef.get();
-        if (leadershipToken == null) {
-            // reclaim delegate resources if leadership cannot be gained
-            clearDelegate();
-            throw leadershipCoordinator.notCurrentLeaderException("method invoked on a non-leader");
-        }
-        return leadershipToken;
-    }
-
-    /**
-     * This method refreshes the delegateRef which can be a very expensive operation. This should be executed exactly
-     * once for one leadershipToken update.
-     * @throws NotCurrentLeaderException if we do not have leadership anymore.
-     */
-    @GuardedBy("leadershipTokenCoalescingSupplier")
-    private void tryToUpdateLeadershipToken() {
-        // throws NotCurrentLeaderException.
-        LeadershipToken leadershipToken = leadershipCoordinator.getLeadershipToken();
-
-        log.debug("Getting delegate to start serving calls.");
-        T delegate = null;
-        try {
-            delegate = delegateSupplier.get();
-        } catch (Throwable t) {
-            log.error("problem creating delegate", t);
-        }
-
-        if (delegate != null) {
-            // Do not modify, hide, or remove this line without considering impact on correctness.
-            delegateRef.set(delegate);
-            if (isClosed) {
-                clearDelegate();
-            } else {
-                maybeValidLeadershipTokenRef.set(leadershipToken);
-                log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
-            }
-        }
-    }
-
     private RuntimeException handleDelegateThrewException(
             LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
         if (exception.getCause() instanceof ServiceNotAvailableException
                 || exception.getCause() instanceof NotCurrentLeaderException) {
-            handleNotLeading(leadershipToken, exception.getCause());
+            leadershipStateKeeper.handleNotLeading(leadershipToken, exception.getCause());
         }
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.
@@ -231,42 +167,5 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
         Throwables.propagateIfPossible(exception.getCause(), Exception.class);
         throw new RuntimeException(exception.getCause());
-    }
-
-    private void clearDelegate() {
-        Object delegate = delegateRef.getAndSet(null);
-        if (delegate instanceof Closeable) {
-            try {
-                ((Closeable) delegate).close();
-            } catch (IOException ex) {
-                log.warn("problem closing delegate", ex);
-            }
-        }
-    }
-
-    private void claimResourcesOnLeadershipUpdate() {
-        maybeValidLeadershipTokenRef.set(null);
-        clearDelegate();
-    }
-
-    /**
-     * Right now there is no way to release resources quickly. In the event of loss of leadership, we wait till the
-     * LeadershipCoordinator has updated its state. Then, the next request can release the delegateRef in
-     * `getLeadershipToken`.
-     */
-    private void handleNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
-        if (maybeValidLeadershipTokenRef.compareAndSet(leadershipToken, null)) {
-            // We are not clearing delegateTokenRef here. This is fine as we are relying on `getLeadershipToken` to
-            // claim the resources for the next request if this node loses leadership.
-            // If this node gains leadership again (i.e. with a different leadership token),
-            // `tryToUpdateLeadershipToken` guarantees that the delegate will be refreshed *before* we get a new
-            // leadershipToken.
-            // If we were to clearDelegateRef here or outside the CAS, we could race with
-            // `tryToUpdateLeadershipToken` and end up clearing `delegateRef`.
-
-            leadershipCoordinator.markAsNotLeading(leadershipToken, cause);
-        }
-        throw leadershipCoordinator.notCurrentLeaderException(
-                "method invoked on a non-leader (leadership lost)", cause);
     }
 }
