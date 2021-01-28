@@ -195,7 +195,7 @@ public class TableRenderer {
                 importRenderer.renderImports();
             }
             line("@Generated(\"", TableRenderer.class.getName(), "\")");
-            line("@SuppressWarnings(\"all\")");
+            line("@SuppressWarnings({\"all\", \"deprecation\"})");
             line("public ", isNestedIndex ? "static " : "", "final class ", Table, " implements");
             if (isNamedSet(table)) {
                 line("        AtlasDbNamedPersistentSet<", Table, ".", Row, ">,");

@@ -34,7 +34,10 @@ import java.util.stream.Collectors;
 import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRendererV2")
-@SuppressWarnings("all")
+@SuppressWarnings({
+        "all",
+        "deprecation"
+})
 public class SchemaApiTestV2Table {
     private static final String rawTableName = "SchemaApiTest";
 

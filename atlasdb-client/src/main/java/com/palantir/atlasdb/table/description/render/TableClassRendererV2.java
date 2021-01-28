@@ -122,6 +122,7 @@ public class TableClassRendererV2 {
                         .build())
                 .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
                         .addMember("value", "$S", "all")
+                        .addMember("value", "$S", "deprecation")
                         .build())
                 .addModifiers(Modifier.PUBLIC);
 
