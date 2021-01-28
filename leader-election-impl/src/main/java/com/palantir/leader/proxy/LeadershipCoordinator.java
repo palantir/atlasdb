@@ -17,6 +17,7 @@
 package com.palantir.leader.proxy;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
@@ -70,7 +71,7 @@ public final class LeadershipCoordinator implements Closeable {
         tryToGainLeadership();
     }
 
-    ListenableFuture<StillLeadingStatus> getStillLeading(LeadershipToken leadershipToken) {
+    ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken leadershipToken) {
         return leaderElectionService.isStillLeading(leadershipToken);
     }
 
@@ -85,18 +86,17 @@ public final class LeadershipCoordinator implements Closeable {
         LeadershipToken leadershipToken = leadershipTokenRef.get();
 
         if (leadershipToken == null) {
-            NotCurrentLeaderException notCurrentLeaderException =
-                    notCurrentLeaderException("method invoked on a non-leader");
+            Optional<HostAndPort> maybeLeader = leaderElectionService.getRecentlyPingedLeaderHost();
 
-            if (notCurrentLeaderException.getServiceHint().isPresent()) {
+            if (maybeLeader.isPresent()) {
                 // There's a chance that we can gain leadership while generating this exception.
                 // In this case, we should be able to get a leadership token after all
                 leadershipToken = leadershipTokenRef.get();
-                // If leadershipToken is still null, then someone's the leader, but it isn't us.
             }
 
             if (leadershipToken == null) {
-                throw notCurrentLeaderException;
+                // If leadershipToken is still null, then someone's the leader, but it isn't us.
+                throw notCurrentLeaderException("method invoked on a non-leader");
             }
         }
 
@@ -132,7 +132,8 @@ public final class LeadershipCoordinator implements Closeable {
             executor.execute(this::gainLeadershipWithRetry);
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
-                throw new SafeIllegalStateException("failed to submit task but proxy not closed", e);
+                throw new SafeIllegalStateException(
+                        "Failed to submit task to gain leadership but coordinator not " + "closed", e);
             }
         }
     }
@@ -143,9 +144,9 @@ public final class LeadershipCoordinator implements Closeable {
                 Thread.sleep(GAIN_LEADERSHIP_BACKOFF.toMillis());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.warn("gain leadership backoff interrupted");
+                log.warn("Gain leadership backoff interrupted");
                 if (isClosed) {
-                    log.info("gain leadership with retry terminated as the proxy is closed");
+                    log.info("Gain leadership with retry terminated as the coordinator is closed");
                     return;
                 }
             }
@@ -160,9 +161,9 @@ public final class LeadershipCoordinator implements Closeable {
             return true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.warn("attempt to gain leadership interrupted", e);
+            log.warn("Attempt to gain leadership interrupted", e);
         } catch (Throwable e) {
-            log.error("problem blocking on leadership", e);
+            log.error("Problem blocking on leadership", e);
         }
         return false;
     }
@@ -180,7 +181,7 @@ public final class LeadershipCoordinator implements Closeable {
 
     @Override
     public void close() {
-        log.debug("Closing leadership proxy");
+        log.debug("Closing leadership coordinator.");
         isClosed = true;
         executor.shutdownNow();
     }

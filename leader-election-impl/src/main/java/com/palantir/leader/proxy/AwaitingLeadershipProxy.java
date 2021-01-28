@@ -15,7 +15,6 @@
  */
 package com.palantir.leader.proxy;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.FluentFuture;
@@ -31,6 +30,7 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
@@ -43,6 +43,7 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +72,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private AwaitingLeadershipProxy(
             LeadershipCoordinator leadershipCoordinator, Supplier<T> delegateSupplier, Class<T> interfaceClass) {
+        Preconditions.checkNotNull(delegateSupplier, "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.leadershipCoordinator = leadershipCoordinator;
         this.delegateSupplier = delegateSupplier;
         this.delegateRef = new AtomicReference<>();
@@ -106,7 +108,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         ListenableFuture<StillLeadingStatus> leadingFuture = Tracers.wrapListenableFuture(
                 "validate-leadership",
                 () -> statusRetrier.execute(() -> Tracers.wrapListenableFuture(
-                        "validate-leadership-attempt", () -> leadershipCoordinator.getStillLeading(leadershipToken))));
+                        "validate-leadership-attempt", () -> leadershipCoordinator.isStillLeading(leadershipToken))));
 
         ListenableFuture<T> delegateFuture = Futures.transformAsync(
                 leadingFuture,
@@ -126,7 +128,10 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                         throw new IllegalStateException("already closed proxy for " + interfaceClass.getName());
                     }
 
-                    Preconditions.checkNotNull(maybeValidDelegate, "%s backing is null", interfaceClass.getName());
+                    Preconditions.checkNotNull(
+                            maybeValidDelegate,
+                            "{} backing is null",
+                            SafeArg.of("InterfaceClass", interfaceClass.getName()));
                     return Futures.immediateFuture(maybeValidDelegate);
                 },
                 MoreExecutors.directExecutor());
@@ -164,6 +169,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
      * This code can be accessed by multiple threads. In order to save all of the requests from locking-unlocking
      * `this` while trying to update maybeValidLeadershipTokenRef, the invocations are batched using CoalescingSupplier.
      */
+    @GuardedBy("leadershipTokenCoalescingSupplier")
     private LeadershipToken getLeadershipToken() {
         if (!leadershipCoordinator.isStillCurrentToken(maybeValidLeadershipTokenRef.get())) {
             // we need to clear out existing resources if leadership token has been updated
@@ -185,11 +191,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
      * once for one leadershipToken update.
      * @throws NotCurrentLeaderException if we do not have leadership anymore.
      */
-    private synchronized void tryToUpdateLeadershipToken() {
-        if (leadershipCoordinator.isStillCurrentToken(maybeValidLeadershipTokenRef.get())) {
-            return;
-        }
-
+    @GuardedBy("leadershipTokenCoalescingSupplier")
+    private void tryToUpdateLeadershipToken() {
         // throws NotCurrentLeaderException.
         LeadershipToken leadershipToken = leadershipCoordinator.getLeadershipToken();
 
