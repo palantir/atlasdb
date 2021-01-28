@@ -114,6 +114,12 @@ public class LeadershipStateKeeper<T> {
         }
     }
 
+    @GuardedBy("leadershipTokenCoalescingSupplier")
+    private void claimResourcesOnLeadershipUpdate() {
+        maybeValidLeadershipTokenRef.set(null);
+        clearDelegate();
+    }
+
     private void clearDelegate() {
         Object delegate = delegateRef.getAndSet(null);
         if (delegate instanceof Closeable) {
@@ -123,11 +129,6 @@ public class LeadershipStateKeeper<T> {
                 log.warn("problem closing delegate", ex);
             }
         }
-    }
-
-    private void claimResourcesOnLeadershipUpdate() {
-        maybeValidLeadershipTokenRef.set(null);
-        clearDelegate();
     }
 
     /**
