@@ -17,11 +17,14 @@
 package com.palantir.leader.proxy;
 
 import com.palantir.common.concurrent.CoalescingSupplier;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
@@ -38,6 +41,8 @@ public class LeadershipStateManager<T> {
     private final AtomicReference<T> delegateRef;
     private final AtomicReference<LeadershipToken> maybeValidLeadershipTokenRef;
     private final Supplier<T> delegateSupplier;
+    private final ExecutorService delegateClosingExecutor;
+
     private volatile boolean isClosed;
 
     public LeadershipStateManager(LeadershipCoordinator leadershipCoordinator, Supplier<T> delegateSupplier) {
@@ -46,6 +51,7 @@ public class LeadershipStateManager<T> {
         this.delegateSupplier = delegateSupplier;
         this.delegateRef = new AtomicReference<>();
         this.maybeValidLeadershipTokenRef = new AtomicReference<>();
+        this.delegateClosingExecutor = PTExecutors.newSingleThreadExecutor();
         this.isClosed = false;
     }
 
@@ -58,6 +64,7 @@ public class LeadershipStateManager<T> {
 
     void close() {
         isClosed = true;
+        delegateClosingExecutor.shutdownNow();
         clearDelegate();
     }
 
@@ -78,10 +85,20 @@ public class LeadershipStateManager<T> {
         LeadershipToken leadershipToken = maybeValidLeadershipTokenRef.get();
         if (leadershipToken == null) {
             // reclaim delegate resources if leadership cannot be gained
-            clearDelegate();
+            T delegateToBeClosed = setDelegateToNull();
+            tryToClearDelegateAsync(delegateToBeClosed);
             throw leadershipCoordinator.notCurrentLeaderException("method invoked on a non-leader");
         }
         return leadershipToken;
+    }
+
+    @GuardedBy("leadershipTokenCoalescingSupplier")
+    private void tryToClearDelegateAsync(T delegateToBeClosed) {
+        try {
+            delegateClosingExecutor.submit(() -> closeDelegate(delegateToBeClosed));
+        } catch (RejectedExecutionException e) {
+            log.warn("Tried to clear the delegateRef but were unsuccessful.");
+        }
     }
 
     /**
@@ -121,7 +138,10 @@ public class LeadershipStateManager<T> {
     }
 
     private void clearDelegate() {
-        Object delegate = delegateRef.getAndSet(null);
+        closeDelegate(setDelegateToNull());
+    }
+
+    private void closeDelegate(Object delegate) {
         if (delegate instanceof Closeable) {
             try {
                 ((Closeable) delegate).close();
@@ -129,6 +149,10 @@ public class LeadershipStateManager<T> {
                 log.warn("problem closing delegate", ex);
             }
         }
+    }
+
+    private T setDelegateToNull() {
+        return delegateRef.getAndSet(null);
     }
 
     /**
