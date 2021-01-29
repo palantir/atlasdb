@@ -95,7 +95,7 @@ public class LeadershipStateManager<T> {
     @GuardedBy("leadershipTokenCoalescingSupplier")
     private void tryToClearDelegateAsync(T delegateToBeClosed) {
         try {
-            delegateClosingExecutor.submit(() -> closeDelegate(delegateToBeClosed));
+            delegateClosingExecutor.execute(() -> closeDelegate(delegateToBeClosed));
         } catch (RejectedExecutionException e) {
             log.warn("Tried to clear the delegateRef but were unsuccessful.");
         }
