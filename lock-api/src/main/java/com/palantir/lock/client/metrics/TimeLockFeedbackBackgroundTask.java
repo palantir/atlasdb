@@ -55,7 +55,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private final String serviceName;
     private final String namespace;
     private final Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
-    private volatile Optional<LeaderElectionReportingTimelockService> leaderElectionReporter;
+    private volatile Optional<LeaderElectionReportingTimelockService> leaderElectionReporter = Optional.empty();
 
     private ScheduledFuture<?> task;
 
