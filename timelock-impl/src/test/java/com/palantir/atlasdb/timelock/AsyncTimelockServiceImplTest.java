@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,7 +32,7 @@ public class AsyncTimelockServiceImplTest {
                 new AsyncTimelockServiceImpl(mock(AsyncLockService.class), mockMts, mock(LockLog.class));
         when(mockMts.isInitialized()).thenReturn(false).thenReturn(true);
 
-        assertFalse(service.isInitialized());
-        assertTrue(service.isInitialized());
+        assertThat(service.isInitialized()).isFalse();
+        assertThat(service.isInitialized()).isTrue();
     }
 }

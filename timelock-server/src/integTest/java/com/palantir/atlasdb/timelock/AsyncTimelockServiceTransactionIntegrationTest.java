@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -93,9 +92,9 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
         List<Future<?>> tasks = IntStream.range(0, 5)
                 .mapToObj(i -> executor.submit((Callable<Void>) () ->
                         txnManager.runTaskWithLocksWithRetry(() -> EXCLUSIVE_ADVISORY_LOCK_REQUEST, (txn, locks) -> {
-                            assertTrue(isExecuting.compareAndSet(false, true));
+                            assertThat(isExecuting.compareAndSet(false, true)).isTrue();
                             Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(500L));
-                            assertTrue(isExecuting.compareAndSet(true, false));
+                            assertThat(isExecuting.compareAndSet(true, false)).isTrue();
 
                             txn.put(TABLE, ImmutableMap.of(CELL, DATA));
                             return null;

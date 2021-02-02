@@ -201,7 +201,7 @@ public class PaxosLogHistoryProviderTest {
         when(remote.getPaxosHistory(any(), any())).thenReturn(PaxosHistoryOnRemote.of(remoteHistory));
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> completeHistory = paxosLogHistoryProvider.getHistory();
-        assertThat(completeHistory.size()).isEqualTo(100);
+        assertThat(completeHistory).hasSize(100);
 
         Set<NamespaceAndUseCase> namespaceAndUseCasesWithHistory = completeHistory.stream()
                 .map(historyForNamespaceAndUseCase -> {
@@ -285,7 +285,7 @@ public class PaxosLogHistoryProviderTest {
         List<ConsolidatedLearnerAndAcceptorRecord> localAndRemoteLearnerAndAcceptorRecords =
                 historyForNamespaceAndUseCase.localAndRemoteLearnerAndAcceptorRecords();
 
-        assertThat(localAndRemoteLearnerAndAcceptorRecords.size()).isEqualTo(2); // there is one local and one remote
+        assertThat(localAndRemoteLearnerAndAcceptorRecords).hasSize(2); // there is one local and one remote
 
         assertThat(localAndRemoteLearnerAndAcceptorRecords)
                 .allMatch(r -> r.record().size() == numberOfLogs);

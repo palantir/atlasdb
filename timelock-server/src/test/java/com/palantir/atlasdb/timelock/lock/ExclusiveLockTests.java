@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
 
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -108,13 +107,13 @@ public class ExclusiveLockTests {
     @Test
     public void lockIsAcquiredSynchronouslyIfAvailable() {
         AsyncResult<Void> result = lock.lock(REQUEST_1);
-        assertTrue(result.isComplete());
+        assertThat(result.isComplete()).isTrue();
     }
 
     @Test
     public void waitUntilAvailableCompletesSynchronouslyIfAvailable() {
         AsyncResult<Void> result = lock.waitUntilAvailable(REQUEST_1);
-        assertTrue(result.isComplete());
+        assertThat(result.isComplete()).isTrue();
     }
 
     @Test

@@ -35,7 +35,7 @@ public class FeedbackSinkTest {
     public void feedbackIsRegistered() {
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports =
                 createSinkAndAddTestReport().getTrackedFeedbackReports();
-        assertThat(trackedFeedbackReports.size()).isEqualTo(1);
+        assertThat(trackedFeedbackReports).hasSize(1);
     }
 
     @Test
@@ -43,10 +43,10 @@ public class FeedbackSinkTest {
         TimeLockClientFeedbackSink sink = createSinkAndAddTestReport();
         IntStream.range(1, 100).forEach(index -> registerTestReport(sink));
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = sink.getTrackedFeedbackReports();
-        assertThat(trackedFeedbackReports.size()).isEqualTo(100);
+        assertThat(trackedFeedbackReports).hasSize(100);
 
         FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES);
-        assertThat(sink.getTrackedFeedbackReports().size()).isEqualTo(0);
+        assertThat(sink.getTrackedFeedbackReports()).isEmpty();
     }
 
     @Test
@@ -61,10 +61,10 @@ public class FeedbackSinkTest {
     public void feedbackReportIsEvictedAfterExpiry() {
         TimeLockClientFeedbackSink sink = createSinkAndAddTestReport();
         List<ConjureTimeLockClientFeedback> trackedFeedbackReports = sink.getTrackedFeedbackReports();
-        assertThat(trackedFeedbackReports.size()).isEqualTo(1);
+        assertThat(trackedFeedbackReports).hasSize(1);
 
         FAKE_TICKER.advance(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(), TimeUnit.MINUTES);
-        assertThat(sink.getTrackedFeedbackReports().size()).isEqualTo(0);
+        assertThat(sink.getTrackedFeedbackReports()).isEmpty();
     }
 
     TimeLockClientFeedbackSink createSinkAndAddTestReport() {

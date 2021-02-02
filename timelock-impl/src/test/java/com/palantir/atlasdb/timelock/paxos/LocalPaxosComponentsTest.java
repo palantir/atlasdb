@@ -122,7 +122,7 @@ public class LocalPaxosComponentsTest {
 
         pingableLeader = createPaxosComponents(true, TIMELOCK_VERSION).pingableLeader(CLIENT);
         assertThat(pingableLeader.pingV2().timeLockVersion()).isPresent();
-        assertThat(pingableLeader.pingV2().timeLockVersion().get()).isEqualTo(TIMELOCK_VERSION);
+        assertThat(pingableLeader.pingV2().timeLockVersion()).hasValue(TIMELOCK_VERSION);
     }
 
     // utils

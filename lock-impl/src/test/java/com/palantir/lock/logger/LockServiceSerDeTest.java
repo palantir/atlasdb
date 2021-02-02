@@ -15,7 +15,7 @@
  */
 package com.palantir.lock.logger;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -47,7 +47,7 @@ public class LockServiceSerDeTest {
         ObjectMapper mapper = new ObjectMapper();
         LockResponse deserializedLockResponse =
                 mapper.readValue(mapper.writeValueAsString(response), LockResponse.class);
-        assertEquals(deserializedLockResponse, response);
+        assertThat(response).isEqualTo(deserializedLockResponse);
     }
 
     @Test
@@ -63,7 +63,7 @@ public class LockServiceSerDeTest {
         ObjectMapper mapper = new ObjectMapper();
         LockResponse deserializedLockResponse =
                 mapper.readValue(mapper.writeValueAsString(response), LockResponse.class);
-        assertEquals(lockHolders, deserializedLockResponse.getLockHolders());
+        assertThat(deserializedLockResponse.getLockHolders()).isEqualTo(lockHolders);
     }
 
     @Test
@@ -72,7 +72,7 @@ public class LockServiceSerDeTest {
         ObjectMapper mapper = new ObjectMapper();
         String serializedForm = mapper.writeValueAsString(lockServerOptions);
         LockServerOptions deserialzedLockServerOptions = mapper.readValue(serializedForm, LockServerOptions.class);
-        assertEquals(deserialzedLockServerOptions, lockServerOptions);
+        assertThat(lockServerOptions).isEqualTo(deserialzedLockServerOptions);
     }
 
     @Test
@@ -84,9 +84,9 @@ public class LockServiceSerDeTest {
         ObjectMapper mapper = new ObjectMapper();
         String serializedForm = mapper.writeValueAsString(lockServerOptions);
         LockServerOptions deserialzedlockServerOptions = mapper.readValue(serializedForm, LockServerOptions.class);
-        assertEquals(lockServerOptions, deserialzedlockServerOptions);
-        assertEquals(false, deserialzedlockServerOptions.isStandaloneServer());
-        assertEquals(10L, deserialzedlockServerOptions.slowLogTriggerMillis());
+        assertThat(deserialzedlockServerOptions).isEqualTo(lockServerOptions);
+        assertThat(deserialzedlockServerOptions.isStandaloneServer()).isEqualTo(false);
+        assertThat(deserialzedlockServerOptions.slowLogTriggerMillis()).isEqualTo(10L);
     }
 
     @Test
@@ -104,7 +104,7 @@ public class LockServiceSerDeTest {
         ObjectMapper mapper = new ObjectMapper();
         String serializedForm = mapper.writeValueAsString(heldLocksGrant);
         HeldLocksGrant deserialzedlockServerOptions = mapper.readValue(serializedForm, HeldLocksGrant.class);
-        assertEquals(heldLocksGrant, deserialzedlockServerOptions);
+        assertThat(deserialzedlockServerOptions).isEqualTo(heldLocksGrant);
     }
 
     @Test
@@ -113,7 +113,7 @@ public class LockServiceSerDeTest {
 
         String serializedForm = lockClient.toString();
         LockClient lockClient1 = new LockClient(serializedForm);
-        assertEquals(lockClient, lockClient1);
+        assertThat(lockClient1).isEqualTo(lockClient);
     }
 
     @Test
@@ -122,6 +122,6 @@ public class LockServiceSerDeTest {
 
         String serializedForm = lockClient.toString();
         LockClient lockClient1 = new LockClient(serializedForm);
-        assertEquals(lockClient, lockClient1);
+        assertThat(lockClient1).isEqualTo(lockClient);
     }
 }
