@@ -207,7 +207,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final MetricsManager metricsManager;
     protected final ConflictTracer conflictTracer;
 
-    private final MultiTableSweepQueueWriter sweepQueue;
+    protected final MultiTableSweepQueueWriter sweepQueue;
 
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;

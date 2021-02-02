@@ -91,6 +91,7 @@ public class TransactionManagerModule {
             ConflictDetectionManager conflictManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner) {
+        // todo(gmaretic): should this be using a real sweep queue?
         return new SerializableTransactionManager(
                 metricsManager,
                 kvs,
