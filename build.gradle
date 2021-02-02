@@ -15,7 +15,7 @@ buildscript {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
         classpath 'com.netflix.nebula:gradle-info-plugin:9.2.1'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:17.3.2'
-        classpath 'com.palantir.baseline:gradle-baseline-java:3.63.0'
+        classpath 'com.palantir.baseline:gradle-baseline-java:3.66.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:4.22.0'
         classpath 'com.palantir.javaformat:gradle-palantir-java-format:1.0.1'
         classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.5'
