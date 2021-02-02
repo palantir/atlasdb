@@ -77,7 +77,7 @@ public class AtlasDbTestCase {
         timestampService = new InMemoryTimestampService();
         keyValueService = trackingKeyValueService(getBaseKeyValueService());
         TransactionTables.createTables(keyValueService);
-        transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
+        transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 

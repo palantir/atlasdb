@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
@@ -134,6 +135,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
@@ -150,6 +153,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("checkstyle:all")
 @RunWith(Parameterized.class)
@@ -290,6 +294,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             TableReference.createFromFullyQualifiedName("default.table5");
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+    private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
 
     @Override
     @Before
@@ -1436,6 +1441,192 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         transaction.commit();
         timelockService.unlock(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void getOrphanedSweepSentinelDoesNotThrow() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getSweepSentinelUnderCommittedWriteThrowsAndCanBeRetried() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+
+        Transaction t2 = txManager.createNewTransaction();
+        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("blablabla")));
+        t2.commit();
+
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+
+        Transaction retryTxn = txManager.createNewTransaction();
+        assertThatCode(() -> retryTxn.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getSweepSentinelUnderLateUncommittedWriteDoesNotThrow() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+        putUncommittedAtFreshTimestamp(TEST_CELL);
+
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getSweepSentinelUnderEarlyUncommittedWriteDoesNotThrow() {
+        writeSentinelToTestTable(TEST_CELL);
+        putUncommittedAtFreshTimestamp(TEST_CELL);
+        Transaction t1 = txManager.createNewTransaction();
+
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getSweepSentinelUnderMultipleUncommittedWritesDoesNotThrow() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+
+        for (int transaction = 1; transaction <= 10; transaction++) {
+            putUncommittedAtFreshTimestamp(TEST_CELL);
+        }
+
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getSweepSentinelUnderHiddenCommittedWriteThrows() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+
+        Transaction t2 = txManager.createNewTransaction();
+        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("blablabla")));
+        t2.commit();
+
+        for (int transaction = 1; transaction <= 10; transaction++) {
+            putUncommittedAtFreshTimestamp(TEST_CELL);
+        }
+
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+    }
+
+    @Test
+    public void getOrphanedSentinelAndSentinelUnderUncommittedWriteDoesNotThrow() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+        writeSentinelToTestTable(TEST_CELL_2);
+        putUncommittedAtFreshTimestamp(TEST_CELL_2);
+
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getOrphanedSentinelAndSentinelUnderCommittedWriteThrows() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+        writeSentinelToTestTable(TEST_CELL_2);
+        Transaction t2 = txManager.createNewTransaction();
+        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL_2, PtBytes.toBytes("covering")));
+        t2.commit();
+
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+    }
+
+    @Test
+    public void getSentinelUnderCommittedAndSentinelUnderUncommittedWriteThrows() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+        writeSentinelToTestTable(TEST_CELL_2);
+        putUncommittedAtFreshTimestamp(TEST_CELL);
+        Transaction t2 = txManager.createNewTransaction();
+        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL_2, PtBytes.toBytes("covering")));
+        t2.commit();
+
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+    }
+
+    @SuppressWarnings("unchecked") // ArgumentCaptor
+    @Test
+    public void getSentinelValuesStressTest() {
+        Transaction t1 = txManager.createNewTransaction();
+
+        List<Cell> cellsUnderUncommittedWrites = IntStream.rangeClosed(1, 100)
+                .boxed()
+                .map(num -> Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes(num)))
+                .collect(Collectors.toList());
+        List<Cell> cellsUnderHiddenCommittedWrites = IntStream.rangeClosed(1, 100)
+                .boxed()
+                .map(num -> Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes(num)))
+                .collect(Collectors.toList());
+
+        for (int index = 0; index < cellsUnderUncommittedWrites.size(); index++) {
+            Cell cell = cellsUnderUncommittedWrites.get(index);
+            writeSentinelToTestTable(cell);
+            for (int uncommittedValue = 0; uncommittedValue <= index; uncommittedValue++) {
+                putUncommittedAtFreshTimestamp(cell);
+            }
+        }
+
+        for (int index = 0; index < cellsUnderHiddenCommittedWrites.size(); index++) {
+            Cell cell = cellsUnderHiddenCommittedWrites.get(index);
+            writeSentinelToTestTable(cell);
+            Transaction txn = txManager.createNewTransaction();
+            txn.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(cell, PtBytes.toBytes("i'm in a transaction")));
+            txn.commit();
+            for (int uncommittedValue = 0; uncommittedValue < index; uncommittedValue++) {
+                putUncommittedAtFreshTimestamp(cell);
+            }
+        }
+
+        ImmutableSet<Cell> cells = ImmutableSet.<Cell>builder()
+                .addAll(cellsUnderUncommittedWrites)
+                .addAll(cellsUnderHiddenCommittedWrites)
+                .build();
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, cells))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+
+        ArgumentCaptor<Iterable<Long>> captor = ArgumentCaptor.forClass(Iterable.class);
+        verify(transactionService, times(100)).get(captor.capture());
+
+        List<Iterable<Long>> stressTestRequests = captor.getAllValues();
+        assertThat(stressTestRequests).hasSize(100);
+        for (int index = 1; index < stressTestRequests.size(); index++) {
+            List<Long> previousTimestamps = StreamSupport.stream(
+                            stressTestRequests.get(index - 1).spliterator(), false)
+                    .collect(Collectors.toList());
+            assertThat(stressTestRequests.get(index)).hasSizeLessThan(previousTimestamps.size());
+        }
+
+        Transaction retryTxn = txManager.createNewTransaction();
+        assertThatCode(() -> retryTxn.get(TABLE_SWEPT_CONSERVATIVE, cells)).doesNotThrowAnyException();
+    }
+
+    private void putUncommittedAtFreshTimestamp(Cell cell) {
+        keyValueService.put(
+                TABLE_SWEPT_CONSERVATIVE,
+                ImmutableMap.of(cell, PtBytes.toBytes("i am uncommitted")),
+                txManager.createNewTransaction().getTimestamp());
+    }
+
+    private void writeSentinelToTestTable(Cell cell) {
+        keyValueService.put(
+                TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(cell, new byte[0]), Value.INVALID_VALUE_TIMESTAMP);
     }
 
     private void setTransactionConfig(TransactionConfig config) {
