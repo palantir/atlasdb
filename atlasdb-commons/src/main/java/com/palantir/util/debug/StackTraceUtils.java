@@ -23,11 +23,11 @@ import java.lang.management.MemoryUsage;
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -432,7 +432,7 @@ public final class StackTraceUtils {
         }
 
         private String createHeader(String serverName) {
-            header = "Trace of " + serverName + " taken at " + new Date().toString();
+            header = "Trace of " + serverName + " taken at " + Instant.now().toString();
             StringBuilder dashes = new StringBuilder();
             for (int i = 0; i < header.length(); i++) {
                 dashes.append("-");
