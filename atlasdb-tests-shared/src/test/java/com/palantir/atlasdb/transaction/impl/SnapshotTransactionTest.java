@@ -31,48 +31,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.SortedMap;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.tuple.Pair;
-import org.assertj.core.api.Assertions;
-import org.assertj.core.api.HamcrestCondition;
-import org.hamcrest.Matchers;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.Sequence;
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.jmock.lib.concurrent.Synchroniser;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -153,6 +111,49 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampService;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.SortedMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.Assertions;
+import org.assertj.core.api.HamcrestCondition;
+import org.hamcrest.Matchers;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
+import org.jmock.Sequence;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.jmock.lib.concurrent.Synchroniser;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("checkstyle:all")
 @RunWith(Parameterized.class)
@@ -1557,6 +1558,61 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
                 .isInstanceOf(TransactionFailedRetriableException.class)
                 .hasMessageContaining("Tried to read a value that has been deleted.");
+    }
+
+    @SuppressWarnings("unchecked") // ArgumentCaptor
+    @Test
+    public void getSentinelValuesStressTest() {
+        Transaction t1 = txManager.createNewTransaction();
+
+        List<Cell> cellsUnderUncommittedWrites = IntStream.rangeClosed(1, 100)
+                .boxed()
+                .map(num -> Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes(num)))
+                .collect(Collectors.toList());
+        List<Cell> cellsUnderHiddenCommittedWrites = IntStream.rangeClosed(1, 100)
+                .boxed()
+                .map(num -> Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes(num)))
+                .collect(Collectors.toList());
+
+        for (int index = 0; index < cellsUnderUncommittedWrites.size(); index++) {
+            Cell cell = cellsUnderUncommittedWrites.get(index);
+            writeSentinelToTestTable(cell);
+            for (int uncommittedValue = 0; uncommittedValue <= index; uncommittedValue++) {
+                putUncommittedAtFreshTimestamp(cell);
+            }
+        }
+
+        for (int index = 0; index < cellsUnderHiddenCommittedWrites.size(); index++) {
+            Cell cell = cellsUnderHiddenCommittedWrites.get(index);
+            writeSentinelToTestTable(cell);
+            Transaction txn = txManager.createNewTransaction();
+            txn.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(cell, PtBytes.toBytes("i'm in a transaction")));
+            txn.commit();
+            for (int uncommittedValue = 0; uncommittedValue < index; uncommittedValue++) {
+                putUncommittedAtFreshTimestamp(cell);
+            }
+        }
+
+        assertThatThrownBy(() -> t1.get(
+                        TABLE_SWEPT_CONSERVATIVE,
+                        ImmutableSet.<Cell>builder()
+                                .addAll(cellsUnderUncommittedWrites)
+                                .addAll(cellsUnderHiddenCommittedWrites)
+                                .build()))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+
+        ArgumentCaptor<Iterable<Long>> captor = ArgumentCaptor.forClass(Iterable.class);
+        verify(transactionService, times(100)).get(captor.capture());
+
+        List<Iterable<Long>> stressTestRequests = captor.getAllValues();
+        assertThat(stressTestRequests).hasSize(100);
+        for (int index = 1; index < stressTestRequests.size(); index++) {
+            List<Long> previousTimestamps = StreamSupport.stream(
+                            stressTestRequests.get(index - 1).spliterator(), false)
+                    .collect(Collectors.toList());
+            assertThat(stressTestRequests.get(index)).hasSizeLessThan(previousTimestamps.size());
+        }
     }
 
     private void putUncommittedAtFreshTimestamp(Cell cell) {
