@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
@@ -203,6 +204,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     public void close() {
         conservativeScheduler.close();
         thoroughScheduler.close();
+    }
+
+    @Override
+    public Optional<SweeperStrategy> getSweepStrategy(TableReference tableReference) {
+        return queue.getSweepStrategy(tableReference);
     }
 
     @Override

@@ -728,7 +728,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 timestampValidationReadCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP,
+                sweepQueue,
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,

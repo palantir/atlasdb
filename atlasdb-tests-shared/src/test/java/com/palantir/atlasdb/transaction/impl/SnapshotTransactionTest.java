@@ -1446,7 +1446,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void getOrphanedSweepSentinelDoesNotThrow() {
         Transaction t1 = txManager.createNewTransaction();
-        writeSentinelToTestTable(TEST_CELL);
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
         assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
                 .doesNotThrowAnyException();
     }
@@ -1454,11 +1454,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void getSweepSentinelUnderCommittedWriteThrowsAndCanBeRetried() {
         Transaction t1 = txManager.createNewTransaction();
-        writeSentinelToTestTable(TEST_CELL);
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
 
-        Transaction t2 = txManager.createNewTransaction();
-        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("blablabla")));
-        t2.commit();
+        commitWrite(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
 
         assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
                 .isInstanceOf(TransactionFailedRetriableException.class)
@@ -1472,8 +1470,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void getSweepSentinelUnderLateUncommittedWriteDoesNotThrow() {
         Transaction t1 = txManager.createNewTransaction();
-        writeSentinelToTestTable(TEST_CELL);
-        putUncommittedAtFreshTimestamp(TEST_CELL);
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
 
         assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
                 .doesNotThrowAnyException();
@@ -1481,8 +1479,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void getSweepSentinelUnderEarlyUncommittedWriteDoesNotThrow() {
-        writeSentinelToTestTable(TEST_CELL);
-        putUncommittedAtFreshTimestamp(TEST_CELL);
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
         Transaction t1 = txManager.createNewTransaction();
 
         assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
@@ -1492,10 +1490,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void getSweepSentinelUnderMultipleUncommittedWritesDoesNotThrow() {
         Transaction t1 = txManager.createNewTransaction();
-        writeSentinelToTestTable(TEST_CELL);
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
 
         for (int transaction = 1; transaction <= 10; transaction++) {
-            putUncommittedAtFreshTimestamp(TEST_CELL);
+            putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
         }
 
         assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
@@ -1505,14 +1503,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void getSweepSentinelUnderHiddenCommittedWriteThrows() {
         Transaction t1 = txManager.createNewTransaction();
-        writeSentinelToTestTable(TEST_CELL);
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
 
-        Transaction t2 = txManager.createNewTransaction();
-        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("blablabla")));
-        t2.commit();
+        commitWrite(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
 
         for (int transaction = 1; transaction <= 10; transaction++) {
-            putUncommittedAtFreshTimestamp(TEST_CELL);
+            putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
         }
 
         assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
@@ -1523,9 +1519,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void getOrphanedSentinelAndSentinelUnderUncommittedWriteDoesNotThrow() {
         Transaction t1 = txManager.createNewTransaction();
-        writeSentinelToTestTable(TEST_CELL);
-        writeSentinelToTestTable(TEST_CELL_2);
-        putUncommittedAtFreshTimestamp(TEST_CELL_2);
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2);
 
         assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
                 .doesNotThrowAnyException();
@@ -1534,11 +1530,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void getOrphanedSentinelAndSentinelUnderCommittedWriteThrows() {
         Transaction t1 = txManager.createNewTransaction();
-        writeSentinelToTestTable(TEST_CELL);
-        writeSentinelToTestTable(TEST_CELL_2);
-        Transaction t2 = txManager.createNewTransaction();
-        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL_2, PtBytes.toBytes("covering")));
-        t2.commit();
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2);
+        commitWrite(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2);
 
         assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
                 .isInstanceOf(TransactionFailedRetriableException.class)
@@ -1548,12 +1542,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void getSentinelUnderCommittedAndSentinelUnderUncommittedWriteThrows() {
         Transaction t1 = txManager.createNewTransaction();
-        writeSentinelToTestTable(TEST_CELL);
-        writeSentinelToTestTable(TEST_CELL_2);
-        putUncommittedAtFreshTimestamp(TEST_CELL);
-        Transaction t2 = txManager.createNewTransaction();
-        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL_2, PtBytes.toBytes("covering")));
-        t2.commit();
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+        commitWrite(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2);
 
         assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
                 .isInstanceOf(TransactionFailedRetriableException.class)
@@ -1576,20 +1568,18 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         for (int index = 0; index < cellsUnderUncommittedWrites.size(); index++) {
             Cell cell = cellsUnderUncommittedWrites.get(index);
-            writeSentinelToTestTable(cell);
+            writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, cell);
             for (int uncommittedValue = 0; uncommittedValue <= index; uncommittedValue++) {
-                putUncommittedAtFreshTimestamp(cell);
+                putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, cell);
             }
         }
 
         for (int index = 0; index < cellsUnderHiddenCommittedWrites.size(); index++) {
             Cell cell = cellsUnderHiddenCommittedWrites.get(index);
-            writeSentinelToTestTable(cell);
-            Transaction txn = txManager.createNewTransaction();
-            txn.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(cell, PtBytes.toBytes("i'm in a transaction")));
-            txn.commit();
+            writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, cell);
+            commitWrite(TABLE_SWEPT_CONSERVATIVE, cell);
             for (int uncommittedValue = 0; uncommittedValue < index; uncommittedValue++) {
-                putUncommittedAtFreshTimestamp(cell);
+                putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, cell);
             }
         }
 
@@ -1617,16 +1607,98 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatCode(() -> retryTxn.get(TABLE_SWEPT_CONSERVATIVE, cells)).doesNotThrowAnyException();
     }
 
-    private void putUncommittedAtFreshTimestamp(Cell cell) {
+    @Test
+    public void orphanedSentinelsGetDeletedAfterDetectionInThoroughlySweptTable() {
+        writeSentinelToTestTable(TABLE_SWEPT_THOROUGH, TEST_CELL);
+
+        assertThat(keyValueService.get(TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L)))
+                .isNotEmpty();
+
+        Transaction t1 = txManager.createNewTransaction();
+        assertThatCode(() -> t1.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+
+        assertThat(keyValueService.get(TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L)))
+                .isEmpty();
+    }
+
+    @Test
+    public void orphanedSentinelsCoveredWithUncommitedGetDeletedAfterDetectionInThoroughlySweptTable() {
+        writeSentinelToTestTable(TABLE_SWEPT_THOROUGH, TEST_CELL);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_THOROUGH, TEST_CELL);
+
+        Transaction t1 = txManager.createNewTransaction();
+        assertThatCode(() -> t1.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+
+        assertThat(keyValueService.get(TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L)))
+                .isEmpty();
+    }
+
+    @Test
+    public void nonOrphanedSentinelsDoNotGetDeletedAfterDetectionInThoroughlySweptTable() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TABLE_SWEPT_THOROUGH, TEST_CELL);
+
+        commitWrite(TABLE_SWEPT_THOROUGH, TEST_CELL);
+
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+
+        assertThat(keyValueService.get(TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L)))
+                .isNotEmpty();
+    }
+
+    @Test
+    public void testSentinelsDeletionForDifferentCasesInThoroughTable() {
+        Transaction t1 = txManager.createNewTransaction();
+
+        Cell testCell3 = Cell.create(PtBytes.toBytes("super"), PtBytes.toBytes("ez"));
+
+        writeSentinelToTestTable(TABLE_SWEPT_THOROUGH, TEST_CELL);
+        writeSentinelToTestTable(TABLE_SWEPT_THOROUGH, TEST_CELL_2);
+        writeSentinelToTestTable(TABLE_SWEPT_THOROUGH, testCell3);
+
+        commitWrite(TABLE_SWEPT_THOROUGH, TEST_CELL);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_THOROUGH, TEST_CELL_2);
+
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, testCell3)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+
+        assertThat(keyValueService.get(
+                        TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L, TEST_CELL_2, 0L, testCell3, 0L)))
+                .containsExactlyEntriesOf(
+                        ImmutableMap.of(TEST_CELL, Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP)));
+    }
+
+    @Test
+    public void orphanedSentinelsDoNotGetDeletedAfterDetectionInConservativelySweptTable() {
+        writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+        Transaction t1 = txManager.createNewTransaction();
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+
+        assertThat(keyValueService.get(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL, 0L)))
+                .isNotEmpty();
+    }
+
+    private void putUncommittedAtFreshTimestamp(TableReference tableRef, Cell cell) {
         keyValueService.put(
-                TABLE_SWEPT_CONSERVATIVE,
+                tableRef,
                 ImmutableMap.of(cell, PtBytes.toBytes("i am uncommitted")),
                 txManager.createNewTransaction().getTimestamp());
     }
 
-    private void writeSentinelToTestTable(Cell cell) {
-        keyValueService.put(
-                TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(cell, new byte[0]), Value.INVALID_VALUE_TIMESTAMP);
+    private void writeSentinelToTestTable(TableReference tableRef, Cell cell) {
+        keyValueService.put(tableRef, ImmutableMap.of(cell, new byte[0]), Value.INVALID_VALUE_TIMESTAMP);
+    }
+
+    private void commitWrite(TableReference tableSweptThorough, Cell testCell) {
+        Transaction txn = txManager.createNewTransaction();
+        txn.put(tableSweptThorough, ImmutableMap.of(testCell, PtBytes.toBytes("something")));
+        txn.commit();
     }
 
     private void setTransactionConfig(TransactionConfig config) {

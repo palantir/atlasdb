@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.impl;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
@@ -39,6 +38,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
@@ -72,6 +72,7 @@ import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -169,17 +170,14 @@ import org.slf4j.LoggerFactory;
 /**
  * This implements snapshot isolation for transactions.
  * <p>
- * This object is thread safe and you may do reads and writes from multiple threads.
- * You may not continue reading or writing after {@link #commit()} or {@link #abort()}
- * is called.
+ * This object is thread safe and you may do reads and writes from multiple threads. You may not continue reading or
+ * writing after {@link #commit()} or {@link #abort()} is called.
  * <p>
- * Things to keep in mind when dealing with snapshot transactions:
- * 1. Transactions that do writes should be short lived.
- * 1a. Read only transactions can be long lived (within reason).
- * 2. Do not write too much data in one transaction (this relates back to #1)
- * 3. A row should be able to fit in memory without any trouble.  This includes
- *    all columns of the row.  If you are thinking about making your row bigger than like 10MB, you
- *    should think about breaking these up into different rows and using range scans.
+ * Things to keep in mind when dealing with snapshot transactions: 1. Transactions that do writes should be short lived.
+ * 1a. Read only transactions can be long lived (within reason). 2. Do not write too much data in one transaction (this
+ * relates back to #1) 3. A row should be able to fit in memory without any trouble.  This includes all columns of the
+ * row.  If you are thinking about making your row bigger than like 10MB, you should think about breaking these up into
+ * different rows and using range scans.
  */
 public class SnapshotTransaction extends AbstractTransaction implements ConstraintCheckingTransaction {
     private static final Logger log = LoggerFactory.getLogger(SnapshotTransaction.class);
@@ -210,7 +208,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final MetricsManager metricsManager;
     protected final ConflictTracer conflictTracer;
 
-    private final MultiTableSweepQueueWriter sweepQueue;
+    protected final MultiTableSweepQueueWriter sweepQueue;
 
     protected final long immutableTimestamp;
     protected final Optional<LockToken> immutableTimestampLock;
@@ -247,8 +245,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected volatile boolean hasReads;
 
     /**
-     * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
-     *                           grab a read lock for it because we know that no writers exist.
+     * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
+     *                           lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
@@ -543,10 +541,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * Partitions a {@link RowColumnRangeIterator} into contiguous blocks that share the same row name.
-     * {@link KeyValueService#getRowsColumnRange(TableReference, Iterable, ColumnRangeSelection, int, long)} guarantees
-     * that all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one
-     * entry per non-empty row.
+     * Partitions a {@link RowColumnRangeIterator} into contiguous blocks that share the same row name. {@link
+     * KeyValueService#getRowsColumnRange(TableReference, Iterable, ColumnRangeSelection, int, long)} guarantees that
+     * all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one entry
+     * per non-empty row.
      */
     private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(
             Iterator<Map.Entry<Cell, Value>> rawResults) {
@@ -728,9 +726,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * This will load the given keys from the underlying key value service and apply postFiltering
-     * so we have snapshot isolation.  If the value in the key value service is the empty array
-     * this will be included here and needs to be filtered out.
+     * This will load the given keys from the underlying key value service and apply postFiltering so we have snapshot
+     * isolation.  If the value in the key value service is the empty array this will be included here and needs to be
+     * filtered out.
      */
     private ListenableFuture<Map<Cell, byte[]>> getFromKeyValueService(
             TableReference tableRef,
@@ -1254,12 +1252,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * A sentinel becomes orphaned if the table has been truncated between the time where the write occurred
-     * and where it was truncated. In this case, there is a chance that we end up with a sentinel with no
-     * valid AtlasDB cell covering it. In this case, we ignore it.
+     * A sentinel becomes orphaned if the table has been truncated between the time where the write occurred and where
+     * it was truncated. In this case, there is a chance that we end up with a sentinel with no valid AtlasDB cell
+     * covering it. In this case, we ignore it.
      */
-    @VisibleForTesting
-    Set<Cell> findOrphanedSweepSentinels(TableReference table, Map<Cell, Value> rawResults) {
+    private Set<Cell> findOrphanedSweepSentinels(TableReference table, Map<Cell, Value> rawResults) {
         Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::isSweepSentinel)
                 .keySet();
         if (sweepSentinels.isEmpty()) {
@@ -1302,7 +1299,24 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             timestampCandidates = keyValueService.getLatestTimestamps(table, nextTimestampCandidates);
         }
 
+        deleteOrphanedSentinelsAsync(table, actualOrphanedSentinels);
+
         return actualOrphanedSentinels;
+    }
+
+    private void deleteOrphanedSentinelsAsync(TableReference table, Set<Cell> actualOrphanedSentinels) {
+        sweepQueue.getSweepStrategy(table).ifPresent(strategy -> {
+            if (strategy == SweeperStrategy.THOROUGH) {
+                SetMultimap<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
+                        .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
+                        .collectToSetMultimap();
+                try {
+                    deleteExecutor.execute(() -> keyValueService.delete(table, sentinels));
+                } catch (Throwable th) {
+                    // best effort
+                }
+            }
+        });
     }
 
     private static boolean isSweepSentinel(Value value) {
@@ -1310,8 +1324,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * This will return all the key-value pairs that still need to be postFiltered.  It will output properly
-     * post filtered keys to the {@code resultsCollector} output param.
+     * This will return all the key-value pairs that still need to be postFiltered.  It will output properly post
+     * filtered keys to the {@code resultsCollector} output param.
      */
     private <T> ListenableFuture<Map<Cell, Value>> getWithPostFilteringInternal(
             TableReference tableRef,
@@ -1767,6 +1781,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     /**
      * Refreshes external and commit locks.
+     *
      * @return set of locks that could not be refreshed
      */
     private Set<LockToken> refreshCommitAndImmutableTsLocks(@Nullable LockToken commitLocksToken) {
@@ -1830,9 +1845,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * This will throw if we have a value changed conflict.  This means that either we changed the
-     * value and anyone did a write after our start timestamp, or we just touched the value (put the
-     * same value as before) and a changed value was written after our start time.
+     * This will throw if we have a value changed conflict.  This means that either we changed the value and anyone did
+     * a write after our start timestamp, or we just touched the value (put the same value as before) and a changed
+     * value was written after our start time.
      */
     private void throwIfValueChangedConflict(
             TableReference table,
@@ -1900,8 +1915,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * This will return the set of keys that need to be retried.  It will output any conflicts
-     * it finds into the output params.
+     * This will return the set of keys that need to be retried.  It will output any conflicts it finds into the output
+     * params.
      */
     protected Map<Cell, Long> detectWriteAlreadyCommittedInternal(
             TableReference tableRef,
@@ -1954,8 +1969,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * This will attempt to rollback the passed transactions.  If all are rolled back correctly this
-     * method will also delete the values for the transactions that have been rolled back.
+     * This will attempt to rollback the passed transactions.  If all are rolled back correctly this method will also
+     * delete the values for the transactions that have been rolled back.
+     *
      * @return false if we cannot roll back the failed transactions because someone beat us to it
      */
     private boolean rollbackFailedTransactions(
@@ -1988,8 +2004,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * This method is made static so it loses reference to the SnapshotTransaction reference
-     * when passed to deleteExecutor::execute in a lambda reducing its retained memory size.
+     * This method is made static so it loses reference to the SnapshotTransaction reference when passed to
+     * deleteExecutor::execute in a lambda reducing its retained memory size.
      */
     private static void deleteCells(
             KeyValueService keyValueService, TableReference tableRef, Map<Cell, Long> keysToDelete) {
@@ -2018,6 +2034,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     /**
      * Rollback a someone else's transaction.
+     *
      * @return true if the other transaction was rolled back
      */
     private boolean rollbackOtherTransaction(long startTs, TransactionService transactionService) {
@@ -2093,9 +2110,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * We will block here until the passed transactions have released their lock.  This means that
-     * the committing transaction is either complete or it has failed and we are allowed to roll
-     * it back.
+     * We will block here until the passed transactions have released their lock.  This means that the committing
+     * transaction is either complete or it has failed and we are allowed to roll it back.
      */
     private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
         Set<LockDescriptor> lockDescriptors = new HashSet<>();
@@ -2137,6 +2153,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     /**
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     *
      * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
@@ -2166,9 +2183,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * Returns a map from start timestamp to commit timestamp.  If a start timestamp wasn't
-     * committed, then it will be missing from the map.  This method will block until the
-     * transactions for these start timestamps are complete.
+     * Returns a map from start timestamp to commit timestamp.  If a start timestamp wasn't committed, then it will be
+     * missing from the map.  This method will block until the transactions for these start timestamps are complete.
      */
     protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
             @Nullable TableReference tableRef,
@@ -2272,7 +2288,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /**
      * This will attempt to put the commitTimestamp into the DB.
      *
-     * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
+     * @throws TransactionLockTimeoutException  If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
     private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)
@@ -2347,10 +2363,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         constraintsByTableName.put(tableRef, table);
     }
 
-    /** The similarly-named-and-intentioned useTable method is only called on writes.
-     *  This one is more comprehensive and covers read paths as well
-     * (necessary because we wish to get the sweep strategies of tables in read-only transactions)
-     *
+    /**
+     * The similarly-named-and-intentioned useTable method is only called on writes. This one is more comprehensive and
+     * covers read paths as well (necessary because we wish to get the sweep strategies of tables in read-only
+     * transactions)
+     * <p>
      * A table can be involved in a transaction, even if there were no reads done on it, see #markTableInvolved.
      */
     private void markTableAsInvolvedInThisTransaction(TableReference tableRef) {
