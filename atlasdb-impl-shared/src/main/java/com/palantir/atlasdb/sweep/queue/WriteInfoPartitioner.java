@@ -88,7 +88,11 @@ public class WriteInfoPartitioner {
 
     @VisibleForTesting
     Optional<SweeperStrategy> getStrategy(WriteInfo writeInfo) {
-        return cache.getUnchecked(writeInfo.tableRef());
+        return getStrategyForTable(writeInfo.tableRef());
+    }
+
+    Optional<SweeperStrategy> getStrategyForTable(TableReference tableRef) {
+        return cache.getUnchecked(tableRef);
     }
 
     private Optional<SweeperStrategy> getStrategyFromKvs(TableReference tableRef) {
