@@ -1609,8 +1609,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void orphanedSentinelsGetDeletedAfterDetectionInThoroughlySweptTable() {
-        keyValueService.put(
-                TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, new byte[0]), Value.INVALID_VALUE_TIMESTAMP);
+        writeSentinelToTestTable(TABLE_SWEPT_THOROUGH, TEST_CELL);
 
         assertThat(keyValueService.get(TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L)))
                 .isNotEmpty();
@@ -1664,11 +1663,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         commitWrite(TABLE_SWEPT_THOROUGH, TEST_CELL);
         putUncommittedAtFreshTimestamp(TABLE_SWEPT_THOROUGH, TEST_CELL_2);
 
-        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)))
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, testCell3)))
                 .isInstanceOf(TransactionFailedRetriableException.class)
                 .hasMessageContaining("Tried to read a value that has been deleted.");
 
-        assertThat(keyValueService.get(TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L)))
+        assertThat(keyValueService.get(
+                TABLE_SWEPT_THOROUGH,
+                ImmutableMap.of(TEST_CELL, 0L, TEST_CELL_2, 0L, testCell3, 0L)))
                 .containsExactlyEntriesOf(
                         ImmutableMap.of(TEST_CELL, Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP)));
     }
@@ -1696,9 +1697,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private void commitWrite(TableReference tableSweptThorough, Cell testCell) {
-        Transaction t2 = txManager.createNewTransaction();
-        t2.put(tableSweptThorough, ImmutableMap.of(testCell, PtBytes.toBytes("something")));
-        t2.commit();
+        Transaction txn = txManager.createNewTransaction();
+        txn.put(tableSweptThorough, ImmutableMap.of(testCell, PtBytes.toBytes("something")));
+        txn.commit();
     }
 
     private void setTransactionConfig(TransactionConfig config) {
