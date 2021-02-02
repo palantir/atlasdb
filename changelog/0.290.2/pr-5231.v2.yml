@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Orphaned sentinels are now correctly skipped over. Previously, an orphaned sentinel covered by a value written by a (possibly uncommitted) transaction would not be considered orphaned when read until Sweep or another read transaction cleaned up the data written by said uncommitted transaction.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5231
