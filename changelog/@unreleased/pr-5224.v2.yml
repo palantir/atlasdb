@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Avoid creating thousands of `serializabletransactionmanager-get-ranges` threads by using the efficient PTExecutors ExecutorService factory methods.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5224
