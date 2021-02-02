@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
@@ -29,6 +30,48 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.SortedMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.Assertions;
+import org.assertj.core.api.HamcrestCondition;
+import org.hamcrest.Matchers;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
+import org.jmock.Sequence;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.jmock.lib.concurrent.Synchroniser;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Suppliers;
@@ -110,46 +153,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampService;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.SortedMap;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.tuple.Pair;
-import org.assertj.core.api.Assertions;
-import org.assertj.core.api.HamcrestCondition;
-import org.hamcrest.Matchers;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.Sequence;
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.jmock.lib.concurrent.Synchroniser;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 @SuppressWarnings("checkstyle:all")
 @RunWith(Parameterized.class)
@@ -290,6 +293,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             TableReference.createFromFullyQualifiedName("default.table5");
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+    private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
 
     @Override
     @Before
@@ -1436,6 +1440,135 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         transaction.commit();
         timelockService.unlock(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void getOrphanedSweepSentinelDoesNotThrow() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getSweepSentinelUnderCommittedWriteThrowsAndCanBeRetried() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+
+        Transaction t2 = txManager.createNewTransaction();
+        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("blablabla")));
+        t2.commit();
+
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+
+        Transaction retryTxn = txManager.createNewTransaction();
+        assertThatCode(() -> retryTxn.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getSweepSentinelUnderEarlyUncommittedWriteDoesNotThrow() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+        putUncommittedAtFreshTimestamp(TEST_CELL);
+
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getSweepSentinelUnderLateUncommittedWriteDoesNotThrow() {
+        writeSentinelToTestTable(TEST_CELL);
+        putUncommittedAtFreshTimestamp(TEST_CELL);
+        Transaction t1 = txManager.createNewTransaction();
+
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getSweepSentinelUnderMultipleUncommittedWritesDoesNotThrow() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+
+        for (int transaction = 1; transaction <= 10; transaction++) {
+            putUncommittedAtFreshTimestamp(TEST_CELL);
+        }
+
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getSweepSentinelUnderHiddenCommittedWriteThrows() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+
+        Transaction t2 = txManager.createNewTransaction();
+        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("blablabla")));
+        t2.commit();
+
+        for (int transaction = 1; transaction <= 10; transaction++) {
+            putUncommittedAtFreshTimestamp(TEST_CELL);
+        }
+
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+    }
+
+    @Test
+    public void getOrphanedSentinelAndSentinelUnderUncommittedWriteDoesNotThrow() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+        writeSentinelToTestTable(TEST_CELL_2);
+        putUncommittedAtFreshTimestamp(TEST_CELL_2);
+
+        assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getOrphanedSentinelAndSentinelUnderCommittedWriteThrows() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+        writeSentinelToTestTable(TEST_CELL_2);
+        Transaction t2 = txManager.createNewTransaction();
+        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL_2, PtBytes.toBytes("covering")));
+        t2.commit();
+
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+    }
+
+    @Test
+    public void getSentinelUnderCommittedAndSentinelUnderUncommittedWriteThrows() {
+        Transaction t1 = txManager.createNewTransaction();
+        writeSentinelToTestTable(TEST_CELL);
+        writeSentinelToTestTable(TEST_CELL_2);
+        putUncommittedAtFreshTimestamp(TEST_CELL);
+        Transaction t2 = txManager.createNewTransaction();
+        t2.put(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL_2, PtBytes.toBytes("covering")));
+        t2.commit();
+
+        assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessageContaining("Tried to read a value that has been deleted.");
+    }
+
+    private void putUncommittedAtFreshTimestamp(Cell cell) {
+        keyValueService.put(
+                TABLE_SWEPT_CONSERVATIVE,
+                ImmutableMap.of(cell, PtBytes.toBytes("i am uncommitted")),
+                txManager.createNewTransaction().getTimestamp());
+    }
+
+    private void writeSentinelToTestTable(Cell cell) {
+        keyValueService.put(
+                TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(cell, new byte[0]), Value.INVALID_VALUE_TIMESTAMP);
     }
 
     private void setTransactionConfig(TransactionConfig config) {

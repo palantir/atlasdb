@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
@@ -140,6 +141,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -155,6 +157,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
@@ -1255,16 +1258,55 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * and where it was truncated. In this case, there is a chance that we end up with a sentinel with no
      * valid AtlasDB cell covering it. In this case, we ignore it.
      */
-    private Set<Cell> findOrphanedSweepSentinels(TableReference table, Map<Cell, Value> rawResults) {
+    @VisibleForTesting
+    Set<Cell> findOrphanedSweepSentinels(TableReference table, Map<Cell, Value> rawResults) {
         Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::isSweepSentinel)
                 .keySet();
         if (sweepSentinels.isEmpty()) {
             return Collections.emptySet();
         }
-        Map<Cell, Long> atMaxTimestamp =
-                keyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE));
-        return Maps.filterValues(atMaxTimestamp, ts -> Value.INVALID_VALUE_TIMESTAMP == ts)
-                .keySet();
+
+        // for each sentinel, start at long max. Then iterate down with each found uncommitted value.
+        // if committed value seen, stop: the sentinel is not orphaned
+        // if we get back -1, the sentinel is orphaned
+        Map<Cell, Long> timestampCandidates = new HashMap<>(
+                keyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE)));
+        Set<Cell> actualOrphanedSentinels = new HashSet<>();
+
+        while (!timestampCandidates.isEmpty()) {
+            Map<SentinelType, Map<Cell, Long>> sentinelTypeToTimestamps = timestampCandidates.entrySet().stream()
+                    .collect(Collectors.groupingBy(
+                            entry -> entry.getValue() == Value.INVALID_VALUE_TIMESTAMP
+                                    ? SentinelType.DEFINITE_ORPHANED
+                                    : SentinelType.INDETERMINATE,
+                            Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+
+            Map<Cell, Long> definiteOrphans = sentinelTypeToTimestamps.get(SentinelType.DEFINITE_ORPHANED);
+            if (definiteOrphans != null) {
+                actualOrphanedSentinels.addAll(definiteOrphans.keySet());
+            }
+
+            Map<Cell, Long> cellsToQuery = sentinelTypeToTimestamps.get(SentinelType.INDETERMINATE);
+            if (cellsToQuery == null) {
+                break;
+            }
+            Set<Long> committedStartTimestamps = KeyedStream.stream(
+                            defaultTransactionService.get(cellsToQuery.values()))
+                    .filter(Objects::nonNull)
+                    .keys()
+                    .collect(Collectors.toSet());
+
+            Map<Cell, Long> nextTimestampCandidates = new HashMap<>();
+
+            for (Map.Entry<Cell, Long> queryEntry : cellsToQuery.entrySet()) {
+                if (!committedStartTimestamps.contains(queryEntry.getValue())) {
+                    nextTimestampCandidates.put(queryEntry.getKey(), queryEntry.getValue());
+                }
+            }
+            timestampCandidates = keyValueService.getLatestTimestamps(table, nextTimestampCandidates);
+        }
+
+        return actualOrphanedSentinels;
     }
 
     private static boolean isSweepSentinel(Value value) {
@@ -2394,5 +2436,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Counter getCounter(String name, TableReference tableRef) {
         return tableLevelMetricsController.createAndRegisterCounter(SnapshotTransaction.class, name, tableRef);
+    }
+
+    private enum SentinelType {
+        DEFINITE_ORPHANED,
+        INDETERMINATE;
     }
 }
