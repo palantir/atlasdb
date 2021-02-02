@@ -89,7 +89,7 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
 
     public void hasMillisSinceLastSweptConservativeEqualTo(Long value) {
         objects.assertEqual(
-                info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
+                info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS, -1).getValue(), value);
     }
 
     public void hasEnqueuedWritesThoroughEqualTo(long value) {
@@ -164,6 +164,12 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
 
     private <N> Gauge<N> getGaugeConservative(String name) {
         return getGaugeForTargetedSweep(AtlasDbMetricNames.TAG_CONSERVATIVE, name);
+    }
+
+    private <N> Gauge<N> getGaugeConservative(String name, int shard) {
+        Map<String, String> tags = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY,
+                AtlasDbMetricNames.TAG_CONSERVATIVE, AtlasDbMetricNames.TAG_SHARD, "-1");
+        return getGauge("targetedSweepProgress", name, tags);
     }
 
     private <N> Gauge<N> getGaugeThorough(String name) {

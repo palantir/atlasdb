@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -30,7 +31,12 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.Preconditions;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import org.immutables.value.Value.Check;
+import org.immutables.value.Value.Immutable;
 
 /**
  * A PuncherStore implemented as a table in the KeyValueService.
@@ -128,13 +134,13 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
 
     /**
      * Returns the real time in milliseconds corresponding to the given timestamp.
-     *
+     * <p>
      * Warning: If the given timestamp is low compared to currently given out timestamps, this call may range scan over
      * the entire table. This table tends to grow quickly, so this call can be expensive. If you can bound how far in
-     * the past you want to look for, you should instead call
-     * {@link #getMillisForTimestampIfNotPunchedBefore(KeyValueService, long, long)}.
+     * the past you want to look for, you should instead call {@link #getMillisForTimestampIfNotPunchedBefore(KeyValueService,
+     * long, long)}.
      *
-     * @param kvs the KVS to query.
+     * @param kvs       the KVS to query.
      * @param timestamp timestamp to query for.
      */
     public static long getMillisForTimestamp(KeyValueService kvs, long timestamp) {
@@ -159,21 +165,185 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         }
     }
 
+    public static Optional<Long> getMillisForTimestampWithinBounds(
+            KeyValueService kvs, long timestamp,
+            MillisAndTimestamp lowerBound, long upperBound) {
+        if (lowerBound == null) {
+            return getMillisForTimestampSafe(kvs, timestamp, upperBound);
+        }
+
+        if (lowerBound.timestamp() == timestamp) {
+            return Optional.of(lowerBound.millis());
+        }
+
+        BoundsOrMillis boundsOrMillis = getBoundsForRangeScan(
+                kvs,
+                timestamp,
+                ImmutableBounds.builder().lower(lowerBound.millis()).upper(upperBound).build(),
+                lowerBound.timestamp());
+        if (!boundsOrMillis.bounds().isPresent()) {
+            return boundsOrMillis.millis();
+        }
+        Optional<Long> rangeScanResult =
+                getMillisForTimestampBounded(kvs, timestamp, boundsOrMillis.bounds().get());
+        if (!rangeScanResult.isPresent()) {
+            return boundsOrMillis.millis();
+        }
+        return rangeScanResult;
+    }
+
+    @VisibleForTesting
+    public static MillisAndTimestamp findOlder(KeyValueService kvs, long ts, long upperBound) {
+        long candidate = upperBound;
+        long offset = TimeUnit.DAYS.toMillis(1);
+
+        do {
+            MillisAndTimestamp result = getOlder(kvs, candidate);
+            if (result.timestamp() <= ts) {
+                return result;
+            } else {
+                candidate = candidate - offset;
+                offset = offset * 2;
+            }
+        } while (candidate >= 0);
+
+        return ImmutableMillisAndTimestamp.builder().millis(0L).timestamp(0L).build();
+    }
+
+    @VisibleForTesting
+    public static MillisAndTimestamp getOlder(KeyValueService kvs, long millis) {
+        byte[] row = EncodingUtils.encodeUnsignedVarLong(millis);
+        EncodingUtils.flipAllBitsInPlace(row);
+        RangeRequest rangeRequest =
+                RangeRequest.builder().startRowInclusive(row).batchHint(1).build();
+        try (ClosableIterator<RowResult<Value>> result =
+                kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, Long.MAX_VALUE)) {
+            if (result.hasNext()) {
+                RowResult<Value> rowResult = result.next();
+                byte[] rowName = rowResult.getRowName();
+                EncodingUtils.flipAllBitsInPlace(rowName);
+                return ImmutableMillisAndTimestamp.builder()
+                        .millis(EncodingUtils.decodeUnsignedVarLong(rowName))
+                        .timestamp(EncodingUtils.decodeUnsignedVarLong(
+                                rowResult.getColumns().get(COLUMN).getContents())).build();
+            } else {
+                return ImmutableMillisAndTimestamp.builder().millis(millis).timestamp(0L).build();
+            }
+        }
+    }
+
+    private static Optional<Long> getMillisForTimestampSafe(KeyValueService kvs, long timestamp, long upperBound) {
+        MillisAndTimestamp lowerBound = findOlder(kvs, timestamp, upperBound);
+        return getMillisForTimestampWithinBounds(kvs, timestamp, lowerBound, upperBound);
+    }
+
+    private static BoundsOrMillis getBoundsForRangeScan(
+            KeyValueService kvs, long timestamp, Bounds initialBounds,
+            long lowerBoundTimestamp) {
+        MillisAndMaybeTimestamp upperBound = ImmutableMillisAndMaybeTimestamp.builder()
+                .millis(initialBounds.upper())
+                .build();
+        MillisAndMaybeTimestamp lowerBound = ImmutableMillisAndMaybeTimestamp.builder()
+                .millis(initialBounds.lower())
+                .timestamp(lowerBoundTimestamp)
+                .build();
+        long testValue = Math.max(initialBounds.lower(), initialBounds.upper() - TimeUnit.DAYS.toMillis(7));
+        Optional<Long> millisLowEstimate = Optional.empty();
+        while (upperBound.millis() - lowerBound.millis() > TimeUnit.DAYS.toMillis(1)) {
+            MillisAndTimestamp betweenBounds = getOlder(kvs, testValue);
+            if (betweenBounds.timestamp() == timestamp) {
+                return ImmutableBoundsOrMillis.builder().millis(betweenBounds.millis()).build();
+            } else if (betweenBounds.timestamp() > timestamp) {
+                upperBound = ImmutableMillisAndMaybeTimestamp.builder()
+                        .millis(testValue)
+                        .timestamp(betweenBounds.timestamp())
+                        .build();
+            } else {
+                millisLowEstimate = Optional.of(betweenBounds.millis());
+                lowerBound = ImmutableMillisAndMaybeTimestamp.builder()
+                        .millis(testValue)
+                        .timestamp(betweenBounds.timestamp())
+                        .build();
+            }
+            if (lowerBound.timestamp().isPresent() && upperBound.timestamp().isPresent()) {
+                long tsDelta = upperBound.timestamp().get() - lowerBound.timestamp().get();
+                long millisDelta = upperBound.millis() - lowerBound.millis();
+
+                testValue = millisDelta * (timestamp - lowerBound.timestamp().get()) / tsDelta + lowerBound.millis();
+            } else {
+                testValue = (lowerBound.millis() + upperBound.millis()) / 2;
+            }
+        }
+        return ImmutableBoundsOrMillis.builder()
+                .bounds(ImmutableBounds.builder().lower(lowerBound.millis() - 1).upper(upperBound.millis()).build())
+                .millis(millisLowEstimate)
+                .build();
+    }
+
+    private static Optional<Long> getMillisForTimestampBounded(KeyValueService kvs, long timestamp, Bounds bounds) {
+        long timestampExclusive = timestamp + 1;
+        byte[] startRow = EncodingUtils.encodeUnsignedVarLong(bounds.upper());
+        byte[] endRow = EncodingUtils.encodeUnsignedVarLong(Math.max(0, bounds.lower()));
+        EncodingUtils.flipAllBitsInPlace(startRow);
+        EncodingUtils.flipAllBitsInPlace(endRow);
+
+        RangeRequest rangeRequest = RangeRequest.builder()
+                .startRowInclusive(startRow)
+                .endRowExclusive(endRow)
+                .retainColumns(ImmutableList.of(COLUMN))
+                .batchHint(1000)
+                .build();
+
+        try (ClosableIterator<RowResult<Value>> result =
+                kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, timestampExclusive)) {
+            if (result.hasNext()) {
+                byte[] encodedMillis = result.next().getRowName();
+                EncodingUtils.flipAllBitsInPlace(encodedMillis);
+                return Optional.of(EncodingUtils.decodeUnsignedVarLong(encodedMillis));
+            } else {
+                return Optional.empty();
+            }
+        }
+    }
+
     /**
-     * Same as {@link #getMillisForTimestamp(KeyValueService, long)}, except that it first does a lookup for the
-     * first timestamp punched before lowerBound. If that value is lower than timestamp, we then look up the real time
-     * value in the KVS, otherwise, we return lowerBound to avoid doing a large range scan.
+     * Same as {@link #getMillisForTimestamp(KeyValueService, long)}, except that it first does a lookup for the first
+     * timestamp punched before lowerBound. If that value is lower than timestamp, we then look up the real time value
+     * in the KVS, otherwise, we return lowerBound to avoid doing a large range scan.
      *
-     * @param kvs the KVS to query.
-     * @param timestamp timestamp to query for.
+     * @param kvs        the KVS to query.
+     * @param timestamp  timestamp to query for.
      * @param lowerBound if the first timestamp punched before this real time is larger than the query timestamp, then
-     * do not do a range scan and instead return lowerBound.
+     *                   do not do a range scan and instead return lowerBound.
      */
     public static long getMillisForTimestampIfNotPunchedBefore(KeyValueService kvs, long timestamp, long lowerBound) {
         if (get(kvs, Math.max(0L, lowerBound)) < timestamp) {
             return getMillisForTimestamp(kvs, timestamp);
         } else {
             return lowerBound;
+        }
+    }
+
+    @Immutable
+    public interface MillisAndMaybeTimestamp {
+        long millis();
+        Optional<Long> timestamp();
+    }
+
+    @Immutable
+    public interface Bounds {
+        long upper();
+        long lower();
+    }
+
+    @Immutable
+    public interface BoundsOrMillis {
+        Optional<Bounds> bounds();
+        Optional<Long> millis();
+
+        @Check
+        default void check() {
+            Preconditions.checkArgument(bounds().isPresent() || millis().isPresent());
         }
     }
 }

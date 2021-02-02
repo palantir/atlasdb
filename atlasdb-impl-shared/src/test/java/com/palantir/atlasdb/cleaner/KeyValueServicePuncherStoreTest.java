@@ -28,6 +28,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -50,6 +52,7 @@ public class KeyValueServicePuncherStoreTest {
     private static final ImmutableMap<Long, Long> PUNCHER_HISTORY_WITH_CLOCK_DRIFT = ImmutableMap.of(
             TIMESTAMP_1, WALL_CLOCK_2,
             TIMESTAMP_2, WALL_CLOCK_1);
+    private static final long ONE_DAY = TimeUnit.DAYS.toMillis(1);
 
     private PuncherStore puncherStore;
 
@@ -127,7 +130,7 @@ public class KeyValueServicePuncherStoreTest {
         // Arguments: (15, 150)
         // First ts punched before 150 is 10. 10 < 15, so we do the range scan and it returns 100.
         assertThat(KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(
-                        kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_BETWEEN_1_AND_2))
+                kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_BETWEEN_1_AND_2))
                 .isEqualTo(WALL_CLOCK_1);
     }
 
@@ -139,7 +142,7 @@ public class KeyValueServicePuncherStoreTest {
         // Arguments: (15, 99)
         // First ts punched before 99 is Long.MIN_VALUE. Long.MIN_VALUE < 15, so we range scan and it returns 100.
         assertThat(KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(
-                        kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_1 - 1))
+                kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_1 - 1))
                 .isEqualTo(WALL_CLOCK_1);
     }
 
@@ -151,7 +154,7 @@ public class KeyValueServicePuncherStoreTest {
         // Arguments: (15, -100)
         // Same as above, but verifying we don't error out due to negative number.
         assertThat(KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(
-                        kvs, TIMESTAMP_BETWEEN_1_AND_2, -100L))
+                kvs, TIMESTAMP_BETWEEN_1_AND_2, -100L))
                 .isEqualTo(WALL_CLOCK_1);
     }
 
@@ -163,7 +166,7 @@ public class KeyValueServicePuncherStoreTest {
         // Arguments: (15, 201)
         // First ts punched before 201 is 20. 20 > 15, so we don't range scan and return 201.
         assertThat(KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(
-                        kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_2 + 1))
+                kvs, TIMESTAMP_BETWEEN_1_AND_2, WALL_CLOCK_2 + 1))
                 .isEqualTo(WALL_CLOCK_2 + 1);
         verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
         verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());
@@ -180,6 +183,109 @@ public class KeyValueServicePuncherStoreTest {
                 .isEqualTo(WALL_CLOCK_1);
         verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
         verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());
+    }
+
+    @Test
+    public void getOlderTest() {
+        KeyValueService kvs = Mockito.spy(new InMemoryKeyValueService(false));
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertGetOlderReturnsMillisAndTimestamp(kvs, 400, 300, 30);
+        assertGetOlderReturnsMillisAndTimestamp(kvs, 250, 200, 20);
+        assertGetOlderReturnsMillisAndTimestamp(kvs, 100, 100, 10);
+        assertGetOlderReturnsMillisAndTimestamp(kvs, 50, 50, 0);
+
+        verify(kvs, times(4)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
+    }
+
+    @Test
+    public void findOlderWhenLatestSmaller() {
+        KeyValueService kvs = Mockito.spy(new InMemoryKeyValueService(false));
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertFindOlderReturnsMillisAndTimestamp(kvs, 40, 600, 300, 30);
+        verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
+    }
+
+    @Test
+    public void findOlderWhenLatestLargerAndStepCrossesZero() {
+        KeyValueService kvs = Mockito.spy(new InMemoryKeyValueService(false));
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertFindOlderReturnsMillisAndTimestamp(kvs, 25, 600, 0, 0);
+        verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
+    }
+
+    @Test
+    public void findOlderWhenLatestLargerAndStepFindsExactMatch() {
+        KeyValueService kvs = Mockito.spy(new InMemoryKeyValueService(false));
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertFindOlderReturnsMillisAndTimestamp(kvs, 20, 200 + ONE_DAY, 200, 20);
+        verify(kvs, times(2)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
+    }
+
+    @Test
+    public void findOlderWhenLatestLargerAndStepFindsSecondBest() {
+        KeyValueService kvs = Mockito.spy(new InMemoryKeyValueService(false));
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertFindOlderReturnsMillisAndTimestamp(kvs, 20, 150 + ONE_DAY, 100, 10);
+        verify(kvs, times(2)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
+    }
+
+    @Test
+    public void test() {
+        KeyValueService kvs = Mockito.spy(new InMemoryKeyValueService(false));
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertGetMillisWithNoLowerBoundEquals(kvs, 40, 1000, Optional.of(300L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 30, 1000, Optional.of(300L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 25, 1000, Optional.of(200L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 20, 1000, Optional.of(200L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 10, 1000, Optional.of(100L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 5, 1000, Optional.empty());
+    }
+
+    @Test
+    public void test2() {
+        KeyValueService kvs = Mockito.spy(new InMemoryKeyValueService(false));
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertGetMillisWithNoLowerBoundEquals(kvs, 40, 1000 + ONE_DAY, Optional.of(300L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 30, 1000 + 2 * ONE_DAY, Optional.of(300L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 25, 1000 + 3 * ONE_DAY, Optional.of(200L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 20, 1000 + 10 * ONE_DAY, Optional.of(200L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 10, 1000 + 20 * ONE_DAY, Optional.of(100L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 5, 1000 + 32 * ONE_DAY, Optional.empty());
+    }
+
+    @Test
+    public void test3() {
+        KeyValueService kvs = Mockito.spy(new InMemoryKeyValueService(false));
+        puncherStore = initializePuncherStore(PUNCHER_HISTORY, kvs);
+        assertGetMillisWithNoLowerBoundEquals(kvs, 40, 15 + ONE_DAY, Optional.of(300L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 30, 15 + 2 * ONE_DAY, Optional.of(300L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 25, 15 + 3 * ONE_DAY, Optional.of(200L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 20, 15 + 10 * ONE_DAY, Optional.of(200L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 10, 15 + 20 * ONE_DAY, Optional.of(100L));
+        assertGetMillisWithNoLowerBoundEquals(kvs, 5, 15 + 32 * ONE_DAY, Optional.empty());
+    }
+
+    private static void assertGetOlderReturnsMillisAndTimestamp(
+            KeyValueService kvs, long olderThan, long millis,
+            long timestamp) {
+        assertThat(KeyValueServicePuncherStore.getOlder(kvs, olderThan)).isEqualTo(ImmutableMillisAndTimestamp.builder()
+                .millis(millis)
+                .timestamp(timestamp)
+                .build());
+    }
+
+    private static void assertFindOlderReturnsMillisAndTimestamp(
+            KeyValueService kvs, long olderThan, long upperBound, long millis, long timestamp) {
+        assertThat(KeyValueServicePuncherStore.findOlder(kvs, olderThan, upperBound)).isEqualTo(
+                ImmutableMillisAndTimestamp.builder()
+                        .millis(millis)
+                        .timestamp(timestamp)
+                        .build());
+    }
+
+    private static void assertGetMillisWithNoLowerBoundEquals(KeyValueService kvs, long olderThan, long upperBound,
+            Optional<Long> result) {
+        assertThat(KeyValueServicePuncherStore.getMillisForTimestampWithinBounds(kvs, olderThan, null, upperBound)).isEqualTo(result);
     }
 
     private static long mean(long first, long second) {

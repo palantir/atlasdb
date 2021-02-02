@@ -61,7 +61,7 @@ public class TargetedSweepMetricsTest {
         kvs = Mockito.spy(new InMemoryKeyValueService(true));
         puncherStore = KeyValueServicePuncherStore.create(kvs, false);
         metricsManager = MetricsManagers.createForTests();
-        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION);
+        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION, 8);
     }
 
     @Test
@@ -87,7 +87,8 @@ public class TargetedSweepMetricsTest {
                 TargetedSweepMetrics.MetricsConfiguration.builder()
                         .addTrackedSweeperStrategies(SweepStrategy.SweeperStrategy.THOROUGH)
                         .millisBetweenRecomputingMetrics(RECOMPUTE_MILLIS)
-                        .build());
+                        .build(),
+                8);
         assertThat(anotherManager).hasNotRegisteredEnqueuedWritesConservativeMetric();
         assertThat(anotherManager).hasEnqueuedWritesThoroughEqualTo(0);
     }
@@ -102,7 +103,8 @@ public class TargetedSweepMetricsTest {
                 TargetedSweepMetrics.MetricsConfiguration.builder()
                         .addTrackedSweeperStrategies(SweepStrategy.SweeperStrategy.THOROUGH)
                         .millisBetweenRecomputingMetrics(RECOMPUTE_MILLIS)
-                        .build());
+                        .build(),
+                8);
 
         anotherMetrics.updateEnqueuedWrites(CONS_ZERO, 5);
         assertThat(anotherManager).hasNotRegisteredEnqueuedWritesConservativeMetric();
@@ -259,7 +261,7 @@ public class TargetedSweepMetricsTest {
 
         MetricsManager anotherMetricsManager = MetricsManagers.createForTests();
         TargetedSweepMetrics secondMetrics = TargetedSweepMetrics.createWithClock(
-                anotherMetricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION);
+                anotherMetricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION, 8);
 
         secondMetrics.updateEnqueuedWrites(CONS_ZERO, 5);
         secondMetrics.updateEntriesRead(CONS_ZERO, 5);
@@ -286,7 +288,7 @@ public class TargetedSweepMetricsTest {
     @Test
     public void writeTimestampsAreSharedAcrossMetricsInstances() {
         TargetedSweepMetrics secondMetrics =
-                TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION);
+                TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION, 8);
 
         metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         secondMetrics.updateProgressForShard(CONS_ZERO, 100);
@@ -308,7 +310,8 @@ public class TargetedSweepMetricsTest {
                 () -> clockTime,
                 TargetedSweepMetrics.MetricsConfiguration.builder()
                         .millisBetweenRecomputingMetrics(1_000)
-                        .build());
+                        .build(),
+                8);
 
         metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 100);
