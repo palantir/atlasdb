@@ -1668,8 +1668,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .hasMessageContaining("Tried to read a value that has been deleted.");
 
         assertThat(keyValueService.get(
-                TABLE_SWEPT_THOROUGH,
-                ImmutableMap.of(TEST_CELL, 0L, TEST_CELL_2, 0L, testCell3, 0L)))
+                        TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L, TEST_CELL_2, 0L, testCell3, 0L)))
                 .containsExactlyEntriesOf(
                         ImmutableMap.of(TEST_CELL, Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP)));
     }
