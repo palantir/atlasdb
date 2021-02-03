@@ -294,6 +294,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+        return delegate1.getRowKeysInRange(tableRef, startRow, endRow, maxResults);
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return delegate1.getAsync(tableRef, timestampByCell);
     }

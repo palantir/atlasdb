@@ -646,4 +646,15 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     default boolean shouldTriggerCompactions() {
         return false;
     }
+
+    /**
+     * Returns a sorted list of row keys in the specified range.
+     *
+     * @param tableRef table for which the request is made.
+     * @param startRow inclusive start of the row key range. Use empty byte array for unbounded.
+     * @param endRow inclusive end of the row key range. Use empty byte array for unbounded.
+     * @param maxResults the request only returns the first maxResults rows in range.
+     */
+    @DoDelegate
+    List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults);
 }

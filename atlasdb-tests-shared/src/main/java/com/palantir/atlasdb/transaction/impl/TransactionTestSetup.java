@@ -224,7 +224,7 @@ public abstract class TransactionTestSetup {
         return valueBytes != null ? PtBytes.toString(valueBytes) : null;
     }
 
-    void putDirect(String rowName, String columnName, String value, long timestamp) {
+    protected void putDirect(String rowName, String columnName, String value, long timestamp) {
         Cell cell = createCell(rowName, columnName);
         byte[] valueBytes = PtBytes.toBytes(value);
         keyValueService.put(TEST_TABLE, ImmutableMap.of(cell, valueBytes), timestamp);

@@ -508,6 +508,13 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+        return maybeLog(
+                () -> delegate.getRowKeysInRange(tableRef, startRow, endRow, maxResults),
+                logTimeAndTable("getRowKeysInRange", tableRef));
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         long startTime = System.currentTimeMillis();
         return KvsProfilingLogger.maybeLogAsync(

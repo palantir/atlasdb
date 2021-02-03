@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -52,6 +53,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,6 +72,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.commons.lang3.ArrayUtils;
@@ -595,6 +598,26 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         return ClusterAvailabilityStatus.ALL_AVAILABLE;
+    }
+
+    @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+        RangeRequest.Builder rangeRequest = RangeRequest.builder().startRowInclusive(startRow);
+        if (Arrays.equals(endRow, PtBytes.EMPTY_BYTE_ARRAY)) {
+            rangeRequest.endRowExclusive(PtBytes.EMPTY_BYTE_ARRAY);
+        } else {
+            rangeRequest.endRowExclusive(RangeRequests.nextLexicographicName(endRow));
+        }
+        try (ClosableIterator<RowResult<Value>> rowsWithColumns =
+                getRange(tableRef, rangeRequest.build(), Long.MAX_VALUE)) {
+            return rowsWithColumns.stream()
+                    .map(RowResult::getRowName)
+                    .map(Bytes::from)
+                    .distinct()
+                    .limit(maxResults)
+                    .map(Bytes::asNewByteArray)
+                    .collect(Collectors.toList());
+        }
     }
 
     private static IllegalArgumentException tableMappingException(TableReference tableReference) {
