@@ -50,7 +50,7 @@ techniques developed in the last decade.
 The main papers used to figure out the best approach for this are
 
 Cahill 2009:
-http://cahill.net.au/wp-content/uploads/2009/01/real-serializable.pdf
+https://ses.library.usyd.edu.au/bitstream/handle/2123/5353/michael-cahill-2009-thesis.pdf
 
 FEKETE 2005: "Making snapshot isolation serializable"
 
