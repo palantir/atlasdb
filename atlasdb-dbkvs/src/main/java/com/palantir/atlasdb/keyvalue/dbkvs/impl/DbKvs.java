@@ -1208,6 +1208,11 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     }
 
     @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+        throw new UnsupportedOperationException("getRowKeysInRange is only supported for Cassandra.");
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return Futures.immediateFuture(get(tableRef, timestampByCell));
     }

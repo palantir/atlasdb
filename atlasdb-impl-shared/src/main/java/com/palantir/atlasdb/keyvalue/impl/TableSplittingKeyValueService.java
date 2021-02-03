@@ -388,6 +388,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+        return getDelegate(tableRef).getRowKeysInRange(tableRef, startRow, endRow, maxResults);
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return getDelegate(tableRef).getAsync(tableRef, timestampByCell);
     }

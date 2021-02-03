@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Added the getRowKeysInRange method to the KVS interface, so we can access the Cassandra KVS implementation from a transaction manager. This may be removed at any time, and if you wish to use it, contact the atlasdb team for support.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5236
