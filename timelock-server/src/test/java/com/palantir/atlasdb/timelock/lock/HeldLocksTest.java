@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -67,32 +66,32 @@ public class HeldLocksTest {
 
     @Test
     public void canRefreshBeforeUnlocking() {
-        assertTrue(heldLocks.refresh());
+        assertThat(heldLocks.refresh()).isTrue();
     }
 
     @Test
     public void cannotRefreshAfterUnlocking() {
         heldLocks.unlockExplicitly();
 
-        assertFalse(heldLocks.refresh());
+        assertThat(heldLocks.refresh()).isFalse();
     }
 
     @Test
     public void canOnlyUnlockOnce() {
-        assertTrue(heldLocks.unlockExplicitly());
-        assertFalse(heldLocks.unlockExplicitly());
+        assertThat(heldLocks.unlockExplicitly()).isTrue();
+        assertThat(heldLocks.unlockExplicitly()).isFalse();
     }
 
     @Test
     public void unlocksIfExpired() {
         when(timer.isExpired()).thenReturn(true);
-        assertTrue(heldLocks.unlockIfExpired());
+        assertThat(heldLocks.unlockIfExpired()).isTrue();
     }
 
     @Test
     public void doesNotUnlockIfNotExpired() {
         when(timer.isExpired()).thenReturn(false);
-        assertFalse(heldLocks.unlockIfExpired());
+        assertThat(heldLocks.unlockIfExpired()).isFalse();
     }
 
     @Test

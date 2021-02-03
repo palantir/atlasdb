@@ -75,7 +75,7 @@ public class HeldLocksCollectionTest {
         AsyncResult<HeldLocks> result = new AsyncResult<>();
         heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
 
-        assertThat(heldLocksCollection.heldLocksById.get(REQUEST_ID)).isEqualTo(result);
+        assertThat(heldLocksCollection.heldLocksById).containsEntry(REQUEST_ID, result);
     }
 
     @Test
@@ -84,22 +84,22 @@ public class HeldLocksCollectionTest {
         mockExpiredRequest();
         mockFailedRequest();
 
-        assertThat(heldLocksCollection.heldLocksById.size()).isEqualTo(3);
+        assertThat(heldLocksCollection.heldLocksById).hasSize(3);
 
         heldLocksCollection.removeExpired();
 
-        assertThat(heldLocksCollection.heldLocksById.size()).isEqualTo(1);
+        assertThat(heldLocksCollection.heldLocksById).hasSize(1);
         assertThat(heldLocksCollection.heldLocksById.keySet().iterator().next()).isEqualTo(nonExpiredRequest);
     }
 
     @Test
     public void removesTimedOutRequests() {
         mockTimedOutRequest();
-        assertThat(heldLocksCollection.heldLocksById.size()).isEqualTo(1);
+        assertThat(heldLocksCollection.heldLocksById).hasSize(1);
 
         heldLocksCollection.removeExpired();
 
-        assertThat(heldLocksCollection.heldLocksById.size()).isEqualTo(0);
+        assertThat(heldLocksCollection.heldLocksById).isEmpty();
     }
 
     @Test
@@ -248,7 +248,7 @@ public class HeldLocksCollectionTest {
 
         heldLocksCollection.unlock(ImmutableSet.of(token));
 
-        assertThat(heldLocksCollection.heldLocksById.isEmpty()).isTrue();
+        assertThat(heldLocksCollection.heldLocksById).isEmpty();
     }
 
     private LockToken lockSync(UUID requestId) {
@@ -261,12 +261,12 @@ public class HeldLocksCollectionTest {
 
     private void assertLocked(UUID requestId) {
         heldLocksCollection.removeExpired();
-        assertThat(heldLocksCollection.heldLocksById.containsKey(requestId)).isTrue();
+        assertThat(heldLocksCollection.heldLocksById).containsKey(requestId);
     }
 
     private void assertUnlocked(UUID requestId) {
         heldLocksCollection.removeExpired();
-        assertThat(heldLocksCollection.heldLocksById.containsKey(requestId)).isFalse();
+        assertThat(heldLocksCollection.heldLocksById).doesNotContainKey(requestId);
     }
 
     private HeldLocks heldLocksForId(UUID id) {

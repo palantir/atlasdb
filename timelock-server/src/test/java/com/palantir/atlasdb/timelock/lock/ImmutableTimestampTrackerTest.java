@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.Test;
 
@@ -41,7 +40,7 @@ public class ImmutableTimestampTrackerTest {
 
     @Test
     public void returnsEmptyWhenNoTimestampsAreRegistered() {
-        assertThat(tracker.getImmutableTimestamp()).isEqualTo(Optional.empty());
+        assertThat(tracker.getImmutableTimestamp()).isNotPresent();
     }
 
     @Test
@@ -50,7 +49,7 @@ public class ImmutableTimestampTrackerTest {
         lock1.lock(REQUEST_1);
         lock1.unlock(REQUEST_1);
 
-        assertThat(tracker.getImmutableTimestamp()).isEqualTo(Optional.empty());
+        assertThat(tracker.getImmutableTimestamp()).isNotPresent();
     }
 
     @Test

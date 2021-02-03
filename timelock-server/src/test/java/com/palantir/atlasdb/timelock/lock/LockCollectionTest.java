@@ -38,8 +38,8 @@ public class LockCollectionTest {
 
         List<AsyncLock> locks = lockCollection.getAll(descriptors).get();
 
-        assertThat(locks.size()).isEqualTo(2);
-        assertThat(ImmutableSet.copyOf(locks).size()).isEqualTo(2);
+        assertThat(locks).hasSize(2);
+        assertThat(ImmutableSet.copyOf(locks)).hasSize(2);
     }
 
     @Test

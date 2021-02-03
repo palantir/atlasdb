@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -84,7 +83,7 @@ public class LockAcquirerTest {
         AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB);
 
         lockA.unlock(OTHER_REQUEST_ID);
-        assertFalse(acquisitions.isComplete());
+        assertThat(acquisitions.isComplete()).isFalse();
         lockB.unlock(OTHER_REQUEST_ID);
 
         assertThat(acquisitions.isCompletedSuccessfully()).isTrue();

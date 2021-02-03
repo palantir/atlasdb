@@ -62,7 +62,7 @@ public class LockRefreshingLockServiceTest {
         LockResponse lock = server.lockWithFullLockResponse(LockClient.ANONYMOUS, builder.build());
         Thread.sleep(10000);
         Set<HeldLocksToken> refreshTokens = server.refreshTokens(ImmutableList.of(lock.getToken()));
-        assertThat(refreshTokens.size()).isEqualTo(1);
+        assertThat(refreshTokens).hasSize(1);
     }
 
     @Test

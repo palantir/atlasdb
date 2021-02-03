@@ -141,7 +141,7 @@ public class DistributingModulusGeneratorTest {
         }
 
         // Assuming uniform randomness, strobes once in 2^80 times, which we can live with
-        assertThat(frequencyMap.size()).isGreaterThanOrEqualTo(2);
+        assertThat(frequencyMap).hasSizeGreaterThanOrEqualTo(2);
     }
 
     private void setupGeneratorWithModulus(int modulus) {
