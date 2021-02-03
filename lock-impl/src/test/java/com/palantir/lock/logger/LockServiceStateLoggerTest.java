@@ -115,30 +115,30 @@ public class LockServiceStateLoggerTest {
     public void testFilesExist() throws Exception {
         List<File> files = LockServiceTestUtils.logStateDirFiles();
 
-        assertThat(1)
-                .describedAs("Unexpected number of descriptor files")
-                .isEqualTo(files.stream()
+        assertThat(files.stream()
                         .filter(file -> file.getName().startsWith(LockServiceStateLogger.DESCRIPTORS_FILE_PREFIX))
-                        .count());
+                        .count())
+                .describedAs("Unexpected number of descriptor files")
+                .isEqualTo(1);
 
-        assertThat(1)
-                .describedAs("Unexpected number of lock state files")
-                .isEqualTo(files.stream()
+        assertThat(files.stream()
                         .filter(file -> file.getName().startsWith(LockServiceStateLogger.LOCKSTATE_FILE_PREFIX))
-                        .count());
+                        .count())
+                .describedAs("Unexpected number of lock state files")
+                .isEqualTo(1);
 
-        assertThat(1)
-                .describedAs("Unexpected number of lock sync state files")
-                .isEqualTo(files.stream()
+        assertThat(files.stream()
                         .filter(file -> file.getName().startsWith(LockServiceStateLogger.SYNC_STATE_FILE_PREFIX))
-                        .count());
+                        .count())
+                .describedAs("Unexpected number of lock sync state files")
+                .isEqualTo(1);
 
-        assertThat(1)
-                .describedAs("Unexpected number of synthesized request state files")
-                .isEqualTo(files.stream()
+        assertThat(files.stream()
                         .filter(file ->
                                 file.getName().startsWith(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_FILE_PREFIX))
-                        .count());
+                        .count())
+                .describedAs("Unexpected number of synthesized request state files")
+                .isEqualTo(1);
     }
 
     @Test

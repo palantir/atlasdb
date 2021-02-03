@@ -90,11 +90,18 @@ public final class ClientAwareLockTest {
     /** Tests that things fail when they should. */
     @Test
     public void testIllegalActions() throws InterruptedException {
-        assertThatThrownBy(() -> knownClientReadLock.unlock()).isInstanceOf(IllegalMonitorStateException.class);
-        assertThatThrownBy(() -> knownClientWriteLock.unlock()).isInstanceOf(IllegalMonitorStateException.class);
+        assertThatThrownBy(() -> knownClientReadLock.unlock())
+                .as("should not be able to unlock when no locks are held")
+                .isInstanceOf(IllegalMonitorStateException.class);
+        assertThatThrownBy(() -> knownClientWriteLock.unlock())
+                .as("should not be able to unlock when no locks are held")
+                .isInstanceOf(IllegalMonitorStateException.class);
         knownClientReadLock.lock();
-        assertThatThrownBy(() -> knownClientWriteLock.tryLock()).isInstanceOf(IllegalMonitorStateException.class);
+        assertThatThrownBy(() -> knownClientWriteLock.tryLock())
+                .as("should not be able to lock when lock is not free")
+                .isInstanceOf(IllegalMonitorStateException.class);
         assertThatThrownBy(() -> knownClientWriteLock.tryLock(10, TimeUnit.MILLISECONDS))
+                .as("should not be able to lock when lock is not free")
                 .isInstanceOf(IllegalMonitorStateException.class);
     }
 
