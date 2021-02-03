@@ -650,11 +650,17 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     /**
      * Returns a sorted list of row keys in the specified range.
      *
+     * This method is not guaranteed to be implemented for all implementations of {@link KeyValueService}. It may be
+     * changed or removed at any time without warning.
+     *
+     * @deprecated if you wish to use this method, contact the atlasdb team for support
+     *
      * @param tableRef table for which the request is made.
      * @param startRow inclusive start of the row key range. Use empty byte array for unbounded.
      * @param endRow inclusive end of the row key range. Use empty byte array for unbounded.
      * @param maxResults the request only returns the first maxResults rows in range.
      */
     @DoDelegate
+    @Deprecated
     List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults);
 }
