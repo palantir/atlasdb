@@ -21,6 +21,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosValue;
@@ -30,6 +31,7 @@ import com.palantir.timelock.history.util.UseCaseUtils;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,6 +39,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
 import one.util.streamex.StreamEx;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class validates that timestamp bounds increase with increasing sequence numbers.
@@ -45,6 +49,8 @@ import one.util.streamex.StreamEx;
  * boundaries, this is expected and is done to catch inversion at batch end.
  * */
 public class LocalTimestampInvariantsVerifier {
+    private static final Logger log = LoggerFactory.getLogger(LocalTimestampInvariantsVerifier.class);
+
     @VisibleForTesting
     public static final int LEARNER_LOG_BATCH_SIZE_LIMIT = 250;
 
@@ -70,18 +76,28 @@ public class LocalTimestampInvariantsVerifier {
     }
 
     private CorruptionCheckViolation timestampInvariantsViolationLevel(NamespaceAndUseCase namespaceAndUseCase) {
-        Stream<Long> expectedSortedTimestamps = KeyedStream.stream(getLearnerLogs(namespaceAndUseCase))
+        Stream<Entry<? extends Long, ? extends Long>> expectedSortedTimestamps = KeyedStream.stream(
+                        getLearnerLogs(namespaceAndUseCase))
                 .map(PaxosValue::getData)
                 .filter(Objects::nonNull)
                 .mapEntries((sequence, timestamp) -> Maps.immutableEntry(sequence, PtBytes.toLong(timestamp)))
                 .entries()
-                .sorted(Comparator.comparingLong(Map.Entry::getKey))
-                .map(Map.Entry::getValue);
-        return StreamEx.of(expectedSortedTimestamps)
-                        .pairMap((first, second) -> first > second)
-                        .anyMatch(x -> x)
-                ? CorruptionCheckViolation.CLOCK_WENT_BACKWARDS
-                : CorruptionCheckViolation.NONE;
+                .sorted(Comparator.comparingLong(Entry::getKey));
+        Set<? extends Long> seqWithInversions = StreamEx.of(expectedSortedTimestamps)
+                .pairMap((first, second) -> first.getValue() > second.getValue() ? first.getKey() : null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (seqWithInversions.isEmpty()) {
+            return CorruptionCheckViolation.NONE;
+        }
+
+        log.warn(
+                "Sequence went backwards!",
+                SafeArg.of("namespaceAndUseCase", namespaceAndUseCase),
+                SafeArg.of("seqWithInversions", seqWithInversions));
+
+        return CorruptionCheckViolation.CLOCK_WENT_BACKWARDS;
     }
 
     private Map<Long, PaxosValue> getLearnerLogs(NamespaceAndUseCase namespaceAndUseCase) {

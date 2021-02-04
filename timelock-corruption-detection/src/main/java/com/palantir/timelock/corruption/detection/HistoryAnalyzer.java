@@ -24,21 +24,28 @@ import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.timelock.history.PaxosAcceptorData;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.models.ConsolidatedLearnerAndAcceptorRecord;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class HistoryAnalyzer {
+    private static final Logger log = LoggerFactory.getLogger(HistoryAnalyzer.class);
+
     private HistoryAnalyzer() {
         // do not create instance of this class
     }
@@ -74,48 +81,116 @@ public final class HistoryAnalyzer {
     @VisibleForTesting
     static CorruptionCheckViolation corruptionCheckViolationLevelForNamespaceAndUseCase(
             CompletePaxosHistoryForNamespaceAndUseCase history) {
-        List<Function<CompletePaxosHistoryForNamespaceAndUseCase, CorruptionCheckViolation>> violationChecks =
+        List<BiFunction<CompletePaxosHistoryForNamespaceAndUseCase, Set<Long>, CorruptedSeqNumbers>> violationChecks =
                 ImmutableList.of(
                         HistoryAnalyzer::divergedLearners,
                         HistoryAnalyzer::learnedValueWithoutQuorum,
                         HistoryAnalyzer::greatestAcceptedValueNotLearned);
-        return violationChecks.stream()
-                .map(check -> check.apply(history))
+
+        Set<Long> allSeqNumbers = history.getAllSequenceNumbers();
+        List<CorruptionCheckViolation> violations = new ArrayList<>();
+
+        for (BiFunction<CompletePaxosHistoryForNamespaceAndUseCase, Set<Long>, CorruptedSeqNumbers> check :
+                violationChecks) {
+            CorruptedSeqNumbers corruptedSeqNumbers = check.apply(history, allSeqNumbers);
+            allSeqNumbers.removeAll(corruptedSeqNumbers.seqNumbers());
+            violations.add(corruptedSeqNumbers.violation());
+        }
+
+        log.warn(
+                "Corruption violations for namespace and useCase",
+                SafeArg.of("namespace", history.namespace()),
+                SafeArg.of("useCase", history.useCase()),
+                SafeArg.of("violations", violations));
+
+        return violations.stream()
                 .filter(CorruptionCheckViolation::raiseErrorAlert)
                 .findFirst()
                 .orElse(CorruptionCheckViolation.NONE);
     }
 
     @VisibleForTesting
-    static CorruptionCheckViolation divergedLearners(CompletePaxosHistoryForNamespaceAndUseCase history) {
+    static CorruptedSeqNumbers divergedLearners(
+            CompletePaxosHistoryForNamespaceAndUseCase history, Set<Long> seqNumbers) {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
-        return history.getAllSequenceNumbers().stream().allMatch(seq -> {
+        Set<Long> sequencesWithDivergedLearners = seqNumbers.stream()
+                .filter(seq -> {
                     Set<PaxosValue> learnedValuesForRound = getLearnedValuesForRound(records, seq);
-                    return learnedValuesForRound.size() <= 1;
+                    return learnedValuesForRound.size() > 1;
                 })
-                ? CorruptionCheckViolation.NONE
-                : CorruptionCheckViolation.DIVERGED_LEARNERS;
+                .collect(Collectors.toSet());
+
+        if (sequencesWithDivergedLearners.isEmpty()) {
+            return CorruptedSeqNumbers.of(CorruptionCheckViolation.NONE, sequencesWithDivergedLearners);
+        }
+
+        log.warn(
+                "Diverged learners found!",
+                SafeArg.of("namespace", history.namespace()),
+                SafeArg.of("useCase", history.useCase()),
+                SafeArg.of("sequencesWithDivergedLearners", sequencesWithDivergedLearners));
+        return CorruptedSeqNumbers.of(CorruptionCheckViolation.DIVERGED_LEARNERS, sequencesWithDivergedLearners);
     }
 
     @VisibleForTesting
-    static CorruptionCheckViolation learnedValueWithoutQuorum(CompletePaxosHistoryForNamespaceAndUseCase history) {
+    static CorruptedSeqNumbers learnedValueWithoutQuorum(
+            CompletePaxosHistoryForNamespaceAndUseCase history, Set<Long> seqNumbers) {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
         int quorum = getQuorumSize(records);
 
-        return history.getAllSequenceNumbers().stream()
-                        .allMatch(seq -> isLearnedValueAcceptedByQuorum(records, quorum, seq))
-                ? CorruptionCheckViolation.NONE
-                : CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM;
+        Set<Long> sequencesWithNoQuorum = seqNumbers.stream()
+                .filter(seq -> !isLearnedValueAcceptedByQuorum(records, quorum, seq))
+                .collect(Collectors.toSet());
+
+        if (sequencesWithNoQuorum.isEmpty()) {
+            return CorruptedSeqNumbers.of(CorruptionCheckViolation.NONE, sequencesWithNoQuorum);
+        }
+
+        log.warn(
+                "Learned value without quorum!",
+                SafeArg.of("namespace", history.namespace()),
+                SafeArg.of("useCase", history.useCase()),
+                SafeArg.of("sequencesWithNoQuorum", sequencesWithNoQuorum));
+
+        return CorruptedSeqNumbers.of(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM, sequencesWithNoQuorum);
     }
 
     @VisibleForTesting
-    static CorruptionCheckViolation greatestAcceptedValueNotLearned(
-            CompletePaxosHistoryForNamespaceAndUseCase history) {
+    static CorruptedSeqNumbers greatestAcceptedValueNotLearned(
+            CompletePaxosHistoryForNamespaceAndUseCase history, Set<Long> seqNumbers) {
         List<ConsolidatedLearnerAndAcceptorRecord> records = history.localAndRemoteLearnerAndAcceptorRecords();
-        return history.getAllSequenceNumbers().stream()
-                        .allMatch(seq -> learnedValueIsGreatestAcceptedValue(records, seq))
-                ? CorruptionCheckViolation.NONE
-                : CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED;
+        Set<Long> sequencesWithGreatestAcceptedValueNotLearned = seqNumbers.stream()
+                .filter(seq -> !learnedValueIsGreatestAcceptedValue(records, seq))
+                .collect(Collectors.toSet());
+
+        if (sequencesWithGreatestAcceptedValueNotLearned.isEmpty()) {
+            return CorruptedSeqNumbers.of(CorruptionCheckViolation.NONE, sequencesWithGreatestAcceptedValueNotLearned);
+        }
+
+        log.warn(
+                "Greatest accepted value was not learned!",
+                SafeArg.of("namespace", history.namespace()),
+                SafeArg.of("useCase", history.useCase()),
+                SafeArg.of(
+                        "sequencesWithGreatestAcceptedValueNotLearned", sequencesWithGreatestAcceptedValueNotLearned));
+
+        return CorruptedSeqNumbers.of(
+                CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED,
+                sequencesWithGreatestAcceptedValueNotLearned);
+    }
+
+    @Value.Immutable
+    interface CorruptedSeqNumbers {
+        CorruptionCheckViolation violation();
+
+        Set<Long> seqNumbers();
+
+        static CorruptedSeqNumbers of(CorruptionCheckViolation violation, Set<Long> seqNumbers) {
+            return ImmutableCorruptedSeqNumbers.builder()
+                    .violation(violation)
+                    .seqNumbers(seqNumbers)
+                    .build();
+        }
     }
 
     private static boolean isLearnedValueAcceptedByQuorum(

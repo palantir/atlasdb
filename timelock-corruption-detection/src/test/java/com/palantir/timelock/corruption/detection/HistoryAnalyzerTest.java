@@ -19,10 +19,15 @@ package com.palantir.timelock.corruption.detection;
 import static com.palantir.timelock.history.PaxosLogHistoryProgressTracker.MAX_ROWS_ALLOWED;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.palantir.timelock.corruption.detection.HistoryAnalyzer.CorruptedSeqNumbers;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -53,8 +58,9 @@ public final class HistoryAnalyzerTest {
                 .forEach(server -> PaxosSerializationTestUtils.writePaxosValue(
                         server.learnerLog(), 1, PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 5)));
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
-        assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionCheckViolation.DIVERGED_LEARNERS);
+        CompletePaxosHistoryForNamespaceAndUseCase history = Iterables.getOnlyElement(historyForAll);
+        assertThat(HistoryAnalyzer.divergedLearners(history, history.getAllSequenceNumbers()))
+                .isEqualTo(CorruptedSeqNumbers.of(CorruptionCheckViolation.DIVERGED_LEARNERS, ImmutableSet.of(1L)));
 
         helper.assertViolationDetected(CorruptionCheckViolation.DIVERGED_LEARNERS);
     }
@@ -64,12 +70,31 @@ public final class HistoryAnalyzerTest {
         helper.writeLogsOnDefaultLocalServer(5, MAX_ROWS_ALLOWED);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
-        assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionCheckViolation.NONE);
-        assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
+        CompletePaxosHistoryForNamespaceAndUseCase history = Iterables.getOnlyElement(historyForAll);
+        Set<Long> allSequenceNumbers = history.getAllSequenceNumbers();
+        assertThat(HistoryAnalyzer.divergedLearners(history, allSequenceNumbers))
+                .isEqualTo(CorruptedSeqNumbers.of(CorruptionCheckViolation.NONE, ImmutableSet.of()));
+        assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(history, allSequenceNumbers))
+                .isEqualTo(CorruptedSeqNumbers.of(
+                        CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM,
+                        LongStream.range(5, MAX_ROWS_ALLOWED).boxed().collect(Collectors.toSet())));
 
         helper.assertViolationDetected(CorruptionCheckViolation.VALUE_LEARNED_WITHOUT_QUORUM);
+    }
+
+    @Test
+    public void returnsRightLevelOfViolationForMultipleViolationsAcrossSequences() {
+        PaxosSerializationTestUtils.writePaxosValue(
+                helper.getDefaultLocalServer().learnerLog(),
+                1,
+                PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 1));
+        helper.getDefaultRemoteServerList()
+                .forEach(server -> PaxosSerializationTestUtils.writePaxosValue(
+                        server.learnerLog(), 1, PaxosSerializationTestUtils.createPaxosValueForRoundAndData(1, 5)));
+
+        helper.writeLogsOnDefaultLocalServer(5, MAX_ROWS_ALLOWED - 1);
+
+        helper.assertViolationDetected(CorruptionCheckViolation.DIVERGED_LEARNERS);
     }
 
     @Test
@@ -78,12 +103,16 @@ public final class HistoryAnalyzerTest {
         helper.induceGreaterAcceptedValueCorruptionOnDefaultLocalServer(MAX_ROWS_ALLOWED / 2);
 
         List<CompletePaxosHistoryForNamespaceAndUseCase> historyForAll = helper.getHistory();
-        assertThat(HistoryAnalyzer.divergedLearners(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionCheckViolation.NONE);
-        assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionCheckViolation.NONE);
-        assertThat(HistoryAnalyzer.greatestAcceptedValueNotLearned(Iterables.getOnlyElement(historyForAll)))
-                .isEqualTo(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
+        CompletePaxosHistoryForNamespaceAndUseCase history = Iterables.getOnlyElement(historyForAll);
+        Set<Long> allSequenceNumbers = history.getAllSequenceNumbers();
+        assertThat(HistoryAnalyzer.divergedLearners(history, allSequenceNumbers))
+                .isEqualTo(CorruptedSeqNumbers.of(CorruptionCheckViolation.NONE, ImmutableSet.of()));
+        assertThat(HistoryAnalyzer.learnedValueWithoutQuorum(history, allSequenceNumbers))
+                .isEqualTo(CorruptedSeqNumbers.of(CorruptionCheckViolation.NONE, ImmutableSet.of()));
+        assertThat(HistoryAnalyzer.greatestAcceptedValueNotLearned(history, allSequenceNumbers))
+                .isEqualTo(CorruptedSeqNumbers.of(
+                        CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED,
+                        ImmutableSet.of(MAX_ROWS_ALLOWED / 2L)));
 
         helper.assertViolationDetected(CorruptionCheckViolation.ACCEPTED_VALUE_GREATER_THAN_LEARNED);
     }
