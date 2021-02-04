@@ -251,6 +251,7 @@ public abstract class BasicSQL {
 
     /** Takes a byte array, deserializes it and returns an Object
      */
+    @SuppressWarnings("BanSerializableRead")
     static Object getBlobObject(InputStream stream) throws IOException, ClassNotFoundException {
         ObjectInputStream ois = new ObjectInputStream(stream);
         Object object = ois.readObject();

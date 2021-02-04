@@ -444,7 +444,8 @@ public final class ForkedJsonFormat {
         // regex matcher has stack overflows on large inputs.
         private static final Pattern WHITESPACE = Pattern.compile("(\\s|(#.*$))++", Pattern.MULTILINE);
         private static final Pattern TOKEN = Pattern.compile(
-                "[a-zA-Z_][0-9a-zA-Z_+-]*+|" + // an identifier
+                "[a-zA-Z_][0-9a-zA-Z_+-]*+|"
+                        + // an identifier
                         "[.]?[0-9+-][0-9a-zA-Z_.+-]*+|"
                         + // a number
                         "\"([^\"\n\\\\]|\\\\.)*+(\"|\\\\?$)|"
