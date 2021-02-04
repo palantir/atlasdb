@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[RC only] | Log all corrupted sequence numbers.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5238
