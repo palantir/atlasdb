@@ -76,13 +76,13 @@ public class LocalTimestampInvariantsVerifier {
     }
 
     private CorruptionCheckViolation timestampInvariantsViolationLevel(NamespaceAndUseCase namespaceAndUseCase) {
-        Stream<Entry<? extends Long, ? extends Long>> expectedSortedTimestamps = KeyedStream.stream(
+        Stream<Map.Entry<? extends Long, ? extends Long>> expectedSortedTimestamps = KeyedStream.stream(
                         getLearnerLogs(namespaceAndUseCase))
                 .map(PaxosValue::getData)
                 .filter(Objects::nonNull)
                 .mapEntries((sequence, timestamp) -> Maps.immutableEntry(sequence, PtBytes.toLong(timestamp)))
                 .entries()
-                .sorted(Comparator.comparingLong(Entry::getKey));
+                .sorted(Comparator.comparingLong(Map.Entry::getKey));
         Set<? extends Long> seqWithInversions = StreamEx.of(expectedSortedTimestamps)
                 .pairMap((first, second) -> first.getValue() > second.getValue() ? first.getKey() : null)
                 .filter(Objects::nonNull)
