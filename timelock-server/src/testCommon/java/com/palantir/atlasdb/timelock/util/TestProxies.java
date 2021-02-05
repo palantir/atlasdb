@@ -66,6 +66,10 @@ public class TestProxies {
         abstract int getPort(TimeLockServerHolder serverHolder);
     }
 
+    public void clearProxies() {
+        proxies.clear();
+    }
+
     public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface, ProxyMode proxyMode) {
         return singleNode(server, serviceInterface, true, proxyMode);
     }
@@ -77,7 +81,6 @@ public class TestProxies {
         AuxiliaryRemotingParameters parameters = shouldRetry
                 ? TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING
                 : TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_NO_RETRYING;
-        proxies.clear();
         return (T) proxies.computeIfAbsent(
                 key,
                 ignored ->
@@ -89,7 +92,6 @@ public class TestProxies {
                 servers.stream().map(server -> getServerUri(server, proxyMode)).collect(Collectors.toList());
 
         List<Object> key = ImmutableList.of(serviceInterface, uris, "failover", proxyMode);
-        proxies.clear();
         return (T) proxies.computeIfAbsent(
                 key,
                 ignored -> AtlasDbHttpClients.createProxyWithFailover(
