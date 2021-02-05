@@ -130,7 +130,7 @@ public abstract class LeaderConfig {
     }
 
     private boolean ensureDirectoryExists(File directory) {
-        if (learnerLogDir().exists()) {
+        if (directory.exists()) {
             return true;
         }
         try {
