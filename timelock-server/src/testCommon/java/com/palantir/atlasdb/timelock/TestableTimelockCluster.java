@@ -163,6 +163,7 @@ public class TestableTimelockCluster implements TestRule {
         return currentLeaders(ImmutableSet.copyOf(namespaces));
     }
 
+    @SuppressWarnings("Slf4jConstantLogMessage")
     SetMultimap<String, TestableTimelockServer> currentLeaders(Iterable<String> namespaces) {
         Set<String> namespacesIterable = ImmutableSet.copyOf(namespaces);
         Map<TestableTimelockServer, PaxosContainer<Set<String>>> responses = PaxosQuorumChecker.collectUntil(
