@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
@@ -73,12 +72,12 @@ public class TestableTimelockServer {
 
     ListenableFuture<Void> killAsync() {
         ListenableFuture<Void> kill = serverHolder.kill();
-        kill.addListener(
-                () -> {
-                    clientsByNamespace.clear();
-                    proxies.clearProxies();
-                },
-                MoreExecutors.directExecutor());
+        // kill.addListener(
+        //         () -> {
+        //             clientsByNamespace.clear();
+        //             proxies.clearProxies();
+        //         },
+        //         MoreExecutors.directExecutor());
         return kill;
     }
 
