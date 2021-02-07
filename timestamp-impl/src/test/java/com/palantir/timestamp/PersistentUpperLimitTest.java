@@ -15,9 +15,8 @@
  */
 package com.palantir.timestamp;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -56,7 +55,7 @@ public class PersistentUpperLimitTest {
 
         PersistentUpperLimit brandNewUpperLimit = new PersistentUpperLimit(boundStore);
 
-        assertThat(brandNewUpperLimit.get(), is(TIMESTAMP));
+        assertThat(brandNewUpperLimit.get()).isEqualTo(TIMESTAMP);
     }
 
     @Test
@@ -73,7 +72,7 @@ public class PersistentUpperLimitTest {
 
         long biggerLimit = upperLimit.get() + 1000;
         upperLimit.increaseToAtLeast(biggerLimit);
-        assertThat(upperLimit.get(), is(biggerLimit + BUFFER));
+        assertThat(upperLimit.get()).isEqualTo(biggerLimit + BUFFER);
     }
 
     @Test
@@ -81,7 +80,7 @@ public class PersistentUpperLimitTest {
         upperLimit.increaseToAtLeast(TIMESTAMP);
 
         upperLimit.increaseToAtLeast(upperLimit.get());
-        assertThat(upperLimit.get(), is(TIMESTAMP + BUFFER));
+        assertThat(upperLimit.get()).isEqualTo(TIMESTAMP + BUFFER);
     }
 
     @Test
@@ -89,7 +88,7 @@ public class PersistentUpperLimitTest {
         upperLimit.increaseToAtLeast(TIMESTAMP);
 
         upperLimit.increaseToAtLeast(TIMESTAMP - 1000);
-        assertThat(upperLimit.get(), is(TIMESTAMP + BUFFER));
+        assertThat(upperLimit.get()).isEqualTo(TIMESTAMP + BUFFER);
     }
 
     @Test
@@ -117,6 +116,6 @@ public class PersistentUpperLimitTest {
             // We expect this to throw
         }
 
-        assertThat(upperLimit.get(), is(INITIAL_UPPER_LIMIT));
+        assertThat(upperLimit.get()).isEqualTo(INITIAL_UPPER_LIMIT);
     }
 }

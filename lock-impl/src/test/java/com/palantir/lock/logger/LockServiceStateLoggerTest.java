@@ -182,13 +182,13 @@ public class LockServiceStateLoggerTest {
                         .describedAs("Outstanding lock requests is not a list")
                         .isInstanceOf(List.class);
 
-                assertThat(((List) arrayObj).size())
-                        .isEqualTo(getOutstandingDescriptors().size());
+                assertThat(((List) arrayObj))
+                        .hasSize(getOutstandingDescriptors().size());
             } else if (map.containsKey(LockServiceStateLogger.HELD_LOCKS_TITLE)) {
                 Object mapObj = map.get(LockServiceStateLogger.HELD_LOCKS_TITLE);
                 assertThat(mapObj).describedAs("Held locks is not a map").isInstanceOf(Map.class);
 
-                assertThat(((Map) mapObj).size()).isEqualTo(getHeldDescriptors().size());
+                assertThat(((Map) mapObj)).hasSize(getHeldDescriptors().size());
             } else {
                 throw new IllegalStateException("Map found in YAML document without an expected key");
             }
@@ -244,8 +244,7 @@ public class LockServiceStateLoggerTest {
                 Object mapObj = map.get(LockServiceStateLogger.SYNC_STATE_TITLE);
                 assertThat(mapObj).describedAs("Sync state is not a map").isInstanceOf(Map.class);
 
-                assertThat(((Map) mapObj).size())
-                        .isEqualTo(getSyncStateDescriptors().size());
+                assertThat(((Map) mapObj)).hasSize(getSyncStateDescriptors().size());
             } else {
                 throw new IllegalStateException("Map found in YAML document without an expected key");
             }
@@ -264,8 +263,7 @@ public class LockServiceStateLoggerTest {
                 Object mapObj = map.get(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_TITLE);
                 assertThat(mapObj).describedAs("Request state is not a map").isInstanceOf(Map.class);
 
-                assertThat(((Map) mapObj).size())
-                        .isEqualTo(getSyncStateDescriptors().size());
+                assertThat(((Map) mapObj)).hasSize(getSyncStateDescriptors().size());
             } else {
                 throw new IllegalStateException("Map found in YAML document without an expected key");
             }

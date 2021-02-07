@@ -83,12 +83,12 @@ public final class LockServiceImplTest {
 
     @Test
     public void slowLogShouldBeEnabledIfSlowLogTriggerMillisIsSetToPositiveValue() {
-        assertThat(lockServiceWithSlowLogEnabled.isSlowLogEnabled()).isEqualTo(true);
+        assertThat(lockServiceWithSlowLogEnabled.isSlowLogEnabled()).isTrue();
     }
 
     @Test
     public void slowLogShouldNotBeEnabledIfSlowLogTriggerMillisIsSetToZero() {
-        assertThat(lockServiceWithSlowLogDisabled.isSlowLogEnabled()).isEqualTo(false);
+        assertThat(lockServiceWithSlowLogDisabled.isSlowLogEnabled()).isFalse();
     }
 
     @Test
@@ -96,10 +96,10 @@ public final class LockServiceImplTest {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS + 5;
         lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
-        assertThat(testLockServiceImplLogger.isDebugEnabled()).isEqualTo(true);
+        assertThat(testLockServiceImplLogger.isDebugEnabled()).isTrue();
         assertThat(testLockServiceImplLogger.getLoggingEvents()).isEmpty();
 
-        assertThat(testSlowLogger.getLoggingEvents().size()).isEqualTo(1);
+        assertThat(testSlowLogger.getLoggingEvents()).hasSize(1);
         assertContainsMatchingLoggingEvent(
                 testSlowLogger.getLoggingEvents(),
                 warn("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
@@ -110,8 +110,8 @@ public final class LockServiceImplTest {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS + 5;
         lockServiceWithSlowLogDisabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
-        assertThat(testLockServiceImplLogger.isDebugEnabled()).isEqualTo(true);
-        assertThat(testLockServiceImplLogger.getLoggingEvents().size()).isEqualTo(1);
+        assertThat(testLockServiceImplLogger.isDebugEnabled()).isTrue();
+        assertThat(testLockServiceImplLogger.getLoggingEvents()).hasSize(1);
         assertContainsMatchingLoggingEvent(
                 testLockServiceImplLogger.getLoggingEvents(),
                 debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
@@ -124,7 +124,7 @@ public final class LockServiceImplTest {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS - 5;
         lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
-        assertThat(testLockServiceImplLogger.isDebugEnabled()).isEqualTo(true);
+        assertThat(testLockServiceImplLogger.isDebugEnabled()).isTrue();
         assertContainsMatchingLoggingEvent(
                 testLockServiceImplLogger.getLoggingEvents(),
                 debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
@@ -162,9 +162,8 @@ public final class LockServiceImplTest {
                         .filter(event -> event.getLevel() == expected.getLevel()
                                 && event.getMessage().equals(expected.getMessage())
                                 && expectedParamStrings.equals(extractArgumentsAsStringList(event)))
-                        .collect(Collectors.toSet())
-                        .size())
-                .isEqualTo(1);
+                        .collect(Collectors.toSet()))
+                .hasSize(1);
     }
 
     private static List<String> extractArgumentsAsStringList(LoggingEvent event) {
