@@ -23,7 +23,6 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,6 +48,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
+import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -89,23 +89,6 @@ public class AwaitingLeadershipProxyTest {
         assertThat(proxy).isEqualTo(proxy);
         assertThat(proxy).isNotEqualTo(null);
         assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");
-    }
-
-    private interface ReturnsListenableFuture {
-        ListenableFuture<?> future();
-    }
-
-    private static final class ReturnsListenableFutureImpl implements ReturnsListenableFuture {
-        private final SettableFuture<?> future = SettableFuture.create();
-
-        @Override
-        public ListenableFuture<?> future() {
-            return future;
-        }
-    }
-
-    private interface MyCloseable extends Closeable {
-        void val();
     }
 
     @Test
@@ -276,7 +259,7 @@ public class AwaitingLeadershipProxyTest {
         assertThatThrownBy(callable::call)
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessage("method invoked on a non-leader");
-        verify(mock, times(1)).close();
+        verify(mock).close();
     }
 
     @Test
@@ -290,7 +273,7 @@ public class AwaitingLeadershipProxyTest {
                 MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
         // Wait to gain leadership
-        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+        Awaitility.await().atMost(Duration.ofMillis(100L));
 
         proxyA.val();
         proxyB.val();
@@ -303,7 +286,7 @@ public class AwaitingLeadershipProxyTest {
         assertThatThrownBy(proxyA::val)
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessage("method invoked on a non-leader");
-        verify(mockA, times(1)).close();
+        verify(mockA).close();
     }
 
     @Test
@@ -314,13 +297,10 @@ public class AwaitingLeadershipProxyTest {
         waitForLeadershipToBeGained();
 
         proxy.val();
-        refreshLeadershipToken(() -> {
-            proxy.val();
-            return null;
-        });
+        refreshLeadershipToken(proxy);
 
         proxy.val();
-        verify(mock, times(1)).close();
+        verify(mock).close();
     }
 
     @Test
@@ -334,18 +314,15 @@ public class AwaitingLeadershipProxyTest {
                 MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
         // Wait to gain leadership
-        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+        Awaitility.await().atMost(Duration.ofMillis(100L));
 
         proxyA.val();
         proxyB.val();
 
-        refreshLeadershipToken(() -> {
-            proxyB.val();
-            return null;
-        });
+        refreshLeadershipToken(proxyB);
 
         proxyA.val();
-        verify(mockA, times(1)).close();
+        verify(mockA).close();
     }
 
     @SuppressWarnings("IllegalThrows")
@@ -390,14 +367,14 @@ public class AwaitingLeadershipProxyTest {
                 .hasMessage("method invoked on a non-leader (leadership lost)");
     }
 
-    private void refreshLeadershipToken(Callable proxy) throws InterruptedException {
+    private void refreshLeadershipToken(MyCloseable proxy) throws InterruptedException {
         LeadershipToken newLeadershipToken = mock(LeadershipToken.class);
         when(leaderElectionService.isStillLeading(leadershipToken))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
         when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> newLeadershipToken);
 
         // make a call so the proxy will realize that it has lost leadership
-        assertThatThrownBy(proxy::call)
+        assertThatThrownBy(proxy::val)
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessage("method invoked on a non-leader (leadership lost)");
 
@@ -419,5 +396,22 @@ public class AwaitingLeadershipProxyTest {
     private void waitForLeadershipToBeGained() throws InterruptedException {
         verify(leaderElectionService, timeout(5_000)).blockOnBecomingLeader();
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+    }
+
+    private interface ReturnsListenableFuture {
+        ListenableFuture<?> future();
+    }
+
+    private static final class ReturnsListenableFutureImpl implements ReturnsListenableFuture {
+        private final SettableFuture<?> future = SettableFuture.create();
+
+        @Override
+        public ListenableFuture<?> future() {
+            return future;
+        }
+    }
+
+    private interface MyCloseable extends Closeable {
+        void val();
     }
 }

@@ -26,14 +26,13 @@ public class LeadershipCoordinatorFactory implements Closeable {
     private final Map<LeaderElectionService, LeadershipCoordinator> leadershipCoordinators = new ConcurrentHashMap<>();
 
     public LeadershipCoordinator create(LeaderElectionService leaderElectionService) {
-        return leadershipCoordinators.computeIfAbsent(
-                leaderElectionService, _u -> LeadershipCoordinator.create(leaderElectionService));
+        return leadershipCoordinators.computeIfAbsent(leaderElectionService, LeadershipCoordinator::create);
     }
 
     @Override
     public void close() {
-        leadershipCoordinators.keySet().forEach(k -> {
-            LeadershipCoordinator leadershipCoordinator = leadershipCoordinators.remove(k);
+        leadershipCoordinators.keySet().forEach(leaderElectionService -> {
+            LeadershipCoordinator leadershipCoordinator = leadershipCoordinators.remove(leaderElectionService);
             if (leadershipCoordinator != null) {
                 leadershipCoordinator.close();
             }
