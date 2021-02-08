@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -289,6 +290,22 @@ public class KeyValueServicePuncherStoreTest {
         // it is still possible to have a range scan if the binary search does not stumble upon an exact match
         verify(kvs, atMost(1))
                 .getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(queryTimestamp + 1));
+    }
+
+    @Test
+    public void getMillisForTimestampDoesNoRangeScansIfResultIsTheLowerBound() {
+        KeyValueService kvs = Mockito.spy(new InMemoryKeyValueService(false));
+        initializePuncherStore(PUNCHER_HISTORY, kvs);
+
+        ImmutableMillisAndMaybeTimestamp previousResult = ImmutableMillisAndMaybeTimestamp.builder()
+                .timestamp(1000)
+                .millis(123123)
+                .build();
+
+        assertThat(KeyValueServicePuncherStore.getMillisForTimestampWithinBounds(
+                        kvs, 1000, previousResult, MAX_OFFSET_FOR_BOUNDS_TESTS))
+                .hasValue(previousResult);
+        verify(kvs, never()).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());
     }
 
     private static Multimap<Long, Long> generateTsToMillisMap(long tsBound, boolean includeQueryTs) {

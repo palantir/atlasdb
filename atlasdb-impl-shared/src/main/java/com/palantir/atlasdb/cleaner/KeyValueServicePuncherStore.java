@@ -130,14 +130,14 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
 
     /**
      * Returns the real time in milliseconds corresponding to the given timestamp.
-     * <p>
+     *
      * Warning: If the given timestamp is low compared to currently given out timestamps, this call may range scan over
      * the entire table. This table tends to grow quickly, so this call can be expensive.
      *
      * You should call
      * {@link #getMillisForTimestampWithinBounds(KeyValueService, long, MillisAndMaybeTimestamp, long)} instead.
      *
-     * @param kvs       the KVS to query.
+     * @param kvs the KVS to query.
      * @param timestamp timestamp to query for.
      */
     public static long getMillisForTimestamp(KeyValueService kvs, long timestamp) {
@@ -166,7 +166,8 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
      * of binary search to reduce the range that is scanned down to at most {@link #MAX_RANGE_SCAN_SIZE}.
      *
      * Note that since this method uses binary search, in the presence of clock drift in the punch table it is
-     * possible, though unlikely, that the returned value is incorrect.
+     * possible, though unlikely, that the returned value is different than if using
+     * {@link #getMillisForTimestamp(KeyValueService, long)}.
      *
      * @param kvs the KVS to query.
      * @param timestamp timestamp to query for.

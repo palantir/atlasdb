@@ -182,7 +182,7 @@ public class TargetedSweepMetrics {
         private final SweepOutcomeMetrics outcomeMetrics;
         private final SlidingWindowMeanGauge batchSizeMean;
         private final CurrentValueMetric<Long> sweepDelayMetric;
-        private final Map<Integer, MillisAndMaybeTimestamp> millisAndTsPerShard = new ConcurrentHashMap<>();
+        private final Map<Integer, MillisAndMaybeTimestamp> lastMillisAndTsPerShard = new ConcurrentHashMap<>();
 
         private MetricsForStrategy(
                 MetricsManager manager,
@@ -302,11 +302,11 @@ public class TargetedSweepMetrics {
             }
             long timeBeforeRecomputing = System.currentTimeMillis();
             MillisAndMaybeTimestamp millisAndMaybeTs =
-                    tsToMillis.apply(shardAndTs.timestamp(), millisAndTsPerShard.get(shardAndTs.shard()));
+                    tsToMillis.apply(shardAndTs.timestamp(), lastMillisAndTsPerShard.get(shardAndTs.shard()));
             if (millisAndMaybeTs == null) {
                 return null;
             }
-            millisAndTsPerShard.put(shardAndTs.shard(), millisAndMaybeTs);
+            lastMillisAndTsPerShard.put(shardAndTs.shard(), millisAndMaybeTs);
             long result = clock.getTimeMillis() - millisAndMaybeTs.millis();
 
             long timeTaken = System.currentTimeMillis() - timeBeforeRecomputing;
