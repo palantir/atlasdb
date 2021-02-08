@@ -80,7 +80,7 @@ public class NemesisResilienceChecker implements Checker {
         }
 
         private static boolean isNemesisEvent(InfoEvent event) {
-            return Objects.equals(event.process(), JepsenConstants.NEMESIS_PROCESS);
+            return event.process() == JepsenConstants.NEMESIS_PROCESS;
         }
 
         private static boolean isStartEvent(InfoEvent event) {
