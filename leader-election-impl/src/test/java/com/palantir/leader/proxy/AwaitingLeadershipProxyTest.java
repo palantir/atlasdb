@@ -313,7 +313,6 @@ public class AwaitingLeadershipProxyTest {
         MyCloseable proxyB = AwaitingLeadershipProxy.newProxyInstance(
                 MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
-
         // Wait to gain leadership
         Awaitility.await().atMost(Duration.ofMillis(100L));
 
