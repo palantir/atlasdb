@@ -78,7 +78,7 @@ public class LeadershipStateManager<T> {
     private LeadershipToken getOrUpdateLeadershipToken() {
         if (!leadershipCoordinator.isStillCurrentToken(maybeValidLeadershipTokenRef.get())) {
             // we need to clear out existing resources if leadership token has been updated
-            claimResourcesOnLeadershipUpdate();
+            releaseOldResourcesOnLeadershipUpdate();
             tryToUpdateLeadershipToken();
         }
 
@@ -97,7 +97,7 @@ public class LeadershipStateManager<T> {
         try {
             delegateClosingExecutor.execute(() -> closeDelegate(delegateToBeClosed));
         } catch (RejectedExecutionException e) {
-            log.warn("Tried to clear the delegateRef but were unsuccessful.");
+            log.warn("Tried to clear the delegateRef but was unsuccessful.", e);
         }
     }
 
@@ -132,7 +132,7 @@ public class LeadershipStateManager<T> {
     }
 
     @GuardedBy("leadershipTokenCoalescingSupplier")
-    private void claimResourcesOnLeadershipUpdate() {
+    private void releaseOldResourcesOnLeadershipUpdate() {
         maybeValidLeadershipTokenRef.set(null);
         clearDelegate();
     }

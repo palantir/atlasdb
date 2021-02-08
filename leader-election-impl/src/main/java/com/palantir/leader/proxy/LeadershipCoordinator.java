@@ -137,7 +137,7 @@ public final class LeadershipCoordinator implements Closeable {
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
                 throw new SafeIllegalStateException(
-                        "Failed to submit task to gain leadership but coordinator not " + "closed", e);
+                        "Failed to submit task to gain leadership but coordinator not closed", e);
             }
         }
     }

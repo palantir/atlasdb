@@ -90,7 +90,10 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             return null;
         }
 
+        // The state must NEVER be cached, each request must fetch latest leadership state from the
+        // leadershipStateManager
         LeadershipState<T> leadershipState = leadershipStateManager.getLeadershipState();
+
         final LeadershipToken leadershipToken = leadershipState.leadershipToken();
         T maybeValidDelegate = leadershipState.delegate();
 
