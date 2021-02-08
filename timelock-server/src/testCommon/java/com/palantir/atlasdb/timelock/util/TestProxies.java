@@ -66,6 +66,10 @@ public class TestProxies {
         abstract int getPort(TimeLockServerHolder serverHolder);
     }
 
+    public void clearProxies() {
+        proxies.clear();
+    }
+
     public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface, ProxyMode proxyMode) {
         return singleNode(server, serviceInterface, true, proxyMode);
     }
