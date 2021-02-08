@@ -140,7 +140,6 @@ import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
-import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.leader.proxy.LeadershipCoordinator;
@@ -1261,12 +1260,12 @@ public abstract class TransactionManagers {
         LocalPaxosServices localPaxosServices =
                 Leaders.createAndRegisterLocalServices(metricsManager, env, leaderConfig, userAgent);
 
-        LeaderElectionService leader = localPaxosServices.leaderElectionService();
+        LeadershipCoordinator leadershipCoordinator = localPaxosServices.leadershipCoordinator();
         LockService localLock =
-                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, LeadershipCoordinator.create(leader));
+                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leadershipCoordinator);
 
-        ManagedTimestampService managedTimestampProxy = AwaitingLeadershipProxy.newProxyInstance(
-                ManagedTimestampService.class, time, LeadershipCoordinator.create(leader));
+        ManagedTimestampService managedTimestampProxy =
+                AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time, leadershipCoordinator);
 
         // These facades are necessary because of the semantics of the JAX-RS algorithm (in particular, accepting
         // just the managed timestamp service will *not* work).
