@@ -20,25 +20,18 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-import com.palantir.logsafe.SafeArg;
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import javax.validation.constraints.Size;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @JsonDeserialize(as = ImmutableLeaderConfig.class)
 @JsonSerialize(as = ImmutableLeaderConfig.class)
 @Value.Immutable
 @SuppressWarnings("DesignForExtension")
 public abstract class LeaderConfig {
-
-    private static final Logger log = LoggerFactory.getLogger(LeaderConfig.class);
 
     public abstract int quorumSize();
 
@@ -119,26 +112,5 @@ public abstract class LeaderConfig {
                 "The localServer '%s' must included in the leader entries %s.",
                 localServer(),
                 leaders());
-        Preconditions.checkArgument(
-                ensureDirectoryExists(learnerLogDir()),
-                "Learner log directory '%s' does not exist and cannot be created.",
-                learnerLogDir());
-        Preconditions.checkArgument(
-                ensureDirectoryExists(acceptorLogDir()),
-                "Acceptor log directory '%s' does not exist and cannot be created.",
-                acceptorLogDir());
-    }
-
-    private boolean ensureDirectoryExists(File directory) {
-        if (directory.exists()) {
-            return true;
-        }
-        try {
-            Files.createDirectories(Paths.get(directory.getPath()));
-            return true;
-        } catch (Throwable t) {
-            log.error("Could not create the directory {}", SafeArg.of("dirName", directory.getPath()), t);
-            return false;
-        }
     }
 }
