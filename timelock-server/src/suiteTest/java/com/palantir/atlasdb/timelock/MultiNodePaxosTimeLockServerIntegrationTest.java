@@ -336,6 +336,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
         Set<String> namespacesAfterRestart = getKnownNamespaces();
         assertThat(namespacesAfterRestart).contains(randomNamespace);
+        assertThat(namespacesAfterRestart).doesNotContain("learner", "acceptor");
         assertThat(Sets.difference(knownNamespaces, namespacesAfterRestart)).isEmpty();
     }
 
