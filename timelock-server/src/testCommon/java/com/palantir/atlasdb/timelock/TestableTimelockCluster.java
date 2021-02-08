@@ -54,12 +54,9 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TestableTimelockCluster implements TestRule {
 
-    private static final Logger log = LoggerFactory.getLogger(TestableTimelockCluster.class);
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private final String name;
@@ -163,30 +160,23 @@ public class TestableTimelockCluster implements TestRule {
         return currentLeaders(ImmutableSet.copyOf(namespaces));
     }
 
-    @SuppressWarnings("Slf4jConstantLogMessage")
     SetMultimap<String, TestableTimelockServer> currentLeaders(Iterable<String> namespaces) {
         Set<String> namespacesIterable = ImmutableSet.copyOf(namespaces);
-        Map<TestableTimelockServer, PaxosContainer<Set<String>>> responses = PaxosQuorumChecker.collectUntil(
-                        ImmutableList.copyOf(servers),
-                        server -> PaxosContainer.of(server.pinger().ping(namespaces)),
-                        Maps.toMap(servers, unused -> new CheckedRejectionExecutorService(executorService)),
-                        Duration.ofSeconds(2),
-                        untilAllNamespacesAreSeen(namespacesIterable),
-                        true)
-                .responses();
+        KeyedStream<TestableTimelockServer, PaxosContainer<Set<String>>> responses = PaxosQuorumChecker.collectUntil(
+                ImmutableList.copyOf(servers),
+                server -> PaxosContainer.of(server.pinger().ping(namespaces)),
+                Maps.toMap(servers, unused -> new CheckedRejectionExecutorService(executorService)),
+                Duration.ofSeconds(2),
+                untilAllNamespacesAreSeen(namespacesIterable),
+                true)
+                .stream();
 
-        log.info("Responses: " + responses);
-
-        SetMultimap<String, TestableTimelockServer> filteredResponses = KeyedStream.stream(responses)
+        return responses
                 .filter(PaxosContainer::isSuccessful)
                 .map(PaxosContainer::get)
                 .flatMap(Collection::stream)
                 .mapEntries((server, namespace) -> Maps.immutableEntry(namespace, server))
                 .collectToSetMultimap();
-
-        log.info("Filtered responses: " + filteredResponses);
-
-        return filteredResponses;
     }
 
     private static Predicate<InProgressResponseState<TestableTimelockServer, PaxosContainer<Set<String>>>>
