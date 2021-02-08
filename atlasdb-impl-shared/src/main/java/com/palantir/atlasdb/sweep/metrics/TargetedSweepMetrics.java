@@ -18,12 +18,12 @@ package com.palantir.atlasdb.sweep.metrics;
 import com.codahale.metrics.Gauge;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbMetricNames;
-import com.palantir.atlasdb.cleaner.ImmutableMillisAndTimestamp;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
-import com.palantir.atlasdb.cleaner.MillisAndTimestamp;
+import com.palantir.atlasdb.cleaner.MillisAndMaybeTimestamp;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
@@ -42,7 +42,9 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,24 +60,18 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class TargetedSweepMetrics {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweepMetrics.class);
-    private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
     private final Map<SweeperStrategy, MetricsForStrategy> metricsForStrategyMap;
 
     private TargetedSweepMetrics(
             MetricsManager metricsManager,
-            BiFunction<Long, MillisAndTimestamp, Long> tsToMillis,
+            BiFunction<Long, MillisAndMaybeTimestamp, MillisAndMaybeTimestamp> tsToMillis,
             Clock clock,
             MetricsConfiguration metricsConfiguration,
             int shards) {
         metricsForStrategyMap = KeyedStream.of(metricsConfiguration.trackedSweeperStrategies())
                 .map(TargetedSweepMetrics::getTagForStrategy)
                 .map(strategyTag -> new MetricsForStrategy(
-                        metricsManager,
-                        strategyTag,
-                        tsToMillis,
-                        clock,
-                        metricsConfiguration,
-                        shards))
+                        metricsManager, strategyTag, tsToMillis, clock, metricsConfiguration, shards))
                 .collectToMap();
     }
 
@@ -88,7 +84,8 @@ public class TargetedSweepMetrics {
         return createWithClock(metricsManager, kvs, timelock::currentTimeMillis, metricsConfiguration, shards);
     }
 
-    public static TargetedSweepMetrics createWithClock(
+    @VisibleForTesting
+    static TargetedSweepMetrics createWithClock(
             MetricsManager metricsManager,
             KeyValueService kvs,
             Clock clock,
@@ -102,12 +99,8 @@ public class TargetedSweepMetrics {
                 shards);
     }
 
-    private static long getMillisForTimestampBoundedAtOneWeek(KeyValueService kvs, long ts, Clock clock) {
-        return KeyValueServicePuncherStore.getMillisForTimestampIfNotPunchedBefore(
-                kvs, ts, clock.getTimeMillis() - ONE_WEEK);
-    }
-
-    private static Long getMillisForTimestamp(KeyValueService kvs, long ts, Clock clock, MillisAndTimestamp previous) {
+    private static MillisAndMaybeTimestamp getMillisForTimestamp(
+            KeyValueService kvs, long ts, Clock clock, MillisAndMaybeTimestamp previous) {
         return KeyValueServicePuncherStore.getMillisForTimestampWithinBounds(kvs, ts, previous, clock.getTimeMillis())
                 .orElse(null);
     }
@@ -184,17 +177,17 @@ public class TargetedSweepMetrics {
         private final AccumulatingValueMetric tombstonesPut;
         private final AccumulatingValueMetric abortedWritesDeleted;
         private final CurrentValueMetric<Long> sweepTimestamp;
-        private final AggregatingVersionedMetric<Long> lastSweptTs;
+        private final AggregatingVersionedMetric<ShardAndTimestamp> lastSweptTsWithShard;
         private final Map<Integer, Gauge<Long>> millisSinceLastSwept;
         private final SweepOutcomeMetrics outcomeMetrics;
         private final SlidingWindowMeanGauge batchSizeMean;
         private final CurrentValueMetric<Long> sweepDelayMetric;
-        private final Map<Integer, MillisAndTimestamp> millisAndTsPerShard = new ConcurrentHashMap<>();
+        private final Map<Integer, MillisAndMaybeTimestamp> millisAndTsPerShard = new ConcurrentHashMap<>();
 
         private MetricsForStrategy(
                 MetricsManager manager,
                 String strategy,
-                BiFunction<Long, MillisAndTimestamp, Long> tsToMillis,
+                BiFunction<Long, MillisAndMaybeTimestamp, MillisAndMaybeTimestamp> tsToMillis,
                 Clock wallClock,
                 MetricsConfiguration metricsConfig,
                 int shards) {
@@ -205,7 +198,7 @@ public class TargetedSweepMetrics {
             tombstonesPut = new AccumulatingValueMetric();
             abortedWritesDeleted = new AccumulatingValueMetric();
             sweepTimestamp = new CurrentValueMetric<>();
-            lastSweptTs = createLastSweptTsMetric(metricsConfig.millisBetweenRecomputingMetrics());
+            lastSweptTsWithShard = createLastSweptTsMetric(metricsConfig.millisBetweenRecomputingMetrics());
             millisSinceLastSwept = createMillisSinceLastSweptMetric(tsToMillis, wallClock, metricsConfig, shards);
 
             batchSizeMean = new SlidingWindowMeanGauge();
@@ -225,11 +218,13 @@ public class TargetedSweepMetrics {
                             .build())
                     .forEach(metricName -> manager.addMetricFilter(metricName, filter));
 
-            MetricName.Builder sweepLag = MetricName.builder()
-                    .safeName("targetedSweepProgress." + AtlasDbMetricNames.LAG_MILLIS)
-                    .putSafeTags("strategy", strategy);
-            millisSinceLastSwept.keySet().forEach(shard -> manager.addMetricFilter(
-                    sweepLag.putSafeTags("shard", Integer.toString(shard)).build(), filter));
+            millisSinceLastSwept
+                    .keySet()
+                    .forEach(shard -> manager.addMetricFilter(
+                            getProgressMetricNameBuilder(strategy)
+                                    .putSafeTags("shard", Integer.toString(shard))
+                                    .build(),
+                            filter));
 
             TargetedSweepProgressMetrics progressMetrics = TargetedSweepProgressMetrics.of(manager.getTaggedRegistry());
             progressMetrics.enqueuedWrites().strategy(strategy).build(enqueuedWrites);
@@ -237,8 +232,9 @@ public class TargetedSweepMetrics {
             progressMetrics.tombstonesPut().strategy(strategy).build(tombstonesPut);
             progressMetrics.abortedWritesDeleted().strategy(strategy).build(abortedWritesDeleted);
             progressMetrics.sweepTimestamp().strategy(strategy).build(sweepTimestamp);
-            progressMetrics.lastSweptTimestamp().strategy(strategy).build(lastSweptTs);
-            millisSinceLastSwept.forEach((shard, gauge) -> progressMetrics.millisSinceLastSweptTs()
+            progressMetrics.lastSweptTimestamp().strategy(strategy).build(() -> extractTimestamp(lastSweptTsWithShard));
+            millisSinceLastSwept.forEach((shard, gauge) -> progressMetrics
+                    .millisSinceLastSweptTs()
                     .strategy(strategy)
                     .shard(Integer.toString(shard))
                     .build(gauge));
@@ -246,43 +242,51 @@ public class TargetedSweepMetrics {
             progressMetrics.sweepDelay().strategy(strategy).build(sweepDelayMetric);
         }
 
+        private static MetricName.Builder getProgressMetricNameBuilder(String strategy) {
+            return MetricName.builder()
+                    .safeName("targetedSweepProgress." + AtlasDbMetricNames.LAG_MILLIS)
+                    .putSafeTags("strategy", strategy);
+        }
+
         private TargetedSweepMetricPublicationFilter createMetricPublicationFilter() {
             return new TargetedSweepMetricPublicationFilter(ImmutableDecisionMetrics.builder()
                     .enqueuedWrites(enqueuedWrites::getValue)
                     .entriesRead(entriesRead::getValue)
-                    .millisSinceLastSweptTs(() -> millisSinceLastSwept.values()
-                            .stream()
+                    .millisSinceLastSweptTs(() -> millisSinceLastSwept.values().stream()
                             .map(Gauge::getValue)
+                            .filter(Objects::nonNull)
                             .max(Long::compareTo)
                             .orElse(0L))
                     .build());
         }
 
-        private AggregatingVersionedMetric<Long> createLastSweptTsMetric(long millis) {
-            AggregatingVersionedSupplier<Long> lastSweptTimestamp = AggregatingVersionedSupplier.min(millis);
+        private AggregatingVersionedMetric<ShardAndTimestamp> createLastSweptTsMetric(long millis) {
+            AggregatingVersionedSupplier<ShardAndTimestamp> lastSweptTimestamp =
+                    AggregatingVersionedSupplier.min(millis);
             return new AggregatingVersionedMetric<>(lastSweptTimestamp);
         }
 
+        private Long extractTimestamp(Gauge<ShardAndTimestamp> gauge) {
+            ShardAndTimestamp result = gauge.getValue();
+            return Optional.ofNullable(result).map(ShardAndTimestamp::timestamp).orElse(null);
+        }
+
         private Map<Integer, Gauge<Long>> createMillisSinceLastSweptMetric(
-                BiFunction<Long, MillisAndTimestamp, Long> tsToMillis,
+                BiFunction<Long, MillisAndMaybeTimestamp, MillisAndMaybeTimestamp> tsToMillis,
                 Clock wallClock,
                 MetricsConfiguration metricsConfiguration,
                 int shards) {
-            if (metricsConfiguration.trackSweepLagPerShard()
-                    .stream()
+            if (metricsConfiguration.trackSweepLagPerShard().stream()
                     .map(TargetedSweepMetrics::getTagForStrategy)
                     .anyMatch(strategy -> strategy.equals(tag.get(AtlasDbMetricNames.TAG_STRATEGY)))) {
                 return KeyedStream.of(IntStream.range(0, shards).boxed())
                         .<Gauge<Long>>map(shard -> () -> estimateMillisSinceTs(
-                                lastSweptTs.getLastValueForKey(shard),
-                                wallClock,
-                                tsToMillis,
-                                shard))
+                                lastSweptTsWithShard.getLastValueForKey(shard), wallClock, tsToMillis))
                         .collectToMap();
             } else {
                 Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
-                        sweptTs -> estimateMillisSinceTs(sweptTs, wallClock, tsToMillis, -1),
-                        lastSweptTs::getVersionedValue,
+                        shardAndTs -> estimateMillisSinceTs(shardAndTs, wallClock, tsToMillis),
+                        lastSweptTsWithShard::getVersionedValue,
                         metricsConfiguration.millisBetweenRecomputingMetrics(),
                         wallClock);
                 return ImmutableMap.of(-1, millisSinceLastSweptTs::get);
@@ -290,18 +294,20 @@ public class TargetedSweepMetrics {
         }
 
         private Long estimateMillisSinceTs(
-                Long sweptTs, Clock clock,
-                BiFunction<Long, MillisAndTimestamp, Long> tsToMillis,
-                int shard) {
-            if (sweptTs == null) {
+                ShardAndTimestamp shardAndTs,
+                Clock clock,
+                BiFunction<Long, MillisAndMaybeTimestamp, MillisAndMaybeTimestamp> tsToMillis) {
+            if (shardAndTs == null) {
                 return null;
             }
             long timeBeforeRecomputing = System.currentTimeMillis();
-            Long millis = tsToMillis.apply(sweptTs, millisAndTsPerShard.get(shard));
-            millisAndTsPerShard.put(
-                    shard,
-                    ImmutableMillisAndTimestamp.builder().timestamp(sweptTs).millis(millis).build());
-            long result = clock.getTimeMillis() - millis;
+            MillisAndMaybeTimestamp millisAndMaybeTs =
+                    tsToMillis.apply(shardAndTs.timestamp(), millisAndTsPerShard.get(shardAndTs.shard()));
+            if (millisAndMaybeTs == null) {
+                return null;
+            }
+            millisAndTsPerShard.put(shardAndTs.shard(), millisAndMaybeTs);
+            long result = clock.getTimeMillis() - millisAndMaybeTs.millis();
 
             long timeTaken = System.currentTimeMillis() - timeBeforeRecomputing;
             if (timeTaken > TimeUnit.SECONDS.toMillis(10)) {
@@ -333,7 +339,7 @@ public class TargetedSweepMetrics {
         }
 
         private void updateProgressForShard(int shard, long sweptTs) {
-            lastSweptTs.update(shard, sweptTs);
+            lastSweptTsWithShard.update(shard, ImmutableShardAndTimestamp.of(shard, sweptTs));
         }
 
         private void registerOccurrenceOf(SweepOutcome outcome) {
@@ -392,6 +398,23 @@ public class TargetedSweepMetrics {
 
         static ImmutableMetricsConfiguration.Builder builder() {
             return ImmutableMetricsConfiguration.builder();
+        }
+    }
+
+    @Value.Immutable
+    public interface ShardAndTimestamp extends Comparable<ShardAndTimestamp> {
+        Comparator<ShardAndTimestamp> COMPARATOR =
+                Comparator.comparing(ShardAndTimestamp::timestamp).thenComparing(ShardAndTimestamp::shard);
+
+        @Value.Parameter
+        int shard();
+
+        @Value.Parameter
+        long timestamp();
+
+        @Override
+        default int compareTo(ShardAndTimestamp other) {
+            return COMPARATOR.compare(this, other);
         }
     }
 }

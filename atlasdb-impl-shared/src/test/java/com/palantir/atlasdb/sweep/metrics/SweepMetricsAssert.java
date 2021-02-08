@@ -88,8 +88,12 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     }
 
     public void hasMillisSinceLastSweptConservativeEqualTo(Long value) {
+        hasMillisSinceLastSweptConservativeForShardEqualTo(-1, value);
+    }
+
+    public void hasMillisSinceLastSweptConservativeForShardEqualTo(int shard, Long value) {
         objects.assertEqual(
-                info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS, -1).getValue(), value);
+                info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS, shard).getValue(), value);
     }
 
     public void hasEnqueuedWritesThoroughEqualTo(long value) {
@@ -123,9 +127,13 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
                 info, getGaugeThorough(AtlasDbMetricNames.LAST_SWEPT_TS).getValue(), value);
     }
 
-    public void hasMillisSinceLastSweptThoroughEqualTo(long value) {
+    public void hasMillisSinceLastSweptThoroughEqualTo(Long value) {
+        hasMillisSinceLastSweptThoroughForShardEqualTo(-1, value);
+    }
+
+    public void hasMillisSinceLastSweptThoroughForShardEqualTo(int shard, Long value) {
         objects.assertEqual(
-                info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
+                info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS, shard).getValue(), value);
     }
 
     public void containsEntriesReadInBatchConservative(long... outcomes) {
@@ -167,13 +175,25 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     }
 
     private <N> Gauge<N> getGaugeConservative(String name, int shard) {
-        Map<String, String> tags = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY,
-                AtlasDbMetricNames.TAG_CONSERVATIVE, AtlasDbMetricNames.TAG_SHARD, "-1");
+        Map<String, String> tags = ImmutableMap.of(
+                AtlasDbMetricNames.TAG_STRATEGY,
+                AtlasDbMetricNames.TAG_CONSERVATIVE,
+                AtlasDbMetricNames.TAG_SHARD,
+                Integer.toString(shard));
         return getGauge("targetedSweepProgress", name, tags);
     }
 
     private <N> Gauge<N> getGaugeThorough(String name) {
         return getGaugeForTargetedSweep(AtlasDbMetricNames.TAG_THOROUGH, name);
+    }
+
+    private <N> Gauge<N> getGaugeThorough(String name, int shard) {
+        Map<String, String> tags = ImmutableMap.of(
+                AtlasDbMetricNames.TAG_STRATEGY,
+                AtlasDbMetricNames.TAG_THOROUGH,
+                AtlasDbMetricNames.TAG_SHARD,
+                Integer.toString(shard));
+        return getGauge("targetedSweepProgress", name, tags);
     }
 
     private <N> Gauge<N> getGaugeForTargetedSweep(String strategy, String name) {

@@ -16,10 +16,17 @@
 
 package com.palantir.atlasdb.cleaner;
 
+import java.util.Optional;
+import java.util.function.Predicate;
 import org.immutables.value.Value.Immutable;
 
 @Immutable
-public interface MillisAndTimestamp {
+public interface MillisAndMaybeTimestamp {
     long millis();
-    long timestamp();
+
+    Optional<Long> timestamp();
+
+    default boolean timestampSatisfies(Predicate<Long> predicate) {
+        return timestamp().isPresent() && predicate.test(timestamp().get());
+    }
 }

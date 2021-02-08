@@ -149,7 +149,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         }
         Preconditions.checkState(
                 kvs.isInitialized(), "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
-        metrics = TargetedSweepMetrics.create(metricsManager, timelockService, kvs, metricsConfiguration,
+        metrics = TargetedSweepMetrics.create(
+                metricsManager,
+                timelockService,
+                kvs,
+                metricsConfiguration,
                 runtime.get().shards());
         queue = SweepQueue.create(
                 metrics,

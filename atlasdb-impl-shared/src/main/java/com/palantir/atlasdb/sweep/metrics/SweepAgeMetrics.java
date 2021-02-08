@@ -17,8 +17,5 @@
 package com.palantir.atlasdb.sweep.metrics;
 
 public class SweepAgeMetrics {
-    public void updateLastSweptTimestamp(int shard, long lastSweptTimestamp) {
-
-    }
-
+    public void updateLastSweptTimestamp(int shard, long lastSweptTimestamp) {}
 }
