@@ -33,7 +33,6 @@ logging:
       logFormat: "server-${localServerPort?c} %-5p [%d{ISO8601,UTC}] %c: %m%n%rEx"
 
 server:
-  shutdownGracePeriod: 2m
   requestLog:
     appenders:
       - type: console
