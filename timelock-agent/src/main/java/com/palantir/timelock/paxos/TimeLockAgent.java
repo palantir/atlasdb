@@ -78,6 +78,7 @@ import com.palantir.timelock.management.TimestampStorage;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.zaxxer.hikari.HikariDataSource;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -431,11 +432,15 @@ public class TimeLockAgent {
 
     private LeaderConfig createLeaderConfig() {
         List<String> uris = install.cluster().clusterMembers();
+        Path dataDirectory = install.paxos().dataDirectory().toPath();
+
         return ImmutableLeaderConfig.builder()
                 .addLeaders(uris.toArray(new String[0]))
                 .localServer(install.cluster().localServer())
                 .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
+                .learnerLogDir(dataDirectory.resolve("learner").toFile())
+                .acceptorLogDir(dataDirectory.resolve("acceptor").toFile())
                 .build();
     }
 
