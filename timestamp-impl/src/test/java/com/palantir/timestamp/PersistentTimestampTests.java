@@ -15,15 +15,16 @@
  */
 package com.palantir.timestamp;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.longThat;
 
+import org.assertj.core.api.HamcrestCondition;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,17 +49,18 @@ public class PersistentTimestampTests {
         TimestampRange first = timestamp.incrementBy(10);
         TimestampRange second = timestamp.incrementBy(10);
 
-        assertThat(first.getUpperBound(), is(lessThan(second.getLowerBound())));
+        assertThat(first.getUpperBound()).is(new HamcrestCondition<>(is(lessThan(second.getLowerBound()))));
     }
 
     @Test
     public void shouldHandOutRangesOfTheCorrectSize() {
-        assertThat(timestamp.incrementBy(10).size(), is(10L));
+        assertThat(timestamp.incrementBy(10).size()).isEqualTo(10L);
     }
 
     @Test
     public void shouldIncreaseUpperLimitWhenHandingOutNewTimestamps() {
-        assertThat(timestamp.incrementBy(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound(), is(UPPER_LIMIT + 10));
+        assertThat(timestamp.incrementBy(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound())
+                .isEqualTo(UPPER_LIMIT + 10);
 
         verify(upperLimit).increaseToAtLeast(UPPER_LIMIT + 10);
     }
@@ -68,7 +70,7 @@ public class PersistentTimestampTests {
         long newMinimum = 2 * UPPER_LIMIT;
         timestamp.increaseTo(newMinimum);
 
-        assertThat(timestamp.incrementBy(1).getLowerBound(), is(newMinimum + 1L));
+        assertThat(timestamp.incrementBy(1).getLowerBound()).isEqualTo(newMinimum + 1L);
         verify(upperLimit).increaseToAtLeast(longThat(is(greaterThan(newMinimum))));
     }
 }

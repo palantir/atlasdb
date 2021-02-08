@@ -85,7 +85,7 @@ public class LockServiceSerDeTest {
         String serializedForm = mapper.writeValueAsString(lockServerOptions);
         LockServerOptions deserialzedlockServerOptions = mapper.readValue(serializedForm, LockServerOptions.class);
         assertThat(deserialzedlockServerOptions).isEqualTo(lockServerOptions);
-        assertThat(deserialzedlockServerOptions.isStandaloneServer()).isEqualTo(false);
+        assertThat(deserialzedlockServerOptions.isStandaloneServer()).isFalse();
         assertThat(deserialzedlockServerOptions.slowLogTriggerMillis()).isEqualTo(10L);
     }
 
