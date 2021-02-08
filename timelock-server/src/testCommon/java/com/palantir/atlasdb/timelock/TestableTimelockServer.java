@@ -75,6 +75,7 @@ public class TestableTimelockServer {
         ListenableFuture<Void> kill = serverHolder.kill();
         kill.addListener(
                 () -> {
+                    // https://github.com/palantir/dialogue/issues/1119
                     clientsByNamespace.clear();
                     proxies.clearProxies();
                 },
