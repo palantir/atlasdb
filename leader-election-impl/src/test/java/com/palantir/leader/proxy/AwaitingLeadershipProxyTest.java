@@ -48,7 +48,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
-import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -279,7 +278,7 @@ public class AwaitingLeadershipProxyTest {
                 MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
         // Wait to gain leadership
-        Awaitility.await().atMost(Duration.ofMillis(100L));
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
 
         proxyA.val();
         proxyB.val();
@@ -320,7 +319,7 @@ public class AwaitingLeadershipProxyTest {
                 MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
         // Wait to gain leadership
-        Awaitility.await().atMost(Duration.ofMillis(100L));
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
 
         proxyA.val();
         proxyB.val();
@@ -361,7 +360,7 @@ public class AwaitingLeadershipProxyTest {
     private void loseLeadership(Callable proxy) throws InterruptedException {
         when(leaderElectionService.isStillLeading(any()))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
-        when(leaderElectionService.blockOnBecomingLeader()).then(invocation -> {
+        when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> {
             // never return
             LockSupport.park();
             return null;
@@ -375,17 +374,20 @@ public class AwaitingLeadershipProxyTest {
 
     private void refreshLeadershipToken(MyCloseable proxy) throws InterruptedException {
         LeadershipToken newLeadershipToken = mock(LeadershipToken.class);
-        when(leaderElectionService.isStillLeading(leadershipToken))
-                .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
+        when(leaderElectionService.isStillLeading(any())).thenAnswer(invocation -> {
+            Object arg = invocation.getArgument(0);
+            if (arg.equals(newLeadershipToken)) {
+                return Futures.immediateFuture(StillLeadingStatus.LEADING);
+            } else {
+                return Futures.immediateFuture(StillLeadingStatus.NOT_LEADING);
+            }
+        });
         when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> newLeadershipToken);
 
         // make a call so the proxy will realize that it has lost leadership
         assertThatThrownBy(proxy::val)
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessage("method invoked on a non-leader (leadership lost)");
-
-        when(leaderElectionService.isStillLeading(newLeadershipToken))
-                .thenReturn(Futures.immediateFuture(StillLeadingStatus.LEADING));
 
         // Wait to gain leadership
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
