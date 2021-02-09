@@ -122,7 +122,10 @@ public class LeadershipStateManager<T> {
     }
 
     private void clearDelegate() {
-        Object delegate = delegateRef.getAndSet(null);
+        closeDelegate(delegateRef.getAndSet(null));
+    }
+
+    private void closeDelegate(Object delegate) {
         if (delegate instanceof Closeable) {
             try {
                 ((Closeable) delegate).close();
