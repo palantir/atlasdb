@@ -16,7 +16,6 @@
 
 package com.palantir.leader.proxy;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.concurrent.PTExecutors;
@@ -39,9 +38,9 @@ import org.slf4j.LoggerFactory;
 /**
  * This is the component of TimeLock that is responsible for coordinating and maintaining a consistent leadership state
  * in the cluster. Each node keeps trying to gain leadership upon a) startup and b) loss of leadership, see
- * {@link #tryToGainLeadership()}.
+ * {@link #tryToGainLeadership()}
  *
- * {@link LeadershipCoordinator} is finally used by {@link AwaitingLeadershipProxy} instances to check if current node
+ * {@link LeadershipCoordinator} is finally used by {@link AwaitingLeadershipProxy} instances to check if this node
  *  can service requests or not.
  *
  * {@link LeadershipCoordinator} relies on {@link LeaderElectionService} for the following -
@@ -76,12 +75,6 @@ public final class LeadershipCoordinator implements Closeable {
         LeadershipCoordinator leadershipCoordinator = new LeadershipCoordinator(leaderElectionService);
         leadershipCoordinator.tryToGainLeadership();
         return leadershipCoordinator;
-    }
-
-    // This is O(clients)
-    @VisibleForTesting
-    public void start() {
-        tryToGainLeadership();
     }
 
     ListenableFuture<StillLeadingStatus> isStillLeading(LeadershipToken leadershipToken) {

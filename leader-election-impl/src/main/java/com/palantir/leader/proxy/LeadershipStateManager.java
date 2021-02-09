@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,12 @@ public class LeadershipStateManager<T> {
 
     private final CoalescingSupplier<LeadershipToken> leadershipTokenCoalescingSupplier;
     private final LeadershipCoordinator leadershipCoordinator;
+
+    /**
+     * delegate reference is atomic as {@link #clearDelegate()} can be accessed by multiple threads.
+     * */
     private final AtomicReference<T> delegateRef;
+
     private final AtomicReference<LeadershipToken> maybeValidLeadershipTokenRef;
     private final Supplier<T> delegateSupplier;
     private volatile boolean isClosed;
@@ -67,7 +71,6 @@ public class LeadershipStateManager<T> {
      * This code can be accessed by multiple threads. In order to save all of the requests from locking-unlocking
      * `this` while trying to update maybeValidLeadershipTokenRef, the invocations are batched using CoalescingSupplier.
      */
-    @GuardedBy("leadershipTokenCoalescingSupplier")
     private LeadershipToken getOrUpdateLeadershipToken() {
         if (!leadershipCoordinator.isStillCurrentToken(maybeValidLeadershipTokenRef.get())) {
             // we need to clear out existing resources if leadership token has been updated
@@ -89,7 +92,6 @@ public class LeadershipStateManager<T> {
      * once for one leadershipToken update.
      * @throws NotCurrentLeaderException if we do not have leadership anymore.
      */
-    @GuardedBy("leadershipTokenCoalescingSupplier")
     private void tryToUpdateLeadershipToken() {
         // throws NotCurrentLeaderException.
         LeadershipToken leadershipToken = leadershipCoordinator.getLeadershipToken();
@@ -114,7 +116,6 @@ public class LeadershipStateManager<T> {
         }
     }
 
-    @GuardedBy("leadershipTokenCoalescingSupplier")
     private void releaseOldResourcesOnLeadershipUpdate() {
         maybeValidLeadershipTokenRef.set(null);
         clearDelegate();
