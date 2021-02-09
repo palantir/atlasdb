@@ -15,6 +15,10 @@
  */
 package com.palantir.timelock.paxos;
 
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH;
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
+import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH;
+
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -78,6 +82,7 @@ import com.palantir.timelock.management.TimestampStorage;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.zaxxer.hikari.HikariDataSource;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -431,11 +436,19 @@ public class TimeLockAgent {
 
     private LeaderConfig createLeaderConfig() {
         List<String> uris = install.cluster().clusterMembers();
+        Path leaderPaxosDataDirectory = install.paxos().dataDirectory().toPath().resolve(LEADER_PAXOS_NAMESPACE);
+
         return ImmutableLeaderConfig.builder()
                 .addLeaders(uris.toArray(new String[0]))
                 .localServer(install.cluster().localServer())
                 .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
+                .learnerLogDir(leaderPaxosDataDirectory
+                        .resolve(LEARNER_SUBDIRECTORY_PATH)
+                        .toFile())
+                .acceptorLogDir(leaderPaxosDataDirectory
+                        .resolve(ACCEPTOR_SUBDIRECTORY_PATH)
+                        .toFile())
                 .build();
     }
 
