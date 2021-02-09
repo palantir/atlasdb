@@ -56,14 +56,14 @@ public class TimestampAllocationFailuresTest {
     public void shouldRethrowMultipleRunningTimestampServiceErrorsAsServiceNotAvailableExceptions() {
         RuntimeException response = allocationFailures.responseTo(MULTIPLE_RUNNING_SERVICES_FAILURE);
 
-        assertThat(response instanceof ServiceNotAvailableException).isEqualTo(true);
+        assertThat(response).isInstanceOf(ServiceNotAvailableException.class);
         assertThat(response.getCause()).isEqualTo(MULTIPLE_RUNNING_SERVICES_FAILURE);
     }
 
     @Test
     public void shouldRethrowServiceNotAvailableExceptionsWithoutWrapping() {
         RuntimeException response = allocationFailures.responseTo(SERVICE_NOT_AVAILABLE_EXCEPTION);
-        assertThat(response instanceof ServiceNotAvailableException).isEqualTo(true);
+        assertThat(response).isInstanceOf(ServiceNotAvailableException.class);
         assertThat(response).isEqualTo(SERVICE_NOT_AVAILABLE_EXCEPTION);
     }
 
