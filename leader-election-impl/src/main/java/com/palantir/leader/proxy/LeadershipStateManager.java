@@ -34,16 +34,21 @@ public class LeadershipStateManager<T> {
 
     private final CoalescingSupplier<LeadershipToken> leadershipTokenCoalescingSupplier;
     private final LeadershipCoordinator leadershipCoordinator;
+
+    /**
+     * delegate reference is atomic as {@link #clearDelegate()} can be accessed by multiple threads.
+     * */
+    private final AtomicReference<T> delegateRef;
+
     private final AtomicReference<LeadershipToken> maybeValidLeadershipTokenRef;
     private final Supplier<T> delegateSupplier;
-
-    private volatile T delegateRef;
     private volatile boolean isClosed;
 
     public LeadershipStateManager(LeadershipCoordinator leadershipCoordinator, Supplier<T> delegateSupplier) {
         this.leadershipTokenCoalescingSupplier = new CoalescingSupplier<>(this::getOrUpdateLeadershipToken);
         this.leadershipCoordinator = leadershipCoordinator;
         this.delegateSupplier = delegateSupplier;
+        this.delegateRef = new AtomicReference<>();
         this.maybeValidLeadershipTokenRef = new AtomicReference<>();
         this.isClosed = false;
     }
@@ -51,7 +56,7 @@ public class LeadershipStateManager<T> {
     LeadershipState<T> getLeadershipState() {
         return ImmutableLeadershipState.<T>builder()
                 .leadershipToken(leadershipTokenCoalescingSupplier.get())
-                .delegate(delegateRef)
+                .delegate(delegateRef.get())
                 .build();
     }
 
@@ -101,7 +106,7 @@ public class LeadershipStateManager<T> {
 
         if (delegate != null) {
             // Do not modify, hide, or remove this line without considering impact on correctness.
-            delegateRef = delegate;
+            delegateRef.set(delegate);
             if (isClosed) {
                 clearDelegate();
             } else {
@@ -117,8 +122,7 @@ public class LeadershipStateManager<T> {
     }
 
     private void clearDelegate() {
-        Object delegate = delegateRef;
-        delegateRef = null;
+        Object delegate = delegateRef.getAndSet(null);
         if (delegate instanceof Closeable) {
             try {
                 ((Closeable) delegate).close();
