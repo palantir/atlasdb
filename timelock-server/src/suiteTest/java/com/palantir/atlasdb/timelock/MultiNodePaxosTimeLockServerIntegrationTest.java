@@ -123,8 +123,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public void nonLeadersReturn503_conjure() {
         cluster.nonLeaders(client.namespace()).forEach((namespace, server) -> {
             assertThatThrownBy(() -> server.client(namespace)
-                    .namespacedConjureTimelockService()
-                    .leaderTime())
+                            .namespacedConjureTimelockService()
+                            .leaderTime())
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         });
     }
@@ -352,9 +352,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .lock(
                         "tom",
                         com.palantir.lock.LockRequest.builder(
-                                ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
-                                        .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
-                                        .build())
+                                        ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                                                .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
+                                                .build())
                                 .build());
         ConjureLockRefreshToken conjureAnalogue =
                 ConjureLockRefreshToken.of(token.getTokenId(), token.getExpirationDateMs());
@@ -366,18 +366,18 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                         refreshed -> assertThat(refreshed.getTokenId()).isEqualTo(refreshed.getTokenId()));
         AuthHeader authHeader = AuthHeader.valueOf("Bearer unused");
         assertThat(client.conjureLegacyLockService()
-                .refreshLockRefreshTokens(authHeader, client.namespace(), ImmutableList.of(conjureAnalogue)))
+                        .refreshLockRefreshTokens(authHeader, client.namespace(), ImmutableList.of(conjureAnalogue)))
                 .as("it is possible to refresh a live token through the conjure API")
                 .hasOnlyOneElementSatisfying(
                         refreshed -> assertThat(refreshed.getTokenId()).isEqualTo(refreshed.getTokenId()));
 
         ConjureSimpleHeldLocksToken conjureHeldLocksToken = ConjureSimpleHeldLocksToken.of(token.getTokenId(), 0L);
         assertThat(client.conjureLegacyLockService()
-                .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
+                        .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
                 .as("it is possible to unlock a live token through the conjure API")
                 .isTrue();
         assertThat(client.conjureLegacyLockService()
-                .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
+                        .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
                 .as("a token unlocked through the conjure API stays unlocked")
                 .isFalse();
         assertThat(client.legacyLockService().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token)))
@@ -388,9 +388,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void lockAcquiredByConjureLockServiceIsAlsoAcquiredInLegacy() throws InterruptedException {
         com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
-                ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
-                        .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
-                        .build())
+                        ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                                .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
+                                .build())
                 .doNotBlock()
                 .build();
         String anonymousId = LockClient.ANONYMOUS.getClientId();
@@ -413,8 +413,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .as("lock taken by conjure impl that was unlocked can now be acquired by legacy impl")
                 .isNotNull();
         assertThat(client.conjureLegacyLockService()
-                .lockAndGetHeldLocks(
-                        AuthHeader.valueOf("Bearer unused"), client.namespace(), conjureLockRequest))
+                        .lockAndGetHeldLocks(
+                                AuthHeader.valueOf("Bearer unused"), client.namespace(), conjureLockRequest))
                 .as("if the legacy impl has taken a lock, the conjure impl mustn't be able to take it")
                 .isEmpty();
     }

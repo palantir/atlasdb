@@ -38,8 +38,8 @@ import org.junit.runners.Parameterized;
 public class MultiNodePaxosTimeLockServerStressTest {
 
     @ClassRule
-    public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> DbTimeLockSingleLeaderPaxosStressTests.DB_TIMELOCK_CLUSTER);
+    public static ParameterInjector<TestableTimelockCluster> injector = ParameterInjector.withFallBackConfiguration(
+            () -> DbTimeLockSingleLeaderPaxosStressTests.DB_TIMELOCK_CLUSTER);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
