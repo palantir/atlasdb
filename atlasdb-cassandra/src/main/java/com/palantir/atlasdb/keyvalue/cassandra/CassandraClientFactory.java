@@ -201,6 +201,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                         UnsafeArg.of("client", client),
                         SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
             }
+            throw t;
         }
         if (log.isDebugEnabled()) {
             log.debug(
