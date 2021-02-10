@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -483,34 +482,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         return leaderTimes;
     }
 
-    private static void assertNumberOfThreadsReasonable(int startingThreads, int threadCount, boolean nonLeaderDown) {
-        int threadLimit = startingThreads + 1000;
-        if (nonLeaderDown) {
-            assertThat(threadCount)
-                    .as("should not additionally spin up too many threads after a non-leader failed")
-                    .isLessThanOrEqualTo(threadLimit);
-        } else {
-            assertThat(threadCount)
-                    .as("should not additionally spin up too many threads in the absence of failures")
-                    .isLessThanOrEqualTo(threadLimit);
-        }
-    }
-
     private void abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere() {
         Assume.assumeTrue(cluster == FIRST_CLUSTER);
         Assume.assumeFalse(cluster.isDbTimelock()); // We will never test only DB timelock when releasing.
-    }
-
-    private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {
-        nonLeader
-                .serverHolder()
-                .wireMock()
-                .register(WireMock.any(WireMock.anyUrl())
-                        .atPriority(Integer.MAX_VALUE - 1)
-                        .willReturn(WireMock.serviceUnavailable()
-                                .withFixedDelay(
-                                        Ints.checkedCast(Duration.ofSeconds(2).toMillis())))
-                        .build());
     }
 
     private enum ToConjureLockTokenVisitor implements ConjureLockResponse.Visitor<Optional<ConjureLockToken>> {
