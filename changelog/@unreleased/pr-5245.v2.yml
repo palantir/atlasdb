@@ -1,0 +1,26 @@
+type: improvement
+improvement:
+  description: |-
+    Anjor/circle speedup
+
+    **Goals (and why)**:
+    To speed up CI.
+
+    **Implementation Description (bullets)**:
+    Splits up the stress tests for timelock server into a separate class, and give them their own container.
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**:
+
+    **Concerns (what feedback would you like?)**:
+
+    **Where should we start reviewing?**:
+
+    **Priority (whenever / two weeks / yesterday)**:
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/5245
