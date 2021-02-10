@@ -58,7 +58,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.tokens.auth.AuthHeader;
-import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Optional;
@@ -125,8 +124,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public void nonLeadersReturn503_conjure() {
         cluster.nonLeaders(client.namespace()).forEach((namespace, server) -> {
             assertThatThrownBy(() -> server.client(namespace)
-                            .namespacedConjureTimelockService()
-                            .leaderTime())
+                    .namespacedConjureTimelockService()
+                    .leaderTime())
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         });
     }
@@ -354,9 +353,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .lock(
                         "tom",
                         com.palantir.lock.LockRequest.builder(
-                                        ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
-                                                .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
-                                                .build())
+                                ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                                        .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
+                                        .build())
                                 .build());
         ConjureLockRefreshToken conjureAnalogue =
                 ConjureLockRefreshToken.of(token.getTokenId(), token.getExpirationDateMs());
@@ -368,18 +367,18 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                         refreshed -> assertThat(refreshed.getTokenId()).isEqualTo(refreshed.getTokenId()));
         AuthHeader authHeader = AuthHeader.valueOf("Bearer unused");
         assertThat(client.conjureLegacyLockService()
-                        .refreshLockRefreshTokens(authHeader, client.namespace(), ImmutableList.of(conjureAnalogue)))
+                .refreshLockRefreshTokens(authHeader, client.namespace(), ImmutableList.of(conjureAnalogue)))
                 .as("it is possible to refresh a live token through the conjure API")
                 .hasOnlyOneElementSatisfying(
                         refreshed -> assertThat(refreshed.getTokenId()).isEqualTo(refreshed.getTokenId()));
 
         ConjureSimpleHeldLocksToken conjureHeldLocksToken = ConjureSimpleHeldLocksToken.of(token.getTokenId(), 0L);
         assertThat(client.conjureLegacyLockService()
-                        .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
+                .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
                 .as("it is possible to unlock a live token through the conjure API")
                 .isTrue();
         assertThat(client.conjureLegacyLockService()
-                        .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
+                .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
                 .as("a token unlocked through the conjure API stays unlocked")
                 .isFalse();
         assertThat(client.legacyLockService().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token)))
@@ -390,9 +389,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void lockAcquiredByConjureLockServiceIsAlsoAcquiredInLegacy() throws InterruptedException {
         com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
-                        ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
-                                .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
-                                .build())
+                ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
+                        .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
+                        .build())
                 .doNotBlock()
                 .build();
         String anonymousId = LockClient.ANONYMOUS.getClientId();
@@ -415,32 +414,10 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .as("lock taken by conjure impl that was unlocked can now be acquired by legacy impl")
                 .isNotNull();
         assertThat(client.conjureLegacyLockService()
-                        .lockAndGetHeldLocks(
-                                AuthHeader.valueOf("Bearer unused"), client.namespace(), conjureLockRequest))
+                .lockAndGetHeldLocks(
+                        AuthHeader.valueOf("Bearer unused"), client.namespace(), conjureLockRequest))
                 .as("if the legacy impl has taken a lock, the conjure impl mustn't be able to take it")
                 .isEmpty();
-    }
-
-    @Test
-    public void stressTest() {
-        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
-        TestableTimelockServer nonLeader =
-                Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
-        int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
-        boolean isNonLeaderTakenOut = false;
-        try {
-            for (int i = 0; i < 10_000; i++) { // Needed as it takes a while for the thread buildup to occur
-                client.getFreshTimestamp();
-                assertNumberOfThreadsReasonable(
-                        startingNumThreads, ManagementFactory.getThreadMXBean().getThreadCount(), isNonLeaderTakenOut);
-                if (i == 1_000) {
-                    makeServerWaitTwoSecondsAndThenReturn503s(nonLeader);
-                    isNonLeaderTakenOut = true;
-                }
-            }
-        } finally {
-            nonLeader.serverHolder().resetWireMock();
-        }
     }
 
     @Test
@@ -464,30 +441,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         cluster.failoverToNewLeader(client.namespace());
         assertThat(client.getFreshTimestamp()).isGreaterThan(freshTimestamp).isLessThan(fastForwardTimestamp);
         assertThat(other.getFreshTimestamp()).isGreaterThan(fastForwardTimestamp);
-    }
-
-    @Test
-    public void stressTestForPaxosEndpoints() {
-        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
-        TestableTimelockServer nonLeader =
-                Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
-        int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
-        boolean isNonLeaderTakenOut = false;
-        try {
-            for (int i = 0; i < 1_800; i++) { // Needed as it takes a while for the thread buildup to occur
-                assertNumberOfThreadsReasonable(
-                        startingNumThreads, ManagementFactory.getThreadMXBean().getThreadCount(), isNonLeaderTakenOut);
-                cluster.currentLeaderFor(client.namespace())
-                        .timeLockManagementService()
-                        .achieveConsensus(AuthHeader.valueOf("Bearer pqrstuv"), ImmutableSet.of(client.namespace()));
-                if (i == 400) {
-                    makeServerWaitTwoSecondsAndThenReturn503s(nonLeader);
-                    isNonLeaderTakenOut = true;
-                }
-            }
-        } finally {
-            nonLeader.serverHolder().resetWireMock();
-        }
     }
 
     @Test
