@@ -40,9 +40,10 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
     @Override
     public CassandraServersConfigs.CassandraServersConfig servers() {
         // get servers from install config (for backcompat), otherwise get servers from runtime config
-        return config.servers().numberOfThriftHosts() > 0
-                ? config.servers()
-                : chooseConfig(CassandraKeyValueServiceRuntimeConfig::servers, null);
+        if (config.servers().numberOfThriftHosts() > 0) {
+            return config.servers();
+        }
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::servers, config.servers());
     }
 
     @Override
