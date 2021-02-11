@@ -177,12 +177,12 @@ public class TargetedSweepMetrics {
         private final AccumulatingValueMetric tombstonesPut;
         private final AccumulatingValueMetric abortedWritesDeleted;
         private final CurrentValueMetric<Long> sweepTimestamp;
-        private final AggregatingVersionedMetric<ShardAndTimestamp> lastSweptTsWithShard;
-        private final Map<Integer, Gauge<Long>> millisSinceLastSwept;
+        private final AggregatingVersionedMetric<TimestampAndShard> lastSweptTsWithShard;
+        private final Map<String, Gauge<Long>> millisSinceLastSwept;
         private final SweepOutcomeMetrics outcomeMetrics;
         private final SlidingWindowMeanGauge batchSizeMean;
         private final CurrentValueMetric<Long> sweepDelayMetric;
-        private final Map<Integer, MillisAndMaybeTimestamp> lastMillisAndTsPerShard = new ConcurrentHashMap<>();
+        private final Map<String, MillisAndMaybeTimestamp> lastMillisAndTsPerShard = new ConcurrentHashMap<>();
 
         private MetricsForStrategy(
                 MetricsManager manager,
@@ -222,7 +222,7 @@ public class TargetedSweepMetrics {
                     .keySet()
                     .forEach(shard -> manager.addMetricFilter(
                             getProgressMetricNameBuilder(strategy)
-                                    .putSafeTags("shard", Integer.toString(shard))
+                                    .putSafeTags("shard", shard)
                                     .build(),
                             filter));
 
@@ -236,7 +236,7 @@ public class TargetedSweepMetrics {
             millisSinceLastSwept.forEach((shard, gauge) -> progressMetrics
                     .millisSinceLastSweptTs()
                     .strategy(strategy)
-                    .shard(Integer.toString(shard))
+                    .shard(shard)
                     .build(gauge));
             progressMetrics.batchSizeMean().strategy(strategy).build(batchSizeMean);
             progressMetrics.sweepDelay().strategy(strategy).build(sweepDelayMetric);
@@ -260,18 +260,18 @@ public class TargetedSweepMetrics {
                     .build());
         }
 
-        private AggregatingVersionedMetric<ShardAndTimestamp> createLastSweptTsMetric(long millis) {
-            AggregatingVersionedSupplier<ShardAndTimestamp> lastSweptTimestamp =
+        private AggregatingVersionedMetric<TimestampAndShard> createLastSweptTsMetric(long millis) {
+            AggregatingVersionedSupplier<TimestampAndShard> lastSweptTimestamp =
                     AggregatingVersionedSupplier.min(millis);
             return new AggregatingVersionedMetric<>(lastSweptTimestamp);
         }
 
-        private Long extractTimestamp(Gauge<ShardAndTimestamp> gauge) {
-            ShardAndTimestamp result = gauge.getValue();
-            return Optional.ofNullable(result).map(ShardAndTimestamp::timestamp).orElse(null);
+        private Long extractTimestamp(Gauge<TimestampAndShard> gauge) {
+            TimestampAndShard result = gauge.getValue();
+            return Optional.ofNullable(result).map(TimestampAndShard::timestamp).orElse(null);
         }
 
-        private Map<Integer, Gauge<Long>> createMillisSinceLastSweptMetric(
+        private Map<String, Gauge<Long>> createMillisSinceLastSweptMetric(
                 BiFunction<Long, MillisAndMaybeTimestamp, MillisAndMaybeTimestamp> tsToMillis,
                 Clock wallClock,
                 MetricsConfiguration metricsConfiguration,
@@ -282,6 +282,7 @@ public class TargetedSweepMetrics {
                 return KeyedStream.of(IntStream.range(0, shards).boxed())
                         .<Gauge<Long>>map(shard -> () -> estimateMillisSinceTs(
                                 lastSweptTsWithShard.getLastValueForKey(shard), wallClock, tsToMillis))
+                        .mapKeys(shard -> Integer.toString(shard))
                         .collectToMap();
             } else {
                 Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
@@ -289,24 +290,24 @@ public class TargetedSweepMetrics {
                         lastSweptTsWithShard::getVersionedValue,
                         metricsConfiguration.millisBetweenRecomputingMetrics(),
                         wallClock);
-                return ImmutableMap.of(-1, millisSinceLastSweptTs::get);
+                return ImmutableMap.of(AtlasDbMetricNames.TAG_CUMULATIVE, millisSinceLastSweptTs::get);
             }
         }
 
         private Long estimateMillisSinceTs(
-                ShardAndTimestamp shardAndTs,
+                TimestampAndShard shardAndTs,
                 Clock clock,
                 BiFunction<Long, MillisAndMaybeTimestamp, MillisAndMaybeTimestamp> tsToMillis) {
             if (shardAndTs == null) {
                 return null;
             }
             long timeBeforeRecomputing = System.currentTimeMillis();
-            MillisAndMaybeTimestamp millisAndMaybeTs =
-                    tsToMillis.apply(shardAndTs.timestamp(), lastMillisAndTsPerShard.get(shardAndTs.shard()));
+            MillisAndMaybeTimestamp millisAndMaybeTs = tsToMillis.apply(
+                    shardAndTs.timestamp(), lastMillisAndTsPerShard.get(Integer.toString(shardAndTs.shard())));
             if (millisAndMaybeTs == null) {
                 return null;
             }
-            lastMillisAndTsPerShard.put(shardAndTs.shard(), millisAndMaybeTs);
+            lastMillisAndTsPerShard.put(Integer.toString(shardAndTs.shard()), millisAndMaybeTs);
             long result = clock.getTimeMillis() - millisAndMaybeTs.millis();
 
             long timeTaken = System.currentTimeMillis() - timeBeforeRecomputing;
@@ -339,7 +340,7 @@ public class TargetedSweepMetrics {
         }
 
         private void updateProgressForShard(int shard, long sweptTs) {
-            lastSweptTsWithShard.update(shard, ImmutableShardAndTimestamp.of(shard, sweptTs));
+            lastSweptTsWithShard.update(shard, ImmutableTimestampAndShard.of(sweptTs, shard));
         }
 
         private void registerOccurrenceOf(SweepOutcome outcome) {
@@ -402,18 +403,18 @@ public class TargetedSweepMetrics {
     }
 
     @Value.Immutable
-    public interface ShardAndTimestamp extends Comparable<ShardAndTimestamp> {
-        Comparator<ShardAndTimestamp> COMPARATOR =
-                Comparator.comparing(ShardAndTimestamp::timestamp).thenComparing(ShardAndTimestamp::shard);
-
-        @Value.Parameter
-        int shard();
+    public interface TimestampAndShard extends Comparable<TimestampAndShard> {
+        Comparator<TimestampAndShard> COMPARATOR =
+                Comparator.comparing(TimestampAndShard::timestamp).thenComparing(TimestampAndShard::shard);
 
         @Value.Parameter
         long timestamp();
 
+        @Value.Parameter
+        int shard();
+
         @Override
-        default int compareTo(ShardAndTimestamp other) {
+        default int compareTo(TimestampAndShard other) {
             return COMPARATOR.compare(this, other);
         }
     }

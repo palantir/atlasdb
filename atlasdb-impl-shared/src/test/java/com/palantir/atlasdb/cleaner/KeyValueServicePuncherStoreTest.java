@@ -194,8 +194,7 @@ public class KeyValueServicePuncherStoreTest {
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
         for (int i = 0; i < 100; i++) {
-            puncherStore.put(
-                    2_000 + random.nextLong(10_000L), random.nextLong(minOffsetForNewerEntries + 1, maxOffset));
+            puncherStore.put(random.nextLong(2_000, 10_000L), random.nextLong(minOffsetForNewerEntries + 1, maxOffset));
         }
 
         for (int i = 0; i < 100; i++) {
@@ -224,7 +223,9 @@ public class KeyValueServicePuncherStoreTest {
 
         MillisAndMaybeTimestamp result = KeyValueServicePuncherStore.findOlder(kvs, 1_000L, maxOffset);
         assertThat(result.millis()).isLessThanOrEqualTo(maxOffset);
-        assertThat(result).satisfies(res -> res.timestampSatisfies(ts -> ts <= 1_000L));
+        if (result.timestamp().isPresent()) {
+            assertThat(result).satisfies(res -> res.timestampSatisfies(ts -> ts <= 1_000L));
+        }
         verify(kvs, atLeast(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());
         verify(kvs, atMost(maxReads)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());
     }
@@ -238,7 +239,7 @@ public class KeyValueServicePuncherStoreTest {
         long timestampBound = 1_000_000;
         long queryTimestamp = timestampBound * 2 / 3;
 
-        Multimap<Long, Long> tsToMillis = generateTsToMillisMap(timestampBound, false);
+        Multimap<Long, Long> tsToMillis = generateTsToMillisMap(timestampBound, queryTimestamp, false);
         tsToMillis.forEach(puncherStore::put);
 
         Collection<Long> millisCandidates = tsToMillis.keySet().stream()
@@ -251,8 +252,7 @@ public class KeyValueServicePuncherStoreTest {
 
         assertThat(actual).isPresent();
         assertThat(millisCandidates).contains(actual.get().millis());
-        assertThat(actual.get().timestamp()).isPresent();
-        assertThat(actual.get().timestamp().get()).isLessThan(queryTimestamp);
+        assertThat(actual.get()).satisfies(msAndTs -> msAndTs.timestampSatisfies(ts -> ts < queryTimestamp));
 
         verify(kvs, atMost(generousReadLimit))
                 .getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());
@@ -272,7 +272,7 @@ public class KeyValueServicePuncherStoreTest {
         long timestampBound = 1_000_000;
         long queryTimestamp = timestampBound * 2 / 3;
 
-        Multimap<Long, Long> tsToMillis = generateTsToMillisMap(timestampBound, true);
+        Multimap<Long, Long> tsToMillis = generateTsToMillisMap(timestampBound, queryTimestamp, true);
         tsToMillis.forEach(puncherStore::put);
 
         Collection<Long> millisCandidates = tsToMillis.get(queryTimestamp);
@@ -308,17 +308,15 @@ public class KeyValueServicePuncherStoreTest {
         verify(kvs, never()).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());
     }
 
-    private static Multimap<Long, Long> generateTsToMillisMap(long tsBound, boolean includeQueryTs) {
-        long queryTimestamp = tsBound * 2 / 3;
-
+    private static Multimap<Long, Long> generateTsToMillisMap(long tsBound, long queryTs, boolean includeQueryTs) {
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
-        Stream<Long> timestampStream = IntStream.range(0, 10_000).mapToObj(_ignore -> random.nextLong(tsBound));
-        if (includeQueryTs) {
-            timestampStream = Streams.concat(timestampStream, Stream.of(queryTimestamp));
-        } else {
-            timestampStream = timestampStream.filter(num -> num != queryTimestamp);
-        }
+        Stream<Long> timestampStream = IntStream.range(0, 10_000)
+                .mapToObj(_ignore -> random.nextLong(tsBound))
+                .filter(num -> num != queryTs);
+
+        // guarantee a result either way
+        timestampStream = Streams.concat(timestampStream, Stream.of(includeQueryTs ? queryTs : 1L));
 
         Stream<Long> millisStream =
                 IntStream.range(0, 10_000).mapToObj(_ignore -> random.nextLong(MAX_OFFSET_FOR_BOUNDS_TESTS));
