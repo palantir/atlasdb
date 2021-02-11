@@ -25,10 +25,12 @@ CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-
 
 CONTAINER_6=(':timelock-server:suiteTest')
 
-CONTAINER_7=('compileJava' 'compileTestJava')
+CONTAINER_7=(':timelock-server:stressTest')
+
+CONTAINER_8=('compileJava' 'compileTestJava')
 
 # Container 0 - runs tasks not found in the below containers
-CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}")
+CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}")
 
 for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
@@ -71,5 +73,6 @@ case $CIRCLE_NODE_INDEX in
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
-    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
+    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
+    8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
