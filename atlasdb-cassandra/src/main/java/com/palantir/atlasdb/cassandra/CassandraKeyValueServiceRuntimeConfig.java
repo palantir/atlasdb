@@ -45,6 +45,11 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return TYPE;
     }
 
+    @Value.Default
+    public CassandraServersConfigs.CassandraServersConfig servers() {
+        return ImmutableDefaultConfig.builder().build();
+    }
+
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
      */

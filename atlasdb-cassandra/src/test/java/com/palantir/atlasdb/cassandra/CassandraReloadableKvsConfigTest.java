@@ -19,11 +19,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
+import java.net.InetSocketAddress;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 
 public class CassandraReloadableKvsConfigTest {
+
+    private static final DefaultConfig SERVERS_CONFIG = ImmutableDefaultConfig.builder()
+            .addThriftHosts(new InetSocketAddress("foo", 42))
+            .build();
+    private static final DefaultConfig SERVERS_CONFIG2 = ImmutableDefaultConfig.builder()
+            .addThriftHosts(new InetSocketAddress("foo2", 43))
+            .build();
+
     private CassandraKeyValueServiceConfig config;
     private CassandraKeyValueServiceRuntimeConfig runtimeConfig;
 
@@ -64,6 +74,32 @@ public class CassandraReloadableKvsConfigTest {
         when(runtimeConfig.sweepReadThreads()).thenReturn(firstValue, secondValue);
         assertThat(reloadableConfig.sweepReadThreads()).isEqualTo(firstValue);
         assertThat(reloadableConfig.sweepReadThreads()).isEqualTo(secondValue);
+    }
+
+    @Test
+    public void serversInBothInstallAndRuntime_prefersInstall() {
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
+
+        when(config.servers()).thenReturn(SERVERS_CONFIG);
+        when(runtimeConfig.servers()).thenReturn(SERVERS_CONFIG2);
+        assertThat(reloadableConfig.servers()).isEqualTo(SERVERS_CONFIG);
+    }
+
+    @Test
+    public void serversInOnlyInstall_prefersInstall() {
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
+
+        when(config.servers()).thenReturn(SERVERS_CONFIG);
+        assertThat(reloadableConfig.servers()).isEqualTo(SERVERS_CONFIG);
+    }
+
+    @Test
+    public void serversInOnlyRuntime_prefersRuntime() {
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
+
+        when(config.servers()).thenReturn(ImmutableDefaultConfig.builder().build());
+        when(runtimeConfig.servers()).thenReturn(SERVERS_CONFIG2);
+        assertThat(reloadableConfig.servers()).isEqualTo(SERVERS_CONFIG2);
     }
 
     private CassandraReloadableKvsConfig getReloadableConfigWithEmptyRuntimeConfig() {
