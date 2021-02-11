@@ -54,11 +54,11 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     @Override
     public LockToken lock(String client, String lockName) {
         LockRequest lockRequest =
-                LockRequest.of(ImmutableSet.of(StringLockDescriptor.of(lockName)), Long.MAX_VALUE, client);
+                LockRequest.of(ImmutableSet.of(StringLockDescriptor.of(lockName)), Integer.MAX_VALUE, client);
         LockResponse lockResponse = timelockService.lock(lockRequest);
         Preconditions.checkState(
                 lockResponse.wasSuccessful(),
-                "Jepsen failed to lock a lock, but it would wait for Long.MAX_VALUE, so this is unexpected.");
+                "Jepsen failed to lock a lock, but it would wait for Integer.MAX_VALUE, so this is unexpected.");
         return lockResponse.getToken();
     }
 
