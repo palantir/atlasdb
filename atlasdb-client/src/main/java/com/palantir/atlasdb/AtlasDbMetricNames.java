@@ -55,6 +55,8 @@ public final class AtlasDbMetricNames {
     public static final String TAG_STRATEGY = "strategy";
     public static final String TAG_CONSERVATIVE = "conservative";
     public static final String TAG_THOROUGH = "thorough";
+    public static final String TAG_SHARD = "shard";
+    public static final String TAG_CUMULATIVE = "cumulative";
     public static final String ENQUEUED_WRITES = "enqueuedWrites";
     public static final String ENTRIES_READ = "entriesRead";
     public static final String TOMBSTONES_PUT = "tombstonesPut";
