@@ -55,7 +55,11 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * This value, or values derived from it (e.g. the number of Thrift hosts) must ONLY be used on KVS initialization
      * to generate the initial connection(s) to the cluster, or as part of startup checks.
      */
-    CassandraServersConfigs.CassandraServersConfig servers();
+    @Value.Default
+    default CassandraServersConfigs.CassandraServersConfig servers() {
+        return ImmutableDefaultConfig.of();
+    }
+
 
     @Value.Default
     default Map<String, InetSocketAddress> addressTranslation() {

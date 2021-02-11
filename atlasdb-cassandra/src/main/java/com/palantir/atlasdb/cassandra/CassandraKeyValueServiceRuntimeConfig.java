@@ -47,7 +47,7 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
 
     @Value.Default
     public CassandraServersConfigs.CassandraServersConfig servers() {
-        return ImmutableDefaultConfig.builder().build();
+        return ImmutableDefaultConfig.of();
     }
 
     /**
