@@ -60,7 +60,6 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return ImmutableDefaultConfig.of();
     }
 
-
     @Value.Default
     default Map<String, InetSocketAddress> addressTranslation() {
         return ImmutableMap.of();
