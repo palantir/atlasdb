@@ -21,8 +21,11 @@
   (reify db/DB
     (setup! [_ _ node]
       (c/su
-        (debian/add-repo! "stretch" "deb http://deb.debian.org/debian stretch main")
-        (c/exec :apt-get :install :-y :--force-yes :openjdk-8-jre :openjdk-8-jre-headless :libjna-java)
+        (c/exec :apt-key :adv :--keyserver "hkp://keyserver.ubuntu.com:80" :--recv-keys "0xB1998361219BD9C9")
+        (c/exec :wget "https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-2_all.deb")
+        (c/exec :apt-get :install "./zulu-repo_1.0.0-2_all.deb")
+        (c/exec :apt-get :update)
+        (c/exec :apt-get :install :zulu8-jre-headless)
         (info node "Uploading and unpacking timelock server")
         (c/upload "resources/atlasdb/timelock-server.tgz" "/")
         (c/exec :mkdir "/timelock-server")
