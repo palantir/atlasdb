@@ -251,8 +251,9 @@ configuration for the purposes of migration.</p>
 <h3>Migration CLI<a class="headerlink" href="#migration-cli" title="Permalink to this headline">¶</a></h3>
 <div class="admonition tip">
 <p class="first admonition-title">Tip</p>
-<p class="last">If you are migrating to/from Oracle KVS, the standard AtlasDB CLI distribution will not work as it does not
-contain the requisite Oracle drivers. Please contact the AtlasDB team for assistance.</p>
+<p class="last">If you are migrating to/from Oracle KVS and are using a version of AtlasDB before 0.240.10, the standard AtlasDB
+CLI distribution will not work as it does not contain the requisite Oracle drivers. Please contact the AtlasDB team
+for assistance.</p>
 </div>
 <p>Migration of all transactional data from one KVS to another can be performed using the <a class="reference internal" href="clis.html#clis"><span class="std std-ref">AtlasDB CLI</span></a>.</p>
 <p>To run the migration, the <code class="docutils literal notranslate"><span class="pre">fromConfig</span></code> option should be specified as the path to a file which contains a YAML
