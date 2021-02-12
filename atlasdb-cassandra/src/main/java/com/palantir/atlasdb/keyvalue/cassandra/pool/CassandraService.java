@@ -87,6 +87,23 @@ public class CassandraService implements AutoCloseable {
 
     private final Random random = new Random();
 
+    @VisibleForTesting
+    public CassandraService(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Blacklist blacklist,
+            CassandraClientPoolMetrics poolMetrics,
+            Supplier<Optional<HostLocation>> myLocationSupplier) {
+        this.metricsManager = metricsManager;
+        this.config = config;
+        this.myLocationSupplier = myLocationSupplier;
+        this.blacklist = blacklist;
+        this.poolMetrics = poolMetrics;
+
+        Supplier<Map<String, String>> hostnamesByIpSupplier = new HostnamesByIpSupplier(this::getRandomGoodHost);
+        this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 2, TimeUnit.MINUTES);
+    }
+
     public CassandraService(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
@@ -179,7 +196,12 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
-    private Set<InetSocketAddress> refreshLocalHosts(List<TokenRange> tokenRanges) {
+    @VisibleForTesting
+    Set<InetSocketAddress> refreshLocalHosts(List<TokenRange> tokenRanges) {
+        if (config.localHostWeighting() == 0) {
+            return ImmutableSet.of();
+        }
+
         Optional<HostLocation> myLocation = myLocationSupplier.get();
 
         if (!myLocation.isPresent()) {

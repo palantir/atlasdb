@@ -16,7 +16,12 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
@@ -29,6 +34,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.junit.Test;
 
 public class CassandraServiceTest {
@@ -41,6 +47,7 @@ public class CassandraServiceTest {
     private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
 
     private CassandraKeyValueServiceConfig config;
+    private Supplier<Optional<HostLocation>> mockedHostLocationSupplier = mock(Supplier.class);
     private Blacklist blacklist;
 
     @Test
@@ -77,6 +84,28 @@ public class CassandraServiceTest {
         cassandra.setLocalHosts(localHosts);
 
         assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(hosts);
+    }
+
+    @Test
+    public void refreshTokenRangesShouldNotRefreshLocalHostsWhenWeightingIsZero() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2);
+
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 0.0);
+        cassandra.refreshLocalHosts(ImmutableList.of());
+
+        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(hosts);
+        verifyNoInteractions(mockedHostLocationSupplier);
+    }
+
+    @Test
+    public void refreshTokenRangesShouldRefreshLocalHostsWhenWeightingIsNonZero() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2);
+
+        when(mockedHostLocationSupplier.get()).thenReturn(Optional.of(HostLocation.of("data", "1")));
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 0.5);
+        cassandra.refreshLocalHosts(ImmutableList.of());
+
+        verify(mockedHostLocationSupplier).get();
     }
 
     @Test
@@ -180,8 +209,12 @@ public class CassandraServiceTest {
         blacklist = new Blacklist(config);
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        CassandraService service =
-                new CassandraService(metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
+        CassandraService service = new CassandraService(
+                metricsManager,
+                config,
+                blacklist,
+                new CassandraClientPoolMetrics(metricsManager),
+                mockedHostLocationSupplier);
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);
