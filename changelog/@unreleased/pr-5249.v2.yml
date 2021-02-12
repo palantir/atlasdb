@@ -1,22 +1,6 @@
 type: improvement
 improvement:
   description: |-
-    allow defining cassandra server hosts in runtime config
-
-    **Goals (and why)**:
-    Because cassandra server hosts can dynamically change, we should allow defining them in runtime config.
-
-    **Implementation Description (bullets)**:
-    * If there are more than 1 host defined in the install config, we prefer that over runtime (to not break backcompat)
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-    * unit tested
-
-    **Concerns (what feedback would you like?)**:
-
-    **Where should we start reviewing?**:
-
-    **Priority (whenever / two weeks / yesterday)**:
-    today (many recent tickets/paging)
+    Cassandra host servers can be specified in either runtime or normal config. If specified in both, the normal config will be used.
   links:
   - https://github.com/palantir/atlasdb/pull/5249
