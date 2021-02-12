@@ -88,8 +88,9 @@ Migration CLI
 
 .. tip::
 
-    If you are migrating to/from Oracle KVS, the standard AtlasDB CLI distribution will not work as it does not
-    contain the requisite Oracle drivers. Please contact the AtlasDB team for assistance.
+    If you are migrating to/from Oracle KVS and are using a version of AtlasDB before 0.240.10, the standard AtlasDB
+    CLI distribution will not work as it does not contain the requisite Oracle drivers. Please contact the AtlasDB team
+    for assistance.
 
 Migration of all transactional data from one KVS to another can be performed using the :ref:`AtlasDB CLI<clis>`.
 
