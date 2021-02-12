@@ -22,7 +22,7 @@ public enum CassandraClientPoolHostLevelMetric {
     NUM_ACTIVE("numActive", 0.1, 2.0),
     CREATED("created", 0.01, 2.0),
     DESTROYED_BY_EVICTOR("destroyedByEvictor", 0.01, 2.0),
-    EVICTOR_TASK_SIZE("evictorTaskSize", 0.0, 2.0);
+    EVICTOR_TASK_SIZE("evictorTaskSize", 0.0, 100.0);
 
     public final String metricName;
     public final double minimumMeanThreshold;
