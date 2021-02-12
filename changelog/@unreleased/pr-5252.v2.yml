@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: The Cassandra service will now stop attempting to update local hosts if it encounters an exception five times in a row.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5252
