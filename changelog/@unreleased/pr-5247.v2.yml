@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Added further logging around possible edge cases when evicting objects from the Cassandra client pooling containers. Also added a metric that tracks the number of active eviction tasks.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5247

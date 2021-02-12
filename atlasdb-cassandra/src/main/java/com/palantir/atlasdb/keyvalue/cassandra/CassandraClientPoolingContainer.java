@@ -43,6 +43,7 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
 import org.apache.commons.pool2.impl.EvictionConfig;
 import org.apache.commons.pool2.impl.EvictionPolicy;
+import org.apache.commons.pool2.impl.ExposedEvictionTimer;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.transport.TFramedTransport;
@@ -324,6 +325,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         registerPoolMetric(CassandraClientPoolHostLevelMetric.NUM_ACTIVE, () -> (long) pool.getNumActive());
         registerPoolMetric(CassandraClientPoolHostLevelMetric.CREATED, pool::getCreatedCount);
         registerPoolMetric(CassandraClientPoolHostLevelMetric.DESTROYED_BY_EVICTOR, pool::getDestroyedByEvictorCount);
+        registerPoolMetric(CassandraClientPoolHostLevelMetric.EVICTOR_TASK_SIZE, ExposedEvictionTimer::getNumTasks);
     }
 
     private void registerPoolMetric(CassandraClientPoolHostLevelMetric metric, Gauge<Long> gauge) {
@@ -341,13 +343,22 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         public boolean evict(EvictionConfig config, PooledObject<T> underTest, int idleCount) {
             boolean delegateResult = delegate.evict(config, underTest, idleCount);
             // PDS-146088: the issue manifests with failures to evict anything
-            if (!delegateResult && log.isDebugEnabled()) {
-                log.debug(
-                        "Considered an object to be evicted from the Cassandra client pool, but did not evict it",
-                        SafeArg.of("underTestState", underTest.getState()),
-                        SafeArg.of("idleState", underTest.getIdleTimeMillis()),
-                        SafeArg.of("idleCount", idleCount),
-                        SafeArg.of("evictionConfig", config));
+            if (log.isDebugEnabled()) {
+                if (delegateResult) {
+                    log.debug(
+                            "Attempting to evict an object from the Cassandra client pool",
+                            SafeArg.of("underTestState", underTest.getState()),
+                            SafeArg.of("idleState", underTest.getIdleTimeMillis()),
+                            SafeArg.of("idleCount", idleCount),
+                            SafeArg.of("evictionConfig", config));
+                } else {
+                    log.debug(
+                            "Considered an object to be evicted from the Cassandra client pool, but did not evict it",
+                            SafeArg.of("underTestState", underTest.getState()),
+                            SafeArg.of("idleState", underTest.getIdleTimeMillis()),
+                            SafeArg.of("idleCount", idleCount),
+                            SafeArg.of("evictionConfig", config));
+                }
             }
             return delegateResult;
         }
