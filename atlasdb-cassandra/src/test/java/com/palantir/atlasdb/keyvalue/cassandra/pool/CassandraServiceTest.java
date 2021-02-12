@@ -93,7 +93,6 @@ public class CassandraServiceTest {
         CassandraService cassandra = clientPoolWithServersAndParams(hosts, 0.0);
         cassandra.refreshLocalHosts(ImmutableList.of());
 
-        assertThat(cassandra.maybeFilterLocalHosts(hosts)).isEqualTo(hosts);
         verifyNoInteractions(mockedHostLocationSupplier);
     }
 
