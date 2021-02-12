@@ -20,7 +20,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.logsafe.Preconditions;
 import java.io.IOException;
-import java.util.Optional;
 import java.util.function.Supplier;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -34,8 +33,7 @@ import org.slf4j.LoggerFactory;
  * AWS has an endpoint that returns the datacenter and rack (in Cassandra terms) - this request will fail if not on AWS.
  * The reply comes in the form "datacenter"+"rack", e.g. "us-east-1a", where datacenter is "us-east-1" and rack is "a".
  */
-public final class Ec2HostLocationSupplier implements Supplier<Optional<HostLocation>> {
-
+public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
     private static final Logger log = LoggerFactory.getLogger(Ec2HostLocationSupplier.class);
 
     /*
@@ -44,7 +42,7 @@ public final class Ec2HostLocationSupplier implements Supplier<Optional<HostLoca
     private static final Supplier<OkHttpClient> client = Suppliers.memoize(() -> new OkHttpClient.Builder().build());
 
     @Override
-    public Optional<HostLocation> get() {
+    public HostLocation get() {
         try {
             Response response = client.get()
                     .newCall(new Request.Builder()
@@ -54,13 +52,13 @@ public final class Ec2HostLocationSupplier implements Supplier<Optional<HostLoca
                     .execute();
             Preconditions.checkState(response.isSuccessful(), "Getting AWS host metadata was not successful");
 
-            return Optional.of(parseHostLocation(response.body().string()));
+            return parseHostLocation(response.body().string());
         } catch (IOException e) {
             log.warn(
                     "Could not query AWS host metadata to retrieve the host location. "
                             + "We are either not running on AWS or don't have access to the AWS host metadata service",
                     e);
-            return Optional.empty();
+            throw new RuntimeException(e);
         }
     }
 
