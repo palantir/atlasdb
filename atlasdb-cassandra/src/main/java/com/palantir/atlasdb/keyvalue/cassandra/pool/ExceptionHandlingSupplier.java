@@ -40,7 +40,7 @@ final class ExceptionHandlingSupplier<T> implements Supplier<Optional<T>> {
 
     @Override
     public Optional<T> get() {
-        if (numFailures.get() >= numRetries) {
+        if (numFailures.get() > numRetries) {
             return Optional.empty();
         }
 

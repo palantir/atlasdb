@@ -22,7 +22,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import org.junit.Test;
 
-public class HostLocationSupplierTest {
+public final class HostLocationSupplierTest {
     private static final Supplier<Optional<String>> EC2_SNITCH_SUPPLIER =
             () -> Optional.of(HostLocationSupplier.EC2_SNITCH);
     private static final Supplier<Optional<HostLocation>> EC2_LOCATION_SUPPLIER =

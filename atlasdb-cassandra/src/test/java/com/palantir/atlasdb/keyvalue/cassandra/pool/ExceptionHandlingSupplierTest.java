@@ -48,7 +48,7 @@ public final class ExceptionHandlingSupplierTest {
                 .thenThrow(new RuntimeException())
                 .thenThrow(new RuntimeException())
                 .thenReturn(VALUE);
-        Supplier<Optional<String>> exceptionHandlingSupplier = ExceptionHandlingSupplier.create(supplier, 2);
+        Supplier<Optional<String>> exceptionHandlingSupplier = ExceptionHandlingSupplier.create(supplier, 1);
 
         assertThat(exceptionHandlingSupplier.get()).isEmpty();
         assertThat(exceptionHandlingSupplier.get()).isEmpty();
