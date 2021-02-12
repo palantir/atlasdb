@@ -54,9 +54,7 @@ final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
             return overrideLocation;
         }
 
-        Optional<String> maybeSnitch = snitchSupplier.get();
-
-        return maybeSnitch.flatMap(snitch -> {
+        return snitchSupplier.get().flatMap(snitch -> {
             switch (snitch) {
                 case EC2_SNITCH:
                     return ec2Supplier.get();
