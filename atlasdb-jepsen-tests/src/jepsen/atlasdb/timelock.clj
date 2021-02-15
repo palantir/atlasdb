@@ -17,13 +17,13 @@
   []
   (c/su
     (debian/add-key! "hkp://keyserver.ubuntu.com:80" "0xB1998361219BD9C9")
-    (debian/install [:apt-transport-https] [:--force-yes])
+    (c/exec :apt-get :-y :--force-yes :install :apt-transport-https)
     (c/exec :wget "https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-2_all.deb")
     (c/exec :dpkg :-i "./zulu-repo_1.0.0-2_all.deb")
     (c/exec :apt-get :-y :--force-yes :install :-f)
-    (c/uninstall! [:libgnutls-deb0-28] [:--force-yes])
+    (debian/uninstall! [:libgnutls-deb0-28] [:--force-yes])
     (debian/update!)
-    (debian/install [:zulu8-jre-headless] [:--force-yes])
+    (c/exec :apt-get :-y :--force-yes :install :zulu8-jre-headless)
     (c/exec :rm "./zulu-repo_1.0.0-2_all.deb")
   ))
 
