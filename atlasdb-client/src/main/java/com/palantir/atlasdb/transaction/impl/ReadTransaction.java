@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
-
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -37,6 +30,12 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 public class ReadTransaction extends ForwardingTransaction {
     private final AbstractTransaction delegate;
@@ -53,9 +52,8 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
-                                                        Iterable<byte[]> rows,
-                                                        ColumnSelection columnSelection) {
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
         checkTableName(tableRef);
         return delegate().getRows(tableRef, rows, columnSelection);
     }
@@ -73,8 +71,8 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(TableReference tableRef,
-                                                                    Iterable<RangeRequest> rangeRequests) {
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
         checkTableName(tableRef);
         return delegate().getRanges(tableRef, rangeRequests);
     }
@@ -111,29 +109,30 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     @Override
-    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
-            Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         checkTableName(tableRef);
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection);
     }
 
     @Override
-    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(TableReference tableRef,
-            Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         checkTableName(tableRef);
         return delegate().getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
     }
 
     @Override
-    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection, int batchHint) {
+    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         checkTableName(tableRef);
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
     }
 
     private void checkTableName(TableReference tableRef) {
         SweepStrategy sweepStrategy = sweepStrategies.get(tableRef);
-        Preconditions.checkState(!sweepStrategy.mustCheckImmutableLockAfterReads(),
+        Preconditions.checkState(
+                !sweepStrategy.mustCheckImmutableLockAfterReads(),
                 "This table cannot be read from a read-only transaction, because its "
                         + "sweep strategy is neither NOTHING nor CONSERVATIVE",
                 LoggingArgs.tableRef(tableRef));

@@ -15,20 +15,17 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.concurrent.locks.AbstractQueuedSynchronizer;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
-
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.palantir.lock.LockClient;
 import com.palantir.logsafe.Preconditions;
-
 import gnu.trove.iterator.TIntIntIterator;
 import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.hash.TIntIntHashMap;
+import java.util.concurrent.locks.AbstractQueuedSynchronizer;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
 
 class LockServerSync extends AbstractQueuedSynchronizer {
     private static final long serialVersionUID = 1L;
@@ -75,8 +72,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         }
         if (holdsReadLock(clientIndex)) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(clientIndex) +
-                    " currently holds the read lock");
+                    clients.fromIndex(clientIndex) + " currently holds the read lock");
         }
         return false;
     }
@@ -86,8 +82,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         int newWriteCount = getState() - 1;
         if (writeLockHolder != clientIndex || newWriteCount < 0) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(clientIndex) +
-                    " does not hold the write lock");
+                    clients.fromIndex(clientIndex) + " does not hold the write lock");
         }
         setState(newWriteCount);
         if (newWriteCount == 0 && !isReadLockHeld()) {
@@ -124,13 +119,11 @@ class LockServerSync extends AbstractQueuedSynchronizer {
 
     synchronized void unlockAndFreeze(int clientIndex) {
         if (isAnonymous(clientIndex)) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    "anonymous clients cannot call unlockAndFreeze()");
+            throw LockServerLock.throwIllegalMonitorStateException("anonymous clients cannot call unlockAndFreeze()");
         }
         if (writeLockHolder != clientIndex || getState() == 0) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(clientIndex) +
-                    " does not hold the write lock");
+                    clients.fromIndex(clientIndex) + " does not hold the write lock");
         }
         if (!release(clientIndex) || isReadLockHeld()) {
             frozen = true;
@@ -141,22 +134,18 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         int newIndex = clients.toIndex(newClient);
         if (oldClient == newIndex) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    "new owner must be different  from old owner, owner=" +
-                    clients.fromIndex(oldClient));
+                    "new owner must be different  from old owner, owner=" + clients.fromIndex(oldClient));
         }
         if (frozen) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    "cannot change owner because the lock is frozen");
+            throw LockServerLock.throwIllegalMonitorStateException("cannot change owner because the lock is frozen");
         }
         if (!holdsReadLock(oldClient)) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(oldClient) +
-                    " does not hold the read lock");
+                    clients.fromIndex(oldClient) + " does not hold the read lock");
         }
         if (getState() > 0) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(oldClient) +
-                    " currently holds both the read and write locks");
+                    clients.fromIndex(oldClient) + " currently holds both the read and write locks");
         }
         decrementReadCount(oldClient);
         incrementReadCount(newIndex);
@@ -166,30 +155,25 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         int newIndex = clients.toIndex(newClient);
         if (oldClient == newIndex) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    "new owner must be different from old owner, owner=" +
-                    clients.fromIndex(oldClient));
+                    "new owner must be different from old owner, owner=" + clients.fromIndex(oldClient));
         }
         if (frozen) {
-            throw LockServerLock.throwIllegalMonitorStateException(
-                    "Cannot change owner because the lock is frozen");
+            throw LockServerLock.throwIllegalMonitorStateException("Cannot change owner because the lock is frozen");
         }
         int writeCount = getState();
         if (writeCount == 0 || writeLockHolder != oldClient) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(oldClient) +
-                    " does not hold the write lock");
+                    clients.fromIndex(oldClient) + " does not hold the write lock");
         }
         if (holdsReadLock(oldClient)) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(oldClient) +
-                    " currently holds both the read and write locks");
+                    clients.fromIndex(oldClient) + " currently holds both the read and write locks");
         }
         if (writeCount > 1) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(oldClient) +
-                    " is attempting to create a lock grant" +
-                    " while being supported by multiple clients." +
-                    " This is not currently supported.");
+                    clients.fromIndex(oldClient) + " is attempting to create a lock grant"
+                            + " while being supported by multiple clients."
+                            + " This is not currently supported.");
         }
         writeLockHolder = newIndex;
     }
@@ -198,7 +182,9 @@ class LockServerSync extends AbstractQueuedSynchronizer {
     // may be no lock holder even if tryAcquire or tryAcquireShared
     // failed because those methods may fail in order to prevent
     // barging.
-    @GuardedBy("this") @Nullable LockClient getLockHolder() {
+    @GuardedBy("this")
+    @Nullable
+    LockClient getLockHolder() {
         if (getState() > 0) {
             return clients.fromIndex(writeLockHolder);
         }
@@ -263,16 +249,14 @@ class LockServerSync extends AbstractQueuedSynchronizer {
     private synchronized void decrementReadCount(int clientIndex) {
         if (readLockHolders == null) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(clientIndex) +
-                    " does not hold the read lock");
+                    clients.fromIndex(clientIndex) + " does not hold the read lock");
         }
         int readCount = readLockHolders.remove(clientIndex);
         if (readCount > 1) {
             readLockHolders.put(clientIndex, readCount - 1);
         } else if (readCount == 0) {
             throw LockServerLock.throwIllegalMonitorStateException(
-                    clients.fromIndex(clientIndex) +
-                    " does not hold the read lock");
+                    clients.fromIndex(clientIndex) + " does not hold the read lock");
         }
     }
 

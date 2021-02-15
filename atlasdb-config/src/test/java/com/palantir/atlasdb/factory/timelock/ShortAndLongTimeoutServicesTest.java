@@ -23,10 +23,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import org.junit.Test;
-
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.factory.ServiceCreator;
+import org.junit.Test;
 
 public class ShortAndLongTimeoutServicesTest {
     @Test
@@ -70,8 +69,8 @@ public class ShortAndLongTimeoutServicesTest {
                 .longTimeout("1000")
                 .build();
 
-        ShortAndLongTimeoutServices<Integer> zipped = numbers.zipWith(stringNumbers,
-                (integer, string) -> integer + Integer.parseInt(string));
+        ShortAndLongTimeoutServices<Integer> zipped =
+                numbers.zipWith(stringNumbers, (integer, string) -> integer + Integer.parseInt(string));
         assertThat(zipped.shortTimeout()).isEqualTo(101);
         assertThat(zipped.longTimeout()).isEqualTo(1010);
     }
@@ -90,6 +89,5 @@ public class ShortAndLongTimeoutServicesTest {
         ShortAndLongTimeoutServices<Integer> zipped = minuends.zipWith(subtrahends, IntMath::checkedSubtract);
         assertThat(zipped.shortTimeout()).isEqualTo(99);
         assertThat(zipped.longTimeout()).isEqualTo(99);
-
     }
 }

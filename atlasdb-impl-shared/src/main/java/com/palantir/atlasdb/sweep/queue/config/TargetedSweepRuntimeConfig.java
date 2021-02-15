@@ -15,16 +15,16 @@
  */
 package com.palantir.atlasdb.sweep.queue.config;
 
-import java.time.Duration;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.time.Duration;
+import org.immutables.value.Value;
+import org.immutables.value.Value.Default;
 
 @JsonDeserialize(as = ImmutableTargetedSweepRuntimeConfig.class)
 @JsonSerialize(as = ImmutableTargetedSweepRuntimeConfig.class)
@@ -47,7 +47,7 @@ public abstract class TargetedSweepRuntimeConfig {
      */
     @Value.Default
     public int shards() {
-        return 8;
+        return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_SHARDS;
     }
 
     /**
@@ -66,14 +66,16 @@ public abstract class TargetedSweepRuntimeConfig {
 
     @Value.Check
     void checkPartitionsToBatch() {
-        Preconditions.checkArgument(maximumPartitionsToBatchInSingleRead() > 0,
+        Preconditions.checkArgument(
+                maximumPartitionsToBatchInSingleRead() > 0,
                 "Number of partitions to read in a batch must be positive.",
                 SafeArg.of("partitions to batch", maximumPartitionsToBatchInSingleRead()));
     }
 
     @Value.Check
     void checkShardSize() {
-        Preconditions.checkArgument(shards() >= 1 && shards() <= 256,
+        Preconditions.checkArgument(
+                shards() >= 1 && shards() <= 256,
                 "Shard number must be between 1 and 256 inclusive.",
                 SafeArg.of("shards", shards()));
     }
@@ -98,11 +100,32 @@ public abstract class TargetedSweepRuntimeConfig {
         return true;
     }
 
+    /**
+     * This parameter can be set to set the batch size threshold that an iteration of targeted sweep will try not to
+     * exceed. This value must not exceed {@link SweepQueueUtils#MAX_CELLS_DEDICATED}.
+     *
+     * Must be less than or equal to {@link com.palantir.atlasdb.sweep.queue.SweepQueueUtils#SWEEP_BATCH_SIZE}
+     */
+    @Default
+    public int batchCellThreshold() {
+        return SweepQueueUtils.SWEEP_BATCH_SIZE;
+    }
+
     @Value.Check
     public void checkPauseDuration() {
-        Preconditions.checkArgument(pauseMillis() <= Duration.ofDays(1).toMillis(),
+        Preconditions.checkArgument(
+                pauseMillis() <= Duration.ofDays(1).toMillis(),
                 "The pause between iterations of targeted sweep must not be greater than 1 day.",
                 SafeArg.of("pauseMillis", pauseMillis()));
+    }
+
+    @Value.Check
+    public void checkBatchCellThreshold() {
+        Preconditions.checkArgument(
+                batchCellThreshold() <= SweepQueueUtils.MAX_CELLS_DEDICATED,
+                "This configuration cannot be set to exceed the maximum number of cells in a dedicated row.",
+                SafeArg.of("config batch size", batchCellThreshold()),
+                SafeArg.of("max cells in a dedicated row", SweepQueueUtils.MAX_CELLS_DEDICATED));
     }
 
     public static TargetedSweepRuntimeConfig defaultTargetedSweepRuntimeConfig() {

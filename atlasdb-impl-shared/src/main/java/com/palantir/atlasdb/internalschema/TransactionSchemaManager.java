@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
@@ -33,6 +26,11 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransactionSchemaManager {
     private static final Logger log = LoggerFactory.getLogger(TransactionSchemaManager.class);
@@ -42,7 +40,8 @@ public class TransactionSchemaManager {
 
     public TransactionSchemaManager(CoordinationService<InternalSchemaMetadata> coordinationService) {
         this.coordinationService = coordinationService;
-        this.boundPerpetuator = new CoalescingSupplier<>(() -> tryPerpetuateExistingState().existingValues());
+        this.boundPerpetuator =
+                new CoalescingSupplier<>(() -> tryPerpetuateExistingState().existingValues());
     }
 
     /**
@@ -56,8 +55,9 @@ public class TransactionSchemaManager {
      */
     public int getTransactionsSchemaVersion(long timestamp) {
         if (timestamp < AtlasDbConstants.STARTING_TS) {
-            throw new SafeIllegalStateException("Query attempted for timestamp {} which was never given out by the"
-                    + " timestamp service, as timestamps start at {}",
+            throw new SafeIllegalStateException(
+                    "Query attempted for timestamp {} which was never given out by the"
+                            + " timestamp service, as timestamps start at {}",
                     SafeArg.of("queriedTimestamp", timestamp),
                     SafeArg.of("startOfTime", AtlasDbConstants.STARTING_TS));
         }
@@ -65,8 +65,8 @@ public class TransactionSchemaManager {
                 extractTimestampVersion(coordinationService.getValueForTimestamp(timestamp), timestamp);
         while (!possibleVersion.isPresent()) {
             List<ValueAndBound<InternalSchemaMetadata>> existingValues = boundPerpetuator.get();
-            possibleVersion = extractTimestampVersion(existingValues
-                            .stream()
+            possibleVersion = extractTimestampVersion(
+                    existingValues.stream()
                             .filter(valueAndBound -> valueAndBound.bound() >= timestamp)
                             .findAny(),
                     timestamp);
@@ -84,32 +84,36 @@ public class TransactionSchemaManager {
     public boolean tryInstallNewTransactionsSchemaVersion(int newVersion) {
         CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> transformResult = tryInstallNewVersion(newVersion);
 
-        Map.Entry<Range<Long>, Integer> finalVersion = getRangeAtBoundThreshold(
-                Iterables.getOnlyElement(transformResult.existingValues()));
+        Map.Entry<Range<Long>, Integer> finalVersion =
+                getRangeAtBoundThreshold(Iterables.getOnlyElement(transformResult.existingValues()));
         long finalVersionTimestampThreshold = finalVersion.getKey().lowerEndpoint();
 
         if (transformResult.successful() && finalVersion.getValue() == newVersion) {
-            log.debug("We attempted to install the transactions schema version {}, and this was successful."
-                    + " This version will take effect no later than timestamp {}.",
+            log.debug(
+                    "We attempted to install the transactions schema version {}, and this was successful."
+                            + " This version will take effect no later than timestamp {}.",
                     SafeArg.of("newVersion", newVersion),
                     SafeArg.of("timestamp", finalVersionTimestampThreshold));
             return true;
         }
         if (finalVersion.getValue() == newVersion) {
-            log.info("We attempted to install the the transactions schema version {}. We failed, but this version"
-                    + " will eventually be utilised anyway, taking effect no later than timestamp {}.",
+            log.info(
+                    "We attempted to install the the transactions schema version {}. We failed, but this version"
+                            + " will eventually be utilised anyway, taking effect no later than timestamp {}.",
                     SafeArg.of("newVersion", newVersion),
                     SafeArg.of("timestamp", finalVersionTimestampThreshold));
             return true;
         }
         if (transformResult.successful()) {
-            log.info("We attempted to install the transactions schema version {}, but ended up installing {}"
-                    + " because no version existed.",
+            log.info(
+                    "We attempted to install the transactions schema version {}, but ended up installing {}"
+                            + " because no version existed.",
                     SafeArg.of("versionWeTriedToInstall", newVersion),
                     SafeArg.of("versionWeActuallyInstalled", finalVersion.getValue()));
         }
-        log.info("We attempted to install the transactions schema version {}, but failed."
-                + " Currently, version {} will eventually be used from timestamp {}.",
+        log.info(
+                "We attempted to install the transactions schema version {}, but failed."
+                        + " Currently, version {} will eventually be used from timestamp {}.",
                 SafeArg.of("versionWeTriedToInstall", newVersion),
                 SafeArg.of("versionThatWillBeUsed", finalVersion.getValue()),
                 SafeArg.of("timestamp", finalVersionTimestampThreshold));
@@ -118,7 +122,8 @@ public class TransactionSchemaManager {
 
     @VisibleForTesting
     Map.Entry<Range<Long>, Integer> getRangeAtBoundThreshold(ValueAndBound<InternalSchemaMetadata> valueAndBound) {
-        return valueAndBound.value()
+        return valueAndBound
+                .value()
                 .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
                 .timestampToTransactionsTableSchemaVersion()
                 .rangeMapView()
@@ -130,10 +135,11 @@ public class TransactionSchemaManager {
                 valueAndBound -> installNewVersionInMapOrDefault(newVersion, valueAndBound));
     }
 
-    private InternalSchemaMetadata installNewVersionInMapOrDefault(int newVersion,
-            ValueAndBound<InternalSchemaMetadata> valueAndBound) {
+    private InternalSchemaMetadata installNewVersionInMapOrDefault(
+            int newVersion, ValueAndBound<InternalSchemaMetadata> valueAndBound) {
         if (!valueAndBound.value().isPresent()) {
-            log.warn("Attempting to install a new transactions schema version {}, but no past data was found,"
+            log.warn(
+                    "Attempting to install a new transactions schema version {}, but no past data was found,"
                             + " so we attempt to install default instead. This should normally only happen once per"
                             + " server, and only on or around first startup since upgrading to a version of AtlasDB"
                             + " that is aware of the transactions table. If this message persists, please contact"
@@ -142,18 +148,18 @@ public class TransactionSchemaManager {
             return InternalSchemaMetadata.defaultValue();
         }
 
-        log.debug("Attempting to install a new transactions schema version {}, on top of schema metadata"
-                + " that is valid up till timestamp {}.",
+        log.debug(
+                "Attempting to install a new transactions schema version {}, on top of schema metadata"
+                        + " that is valid up till timestamp {}.",
                 SafeArg.of("newVersion", newVersion),
                 SafeArg.of("oldDataValidity", valueAndBound.bound()));
         InternalSchemaMetadata internalSchemaMetadata = valueAndBound.value().get();
         return InternalSchemaMetadata.builder()
                 .from(internalSchemaMetadata)
-                .timestampToTransactionsTableSchemaVersion(
-                        installNewVersionInMap(
-                                internalSchemaMetadata.timestampToTransactionsTableSchemaVersion(),
-                                valueAndBound.bound() + 1,
-                                newVersion))
+                .timestampToTransactionsTableSchemaVersion(installNewVersionInMap(
+                        internalSchemaMetadata.timestampToTransactionsTableSchemaVersion(),
+                        valueAndBound.bound() + 1,
+                        newVersion))
                 .build();
     }
 
@@ -163,8 +169,8 @@ public class TransactionSchemaManager {
     }
 
     private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState() {
-        return coordinationService.tryTransformCurrentValue(valueAndBound ->
-                valueAndBound.value().orElseGet(InternalSchemaMetadata::defaultValue));
+        return coordinationService.tryTransformCurrentValue(
+                valueAndBound -> valueAndBound.value().orElseGet(InternalSchemaMetadata::defaultValue));
     }
 
     private static Optional<Integer> extractTimestampVersion(

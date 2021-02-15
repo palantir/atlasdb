@@ -17,10 +17,6 @@ package com.palantir.atlasdb.jepsen.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.PartitionByInvokeNameCheckerHelper;
@@ -28,6 +24,8 @@ import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
+import java.util.List;
+import org.junit.Test;
 
 public class IsolatedProcessCorrectnessCheckerTest {
     private static final int PROCESS_1 = 1;
@@ -234,7 +232,7 @@ public class IsolatedProcessCorrectnessCheckerTest {
     }
 
     private static void assertNoError(List<Event> events) {
-        CheckerTestUtils.assertNoErrors(() ->
-                new PartitionByInvokeNameCheckerHelper(IsolatedProcessCorrectnessChecker::new), events);
+        CheckerTestUtils.assertNoErrors(
+                () -> new PartitionByInvokeNameCheckerHelper(IsolatedProcessCorrectnessChecker::new), events);
     }
 }

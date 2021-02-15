@@ -15,6 +15,7 @@
  */
 package com.palantir.proxy.util;
 
+import com.palantir.proxy.exception.ProxyException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -24,8 +25,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import com.palantir.proxy.exception.ProxyException;
 
 public final class ProxyUtils {
     private ProxyUtils() {
@@ -45,7 +44,7 @@ public final class ProxyUtils {
 
     public static boolean isHashCode(Method method) throws ProxyException {
         try {
-            return method.equals(Object.class.getMethod("hashCode", new Class[]{}));
+            return method.equals(Object.class.getMethod("hashCode", new Class[] {}));
         } catch (NoSuchMethodException nsme) {
             throw new ProxyException(nsme);
         }
@@ -61,7 +60,7 @@ public final class ProxyUtils {
 
     public static boolean isToString(Method method) throws ProxyException {
         try {
-            return method.equals(Object.class.getMethod("toString", new Class[]{}));
+            return method.equals(Object.class.getMethod("toString", new Class[] {}));
         } catch (NoSuchMethodException nsme) {
             throw new ProxyException(nsme);
         }
@@ -80,8 +79,8 @@ public final class ProxyUtils {
         } else if (ProxyUtils.isToString(method)) {
             return proxyObject.getClass().getName() + "@" + Integer.toHexString(proxyObject.hashCode());
         } else {
-            throw new IllegalArgumentException("Method should be not be invoked directly on proxyObject: "
-                    + method.toString());
+            throw new IllegalArgumentException(
+                    "Method should be not be invoked directly on proxyObject: " + method.toString());
         }
     }
 
@@ -96,10 +95,8 @@ public final class ProxyUtils {
      */
     public static <T> T newProxy(Class<T> iface, Class<?> delegate, InvocationHandler handler) {
         checkIsInterface(iface);
-        return iface.cast(Proxy.newProxyInstance(
-                iface.getClassLoader(),
-                ProxyUtils.interfaces(iface, delegate),
-                handler));
+        return iface.cast(
+                Proxy.newProxyInstance(iface.getClassLoader(), ProxyUtils.interfaces(iface, delegate), handler));
     }
 
     /**
@@ -109,9 +106,8 @@ public final class ProxyUtils {
      * @return the set of interfaces for the specified classes
      * @throws IllegalArgumentException if the specified iface is not an interface
      */
-    public static Class<?>[] interfaces(Class<?> iface,
-                                        Collection<Class<?>> additionalInterfaces,
-                                        Class<?> delegateClass) {
+    public static Class<?>[] interfaces(
+            Class<?> iface, Collection<Class<?>> additionalInterfaces, Class<?> delegateClass) {
         checkIsInterface(iface);
         Set<Class<?>> interfaces = new LinkedHashSet<Class<?>>();
         interfaces.add(iface);
@@ -146,5 +142,4 @@ public final class ProxyUtils {
             checkIsInterface(possibleInterface);
         }
     }
-
 }

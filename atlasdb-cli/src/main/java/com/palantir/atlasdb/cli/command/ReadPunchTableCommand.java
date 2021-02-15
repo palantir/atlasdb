@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.cli.command.timestamp.AbstractTimestampCommand;
@@ -29,18 +23,24 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import org.slf4j.LoggerFactory;
 
-@Command(name = "read-punch-table", description = "Given an epoch time in millis, read the timestamp recorded"
-        + " just before it in the punch table.")
+@Command(
+        name = "read-punch-table",
+        description =
+                "Given an epoch time in millis, read the timestamp recorded" + " just before it in the punch table.")
 public class ReadPunchTableCommand extends SingleBackendCommand {
-    private static final OutputPrinter printer = new OutputPrinter(
-            LoggerFactory.getLogger(AbstractTimestampCommand.class));
+    private static final OutputPrinter printer =
+            new OutputPrinter(LoggerFactory.getLogger(AbstractTimestampCommand.class));
 
-    @Option(name = {"-e", "--epoch"},
+    @Option(
+            name = {"-e", "--epoch"},
             title = "EPOCH TIME",
             type = OptionType.COMMAND,
             description = "The epoch time to read the first value from. This should be epoch time in millis.")
@@ -57,20 +57,22 @@ public class ReadPunchTableCommand extends SingleBackendCommand {
             throw new SafeIllegalArgumentException("Required option '-e' is missing");
         }
         if (epochTime < 0) {
-            throw new SafeIllegalArgumentException("Option '-e' should be a positive long, as epoch time"
-                    + " is never negative.");
+            throw new SafeIllegalArgumentException(
+                    "Option '-e' should be a positive long, as epoch time" + " is never negative.");
         }
 
         Instant epochTimeInstant = Instant.ofEpochSecond(epochTime);
-        ZonedDateTime date = ZonedDateTime.ofInstant(epochTimeInstant, ZoneId.systemDefault());
-        printer.info("Input {} in epoch millis is {}",
+        ZonedDateTime date = ZonedDateTime.ofInstant(epochTimeInstant, ZoneOffset.UTC);
+        printer.info(
+                "Input {} in epoch millis is {}",
                 SafeArg.of("epochMillis", epochTime),
                 SafeArg.of("date", date.toString()));
 
         KeyValueService keyValueService = services.getKeyValueService();
         PuncherStore puncherStore = KeyValueServicePuncherStore.create(keyValueService, false);
         Long value = puncherStore.get(epochTime);
-        printer.info("The first timestamp before {} is {}",
+        printer.info(
+                "The first timestamp before {} is {}",
                 SafeArg.of("date", date.toString()),
                 SafeArg.of("timestamp", value));
         return 0;

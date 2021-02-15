@@ -16,21 +16,23 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
-
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-
+import com.google.common.util.concurrent.SimpleTimeLimiter;
+import com.google.common.util.concurrent.TimeLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.exception.PalantirSqlException;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.time.Duration;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class DbKvsPostgresInvalidationRunnerTest {
     @ClassRule
@@ -38,7 +40,8 @@ public class DbKvsPostgresInvalidationRunnerTest {
 
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
     private final TimestampBoundStore store = getStore();
-    private final InvalidationRunner invalidationRunner = new InvalidationRunner(kvs.getConnectionManager(),
+    private final InvalidationRunner invalidationRunner = new InvalidationRunner(
+            kvs.getConnectionManager(),
             AtlasDbConstants.TIMESTAMP_TABLE,
             DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
     private static final long TIMESTAMP_1 = 12000;
@@ -59,7 +62,8 @@ public class DbKvsPostgresInvalidationRunnerTest {
     public void poisonsEmptyTableAndReturnsStoredBound() {
         store.getUpperLimit();
         store.storeUpperLimit(TIMESTAMP_1);
-        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp()).isEqualTo(TIMESTAMP_1);
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp())
+                .isEqualTo(TIMESTAMP_1);
     }
 
     @Test
@@ -72,9 +76,12 @@ public class DbKvsPostgresInvalidationRunnerTest {
     public void poisoningMultipleTimesIsAllowed() {
         store.storeUpperLimit(TIMESTAMP_1);
         store.getUpperLimit();
-        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp()).isEqualTo(TIMESTAMP_1);
-        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp()).isEqualTo(TIMESTAMP_1);
-        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp()).isEqualTo(TIMESTAMP_1);
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp())
+                .isEqualTo(TIMESTAMP_1);
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp())
+                .isEqualTo(TIMESTAMP_1);
+        assertThat(invalidationRunner.ensureInDbStoreIsPoisonedAndGetLastAllocatedTimestamp())
+                .isEqualTo(TIMESTAMP_1);
     }
 
     @Test
@@ -88,7 +95,7 @@ public class DbKvsPostgresInvalidationRunnerTest {
         assertBoundNotReadableAfterBeingPoisoned();
     }
 
-    public InDbTimestampBoundStore getStore() {
+    public TimestampBoundStore getStore() {
         return InDbTimestampBoundStore.create(
                 kvs.getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,
@@ -96,6 +103,9 @@ public class DbKvsPostgresInvalidationRunnerTest {
     }
 
     private void assertBoundNotReadableAfterBeingPoisoned() {
-        assertThatThrownBy(store::getUpperLimit).isInstanceOf(PalantirSqlException.class);
+        // This timeout is only meant for tests, the server retries for 3 minutes
+        TimeLimiter limit = SimpleTimeLimiter.create(Executors.newSingleThreadExecutor());
+        assertThatThrownBy(() -> limit.runWithTimeout(store::getUpperLimit, Duration.ofSeconds(1)))
+                .isInstanceOf(TimeoutException.class);
     }
 }

@@ -18,9 +18,8 @@ package com.palantir.atlasdb.timelock.adjudicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.timelock.feedback.EndpointStatistics;
+import org.junit.Test;
 
 public class PointHealthReportAnalysisTest {
     private static final String CLIENT_1 = "Client1";
@@ -28,18 +27,19 @@ public class PointHealthReportAnalysisTest {
 
     private static final double RATE =
             Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.minimumRequestRateForConsideration();
-    private static final long P_99 =
-            Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.maximumPermittedSteadyStateP99().toNanos();
+    private static final long P_99 = Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES
+            .maximumPermittedSteadyStateP99()
+            .toNanos();
     private static final double ERROR_PROPORTION =
             Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.maximumPermittedErrorProportion();
-    private static final long QUIET_P99 =
-            Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES.maximumPermittedQuietP99().toNanos();
+    private static final long QUIET_P99 = Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES
+            .maximumPermittedQuietP99()
+            .toNanos();
 
     @Test
     public void reportIsHealthyWhenEverythingIsRight() {
         FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
-        EndpointStatistics statistics = EndpointStatistics
-                .builder()
+        EndpointStatistics statistics = EndpointStatistics.builder()
                 .p99(P_99 - 1)
                 .oneMin(RATE + 1)
                 .errorRate(0)
@@ -51,8 +51,7 @@ public class PointHealthReportAnalysisTest {
     @Test
     public void reportStatusIsUnknownIfReqRateIsBelowThreshold() {
         FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
-        EndpointStatistics statistics = EndpointStatistics
-                .builder()
+        EndpointStatistics statistics = EndpointStatistics.builder()
                 .p99(P_99 + 1)
                 .oneMin(RATE - 0.01)
                 .errorRate(ERROR_PROPORTION * RATE + 0.1)
@@ -64,8 +63,7 @@ public class PointHealthReportAnalysisTest {
     @Test
     public void reportStatusIsUnhealthyIfErrProportionIsHigh() {
         FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
-        EndpointStatistics statistics = EndpointStatistics
-                .builder()
+        EndpointStatistics statistics = EndpointStatistics.builder()
                 .p99(P_99 + 1)
                 .oneMin(RATE + 0.01)
                 .errorRate(ERROR_PROPORTION * RATE + 0.1)
@@ -77,8 +75,7 @@ public class PointHealthReportAnalysisTest {
     @Test
     public void reportStatusIsUnhealthyIfP99IsAboveThreshold() {
         FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
-        EndpointStatistics statistics = EndpointStatistics
-                .builder()
+        EndpointStatistics statistics = EndpointStatistics.builder()
                 .p99(P_99 + 1)
                 .oneMin(RATE + 0.01)
                 .errorRate(ERROR_PROPORTION * RATE)
@@ -90,8 +87,7 @@ public class PointHealthReportAnalysisTest {
     @Test
     public void reportStatusIsUnhealthyIfQuietP99IsAboveThreshold() {
         FeedbackHandler feedbackHandler = FeedbackHandler.createForTests();
-        EndpointStatistics statistics = EndpointStatistics
-                .builder()
+        EndpointStatistics statistics = EndpointStatistics.builder()
                 .p99(QUIET_P99 + 1)
                 .oneMin(RATE - 0.01)
                 .errorRate(0)
@@ -100,15 +96,8 @@ public class PointHealthReportAnalysisTest {
         assertThat(healthStatus).isEqualTo(HealthStatus.UNHEALTHY);
     }
 
-
     public HealthStatus getHealthStatus(FeedbackHandler feedbackHandler, EndpointStatistics statistics) {
         return feedbackHandler.getHealthStatusForMetric(
-                CLIENT_1,
-                statistics,
-                LEADER_TIME,
-                RATE,
-                P_99,
-                QUIET_P99,
-                ERROR_PROPORTION);
+                CLIENT_1, statistics, LEADER_TIME, RATE, P_99, QUIET_P99, ERROR_PROPORTION);
     }
 }

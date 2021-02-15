@@ -15,18 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
+import org.immutables.value.Value;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 @JsonSubTypes({
-        @JsonSubTypes.Type(PostgresDdlConfig.class),
-        @JsonSubTypes.Type(OracleDdlConfig.class),
-        @JsonSubTypes.Type(H2DdlConfig.class)})
+    @JsonSubTypes.Type(PostgresDdlConfig.class),
+    @JsonSubTypes.Type(OracleDdlConfig.class),
+    @JsonSubTypes.Type(H2DdlConfig.class)
+})
 public abstract class DdlConfig {
     public abstract String type();
 
@@ -60,13 +60,14 @@ public abstract class DdlConfig {
     @Value.Check
     protected final void check() {
         Preconditions.checkState(
-                metadataTable().getNamespace().isEmptyNamespace(),
-                "'metadataTable' should have empty namespace'");
+                metadataTable().getNamespace().isEmptyNamespace(), "'metadataTable' should have empty namespace'");
     }
 
     public interface Visitor<T> {
         T visit(PostgresDdlConfig postgresDdlConfig);
+
         T visit(H2DdlConfig h2DdlConfig);
+
         T visit(OracleDdlConfig oracleDdlConfig);
     }
 

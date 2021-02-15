@@ -16,16 +16,14 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-import java.util.Optional;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Optional;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableLockWatchTestRuntimeConfig.class)
 @JsonDeserialize(as = ImmutableLockWatchTestRuntimeConfig.class)

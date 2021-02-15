@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -26,7 +24,7 @@ public final class HiddenTables {
         // utility
     }
 
-    private static final Set<TableReference> CASSANDRA_TABLES = ImmutableSet.of(
+    private static final ImmutableSet<TableReference> CASSANDRA_TABLES = ImmutableSet.of(
             AtlasDbConstants.TIMESTAMP_TABLE,
             AtlasDbConstants.DEFAULT_METADATA_TABLE,
             AtlasDbConstants.PERSISTED_LOCKS_TABLE);

@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.table.description.test;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as=ImmutableStringValue.class)
-@JsonDeserialize(as=ImmutableStringValue.class)
+@JsonSerialize(as = ImmutableStringValue.class)
+@JsonDeserialize(as = ImmutableStringValue.class)
 public interface StringValue {
 
     String value();
@@ -30,5 +29,4 @@ public interface StringValue {
     static StringValue of(String value) {
         return ImmutableStringValue.builder().value(value).build();
     }
-
 }

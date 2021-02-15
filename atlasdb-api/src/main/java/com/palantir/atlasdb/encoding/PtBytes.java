@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.encoding;
 
-import java.nio.charset.StandardCharsets;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.cache.Cache;
@@ -27,15 +23,18 @@ import com.google.common.collect.Ordering;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
+import java.nio.charset.StandardCharsets;
+import javax.annotation.Nullable;
 
 public final class PtBytes {
-    private PtBytes() { }
+    private PtBytes() {}
 
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     public static final int SIZEOF_LONG = Long.SIZE / Byte.SIZE;
     public static final Ordering<byte[]> BYTES_COMPARATOR = Ordering.from(UnsignedBytes.lexicographicalComparator());
 
-    private static final Cache<String, byte[]> cache = CacheBuilder.newBuilder().maximumSize(5000).build();
+    private static final Cache<String, byte[]> cache =
+            CacheBuilder.newBuilder().maximumSize(5000).build();
 
     /**
      * Converts a byte array to a long value. Reverses {@link #toBytes(long)}

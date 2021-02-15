@@ -20,11 +20,11 @@ public class RemoteCorruptionDetector implements CorruptionDetector {
     private volatile CorruptionStatus remoteCorruptionState = CorruptionStatus.HEALTHY;
 
     public void setRemoteCorruptionState() {
-        this.remoteCorruptionState = CorruptionStatus.CORRUPTION;
+        this.remoteCorruptionState = CorruptionStatus.DEFINITIVE_CORRUPTION_DETECTED_BY_REMOTE;
     }
 
     @Override
-    public boolean hasDetectedCorruption() {
-        return remoteCorruptionState.hasCorruption();
+    public boolean shouldRejectRequests() {
+        return remoteCorruptionState.shouldRejectRequests();
     }
 }

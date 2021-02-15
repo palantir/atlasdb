@@ -18,12 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static java.util.stream.Collectors.toSet;
 
-import java.util.Optional;
-import java.util.Set;
-
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.HttpHeaders;
-
 import com.google.common.collect.SetMultimap;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.BooleanPaxosResponse;
@@ -32,6 +26,10 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import java.util.Optional;
+import java.util.Set;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.HttpHeaders;
 
 public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
 
@@ -46,10 +44,10 @@ public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
     @Override
     public SetMultimap<Client, WithSeq<PaxosPromise>> prepare(
             SetMultimap<Client, WithSeq<PaxosProposalId>> promiseWithSeqRequestsByClient) {
-        SetMultimap<Client, WithSeq<PaxosPromise>> results = KeyedStream.stream(
-                promiseWithSeqRequestsByClient)
+        SetMultimap<Client, WithSeq<PaxosPromise>> results = KeyedStream.stream(promiseWithSeqRequestsByClient)
                 .map((client, paxosProposalIdWithSeq) -> {
-                    PaxosPromise promise = paxosComponents.acceptor(client)
+                    PaxosPromise promise = paxosComponents
+                            .acceptor(client)
                             .prepare(paxosProposalIdWithSeq.seq(), paxosProposalIdWithSeq.value());
                     return paxosProposalIdWithSeq.withNewValue(promise);
                 })
@@ -64,8 +62,7 @@ public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
         SetMultimap<Client, WithSeq<BooleanPaxosResponse>> results = KeyedStream.stream(proposalRequestsByClient)
                 .map((client, paxosProposal) -> {
                     long seq = paxosProposal.getValue().getRound();
-                    BooleanPaxosResponse ack = paxosComponents.acceptor(client)
-                            .accept(seq, paxosProposal);
+                    BooleanPaxosResponse ack = paxosComponents.acceptor(client).accept(seq, paxosProposal);
                     return WithSeq.of(ack, seq);
                 })
                 .collectToSetMultimap();
@@ -75,16 +72,15 @@ public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
 
     @Override
     public AcceptorCacheDigest latestSequencesPreparedOrAccepted(
-            @QueryParam(HttpHeaders.IF_MATCH) Optional<AcceptorCacheKey> maybeCacheKey,
-            Set<Client> clients) throws InvalidAcceptorCacheKeyException {
+            @QueryParam(HttpHeaders.IF_MATCH) Optional<AcceptorCacheKey> maybeCacheKey, Set<Client> clients)
+            throws InvalidAcceptorCacheKeyException {
         primeCache(clients);
         if (!maybeCacheKey.isPresent()) {
             return acceptorCache.getAllUpdates();
         }
 
         AcceptorCacheKey cacheKey = maybeCacheKey.get();
-        return latestSequencesPreparedOrAcceptedCached(cacheKey)
-                .orElseGet(() -> emptyDigest(cacheKey));
+        return latestSequencesPreparedOrAcceptedCached(cacheKey).orElseGet(() -> emptyDigest(cacheKey));
     }
 
     @Override

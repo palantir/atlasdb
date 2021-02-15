@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.coordination;
 
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.logsafe.SafeArg;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.logsafe.SafeArg;
 
 public class CoordinationServiceImpl<T> implements CoordinationService<T> {
     private static final Logger log = LoggerFactory.getLogger(CoordinationServiceImpl.class);
@@ -42,8 +40,7 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
     public Optional<ValueAndBound<T>> getValueForTimestamp(long timestamp) {
         ValueAndBound<T> cachedReference = cache.get();
         if (cachedReference.bound() < timestamp) {
-            return readLatestValueFromStore()
-                    .filter(valueAndBound -> valueAndBound.bound() >= timestamp);
+            return readLatestValueFromStore().filter(valueAndBound -> valueAndBound.bound() >= timestamp);
         }
         return Optional.of(cachedReference);
     }
@@ -63,9 +60,7 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
     @Override
     public Optional<ValueAndBound<T>> getLastKnownLocalValue() {
         ValueAndBound<T> cachedValue = cache.get();
-        return Objects.equals(getInitialCacheValue(), cachedValue)
-                ? Optional.empty()
-                : Optional.of(cachedValue);
+        return Objects.equals(getInitialCacheValue(), cachedValue) ? Optional.empty() : Optional.of(cachedValue);
     }
 
     private Optional<ValueAndBound<T>> readLatestValueFromStore() {
@@ -76,18 +71,16 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private void accumulateCachedValue(Optional<ValueAndBound<T>> valueAndBound) {
-        valueAndBound.ifPresent(presentValue ->
-                cache.accumulateAndGet(presentValue, this::chooseValueWithGreaterBound)
-        );
+        valueAndBound.ifPresent(
+                presentValue -> cache.accumulateAndGet(presentValue, this::chooseValueWithGreaterBound));
     }
 
-    private ValueAndBound<T> chooseValueWithGreaterBound(
-            ValueAndBound<T> currentValue,
-            ValueAndBound<T> nextValue) {
+    private ValueAndBound<T> chooseValueWithGreaterBound(ValueAndBound<T> currentValue, ValueAndBound<T> nextValue) {
         if (currentValue.bound() > nextValue.bound()) {
             return currentValue;
         }
-        log.debug("Updating cached coordination value to a new value, valid till {}",
+        log.debug(
+                "Updating cached coordination value to a new value, valid till {}",
                 SafeArg.of("newBound", nextValue.bound()));
         return nextValue;
     }

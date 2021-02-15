@@ -21,16 +21,14 @@ import org.junit.Test;
 public class ContainersTest {
     @Test
     public void containerStartsUpCorrectly() throws Throwable {
-        Containers containers = new Containers(ContainersTest.class)
-                .with(new FirstNginxContainer());
+        Containers containers = new Containers(ContainersTest.class).with(new FirstNginxContainer());
 
         setupContainers(containers);
     }
 
     @Test
     public void multipleContainersStartUpCorrectly() throws Throwable {
-        Containers containers = new Containers(ContainersTest.class)
-                .with(new FirstNginxContainer());
+        Containers containers = new Containers(ContainersTest.class).with(new FirstNginxContainer());
         setupContainers(containers);
 
         containers = containers.with(new SecondNginxContainer());

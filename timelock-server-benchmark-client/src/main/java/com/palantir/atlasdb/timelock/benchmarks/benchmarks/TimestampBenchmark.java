@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.Map;
-
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampService;
+import java.util.Map;
 
 public final class TimestampBenchmark extends AbstractBenchmark {
 
     private final TimestampService timestampService;
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
-            int requestsPerClient) {
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients, int requestsPerClient) {
         return new TimestampBenchmark(txnManager.getTimestampService(), numClients, requestsPerClient).execute();
     }
 

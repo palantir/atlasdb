@@ -15,24 +15,11 @@
  */
 package com.palantir.atlasdb.http;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.math.BigInteger;
-import java.util.Collections;
-
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.BlockingMode;
@@ -40,6 +27,9 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import java.math.BigInteger;
+import java.util.Collections;
+import org.junit.Test;
 
 public class SynchronousLockClientTest {
     private static final LockService LOCK_SERVICE = mock(LockService.class);
@@ -52,9 +42,9 @@ public class SynchronousLockClientTest {
 
     @Test
     public void lockRequestIsNonBlocking() throws InterruptedException {
-        when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
+        when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer(invocation -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
-            assertThat(request.getBlockingMode(), is(BlockingMode.DO_NOT_BLOCK));
+            assertThat(request.getBlockingMode()).isEqualTo(BlockingMode.DO_NOT_BLOCK);
             return null;
         });
         LOCK_CLIENT.lock(CLIENT, LOCK_NAME);
@@ -62,9 +52,12 @@ public class SynchronousLockClientTest {
 
     @Test
     public void lockRequestIsWrite() throws InterruptedException {
-        when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
+        when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer(invocation -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
-            assertThat(request.getLocks(), contains(hasProperty("lockMode", is(LockMode.WRITE))));
+            assertThat(request.getLocks().stream()
+                            .filter(lock -> lock.getLockMode().equals(LockMode.WRITE))
+                            .findAny())
+                    .isPresent();
             return null;
         });
         LOCK_CLIENT.lock(CLIENT, LOCK_NAME);
@@ -72,36 +65,36 @@ public class SynchronousLockClientTest {
 
     @Test
     public void unlockSingleReturnsFalseIfTokenIsNull() throws InterruptedException {
-        assertFalse(LOCK_CLIENT.unlockSingle(null));
+        assertThat(LOCK_CLIENT.unlockSingle(null)).isFalse();
     }
 
     @Test
     public void unlockSingleReturnsTrueIfTokenCanBeUnlocked() throws InterruptedException {
         when(LOCK_SERVICE.unlock(eq(TOKEN_1))).thenReturn(true);
-        assertTrue(LOCK_CLIENT.unlockSingle(TOKEN_1));
+        assertThat(LOCK_CLIENT.unlockSingle(TOKEN_1)).isTrue();
     }
 
     @Test
     public void unlockReturnsEmptySetIfTokensWereAlreadyUnlocked() throws InterruptedException {
         when(LOCK_SERVICE.unlock(any(LockRefreshToken.class))).thenReturn(false);
-        assertThat(LOCK_CLIENT.unlock(ImmutableSet.of(TOKEN_1, TOKEN_2)), empty());
+        assertThat(LOCK_CLIENT.unlock(ImmutableSet.of(TOKEN_1, TOKEN_2))).isEmpty();
     }
 
     @Test
     public void unlockReturnsTokensThatWereUnlocked() throws InterruptedException {
         when(LOCK_SERVICE.unlock(eq(TOKEN_1))).thenReturn(false);
         when(LOCK_SERVICE.unlock(eq(TOKEN_2))).thenReturn(true);
-        assertThat(LOCK_CLIENT.unlock(ImmutableSet.of(TOKEN_1, TOKEN_2)), containsInAnyOrder(TOKEN_2));
+        assertThat(LOCK_CLIENT.unlock(ImmutableSet.of(TOKEN_1, TOKEN_2))).containsExactlyInAnyOrder(TOKEN_2);
     }
 
     @Test
     public void refreshSingleReturnsNullIfTokenIsNull() throws InterruptedException {
-        assertNull(LOCK_CLIENT.refreshSingle(null));
+        assertThat(LOCK_CLIENT.refreshSingle(null)).isNull();
     }
 
     @Test
     public void refreshSingleReturnsNullIfThereAreNoRefreshTokens() throws InterruptedException {
         when(LOCK_SERVICE.refreshLockRefreshTokens(any())).thenReturn(Collections.emptySet());
-        assertNull(LOCK_CLIENT.refreshSingle(TOKEN_1));
+        assertThat(LOCK_CLIENT.refreshSingle(TOKEN_1)).isNull();
     }
 }

@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.cache;
 
-import java.util.function.LongSupplier;
-
-import javax.annotation.Nullable;
-
 import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import java.util.function.LongSupplier;
+import javax.annotation.Nullable;
 
 public final class DefaultTimestampCache implements TimestampCache {
     private final LongSupplier size;
@@ -34,17 +32,16 @@ public final class DefaultTimestampCache implements TimestampCache {
 
     @VisibleForTesting
     static Cache<Long, Long> createCache(long size) {
-        return Caffeine.newBuilder()
-                .maximumSize(size)
-                .recordStats()
-                .build();
+        return Caffeine.newBuilder().maximumSize(size).recordStats().build();
     }
 
     public DefaultTimestampCache(MetricRegistry metricRegistry, LongSupplier size) {
         this.size = size;
         startToCommitTimestampCache = createCache(size.getAsLong());
         evictionPolicy = startToCommitTimestampCache.policy().eviction().get();
-        AtlasDbMetrics.registerCache(metricRegistry, startToCommitTimestampCache,
+        AtlasDbMetrics.registerCache(
+                metricRegistry,
+                startToCommitTimestampCache,
                 MetricRegistry.name(TimestampCache.class, "startToCommitTimestamp"));
     }
 

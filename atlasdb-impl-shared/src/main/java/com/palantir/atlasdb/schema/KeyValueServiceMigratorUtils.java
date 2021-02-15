@@ -15,17 +15,16 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.Set;
-
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageLevel;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageProcessor;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class KeyValueServiceMigratorUtils {
 
@@ -40,10 +39,13 @@ public final class KeyValueServiceMigratorUtils {
      * migrated since the migrator reads and writes data transactionally, and migrating a checkpoint table would
      * interfere with the migration. We still want to drop and recreate these tables to enable manual migration.
      */
-    public static Set<TableReference> getMigratableTableNames(KeyValueService kvs, Set<TableReference> skipTables,
-            TableReference checkpointTable) {
+    public static Set<TableReference> getMigratableTableNames(
+            KeyValueService kvs, Set<TableReference> skipTables, TableReference checkpointTable) {
         Set<TableReference> tableNames = getCreatableTables(kvs, skipTables);
-        tableNames.removeAll(TargetedSweepSchema.INSTANCE.getLatestSchema().getTableDefinitions().keySet());
+        tableNames.removeAll(TargetedSweepSchema.INSTANCE
+                .getLatestSchema()
+                .getTableDefinitions()
+                .keySet());
         tableNames.removeAll(AtlasDbConstants.HIDDEN_TABLES);
         tableNames.removeIf(tableRef -> tableRef.equals(checkpointTable));
         return tableNames;
@@ -56,16 +58,14 @@ public final class KeyValueServiceMigratorUtils {
      * cause us to drop them in the source KVS.
      */
     public static Set<TableReference> getCreatableTables(KeyValueService kvs, Set<TableReference> skipTables) {
-        Set<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
+        Set<TableReference> tableNames = new HashSet<>(kvs.getAllTableNames());
         tableNames.removeAll(AtlasDbConstants.ATOMIC_TABLES);
         tableNames.removeAll(skipTables);
         return tableNames;
     }
 
     public static void processMessage(
-            KvsMigrationMessageProcessor messageProcessor,
-            String string,
-            KvsMigrationMessageLevel level) {
+            KvsMigrationMessageProcessor messageProcessor, String string, KvsMigrationMessageLevel level) {
         messageProcessor.processMessage(string, level);
     }
 

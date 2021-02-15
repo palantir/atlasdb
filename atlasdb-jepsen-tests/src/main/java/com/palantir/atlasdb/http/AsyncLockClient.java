@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.List;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
+import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -32,38 +30,35 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.Set;
 
 public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     private static final String NAMESPACE = "test";
     private final TimelockService timelockService;
 
-    private AsyncLockClient(NamespacedTimelockRpcClient timelockService,
-            NamespacedConjureTimelockService conjureTimelockService) {
+    private AsyncLockClient(
+            NamespacedTimelockRpcClient timelockService, NamespacedConjureTimelockService conjureTimelockService) {
         this.timelockService = RemoteTimelockServiceAdapter.create(
-                timelockService,
-                conjureTimelockService,
-                NoOpLockWatchEventCache.INSTANCE);
+                timelockService, conjureTimelockService, NoOpLockWatchEventCache.create());
     }
 
     public static AsyncLockClient create(MetricsManager metricsManager, List<String> hosts) {
         return new AsyncLockClient(
                 new NamespacedTimelockRpcClient(
-                        TimelockUtils.createClient(metricsManager, hosts, TimelockRpcClient.class),
-                        NAMESPACE),
-                new NamespacedConjureTimelockService(
-                        TimelockUtils.createClient(metricsManager, hosts, ConjureTimelockService.class),
-                        NAMESPACE));
+                        TimelockUtils.createClient(metricsManager, hosts, TimelockRpcClient.class), NAMESPACE),
+                new NamespacedConjureTimelockServiceImpl(
+                        TimelockUtils.createClient(metricsManager, hosts, ConjureTimelockService.class), NAMESPACE));
     }
 
     @Override
     public LockToken lock(String client, String lockName) {
-        LockRequest lockRequest = LockRequest.of(
-                ImmutableSet.of(StringLockDescriptor.of(lockName)),
-                Long.MAX_VALUE,
-                client);
+        LockRequest lockRequest =
+                LockRequest.of(ImmutableSet.of(StringLockDescriptor.of(lockName)), Integer.MAX_VALUE, client);
         LockResponse lockResponse = timelockService.lock(lockRequest);
-        Preconditions.checkState(lockResponse.wasSuccessful(),
-                "Jepsen failed to lock a lock, but it would wait for Long.MAX_VALUE, so this is unexpected.");
+        Preconditions.checkState(
+                lockResponse.wasSuccessful(),
+                "Jepsen failed to lock a lock, but it would wait for Integer.MAX_VALUE, so this is unexpected.");
         return lockResponse.getToken();
     }
 

@@ -17,6 +17,4 @@ package com.palantir.lock;
 
 import java.io.Closeable;
 
-public interface CloseableLockService extends LockService, Closeable {
-
-}
+public interface CloseableLockService extends LockService, Closeable {}

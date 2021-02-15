@@ -15,14 +15,11 @@
  */
 package com.palantir.lock.logger;
 
-
+import com.palantir.lock.LockDescriptor;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.Maps;
-import com.palantir.lock.LockDescriptor;
-
 
 /**
  * Lock descriptors may contain obfuscated sensitive information. We want to make it impossible to get a real descriptor,
@@ -34,7 +31,7 @@ class LockDescriptorMapper {
 
     private static final String LOCK_PREFIX = "Lock-";
 
-    private Map<LockDescriptor, String> mapper = Maps.newConcurrentMap();
+    private Map<LockDescriptor, String> mapper = new ConcurrentHashMap<>();
     private AtomicInteger lockCounter = new AtomicInteger();
 
     String getDescriptorMapping(LockDescriptor descriptor) {

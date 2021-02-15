@@ -18,11 +18,6 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.v2.LockToken;
@@ -30,6 +25,9 @@ import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.UUID;
+import org.junit.Before;
+import org.junit.Test;
 
 public final class TimestampStateStoreTest {
     private static UUID leader = UUID.randomUUID();

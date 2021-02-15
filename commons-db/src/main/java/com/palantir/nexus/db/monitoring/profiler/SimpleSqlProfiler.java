@@ -15,28 +15,25 @@
  */
 package com.palantir.nexus.db.monitoring.profiler;
 
-import java.util.Collection;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.sql.SqlCallStats;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 enum SimpleSqlProfiler implements SqlProfiler {
     INSTANCE;
 
     private static final Logger log = LoggerFactory.getLogger(SimpleSqlProfiler.class);
 
-    private final ExecutorInheritableThreadLocal<ConcurrentMap<String, SqlCallStats>> currentTrace = new ExecutorInheritableThreadLocal<ConcurrentMap<String, SqlCallStats>>();
+    private final ExecutorInheritableThreadLocal<ConcurrentMap<String, SqlCallStats>> currentTrace =
+            new ExecutorInheritableThreadLocal<ConcurrentMap<String, SqlCallStats>>();
 
     /**
      * Presumably, the rather obscure {@link CopyOnWriteArrayList} collection was chosen here to
@@ -45,7 +42,7 @@ enum SimpleSqlProfiler implements SqlProfiler {
      * implement {@link Comparable}, and at the expense of making {@line
      * #removeSqlProfilerListener(SqlProfilerListener)} O(N). (jweel)
      */
-    private final Collection<SqlProfilerListener> sqlProfilerListeners = Lists.newCopyOnWriteArrayList();
+    private final Collection<SqlProfilerListener> sqlProfilerListeners = new CopyOnWriteArrayList<>();
 
     @Override
     public void addSqlProfilerListener(SqlProfilerListener sqlProfilerListener) {
@@ -63,7 +60,7 @@ enum SimpleSqlProfiler implements SqlProfiler {
             AssertUtils.assertAndLog(log, false, "Tracing already started.");
             return;
         }
-        currentTrace.set(Maps.<String, SqlCallStats> newConcurrentMap());
+        currentTrace.set(new ConcurrentHashMap<String, SqlCallStats>());
     }
 
     @Override
@@ -90,7 +87,8 @@ enum SimpleSqlProfiler implements SqlProfiler {
             AssertUtils.assertAndLog(log, false, "Tracing already stopped.");
             return ImmutableList.of();
         }
-        Collection<SqlCallStats> result = ImmutableList.copyOf(currentTrace.get().values());
+        Collection<SqlCallStats> result =
+                ImmutableList.copyOf(currentTrace.get().values());
         currentTrace.remove();
         return result;
     }

@@ -17,25 +17,23 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
+import java.util.UUID;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestRule;
 
 @ShouldRetry // In some cases we obtain a TTransportException from Cassandra, probably because we don't wait enough?
 public class MultiCassandraSingleNodeDownEteTest {
-    private static final Set<String> ALL_CASSANDRA_NODES = ImmutableSet.of("cassandra1", "cassandra2", "cassandra3");
+    private static final ImmutableSet<String> ALL_CASSANDRA_NODES =
+            ImmutableSet.of("cassandra1", "cassandra2", "cassandra3");
     private static final String CASSANDRA_NODE_TO_KILL = "cassandra1";
 
     @Rule

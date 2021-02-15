@@ -16,16 +16,14 @@
 
 package com.palantir.timelock.history.models;
 
+import com.palantir.paxos.PaxosValue;
+import com.palantir.timelock.history.PaxosAcceptorData;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.immutables.value.Value;
-
-import com.palantir.paxos.PaxosValue;
-import com.palantir.timelock.history.PaxosAcceptorData;
 
 @Value.Immutable
 public interface LearnerAndAcceptorRecords {

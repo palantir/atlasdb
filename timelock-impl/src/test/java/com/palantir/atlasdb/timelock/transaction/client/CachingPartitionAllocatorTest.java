@@ -23,17 +23,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.github.benmanes.caffeine.cache.Ticker;
+import com.google.common.collect.Iterables;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.github.benmanes.caffeine.cache.Ticker;
-import com.google.common.collect.Iterables;
 
 public class CachingPartitionAllocatorTest {
     private static final String KEY = "foo";
@@ -42,8 +40,8 @@ public class CachingPartitionAllocatorTest {
     private final AtomicLong time = new AtomicLong();
     private final Ticker ticker = time::get;
     private final DistributingModulusGenerator generator = mock(DistributingModulusGenerator.class);
-    private final CachingPartitionAllocator<String> allocator = new CachingPartitionAllocator<>(
-            generator, scheduler, ticker, Duration.of(5, ChronoUnit.NANOS));
+    private final CachingPartitionAllocator<String> allocator =
+            new CachingPartitionAllocator<>(generator, scheduler, ticker, Duration.of(5, ChronoUnit.NANOS));
 
     @Before
     public void setUp() {

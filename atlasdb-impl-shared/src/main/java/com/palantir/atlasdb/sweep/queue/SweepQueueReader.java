@@ -17,28 +17,31 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Optional;
 import java.util.function.IntSupplier;
+import org.immutables.value.Value.Immutable;
 
-class SweepQueueReader {
+public class SweepQueueReader {
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
-    private final IntSupplier maximumPartitionsInBatch;
+    private final ReadBatchingRuntimeContext runtime;
 
-    SweepQueueReader(SweepableTimestamps sweepableTimestamps,
+    SweepQueueReader(
+            SweepableTimestamps sweepableTimestamps,
             SweepableCells sweepableCells,
-            IntSupplier maximumPartitionsInBatch) {
+            ReadBatchingRuntimeContext runtime) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;
-        this.maximumPartitionsInBatch = maximumPartitionsInBatch;
+        this.runtime = runtime;
     }
 
     SweepBatchWithPartitionInfo getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
-        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(sweepTs, lastSweptTs);
+        SweepBatchAccumulator accumulator =
+                new SweepBatchAccumulator(sweepTs, runtime.cellsThreshold().getAsInt(), lastSweptTs);
         long previousProgress = lastSweptTs;
         for (int currentBatch = 0;
-                currentBatch < maximumPartitionsInBatch.getAsInt() && accumulator.shouldAcceptAdditionalBatch();
+                currentBatch < runtime.maximumPartitions().getAsInt() && accumulator.shouldAcceptAdditionalBatch();
                 currentBatch++) {
-            Optional<Long> nextFinePartition = sweepableTimestamps.nextSweepableTimestampPartition(
-                    shardStrategy, previousProgress, sweepTs);
+            Optional<Long> nextFinePartition =
+                    sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, previousProgress, sweepTs);
             if (!nextFinePartition.isPresent()) {
                 return accumulator.toSweepBatch();
             }
@@ -48,5 +51,23 @@ class SweepQueueReader {
             previousProgress = accumulator.getProgressTimestamp();
         }
         return accumulator.toSweepBatch();
+    }
+
+    public static final ReadBatchingRuntimeContext DEFAULT_READ_BATCHING_RUNTIME_CONTEXT =
+            ReadBatchingRuntimeContext.builder()
+                    .maximumPartitions(() -> 1)
+                    .cellsThreshold(() -> SweepQueueUtils.SWEEP_BATCH_SIZE)
+                    .build();
+
+    @Immutable
+    public interface ReadBatchingRuntimeContext {
+
+        IntSupplier maximumPartitions();
+
+        IntSupplier cellsThreshold();
+
+        static ImmutableReadBatchingRuntimeContext.Builder builder() {
+            return ImmutableReadBatchingRuntimeContext.builder();
+        }
     }
 }

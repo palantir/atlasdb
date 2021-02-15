@@ -24,12 +24,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.table.description.generated.ApiTestTableFactory;
 import com.palantir.atlasdb.table.description.generated.SchemaApiTestTable;
@@ -37,6 +31,10 @@ import com.palantir.atlasdb.table.description.generated.SchemaApiTestV2Table;
 import com.palantir.atlasdb.table.description.test.StringValue;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransaction;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.Test;
 
 public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
 
@@ -62,7 +60,8 @@ public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
     }
 
     @Override
-    protected Map<String, StringValue> getRangeSecondColumn(Transaction transaction, String startRowKey, String endRowKey) {
+    protected Map<String, StringValue> getRangeSecondColumn(
+            Transaction transaction, String startRowKey, String endRowKey) {
         SchemaApiTestV2Table table = tableFactory.getSchemaApiTestV2Table(transaction);
         return table.getSmallRowRangeColumn2(startRowKey, endRowKey);
     }
@@ -73,8 +72,10 @@ public class SchemaApiTestV2Impl extends AbstractSchemaApiTest {
         SchemaApiTestV2Table table = tableFactory.getSchemaApiTestV2Table(transaction);
 
         RangeRequest rangeRequest = RangeRequest.builder()
-                .startRowInclusive(SchemaApiTestTable.SchemaApiTestRow.of(startRowKey).persistToBytes())
-                .endRowExclusive(SchemaApiTestTable.SchemaApiTestRow.of(endRowKey).persistToBytes())
+                .startRowInclusive(
+                        SchemaApiTestTable.SchemaApiTestRow.of(startRowKey).persistToBytes())
+                .endRowExclusive(
+                        SchemaApiTestTable.SchemaApiTestRow.of(endRowKey).persistToBytes())
                 .build();
 
         return table.getSmallRowRangeColumn2(rangeRequest, 2);

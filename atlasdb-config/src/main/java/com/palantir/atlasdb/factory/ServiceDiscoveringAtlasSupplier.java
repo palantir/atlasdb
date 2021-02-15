@@ -15,6 +15,18 @@
  */
 package com.palantir.atlasdb.factory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.timestamp.TimestampStoreInvalidator;
+import com.palantir.util.debug.ThreadDumps;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,22 +37,8 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.spi.AtlasDbFactory;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.timestamp.TimestampStoreInvalidator;
-import com.palantir.util.debug.ThreadDumps;
 
 public class ServiceDiscoveringAtlasSupplier {
     private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
@@ -58,24 +56,18 @@ public class ServiceDiscoveringAtlasSupplier {
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            Optional<DbTimestampCreationSetting> dbTimestampCreationParameters,
+            Optional<TableReference> tableReferenceOverride,
             boolean initializeAsync,
             LongSupplier timestampSupplier) {
         this.leaderConfig = leaderConfig;
 
         AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
-        keyValueService = Suppliers.memoize(
-                () -> atlasFactory.createRawKeyValueService(
-                        metricsManager,
-                        config,
-                        runtimeConfig,
-                        leaderConfig,
-                        namespace,
-                        timestampSupplier,
-                        initializeAsync));
+        keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
+                metricsManager, config, runtimeConfig, leaderConfig, namespace, timestampSupplier, initializeAsync));
         timestampService = () -> atlasFactory.createManagedTimestampService(
-                        getKeyValueService(), dbTimestampCreationParameters, initializeAsync);
-        timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
+                getKeyValueService(), tableReferenceOverride, initializeAsync);
+        timestampStoreInvalidator =
+                () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService(), tableReferenceOverride);
     }
 
     public KeyValueService getKeyValueService() {
@@ -83,8 +75,10 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     public synchronized ManagedTimestampService getManagedTimestampService() {
-        log.info("[timestamp-service-creation] Fetching timestamp service from "
-                        + "thread {}. This should only happen once.", Thread.currentThread().getName());
+        log.info(
+                "[timestamp-service-creation] Fetching timestamp service from "
+                        + "thread {}. This should only happen once.",
+                Thread.currentThread().getName());
 
         if (timestampServiceCreationInfo == null) {
             timestampServiceCreationInfo = ThreadDumps.programmaticThreadDump();
@@ -104,8 +98,10 @@ public class ServiceDiscoveringAtlasSupplier {
             String threadDumpFile = saveThreadDumps();
             reportMultipleTimestampFetch(threadDumpFile);
         } catch (IOException e) {
-            log.error("[timestamp-service-creation] The timestamp service was fetched for a second time. "
-                    + "We tried to output thread dumps to a temporary file, but encountered an error.", e);
+            log.error(
+                    "[timestamp-service-creation] The timestamp service was fetched for a second time. "
+                            + "We tried to output thread dumps to a temporary file, but encountered an error.",
+                    e);
         }
     }
 
@@ -126,7 +122,8 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private static String saveThreadDumpsToFile(File file) throws IOException {
         try (FileOutputStream outputStream = new FileOutputStream(file)) {
-            writeStringToStream(outputStream,
+            writeStringToStream(
+                    outputStream,
                     "This file contains thread dumps that will be useful for the AtlasDB Dev team, in case you hit a "
                             + "MultipleRunningTimestampServices error. In this case, please send this file to them.\n");
             writeStringToStream(outputStream, "First thread dump: " + timestampServiceCreationInfo + "\n");
@@ -137,19 +134,22 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private void reportMultipleTimestampFetch(String path) {
         if (!leaderConfig.isPresent()) {
-            log.warn("[timestamp-service-creation] Timestamp service fetched for a second time, and there is no leader "
-                    + "config. This means that you may soon encounter the MultipleRunningTimestampServices error. "
-                    + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
-                    + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
-                    + "support.", path);
+            log.warn(
+                    "[timestamp-service-creation] Timestamp service fetched for a second time, and there is no leader"
+                        + " config. This means that you may soon encounter the MultipleRunningTimestampServices error."
+                        + " Thread dumps from both fetches of the timestamp service have been outputted to {}. If you"
+                        + " encounter a MultipleRunningTimestampServices error, please send this file to support.",
+                    path);
         } else {
-            log.warn("[timestamp-service-creation] Timestamp service fetched for a second time. This is only OK if "
-                    + "you are running in an HA configuration and have just had a leadership election. "
-                    + "You do have a leader config, but we're outputting thread dumps from both fetches of the "
-                    + "timestamp service, in case this second service was created in error. "
-                    + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
-                    + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
-                    + "support.", path);
+            log.warn(
+                    "[timestamp-service-creation] Timestamp service fetched for a second time. This is only OK if "
+                            + "you are running in an HA configuration and have just had a leadership election. "
+                            + "You do have a leader config, but we're outputting thread dumps from both fetches of the "
+                            + "timestamp service, in case this second service was created in error. "
+                            + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
+                            + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
+                            + "support.",
+                    path);
         }
     }
 

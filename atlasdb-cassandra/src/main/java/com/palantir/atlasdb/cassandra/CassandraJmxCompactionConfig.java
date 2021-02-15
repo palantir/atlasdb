@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.cassandra;
 
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Strings;
 import com.palantir.logsafe.Preconditions;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableCassandraJmxCompactionConfig.class)
 @JsonSerialize(as = ImmutableCassandraJmxCompactionConfig.class)

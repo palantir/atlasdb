@@ -15,6 +15,7 @@
  */
 package com.palantir.util.debug;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
@@ -22,23 +23,20 @@ import java.lang.management.MemoryUsage;
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.management.JMException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
-
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @SuppressWarnings("checkstyle")
 // WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great
@@ -66,16 +64,15 @@ public final class StackTraceUtils {
         } catch (Exception e) {
             throw new SafeIllegalStateException("Failed to initialize memory MXBean name.");
         }
-
     }
 
-    public static String[] getStackTraceForConnection(
-            MBeanServerConnection connection) throws JMException, IOException {
+    public static String[] getStackTraceForConnection(MBeanServerConnection connection)
+            throws JMException, IOException {
         return getStackTraceForConnection(connection, false);
     }
 
-    public static String[] getStackTraceForConnection(
-            MBeanServerConnection connection, boolean redact) throws JMException, IOException {
+    public static String[] getStackTraceForConnection(MBeanServerConnection connection, boolean redact)
+            throws JMException, IOException {
         long[] threadIDs = (long[]) connection.getAttribute(THREAD_MXBEAN, "AllThreadIds");
         MemoryUsage.from((CompositeData) connection.getAttribute(MEMORY_MXBEAN, "HeapMemoryUsage"));
 
@@ -97,17 +94,15 @@ public final class StackTraceUtils {
 
         CompositeData[] threadData = null;
         if (java16) {
-            threadData = (CompositeData[]) connection.invoke(
-                    THREAD_MXBEAN,
-                    "dumpAllThreads",
-                    new Object[] { true, true },
-                    new String[] { boolean.class.getName(), boolean.class.getName() });
+            threadData = (CompositeData[])
+                    connection.invoke(THREAD_MXBEAN, "dumpAllThreads", new Object[] {true, true}, new String[] {
+                        boolean.class.getName(), boolean.class.getName()
+                    });
         } else {
             threadData = (CompositeData[]) connection.invoke(
-                    THREAD_MXBEAN,
-                    "getThreadInfo",
-                    new Object[] { threadIDs, Integer.MAX_VALUE },
-                    new String[] { long[].class.getName(), int.class.getName() });
+                    THREAD_MXBEAN, "getThreadInfo", new Object[] {threadIDs, Integer.MAX_VALUE}, new String[] {
+                        long[].class.getName(), int.class.getName()
+                    });
         }
 
         String[] resultData = new String[threadData.length];
@@ -150,9 +145,9 @@ public final class StackTraceUtils {
         return resultData;
     }
 
-
     public static final Pattern IP_ADDRESS_REGEX = Pattern.compile("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}");
     public static final String IP_ADDRESS_REDACTED = "[REDACTED IP ADDRESS]";
+
     public static String redact(CharSequence trace) {
         Matcher matcher = IP_ADDRESS_REGEX.matcher(trace);
         return matcher.replaceAll(IP_ADDRESS_REDACTED);
@@ -189,8 +184,8 @@ public final class StackTraceUtils {
         // The thread priority here is a lie, but automated thread dump analyzer samurai
         // requires it and ThreadInfo does not provide it. The nid is also a lie, but
         // Thread Dump Analyzer requires it.
-        dump.append("\"" + ti.getThreadName() + "\" prio=10 tid=0x" + Long.toHexString(ti.getThreadId())
-                + " nid=" + ti.getThreadId());
+        dump.append("\"" + ti.getThreadName() + "\" prio=10 tid=0x" + Long.toHexString(ti.getThreadId()) + " nid="
+                + ti.getThreadId());
 
         // These are a best effort match to what kill -3 would report as the status. It's not perfect, but
         // samurai will parse it correctly.
@@ -205,9 +200,11 @@ public final class StackTraceUtils {
             case TIMED_WAITING:
                 if (ti.getStackTrace().length > 0) {
                     StackTraceElement e = ti.getStackTrace()[0];
-                    if (e.getClassName().equals("java.lang.Object") && e.getMethodName().equals("wait")) {
+                    if (e.getClassName().equals("java.lang.Object")
+                            && e.getMethodName().equals("wait")) {
                         dump.append(" in Object.wait()");
-                    } else if (e.getClassName().equals("java.lang.Thread") && e.getMethodName().equals("sleep")) {
+                    } else if (e.getClassName().equals("java.lang.Thread")
+                            && e.getMethodName().equals("sleep")) {
                         dump.append(" suspended");
                     } else {
                         dump.append(" waiting on condition");
@@ -264,7 +261,7 @@ public final class StackTraceUtils {
         return score;
     }
 
-    private static class StackTraceComparator implements Comparator<String>, Serializable {
+    private static final class StackTraceComparator implements Comparator<String>, Serializable {
         private static final long serialVersionUID = 1L;
 
         // higher scores come earlier
@@ -303,15 +300,13 @@ public final class StackTraceUtils {
         return stackTraceBuilder.getResultStackTrace();
     }
 
-
-
     /*******************************************************************************************
      * c/p from TextUtils
      */
-
     private static Map<String, String> plurals = new HashMap<String, String>();
+
     static {
-            /* don't need special plurals */
+        /* don't need special plurals */
     }
 
     /**
@@ -325,9 +320,9 @@ public final class StackTraceUtils {
         }
         Boolean capsType = null; // null for all lower case, false for Camel Case, true for ALL UPPER CASE
         if (text.length() > 0) {
-            char [] textArray = text.toCharArray();
+            char[] textArray = text.toCharArray();
             if (Character.isUpperCase(textArray[0])) {
-                capsType = false; //Camel Case
+                capsType = false; // Camel Case
                 if (text.equals(text.toUpperCase())) {
                     capsType = true; // UPPER CASE
                 }
@@ -336,16 +331,16 @@ public final class StackTraceUtils {
         String lowerText = text.toLowerCase();
         String plural = plurals.get(lowerText) == null ? (lowerText + "s") : plurals.get(lowerText);
         if (capsType == null) {
-            return plural; //lower case
+            return plural; // lower case
         } else if (capsType == false) {
             if (plural != null && plural.length() > 0) {
-                return Character.toUpperCase(plural.charAt(0)) + plural.substring(1); //Camel Case
+                return Character.toUpperCase(plural.charAt(0)) + plural.substring(1); // Camel Case
             } else {
                 assert false : "dictionary entry too short";
                 return plural;
             }
         } else {
-            return plural.toUpperCase(); //UPPER CASE
+            return plural.toUpperCase(); // UPPER CASE
         }
     }
 
@@ -358,7 +353,9 @@ public final class StackTraceUtils {
      * @param count
      */
     public static String pluralizeWord(String s, int count) {
-        if (count == 1) return s;
+        if (count == 1) {
+            return s;
+        }
 
         return pluralize(s);
     }
@@ -410,7 +407,8 @@ public final class StackTraceUtils {
                 appendSummarizedNamesToResult(resultStackTrace);
             }
             int dumpCount = incorporatedTracesCount - summarizedNames.size() - boringCount;
-            return header + subheader + dumpCount + " " + pluralizeWord("thread", dumpCount) + ":" + lineEnding + resultStackTrace.toString();
+            return header + subheader + dumpCount + " " + pluralizeWord("thread", dumpCount) + ":" + lineEnding
+                    + resultStackTrace.toString();
         }
 
         public String getStackTraceForNoIncorporatedTraces() {
@@ -418,7 +416,8 @@ public final class StackTraceUtils {
         }
 
         private void appendSummarizedNamesToResult(StringBuilder resultStackTrace) {
-            resultStackTrace.append(summarizedNames.size() + " " + pluralizeWord("thread", summarizedNames.size()) + " summarized");
+            resultStackTrace.append(
+                    summarizedNames.size() + " " + pluralizeWord("thread", summarizedNames.size()) + " summarized");
             if (!summarizedNames.isEmpty()) {
                 resultStackTrace.append(": ");
                 resultStackTrace.append(lineEnding);
@@ -433,7 +432,7 @@ public final class StackTraceUtils {
         }
 
         private String createHeader(String serverName) {
-            header =  "Trace of " + serverName + " taken at " + (new Date()).toString();
+            header = "Trace of " + serverName + " taken at " + Instant.now().toString();
             StringBuilder dashes = new StringBuilder();
             for (int i = 0; i < header.length(); i++) {
                 dashes.append("-");
@@ -465,7 +464,8 @@ public final class StackTraceUtils {
         private boolean isIdleElasticSearchThread(String trace) {
             String firstLine = getFirstLineOfTrace(trace);
             boolean isElasticSearchThread = firstLine.contains("elasticsearch");
-            boolean isIdleThread = trace.contains("EPollArrayWrapper.poll") && trace.contains("EPollArrayWrapper.epollWait");
+            boolean isIdleThread =
+                    trace.contains("EPollArrayWrapper.poll") && trace.contains("EPollArrayWrapper.epollWait");
             return isElasticSearchThread && isIdleThread;
         }
 

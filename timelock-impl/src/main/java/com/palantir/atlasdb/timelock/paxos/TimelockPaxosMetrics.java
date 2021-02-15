@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.concurrent.TimeUnit;
-
-import org.immutables.value.Value;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -28,6 +24,8 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.Client;
 import com.palantir.tritium.metrics.registry.SlidingWindowTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.concurrent.TimeUnit;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class TimelockPaxosMetrics {
@@ -51,9 +49,7 @@ public abstract class TimelockPaxosMetrics {
         return MetricsManagers.of(legacyMetrics(), metrics());
     }
 
-    public static TimelockPaxosMetrics of(
-            PaxosUseCase paxosUseCase,
-            MetricsManager metricsManager) {
+    public static TimelockPaxosMetrics of(PaxosUseCase paxosUseCase, MetricsManager metricsManager) {
         TimelockPaxosMetrics metrics = ImmutableTimelockPaxosMetrics.builder()
                 .legacyMetrics(metricsManager.getRegistry())
                 .paxosUseCase(paxosUseCase)
@@ -68,13 +64,10 @@ public abstract class TimelockPaxosMetrics {
 
     public <T, U extends T> T instrument(Class<T> clazz, U instance, Client client) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                clientScopedMetrics().metricRegistryForClient(client),
-                clazz,
-                instance);
+                clientScopedMetrics().metricRegistryForClient(client), clazz, instance);
     }
 
     private void attachToParentMetricRegistry(TaggedMetricRegistry parent) {
         parent.addMetrics(AtlasDbMetricNames.TAG_PAXOS_USE_CASE, paxosUseCase().toString(), metrics());
     }
-
 }

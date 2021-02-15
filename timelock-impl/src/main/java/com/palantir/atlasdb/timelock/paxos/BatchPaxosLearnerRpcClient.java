@@ -16,20 +16,18 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.collect.SetMultimap;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosValue;
 import java.util.Map;
 import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.google.common.collect.SetMultimap;
-import com.palantir.paxos.Client;
-import com.palantir.paxos.PaxosLearner;
-import com.palantir.paxos.PaxosValue;
 
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/{useCase}"
@@ -67,8 +65,7 @@ public interface BatchPaxosLearnerRpcClient {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     SetMultimap<Client, PaxosValue> getLearnedValues(
-            @PathParam("useCase") PaxosUseCase paxosUseCase,
-            Set<WithSeq<Client>> clientAndSeqs);
+            @PathParam("useCase") PaxosUseCase paxosUseCase, Set<WithSeq<Client>> clientAndSeqs);
 
     /**
      * Batch counterpart to {@link PaxosLearner#getLearnedValuesSince}. For a given {@link Client}, returns all learnt
@@ -83,7 +80,5 @@ public interface BatchPaxosLearnerRpcClient {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     SetMultimap<Client, PaxosValue> getLearnedValuesSince(
-            @PathParam("useCase") PaxosUseCase paxosUseCase,
-            Map<Client, Long> seqLowerBoundsByClient);
-
+            @PathParam("useCase") PaxosUseCase paxosUseCase, Map<Client, Long> seqLowerBoundsByClient);
 }

@@ -23,9 +23,7 @@ public final class SimulatingServerProxy {
 
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, long sleep) {
         return InterruptibleProxy.newProxyInstance(
-                interfaceClass,
-                DelayProxy.newProxyInstance(interfaceClass, delegate, sleep),
-                CancelDelegate.CANCEL);
+                interfaceClass, DelayProxy.newProxyInstance(interfaceClass, delegate, sleep), CancelDelegate.CANCEL);
     }
 
     private SimulatingServerProxy() {

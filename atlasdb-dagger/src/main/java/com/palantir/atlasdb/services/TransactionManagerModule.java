@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.services;
 
-import java.util.concurrent.Executors;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -42,9 +37,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.v2.TimelockService;
-
 import dagger.Module;
 import dagger.Provides;
+import java.util.concurrent.Executors;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 @Module
 public class TransactionManagerModule {
@@ -63,19 +60,15 @@ public class TransactionManagerModule {
 
     @Provides
     @Singleton
-    public Cleaner provideCleaner(ServicesConfig config,
-                                  @Named("kvs") KeyValueService kvs,
-                                  TimelockService timelock,
-                                  Follower follower,
-                                  TransactionService transactionService,
-                                  MetricsManager metricsManager) {
+    public Cleaner provideCleaner(
+            ServicesConfig config,
+            @Named("kvs") KeyValueService kvs,
+            TimelockService timelock,
+            Follower follower,
+            TransactionService transactionService,
+            MetricsManager metricsManager) {
         AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
-        return new DefaultCleanerBuilder(
-                kvs,
-                timelock,
-                ImmutableList.of(follower),
-                transactionService,
-                metricsManager)
+        return new DefaultCleanerBuilder(kvs, timelock, ImmutableList.of(follower), transactionService, metricsManager)
                 .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
                 .setBackgroundScrubBatchSize(atlasDbConfig.getBackgroundScrubBatchSize())
                 .setBackgroundScrubFrequencyMillis(atlasDbConfig.getBackgroundScrubFrequencyMillis())
@@ -88,15 +81,17 @@ public class TransactionManagerModule {
 
     @Provides
     @Singleton
-    public SerializableTransactionManager provideTransactionManager(MetricsManager metricsManager,
-                                                                    ServicesConfig config,
-                                                                    @Named("kvs") KeyValueService kvs,
-                                                                    TransactionManagers.LockAndTimestampServices lts,
-                                                                    LockClient lockClient,
-                                                                    TransactionService transactionService,
-                                                                    ConflictDetectionManager conflictManager,
-                                                                    SweepStrategyManager sweepStrategyManager,
-                                                                    Cleaner cleaner) {
+    public SerializableTransactionManager provideTransactionManager(
+            MetricsManager metricsManager,
+            ServicesConfig config,
+            @Named("kvs") KeyValueService kvs,
+            TransactionManagers.LockAndTimestampServices lts,
+            LockClient lockClient,
+            TransactionService transactionService,
+            ConflictDetectionManager conflictManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner) {
+        // todo(gmaretic): should this be using a real sweep queue?
         return new SerializableTransactionManager(
                 metricsManager,
                 kvs,
@@ -110,8 +105,8 @@ public class TransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                new DefaultTimestampCache(metricsManager.getRegistry(),
-                        () -> config.atlasDbRuntimeConfig().getTimestampCacheSize()),
+                new DefaultTimestampCache(metricsManager.getRegistry(), () -> config.atlasDbRuntimeConfig()
+                        .getTimestampCacheSize()),
                 config.allowAccessToHiddenTables(),
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
@@ -123,5 +118,4 @@ public class TransactionManagerModule {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault());
     }
-
 }

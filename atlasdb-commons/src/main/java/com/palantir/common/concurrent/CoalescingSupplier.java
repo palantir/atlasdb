@@ -15,10 +15,6 @@
  */
 package com.palantir.common.concurrent;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
-
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -26,6 +22,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 /**
  * A supplier that coalesces computation requests, such that only one computation is ever running at a time, and
@@ -65,17 +64,22 @@ public class CoalescingSupplier<T> implements Supplier<T> {
     private ListenableFuture<T> getAsyncNotHandlingCancellation() {
         Round present = round;
         if (present.isFirstToArrive()) {
-            return Futures.submitAsync(() -> {
-                present.execute();
-                return present.getResultAsync();
-            }, executor);
+            return Futures.submitAsync(
+                    () -> {
+                        present.execute();
+                        return present.getResultAsync();
+                    },
+                    executor);
         }
-        return Futures.transformAsync(present.done(), next -> {
-            if (next.isFirstToArrive()) {
-                executor.execute(next::execute);
-            }
-            return next.getResultAsync();
-        }, MoreExecutors.directExecutor());
+        return Futures.transformAsync(
+                present.done(),
+                next -> {
+                    if (next.isFirstToArrive()) {
+                        executor.execute(next::execute);
+                    }
+                    return next.getResultAsync();
+                },
+                MoreExecutors.directExecutor());
     }
 
     private final class Round {

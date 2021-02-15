@@ -15,17 +15,15 @@
  */
 package com.palantir.flake;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import java.util.Arrays;
 import java.util.Optional;
-
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 
 /**
  * A {@link TestRule} that retries methods and classes annotated with the {@link ShouldRetry} annotation.
@@ -80,13 +78,16 @@ public class FlakeRetryingRule implements TestRule {
     }
 
     private static void runStatementWithRetry(ShouldRetry retryAnnotation, Statement base, Description description) {
-        Preconditions.checkArgument(retryAnnotation.numAttempts() > 0,
-                "Number of attempts should be positive, but found %s", retryAnnotation.numAttempts());
+        Preconditions.checkArgument(
+                retryAnnotation.numAttempts() > 0,
+                "Number of attempts should be positive, but found %s",
+                retryAnnotation.numAttempts());
 
         for (int attempt = 1; attempt <= retryAnnotation.numAttempts(); attempt++) {
             try {
                 base.evaluate();
-                log.info("Test {}.{} succeeded on attempt {} of {}.",
+                log.info(
+                        "Test {}.{} succeeded on attempt {} of {}.",
                         description.getClassName(),
                         description.getMethodName(),
                         attempt,
@@ -107,11 +108,9 @@ public class FlakeRetryingRule implements TestRule {
     }
 
     private static void logFailureAndThrowIfNeeded(
-            ShouldRetry retryAnnotation,
-            Description description,
-            int attempt,
-            Throwable throwable) {
-        log.info("Test {}.{} failed on attempt {} of {}.",
+            ShouldRetry retryAnnotation, Description description, int attempt, Throwable throwable) {
+        log.info(
+                "Test {}.{} failed on attempt {} of {}.",
                 description.getClassName(),
                 description.getMethodName(),
                 attempt,

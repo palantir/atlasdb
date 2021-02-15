@@ -27,6 +27,5 @@ public interface OpenTransaction extends Transaction {
      * @return value returned by the task
      */
     @Timed
-    <T, E extends Exception> T finish(TransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException;
+    <T, E extends Exception> T finish(TransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
 }

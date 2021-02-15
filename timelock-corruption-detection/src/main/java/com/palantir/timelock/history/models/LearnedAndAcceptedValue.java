@@ -16,12 +16,10 @@
 
 package com.palantir.timelock.history.models;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.palantir.paxos.PaxosValue;
 import com.palantir.timelock.history.PaxosAcceptorData;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface LearnedAndAcceptedValue {
@@ -30,4 +28,8 @@ public interface LearnedAndAcceptedValue {
 
     @Value.Parameter
     Optional<PaxosAcceptorData> acceptedValue();
+
+    static LearnedAndAcceptedValue voidLearnedAndAcceptedValue() {
+        return ImmutableLearnedAndAcceptedValue.of(Optional.empty(), Optional.empty());
+    }
 }

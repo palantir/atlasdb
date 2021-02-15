@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.cache;
 
-import javax.annotation.Nullable;
-
 import com.palantir.atlasdb.metrics.Timed;
+import javax.annotation.Nullable;
 
 public interface TimestampCache {
     /**

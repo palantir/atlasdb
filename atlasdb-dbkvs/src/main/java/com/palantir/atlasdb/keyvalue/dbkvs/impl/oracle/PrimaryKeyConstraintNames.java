@@ -20,7 +20,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 public final class PrimaryKeyConstraintNames {
 
     private PrimaryKeyConstraintNames() {
-        //Utility class
+        // Utility class
     }
 
     public static String get(String name) {

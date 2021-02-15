@@ -20,11 +20,10 @@ import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.CLIENT_
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public enum PaxosUseCase {
 
@@ -38,8 +37,7 @@ public enum PaxosUseCase {
 
     // <data-directory>/leaderPaxos/multiLeaderPaxos/<client>/{acceptor/learner}
     LEADER_FOR_EACH_CLIENT(
-            MULTI_LEADER_PAXOS_NAMESPACE,
-            Paths.get(LEADER_PAXOS_NAMESPACE, MULTI_LEADER_PAXOS_NAMESPACE)) {
+            MULTI_LEADER_PAXOS_NAMESPACE, Paths.get(LEADER_PAXOS_NAMESPACE, MULTI_LEADER_PAXOS_NAMESPACE)) {
         @Override
         public Client resolveClient(Client client) {
             return client;
@@ -65,11 +63,11 @@ public enum PaxosUseCase {
     private final Path relativeLogDirectory;
 
     /*
-        Although this has no compile time usages, this is used for serialisation/deserialisation via Jersey
-        {@link QueryParam}.
-     */
+       Although this has no compile time usages, this is used for serialisation/deserialisation via Jersey
+       {@link QueryParam}.
+    */
     public static PaxosUseCase fromString(String string) {
-        switch(string) {
+        switch (string) {
             case LEADER_PAXOS_NAMESPACE:
                 return LEADER_FOR_ALL_CLIENTS;
             case MULTI_LEADER_PAXOS_NAMESPACE:

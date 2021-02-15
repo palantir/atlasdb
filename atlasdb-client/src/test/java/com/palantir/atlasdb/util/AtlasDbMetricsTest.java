@@ -17,20 +17,6 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Snapshot;
 import com.google.common.collect.ImmutableMap;
@@ -42,6 +28,18 @@ import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.awaitility.Awaitility;
+import org.junit.After;
+import org.junit.Test;
 
 public final class AtlasDbMetricsTest {
 
@@ -68,7 +66,8 @@ public final class AtlasDbMetricsTest {
     };
     private final TestService testServiceDelegate = (TestServiceAutoDelegate) () -> testService;
 
-    private final ListeningScheduledExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newSingleThreadScheduledExecutor());
+    private final ListeningScheduledExecutorService executorService =
+            MoreExecutors.listeningDecorator(Executors.newSingleThreadScheduledExecutor());
     private final TaggedMetricRegistry taggedMetrics = new DefaultTaggedMetricRegistry();
     private final AsyncTestService asyncTestService =
             () -> executorService.schedule(() -> "pong", ASYNC_DURATION_TTL.toMillis(), TimeUnit.MILLISECONDS);
@@ -104,19 +103,17 @@ public final class AtlasDbMetricsTest {
 
     @Test
     public void instrumentWithCustomNameTimed() {
-        TestService service = AtlasDbMetrics.instrumentTimed(
-                metrics, TestService.class, testService, CUSTOM_METRIC_NAME);
+        TestService service =
+                AtlasDbMetrics.instrumentTimed(metrics, TestService.class, testService, CUSTOM_METRIC_NAME);
 
-        assertMethodInstrumented(
-                MetricRegistry.name(CUSTOM_METRIC_NAME, PING_METHOD), service::ping);
+        assertMethodInstrumented(MetricRegistry.name(CUSTOM_METRIC_NAME, PING_METHOD), service::ping);
         assertMethodNotInstrumented(
                 MetricRegistry.name(CUSTOM_METRIC_NAME, PING_NOT_TIMED_METHOD), service::pingNotTimed);
     }
 
     @Test
     public void instrumentWithCustomNameAll() {
-        TestService service = AtlasDbMetrics.instrument(
-                metrics, TestService.class, testService, CUSTOM_METRIC_NAME);
+        TestService service = AtlasDbMetrics.instrument(metrics, TestService.class, testService, CUSTOM_METRIC_NAME);
 
         assertMethodInstrumented(MetricRegistry.name(CUSTOM_METRIC_NAME, PING_METHOD), service::ping);
         assertMethodInstrumented(MetricRegistry.name(CUSTOM_METRIC_NAME, PING_NOT_TIMED_METHOD), service::pingNotTimed);
@@ -125,14 +122,13 @@ public final class AtlasDbMetricsTest {
     @Test
     public void instrumentTaggedAsyncFunction() {
         AsyncTestService asyncTestService = AtlasDbMetrics.instrumentWithTaggedMetrics(
-                taggedMetrics,
-                AsyncTestService.class,
-                this.asyncTestService);
+                taggedMetrics, AsyncTestService.class, this.asyncTestService);
 
         List<ListenableFuture<String>> futures = fireOffTenAsyncPings(asyncTestService);
 
         Instant now = Instant.now();
-        MetricName metricName = MetricName.builder().safeName(ASYNC_PING_METRIC_NAME).build();
+        MetricName metricName =
+                MetricName.builder().safeName(ASYNC_PING_METRIC_NAME).build();
         awaitMetricsToBeReported(futures, metricName);
 
         assertThat(Instant.now())
@@ -146,10 +142,7 @@ public final class AtlasDbMetricsTest {
     public void instrumentTaggedAsyncFunctionWithExtraTags() {
         Map<String, String> extraTags = ImmutableMap.of("key", "value");
         AsyncTestService asyncTestService = AtlasDbMetrics.instrumentWithTaggedMetrics(
-                taggedMetrics,
-                AsyncTestService.class,
-                this.asyncTestService,
-                $ -> extraTags);
+                taggedMetrics, AsyncTestService.class, this.asyncTestService, $ -> extraTags);
 
         List<ListenableFuture<String>> futures = fireOffTenAsyncPings(asyncTestService);
 
@@ -168,8 +161,7 @@ public final class AtlasDbMetricsTest {
     }
 
     private void assertAllAsyncPingMetricsAreAccuratelyRecorded(
-            List<ListenableFuture<String>> futures,
-            MetricName metricName) {
+            List<ListenableFuture<String>> futures, MetricName metricName) {
         Snapshot snapshot = taggedMetrics.timer(metricName).getSnapshot();
         assertThat(Duration.ofNanos(snapshot.getMin())).isGreaterThan(ASYNC_DURATION_TTL);
         assertThat(snapshot.size()).isEqualTo(futures.size());
@@ -182,33 +174,35 @@ public final class AtlasDbMetricsTest {
     }
 
     private void awaitMetricsToBeReported(List<ListenableFuture<String>> futures, MetricName metricName) {
-        ListenableFuture<Boolean> done = Futures.whenAllSucceed(futures).call(() -> {
-            // have to do it this because we can't edit the future we get back and it's only a callback as opposed to a
-            // transformed future
-            Awaitility.await()
-                    .atMost(ASYNC_DURATION_TTL.toMillis(), TimeUnit.MILLISECONDS)
-                    .until(() -> taggedMetrics.timer(metricName).getSnapshot().size() > 0);
-            return true;
-        }, MoreExecutors.directExecutor());
-        assertThat(Futures.getUnchecked(done)).isEqualTo(true);
+        ListenableFuture<Boolean> done = Futures.whenAllSucceed(futures)
+                .call(
+                        () -> {
+                            // have to do it this because we can't edit the future we get back and it's only a callback
+                            // as opposed to a
+                            // transformed future
+                            Awaitility.await()
+                                    .atMost(ASYNC_DURATION_TTL)
+                                    .until(() -> taggedMetrics
+                                                    .timer(metricName)
+                                                    .getSnapshot()
+                                                    .size()
+                                            > 0);
+                            return true;
+                        },
+                        MoreExecutors.directExecutor());
+        assertThat(Futures.getUnchecked(done)).isTrue();
     }
 
-    private void assertMethodInstrumented(
-            String methodTimerName,
-            Supplier<String> invocation) {
+    private void assertMethodInstrumented(String methodTimerName, Supplier<String> invocation) {
         assertMethodInstrumentation(methodTimerName, invocation, true);
     }
 
-    private void assertMethodNotInstrumented(
-            String methodTimerName,
-            Supplier<String> invocation) {
+    private void assertMethodNotInstrumented(String methodTimerName, Supplier<String> invocation) {
         assertMethodInstrumentation(methodTimerName, invocation, false);
     }
 
     private void assertMethodInstrumentation(
-            String methodTimerName,
-            Supplier<String> invocation,
-            boolean isInstrumented) {
+            String methodTimerName, Supplier<String> invocation, boolean isInstrumented) {
         assertTimerNotRegistered(methodTimerName);
 
         assertThat(invocation.get()).isEqualTo(PING_RESPONSE);
@@ -221,7 +215,7 @@ public final class AtlasDbMetricsTest {
     }
 
     private void assertTimerNotRegistered(String timer) {
-        assertThat(metrics.getTimers().get(timer)).isNull();
+        assertThat(metrics.getTimers()).doesNotContainKey(timer);
     }
 
     public interface TestService {

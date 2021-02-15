@@ -15,23 +15,20 @@
  */
 package com.palantir.atlasdb.ete;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+import java.util.UUID;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class MultiCassandraDoubleNodeDownEteTest {
-    private static final Set<String> ALL_CASSANDRA_NODES = ImmutableSet.of("cassandra1", "cassandra2", "cassandra3");
-    private static final List<String> CASSANDRA_NODES_TO_KILL = ImmutableList.of("cassandra1", "cassandra2");
+    private static final ImmutableSet<String> ALL_CASSANDRA_NODES =
+            ImmutableSet.of("cassandra1", "cassandra2", "cassandra3");
+    private static final ImmutableList<String> CASSANDRA_NODES_TO_KILL = ImmutableList.of("cassandra1", "cassandra2");
 
     @BeforeClass
     public static void shutdownCassandraNode() {

@@ -15,6 +15,7 @@
  */
 package com.palantir.common.concurrent;
 
+import com.palantir.common.base.Throwables;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -26,10 +27,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import javax.annotation.concurrent.GuardedBy;
-
-import com.palantir.common.base.Throwables;
 
 /**
  * A {@link RunnableFuture} whose {@code get} methods will never throw
@@ -46,43 +44,58 @@ import com.palantir.common.base.Throwables;
  */
 public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
 
-    private static enum State { WAITING_TO_RUN, RUNNING, COMPLETED }
+    private enum State {
+        WAITING_TO_RUN,
+        RUNNING,
+        COMPLETED
+    }
 
     private final Lock lock = new ReentrantLock(false);
     private final Condition condition = lock.newCondition();
 
-    @GuardedBy(value = "lock") private V returnValue;
-    @GuardedBy(value = "lock") private Throwable executionException;
-    @GuardedBy(value = "lock") private volatile CancellationException cancellationException;
-    @GuardedBy(value = "lock") private volatile State state = State.WAITING_TO_RUN;
+    @GuardedBy(value = "lock")
+    private V returnValue;
 
-    private final FutureTask<?> futureTask = new FutureTask<Void>(new Runnable() {
-        @Override
-        public void run() {
-            lock.lock();
-            try {
-                if (state != State.WAITING_TO_RUN) return;
-                state = State.RUNNING;
-            } finally {
-                lock.unlock();
-            }
-            V value = null;
-            Throwable throwable = null;
-            try {
-                value = call();
-            } catch (Throwable e) {
-                throwable = e;
-            }
-            lock.lock();
-            try {
-                returnValue = value;
-                executionException = throwable;
-                noteFinished();
-            } finally {
-                lock.unlock();
-            }
-        }
-    }, null);
+    @GuardedBy(value = "lock")
+    private Throwable executionException;
+
+    @GuardedBy(value = "lock")
+    private volatile CancellationException cancellationException;
+
+    @GuardedBy(value = "lock")
+    private volatile State state = State.WAITING_TO_RUN;
+
+    private final FutureTask<?> futureTask = new FutureTask<Void>(
+            new Runnable() {
+                @Override
+                public void run() {
+                    lock.lock();
+                    try {
+                        if (state != State.WAITING_TO_RUN) {
+                            return;
+                        }
+                        state = State.RUNNING;
+                    } finally {
+                        lock.unlock();
+                    }
+                    V value = null;
+                    Throwable throwable = null;
+                    try {
+                        value = call();
+                    } catch (Throwable e) {
+                        throwable = e;
+                    }
+                    lock.lock();
+                    try {
+                        returnValue = value;
+                        executionException = throwable;
+                        noteFinished();
+                    } finally {
+                        lock.unlock();
+                    }
+                }
+            },
+            null);
 
     protected abstract V call() throws Exception;
 
@@ -128,8 +141,8 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
      * @throws CancellationException if and only if {@link #isCancelled()} returns true
      */
     @Override
-    public final V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException,
-            TimeoutException, CancellationException {
+    public final V get(long timeout, TimeUnit unit)
+            throws InterruptedException, ExecutionException, TimeoutException, CancellationException {
         long deadline = System.nanoTime() + unit.toNanos(timeout);
         lock.lock();
         try {
@@ -147,7 +160,8 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
     @SuppressWarnings("GuardedByChecker")
     private V getReturnValue() throws ExecutionException, CancellationException {
         if (cancellationException != null) {
-            throw Throwables.chain(new CancellationException("This task was canceled before it ever ran."), cancellationException);
+            throw Throwables.chain(
+                    new CancellationException("This task was canceled before it ever ran."), cancellationException);
         }
         if (executionException != null) {
             throw new ExecutionException(executionException);

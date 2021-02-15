@@ -26,6 +26,7 @@ public class KubernetesHostnamesTest {
     private static final KubernetesHostnames NON_K8S_INSTANCE = new KubernetesHostnames(() -> "fake-url");
     private static final KubernetesHostnames K8S_INSTANCE =
             new KubernetesHostnames(() -> "svc-47775-2.svc-47775.namespace.svc.cluster.local");
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -50,10 +51,11 @@ public class KubernetesHostnamesTest {
 
     @Test
     public void getClusterMembers_k8s() throws Exception {
-        assertThat(K8S_INSTANCE.getClusterMembers(3)).containsOnly(
-                "svc-47775-0.svc-47775.namespace",
-                "svc-47775-1.svc-47775.namespace",
-                "svc-47775-2.svc-47775.namespace");
+        assertThat(K8S_INSTANCE.getClusterMembers(3))
+                .containsOnly(
+                        "svc-47775-0.svc-47775.namespace",
+                        "svc-47775-1.svc-47775.namespace",
+                        "svc-47775-2.svc-47775.namespace");
     }
 
     @Test
@@ -62,5 +64,4 @@ public class KubernetesHostnamesTest {
         expectedException.expectMessage("Current Pod ID 2 indicates a cluster size greater than the expected 2.");
         K8S_INSTANCE.getClusterMembers(2);
     }
-
 }

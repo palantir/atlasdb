@@ -25,38 +25,37 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-
 @RunWith(MockitoJUnitRunner.class)
 public class TimelockNamespacesTest {
     private static final String CLIENT_A = "a-client";
     private static final String CLIENT_B = "b-client";
-    
+
     private static final int DEFAULT_MAX_NUMBER_OF_CLIENTS = 5;
 
     private final TimeLockServices servicesA = mock(TimeLockServices.class);
     private final TimeLockServices servicesB = mock(TimeLockServices.class);
 
-    @Mock private Function<String, TimeLockServices> serviceFactory;
-    @Mock private Supplier<Integer> maxNumberOfClientsSupplier;
+    @Mock
+    private Function<String, TimeLockServices> serviceFactory;
 
-    private final MetricsManager metricsManager = new MetricsManager(
-            new MetricRegistry(),
-            DefaultTaggedMetricRegistry.getDefault(),
-            unused -> false);
+    @Mock
+    private Supplier<Integer> maxNumberOfClientsSupplier;
+
+    private final MetricsManager metricsManager =
+            new MetricsManager(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault(), unused -> false);
     private TimelockNamespaces namespaces;
 
     @Before
@@ -68,7 +67,7 @@ public class TimelockNamespacesTest {
 
         when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
-    
+
     @Test
     public void returnsProperServiceForEachClient() {
         assertThat(namespaces.get(CLIENT_A)).isEqualTo(servicesA);
@@ -87,8 +86,7 @@ public class TimelockNamespacesTest {
     public void doesNotCreateNewClientsAfterMaximumNumberHasBeenReached() {
         createMaximumNumberOfClients();
 
-        assertThatThrownBy(() -> namespaces.get(uniqueClient()))
-                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> namespaces.get(uniqueClient())).isInstanceOf(IllegalStateException.class);
 
         verify(serviceFactory, times(DEFAULT_MAX_NUMBER_OF_CLIENTS)).apply(any());
         verifyNoMoreInteractions(serviceFactory);
@@ -148,6 +146,14 @@ public class TimelockNamespacesTest {
         assertMaxClientsIs(77);
     }
 
+    @Test
+    public void pathsForTimelockAndLockWatchServicesAreNotValid() {
+        assertThat(TimelockNamespaces.IS_VALID_NAME.test("tl")).isFalse();
+        assertThat(TimelockNamespaces.IS_VALID_NAME.test("lw")).isFalse();
+        assertThat(TimelockNamespaces.IS_VALID_NAME.test("tlblah")).isTrue();
+        assertThat(TimelockNamespaces.IS_VALID_NAME.test("lwbleh")).isTrue();
+    }
+
     private void createMaximumNumberOfClients() {
         for (int i = 0; i < DEFAULT_MAX_NUMBER_OF_CLIENTS; i++) {
             namespaces.get(uniqueClient());
@@ -169,10 +175,11 @@ public class TimelockNamespacesTest {
     }
 
     private int getGaugeValueForTimeLockResource(String gaugeName) {
-        Object value = Optional.ofNullable(metricsManager.getRegistry()
-                .getGauges()
-                .get(TimelockNamespaces.class.getCanonicalName() + "." + gaugeName)
-                .getValue())
+        Object value = Optional.ofNullable(metricsManager
+                        .getRegistry()
+                        .getGauges()
+                        .get(TimelockNamespaces.class.getCanonicalName() + "." + gaugeName)
+                        .getValue())
                 .orElseThrow(() -> new IllegalStateException("Gauge with gauge name " + gaugeName + " did not exist."));
         return (int) value;
     }

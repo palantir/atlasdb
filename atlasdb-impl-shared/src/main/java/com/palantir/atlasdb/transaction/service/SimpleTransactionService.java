@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
@@ -32,6 +29,8 @@ import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
     private final KeyValueService kvs;
@@ -46,9 +45,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     private final AsyncCellGetter asyncCellGetter;
 
     private SimpleTransactionService(
-            KeyValueService kvs,
-            TimestampEncodingStrategy encodingStrategy,
-            TableReference transactionsTable) {
+            KeyValueService kvs, TimestampEncodingStrategy encodingStrategy, TableReference transactionsTable) {
         this.kvs = kvs;
         this.encodingStrategy = encodingStrategy;
         this.transactionsTable = transactionsTable;
@@ -61,8 +58,8 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     public static SimpleTransactionService createV2(KeyValueService kvs) {
-        return new SimpleTransactionService(kvs, TicketsEncodingStrategy.INSTANCE,
-                TransactionConstants.TRANSACTIONS2_TABLE);
+        return new SimpleTransactionService(
+                kvs, TicketsEncodingStrategy.INSTANCE, TransactionConstants.TRANSACTIONS2_TABLE);
     }
 
     @Override
@@ -95,9 +92,8 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
         Map<Cell, byte[]> values = new HashMap<>(startTimestampToCommitTimestamp.size());
-        startTimestampToCommitTimestamp.forEach((start, commit) -> values.put(
-                getTransactionCell(start),
-                encodingStrategy.encodeCommitTimestampAsValue(start, commit)));
+        startTimestampToCommitTimestamp.forEach((start, commit) ->
+                values.put(getTransactionCell(start), encodingStrategy.encodeCommitTimestampAsValue(start, commit)));
         kvs.putUnlessExists(transactionsTable, values);
     }
 
@@ -123,24 +119,20 @@ public final class SimpleTransactionService implements EncodingTransactionServic
                 MoreExecutors.directExecutor());
     }
 
-    private ListenableFuture<Map<Long, Long>> getInternal(
-            Iterable<Long> startTimestamps,
-            AsyncCellGetter cellGetter) {
-        Map<Cell, Long> startTsMap = Maps.newHashMap();
+    private ListenableFuture<Map<Long, Long>> getInternal(Iterable<Long> startTimestamps, AsyncCellGetter cellGetter) {
+        Map<Cell, Long> startTsMap = new HashMap<>();
         for (Long startTimestamp : startTimestamps) {
             Cell cell = getTransactionCell(startTimestamp);
             startTsMap.put(cell, MAX_TIMESTAMP);
         }
 
-        return Futures.transform(
-                cellGetter.get(startTsMap),
-                rawResults -> decodeTimestamps(rawResults),
-                MoreExecutors.directExecutor());
+        return Futures.transform(cellGetter.get(startTsMap), this::decodeTimestamps, MoreExecutors.directExecutor());
     }
 
     private Long decodeTimestamp(long startTimestamp, Cell cell, Map<Cell, Value> rawResults) {
         if (rawResults.containsKey(cell)) {
-            return encodingStrategy.decodeValueAsCommitTimestamp(startTimestamp, rawResults.get(cell).getContents());
+            return encodingStrategy.decodeValueAsCommitTimestamp(
+                    startTimestamp, rawResults.get(cell).getContents());
         }
         return null;
     }
@@ -149,7 +141,8 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults.size());
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             long startTs = encodingStrategy.decodeCellAsStartTimestamp(e.getKey());
-            long commitTs = encodingStrategy.decodeValueAsCommitTimestamp(startTs, e.getValue().getContents());
+            long commitTs = encodingStrategy.decodeValueAsCommitTimestamp(
+                    startTs, e.getValue().getContents());
             result.put(startTs, commitTs);
         }
         return result;

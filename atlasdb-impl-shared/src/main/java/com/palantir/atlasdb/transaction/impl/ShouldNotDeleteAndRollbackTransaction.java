@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.AbstractExecutorService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -33,6 +26,12 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * This will read the values of all committed transactions.
@@ -41,8 +40,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
 
     private static final ExecutorService IGNORING_EXECUTOR = new AbstractExecutorService() {
         @Override
-        public void shutdown() {
-        }
+        public void shutdown() {}
 
         @Override
         public List<Runnable> shutdownNow() {
@@ -70,18 +68,20 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
         }
     };
 
-    public ShouldNotDeleteAndRollbackTransaction(MetricsManager metricsManager,
-                               KeyValueService keyValueService,
-                               TransactionService transactionService,
-                               long startTimeStamp,
-                               AtlasDbConstraintCheckingMode constraintCheckingMode,
-                               TransactionReadSentinelBehavior readSentinelBehavior,
-                               boolean allowHiddenTableAccess,
-                               TimestampCache timestampCache,
-                               ExecutorService getRangesExecutor,
-                               int defaultGetRangesConcurrency,
-                               Supplier<TransactionConfig> transactionConfig) {
-        super(metricsManager,
+    public ShouldNotDeleteAndRollbackTransaction(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TransactionService transactionService,
+            long startTimeStamp,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            TransactionReadSentinelBehavior readSentinelBehavior,
+            boolean allowHiddenTableAccess,
+            TimestampCache timestampCache,
+            ExecutorService getRangesExecutor,
+            int defaultGetRangesConcurrency,
+            Supplier<TransactionConfig> transactionConfig) {
+        super(
+                metricsManager,
                 keyValueService,
                 null,
                 null,
@@ -114,5 +114,4 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
         // transaction protocol.  We just want to skip over anything we find that isn't committed
         return false;
     }
-
 }

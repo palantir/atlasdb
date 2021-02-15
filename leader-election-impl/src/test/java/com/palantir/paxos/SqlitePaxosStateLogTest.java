@@ -16,12 +16,15 @@
 
 package com.palantir.paxos;
 
+import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
+import static com.palantir.paxos.PaxosStateLogTestUtils.wrap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
-import static com.palantir.paxos.PaxosStateLogTestUtils.wrap;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -29,18 +32,11 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-
 import javax.sql.DataSource;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.streams.KeyedStream;
 
 public class SqlitePaxosStateLogTest {
     @Rule
@@ -70,14 +66,19 @@ public class SqlitePaxosStateLogTest {
     public void canWriteAndRetrieveAValue() throws IOException {
         long round = 12L;
         PaxosValue paxosValue = writeValueForRound(round);
-        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round))).isEqualTo(paxosValue);
+        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(round)))
+                .isEqualTo(paxosValue);
     }
 
     @Test
     public void canWriteAndRetrieveBatch() throws IOException {
-        List<PaxosRound<PaxosValue>> inputs = KeyedStream.of(LongStream.rangeClosed(5L, 10L).boxed())
+        List<PaxosRound<PaxosValue>> inputs = KeyedStream.of(
+                        LongStream.rangeClosed(5L, 10L).boxed())
                 .map(PaxosStateLogTestUtils::valueForRound)
-                .map((seq, val) -> ImmutablePaxosRound.<PaxosValue>builder().sequence(seq).value(val).build())
+                .map((seq, val) -> ImmutablePaxosRound.<PaxosValue>builder()
+                        .sequence(seq)
+                        .value(val)
+                        .build())
                 .values()
                 .collect(Collectors.toList());
         stateLog.writeBatchOfRounds(inputs);
@@ -96,7 +97,8 @@ public class SqlitePaxosStateLogTest {
     public void canOverwriteSequences() throws IOException {
         writeValueForRound(5L);
         PaxosValue newEntry = writeValueForRound(5L);
-        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(5L))).isEqualTo(newEntry);
+        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(5L)))
+                .isEqualTo(newEntry);
     }
 
     @Test
@@ -107,8 +109,10 @@ public class SqlitePaxosStateLogTest {
         PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_2, USE_CASE_1), dataSource);
         otherLog.writeRound(5L, v2);
 
-        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(5L))).isEqualTo(v1);
-        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(otherLog.readRound(5L))).isEqualTo(v2);
+        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(stateLog.readRound(5L)))
+                .isEqualTo(v1);
+        assertThat(PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(otherLog.readRound(5L)))
+                .isEqualTo(v2);
     }
 
     @Test
@@ -164,6 +168,17 @@ public class SqlitePaxosStateLogTest {
     }
 
     @Test
+    public void canTruncateAll() {
+        writeValueForRound(5L);
+        writeValueForRound(7L);
+        writeValueForRound(9L);
+        writeValueForRound(1L);
+
+        stateLog.truncateAllRounds();
+        assertThat(stateLog.getLeastLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Test
     public void valuesAreDistinguishedAcrossLogNamespaces() throws IOException {
         PaxosStateLog<PaxosValue> otherLog = SqlitePaxosStateLog.create(wrap(CLIENT_2, USE_CASE_1), dataSource);
         writeValueForRound(1L);
@@ -183,8 +198,8 @@ public class SqlitePaxosStateLogTest {
 
     @Test
     public void differentLogsToTheSameNamespaceShareState() throws IOException {
-        PaxosStateLog<PaxosValue> otherLogWithSameNamespace = SqlitePaxosStateLog
-                .create(wrap(CLIENT_1, USE_CASE_1), dataSource);
+        PaxosStateLog<PaxosValue> otherLogWithSameNamespace =
+                SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), dataSource);
         writeValueForRound(1L);
 
         assertThat(stateLog.readRound(1L)).isNotNull();
@@ -201,8 +216,10 @@ public class SqlitePaxosStateLogTest {
                     for (int i = 0; i < 200; i++) {
                         log.writeRound(i, valueForRound(i));
                     }
-                })).collect(Collectors.toList());
-        futures.forEach(future -> assertThatCode(() -> Futures.getUnchecked(future)).doesNotThrowAnyException());
+                }))
+                .collect(Collectors.toList());
+        futures.forEach(
+                future -> assertThatCode(() -> Futures.getUnchecked(future)).doesNotThrowAnyException());
     }
 
     @Test
@@ -215,8 +232,10 @@ public class SqlitePaxosStateLogTest {
                     for (int i = 0; i < 2; i++) {
                         log.writeRound(i, valueForRound(i));
                     }
-                })).collect(Collectors.toList());
-        futures.forEach(future -> assertThatCode(() -> Futures.getUnchecked(future)).doesNotThrowAnyException());
+                }))
+                .collect(Collectors.toList());
+        futures.forEach(
+                future -> assertThatCode(() -> Futures.getUnchecked(future)).doesNotThrowAnyException());
     }
 
     private PaxosValue writeValueForRound(long round) {

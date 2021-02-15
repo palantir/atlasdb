@@ -15,24 +15,23 @@
  */
 package com.palantir.common.proxy;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.util.jmx.OperationTimer;
+import com.palantir.util.jmx.OperationTimer.TimingState;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-import com.palantir.logsafe.Preconditions;
-import com.palantir.util.jmx.OperationTimer;
-import com.palantir.util.jmx.OperationTimer.TimingState;
-
-public class TimingProxy implements DelegatingInvocationHandler {
+public final class TimingProxy implements DelegatingInvocationHandler {
 
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, OperationTimer timer) {
-        return (T)Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-            new Class<?>[] {interfaceClass}, new TimingProxy(delegate, timer));
+        return (T) Proxy.newProxyInstance(
+                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass}, new TimingProxy(delegate, timer));
     }
 
-    final private Object delegate;
-    final private OperationTimer timer;
+    private final Object delegate;
+    private final OperationTimer timer;
 
     private TimingProxy(Object delegate, OperationTimer timer) {
         Preconditions.checkNotNull(delegate);
@@ -58,5 +57,4 @@ public class TimingProxy implements DelegatingInvocationHandler {
     public Object getDelegate() {
         return delegate;
     }
-
 }

@@ -17,14 +17,7 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
+import clojure.lang.Keyword;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -32,16 +25,20 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.common.streams.KeyedStream;
-
-import clojure.lang.Keyword;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.junit.Test;
 
 public class JepsenHistoryCheckerIntegrationTest {
     @Test
     public void correctExampleHistoryShouldReturnValidAndNoErrors() throws IOException {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("correct_history.json");
 
-        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithTimestampCheckers()
-                .checkClojureHistory(convertedAllEvents);
+        Map<Keyword, Object> results =
+                JepsenHistoryCheckers.createWithTimestampCheckers().checkClojureHistory(convertedAllEvents);
 
         assertThat(results).containsEntry(Keyword.intern("valid?"), true);
         assertThat(results).containsEntry(Keyword.intern("errors"), ImmutableList.of());
@@ -51,8 +48,8 @@ public class JepsenHistoryCheckerIntegrationTest {
     public void correctLockTestHistoryShouldReturnValidAndNoErrors() throws IOException {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("lock_test_without_nemesis.json");
 
-        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithLockCheckers()
-                .checkClojureHistory(convertedAllEvents);
+        Map<Keyword, Object> results =
+                JepsenHistoryCheckers.createWithLockCheckers().checkClojureHistory(convertedAllEvents);
 
         assertThat(results).containsEntry(Keyword.intern("valid?"), true);
         assertThat(results).containsEntry(Keyword.intern("errors"), ImmutableList.of());
@@ -63,10 +60,10 @@ public class JepsenHistoryCheckerIntegrationTest {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("liveness_failing_history.json");
 
         Map<Keyword, Object> results = JepsenHistoryCheckers.createWithCheckers(
-                ImmutableList.<Supplier<Checker>>builder()
-                        .addAll(JepsenHistoryCheckers.TIMESTAMP_CHECKERS)
-                        .add(NemesisResilienceChecker::new)
-                        .build())
+                        ImmutableList.<Supplier<Checker>>builder()
+                                .addAll(JepsenHistoryCheckers.TIMESTAMP_CHECKERS)
+                                .add(NemesisResilienceChecker::new)
+                                .build())
                 .checkClojureHistory(convertedAllEvents);
 
         Map<Keyword, ?> nemesisStartEventMap = ImmutableMap.of(
@@ -88,8 +85,8 @@ public class JepsenHistoryCheckerIntegrationTest {
     }
 
     private static List<Map<Keyword, ?>> getClojureMapFromFile(String resourcePath) throws IOException {
-        List<Map<String, ?>> allEvents = new ObjectMapper().readValue(Resources.getResource(resourcePath),
-                new TypeReference<List<Map<String, ?>>>() {});
+        List<Map<String, ?>> allEvents = new ObjectMapper()
+                .readValue(Resources.getResource(resourcePath), new TypeReference<List<Map<String, ?>>>() {});
         return allEvents.stream()
                 .map(singleEvent -> KeyedStream.stream(singleEvent)
                         .mapKeys(key -> Keyword.intern(key))

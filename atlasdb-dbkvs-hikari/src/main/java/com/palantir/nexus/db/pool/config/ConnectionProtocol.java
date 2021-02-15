@@ -15,8 +15,11 @@
  */
 package com.palantir.nexus.db.pool.config;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 public enum ConnectionProtocol {
-    TCP("tcp"), TCPS("tcps");
+    TCP("tcp"),
+    TCPS("tcps");
 
     private final String urlStr;
 
@@ -28,9 +31,10 @@ public enum ConnectionProtocol {
         return urlStr;
     }
 
+    @JsonCreator
     public static ConnectionProtocol fromUrlString(String val) {
         for (ConnectionProtocol cp : ConnectionProtocol.values()) {
-            if (cp.getUrlString().toLowerCase().equals(val.toLowerCase())) {
+            if (cp.getUrlString().equalsIgnoreCase(val)) {
                 return cp;
             }
         }

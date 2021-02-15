@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
-import java.util.Arrays;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import java.util.Arrays;
 
 /**
  * The ticketing algorithm distributes timestamps among rows and dynamic columns to avoid hot-spotting.
@@ -50,7 +49,6 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy {
     // DO NOT change the following without a transactions table migration!
     public static final long PARTITIONING_QUANTUM = 25_000_000;
     public static final int ROWS_PER_QUANTUM = TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS;
-
 
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {

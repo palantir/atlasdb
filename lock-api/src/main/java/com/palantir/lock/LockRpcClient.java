@@ -16,19 +16,17 @@
 
 package com.palantir.lock;
 
+import com.palantir.annotations.remoting.CancelableServerCall;
+import com.palantir.logsafe.Safe;
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.annotations.remoting.CancelableServerCall;
-import com.palantir.logsafe.Safe;
 
 @Path("/{namespace}/lock")
 @Produces(MediaType.APPLICATION_JSON)
@@ -40,7 +38,8 @@ public interface LockRpcClient {
     Optional<LockResponse> lockWithFullLockResponse(
             @Safe @PathParam("namespace") String namespace,
             @Safe @PathParam("client") LockClient client,
-            LockRequest request) throws InterruptedException;
+            LockRequest request)
+            throws InterruptedException;
 
     @POST
     @Path("unlock-deprecated")
@@ -65,8 +64,7 @@ public interface LockRpcClient {
 
     @POST
     @Path("refresh-tokens")
-    Set<HeldLocksToken> refreshTokens(
-            @Safe @PathParam("namespace") String namespace, Iterable<HeldLocksToken> tokens);
+    Set<HeldLocksToken> refreshTokens(@Safe @PathParam("namespace") String namespace, Iterable<HeldLocksToken> tokens);
 
     @POST
     @Path("refresh-grant")
@@ -101,14 +99,12 @@ public interface LockRpcClient {
     @POST
     @Path("min-locked-in-version-id-for-client/{client: .*}")
     Optional<Long> getMinLockedInVersionId(
-            @Safe @PathParam("namespace") String namespace,
-            @Safe @PathParam("client") LockClient client);
+            @Safe @PathParam("namespace") String namespace, @Safe @PathParam("client") LockClient client);
 
     @POST
     @Path("min-locked-in-version/{client: .*}")
     Optional<Long> getMinLockedInVersionId(
-            @Safe @PathParam("namespace") String namespace,
-            @Safe @PathParam("client") String client);
+            @Safe @PathParam("namespace") String namespace, @Safe @PathParam("client") String client);
 
     @POST
     @Path("lock-server-options")
@@ -119,20 +115,21 @@ public interface LockRpcClient {
     Optional<LockRefreshToken> lock(
             @Safe @PathParam("namespace") String namespace,
             @Safe @PathParam("client") String client,
-            LockRequest request) throws InterruptedException;
+            LockRequest request)
+            throws InterruptedException;
 
     @POST
     @Path("try-lock/{client: .*}")
     Optional<HeldLocksToken> lockAndGetHeldLocks(
             @Safe @PathParam("namespace") String namespace,
             @Safe @PathParam("client") String client,
-            LockRequest request) throws InterruptedException;
+            LockRequest request)
+            throws InterruptedException;
 
     @POST
     @Path("refresh-lock-tokens")
     Set<LockRefreshToken> refreshLockRefreshTokens(
-            @Safe @PathParam("namespace") String namespace,
-            Iterable<LockRefreshToken> tokens);
+            @Safe @PathParam("namespace") String namespace, Iterable<LockRefreshToken> tokens);
 
     @POST
     @Path("current-time-millis")

@@ -57,5 +57,4 @@ public final class AnnotatedRunnable implements Runnable {
             Thread.currentThread().setName(oldName);
         }
     }
-
 }

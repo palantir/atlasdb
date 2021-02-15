@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
@@ -25,16 +24,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-import java.util.function.Supplier;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentMatcher;
-import org.mockito.stubbing.Answer;
-import org.slf4j.LoggerFactory;
-
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.LoggingEvent;
+import ch.qos.logback.core.Appender;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -42,11 +35,14 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.LoggingEvent;
-import ch.qos.logback.core.Appender;
+import java.util.Map;
+import java.util.function.Supplier;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentMatcher;
+import org.mockito.stubbing.Answer;
+import org.slf4j.LoggerFactory;
 
 /**
  * We test behaviour for every of the three maybeLog(...) methods from ProfilingKeyValueService using public facing
@@ -68,8 +64,7 @@ public class ProfilingKeyValueServiceTest {
         @Override
         public boolean matches(final Object argument) {
             LoggingEvent ev = (LoggingEvent) argument;
-            return ev.getLoggerName() == KvsProfilingLogger.SLOW_LOGGER_NAME
-                    && ev.getLevel() == Level.WARN;
+            return KvsProfilingLogger.SLOW_LOGGER_NAME.equals(ev.getLoggerName()) && ev.getLevel() == Level.WARN;
         }
     });
 
@@ -77,7 +72,7 @@ public class ProfilingKeyValueServiceTest {
         @Override
         public boolean matches(final Object argument) {
             LoggingEvent ev = (LoggingEvent) argument;
-            return ev.getLoggerName() == LoggerFactory.getLogger(KvsProfilingLogger.class).getName()
+            return LoggerFactory.getLogger(KvsProfilingLogger.class).getName().equals(ev.getLoggerName())
                     && ev.getLevel() == Level.TRACE;
         }
     });
@@ -105,12 +100,10 @@ public class ProfilingKeyValueServiceTest {
 
     @Test
     public void delegatesInitializationCheck() {
-        when(delegate.isInitialized())
-                .thenReturn(false)
-                .thenReturn(true);
+        when(delegate.isInitialized()).thenReturn(false).thenReturn(true);
 
-        assertFalse(kvs.isInitialized());
-        assertTrue(kvs.isInitialized());
+        assertThat(kvs.isInitialized()).isFalse();
+        assertThat(kvs.isInitialized()).isTrue();
     }
 
     @Test

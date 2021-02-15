@@ -15,10 +15,9 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.palantir.exception.PalantirSqlException;
 import java.sql.Connection;
 import java.sql.SQLException;
-
-import com.palantir.exception.PalantirSqlException;
 
 public abstract class BaseConnectionManager implements ConnectionManager {
     @Override

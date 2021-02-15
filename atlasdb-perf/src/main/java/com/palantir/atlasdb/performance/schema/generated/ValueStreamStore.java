@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.performance.schema.generated;
 
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -12,6 +13,8 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -82,7 +85,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
     private final StreamTestTableFactory tables;
 
     private ValueStreamStore(TransactionManager txManager, StreamTestTableFactory tables) {
-        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        this(txManager, tables, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 
     private ValueStreamStore(TransactionManager txManager, StreamTestTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
@@ -139,8 +142,8 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         ValueStreamMetadataTable mdTable = tables.getValueStreamMetadataTable(t);
         Map<Long, StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());
 
-        Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();
-        Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();
+        Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = new HashMap<>();
+        Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = new HashMap<>();
         for (Entry<Long, StreamMetadata> e : streamIdsToMetadata.entrySet()) {
             long streamId = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -161,7 +164,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> rowsToMetadata = Maps.newHashMap();
+        Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -204,7 +207,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         }
         ValueStreamMetadataTable table = tables.getValueStreamMetadataTable(t);
         Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = Maps.newHashMap();
+        Map<Long, StreamMetadata> ret = new HashMap<>();
         for (Map.Entry<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -220,7 +223,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         Set<ValueStreamHashAidxTable.ValueStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<ValueStreamHashAidxTable.ValueStreamHashAidxRow, ValueStreamHashAidxTable.ValueStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMap();
+        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
         for (ValueStreamHashAidxTable.ValueStreamHashAidxRow r : m.keySet()) {
             for (ValueStreamHashAidxTable.ValueStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -233,7 +236,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         }
         Map<Long, StreamMetadata> metadata = getMetadata(t, hashForStreams.keySet());
 
-        Map<Sha256Hash, Long> ret = Maps.newHashMap();
+        Map<Sha256Hash, Long> ret = new HashMap<>();
         for (Map.Entry<Long, StreamMetadata> e : metadata.entrySet()) {
             if (e.getValue().getStatus() != Status.STORED) {
                 continue;
@@ -246,7 +249,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
     }
 
     private Set<ValueStreamHashAidxTable.ValueStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<ValueStreamHashAidxTable.ValueStreamHashAidxRow> rows = Sets.newHashSet();
+        Set<ValueStreamHashAidxTable.ValueStreamHashAidxRow> rows = new HashSet<>();
         for (Sha256Hash h : hashes) {
             rows.add(ValueStreamHashAidxTable.ValueStreamHashAidxRow.of(h));
         }
@@ -254,7 +257,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
     }
 
     private Set<ValueStreamMetadataTable.ValueStreamMetadataRow> getMetadataRowsForIds(final Iterable<Long> ids) {
-        Set<ValueStreamMetadataTable.ValueStreamMetadataRow> rows = Sets.newHashSet();
+        Set<ValueStreamMetadataTable.ValueStreamMetadataRow> rows = new HashSet<>();
         for (Long id : ids) {
             rows.add(ValueStreamMetadataTable.ValueStreamMetadataRow.of(id));
         }
@@ -271,7 +274,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
                     "Should only index successfully stored streams.");
 
             Sha256Hash hash = Sha256Hash.EMPTY;
-            if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {
+            if (!ByteString.EMPTY.equals(metadata.getHash())) {
                 hash = new Sha256Hash(metadata.getHash().toByteArray());
             }
             ValueStreamHashAidxTable.ValueStreamHashAidxRow hashRow = ValueStreamHashAidxTable.ValueStreamHashAidxRow.of(hash);
@@ -290,14 +293,14 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         if (streamIds.isEmpty()) {
             return;
         }
-        Set<ValueStreamMetadataTable.ValueStreamMetadataRow> smRows = Sets.newHashSet();
+        Set<ValueStreamMetadataTable.ValueStreamMetadataRow> smRows = new HashSet<>();
         Multimap<ValueStreamHashAidxTable.ValueStreamHashAidxRow, ValueStreamHashAidxTable.ValueStreamHashAidxColumn> shToDelete = HashMultimap.create();
         for (Long streamId : streamIds) {
             smRows.add(ValueStreamMetadataTable.ValueStreamMetadataRow.of(streamId));
         }
         ValueStreamMetadataTable table = tables.getValueStreamMetadataTable(t);
         Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(smRows);
-        Set<ValueStreamValueTable.ValueStreamValueRow> streamValueToDelete = Sets.newHashSet();
+        Set<ValueStreamValueTable.ValueStreamValueRow> streamValueToDelete = new HashSet<>();
         for (Entry<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             Long streamId = e.getKey().getId();
             long blocks = getNumberOfBlocksFromMetadata(e.getValue());
@@ -306,7 +309,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
             }
             ByteString streamHash = e.getValue().getHash();
             Sha256Hash hash = Sha256Hash.EMPTY;
-            if (streamHash != com.google.protobuf.ByteString.EMPTY) {
+            if (!ByteString.EMPTY.equals(streamHash)) {
                 hash = new Sha256Hash(streamHash.toByteArray());
             } else {
                 log.error("Empty hash for stream {}", streamId);
@@ -356,7 +359,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
     @Override
     protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, Iterable<Long> ids) {
         ValueStreamMetadataTable metaTable = tables.getValueStreamMetadataTable(t);
-        Set<ValueStreamMetadataTable.ValueStreamMetadataRow> rows = Sets.newHashSet();
+        Set<ValueStreamMetadataTable.ValueStreamMetadataRow> rows = new HashSet<>();
         for (Long id : ids) {
             rows.add(ValueStreamMetadataTable.ValueStreamMetadataRow.of(id));
         }
@@ -403,7 +406,9 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
      * {@link FileOutputStream}
      * {@link Functions}
      * {@link Generated}
+     * {@link HashMap}
      * {@link HashMultimap}
+     * {@link HashSet}
      * {@link IOException}
      * {@link ImmutableMap}
      * {@link ImmutableSet}

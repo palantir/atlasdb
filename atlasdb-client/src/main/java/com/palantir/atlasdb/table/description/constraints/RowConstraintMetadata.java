@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.table.description.constraints;
 
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-
-public class RowConstraintMetadata {
+public final class RowConstraintMetadata {
     private final Class<? extends RowConstraint> constraintClass;
     private final boolean isGeneric;
     private final String tableName;
@@ -36,12 +35,14 @@ public class RowConstraintMetadata {
     public static Builder builderGeneric(Class<? extends RowConstraint> clazz, String tableName) {
         return new Builder(clazz, true, tableName);
     }
-    private RowConstraintMetadata(Class<? extends RowConstraint> constraintClass,
-                                  List<String> rowVariables,
-                                  List<String> columnVariables,
-                                  List<String> allVariables,
-                                  boolean isGeneric,
-                                  String tableName) {
+
+    private RowConstraintMetadata(
+            Class<? extends RowConstraint> constraintClass,
+            List<String> rowVariables,
+            List<String> columnVariables,
+            List<String> allVariables,
+            boolean isGeneric,
+            String tableName) {
         this.constraintClass = constraintClass;
         this.rowVariables = ImmutableList.copyOf(rowVariables);
         this.columnVariables = ImmutableList.copyOf(columnVariables);
@@ -78,9 +79,9 @@ public class RowConstraintMetadata {
         private final Class<? extends RowConstraint> constraintClass;
         private final boolean isGeneric;
         private final String tableName;
-        private final List<String> rowVariables = Lists.newArrayList();
-        private final List<String> columnVariables = Lists.newArrayList();
-        private final List<String> allVariables = Lists.newArrayList();
+        private final List<String> rowVariables = new ArrayList<>();
+        private final List<String> columnVariables = new ArrayList<>();
+        private final List<String> allVariables = new ArrayList<>();
 
         public Builder(Class<? extends RowConstraint> constraintClass, boolean isGeneric, String tableName) {
             this.constraintClass = constraintClass;
@@ -88,21 +89,21 @@ public class RowConstraintMetadata {
             this.tableName = tableName;
         }
 
-        public Builder addRowVariables(String ... variables) {
+        public Builder addRowVariables(String... variables) {
             Collections.addAll(rowVariables, variables);
             Collections.addAll(allVariables, variables);
             return this;
         }
 
-        public Builder addColumnVariables(String ... variables) {
+        public Builder addColumnVariables(String... variables) {
             Collections.addAll(columnVariables, variables);
             Collections.addAll(allVariables, variables);
             return this;
         }
 
         public RowConstraintMetadata build() {
-            return new RowConstraintMetadata(constraintClass, rowVariables, columnVariables,
-                    allVariables, isGeneric, tableName);
+            return new RowConstraintMetadata(
+                    constraintClass, rowVariables, columnVariables, allVariables, isGeneric, tableName);
         }
     }
 }

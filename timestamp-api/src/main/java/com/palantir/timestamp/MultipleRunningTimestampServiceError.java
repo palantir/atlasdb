@@ -15,7 +15,6 @@
  */
 package com.palantir.timestamp;
 
-
 /**
  * Error indicating that multiple timestamp services are running against the
  * same database.

@@ -15,14 +15,12 @@
  */
 package com.palantir.timestamp;
 
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public class TimestampAllocationFailures {
@@ -71,11 +69,15 @@ public class TimestampAllocationFailures {
 
     private void logNewFailure(Throwable newFailure) {
         if (isSameAsPreviousFailure(newFailure)) {
-            log.info("We encountered an error while trying to allocate more timestamps. "
-                    + "This is a repeat of the previous failure", newFailure);
+            log.info(
+                    "We encountered an error while trying to allocate more timestamps. "
+                            + "This is a repeat of the previous failure",
+                    newFailure);
         } else {
-            log.error("We encountered an error while trying to allocate more timestamps. "
-                    + "If this failure repeats it will be logged at the INFO level", newFailure);
+            log.error(
+                    "We encountered an error while trying to allocate more timestamps. "
+                            + "If this failure repeats it will be logged at the INFO level",
+                    newFailure);
         }
     }
 

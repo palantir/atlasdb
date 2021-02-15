@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.UUID;
-
-import javax.ws.rs.NotSupportedException;
-
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import java.util.UUID;
+import javax.ws.rs.NotSupportedException;
 
 public class ImmutableTimestampLock implements AsyncLock {
 

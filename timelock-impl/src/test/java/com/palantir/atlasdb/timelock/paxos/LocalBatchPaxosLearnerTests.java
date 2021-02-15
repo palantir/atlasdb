@@ -16,22 +16,9 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Answers;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -39,6 +26,16 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosValue;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LocalBatchPaxosLearnerTests {
@@ -88,10 +85,7 @@ public class LocalBatchPaxosLearnerTests {
                 .build();
 
         Set<WithSeq<Client>> request = ImmutableSet.of(
-                WithSeq.of(CLIENT_1, 1),
-                WithSeq.of(CLIENT_1, 2),
-                WithSeq.of(CLIENT_2, 1),
-                WithSeq.of(CLIENT_2, 2));
+                WithSeq.of(CLIENT_1, 1), WithSeq.of(CLIENT_1, 2), WithSeq.of(CLIENT_2, 1), WithSeq.of(CLIENT_2, 2));
 
         assertThat(resource.getLearnedValues(request)).isEqualTo(expected);
     }
@@ -100,10 +94,8 @@ public class LocalBatchPaxosLearnerTests {
     public void weProxyGetLearnedValuesSince() {
         PaxosValue paxosValue1 = paxosValue(1);
         PaxosValue paxosValue2 = paxosValue(2);
-        when(paxosComponents.learner(CLIENT_1).getLearnedValuesSince(1))
-                .thenReturn(ImmutableSet.of(paxosValue1));
-        when(paxosComponents.learner(CLIENT_2).getLearnedValuesSince(2))
-                .thenReturn(ImmutableSet.of(paxosValue2));
+        when(paxosComponents.learner(CLIENT_1).getLearnedValuesSince(1)).thenReturn(ImmutableSet.of(paxosValue1));
+        when(paxosComponents.learner(CLIENT_2).getLearnedValuesSince(2)).thenReturn(ImmutableSet.of(paxosValue2));
 
         Map<Client, Long> request = ImmutableMap.<Client, Long>builder()
                 .put(CLIENT_1, 1L)

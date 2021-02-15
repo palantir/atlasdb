@@ -24,8 +24,8 @@ import java.io.Serializable;
  * @param <T>
  * @param <TOKEN>
  */
-public class SimpleTokenBackedResultsPage<T, TOKEN> extends SimpleResultsPage<T> implements
-        TokenBackedBasicResultsPage<T, TOKEN>, Serializable {
+public class SimpleTokenBackedResultsPage<T, TOKEN> extends SimpleResultsPage<T>
+        implements TokenBackedBasicResultsPage<T, TOKEN>, Serializable {
     private static final long serialVersionUID = 1L;
 
     private final TOKEN tokenForNextPage;
@@ -50,13 +50,12 @@ public class SimpleTokenBackedResultsPage<T, TOKEN> extends SimpleResultsPage<T>
         tokenForNextPage = token;
     }
 
-    public static <T, TOKEN> SimpleTokenBackedResultsPage<T, TOKEN> create(TOKEN token,
-            Iterable<T> chunks) {
+    public static <T, TOKEN> SimpleTokenBackedResultsPage<T, TOKEN> create(TOKEN token, Iterable<T> chunks) {
         return new SimpleTokenBackedResultsPage<T, TOKEN>(token, chunks);
     }
 
-    public static <T, TOKEN> SimpleTokenBackedResultsPage<T, TOKEN> create(TOKEN token,
-            Iterable<T> chunks, boolean moreAvailable) {
+    public static <T, TOKEN> SimpleTokenBackedResultsPage<T, TOKEN> create(
+            TOKEN token, Iterable<T> chunks, boolean moreAvailable) {
         return new SimpleTokenBackedResultsPage<T, TOKEN>(token, chunks, moreAvailable);
     }
 
@@ -75,18 +74,23 @@ public class SimpleTokenBackedResultsPage<T, TOKEN> extends SimpleResultsPage<T>
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (!super.equals(obj))
+        }
+        if (!super.equals(obj)) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         SimpleTokenBackedResultsPage<?, ?> other = (SimpleTokenBackedResultsPage<?, ?>) obj;
         if (tokenForNextPage == null) {
-            if (other.tokenForNextPage != null)
+            if (other.tokenForNextPage != null) {
                 return false;
-        } else if (!tokenForNextPage.equals(other.tokenForNextPage))
+            }
+        } else if (!tokenForNextPage.equals(other.tokenForNextPage)) {
             return false;
+        }
         return true;
     }
 

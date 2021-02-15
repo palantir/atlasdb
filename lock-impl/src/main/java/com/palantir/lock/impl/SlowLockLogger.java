@@ -15,10 +15,9 @@
  */
 package com.palantir.lock.impl;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This is a logger intended for use tracking down problems arising from

@@ -16,6 +16,14 @@
 
 package com.palantir.atlasdb.persistent.rocksdb;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Streams;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.tracing.Tracers.ThrowingCallable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,26 +39,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.annotation.Nonnull;
-
+import okio.ByteString;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Streams;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.tracing.Tracers.ThrowingCallable;
-
-import okio.ByteString;
 
 public final class RocksDbPersistentStore implements PersistentStore {
     private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentStore.class);
@@ -81,11 +77,7 @@ public final class RocksDbPersistentStore implements PersistentStore {
             return ImmutableMap.of();
         }
 
-        return KeyedStream.ofEntries(
-                Streams.zip(
-                        keys.stream(),
-                        byteValues.stream(),
-                        Maps::immutableEntry))
+        return KeyedStream.ofEntries(Streams.zip(keys.stream(), byteValues.stream(), Maps::immutableEntry))
                 .filter(Objects::nonNull)
                 .collectToMap();
     }
@@ -104,8 +96,8 @@ public final class RocksDbPersistentStore implements PersistentStore {
     @Override
     public PersistentStore.Handle createSpace() {
         Handle handle = PersistentStore.Handle.newHandle();
-        ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() ->
-                rocksDB.createColumnFamily(new ColumnFamilyDescriptor(handle.id().toString().getBytes())));
+        ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() -> rocksDB.createColumnFamily(
+                new ColumnFamilyDescriptor(handle.id().toString().getBytes())));
         availableColumnFamilies.put(handle.id(), columnFamilyHandle);
         return handle;
     }
@@ -146,7 +138,8 @@ public final class RocksDbPersistentStore implements PersistentStore {
 
     private Optional<ByteString> getValueBytes(ColumnFamilyHandle columnFamilyHandle, ByteString key) {
         try {
-            return Optional.ofNullable(rocksDB.get(columnFamilyHandle, key.toByteArray())).map(ByteString::of);
+            return Optional.ofNullable(rocksDB.get(columnFamilyHandle, key.toByteArray()))
+                    .map(ByteString::of);
         } catch (RocksDBException exception) {
             log.warn("Rocks db raised an exception", exception);
             return Optional.empty();
@@ -155,8 +148,7 @@ public final class RocksDbPersistentStore implements PersistentStore {
 
     private List<ByteString> multiGetValueByteStrings(ColumnFamilyHandle columnFamilyHandle, List<ByteString> keys) {
         List<byte[]> values = multiGetValueBytes(
-                columnFamilyHandle,
-                keys.stream().map(ByteString::toByteArray).collect(Collectors.toList()));
+                columnFamilyHandle, keys.stream().map(ByteString::toByteArray).collect(Collectors.toList()));
         return values.stream().filter(Objects::nonNull).map(ByteString::of).collect(Collectors.toList());
     }
 

@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.api;
 
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.common.annotation.Idempotent;
 import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -24,9 +25,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.common.annotation.Idempotent;
 
 @Path("/atlasdb")
 public interface AtlasDbService {
@@ -59,38 +57,33 @@ public interface AtlasDbService {
     @Path("rows/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    TableRowResult getRows(@PathParam("token") TransactionToken token,
-                           TableRowSelection rows);
+    TableRowResult getRows(@PathParam("token") TransactionToken token, TableRowSelection rows);
 
     @Idempotent
     @POST
     @Path("cells/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    TableCellVal getCells(@PathParam("token") TransactionToken token,
-                          TableCell cells);
+    TableCellVal getCells(@PathParam("token") TransactionToken token, TableCell cells);
 
     @Idempotent
     @POST
     @Path("range/{token}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    RangeToken getRange(@PathParam("token") TransactionToken token,
-                        TableRange rangeRequest);
+    RangeToken getRange(@PathParam("token") TransactionToken token, TableRange rangeRequest);
 
     @Idempotent
     @POST
     @Path("put/{token}")
     @Consumes(MediaType.APPLICATION_JSON)
-    void put(@PathParam("token") TransactionToken token,
-             TableCellVal data);
+    void put(@PathParam("token") TransactionToken token, TableCellVal data);
 
     @Idempotent
     @POST
     @Path("delete/{token}")
     @Consumes(MediaType.APPLICATION_JSON)
-    void delete(@PathParam("token") TransactionToken token,
-                TableCell cells);
+    void delete(@PathParam("token") TransactionToken token, TableCell cells);
 
     @Idempotent
     @POST

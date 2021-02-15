@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Map;
-
 import com.codahale.metrics.Counter;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.util.HashMap;
+import java.util.Map;
 
 class ValueExtractor extends ResultsExtractor<Value> {
     private final Map<Cell, Value> collector;
@@ -35,16 +34,12 @@ class ValueExtractor extends ResultsExtractor<Value> {
     }
 
     static ValueExtractor create(MetricsManager metricsManager) {
-        return new ValueExtractor(metricsManager, Maps.newHashMap());
+        return new ValueExtractor(metricsManager, new HashMap<>());
     }
 
     @Override
-    public void internalExtractResult(long startTs,
-                                      ColumnSelection selection,
-                                      byte[] row,
-                                      byte[] col,
-                                      byte[] val,
-                                      long ts) {
+    public void internalExtractResult(
+            long startTs, ColumnSelection selection, byte[] row, byte[] col, byte[] val, long ts) {
         if (ts < startTs && selection.contains(col)) {
             Cell cell = Cell.create(row, col);
             if (!collector.containsKey(cell)) {

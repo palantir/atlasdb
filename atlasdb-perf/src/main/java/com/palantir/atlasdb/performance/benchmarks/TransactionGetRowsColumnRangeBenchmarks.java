@@ -15,20 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
-import org.openjdk.jmh.infra.Blackhole;
-
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -38,6 +24,18 @@ import com.palantir.atlasdb.performance.benchmarks.table.ModeratelyWideRowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 import com.palantir.atlasdb.performance.benchmarks.table.VeryWideRowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
+import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
 
 @State(Scope.Benchmark)
 public class TransactionGetRowsColumnRangeBenchmarks {
@@ -47,21 +45,23 @@ public class TransactionGetRowsColumnRangeBenchmarks {
     @Warmup(time = 16, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 160, timeUnit = TimeUnit.SECONDS)
     public void getAllColumnsSingleBigRow(VeryWideRowTable table, Blackhole blackhole) {
-        getAllRowsAndAssert(table, blackhole,
-                count -> Preconditions.checkState(count == table.getNumCols(),
-                        "Should be %s columns, but was: %s", table.getNumCols(), count));
+        getAllRowsAndAssert(
+                table,
+                blackhole,
+                count -> Preconditions.checkState(
+                        count == table.getNumCols(), "Should be %s columns, but was: %s", table.getNumCols(), count));
     }
 
     @Benchmark
     @Threads(1)
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
-    public void getAllColumnsModeratelyWideRow(
-            ModeratelyWideRowTable table,
-            Blackhole blackhole) {
-        getAllRowsAndAssert(table, blackhole,
-                count -> Preconditions.checkState(count == table.getNumCols(),
-                        "Should be %s columns, but was: %s", table.getNumCols(), count));
+    public void getAllColumnsModeratelyWideRow(ModeratelyWideRowTable table, Blackhole blackhole) {
+        getAllRowsAndAssert(
+                table,
+                blackhole,
+                count -> Preconditions.checkState(
+                        count == table.getNumCols(), "Should be %s columns, but was: %s", table.getNumCols(), count));
     }
 
     @Benchmark
@@ -69,11 +69,15 @@ public class TransactionGetRowsColumnRangeBenchmarks {
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public void getAllColumnsModeratelyWideRowWithSomeUncommitted(
-            CleanModeratelyWideRowTable table,
-            Blackhole blackhole) {
-        getAllRowsAndAssert(table, blackhole,
-                count -> Preconditions.checkState(count == table.getNumReadableCols(),
-                        "Should be %s columns, but was: %s", table.getNumReadableCols(), count));
+            CleanModeratelyWideRowTable table, Blackhole blackhole) {
+        getAllRowsAndAssert(
+                table,
+                blackhole,
+                count -> Preconditions.checkState(
+                        count == table.getNumReadableCols(),
+                        "Should be %s columns, but was: %s",
+                        table.getNumReadableCols(),
+                        count));
     }
 
     @Benchmark
@@ -81,11 +85,15 @@ public class TransactionGetRowsColumnRangeBenchmarks {
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public void getAllColumnsModeratelyWideRowWithManyUncommitted(
-            DirtyModeratelyWideRowTable table,
-            Blackhole blackhole) {
-        getAllRowsAndAssert(table, blackhole,
-                count -> Preconditions.checkState(count == table.getNumReadableCols(),
-                        "Should be %s columns, but was: %s", table.getNumReadableCols(), count));
+            DirtyModeratelyWideRowTable table, Blackhole blackhole) {
+        getAllRowsAndAssert(
+                table,
+                blackhole,
+                count -> Preconditions.checkState(
+                        count == table.getNumReadableCols(),
+                        "Should be %s columns, but was: %s",
+                        table.getNumReadableCols(),
+                        count));
     }
 
     private void getAllRowsAndAssert(WideRowTable table, Blackhole blackhole, Consumer<Integer> assertion) {

@@ -15,11 +15,9 @@
  */
 package com.palantir.lock;
 
-import java.util.Comparator;
-
-import javax.annotation.Nullable;
-
 import com.google.common.primitives.Longs;
+import java.util.Comparator;
+import javax.annotation.Nullable;
 
 /**
  * A lock server token with an expiration date.
@@ -44,7 +42,8 @@ public interface ExpiringToken {
      * Returns the client who holds these locks, or {@code null} if this
      * represents a lock grant.
      */
-    @Nullable LockClient getClient();
+    @Nullable
+    LockClient getClient();
 
     /**
      * Returns the set of locks which were successfully acquired as a map
@@ -62,9 +61,10 @@ public interface ExpiringToken {
      * Returns the version ID for this token, or {@code null} if no version ID
      * was specified.
      */
-    @Nullable Long getVersionId();
+    @Nullable
+    Long getVersionId();
 
     /** A comparator which uses an {@code ExpiringToken}'s expiration date. */
-    Comparator<ExpiringToken> COMPARATOR = (o1, o2) ->
-            Longs.compare(o1.getExpirationDateMs(), o2.getExpirationDateMs());
+    Comparator<ExpiringToken> COMPARATOR =
+            (o1, o2) -> Longs.compare(o1.getExpirationDateMs(), o2.getExpirationDateMs());
 }

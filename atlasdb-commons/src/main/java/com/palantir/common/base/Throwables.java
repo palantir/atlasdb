@@ -15,6 +15,10 @@
  */
 package com.palantir.common.base;
 
+import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.exception.PalantirInterruptedException;
+import com.palantir.logsafe.Preconditions;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -24,14 +28,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.PalantirInterruptedException;
-import com.palantir.logsafe.Preconditions;
 
 /**
  * Utilities for creating and propagating exceptions.
@@ -44,7 +42,9 @@ public final class Throwables {
 
     private static Logger log = LoggerFactory.getLogger(Throwables.class);
 
-    private Throwables() { /* uninstantiable */ }
+    private Throwables() {
+        /* uninstantiable */
+    }
 
     /**
      * Simply call throwable.initCause(cause) and return throwable.
@@ -154,7 +154,8 @@ public final class Throwables {
      * clazz is a supertype of t.
      */
     @SuppressWarnings("unchecked")
-    public static <K extends Throwable> void rewrapAndThrowIfInstance(String newMessage, Throwable t, Class<K> clazz) throws K {
+    public static <K extends Throwable> void rewrapAndThrowIfInstance(String newMessage, Throwable t, Class<K> clazz)
+            throws K {
         if ((t != null) && clazz.isAssignableFrom(t.getClass())) {
             K kt = (K) t;
             K wrapped = Throwables.rewrap(newMessage, kt);
@@ -201,12 +202,12 @@ public final class Throwables {
         try {
             Constructor<?>[] constructors = throwable.getClass().getConstructors();
             // First see if we can create the exception in a way that lets us preserve the message text
-            for (Constructor<?> c: constructors) {
-                if (Arrays.equals(new Class<?>[]{String.class, Throwable.class}, c.getParameterTypes())) {
+            for (Constructor<?> c : constructors) {
+                if (Arrays.equals(new Class<?>[] {String.class, Throwable.class}, c.getParameterTypes())) {
                     @SuppressWarnings("unchecked")
                     T rv = (T) c.newInstance(newMessage, throwable);
                     return rv;
-                } else if (Arrays.equals(new Class<?>[]{String.class}, c.getParameterTypes())) {
+                } else if (Arrays.equals(new Class<?>[] {String.class}, c.getParameterTypes())) {
                     @SuppressWarnings("unchecked")
                     T rv = (T) c.newInstance(newMessage);
                     return chain(rv, throwable);
@@ -243,7 +244,7 @@ public final class Throwables {
             Thread t = entry.getKey();
             StackTraceElement elements[] = entry.getValue();
 
-            printWriter.println((new StringBuilder()).append(t));
+            printWriter.println(new StringBuilder().append(t));
             printStackTrace(printWriter, elements);
             printWriter.println();
         }
@@ -254,9 +255,8 @@ public final class Throwables {
     private static void printStackTrace(PrintWriter printwriter, StackTraceElement elements[]) {
         synchronized (printwriter) {
             for (int i = 0; i < elements.length; i++) {
-                printwriter.println((new StringBuilder()).append("\tat ").append(elements[i]).toString());
+                printwriter.println("\tat " + elements[i]);
             }
-
         }
     }
 }

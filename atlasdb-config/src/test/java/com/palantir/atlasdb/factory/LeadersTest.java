@@ -15,22 +15,11 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Supplier;
-
-import org.hamcrest.MatcherAssert;
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -43,15 +32,20 @@ import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class LeadersTest {
 
-    private static final SslConfiguration SSL_CONFIGURATION
-            = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    private static final SslConfiguration SSL_CONFIGURATION =
+            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
     private static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
-    private static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("https://foo:1234", "https://bar:5678");
-    private static final Supplier<RemotingClientConfig> REMOTING_CLIENT_CONFIG
-            = () -> RemotingClientConfigs.DEFAULT;
+    private static final ImmutableSet<String> REMOTE_SERVICE_ADDRESSES =
+            ImmutableSet.of("https://foo:1234", "https://bar:5678");
+    private static final Supplier<RemotingClientConfig> REMOTING_CLIENT_CONFIG = () -> RemotingClientConfigs.DEFAULT;
 
     @Test
     public void canCreateProxyAndLocalListOfPaxosLearners() {
@@ -67,9 +61,9 @@ public class LeadersTest {
                 PaxosLearner.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
-        MatcherAssert.assertThat(paxosLearners.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
-        paxosLearners.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
-        MatcherAssert.assertThat(Iterables.getLast(paxosLearners).getGreatestLearnedValue(), is(presentPaxosValue));
+        assertThat(paxosLearners).hasSize(REMOTE_SERVICE_ADDRESSES.size() + 1);
+        paxosLearners.forEach(object -> assertThat(object).isNotNull());
+        assertThat(Iterables.getLast(paxosLearners).getGreatestLearnedValue()).isEqualTo(presentPaxosValue);
         verify(localLearner).getGreatestLearnedValue();
         verifyNoMoreInteractions(localLearner);
     }
@@ -87,10 +81,11 @@ public class LeadersTest {
                 PaxosAcceptor.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
-        MatcherAssert.assertThat(paxosAcceptors.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
-        paxosAcceptors.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
+        assertThat(paxosAcceptors).hasSize(REMOTE_SERVICE_ADDRESSES.size() + 1);
+        paxosAcceptors.forEach(object -> assertThat(object).isNotNull());
 
-        MatcherAssert.assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted(), is(1L));
+        assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted())
+                .isEqualTo(1L);
         verify(localAcceptor).getLatestSequencePreparedOrAccepted();
         verifyNoMoreInteractions(localAcceptor);
     }
@@ -108,9 +103,10 @@ public class LeadersTest {
                 PaxosAcceptor.class,
                 AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
 
-        MatcherAssert.assertThat(paxosAcceptors.size(), is(1));
+        assertThat(paxosAcceptors).hasSize(1);
 
-        MatcherAssert.assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted(), is(1L));
+        assertThat(Iterables.getLast(paxosAcceptors).getLatestSequencePreparedOrAccepted())
+                .isEqualTo(1L);
         verify(localAcceptor).getLatestSequencePreparedOrAccepted();
         verifyNoMoreInteractions(localAcceptor);
     }

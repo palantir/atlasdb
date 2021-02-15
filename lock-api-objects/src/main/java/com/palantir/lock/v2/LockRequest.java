@@ -15,15 +15,13 @@
  */
 package com.palantir.lock.v2;
 
-import java.util.Optional;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.Preconditions;
+import java.util.Optional;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockRequest.class)
@@ -40,17 +38,11 @@ public interface LockRequest {
     Optional<String> getClientDescription();
 
     static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
-        return ImmutableLockRequest.of(
-                lockDescriptors,
-                acquireTimeoutMs,
-                Optional.empty());
+        return ImmutableLockRequest.of(lockDescriptors, acquireTimeoutMs, Optional.empty());
     }
 
     static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
-        return ImmutableLockRequest.of(
-                lockDescriptors,
-                acquireTimeoutMs,
-                Optional.of(clientDescription));
+        return ImmutableLockRequest.of(lockDescriptors, acquireTimeoutMs, Optional.of(clientDescription));
     }
 
     @Value.Check

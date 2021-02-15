@@ -26,18 +26,18 @@ public class KeyedSoftReference<K, V> extends SoftReference<V> implements KeyedR
 
     private final K key;
 
-    public KeyedSoftReference(K key, V value){
+    public KeyedSoftReference(K key, V value) {
         super(value);
         this.key = key;
     }
 
-    public KeyedSoftReference(K key, V value, ReferenceQueue<V> queue){
+    public KeyedSoftReference(K key, V value, ReferenceQueue<V> queue) {
         super(value, queue);
         this.key = key;
     }
 
     @Override
-    public Object getKey(){
+    public Object getKey() {
         return key;
     }
 }

@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import java.util.Map;
+import java.util.Set;
 
 public interface TransactionLockWatchingCacheView {
     /**

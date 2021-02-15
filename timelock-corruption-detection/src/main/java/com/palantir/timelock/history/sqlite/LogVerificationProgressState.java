@@ -16,11 +16,10 @@
 
 package com.palantir.timelock.history.sqlite;
 
+import com.palantir.paxos.Client;
 import java.util.OptionalLong;
 import java.util.function.Function;
-
 import javax.sql.DataSource;
-
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
@@ -29,10 +28,8 @@ import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
-import com.palantir.paxos.Client;
-
 public final class LogVerificationProgressState {
-    private static final long INITIAL_PROGRESS = -1L;
+    public static final long INITIAL_PROGRESS = -1L;
 
     private final Jdbi jdbi;
 
@@ -63,7 +60,7 @@ public final class LogVerificationProgressState {
         });
     }
 
-    private long setInitialProgress(Client client, String useCase) {
+    public long setInitialProgress(Client client, String useCase) {
         updateProgress(client, useCase, INITIAL_PROGRESS);
         return INITIAL_PROGRESS;
     }
@@ -80,9 +77,7 @@ public final class LogVerificationProgressState {
         @SqlUpdate("INSERT OR REPLACE INTO logVerificationProgress (namespace, useCase, seq) VALUES"
                 + " (:namespace.value, :useCase, :seq)")
         boolean updateProgress(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("seq") long seq);
+                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase, @Bind("seq") long seq);
 
         @SqlQuery("SELECT seq FROM logVerificationProgress "
                 + "WHERE namespace = :namespace.value AND useCase = :useCase")

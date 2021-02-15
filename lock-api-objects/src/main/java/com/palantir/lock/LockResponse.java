@@ -15,24 +15,22 @@
  */
 package com.palantir.lock;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.logsafe.Preconditions;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * Represents the result of calling {@link LockService#lockWithFullLockResponse(LockClient, LockRequest)} on
@@ -42,12 +40,14 @@ import com.palantir.logsafe.Preconditions;
  *
  * @author jtamer
  */
-@JsonDeserialize(builder =
-        LockResponse.SerializationProxy.class)
-@Immutable public final class LockResponse implements Serializable {
+@JsonDeserialize(builder = LockResponse.SerializationProxy.class)
+@Immutable
+public final class LockResponse implements Serializable {
     private static final long serialVersionUID = 0xd67972b13e30eff7L;
 
-    @Nullable private final HeldLocksToken token;
+    @Nullable
+    private final HeldLocksToken token;
+
     private final boolean isBlockAndRelease;
     private final ImmutableSortedMap<LockDescriptor, LockClient> lockHolders;
 
@@ -82,8 +82,7 @@ import com.palantir.logsafe.Preconditions;
      * with an empty lock holders map.
      */
     public static LockResponse createSuccessful(HeldLocksToken token) {
-        return new LockResponse(Preconditions.checkNotNull(token),
-                ImmutableSortedMap.<LockDescriptor, LockClient>of());
+        return new LockResponse(Preconditions.checkNotNull(token), ImmutableSortedMap.<LockDescriptor, LockClient>of());
     }
 
     /**
@@ -103,12 +102,14 @@ import com.palantir.logsafe.Preconditions;
      * If {@link #success()} is <code>true</code>, then this method returns a token
      * representing the held locks; otherwise, this method returns <code>null</code>.
      */
-    @Nullable public HeldLocksToken getToken() {
+    @Nullable
+    public HeldLocksToken getToken() {
         return token;
     }
 
     @JsonIgnore
-    @Nullable public LockRefreshToken getLockRefreshToken() {
+    @Nullable
+    public LockRefreshToken getLockRefreshToken() {
         return token == null ? null : token.getLockRefreshToken();
     }
 
@@ -117,8 +118,7 @@ import com.palantir.logsafe.Preconditions;
     }
 
     public List<LockWithClient> getLocks() {
-        return lockHolders.entrySet()
-                .stream()
+        return lockHolders.entrySet().stream()
                 .map(input -> ImmutableLockWithClient.builder()
                         .lockDescriptor(input.getKey())
                         .lockClient(input.getValue())
@@ -145,7 +145,8 @@ import com.palantir.logsafe.Preconditions;
         return lockHolders;
     }
 
-    @Override public boolean equals(@Nullable Object obj) {
+    @Override
+    public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;
         }
@@ -157,8 +158,9 @@ import com.palantir.logsafe.Preconditions;
                 && isBlockAndRelease == ((LockResponse) obj).isBlockAndRelease();
     }
 
-    @Override public int hashCode() {
-        return Objects.hashCode(token, lockHolders, isBlockAndRelease);
+    @Override
+    public int hashCode() {
+        return Objects.hash(token, lockHolders, isBlockAndRelease);
     }
 
     public String toString(long currentTimeMillis) {
@@ -169,8 +171,7 @@ import com.palantir.logsafe.Preconditions;
                 .toString();
     }
 
-    private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
-            throws InvalidObjectException {
+    private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
     }
 
@@ -181,7 +182,9 @@ import com.palantir.logsafe.Preconditions;
     static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 0xcff22b33b08dd857L;
 
-        @Nullable private final HeldLocksToken token;
+        @Nullable
+        private final HeldLocksToken token;
+
         private final ImmutableSortedMap<LockDescriptor, LockClient> lockHolders;
         private final boolean isBlockAndRelease;
 
@@ -192,7 +195,8 @@ import com.palantir.logsafe.Preconditions;
         }
 
         @JsonCreator
-        SerializationProxy(@JsonProperty("token") HeldLocksToken token,
+        SerializationProxy(
+                @JsonProperty("token") HeldLocksToken token,
                 @JsonProperty("locks") List<LockWithClient> lockWithClients,
                 @JsonProperty("blockAndRelease") boolean isBlockAndRelease) {
             if (lockWithClients == null) {

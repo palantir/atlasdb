@@ -15,22 +15,21 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-
+@SuppressWarnings("ClassInitializationDeadlock")
 public abstract class KeyValueServiceInstrumentation {
 
     private final int kvsPort;
     private final String dockerComposeFileName;
 
-    private static final Map<String, KeyValueServiceInstrumentation> backendMap =
-            new TreeMap<>();
+    private static final Map<String, KeyValueServiceInstrumentation> backendMap = new TreeMap<>();
     private static final Map<String, String> classNames = new TreeMap<>();
 
     static {
@@ -52,6 +51,7 @@ public abstract class KeyValueServiceInstrumentation {
     }
 
     public abstract KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr);
+
     public abstract boolean canConnect(InetSocketAddress addr);
 
     public static void addNewBackendType(KeyValueServiceInstrumentation backend) {
@@ -93,7 +93,6 @@ public abstract class KeyValueServiceInstrumentation {
         } catch (Exception e) {
             throw new IllegalArgumentException("Exception trying to instantiate class " + className, e);
         }
-
     }
 
     public static Set<String> getBackends() {
@@ -104,7 +103,8 @@ public abstract class KeyValueServiceInstrumentation {
      * The --backend parameter and the [dbtype] of the --db-uri parameter must match the return value of the
      * impementation of this method for your class.
      */
-    @Override public abstract String toString();
+    @Override
+    public abstract String toString();
 
     public String getClassName() {
         return this.getClass().toString().split(" ")[1];

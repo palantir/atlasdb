@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.KeyRange;
-import org.apache.cassandra.thrift.KeySlice;
-import org.apache.cassandra.thrift.SlicePredicate;
-import org.apache.cassandra.thrift.UnavailableException;
-
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
@@ -33,6 +23,14 @@ import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import java.net.InetSocketAddress;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.KeyRange;
+import org.apache.cassandra.thrift.KeySlice;
+import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.cassandra.thrift.UnavailableException;
 
 public class RowGetter {
     private CassandraClientPool clientPool;
@@ -54,20 +52,20 @@ public class RowGetter {
     public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate) {
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
-                host,
-                new FunctionCheckedException<CassandraClient, List<KeySlice>, RuntimeException>() {
+                host, new FunctionCheckedException<CassandraClient, List<KeySlice>, RuntimeException>() {
                     @Override
                     public List<KeySlice> apply(CassandraClient client) {
                         try {
-                            return queryRunner.run(client, tableRef,
-                                    () -> client.get_range_slices(kvsMethodName,
-                                            tableRef,
-                                            slicePredicate,
-                                            keyRange,
-                                            consistency));
+                            return queryRunner.run(
+                                    client,
+                                    tableRef,
+                                    () -> client.get_range_slices(
+                                            kvsMethodName, tableRef, slicePredicate, keyRange, consistency));
                         } catch (UnavailableException e) {
-                            throw new InsufficientConsistencyException("get_range_slices requires " + consistency
-                                    + " Cassandra nodes to be up and available.", e);
+                            throw new InsufficientConsistencyException(
+                                    "get_range_slices requires " + consistency
+                                            + " Cassandra nodes to be up and available.",
+                                    e);
                         } catch (Exception e) {
                             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
                         }
@@ -81,7 +79,8 @@ public class RowGetter {
     }
 
     public List<byte[]> getRowKeysInRange(byte[] rangeStart, byte[] rangeEnd, int maxResults) {
-        KeyRange keyRange = new KeyRange().setStart_key(rangeStart).setEnd_key(rangeEnd).setCount(maxResults);
+        KeyRange keyRange =
+                new KeyRange().setStart_key(rangeStart).setEnd_key(rangeEnd).setCount(maxResults);
         SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ZERO);
 
         List<KeySlice> rows = getRows("getRowKeysInRange", keyRange, slicePredicate);

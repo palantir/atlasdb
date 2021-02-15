@@ -19,11 +19,6 @@ package com.palantir.atlasdb.sweep;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.Optional;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -42,6 +37,9 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
+import java.util.Optional;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AbstractTargetedSweepTest extends AbstractSweepTest {
     private static final TableReference TABLE_TO_BE_DROPPED = TableReference.createFromFullyQualifiedName("ts.drop");
@@ -61,8 +59,10 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         super.setup();
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager,
-                () -> ImmutableTargetedSweepRuntimeConfig.builder().shards(1).maximumPartitionsToBatchInSingleRead(8)
+        sweepQueue = TargetedSweeper.createUninitializedForTest(
+                metricsManager, () -> ImmutableTargetedSweepRuntimeConfig.builder()
+                        .shards(1)
+                        .maximumPartitionsToBatchInSingleRead(8)
                         .build());
         sweepQueue.initializeWithoutRunning(
                 timestampsSupplier, mock(TimelockService.class), kvs, txService, mock(TargetedSweepFollower.class));
@@ -106,8 +106,8 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
         kvs.createTable(TABLE_TO_BE_DROPPED, TableMetadata.allDefault().persistToBytes());
 
-        sweepQueue.enqueue(ImmutableMap.of(TABLE_TO_BE_DROPPED,
-                ImmutableMap.of(TEST_CELL, PtBytes.toBytes(OLD_VALUE))), 100);
+        sweepQueue.enqueue(
+                ImmutableMap.of(TABLE_TO_BE_DROPPED, ImmutableMap.of(TEST_CELL, PtBytes.toBytes(OLD_VALUE))), 100);
 
         kvs.dropTable(TABLE_TO_BE_DROPPED);
 

@@ -15,10 +15,9 @@
  */
 package com.palantir.common.compression;
 
+import com.palantir.logsafe.Preconditions;
 import java.io.IOException;
 import java.io.InputStream;
-
-import com.palantir.logsafe.Preconditions;
 
 /**
  * {@link InputStream} that wraps a delegate InputStream, buffering reads
@@ -121,5 +120,4 @@ public abstract class BufferedDelegateInputStream extends InputStream {
      * @return The number of bytes written to the buffer while refilling it.
      */
     protected abstract int refill() throws IOException;
-
 }

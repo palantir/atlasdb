@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: We now have automated migration from DbKVS backed embedded services
+    to a TimeLock server. Earlier, this option was only available for Cassandra backed
+    services.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5033

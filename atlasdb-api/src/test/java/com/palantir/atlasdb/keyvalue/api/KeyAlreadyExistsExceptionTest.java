@@ -18,31 +18,29 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.URL;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.encoding.PtBytes;
 
 public class KeyAlreadyExistsExceptionTest {
     @Test
     public void canDeserializeLegacyVersionsOfException() throws IOException, ClassNotFoundException {
         // The legacy exception was created on AtlasDB 0.116.1.
-        URL exceptionSerializedFormUrl = KeyAlreadyExistsExceptionTest.class.getClassLoader()
+        URL exceptionSerializedFormUrl = KeyAlreadyExistsExceptionTest.class
+                .getClassLoader()
                 .getResource("serializedLegacyKeyAlreadyExistsException.dat");
         FileInputStream fileInputStream = new FileInputStream(new File(exceptionSerializedFormUrl.getPath()));
-        KeyAlreadyExistsException deserialized = (KeyAlreadyExistsException)
-                new ObjectInputStream(fileInputStream).readObject();
+        KeyAlreadyExistsException deserialized =
+                (KeyAlreadyExistsException) new ObjectInputStream(fileInputStream).readObject();
 
         assertThat(deserialized.getMessage()).isEqualTo("aaa");
         assertThat(deserialized.getCause()).isNull();
-        assertThat(deserialized.getExistingKeys()).containsExactly(
-                Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col")));
-        assertThat(deserialized.getKnownSuccessfullyCommittedKeys()).isEqualTo(ImmutableList.of());
+        assertThat(deserialized.getExistingKeys())
+                .containsExactly(Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col")));
+        assertThat(deserialized.getKnownSuccessfullyCommittedKeys()).isEmpty();
     }
 }

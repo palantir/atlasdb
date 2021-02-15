@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
-import java.util.stream.Stream;
-
 import com.datastax.driver.core.Row;
+import java.util.stream.Stream;
 
 /**
  * {@code RowStreamAccumulator} defines an interface which should be implemented to process {@code Stream} of

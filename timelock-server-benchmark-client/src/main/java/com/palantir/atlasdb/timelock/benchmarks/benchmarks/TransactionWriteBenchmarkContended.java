@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializableTable;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializableTable.BlobsSerializableRow;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.random.RandomBytes;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TransactionWriteBenchmarkContended extends AbstractBenchmark {
 
@@ -39,14 +37,14 @@ public final class TransactionWriteBenchmarkContended extends AbstractBenchmark 
     private final TransactionManager txnManager;
     private final Map<byte[], byte[]> originalValuesByKey;
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
-            int requestsPerClient) {
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients, int requestsPerClient) {
         return new TransactionWriteBenchmarkContended(txnManager, numClients, requestsPerClient).execute();
     }
 
     private TransactionWriteBenchmarkContended(TransactionManager txnManager, int numClients, int requestsPerClient) {
         super(numClients, 1);
-        originalValuesByKey = LongStream.range(0, requestsPerClient).boxed()
+        originalValuesByKey = LongStream.range(0, requestsPerClient)
+                .boxed()
                 .collect(Collectors.toMap(PtBytes::toBytes, ignore -> RandomBytes.ofLength(16)));
         this.txnManager = txnManager;
     }
@@ -69,8 +67,8 @@ public final class TransactionWriteBenchmarkContended extends AbstractBenchmark 
         txnManager.runTaskWithRetry(txn -> {
             BlobsSerializableTable table = tableFactory.getBlobsSerializableTable(txn);
 
-            byte[] currentValue = table.getRow(BlobsSerializableRow.of(key))
-                    .get().getData();
+            byte[] currentValue =
+                    table.getRow(BlobsSerializableRow.of(key)).get().getData();
 
             if (Arrays.equals(currentValue, originalValue)) {
                 byte[] newValue = RandomBytes.ofLength(16);
@@ -83,7 +81,8 @@ public final class TransactionWriteBenchmarkContended extends AbstractBenchmark 
 
     @Override
     protected void cleanup() {
-        txnManager.getKeyValueService().truncateTable(tableFactory.getBlobsSerializableTable(null).getTableRef());
+        txnManager
+                .getKeyValueService()
+                .truncateTable(tableFactory.getBlobsSerializableTable(null).getTableRef());
     }
-
 }

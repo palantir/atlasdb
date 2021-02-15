@@ -15,20 +15,9 @@
  */
 package com.palantir.atlasdb.stream;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.util.Map;
-import java.util.function.Supplier;
-
-import javax.annotation.Nullable;
-
-import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CountingInputStream;
@@ -45,18 +34,25 @@ import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.util.Map;
+import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long>
         implements PersistentStreamStore {
     private final StreamStoreBackoffStrategy backoffStrategy;
     private final StreamCompression compression;
 
-    protected AbstractPersistentStreamStore(TransactionManager txManager,
-            StreamCompression compression) {
-        this(txManager, compression, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+    protected AbstractPersistentStreamStore(TransactionManager txManager, StreamCompression compression) {
+        this(txManager, compression, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 
-    protected AbstractPersistentStreamStore(TransactionManager txManager,
+    protected AbstractPersistentStreamStore(
+            TransactionManager txManager,
             StreamCompression compression,
             Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
         super(txManager, compression);
@@ -81,28 +77,38 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     }
 
     @Override
-    public final long getByHashOrStoreStreamAndMarkAsUsed(Transaction tx, Sha256Hash hash, InputStream stream,
-            byte[] reference) {
+    public final long getByHashOrStoreStreamAndMarkAsUsed(
+            Transaction tx, Sha256Hash hash, InputStream stream, byte[] reference) {
         Long streamId = lookupStreamIdByHash(tx, hash);
         if (streamId != null) {
-            markStreamsAsUsed(tx, ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
+            markStreamsAsUsed(
+                    tx,
+                    ImmutableMap.<Long, byte[]>builder()
+                            .put(streamId, reference)
+                            .build());
             return streamId;
         }
         Pair<Long, Sha256Hash> pair = storeStream(stream);
-        Preconditions.checkArgument(hash.equals(pair.rhSide),
-                "passed hash: %s does not equal stream hash: %s", hash, pair.rhSide);
-        markStreamsAsUsedInternal(tx, ImmutableMap.<Long, byte[]>builder().put(pair.lhSide, reference).build());
+        Preconditions.checkArgument(
+                hash.equals(pair.rhSide), "passed hash: %s does not equal stream hash: %s", hash, pair.rhSide);
+        markStreamsAsUsedInternal(
+                tx,
+                ImmutableMap.<Long, byte[]>builder().put(pair.lhSide, reference).build());
         return pair.lhSide;
     }
 
     @Override
     public void unmarkStreamAsUsed(Transaction tx, long streamId, byte[] reference) {
-        unmarkStreamsAsUsed(tx, ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
+        unmarkStreamsAsUsed(
+                tx,
+                ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
     }
 
     @Override
     public void markStreamAsUsed(Transaction tx, long streamId, byte[] reference) {
-        markStreamsAsUsed(tx, ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
+        markStreamsAsUsed(
+                tx,
+                ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
     }
 
     @Override
@@ -135,9 +141,8 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
             return ImmutableMap.of();
         }
 
-        Map<Long, StreamMetadata> idsToEmptyMetadata = KeyedStream.stream(streams)
-                .map($ -> getEmptyMetadata())
-                .collectToMap();
+        Map<Long, StreamMetadata> idsToEmptyMetadata =
+                KeyedStream.stream(streams).map($ -> getEmptyMetadata()).collectToMap();
         putMetadataAndHashIndexTask(tx, idsToEmptyMetadata);
 
         Map<Long, StreamMetadata> idsToMetadata = KeyedStream.stream(streams)
@@ -164,8 +169,8 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         }
     }
 
-    protected final StreamMetadata storeBlocksAndGetHashlessMetadata(@Nullable Transaction tx, long id,
-            InputStream stream) {
+    protected final StreamMetadata storeBlocksAndGetHashlessMetadata(
+            @Nullable Transaction tx, long id, InputStream stream) {
         CountingInputStream countingStream = new CountingInputStream(stream);
 
         // Try to store the bytes in the stream and get length
@@ -223,22 +228,25 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         return tx != null;
     }
 
-    protected void storeBlockWithNonNullTransaction(@Nullable Transaction tx, final long id, final long blockNumber,
-            final byte[] bytesToStore) {
+    protected void storeBlockWithNonNullTransaction(
+            @Nullable Transaction tx, final long id, final long blockNumber, final byte[] bytesToStore) {
         if (tx != null) {
             storeBlock(tx, id, blockNumber, bytesToStore);
         } else {
             com.palantir.logsafe.Preconditions.checkNotNull(txnMgr, "Transaction manager must not be null");
-            txnMgr.runTaskThrowOnConflict(
-                    (TransactionTask<Void, RuntimeException>) t1 -> {
-                        storeBlock(t1, id, blockNumber, bytesToStore);
-                        return null;
-                    });
+            txnMgr.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) t1 -> {
+                storeBlock(t1, id, blockNumber, bytesToStore);
+                return null;
+            });
         }
     }
 
     private void putMetadataAndHashIndexTask(Transaction tx, Long streamId, StreamMetadata metadata) {
-        putMetadataAndHashIndexTask(tx, ImmutableMap.<Long, StreamMetadata>builder().put(streamId, metadata).build());
+        putMetadataAndHashIndexTask(
+                tx,
+                ImmutableMap.<Long, StreamMetadata>builder()
+                        .put(streamId, metadata)
+                        .build());
     }
 
     protected abstract void putMetadataAndHashIndexTask(Transaction tx, Map<Long, StreamMetadata> streamIdsToMetadata);
@@ -248,5 +256,5 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     protected abstract void touchMetadataWhileMarkingUsedForConflicts(Transaction tx, Iterable<Long> ids)
             throws StreamCleanedException;
 
-    protected abstract void markStreamsAsUsedInternal(Transaction tx, final Map<Long, byte[]> streamIdsToReference);
+    protected abstract void markStreamsAsUsedInternal(Transaction tx, Map<Long, byte[]> streamIdsToReference);
 }

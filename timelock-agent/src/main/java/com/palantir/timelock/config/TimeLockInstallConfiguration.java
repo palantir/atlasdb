@@ -15,16 +15,14 @@
  */
 package com.palantir.timelock.config;
 
-import java.util.Map;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.paxos.Client;
+import java.util.Map;
+import org.immutables.value.Value;
 
 /**
  * Static (not live-reloaded) portions of TimeLock's configuration.
@@ -38,6 +36,11 @@ public interface TimeLockInstallConfiguration {
     PaxosInstallConfiguration paxos();
 
     ClusterConfiguration cluster();
+
+    @Value.Default
+    default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {
+        return false;
+    }
 
     /**
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -55,7 +58,8 @@ public interface TimeLockInstallConfiguration {
     @Value.Check
     default void check() {
         TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
-                paxos().isNewService() || cluster().knownNewServers().contains(cluster().localServer()),
+                paxos().isNewService()
+                        || cluster().knownNewServers().contains(cluster().localServer()),
                 paxos().doDataDirectoriesExist());
     }
 }

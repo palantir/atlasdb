@@ -15,14 +15,6 @@
  */
 package com.palantir.util.crypto;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.io.BaseEncoding;
@@ -30,6 +22,13 @@ import com.google.common.io.ByteStreams;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 /**
  * A SHA-256 hash. This class provides type-safety and equals/hashCode
@@ -51,7 +50,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
      */
     public Sha256Hash(byte[] bytes) {
         if (bytes.length != 32) {
-            throw new SafeIllegalArgumentException("Incorrect SHA-256 hash size."); //$NON-NLS-1$
+            throw new SafeIllegalArgumentException("Incorrect SHA-256 hash size."); // $NON-NLS-1$
         }
         this.bytes = bytes.clone();
     }
@@ -59,7 +58,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
     public Sha256Hash(HashCode hashCode) {
         this.bytes = hashCode.asBytes();
         if (this.bytes.length != 32) {
-            throw new SafeIllegalArgumentException("Incorrect SHA-256 hash size."); //$NON-NLS-1$
+            throw new SafeIllegalArgumentException("Incorrect SHA-256 hash size."); // $NON-NLS-1$
         }
     }
 
@@ -79,7 +78,11 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
             digestInputStream.close();
             return createFrom(digest);
         } finally {
-            try { is.close(); } catch (IOException e) {/* don't throw from finally*/}
+            try {
+                is.close();
+            } catch (IOException e) {
+                /* don't throw from finally*/
+            }
         }
     }
 
@@ -113,7 +116,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
             return false;
         }
         // Use constant speed equals
-        return MessageDigest.isEqual(bytes, ((Sha256Hash)obj).bytes);
+        return MessageDigest.isEqual(bytes, ((Sha256Hash) obj).bytes);
     }
 
     @Override
@@ -135,7 +138,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
         // Converts the hash into a hexadecimal string.
         StringBuilder s = new StringBuilder();
         for (int i = 0; i < bytes.length; ++i) {
-            s.append(String.format("%02x", bytes[i])); //$NON-NLS-1$
+            s.append(String.format("%02x", bytes[i])); // $NON-NLS-1$
         }
         return s.toString();
     }
@@ -162,7 +165,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
      * workaround https://github.com/google/guava/issues/1197
      */
     private enum MessageDigestPrototype {
-        SHA_256("SHA-256"); //$NON-NLS-1$
+        SHA_256("SHA-256"); // $NON-NLS-1$
 
         private final String algorithm;
         private final MessageDigest prototype;
@@ -202,6 +205,5 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
                 throw new IllegalArgumentException("Invalid message digest: " + e.getMessage(), e);
             }
         }
-
     }
 }

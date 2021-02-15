@@ -15,18 +15,17 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.Optional;
-import java.util.stream.IntStream;
-
-import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import java.util.Optional;
+import java.util.stream.IntStream;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
@@ -41,9 +40,8 @@ public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
     public void testSweepVeryHighlyVersionedCell() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
-        IntStream.rangeClosed(1, 50_000)
-                .forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
+        IntStream.rangeClosed(1, 50_000).forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
         Optional<SweepResults> results = completeSweep(TABLE_NAME, 100_000, 1);
-        Assert.assertEquals(50_000 - 1, results.get().getStaleValuesDeleted());
+        assertThat(results.get().getStaleValuesDeleted()).isEqualTo(50_000 - 1);
     }
 }

@@ -23,19 +23,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -49,6 +36,17 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class GetRowsColumnRangeIteratorTest {
@@ -60,12 +58,8 @@ public class GetRowsColumnRangeIteratorTest {
             BatchColumnRangeSelection.create(null, null, BATCH_SIZE);
 
     private final KeyValueService kvs = new InMemoryKeyValueService(true);
-    private final ColumnRangeBatchProvider batchProvider = new ColumnRangeBatchProvider(
-            kvs,
-            TABLE_REFERENCE,
-            ROW,
-            COLUMN_RANGE_SELECTION,
-            Long.MAX_VALUE);
+    private final ColumnRangeBatchProvider batchProvider =
+            new ColumnRangeBatchProvider(kvs, TABLE_REFERENCE, ROW, COLUMN_RANGE_SELECTION, Long.MAX_VALUE);
 
     @Test
     public void ifBatchIsEmptyNoValidateCallsAreMade() {
@@ -106,7 +100,7 @@ public class GetRowsColumnRangeIteratorTest {
         verifyNoMoreInteractions(validationStep);
 
         List<Cell> cellsReadInOrder = Streams.stream(Iterables.concat(
-                firstBatchBarOne, ImmutableList.of(lastInFirstBatch, firstInSecondBatch), restOfSecondBatch))
+                        firstBatchBarOne, ImmutableList.of(lastInFirstBatch, firstInSecondBatch), restOfSecondBatch))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 
@@ -125,8 +119,7 @@ public class GetRowsColumnRangeIteratorTest {
         Iterator<Map.Entry<Cell, byte[]>> iteratorUnderTest = createIteratorUnderTest(validationStep);
         List<Map.Entry<Cell, byte[]>> consumedEntries = ImmutableList.copyOf(iteratorUnderTest);
 
-        assertThat(consumedEntries)
-                .hasSize(13 * BATCH_SIZE + 8);
+        assertThat(consumedEntries).hasSize(13 * BATCH_SIZE + 8);
 
         verify(validationStep, times(14 - 1)).run();
     }
@@ -155,5 +148,4 @@ public class GetRowsColumnRangeIteratorTest {
                 validationStep,
                 results -> Maps.transformValues(results, Value::getContents).entrySet());
     }
-
 }

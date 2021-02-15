@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
 import com.google.common.base.Suppliers;
 import com.palantir.lock.v2.TimelockService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * This will return immutableTimestamps
@@ -31,13 +30,10 @@ import com.palantir.lock.v2.TimelockService;
 public final class ImmutableTimestampSupplier {
     private static final long RELOAD_INTERVAL_MILLIS = 1000L;
 
-    private ImmutableTimestampSupplier() { }
+    private ImmutableTimestampSupplier() {}
 
     public static Supplier<Long> createMemoizedWithExpiration(TimelockService timelockService) {
         return Suppliers.memoizeWithExpiration(
-                timelockService::getImmutableTimestamp,
-                RELOAD_INTERVAL_MILLIS,
-                TimeUnit.MILLISECONDS);
+                timelockService::getImmutableTimestamp, RELOAD_INTERVAL_MILLIS, TimeUnit.MILLISECONDS);
     }
-
 }

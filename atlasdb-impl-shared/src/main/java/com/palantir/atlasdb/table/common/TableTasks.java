@@ -15,17 +15,6 @@
  */
 package com.palantir.atlasdb.table.common;
 
-import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
@@ -52,6 +41,15 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TableTasks {
     private static final Logger log = LoggerFactory.getLogger(TableTasks.class);
@@ -71,9 +69,17 @@ public final class TableTasks {
             TableReference dstTable,
             int batchSize,
             int threadCount,
-            @Output CopyStats stats) throws InterruptedException {
-        copyExternal(exec, srcTable, dstTable, batchSize, threadCount, stats, (request, range) ->
-                txManager.runTaskWithRetry(tx -> copyInternal(tx, srcTable, dstTable, request, range)));
+            @Output CopyStats stats)
+            throws InterruptedException {
+        copyExternal(
+                exec,
+                srcTable,
+                dstTable,
+                batchSize,
+                threadCount,
+                stats,
+                (request, range) ->
+                        txManager.runTaskWithRetry(tx -> copyInternal(tx, srcTable, dstTable, request, range)));
     }
 
     public static void copy(
@@ -84,32 +90,41 @@ public final class TableTasks {
             final TableReference dstTable,
             int batchSize,
             int threadCount,
-            @Output CopyStats stats) throws InterruptedException {
-        copyExternal(exec, srcTable, dstTable, batchSize, threadCount, stats, (request, range) ->
-                txManager.runTaskWithRetry(tx -> copyInternal(tx, srcTable, dstTable, request, range)));
+            @Output CopyStats stats)
+            throws InterruptedException {
+        copyExternal(
+                exec,
+                srcTable,
+                dstTable,
+                batchSize,
+                threadCount,
+                stats,
+                (request, range) ->
+                        txManager.runTaskWithRetry(tx -> copyInternal(tx, srcTable, dstTable, request, range)));
     }
 
-    public static void copyExternal(ExecutorService exec,
-                                    final TableReference srcTable,
-                                    final TableReference dstTable,
-                                    int batchSize,
-                                    int threadCount,
-                                    final CopyStats stats,
-                                    final CopyTask task) throws InterruptedException {
-        new InterruptibleRangeExecutor(exec, batchSize, threadCount).executeTask("copy",
-                range -> executeCopyTask(srcTable, dstTable, stats, task, range));
+    public static void copyExternal(
+            ExecutorService exec,
+            final TableReference srcTable,
+            final TableReference dstTable,
+            int batchSize,
+            int threadCount,
+            final CopyStats stats,
+            final CopyTask task)
+            throws InterruptedException {
+        new InterruptibleRangeExecutor(exec, batchSize, threadCount)
+                .executeTask("copy", range -> executeCopyTask(srcTable, dstTable, stats, task, range));
     }
 
-    private static void executeCopyTask(TableReference srcTable,
-            TableReference dstTable,
-            CopyStats stats,
-            CopyTask task,
-            MutableRange range) throws InterruptedException {
+    private static void executeCopyTask(
+            TableReference srcTable, TableReference dstTable, CopyStats stats, CopyTask task, MutableRange range)
+            throws InterruptedException {
         long startTime = System.currentTimeMillis();
         PartialCopyStats partialStats = task.call(range.getRangeRequest(), range);
         stats.rowsCopied.addAndGet(partialStats.rowsCopied);
         stats.cellsCopied.addAndGet(partialStats.cellsCopied);
-        log.info("Copied {} rows, {} cells from {} to {} in {} ms.",
+        log.info(
+                "Copied {} rows, {} cells from {} to {} in {} ms.",
                 SafeArg.of("rowsCopied", partialStats.rowsCopied),
                 SafeArg.of("cellsCopied", partialStats.cellsCopied),
                 LoggingArgs.tableRef("srcTable", srcTable),
@@ -117,16 +132,17 @@ public final class TableTasks {
                 SafeArg.of("timeTaken", System.currentTimeMillis() - startTime));
     }
 
-    private static PartialCopyStats copyInternal(final Transaction transaction,
-                                                 final TableReference srcTable,
-                                                 final TableReference dstTable,
-                                                 RangeRequest request,
-                                                 final MutableRange range) {
+    private static PartialCopyStats copyInternal(
+            final Transaction transaction,
+            final TableReference srcTable,
+            final TableReference dstTable,
+            RangeRequest request,
+            final MutableRange range) {
         final PartialCopyStats stats = new PartialCopyStats();
         boolean isEmpty = transaction.getRange(srcTable, request).batchAccept(range.getBatchSize(), batch -> {
             Map<Cell, byte[]> entries = Maps.newHashMapWithExpectedSize(batch.size());
             for (RowResult<byte[]> result : batch) {
-                for (Entry<Cell, byte[]> entry : result.getCells()) {
+                for (Map.Entry<Cell, byte[]> entry : result.getCells()) {
                     entries.put(entry.getKey(), entry.getValue());
                 }
             }
@@ -147,10 +163,8 @@ public final class TableTasks {
         return stats;
     }
 
-    public static long estimateSize(Transaction transaction,
-                                    TableReference table,
-                                    int batchSize,
-                                    Function<byte[], byte[]> uniformizer) {
+    public static long estimateSize(
+            Transaction transaction, TableReference table, int batchSize, Function<byte[], byte[]> uniformizer) {
         final AtomicLong estimate = new AtomicLong();
         transaction.getRange(table, RangeRequest.all()).batchAccept(batchSize, batch -> {
             if (batch.size() < batchSize) {
@@ -168,19 +182,28 @@ public final class TableTasks {
         return estimate.get();
     }
 
-    public static void diff(final TransactionManager txManager,
-                            ExecutorService exec,
-                            final TableReference plusTable,
-                            final TableReference minusTable,
-                            int batchSize,
-                            int threadCount,
-                            @Output DiffStats stats,
-                            final DiffVisitor visitor) throws InterruptedException {
-        DiffStrategy diffStrategy = txManager.runTaskWithRetry(t ->
-                getDiffStrategy(t, plusTable, minusTable, batchSize));
-        diffExternal(diffStrategy, exec, plusTable, minusTable, batchSize, threadCount, stats,
-                (request, range, strategy) -> txManager.runTaskWithRetry(t ->
-                                diffInternal(t, plusTable, minusTable, request, range, strategy, visitor)));
+    public static void diff(
+            final TransactionManager txManager,
+            ExecutorService exec,
+            final TableReference plusTable,
+            final TableReference minusTable,
+            int batchSize,
+            int threadCount,
+            @Output DiffStats stats,
+            final DiffVisitor visitor)
+            throws InterruptedException {
+        DiffStrategy diffStrategy =
+                txManager.runTaskWithRetry(t -> getDiffStrategy(t, plusTable, minusTable, batchSize));
+        diffExternal(
+                diffStrategy,
+                exec,
+                plusTable,
+                minusTable,
+                batchSize,
+                threadCount,
+                stats,
+                (request, range, strategy) -> txManager.runTaskWithRetry(
+                        t -> diffInternal(t, plusTable, minusTable, request, range, strategy, visitor)));
     }
 
     /**
@@ -189,31 +212,36 @@ public final class TableTasks {
      *             int, int, DiffStats, DiffVisitor)} instead
      */
     @Deprecated
-    public static void diff(final TransactionManager txManager,
-                            ExecutorService exec,
-                            final Iterable<LockRefreshToken> lockTokens,
-                            final TableReference plusTable,
-                            final TableReference minusTable,
-                            final int batchSize,
-                            int threadCount,
-                            @Output DiffStats stats,
-                            final DiffVisitor visitor) throws InterruptedException {
+    public static void diff(
+            final TransactionManager txManager,
+            ExecutorService exec,
+            final Iterable<LockRefreshToken> lockTokens,
+            final TableReference plusTable,
+            final TableReference minusTable,
+            final int batchSize,
+            int threadCount,
+            @Output DiffStats stats,
+            final DiffVisitor visitor)
+            throws InterruptedException {
         diff(txManager, exec, plusTable, minusTable, batchSize, threadCount, stats, visitor);
     }
 
-    private static void diffExternal(final DiffStrategy strategy,
-                                     ExecutorService exec,
-                                     final TableReference plusTable,
-                                     final TableReference minusTable,
-                                     final int batchSize,
-                                     int threadCount,
-                                     final DiffStats stats,
-                                     final DiffTask task) throws InterruptedException {
-        new InterruptibleRangeExecutor(exec, batchSize, threadCount).executeTask("diff",
-                range -> executeDiffTask(strategy, plusTable, minusTable, stats, task, range));
+    private static void diffExternal(
+            final DiffStrategy strategy,
+            ExecutorService exec,
+            final TableReference plusTable,
+            final TableReference minusTable,
+            final int batchSize,
+            int threadCount,
+            final DiffStats stats,
+            final DiffTask task)
+            throws InterruptedException {
+        new InterruptibleRangeExecutor(exec, batchSize, threadCount)
+                .executeTask("diff", range -> executeDiffTask(strategy, plusTable, minusTable, stats, task, range));
     }
 
-    private static void executeDiffTask(DiffStrategy strategy,
+    private static void executeDiffTask(
+            DiffStrategy strategy,
             TableReference plusTable,
             TableReference minusTable,
             DiffStats stats,
@@ -230,7 +258,8 @@ public final class TableTasks {
         stats.cellsOnlyInSource.addAndGet(partialStats.cellsOnlyInSource);
         stats.cellsInCommon.addAndGet(partialStats.cellsInCommon);
         if (log.isInfoEnabled()) {
-            log.info("Processed diff of "
+            log.info(
+                    "Processed diff of "
                             + "{} rows "
                             + "{} rows only in source "
                             + "{} rows partially in common "
@@ -250,22 +279,21 @@ public final class TableTasks {
         }
     }
 
-    private static DiffStrategy getDiffStrategy(Transaction tx,
-                                                TableReference plusTable,
-                                                TableReference minusTable,
-                                                int batchSize) {
+    private static DiffStrategy getDiffStrategy(
+            Transaction tx, TableReference plusTable, TableReference minusTable, int batchSize) {
         long minusSize = estimateSize(tx, minusTable, batchSize, Functions.identity());
         long plusSize = estimateSize(tx, plusTable, batchSize, Functions.identity());
         return minusSize > 4 * plusSize ? DiffStrategy.ROWS : DiffStrategy.RANGE;
     }
 
-    private static PartialDiffStats diffInternal(final Transaction tx,
-                                                 TableReference plusTable,
-                                                 final TableReference minusTable,
-                                                 final RangeRequest request,
-                                                 final MutableRange range,
-                                                 final DiffStrategy strategy,
-                                                 final DiffVisitor visitor) {
+    private static PartialDiffStats diffInternal(
+            final Transaction tx,
+            TableReference plusTable,
+            final TableReference minusTable,
+            final RangeRequest request,
+            final MutableRange range,
+            final DiffStrategy strategy,
+            final DiffVisitor visitor) {
         final PartialDiffStats partialStats = new PartialDiffStats();
         boolean isEmpty = tx.getRange(plusTable, request).batchAccept(range.getBatchSize(), batch -> {
             partialStats.rowsOnlyInSource = 0;
@@ -282,12 +310,12 @@ public final class TableTasks {
             }
             Iterable<RowResult<byte[]>> toRemove;
             if (strategy == DiffStrategy.RANGE) {
-                toRemove = BatchingVisitables.visitWhile(
-                        tx.getRange(minusTable, request), lessThan(lastRow)).immutableCopy();
+                toRemove = BatchingVisitables.visitWhile(tx.getRange(minusTable, request), lessThan(lastRow))
+                        .immutableCopy();
             } else {
-                toRemove = tx.getRows(minusTable,
-                        Lists.transform(batch, RowResult.getRowNameFun()),
-                        ColumnSelection.all()).values();
+                toRemove = tx.getRows(
+                                minusTable, Lists.transform(batch, RowResult.getRowNameFun()), ColumnSelection.all())
+                        .values();
             }
             visitor.visit(tx, diffInternal(asCells(batch), asCells(toRemove), partialStats));
             partialStats.rowsVisited += batch.size();
@@ -299,9 +327,8 @@ public final class TableTasks {
         return partialStats;
     }
 
-    private static Iterator<Cell> diffInternal(final Iterable<Cell> plus,
-                                               final Iterable<Cell> minus,
-                                               final PartialDiffStats partialStats) {
+    private static Iterator<Cell> diffInternal(
+            final Iterable<Cell> plus, final Iterable<Cell> minus, final PartialDiffStats partialStats) {
         return new AbstractIterator<Cell>() {
             private final Iterator<Cell> plusIter = plus.iterator();
             private final Iterator<Cell> minusIter = minus.iterator();
@@ -310,6 +337,7 @@ public final class TableTasks {
             private boolean keyInCommon;
             private Cell currPlus;
             private Cell currMinus;
+
             @Override
             protected Cell computeNext() {
                 currPlus = null;
@@ -374,6 +402,7 @@ public final class TableTasks {
             private final Iterator<RowResult<byte[]>> outerIter = results.iterator();
             private byte[] row = null;
             private Iterator<byte[]> innerIter = null;
+
             @Override
             protected Cell computeNext() {
                 while (true) {
@@ -406,7 +435,7 @@ public final class TableTasks {
 
         byte step = (byte) (256 / threadCount);
         byte curr = step;
-        Collection<MutableRange> ranges = Lists.newArrayListWithCapacity(threadCount);
+        Collection<MutableRange> ranges = new ArrayList<>(threadCount);
         ranges.add(new MutableRange(new byte[0], new byte[] {step}, batchSize));
         for (int i = 1; i < threadCount - 1; i++) {
             byte next = (byte) (curr + step);
@@ -429,7 +458,8 @@ public final class TableTasks {
         private final AtomicLong cellsOnlyInSource;
         private final AtomicLong cellsInCommon;
 
-        public DiffStats(AtomicLong rowsOnlyInSource,
+        public DiffStats(
+                AtomicLong rowsOnlyInSource,
                 AtomicLong rowsPartiallyInCommon,
                 AtomicLong rowsCompletelyInCommon,
                 AtomicLong rowsVisited,
@@ -457,15 +487,15 @@ public final class TableTasks {
         private final AtomicLong rowsCopied;
         private final AtomicLong cellsCopied;
 
-        public CopyStats(AtomicLong rowsCopied,
-                AtomicLong cellsCopied) {
+        public CopyStats(AtomicLong rowsCopied, AtomicLong cellsCopied) {
             this.rowsCopied = rowsCopied;
             this.cellsCopied = cellsCopied;
         }
     }
 
     private enum DiffStrategy {
-        RANGE, ROWS;
+        RANGE,
+        ROWS;
     }
 
     private interface DiffTask {
@@ -477,7 +507,7 @@ public final class TableTasks {
         PartialCopyStats call(RangeRequest request, MutableRange range) throws InterruptedException;
     }
 
-    private static class PartialCopyStats {
+    private static final class PartialCopyStats {
         private long rowsCopied = 0;
         private long cellsCopied = 0;
     }
@@ -497,7 +527,8 @@ public final class TableTasks {
             BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
             for (final MutableRange range : getRanges(threadCount, batchSize)) {
                 if (Thread.currentThread().isInterrupted()) {
-                    log.info("Thread interrupted. Cancelling {} of range {}",
+                    log.info(
+                            "Thread interrupted. Cancelling {} of range {}",
                             SafeArg.of("taskName", taskName),
                             UnsafeArg.of("range", range));
                     return;
@@ -505,7 +536,8 @@ public final class TableTasks {
                 pool.submitTask(() -> {
                     do {
                         if (Thread.currentThread().isInterrupted()) {
-                            log.info("Thread interrupted. Cancelling {} of range {}",
+                            log.info(
+                                    "Thread interrupted. Cancelling {} of range {}",
                                     SafeArg.of("taskName", taskName),
                                     UnsafeArg.of("range", range));
                             break;

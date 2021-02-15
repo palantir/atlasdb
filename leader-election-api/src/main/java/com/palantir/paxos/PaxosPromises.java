@@ -15,10 +15,8 @@
  */
 package com.palantir.paxos;
 
-import javax.annotation.Nullable;
-
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence.PaxosPromiseProto;
-import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence.PaxosPromiseProto.Builder;
+import javax.annotation.Nullable;
 
 public final class PaxosPromises {
     private PaxosPromises() {
@@ -26,9 +24,8 @@ public final class PaxosPromises {
     }
 
     public static PaxosPromiseProto toProto(PaxosPromise result) {
-        Builder builder = PaxosPromiseProto.newBuilder()
-                .setAck(result.ack)
-                .setPromisedId(result.promisedId.persistToProto());
+        PaxosPromiseProto.Builder builder =
+                PaxosPromiseProto.newBuilder().setAck(result.ack).setPromisedId(result.promisedId.persistToProto());
         if (result.lastAcceptedId != null) {
             builder.setLastAcceptedId(result.lastAcceptedId.persistToProto());
         }
@@ -56,5 +53,4 @@ public final class PaxosPromises {
             return PaxosPromise.accept(promisedId, lastAcceptedId, lastAcceptedValue);
         }
     }
-
 }

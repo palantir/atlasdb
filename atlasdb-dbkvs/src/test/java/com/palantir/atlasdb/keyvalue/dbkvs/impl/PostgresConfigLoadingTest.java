@@ -15,23 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+import org.junit.Test;
 
 public class PostgresConfigLoadingTest {
     @Test
@@ -58,8 +52,8 @@ public class PostgresConfigLoadingTest {
         // Our connectionTimeout is instead translated to "connectTimeout", which is how long a connection
         // can be open for.
         ConnectionConfig connectionConfig = getConnectionConfig();
-        assertThat(connectionConfig.getHikariConfig().getConnectionTimeout(),
-                is((long) connectionConfig.getCheckoutTimeout()));
+        assertThat(connectionConfig.getHikariConfig().getConnectionTimeout())
+                .isEqualTo((long) connectionConfig.getCheckoutTimeout());
     }
 
     @Test
@@ -73,17 +67,18 @@ public class PostgresConfigLoadingTest {
         ConnectionConfig connectionConfig = getConnectionConfig();
         Properties props = connectionConfig.getHikariProperties();
 
-        assertThat(props.getProperty("foo"), equalTo("100"));
-        assertThat(props.getProperty("bar"), equalTo("baz"));
+        assertThat(props.getProperty("foo")).isEqualTo("100");
+        assertThat(props.getProperty("bar")).isEqualTo("baz");
     }
 
     @Test
     public void testPasswordIsMasked() throws IOException {
         ConnectionConfig connectionConfig = getConnectionConfig();
-        assertThat(connectionConfig.getDbPassword().unmasked(), equalTo("testpassword"));
-        assertThat(connectionConfig.getHikariProperties().getProperty("password"), equalTo("testpassword"));
-        assertThat(connectionConfig.toString(), not(containsString("testpassword")));
-        assertThat(connectionConfig.toString(), containsString("REDACTED"));
+        assertThat(connectionConfig.getDbPassword().unmasked()).isEqualTo("testpassword");
+        assertThat(connectionConfig.getHikariProperties().getProperty("password"))
+                .isEqualTo("testpassword");
+        assertThat(connectionConfig.toString()).doesNotContain("testpassword");
+        assertThat(connectionConfig.toString()).contains("REDACTED");
     }
 
     private ConnectionConfig getConnectionConfig() throws IOException {
@@ -104,9 +99,8 @@ public class PostgresConfigLoadingTest {
     private void verifyHikariProperty(ConnectionConfig connectionConfig, String property, int expectedValueSeconds) {
         Properties hikariProps = connectionConfig.getHikariConfig().getDataSourceProperties();
 
-        assertThat(
-                String.format("Hikari property %s should be populated from connectionConfig", property),
-                Integer.valueOf(hikariProps.getProperty(property)),
-                is(expectedValueSeconds));
+        assertThat(Integer.valueOf(hikariProps.getProperty(property)))
+                .describedAs(String.format("Hikari property %s should be populated from connectionConfig", property))
+                .isEqualTo(expectedValueSeconds);
     }
 }

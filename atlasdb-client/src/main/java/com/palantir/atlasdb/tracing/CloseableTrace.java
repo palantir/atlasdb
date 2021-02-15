@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.tracing;
 
-import javax.annotation.Nullable;
-
-import org.slf4j.helpers.MessageFormatter;
-
 import com.google.common.collect.ObjectArrays;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.OpenSpan;
 import com.palantir.tracing.api.SpanType;
+import javax.annotation.Nullable;
+import org.slf4j.helpers.MessageFormatter;
 
 public final class CloseableTrace implements AutoCloseable {
 
@@ -45,23 +43,21 @@ public final class CloseableTrace implements AutoCloseable {
         return NO_OP;
     }
 
-    public static CloseableTrace startLocalTrace(String serviceName,
-            CharSequence operationFormat,
-            Object... formatArguments) {
+    public static CloseableTrace startLocalTrace(
+            String serviceName, CharSequence operationFormat, Object... formatArguments) {
         if (Tracer.isTraceObservable()) {
-            return startLocalTrace("{}." + operationFormat,
-                    ObjectArrays.concat(serviceName, formatArguments));
+            return startLocalTrace("{}." + operationFormat, ObjectArrays.concat(serviceName, formatArguments));
         }
         return noOp();
     }
 
     private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
         if (Tracer.isTraceObservable()) {
-            String operation = MessageFormatter.arrayFormat(operationFormat.toString(), formatArguments).getMessage();
+            String operation = MessageFormatter.arrayFormat(operationFormat.toString(), formatArguments)
+                    .getMessage();
             OpenSpan openSpan = Tracer.startSpan(operation, SpanType.LOCAL);
             return new CloseableTrace(openSpan);
         }
         return noOp();
     }
-
 }

@@ -16,18 +16,15 @@
 
 package com.palantir.atlasdb.util;
 
-import java.util.Map;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.Map;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 /** Cache to avoid excessive string concatenation in MetricRegistry.name(clazz, metricName). */
 final class MetricNameCache {
@@ -35,17 +32,16 @@ final class MetricNameCache {
     private final LoadingCache<Key, MetricName> cache;
 
     MetricNameCache() {
-        this.cache = Caffeine.newBuilder()
-                .build(new CacheLoader<Key, MetricName>() {
-                    @Nullable
-                    @Override
-                    public MetricName load(@Nonnull Key key) {
-                        return MetricName.builder()
-                                .safeName(MetricRegistry.name(key.getClazz(), key.getMetricName()))
-                                .safeTags(key.getTags())
-                                .build();
-                    }
-                });
+        this.cache = Caffeine.newBuilder().build(new CacheLoader<Key, MetricName>() {
+            @Nullable
+            @Override
+            public MetricName load(@Nonnull Key key) {
+                return MetricName.builder()
+                        .safeName(MetricRegistry.name(key.getClazz(), key.getMetricName()))
+                        .safeTags(key.getTags())
+                        .build();
+            }
+        });
     }
 
     MetricName get(Class<?> clazz, String metricName, Map<String, String> tags) {

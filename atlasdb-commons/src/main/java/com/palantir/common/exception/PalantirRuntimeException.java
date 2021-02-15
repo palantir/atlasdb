@@ -24,7 +24,9 @@ public class PalantirRuntimeException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
-    public PalantirRuntimeException() {/**/}
+    public PalantirRuntimeException() {
+        /**/
+    }
 
     public PalantirRuntimeException(Throwable n) {
         super(n);
@@ -37,5 +39,4 @@ public class PalantirRuntimeException extends RuntimeException {
     public PalantirRuntimeException(String msg, Throwable n) {
         super(msg, n);
     }
-
 }

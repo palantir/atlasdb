@@ -15,20 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class RowsColumnRangeBatchRequestsTest {
@@ -43,10 +42,9 @@ public class RowsColumnRangeBatchRequestsTest {
     @Parameters(name = "Partial first row: {0}, partial last row: {1}")
     public static List<Object[]> getParameters() {
         return ImmutableList.of(
-                new Object[] {false, false},
-                new Object[] {false, true},
-                new Object[] {true, false},
-                new Object[] {true, true});
+                new Object[] {false, false}, new Object[] {false, true}, new Object[] {true, false}, new Object[] {
+                    true, true
+                });
     }
 
     @Test
@@ -102,45 +100,43 @@ public class RowsColumnRangeBatchRequestsTest {
     private static void assertIntermediatePartitionsHaveNoPartialRows(List<RowsColumnRangeBatchRequest> partitions) {
         // No partition other than the first should have a partial first row
         for (RowsColumnRangeBatchRequest partition : partitions.subList(1, partitions.size())) {
-            Assert.assertFalse(partition.getPartialFirstRow().isPresent());
+            assertThat(partition.getPartialFirstRow()).isNotPresent();
         }
         // No partition other than the last should have a partial last row
         for (RowsColumnRangeBatchRequest partition : partitions.subList(0, partitions.size() - 1)) {
-            Assert.assertFalse(partition.getPartialLastRow().isPresent());
+            assertThat(partition.getPartialLastRow()).isNotPresent();
         }
     }
 
     private static void assertRowsInPartitionsMatchOriginal(
-            RowsColumnRangeBatchRequest original,
-            List<RowsColumnRangeBatchRequest> partitions) {
-        List<byte[]> actualAllRows =
-                partitions.stream()
-                        .flatMap(partition -> RowsColumnRangeBatchRequests.getAllRowsInOrder(partition).stream())
-                        .collect(Collectors.toList());
-        Assert.assertEquals(RowsColumnRangeBatchRequests.getAllRowsInOrder(original), actualAllRows);
+            RowsColumnRangeBatchRequest original, List<RowsColumnRangeBatchRequest> partitions) {
+        List<byte[]> actualAllRows = partitions.stream()
+                .flatMap(partition -> RowsColumnRangeBatchRequests.getAllRowsInOrder(partition).stream())
+                .collect(Collectors.toList());
+        assertThat(actualAllRows).isEqualTo(RowsColumnRangeBatchRequests.getAllRowsInOrder(original));
     }
 
     private static void assertColumnRangesInPartitionsMatchOriginal(
-            RowsColumnRangeBatchRequest request,
-            List<RowsColumnRangeBatchRequest> partitions) {
-        Assert.assertEquals(request.getPartialFirstRow(), partitions.get(0).getPartialFirstRow());
-        Assert.assertEquals(request.getPartialLastRow(), partitions.get(partitions.size() - 1).getPartialLastRow());
+            RowsColumnRangeBatchRequest request, List<RowsColumnRangeBatchRequest> partitions) {
+        assertThat(partitions.get(0).getPartialFirstRow()).isEqualTo(request.getPartialFirstRow());
+        assertThat(partitions.get(partitions.size() - 1).getPartialLastRow()).isEqualTo(request.getPartialLastRow());
 
         for (RowsColumnRangeBatchRequest partition : partitions) {
-            Assert.assertTrue(partition.getRowsToLoadFully().isEmpty()
-                    || partition.getColumnRangeSelection().equals(request.getColumnRangeSelection()));
+            assertThat(partition.getRowsToLoadFully().isEmpty()
+                            || partition.getColumnRangeSelection().equals(request.getColumnRangeSelection()))
+                    .isTrue();
         }
     }
 
     private static void assertPartitionsHaveCorrectSize(
-            List<RowsColumnRangeBatchRequest> partitions,
-            int expectedSize) {
+            List<RowsColumnRangeBatchRequest> partitions, int expectedSize) {
         for (int i = 0; i < partitions.size(); i++) {
-            int actualPartitionSize = RowsColumnRangeBatchRequests.getAllRowsInOrder(partitions.get(i)).size();
+            int actualPartitionSize = RowsColumnRangeBatchRequests.getAllRowsInOrder(partitions.get(i))
+                    .size();
             if (i < partitions.size() - 1) {
-                Assert.assertEquals(expectedSize, actualPartitionSize);
+                assertThat(actualPartitionSize).isEqualTo(expectedSize);
             } else {
-                Assert.assertTrue(actualPartitionSize <= expectedSize);
+                assertThat(actualPartitionSize).isLessThanOrEqualTo(expectedSize);
             }
         }
     }

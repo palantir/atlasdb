@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.transaction.service;
 
-import java.util.Map;
-
 import com.google.common.util.concurrent.ListenableFuture;
+import java.util.Map;
 
 public interface AsyncTransactionService {
     /**

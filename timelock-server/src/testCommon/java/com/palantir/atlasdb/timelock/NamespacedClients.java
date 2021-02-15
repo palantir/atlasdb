@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
@@ -25,6 +23,7 @@ import com.palantir.lock.ConjureLockV1Service;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
+import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
@@ -41,6 +40,7 @@ import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface NamespacedClients {
@@ -69,14 +69,12 @@ public interface NamespacedClients {
     @Value.Derived
     default TimelockService timelockService() {
         return RemoteTimelockServiceAdapter.create(
-                namespacedTimelockRpcClient(),
-                namespacedConjureTimelockService(),
-                lockWatchEventCache());
+                namespacedTimelockRpcClient(), namespacedConjureTimelockService(), lockWatchEventCache());
     }
 
     @Value.Default
     default LockWatchEventCache lockWatchEventCache() {
-        return NoOpLockWatchEventCache.INSTANCE;
+        return NoOpLockWatchEventCache.create();
     }
 
     @Value.Derived
@@ -86,7 +84,7 @@ public interface NamespacedClients {
 
     @Value.Derived
     default NamespacedConjureTimelockService namespacedConjureTimelockService() {
-        return new NamespacedConjureTimelockService(conjureTimelockService(), namespace());
+        return new NamespacedConjureTimelockServiceImpl(conjureTimelockService(), namespace());
     }
 
     @Value.Derived
@@ -102,8 +100,7 @@ public interface NamespacedClients {
     @Value.Derived
     default LockService legacyLockService() {
         return RemoteLockServiceAdapter.create(
-                proxyFactory().createProxy(LockRpcClient.class, proxyMode()),
-                namespace());
+                proxyFactory().createProxy(LockRpcClient.class, proxyMode()), namespace());
     }
 
     @Value.Derived
@@ -114,8 +111,7 @@ public interface NamespacedClients {
     @Value.Derived
     default TimestampManagementService timestampManagementService() {
         return new RemoteTimestampManagementAdapter(
-                proxyFactory().createProxy(TimestampManagementRpcClient.class, proxyMode()),
-                namespace());
+                proxyFactory().createProxy(TimestampManagementRpcClient.class, proxyMode()), namespace());
     }
 
     default long getFreshTimestamp() {

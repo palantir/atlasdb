@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.console;
 
-import java.util.Map;
-
 import groovy.lang.Closure;
+import java.util.Map;
 
 public interface AtlasConsoleModule {
     /**

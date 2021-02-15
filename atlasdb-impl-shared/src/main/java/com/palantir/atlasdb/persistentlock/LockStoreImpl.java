@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -38,6 +29,13 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * LockStore manages {@link LockEntry} objects, specifically for the "Backup Lock" (to be taken out by backup and
@@ -79,7 +77,7 @@ public class LockStoreImpl implements LockStore {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(LockStore.class);
+    private static final Logger log = LoggerFactory.getLogger(LockStoreImpl.class);
     private static final String BACKUP_LOCK_NAME = "BackupLock";
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
@@ -125,10 +123,8 @@ public class LockStoreImpl implements LockStore {
     @Override
     public LockEntry acquireBackupLock(String reason) throws CheckAndSetException {
         LockEntry lockEntry = generateUniqueBackupLockEntry(reason);
-        CheckAndSetRequest request = CheckAndSetRequest.singleCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
-                lockEntry.cell(),
-                LOCK_OPEN.value(),
-                lockEntry.value());
+        CheckAndSetRequest request = CheckAndSetRequest.singleCell(
+                AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.cell(), LOCK_OPEN.value(), lockEntry.value());
 
         keyValueService.checkAndSet(request);
         log.info("Successfully acquired the persistent lock: {}", SafeArg.of("lockEntry", lockEntry));
@@ -137,10 +133,8 @@ public class LockStoreImpl implements LockStore {
 
     @Override
     public void releaseLock(LockEntry lockEntry) throws CheckAndSetException {
-        CheckAndSetRequest request = CheckAndSetRequest.singleCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
-                lockEntry.cell(),
-                lockEntry.value(),
-                LOCK_OPEN.value());
+        CheckAndSetRequest request = CheckAndSetRequest.singleCell(
+                AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.cell(), lockEntry.value(), LOCK_OPEN.value());
 
         keyValueService.checkAndSet(request);
         log.info("Successfully released the persistent lock: {}", SafeArg.of("lockEntry", lockEntry));
@@ -165,9 +159,7 @@ public class LockStoreImpl implements LockStore {
     @VisibleForTesting
     Set<LockEntry> allLockEntries() {
         Set<RowResult<Value>> results = ImmutableSet.copyOf(keyValueService.getRange(
-                AtlasDbConstants.PERSISTED_LOCKS_TABLE,
-                RangeRequest.all(),
-                AtlasDbConstants.TRANSACTION_TS + 1));
+                AtlasDbConstants.PERSISTED_LOCKS_TABLE, RangeRequest.all(), AtlasDbConstants.TRANSACTION_TS + 1));
 
         return results.stream().map(LockEntry::fromRowResult).collect(Collectors.toSet());
     }
@@ -190,9 +182,7 @@ public class LockStoreImpl implements LockStore {
 
         void populate() {
             CheckAndSetRequest request = CheckAndSetRequest.newCell(
-                    AtlasDbConstants.PERSISTED_LOCKS_TABLE,
-                    LOCK_OPEN.cell(),
-                    LOCK_OPEN.value());
+                    AtlasDbConstants.PERSISTED_LOCKS_TABLE, LOCK_OPEN.cell(), LOCK_OPEN.value());
             try {
                 kvs.checkAndSet(request);
             } catch (CheckAndSetException e) {
@@ -200,9 +190,11 @@ public class LockStoreImpl implements LockStore {
                 // All we care about is that we're in the state machine of "LOCK_OPEN"/"LOCK_TAKEN".
                 // It still might be interesting, so we'll log it.
                 List<String> values = getActualValues(e);
-                log.debug("Encountered a CheckAndSetException when creating the LockStore. This means that two "
-                        + "LockStore objects were created near-simultaneously, and is probably not a problem. "
-                        + "For the record, we observed these values: {}", values);
+                log.debug(
+                        "Encountered a CheckAndSetException when creating the LockStore. This means that two "
+                                + "LockStore objects were created near-simultaneously, and is probably not a problem. "
+                                + "For the record, we observed these values: {}",
+                        values);
             }
         }
 

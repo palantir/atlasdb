@@ -15,23 +15,26 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.logsafe.SafeArg;
 import java.util.List;
-
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.logsafe.SafeArg;
 
 class SweepQueueWriter implements MultiTableSweepQueueWriter {
     private static final Logger log = LoggerFactory.getLogger(SweepQueueWriter.class);
 
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
+    private final WriteInfoPartitioner partitioner;
 
-    SweepQueueWriter(SweepableTimestamps sweepableTimestamps,
-            SweepableCells sweepableCells) {
+    SweepQueueWriter(
+            SweepableTimestamps sweepableTimestamps, SweepableCells sweepableCells, WriteInfoPartitioner partitioner) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;
+        this.partitioner = partitioner;
     }
 
     @Override
@@ -39,5 +42,10 @@ class SweepQueueWriter implements MultiTableSweepQueueWriter {
         sweepableTimestamps.enqueue(writes);
         sweepableCells.enqueue(writes);
         log.debug("Enqueued {} writes into the sweep queue.", SafeArg.of("writes", writes.size()));
+    }
+
+    @Override
+    public Optional<SweeperStrategy> getSweepStrategy(TableReference tableReference) {
+        return partitioner.getStrategyForTable(tableReference);
     }
 }

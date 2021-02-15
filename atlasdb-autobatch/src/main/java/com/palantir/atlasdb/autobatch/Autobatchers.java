@@ -16,19 +16,20 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.WaitStrategy;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.Observability;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 public final class Autobatchers {
 
@@ -90,7 +91,11 @@ public final class Autobatchers {
         private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
 
         private Observability observability = Observability.UNDECIDED;
-        @Nullable private String purpose;
+        private OptionalInt bufferSize = OptionalInt.empty();
+        private Optional<WaitStrategy> waitStrategy = Optional.empty();
+
+        @Nullable
+        private String purpose;
 
         private AutobatcherBuilder(Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory) {
             this.handlerFactory = handlerFactory;
@@ -111,19 +116,29 @@ public final class Autobatchers {
             return this;
         }
 
+        public AutobatcherBuilder<I, O> bufferSize(OptionalInt bufferSizeParam) {
+            this.bufferSize = bufferSizeParam;
+            return this;
+        }
+
+        public AutobatcherBuilder<I, O> waitStrategy(WaitStrategy waitStrategyParam) {
+            this.waitStrategy = Optional.of(waitStrategyParam);
+            return this;
+        }
+
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
-            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
-            EventHandler<BatchElement<I, O>> tracingHandler =
-                    new TracingEventHandler<>(handler, DEFAULT_BUFFER_SIZE);
+            int bufferSizeValue = bufferSize.orElse(DEFAULT_BUFFER_SIZE);
+
+            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(bufferSizeValue);
+
+            EventHandler<BatchElement<I, O>> tracingHandler = new TracingEventHandler<>(handler, bufferSizeValue);
 
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());
 
-            return DisruptorAutobatcher.create(profiledHandler, DEFAULT_BUFFER_SIZE, purpose);
+            return DisruptorAutobatcher.create(profiledHandler, bufferSizeValue, purpose, waitStrategy);
         }
-
     }
-
 }

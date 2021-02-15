@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.UUID;
-
-import javax.annotation.concurrent.GuardedBy;
-
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
 import com.palantir.logsafe.SafeArg;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.UUID;
+import javax.annotation.concurrent.GuardedBy;
 
 public class ImmutableTimestampTracker {
 
     @GuardedBy("this")
-    private final SortedMap<Long, UUID> holdersByTimestamp = Maps.newTreeMap();
+    private final SortedMap<Long, UUID> holdersByTimestamp = new TreeMap<>();
 
     public synchronized void lock(long timestamp, UUID requestId) {
         boolean wasAdded = holdersByTimestamp.putIfAbsent(timestamp, requestId) == null;
@@ -63,5 +61,4 @@ public class ImmutableTimestampTracker {
     public AsyncLock getLockFor(long timestamp) {
         return new ImmutableTimestampLock(timestamp, this);
     }
-
 }

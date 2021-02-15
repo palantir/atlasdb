@@ -15,12 +15,6 @@
  */
 package com.palantir.leader;
 
-import java.util.List;
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.SafeArg;
@@ -28,6 +22,10 @@ import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.List;
+import java.util.Optional;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
 
 public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder, PaxosLeaderElectionEventRecorder {
 
@@ -35,8 +33,11 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     private final LeadershipEvents events;
     private final Optional<LeadershipObserver> leadershipObserver;
 
-    @GuardedBy("this") private PaxosValue currentRound = null;
-    @GuardedBy("this") private boolean isLeading = false;
+    @GuardedBy("this")
+    private PaxosValue currentRound = null;
+
+    @GuardedBy("this")
+    private boolean isLeading = false;
 
     public static PaxosLeadershipEventRecorder create(TaggedMetricRegistry metrics, String leaderUuid) {
         return create(metrics, leaderUuid, null, ImmutableList.of());
@@ -48,15 +49,11 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
             @Nullable LeadershipObserver observer,
             List<SafeArg<String>> safeLoggingArgs) {
         return new PaxosLeadershipEventRecorder(
-                new LeadershipEvents(metrics, safeLoggingArgs),
-                leaderUuid,
-                Optional.ofNullable(observer));
+                new LeadershipEvents(metrics, safeLoggingArgs), leaderUuid, Optional.ofNullable(observer));
     }
 
     @VisibleForTesting
-    PaxosLeadershipEventRecorder(LeadershipEvents events,
-            String leaderUuid,
-            Optional<LeadershipObserver> observer) {
+    PaxosLeadershipEventRecorder(LeadershipEvents events, String leaderUuid, Optional<LeadershipObserver> observer) {
         this.events = events;
         this.leaderId = leaderUuid;
         this.leadershipObserver = observer;

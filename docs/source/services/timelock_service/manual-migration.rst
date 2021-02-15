@@ -5,8 +5,11 @@ Manual Migration to Timelock Server
 
 .. warning::
 
-   This is not a recommended way to migrate to external timelock server. We have **automatic** migrations for Cassandra KVS in place.
-   Please contact the AtlasDB team before attempting the manual migration.
+   This is not a recommended way to migrate to external timelock server.
+   We now have automated migrations for both Cassandra and DbKVS in place that will run when a node is started with
+   the configuration to use TimeLock on versions of AtlasDB from 0.253.2 onwards. Please note that these automated
+   migrations still require the cluster to be brought to a complete shutdown before any nodes switch to using TimeLock.
+   If you are attempting a manual migration, please contact the AtlasDB team.
 
 This migration process must be run offline (that is, with no AtlasDB clients running during migration) and basically
 consists of the following steps:
@@ -53,13 +56,20 @@ from here on out, we'll refer to it as ``TS``.
 Step 3: Fast-Forwarding the Timelock Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. tip::
+
+   Throughout this document, ``curl`` commands that make requests to TimeLock may receive a 308 indicating the location
+   of the leader, or a 503 indicating that a node is not the leader (and doesn't know this). Commands should be re-run
+   until they succeed on the leader.
+
 The Timelock Server exposes an administrative interface, which features a ``fast-forward`` endpoint. Note that this is
 not typically exposed to AtlasDB clients. One can use it to advance the timestamp on the Timelock Server to ``TS``, as
-follows (where ``test`` is the namespace you want your client to use).
+follows:
 
    .. code:: bash
 
-      curl -XPOST localhost:8080/test/timestamp-management/fast-forward?currentTimestamp=TS
+      curl -iXPOST <protocol>://<host>:<port>/timelock/api/<namespace>/timestamp-management/fast-forward?currentTimestamp=TS \
+        -H "Authorization: Bearer q"
 
 .. danger::
 
@@ -79,7 +89,8 @@ To verify that this step was completed correctly, you may curl the Timelock Serv
 
    .. code:: bash
 
-      curl -XPOST localhost:8080/test/timestamp/fresh-timestamp
+      curl -iXPOST <protocol>://<host>:<port>/timelock/api/tl/ts/<namespace> \
+        --data '{"numTimestamps": 1}' -H "Authorization: Bearer q" -H "Content-Type: application/json"
 
 The value returned should be (assuming no one else is using the Timelock Server) 1 higher than ``TS``.
 

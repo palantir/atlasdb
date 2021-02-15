@@ -17,13 +17,6 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-
-import org.junit.After;
-import org.junit.Test;
-
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
@@ -31,6 +24,11 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import org.junit.After;
+import org.junit.Test;
 
 public class MetricsManagerTest {
     private static final Class<List> LIST_CLASS = List.class;
@@ -48,8 +46,10 @@ public class MetricsManagerTest {
 
     private final MetricRegistry registry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
-    private final MetricsManager metricsManager = new MetricsManager(registry, taggedMetricRegistry,
-            tableReference -> tableReference.getTablename().equals("safe"));
+    private final MetricsManager metricsManager =
+            new MetricsManager(registry, taggedMetricRegistry, tableReference -> tableReference
+                    .getTablename()
+                    .equals("safe"));
 
     @Test
     public void registersMetricsByName() {
@@ -62,8 +62,7 @@ public class MetricsManagerTest {
     public void registersMeters() {
         metricsManager.registerOrGetMeter(LIST_CLASS, RUNTIME, METER_NAME);
 
-        assertThat(registry.getMeters().keySet()).containsExactly(
-                MetricRegistry.name(LIST_CLASS, RUNTIME, METER_NAME));
+        assertThat(registry.getMeters().keySet()).containsExactly(MetricRegistry.name(LIST_CLASS, RUNTIME, METER_NAME));
     }
 
     @Test
@@ -71,9 +70,10 @@ public class MetricsManagerTest {
         metricsManager.registerMetric(LIST_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
         metricsManager.registerMetric(LIST_ITERATOR_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
 
-        assertThat(registry.getNames()).containsExactly(
-                MetricRegistry.name(LIST_CLASS, ERROR_OUT_OF_BOUNDS),
-                MetricRegistry.name(LIST_ITERATOR_CLASS, ERROR_OUT_OF_BOUNDS));
+        assertThat(registry.getNames())
+                .containsExactly(
+                        MetricRegistry.name(LIST_CLASS, ERROR_OUT_OF_BOUNDS),
+                        MetricRegistry.name(LIST_ITERATOR_CLASS, ERROR_OUT_OF_BOUNDS));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class MetricsManagerTest {
     @Test
     public void getTableNameTagFor_usesSafeTableNames() {
         Map<String, String> tag = metricsManager.getTableNameTagFor(table("safe"));
-        assertThat(tag.size()).isEqualTo(1);
+        assertThat(tag).hasSize(1);
         assertThat(tag).containsKey("tableName");
         assertThat(tag.get("tableName")).isEqualTo("safe");
     }
@@ -94,7 +94,7 @@ public class MetricsManagerTest {
     @Test
     public void getTableNameTagFor_unsafeTable() {
         Map<String, String> tag = metricsManager.getTableNameTagFor(table("unsafe"));
-        assertThat(tag.size()).isEqualTo(1);
+        assertThat(tag).hasSize(1);
         assertThat(tag).containsKey("tableName");
         assertThat(tag.get("tableName")).isEqualTo("unsafeTable");
     }

@@ -15,9 +15,8 @@
  */
 package com.palantir.util;
 
-import java.util.Arrays;
-
 import com.palantir.common.persist.Persistable;
+import java.util.Arrays;
 
 public enum PersistableBoolean implements Persistable {
     TRUE {
@@ -33,14 +32,14 @@ public enum PersistableBoolean implements Persistable {
         }
     };
 
-    private static final byte[] ONE = new byte[]{1};
-    private static final byte[] ZERO = new byte[]{0};
+    private static final byte[] ONE = new byte[] {1};
+    private static final byte[] ZERO = new byte[] {0};
 
     /**
      *  returns FALSE iff the provided byte array is a single zero byte. Otherwise returns TRUE
      */
-    public static final Hydrator<PersistableBoolean> BYTES_HYDRATOR = val ->
-            PersistableBoolean.of(Arrays.equals(val, ZERO));
+    public static final Hydrator<PersistableBoolean> BYTES_HYDRATOR =
+            val -> PersistableBoolean.of(Arrays.equals(val, ZERO));
 
     public static PersistableBoolean of(boolean value) {
         return value ? TRUE : FALSE;

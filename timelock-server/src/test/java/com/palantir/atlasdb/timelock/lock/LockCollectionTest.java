@@ -17,18 +17,16 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableSet;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.StringLockDescriptor;
 
 public class LockCollectionTest {
 
@@ -40,8 +38,8 @@ public class LockCollectionTest {
 
         List<AsyncLock> locks = lockCollection.getAll(descriptors).get();
 
-        assertThat(locks.size()).isEqualTo(2);
-        assertThat(ImmutableSet.copyOf(locks).size()).isEqualTo(2);
+        assertThat(locks).hasSize(2);
+        assertThat(ImmutableSet.copyOf(locks)).hasSize(2);
     }
 
     @Test
@@ -59,21 +57,20 @@ public class LockCollectionTest {
         List<LockDescriptor> orderedDescriptors = IntStream.range(0, 10)
                 .mapToObj(i -> UUID.randomUUID().toString())
                 .map(StringLockDescriptor::of)
-                .sorted().collect(Collectors.toList());
+                .sorted()
+                .collect(Collectors.toList());
         List<AsyncLock> expectedOrder = orderedDescriptors.stream()
                 .map(descriptor -> lockCollection.getAll(ImmutableSet.of(descriptor)))
                 .map(orderedLocks -> orderedLocks.get().get(0))
                 .collect(Collectors.toList());
 
-        List<AsyncLock> actualOrder = lockCollection.getAll(ImmutableSet.copyOf(orderedDescriptors)).get();
+        List<AsyncLock> actualOrder =
+                lockCollection.getAll(ImmutableSet.copyOf(orderedDescriptors)).get();
 
         assertThat(actualOrder).isEqualTo(expectedOrder);
     }
 
     private static Set<LockDescriptor> descriptors(String... names) {
-        return Arrays.stream(names)
-                .map(StringLockDescriptor::of)
-                .collect(Collectors.toSet());
+        return Arrays.stream(names).map(StringLockDescriptor::of).collect(Collectors.toSet());
     }
-
 }

@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import org.immutables.value.Value.Immutable;
-import org.immutables.value.Value.Parameter;
-
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import org.immutables.value.Value.Immutable;
+import org.immutables.value.Value.Parameter;
 
 @Immutable
 public interface StoredWriteReference extends Persistable {
@@ -28,11 +27,15 @@ public interface StoredWriteReference extends Persistable {
     default <T> T accept(Visitor<T> visitor) {
         byte[] data = data();
         switch (data[0]) {
-            case 0: return visitor.visitTableNameAsStringBinary(data);
-            case 1: return visitor.visitTableIdBinary(data);
-            case '{': return visitor.visitJson(data);
-            default: throw new SafeIllegalArgumentException(
-                    "Data stored in targeted sweep queue was not recognised as a known data format");
+            case 0:
+                return visitor.visitTableNameAsStringBinary(data);
+            case 1:
+                return visitor.visitTableIdBinary(data);
+            case '{':
+                return visitor.visitJson(data);
+            default:
+                throw new SafeIllegalArgumentException(
+                        "Data stored in targeted sweep queue was not recognised as a known data format");
         }
     }
 
@@ -46,7 +49,9 @@ public interface StoredWriteReference extends Persistable {
 
     interface Visitor<T> {
         T visitJson(byte[] ref);
+
         T visitTableNameAsStringBinary(byte[] ref);
+
         T visitTableIdBinary(byte[] ref);
     }
 }

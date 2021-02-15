@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.benchmarks;
 
 import java.util.Map;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -48,15 +47,12 @@ public interface BenchmarksService {
     @GET
     @Path("/contended-write-txn")
     Map<String, Object> transactionWriteContended(
-            @QueryParam("numClients") int numClients,
-            @QueryParam("numRequestsPerClient") int numRequestsPerClient);
-
+            @QueryParam("numClients") int numClients, @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/lock-unlock-uncontended")
     Map<String, Object> lockAndUnlockUncontended(
-            @QueryParam("numClients") int numClients,
-            @QueryParam("numRequestsPerClient") int numRequestsPerClient);
+            @QueryParam("numClients") int numClients, @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/lock-unlock-contended")
@@ -76,26 +72,22 @@ public interface BenchmarksService {
     @GET
     @Path("/kvs-write")
     Map<String, Object> kvsWrite(
-            @QueryParam("numClients") int numClients,
-            @QueryParam("numRequestsPerClient") int numRequestsPerClient);
+            @QueryParam("numClients") int numClients, @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/kvs-cas")
     Map<String, Object> kvsPutUnlessExists(
-            @QueryParam("numClients") int numClients,
-            @QueryParam("numRequestsPerClient") int numRequestsPerClient);
+            @QueryParam("numClients") int numClients, @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/kvs-read")
     Map<String, Object> kvsRead(
-            @QueryParam("numClients") int numClients,
-            @QueryParam("numRequestsPerClient") int numRequestsPerClient);
+            @QueryParam("numClients") int numClients, @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/timestamp")
     Map<String, Object> timestamp(
-            @QueryParam("numClients") int numClients,
-            @QueryParam("numRequestsPerClient") int numRequestsPerClient);
+            @QueryParam("numClients") int numClients, @QueryParam("numRequestsPerClient") int numRequestsPerClient);
 
     @GET
     @Path("/range-scan-rows")
@@ -112,5 +104,4 @@ public interface BenchmarksService {
             @QueryParam("numRequestsPerClient") int numRequestsPerClient,
             @QueryParam("dataSize") int dataSize,
             @QueryParam("numRows") int numRows);
-
 }

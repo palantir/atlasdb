@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.List;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -35,6 +28,11 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
+import java.util.List;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultCleanerBuilder {
     private static final Logger log = LoggerFactory.getLogger(DefaultCleanerBuilder.class);
@@ -54,18 +52,24 @@ public class DefaultCleanerBuilder {
     private int backgroundScrubBatchSize = AtlasDbConstants.DEFAULT_BACKGROUND_SCRUB_BATCH_SIZE;
     private boolean initalizeAsync = AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC;
 
-    public DefaultCleanerBuilder(KeyValueService keyValueService,
+    public DefaultCleanerBuilder(
+            KeyValueService keyValueService,
             LockService lockService,
             TimestampService timestampService,
             LockClient lockClient,
             List<? extends Follower> followerList,
             TransactionService transactionService,
             MetricsManager metricsManager) {
-        this(keyValueService, new LegacyTimelockService(timestampService, lockService, lockClient), followerList,
-                transactionService, metricsManager);
+        this(
+                keyValueService,
+                new LegacyTimelockService(timestampService, lockService, lockClient),
+                followerList,
+                transactionService,
+                metricsManager);
     }
 
-    public DefaultCleanerBuilder(KeyValueService keyValueService,
+    public DefaultCleanerBuilder(
+            KeyValueService keyValueService,
             TimelockService timelockService,
             List<? extends Follower> followerList,
             TransactionService transactionService,
@@ -119,19 +123,15 @@ public class DefaultCleanerBuilder {
 
     private Puncher buildPuncher(LongSupplier timestampSeedSource) {
         PuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(keyValueService, initalizeAsync);
-        PuncherStore cachingPuncherStore = CachingPuncherStore.create(
-                keyValuePuncherStore,
-                punchIntervalMillis * 3);
+        PuncherStore cachingPuncherStore = CachingPuncherStore.create(keyValuePuncherStore, punchIntervalMillis * 3);
         Clock clock = GlobalClock.create(timelockService);
-        SimplePuncher simplePuncher = SimplePuncher.create(
-                cachingPuncherStore,
-                clock,
-                Suppliers.ofInstance(transactionReadTimeout));
+        SimplePuncher simplePuncher =
+                SimplePuncher.create(cachingPuncherStore, clock, Suppliers.ofInstance(transactionReadTimeout));
         return AsyncPuncher.create(simplePuncher, punchIntervalMillis, timestampSeedSource);
     }
 
-    private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
-            Supplier<Long> immutableTimestampSupplier) {
+    private Scrubber buildScrubber(
+            Supplier<Long> unreadableTimestampSupplier, Supplier<Long> immutableTimestampSupplier) {
         ScrubberStore scrubberStore = KeyValueServiceScrubberStore.create(keyValueService, initalizeAsync);
         return Scrubber.create(
                 keyValueService,
@@ -151,12 +151,8 @@ public class DefaultCleanerBuilder {
 
     public Cleaner buildCleaner() {
         Puncher puncher = buildPuncher(timelockService::getFreshTimestamp);
-        Supplier<Long> immutableTs = ImmutableTimestampSupplier
-                .createMemoizedWithExpiration(timelockService);
+        Supplier<Long> immutableTs = ImmutableTimestampSupplier.createMemoizedWithExpiration(timelockService);
         Scrubber scrubber = buildScrubber(puncher.getTimestampSupplier(), immutableTs);
-        return new SimpleCleaner(
-                scrubber,
-                puncher,
-                Suppliers.ofInstance(transactionReadTimeout));
+        return new SimpleCleaner(scrubber, puncher, Suppliers.ofInstance(transactionReadTimeout));
     }
 }

@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.restore;
 
-import java.util.OptionalLong;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -30,6 +28,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
+import java.util.OptionalLong;
 
 public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDeleter {
     private final KeyValueService kvs;
@@ -50,8 +49,8 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
 
     @Override
     public void deleteRange(TimestampRange commitTimestampRange) {
-        byte[] startBytes
-                = TransactionConstants.getValueForTimestamp(startTimestamp.orElse(AtlasDbConstants.STARTING_TS));
+        byte[] startBytes =
+                TransactionConstants.getValueForTimestamp(startTimestamp.orElse(AtlasDbConstants.STARTING_TS));
         byte[] timestampBytes = TransactionConstants.getValueForTimestamp(commitTimestampRange.getLowerBound());
 
         if (startBytes.length != timestampBytes.length && !skipStartTimestampCheck) {
@@ -64,9 +63,7 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
                 TransactionConstants.TRANSACTION_TABLE,
                 !startTimestamp.isPresent()
                         ? RangeRequest.all()
-                        : RangeRequest.builder()
-                                .startRowInclusive(startBytes)
-                                .build(),
+                        : RangeRequest.builder().startRowInclusive(startBytes).build(),
                 Long.MAX_VALUE);
 
         Multimap<Cell, Long> toDelete = HashMultimap.create();
@@ -87,9 +84,11 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
             try {
                 value = row.getOnlyColumnValue();
             } catch (IllegalStateException e) {
-                //this should never happen
-                stateLogger.error("Found a row in the transactions table that didn't have 1"
-                        + " and only 1 column value: start={}", SafeArg.of("startTs", startTs));
+                // this should never happen
+                stateLogger.error(
+                        "Found a row in the transactions table that didn't have 1"
+                                + " and only 1 column value: start={}",
+                        SafeArg.of("startTs", startTs));
                 continue;
             }
 
@@ -98,11 +97,13 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
                 continue; // this is not a transaction we are targeting
             }
 
-            stateLogger.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
-                    SafeArg.of("startTs", startTs), SafeArg.of("commitTs", commitTs));
+            stateLogger.info(
+                    "Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
+                    SafeArg.of("startTs", startTs),
+                    SafeArg.of("commitTs", commitTs));
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
-            toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L
+            toDelete.put(key, value.getTimestamp()); // value.getTimestamp() should always be 0L
         }
 
         if (!toDelete.isEmpty()) {
@@ -111,6 +112,5 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
         } else {
             stateLogger.info("Found no transactions after the given timestamp to delete.");
         }
-
     }
 }

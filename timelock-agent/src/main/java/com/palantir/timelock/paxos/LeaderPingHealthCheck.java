@@ -15,14 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -34,6 +26,13 @@ import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponses;
 import com.palantir.timelock.TimeLockStatus;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 public class LeaderPingHealthCheck {
 
@@ -43,14 +42,10 @@ public class LeaderPingHealthCheck {
     private final List<HealthCheckPinger> pingers;
     private final ExecutorService executorService;
 
-    public LeaderPingHealthCheck(
-            NamespaceTracker namespaceTracker,
-            List<HealthCheckPinger> pingers) {
+    public LeaderPingHealthCheck(NamespaceTracker namespaceTracker, List<HealthCheckPinger> pingers) {
         this.namespaceTracker = namespaceTracker;
         this.pingers = pingers;
-        this.executorService = PTExecutors.newFixedThreadPool(
-                pingers.size(),
-                "leader-ping-healthcheck");
+        this.executorService = PTExecutors.newFixedThreadPool(pingers.size(), "leader-ping-healthcheck");
     }
 
     public HealthCheckDigest getStatus() {
@@ -70,8 +65,10 @@ public class LeaderPingHealthCheck {
                 .flatMap(Collection::stream)
                 .collect(Collectors.groupingBy(
                         Map.Entry::getKey,
-                        Collectors.mapping(Map.Entry::getValue, Collectors.collectingAndThen(Collectors.toList(),
-                                r -> PaxosResponses.of(getQuorumSize(), r)))));
+                        Collectors.mapping(
+                                Map.Entry::getValue,
+                                Collectors.collectingAndThen(
+                                        Collectors.toList(), r -> PaxosResponses.of(getQuorumSize(), r)))));
 
         SetMultimap<TimeLockStatus, Client> statusesToClient = KeyedStream.stream(responsesByClient)
                 .map(this::convertQuorumResponsesToStatus)
@@ -86,9 +83,8 @@ public class LeaderPingHealthCheck {
     }
 
     private TimeLockStatus convertQuorumResponsesToStatus(PaxosResponses<HealthCheckResponse> responses) {
-        long numLeaders = responses.stream()
-                .filter(HealthCheckResponse::isLeader)
-                .count();
+        long numLeaders =
+                responses.stream().filter(HealthCheckResponse::isLeader).count();
 
         if (responses.numberOfResponses() < getQuorumSize()) {
             return TimeLockStatus.NO_QUORUM;
@@ -102,5 +98,4 @@ public class LeaderPingHealthCheck {
             return TimeLockStatus.MULTIPLE_LEADERS;
         }
     }
-
 }

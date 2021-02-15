@@ -16,18 +16,14 @@
 
 package com.palantir.atlasdb.persistent.api;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-
 import javax.annotation.Nonnull;
-
-import org.immutables.value.Value;
-
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-
 import okio.ByteString;
+import org.immutables.value.Value;
 
 public interface PersistentStore extends AutoCloseable {
     /**

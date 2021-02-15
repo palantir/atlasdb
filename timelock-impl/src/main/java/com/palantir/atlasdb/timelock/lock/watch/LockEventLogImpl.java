@@ -16,24 +16,23 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import com.google.common.collect.RangeSet;
+import com.palantir.atlasdb.timelock.lock.AsyncLock;
+import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.UnlockEvent;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.RangeSet;
-import com.palantir.atlasdb.timelock.lock.AsyncLock;
-import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
-import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.UnlockEvent;
 
 public class LockEventLogImpl implements LockEventLog {
     private final UUID logId;
@@ -81,7 +80,8 @@ public class LockEventLogImpl implements LockEventLog {
             return Optional.empty();
         }
 
-        return slidingWindow.getNextEvents(fromVersion.get().version())
+        return slidingWindow
+                .getNextEvents(fromVersion.get().version())
                 .map(events -> LockWatchStateUpdate.success(logId, slidingWindow.lastVersion(), events));
     }
 
@@ -90,11 +90,7 @@ public class LockEventLogImpl implements LockEventLog {
         LockWatches currentWatches = watchesSupplier.get();
         Set<LockWatchReference> watches = new HashSet<>(currentWatches.references());
         Set<LockDescriptor> openLocks = calculateOpenLocks(currentWatches.ranges());
-        return LockWatchStateUpdate.snapshot(
-                logId,
-                lastVersion,
-                openLocks,
-                watches);
+        return LockWatchStateUpdate.snapshot(logId, lastVersion, openLocks, watches);
     }
 
     /**

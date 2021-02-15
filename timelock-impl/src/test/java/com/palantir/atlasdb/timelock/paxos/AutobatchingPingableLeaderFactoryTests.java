@@ -23,16 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import org.junit.After;
-import org.junit.Test;
-import org.mockito.Answers;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -43,6 +33,14 @@ import com.palantir.paxos.ImmutableLeaderPingerContext;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.LeaderPingerContext;
+import java.time.Duration;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.After;
+import org.junit.Test;
+import org.mockito.Answers;
 
 public class AutobatchingPingableLeaderFactoryTests {
 
@@ -91,20 +89,20 @@ public class AutobatchingPingableLeaderFactoryTests {
     public void twoDifferentLeaders() {
         HostAndPort leader1 = HostAndPort.fromParts("timelock-1", 8080);
         HostAndPort leader2 = HostAndPort.fromParts("timelock-2", 8080);
-        LeaderPingerContext<BatchPingableLeader> client1Leader =
-                batchPingableLeader(leader1, CLIENT_1);
-        LeaderPingerContext<BatchPingableLeader> client2Leader =
-                batchPingableLeader(leader2, CLIENT_2);
+        LeaderPingerContext<BatchPingableLeader> client1Leader = batchPingableLeader(leader1, CLIENT_1);
+        LeaderPingerContext<BatchPingableLeader> client2Leader = batchPingableLeader(leader2, CLIENT_2);
 
         try (AutobatchingPingableLeaderFactory factory = factoryForPingables(client1Leader, client2Leader)) {
             LeaderPinger client1Pinger = factory.leaderPingerFor(CLIENT_1);
             LeaderPinger client2Pinger = factory.leaderPingerFor(CLIENT_2);
 
             assertThat(client1Pinger.pingLeaderWithUuid(client1Leader.pinger().uuid()))
-                    .isEqualTo(LeaderPingResults.pingReturnedTrue(client1Leader.pinger().uuid(), leader1));
+                    .isEqualTo(LeaderPingResults.pingReturnedTrue(
+                            client1Leader.pinger().uuid(), leader1));
 
             assertThat(client2Pinger.pingLeaderWithUuid(client2Leader.pinger().uuid()))
-                    .isEqualTo(LeaderPingResults.pingReturnedTrue(client2Leader.pinger().uuid(), leader2));
+                    .isEqualTo(LeaderPingResults.pingReturnedTrue(
+                            client2Leader.pinger().uuid(), leader2));
         }
     }
 
@@ -138,8 +136,7 @@ public class AutobatchingPingableLeaderFactoryTests {
     }
 
     private static LeaderPingerContext<BatchPingableLeader> batchPingableLeader(
-            HostAndPort hostAndPort,
-            Client... clientsWhichWeAreLeaderFor) {
+            HostAndPort hostAndPort, Client... clientsWhichWeAreLeaderFor) {
         FakeBatchPingableLeader fakeBatchPingableLeader = new FakeBatchPingableLeader(clientsWhichWeAreLeaderFor);
         return ImmutableLeaderPingerContext.of(fakeBatchPingableLeader, hostAndPort);
     }

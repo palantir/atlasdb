@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.coordination;
 
-import java.util.Optional;
-import java.util.function.Function;
-
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * A {@link CoordinationStore} stores data that a {@link CoordinationService} may use.
@@ -33,7 +32,6 @@ public interface CoordinationStore<T> {
      *
      * @return true iff the coordination store is ready to service requests
      */
-
     @DoDelegate
     default boolean isInitialized() {
         return true;
@@ -62,6 +60,5 @@ public interface CoordinationStore<T> {
      *
      * @throws IllegalStateException if the proposal fails, but no current value exists
      */
-    CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(
-            Function<ValueAndBound<T>, T> transform);
+    CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform);
 }

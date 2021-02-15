@@ -15,16 +15,17 @@
  */
 package com.palantir.atlasdb.table.description.constraints.tuples;
 
-
-public class TupleOf2<A, B> implements Tuple{
+public class TupleOf2<A, B> implements Tuple {
     private final A one;
     private final B two;
-    public static <A,B> TupleOf2<A,B> of(A a, B b) {
-        return new TupleOf2<A,B>(a,b);
+
+    public static <A, B> TupleOf2<A, B> of(A a, B b) {
+        return new TupleOf2<A, B>(a, b);
     }
+
     public TupleOf2(A a, B b) {
-        this.one=a;
-        this.two=b;
+        this.one = a;
+        this.two = b;
     }
 
     public A field1() {

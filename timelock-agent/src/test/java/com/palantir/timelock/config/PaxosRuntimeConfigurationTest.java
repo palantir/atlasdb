@@ -19,22 +19,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
+@SuppressWarnings("CheckReturnValue")
 public class PaxosRuntimeConfigurationTest {
     private static final long POSITIVE_LONG = 1L;
     private static final long NEGATIVE_LONG = -1L;
 
     @Test
     public void canSpecifyPositivePingRate() {
-        ImmutablePaxosRuntimeConfiguration.builder()
-                .pingRateMs(POSITIVE_LONG)
-                .build();
+        ImmutablePaxosRuntimeConfiguration.builder().pingRateMs(POSITIVE_LONG).build();
     }
 
     @Test
     public void throwOnNegativePingRate() {
-        assertThatThrownBy(ImmutablePaxosRuntimeConfiguration.builder()
-                .pingRateMs(NEGATIVE_LONG)
-                ::build).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(ImmutablePaxosRuntimeConfiguration.builder().pingRateMs(NEGATIVE_LONG)::build)
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -46,9 +44,9 @@ public class PaxosRuntimeConfigurationTest {
 
     @Test
     public void throwOnNegativeMaximumWaitBeforeProposingLeadership() {
-        assertThatThrownBy(ImmutablePaxosRuntimeConfiguration.builder()
-                .maximumWaitBeforeProposalMs(NEGATIVE_LONG)
-                ::build).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(
+                        ImmutablePaxosRuntimeConfiguration.builder().maximumWaitBeforeProposalMs(NEGATIVE_LONG)::build)
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -60,8 +58,7 @@ public class PaxosRuntimeConfigurationTest {
 
     @Test
     public void throwOnNegativeLeaderPingResponseWait() {
-        assertThatThrownBy(ImmutablePaxosRuntimeConfiguration.builder()
-                .leaderPingResponseWaitMs(NEGATIVE_LONG)
-                ::build).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(ImmutablePaxosRuntimeConfiguration.builder().leaderPingResponseWaitMs(NEGATIVE_LONG)::build)
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

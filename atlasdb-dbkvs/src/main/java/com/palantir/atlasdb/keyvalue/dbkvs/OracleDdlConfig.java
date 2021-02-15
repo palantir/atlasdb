@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.time.Duration;
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -32,6 +26,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.db.oracle.NativeOracleJdbcHandler;
 import com.palantir.logsafe.Preconditions;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableOracleDdlConfig.class)
 @JsonSerialize(as = ImmutableOracleDdlConfig.class)
@@ -116,11 +114,9 @@ public abstract class OracleDdlConfig extends DdlConfig {
                 "Oracle 'tablePrefix' cannot be more than %s characters long.",
                 AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
         Preconditions.checkState(
-                !overflowTablePrefix().startsWith("_"),
-                "Oracle 'overflowTablePrefix' cannot begin with underscore.");
+                !overflowTablePrefix().startsWith("_"), "Oracle 'overflowTablePrefix' cannot begin with underscore.");
         Preconditions.checkState(
-                overflowTablePrefix().endsWith("_"),
-                "Oracle 'overflowTablePrefix' must end with an underscore.");
+                overflowTablePrefix().endsWith("_"), "Oracle 'overflowTablePrefix' must end with an underscore.");
         com.google.common.base.Preconditions.checkState(
                 overflowTablePrefix().length() <= AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH,
                 "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",

@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
@@ -62,6 +52,14 @@ import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
     private static final Logger log = LoggerFactory.getLogger(SerializableTransactionManager.class);
@@ -78,9 +76,11 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         private final ScheduledExecutorService executorService;
 
-        InitializeCheckingWrapper(TransactionManager manager,
+        InitializeCheckingWrapper(
+                TransactionManager manager,
                 Supplier<Boolean> initializationPrerequisite,
-                Callback<TransactionManager> callBack, ScheduledExecutorService initializer) {
+                Callback<TransactionManager> callBack,
+                ScheduledExecutorService initializer) {
             this.txManager = manager;
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callBack;
@@ -135,8 +135,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 throw new SafeIllegalStateException("Operations cannot be performed on closed TransactionManager.");
             }
             if (status == State.CLOSED_BY_CALLBACK_FAILURE) {
-                throw new SafeIllegalStateException("Operations cannot be performed on closed TransactionManager."
-                        + " Closed due to a callback failure.", callbackThrowable);
+                throw new SafeIllegalStateException(
+                        "Operations cannot be performed on closed TransactionManager."
+                                + " Closed due to a callback failure.",
+                        callbackThrowable);
             }
         }
 
@@ -149,12 +151,15 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
 
         private void scheduleInitializationCheckAndCallback() {
-            executorService.schedule(() -> {
-                if (status != State.INITIALIZING) {
-                    return;
-                }
-                runCallbackIfInitializedOrScheduleForLater(this::runCallbackWithRetry);
-            }, 1_000, TimeUnit.MILLISECONDS);
+            executorService.schedule(
+                    () -> {
+                        if (status != State.INITIALIZING) {
+                            return;
+                        }
+                        runCallbackIfInitializedOrScheduleForLater(this::runCallbackWithRetry);
+                    },
+                    1_000,
+                    TimeUnit.MILLISECONDS);
         }
 
         private boolean isInitializedInternal() {
@@ -185,8 +190,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
 
         private void changeStateToCallbackFailure(Throwable th) {
-            log.error("Callback failed and was not able to perform its cleanup task. "
-                    + "Closing the TransactionManager.", th);
+            log.error(
+                    "Callback failed and was not able to perform its cleanup task. "
+                            + "Closing the TransactionManager.",
+                    th);
             callbackThrowable = th;
             closeInternal(State.CLOSED_BY_CALLBACK_FAILURE);
         }
@@ -208,7 +215,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
 
         private enum State {
-            INITIALIZING, READY, CLOSED, CLOSED_BY_CALLBACK_FAILURE
+            INITIALIZING,
+            READY,
+            CLOSED,
+            CLOSED_BY_CALLBACK_FAILURE
         }
     }
 
@@ -238,7 +248,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
 
-        return create(metricsManager,
+        return create(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 lockWatchManager,
@@ -293,7 +304,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
 
-        return create(metricsManager,
+        return create(
+                metricsManager,
                 keyValueService,
                 timelockService,
                 lockWatchManager,
@@ -429,9 +441,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
-                    metricsManager.getRegistry(),
-                    TransactionManager.class,
-                    transactionManager);
+                    metricsManager.getRegistry(), TransactionManager.class, transactionManager);
         }
 
         if (!initializeAsync) {
@@ -443,7 +453,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 : transactionManager;
     }
 
-    public static SerializableTransactionManager createForTest(MetricsManager metricsManager,
+    public static SerializableTransactionManager createForTest(
+            MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimestampService timestampService,
             TimestampManagementService timestampManagementService,
@@ -457,12 +468,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue) {
+        LockWatchEventCache eventCache = NoOpLockWatchEventCache.create();
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.INSTANCE,
-                NoOpLockWatchEventCache.INSTANCE,
+                NoOpLockWatchManager.create(eventCache),
+                eventCache,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -482,7 +494,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 DefaultMetricsFilterEvaluationContext.createDefault());
     }
 
-    public SerializableTransactionManager(MetricsManager metricsManager,
+    public SerializableTransactionManager(
+            MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManager lockWatchManager,
@@ -526,13 +539,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                metricsFilterEvaluationContext
-        );
+                metricsFilterEvaluationContext);
         this.conflictTracer = conflictTracer;
     }
 
     @Override
-    protected Transaction createTransaction(long immutableTimestamp,
+    protected Transaction createTransaction(
+            long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
@@ -568,6 +581,4 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     ConflictDetectionManager getConflictDetectionManager() {
         return conflictDetectionManager;
     }
-
 }
-

@@ -21,6 +21,5 @@ public interface PaxosKnowledgeEventRecorder {
 
     void recordRound(PaxosValue round);
 
-    PaxosKnowledgeEventRecorder NO_OP = (round) -> { };
-
+    PaxosKnowledgeEventRecorder NO_OP = round -> {};
 }

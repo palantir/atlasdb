@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.lock.LockDescriptor;
 import java.util.Map;
 import java.util.Optional;
-
 import org.immutables.value.Value;
-
-import com.palantir.lock.LockDescriptor;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)

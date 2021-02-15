@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static java.util.stream.Collectors.toList;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,26 +24,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.annotation.Nullable;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -67,6 +47,22 @@ import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.Nullable;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class PaxosTimestampBoundStoreTest {
@@ -86,8 +82,8 @@ public class PaxosTimestampBoundStoreTest {
     private static final RuntimeException EXCEPTION = new RuntimeException("exception");
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
-    private final List<PaxosLearner> learners = Lists.newArrayList();
-    private final List<AtomicBoolean> failureToggles = Lists.newArrayList();
+    private final List<PaxosLearner> learners = new ArrayList<>();
+    private final List<AtomicBoolean> failureToggles = new ArrayList<>();
     private final Closer closer = Closer.create();
 
     @Parameterized.Parameters
@@ -107,9 +103,9 @@ public class PaxosTimestampBoundStoreTest {
 
     @Before
     public void setUp() {
-        List<PaxosAcceptor> acceptors = Lists.newArrayList();
-        List<BatchPaxosAcceptor> batchPaxosAcceptors = Lists.newArrayList();
-        List<BatchPaxosLearner> batchPaxosLearners = Lists.newArrayList();
+        List<PaxosAcceptor> acceptors = new ArrayList<>();
+        List<BatchPaxosAcceptor> batchPaxosAcceptors = new ArrayList<>();
+        List<BatchPaxosLearner> batchPaxosLearners = new ArrayList<>();
 
         for (int i = 0; i < NUM_NODES; i++) {
             String root = temporaryFolder.getRoot().getAbsolutePath();
@@ -120,36 +116,25 @@ public class PaxosTimestampBoundStoreTest {
                     SqliteConnections.getPooledDataSource(Paths.get(root, i + "sqlite")),
                     UUID.randomUUID(),
                     true,
-                    OrderableSlsVersion.valueOf("0.0.0"));
+                    OrderableSlsVersion.valueOf("0.0.0"),
+                    false);
 
             AtomicBoolean failureController = new AtomicBoolean(false);
             failureToggles.add(failureController);
 
             learners.add(ToggleableExceptionProxy.newProxyInstance(
-                    PaxosLearner.class,
-                    components.learner(CLIENT),
-                    failureController,
-                    EXCEPTION));
+                    PaxosLearner.class, components.learner(CLIENT), failureController, EXCEPTION));
 
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
-                    PaxosAcceptor.class,
-                    components.acceptor(CLIENT),
-                    failureController,
-                    EXCEPTION));
+                    PaxosAcceptor.class, components.acceptor(CLIENT), failureController, EXCEPTION));
 
             BatchPaxosAcceptor batchAcceptor = new LocalBatchPaxosAcceptor(components, new AcceptorCacheImpl());
             batchPaxosAcceptors.add(ToggleableExceptionProxy.newProxyInstance(
-                    BatchPaxosAcceptor.class,
-                    batchAcceptor,
-                    failureController,
-                    EXCEPTION));
+                    BatchPaxosAcceptor.class, batchAcceptor, failureController, EXCEPTION));
 
             BatchPaxosLearner batchLearner = new LocalBatchPaxosLearner(components);
             batchPaxosLearners.add(ToggleableExceptionProxy.newProxyInstance(
-                    BatchPaxosLearner.class,
-                    batchLearner,
-                    failureController,
-                    EXCEPTION));
+                    BatchPaxosLearner.class, batchLearner, failureController, EXCEPTION));
         }
 
         if (useBatch) {
@@ -162,18 +147,16 @@ public class PaxosTimestampBoundStoreTest {
                             QUORUM_SIZE);
             acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
 
-            List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories = batchPaxosLearners
-                    .stream()
-                    .map(localLearner -> LocalAndRemotes.of(
-                            localLearner,
-                            batchPaxosLearners.stream()
-                                    .filter(remoteLearners -> remoteLearners != localLearner)
-                                    .collect(toList())))
-                    .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.createForTests(
-                            localAndRemotes,
-                            executor,
-                            QUORUM_SIZE))
-                    .collect(toList());
+            List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories =
+                    batchPaxosLearners.stream()
+                            .map(localLearner -> LocalAndRemotes.of(
+                                    localLearner,
+                                    batchPaxosLearners.stream()
+                                            .filter(remoteLearners -> remoteLearners != localLearner)
+                                            .collect(toList())))
+                            .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.createForTests(
+                                    localAndRemotes, executor, QUORUM_SIZE))
+                            .collect(toList());
 
             learnerClientsByNode = learnerNetworkClientFactories.stream()
                     .map(factory -> factory.paxosLearnerForClient(CLIENT))
@@ -183,12 +166,17 @@ public class PaxosTimestampBoundStoreTest {
             learnerNetworkClientFactories.forEach(closer::register);
         } else {
             acceptorClient = SingleLeaderAcceptorNetworkClient.createLegacy(
-                    acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor), PaxosConstants.CANCEL_REMAINING_CALLS);
+                    acceptors,
+                    QUORUM_SIZE,
+                    Maps.toMap(acceptors, $ -> executor),
+                    PaxosConstants.CANCEL_REMAINING_CALLS);
 
             learnerClientsByNode = learners.stream()
                     .map(learner -> SingleLeaderLearnerNetworkClient.createLegacy(
                             learner,
-                            learners.stream().filter(otherLearners -> otherLearners != learner).collect(toList()),
+                            learners.stream()
+                                    .filter(otherLearners -> otherLearners != learner)
+                                    .collect(toList()),
                             QUORUM_SIZE,
                             Maps.toMap(learners, $ -> executor),
                             PaxosConstants.CANCEL_REMAINING_CALLS))
@@ -256,8 +244,7 @@ public class PaxosTimestampBoundStoreTest {
     public void throwsIfBoundUnexpectedlyChangedUnderUs() {
         PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
         additionalStore.storeUpperLimit(TIMESTAMP_1);
-        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
-                .isInstanceOf(NotCurrentLeaderException.class);
+        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2)).isInstanceOf(NotCurrentLeaderException.class);
     }
 
     @Test
@@ -317,13 +304,13 @@ public class PaxosTimestampBoundStoreTest {
 
     @Test
     public void cannotGetAgreedStateFromTheFuture() {
-        assertThatThrownBy(() -> store.getAgreedState(Long.MAX_VALUE))
-                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> store.getAgreedState(Long.MAX_VALUE)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     public void canSafelyForceAgreedStateFromPrehistory() {
-        assertThat(store.forceAgreedState(Long.MIN_VALUE, Long.MIN_VALUE).getBound()).isEqualTo(0);
+        assertThat(store.forceAgreedState(Long.MIN_VALUE, Long.MIN_VALUE).getBound())
+                .isEqualTo(0);
     }
 
     @Test
@@ -377,18 +364,11 @@ public class PaxosTimestampBoundStoreTest {
 
     private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex, PaxosProposer proposer) {
         return new PaxosTimestampBoundStore(
-                proposer,
-                learners.get(nodeIndex),
-                acceptorClient,
-                learnerClientsByNode.get(nodeIndex),
-                1000L);
+                proposer, learners.get(nodeIndex), acceptorClient, learnerClientsByNode.get(nodeIndex), 1000L);
     }
 
     private PaxosProposer createPaxosProposer(int nodeIndex) {
-        return PaxosProposerImpl.newProposer(
-                acceptorClient,
-                learnerClientsByNode.get(nodeIndex),
-                UUID.randomUUID());
+        return PaxosProposerImpl.newProposer(acceptorClient, learnerClientsByNode.get(nodeIndex), UUID.randomUUID());
     }
 
     private static class OnceFailingPaxosProposer implements PaxosProposer {

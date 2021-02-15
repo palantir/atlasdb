@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Timelock now logs what persistence mode is used for timestamps on startup.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5195

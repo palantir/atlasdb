@@ -26,13 +26,15 @@ public interface BatchingTaskRunner extends Closeable {
 
     interface ResultAccumulatorStrategy<OutT> {
         OutT createEmptyResult();
+
         void accumulateResult(OutT result, OutT toAdd);
     }
 
-    <InT, OutT> OutT runTask(InT input,
-                             BatchingStrategy<InT> batchingStrategy,
-                             ResultAccumulatorStrategy<OutT> resultAccumulatingStrategy,
-                             Function<InT, OutT> task);
+    <InT, OutT> OutT runTask(
+            InT input,
+            BatchingStrategy<InT> batchingStrategy,
+            ResultAccumulatorStrategy<OutT> resultAccumulatingStrategy,
+            Function<InT, OutT> task);
 
     @Override
     void close();

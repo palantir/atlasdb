@@ -12,31 +12,30 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.netflix.nebula:gradle-info-plugin:7.1.4'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
-        classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.5'
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.9.8'
-        classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
-        classpath 'com.palantir.baseline:gradle-baseline-java:1.8.2'
+        classpath 'com.netflix.nebula:gradle-info-plugin:9.2.2'
+        classpath 'com.netflix.nebula:nebula-publishing-plugin:17.3.2'
+        classpath 'com.palantir.baseline:gradle-baseline-java:3.66.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:4.22.0'
-        classpath 'gradle.plugin.com.palantir.gradle.gitversion:gradle-git-version:0.11.0'
-        classpath 'com.palantir.sls-packaging:gradle-sls-packaging:4.10.1'
-        classpath 'com.netflix.nebula:nebula-publishing-plugin:17.2.1'
+        classpath 'com.palantir.javaformat:gradle-palantir-java-format:1.0.1'
+        classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.5'
+        classpath 'com.palantir.sls-packaging:gradle-sls-packaging:4.24.0'
         classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.15.0'
+        classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
+        classpath 'gradle.plugin.com.palantir.gradle.gitversion:gradle-git-version:0.11.0'
         classpath 'gradle.plugin.org.inferred:gradle-processors:3.3.0'
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.9.8'
     }
 }
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '5.1.0'
-    id 'com.palantir.configuration-resolver' version '0.4.0'
-    id 'com.palantir.consistent-versions' version '1.17.3'
+    id 'com.palantir.consistent-versions' version '1.26.1'
     id 'org.unbroken-dome.test-sets' version '2.1.1'
     id 'com.google.protobuf' version '0.8.10'
 }
 
-apply plugin: 'com.palantir.baseline-config'
-apply plugin: 'com.palantir.baseline-circleci'
+apply plugin: 'com.palantir.baseline'
 apply plugin: 'com.palantir.git-version'
 
 apply from: 'gradle/versions.gradle'
@@ -65,6 +64,7 @@ allprojects {
 
     apply plugin: 'java-library'
     apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
+    apply plugin: 'com.palantir.java-format'
 
     // temporary until this is merged/fixed inside gradle-processors
     configurations.allProcessors {
@@ -92,6 +92,7 @@ allprojects {
             it.substitute it.module('javax.annotation:javax.annotation-api') with it.module('jakarta.annotation:jakarta.annotation-api:1.3.5')
             it.substitute it.module('javax.validation:validation-api') with it.module('jakarta.validation:jakarta.validation-api:2.0.2')
             it.substitute it.module('javax.ws.rs:javax.ws.rs-api') with it.module('jakarta.ws.rs:jakarta.ws.rs-api:2.1.6')
+            it.substitute it.module('javax.servlet:javax.servlet-api') with it.module('jakarta.servlet:jakarta.servlet-api:4.0.3')
 
             it.substitute it.module('javax.inject:javax.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0')
             it.substitute it.module('org.glassfish.hk2.external:javax.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0')
@@ -104,18 +105,91 @@ allprojects {
             it.substitute it.module('org.glassfish.web:javax.el') with it.module('org.glassfish:jakarta.el:3.0.3')
         }
     }
+
+    tasks.withType(JavaCompile) {
+        options.compilerArgs += ['-Werror']
+        // temporarily relax constraints until we can fix all violations
+        options.errorprone.disable 'AlmostJavadoc', 
+                'AnnotateFormatMethod',
+                'ArrayAsKeyOfSetOrMap',
+                'AssertionFailureIgnored',
+                'CacheLoaderNull',
+                'CatchBlockLogException',
+                'CatchFail',
+                'ClassNewInstance',
+                'CloseableProvides',
+                'DangerousCompletableFutureUsage',
+                'DefaultCharset',
+                'DnsLookup',
+                'DoNotMock',
+                'EmptyBlockTag',
+                'EqualsGetClass',
+                'ExtendsErrorOrThrowable',
+                'Finally',
+                'FutureReturnValueIgnored',
+                'GetClassOnEnum',
+                'HidingField',
+                'ImmutableEnumChecker',
+                'ImmutablesBuilderMissingInitialization',
+                'InconsistentCapitalization',
+                'InlineFormatString',
+                'IntLongMath',
+                'InvalidBlockTag',
+                'InvalidInlineTag',
+                'InvalidLink',
+                'InvalidParam',
+                'InvalidThrows',
+                'JavaTimeDefaultTimeZone',
+                'JdkObsolete',
+                'LogSafePreconditionsMessageFormat',
+                'MathAbsoluteRandom',
+                'MissingFail',
+                'MissingSummary',
+                'MixedMutabilityReturnType',
+                'MockitoInternalUsage',
+                'ModifyCollectionInEnhancedForLoop',
+                'NarrowingCompoundAssignment',
+                'NonAtomicVolatileUpdate',
+                'NullOptional',
+                'OperatorPrecedence',
+                'OverrideThrowableToString',
+                'PreconditionsConstantMessage',
+                'PreconditionsInvalidPlaceholder',
+                'PreferSafeLoggableExceptions',
+                'PreferSafeLoggingPreconditions',
+                'ProtectedMembersInFinalClass',
+                'PublicConstructorForAbstractClass',
+                'RawTypes',
+                'ReadReturnValueIgnored',
+                'ReturnValueIgnored',
+                'ReverseDnsLookup',
+                'SafeLoggingExceptionMessageFormat',
+                'ShortCircuitBoolean',
+                'Slf4jLogsafeArgs',
+                'Slf4jThrowable',
+                'StaticAssignmentInConstructor',
+                'StrictUnusedVariable',
+                'StringSplitter',
+                'ThreadPriorityCheck',
+                'ThrowError',
+                'ThrowSpecificity',
+                'TooManyArguments',
+                'TypeParameterUnusedInFormals',
+                'UndefinedEquals',
+                'UnnecessaryLambda',
+                'UseCorrectAssertInTests',
+                'ValidateConstantMessage',
+                'VisibleForTestingPackagePrivate'
+    }
 }
 
 subprojects {
-    apply plugin: 'com.palantir.configuration-resolver'
     task allDeps(type: DependencyReportTask) {}
 }
 
 configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
     apply from: "$rootDir/gradle/publish-jars.gradle"
 }
-
-apply from: 'gradle/idea.gradle'
 
 // Setup copyright notice as a block comment, and no newline after it
 project.afterEvaluate {

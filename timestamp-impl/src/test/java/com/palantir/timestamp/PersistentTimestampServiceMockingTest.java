@@ -15,8 +15,7 @@
  */
 package com.palantir.timestamp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -30,8 +29,8 @@ public class PersistentTimestampServiceMockingTest {
 
     private static final long INITIAL_TIMESTAMP = 12345L;
     private static final long TIMESTAMP = 100 * 1000;
-    private static final TimestampRange SINGLE_TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(TIMESTAMP,
-            TIMESTAMP);
+    private static final TimestampRange SINGLE_TIMESTAMP_RANGE =
+            TimestampRange.createInclusiveRange(TIMESTAMP, TIMESTAMP);
 
     private static final TimestampRange RANGE = TimestampRange.createInclusiveRange(100, 200);
 
@@ -62,14 +61,14 @@ public class PersistentTimestampServiceMockingTest {
     public void shouldRequestTheRightTimestampFromTheAvailableTimestamps() {
         when(timestamp.incrementBy(10)).thenReturn(RANGE);
 
-        assertThat(timestampService.getFreshTimestamps(10), is(RANGE));
+        assertThat(timestampService.getFreshTimestamps(10)).isEqualTo(RANGE);
     }
 
     @Test
     public void shouldRequestOnlyRequestASingleTimestampIfOnGetFreshTimestamp() {
         when(timestamp.incrementBy(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
 
-        assertThat(timestampService.getFreshTimestamp(), is(TIMESTAMP));
+        assertThat(timestampService.getFreshTimestamp()).isEqualTo(TIMESTAMP);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -77,4 +76,3 @@ public class PersistentTimestampServiceMockingTest {
         timestampService.fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP);
     }
 }
-

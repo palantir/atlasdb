@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import org.junit.Assert;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,10 +24,11 @@ import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.ValueType;
+import org.junit.Test;
 
 public class AtlasDeserializersTest {
-    private static final NameMetadataDescription NAME_METADATA_DESCRIPTION = NameMetadataDescription.create(
-            ImmutableList.of(
+    private static final NameMetadataDescription NAME_METADATA_DESCRIPTION =
+            NameMetadataDescription.create(ImmutableList.of(
                     NameComponentDescription.of("age", ValueType.FIXED_LONG),
                     NameComponentDescription.of("name", ValueType.STRING)));
 
@@ -36,17 +36,17 @@ public class AtlasDeserializersTest {
     public void testDeserializeRowFromJsonList() throws Exception {
         JsonNode jsonNode = new ObjectMapper().readTree("[68, \"Smeagol\"]");
         byte[] row = AtlasDeserializers.deserializeRow(NAME_METADATA_DESCRIPTION, jsonNode);
-        byte[] expectedRow = Bytes.concat(ValueType.FIXED_LONG.convertFromString("68"),
-                                          ValueType.STRING.convertFromString("Smeagol"));
-        Assert.assertArrayEquals(expectedRow, row);
+        byte[] expectedRow = Bytes.concat(
+                ValueType.FIXED_LONG.convertFromString("68"), ValueType.STRING.convertFromString("Smeagol"));
+        assertThat(row).isEqualTo(expectedRow);
     }
 
     @Test
     public void testDeserializeRowFromJsonMap() throws Exception {
         JsonNode jsonNode = new ObjectMapper().readTree("{\"age\":68, \"name\":\"Smeagol\"}");
         byte[] row = AtlasDeserializers.deserializeRow(NAME_METADATA_DESCRIPTION, jsonNode);
-        byte[] expectedRow = Bytes.concat(ValueType.FIXED_LONG.convertFromString("68"),
-                                          ValueType.STRING.convertFromString("Smeagol"));
-        Assert.assertArrayEquals(expectedRow, row);
+        byte[] expectedRow = Bytes.concat(
+                ValueType.FIXED_LONG.convertFromString("68"), ValueType.STRING.convertFromString("Smeagol"));
+        assertThat(row).isEqualTo(expectedRow);
     }
 }

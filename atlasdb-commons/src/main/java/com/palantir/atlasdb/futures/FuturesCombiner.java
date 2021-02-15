@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.futures;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-
-import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Interface which provides a wrapping over static methods in {@link AtlasFutures} which need an

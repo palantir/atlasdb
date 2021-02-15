@@ -26,21 +26,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.StringLockDescriptor;
 
 public class AsyncLockServiceTest {
 
@@ -169,9 +167,7 @@ public class AsyncLockServiceTest {
     }
 
     private static Set<LockDescriptor> descriptors(String... lockNames) {
-        return Arrays.stream(lockNames)
-                .map(StringLockDescriptor::of)
-                .collect(Collectors.toSet());
+        return Arrays.stream(lockNames).map(StringLockDescriptor::of).collect(Collectors.toSet());
     }
 
     private static OrderedLocks orderedLocks(AsyncLock... orderedLocks) {
@@ -181,5 +177,4 @@ public class AsyncLockServiceTest {
     private void triggerNextReaperIteration() {
         reaperExecutor.tick(REAPER_PERIOD_MS - 1, TimeUnit.MILLISECONDS);
     }
-
 }

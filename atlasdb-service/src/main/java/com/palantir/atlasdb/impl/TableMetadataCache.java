@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.impl;
 
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.CheckForNull;
-import javax.inject.Inject;
-
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.time.Duration;
+import javax.annotation.CheckForNull;
+import javax.inject.Inject;
 
 public class TableMetadataCache {
     private final LoadingCache<String, TableMetadata> cache;
@@ -34,7 +32,7 @@ public class TableMetadataCache {
     @Inject
     public TableMetadataCache(final KeyValueService kvs) {
         this.cache = CacheBuilder.newBuilder()
-                .expireAfterAccess(15, TimeUnit.MINUTES)
+                .expireAfterAccess(Duration.ofMinutes(15))
                 .build(new CacheLoader<String, TableMetadata>() {
                     @Override
                     public TableMetadata load(String tableName) throws Exception {

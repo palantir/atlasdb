@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.factory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -38,6 +33,10 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.Channel;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Provides a mechanism for creating individual proxy for each node in a cluster that use Dialogue for communication
@@ -52,8 +51,8 @@ public final class BroadcastDialogueClientFactory {
     DialogueClients.ReloadingFactory reloadingFactory;
     Refreshable<ServerListConfig> serverListConfigSupplier;
 
-    private BroadcastDialogueClientFactory(DialogueClients.ReloadingFactory reloadingFactory,
-            Refreshable<ServerListConfig> serverListConfigSupplier) {
+    private BroadcastDialogueClientFactory(
+            DialogueClients.ReloadingFactory reloadingFactory, Refreshable<ServerListConfig> serverListConfigSupplier) {
         this.reloadingFactory = reloadingFactory;
         this.serverListConfigSupplier = serverListConfigSupplier;
     }
@@ -64,14 +63,12 @@ public final class BroadcastDialogueClientFactory {
             UserAgent userAgent,
             AuxiliaryRemotingParameters parameters) {
         UserAgent versionedAgent = userAgent.addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT);
-        Refreshable<Map<String, RemoteServiceConfiguration>> timeLockRemoteConfigurations = serverListConfigSupplier
-                .map(serverListConfig -> createRemoteServiceConfigurations(
-                        serverListConfig,
-                        versionedAgent,
-                        parameters));
+        Refreshable<Map<String, RemoteServiceConfiguration>> timeLockRemoteConfigurations =
+                serverListConfigSupplier.map(serverListConfig ->
+                        createRemoteServiceConfigurations(serverListConfig, versionedAgent, parameters));
 
-        DialogueClients.ReloadingFactory reloadingFactory = baseFactory.reloading(
-                timeLockRemoteConfigurations.map(DialogueClientOptions::toServicesConfigBlock))
+        DialogueClients.ReloadingFactory reloadingFactory = baseFactory
+                .reloading(timeLockRemoteConfigurations.map(DialogueClientOptions::toServicesConfigBlock))
                 .withUserAgent(versionedAgent);
         return new BroadcastDialogueClientFactory(reloadingFactory, serverListConfigSupplier);
     }
@@ -107,14 +104,10 @@ public final class BroadcastDialogueClientFactory {
     }
 
     public <T> Refreshable<List<T>> getSingleNodeProxies(Class<T> clazz, boolean shouldRetry) {
-        return this.serverListConfigSupplier.map(serverListConfig -> serverListConfig.servers()
-                .stream()
-                .map(uri -> createDialogueProxy(
-                        clazz,
-                        reloadingFactory.getChannel(getServiceName(uri, shouldRetry))))
+        return this.serverListConfigSupplier.map(serverListConfig -> serverListConfig.servers().stream()
+                .map(uri -> createDialogueProxy(clazz, reloadingFactory.getChannel(getServiceName(uri, shouldRetry))))
                 .collect(Collectors.toList()));
     }
-
 
     private static <T> T createDialogueProxy(Class<T> type, Channel channel) {
         return DialogueShimFactory.create(type, channel);

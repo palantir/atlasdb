@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.cli;
 
-import java.util.concurrent.Callable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.cli.command.KvsMigrationCommand;
 import com.palantir.atlasdb.cli.command.ReadPunchTableCommand;
 import com.palantir.atlasdb.cli.command.ScrubQueueMigrationCommand;
@@ -27,9 +22,11 @@ import com.palantir.atlasdb.cli.command.SweepCommand;
 import com.palantir.atlasdb.cli.command.timestamp.CleanTransactionRange;
 import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
-
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
+import java.util.concurrent.Callable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AtlasCli {
 
@@ -70,5 +67,4 @@ public final class AtlasCli {
             System.exit(1);
         }
     }
-
 }

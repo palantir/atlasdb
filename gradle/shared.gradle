@@ -5,7 +5,6 @@ apply plugin: 'checkstyle'
 apply plugin: 'com.github.hierynomus.license'
 
 apply from: "${rootDir}/gradle/versions.gradle"
-apply from: "${rootDir}/gradle/baseline.gradle"
 
 sourceCompatibility = 1.8
 
@@ -27,7 +26,6 @@ dependencies {
     // Dont add Java8 compile/runtime dependencies here as commons-executors needs to be compatible with Java6 clients
     compile group: 'com.google.code.findbugs', name: 'jsr305'
     compile group: 'com.google.code.findbugs', name: 'findbugs-annotations'
-    checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'
 }
@@ -55,6 +53,7 @@ license {
     exclude '**/SmoothRateLimiter.java'
     exclude '**/DiscoverableSubtypeResolver.java'
     exclude '**/ConjureTimelockServiceBlockingMetrics.java'
+    exclude '**/LeaderElectionMetrics.java'
 }
 
 ext {
@@ -64,6 +63,7 @@ ext {
 task generateSchemas {
     description = 'Re-generate code from AtlasDB schemas.'
     dependsOn classes, testClasses
+    finalizedBy format
 }
 
 afterEvaluate {

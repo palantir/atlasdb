@@ -15,10 +15,9 @@
  */
 package com.palantir.common.remoting;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Map;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * This class is useful for accessing HTTP headers in a case-insensitive manner.
@@ -43,9 +42,7 @@ public final class HeaderAccessUtils {
      * (This is true as far as our use-case is concerned.)
      */
     public static boolean shortcircuitingCaseInsensitiveContainsEntry(
-            Map<String, Collection<String>> headers,
-            String header,
-            String value) {
+            Map<String, Collection<String>> headers, String header, String value) {
         for (Map.Entry<String, Collection<String>> entry : headers.entrySet()) {
             if (header.equalsIgnoreCase(entry.getKey())) {
                 return entry.getValue().contains(value);
@@ -63,8 +60,7 @@ public final class HeaderAccessUtils {
      * (This is true as far as our use-case is concerned.)
      */
     public static Collection<String> shortcircuitingCaseInsensitiveGet(
-            Map<String, Collection<String>> headers,
-            String header) {
+            Map<String, Collection<String>> headers, String header) {
         for (Map.Entry<String, Collection<String>> entry : headers.entrySet()) {
             if (header.equalsIgnoreCase(entry.getKey())) {
                 return entry.getValue();

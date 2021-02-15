@@ -16,8 +16,6 @@
 
 package com.palantir.timelock.history.remote;
 
-import java.util.List;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
@@ -29,6 +27,7 @@ import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
 import com.palantir.timelock.history.TimeLockPaxosHistoryProviderEndpoints;
 import com.palantir.timelock.history.UndertowTimeLockPaxosHistoryProvider;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.List;
 
 public final class TimeLockPaxosHistoryProviderResource implements UndertowTimeLockPaxosHistoryProvider {
     private LocalHistoryLoader localHistoryLoader;
@@ -38,8 +37,8 @@ public final class TimeLockPaxosHistoryProviderResource implements UndertowTimeL
     }
 
     @Override
-    public ListenableFuture<PaxosHistoryOnRemote> getPaxosHistory(AuthHeader authHeader,
-            List<HistoryQuery> historyQueries) {
+    public ListenableFuture<PaxosHistoryOnRemote> getPaxosHistory(
+            AuthHeader authHeader, List<HistoryQuery> historyQueries) {
         return Futures.immediateFuture(PaxosHistoryOnRemote.of(
                 HistoryLoaderAndTransformer.getLogsForHistoryQueries(localHistoryLoader, historyQueries)));
     }
@@ -60,8 +59,7 @@ public final class TimeLockPaxosHistoryProviderResource implements UndertowTimeL
         }
 
         @Override
-        public PaxosHistoryOnRemote getPaxosHistory(AuthHeader authHeader,
-                List<HistoryQuery> historyQueries) {
+        public PaxosHistoryOnRemote getPaxosHistory(AuthHeader authHeader, List<HistoryQuery> historyQueries) {
             return AtlasFutures.getUnchecked(delegate.getPaxosHistory(authHeader, historyQueries));
         }
     }

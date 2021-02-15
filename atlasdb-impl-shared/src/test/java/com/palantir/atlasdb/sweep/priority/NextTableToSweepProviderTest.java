@@ -23,7 +23,16 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.sweep.TableToSweep;
+import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockService;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,20 +40,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
-
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.sweep.TableToSweep;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
 
 public class NextTableToSweepProviderTest {
     private NextTableToSweepProvider provider;
@@ -55,7 +52,7 @@ public class NextTableToSweepProviderTest {
     private Set<String> priorityTables;
     private Set<String> blacklistTables;
 
-    private List<Optional<TableToSweep>> tablesToSweep = Lists.newArrayList();
+    private List<Optional<TableToSweep>> tablesToSweep = new ArrayList<>();
 
     @Before
     public void setup() throws InterruptedException {
@@ -141,7 +138,7 @@ public class NextTableToSweepProviderTest {
         whenGettingNextTableToSweep();
 
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
-        Assert.assertTrue(tableToSweep.isPresent());
+        assertThat(tableToSweep).isPresent();
         assertThat(ImmutableSet.of(table("table2"), table("table3"), table("table4")))
                 .contains(tableToSweep.get().getTableRef());
     }
@@ -222,7 +219,7 @@ public class NextTableToSweepProviderTest {
     }
 
     private void givenNoPrioritiesReturned() {
-        //Nothing to do
+        // Nothing to do
     }
 
     private void givenPriority(TableReference table, double priority) {
@@ -242,9 +239,8 @@ public class NextTableToSweepProviderTest {
     }
 
     private LockRequest requestContaining(String table) {
-        return argThat(
-                argument -> argument != null
-                        && argument.getLockDescriptors().stream()
+        return argThat(argument -> argument != null
+                && argument.getLockDescriptors().stream()
                         .anyMatch(descriptor -> descriptor.getLockIdAsString().contains(table)));
     }
 
@@ -267,22 +263,25 @@ public class NextTableToSweepProviderTest {
 
     private void thenProviderReturnsEmpty() {
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
-        Assert.assertFalse("expected to not have chosen a table!", tableToSweep.isPresent());
+        assertThat(tableToSweep)
+                .describedAs("expected to not have chosen a table!")
+                .isNotPresent();
     }
 
     private void thenTableChosenIs(TableReference table) {
         Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
-        Assert.assertTrue("expected to have chosen a table!", tableToSweep.isPresent());
+        assertThat(tableToSweep).describedAs("expected to have chosen a table!").isPresent();
         assertThat(tableToSweep.get().getTableRef()).isEqualTo(table);
     }
 
     private void thenTableIsChosenAtLeastOnce(TableReference table) {
-        Assert.assertTrue("expected table " + table + " to be chosen at least once, but wasn't!",
-                tablesToSweep.stream()
+        assertThat(tablesToSweep.stream()
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .map(TableToSweep::getTableRef)
-                        .anyMatch(chosenTable -> chosenTable.equals(table)));
+                        .anyMatch(chosenTable -> chosenTable.equals(table)))
+                .describedAs("expected table " + table + " to be chosen at least once, but wasn't!")
+                .isTrue();
     }
 
     // helpers

@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,6 +22,9 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.conjure.java.server.jersey.WebPreconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SweeperServiceImpl implements SweeperService {
     private static final Logger log = LoggerFactory.getLogger(SweeperServiceImpl.class);
@@ -34,8 +32,8 @@ public final class SweeperServiceImpl implements SweeperService {
     private final SpecificTableSweeper specificTableSweeper;
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
-    public SweeperServiceImpl(SpecificTableSweeper specificTableSweeper,
-            AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
+    public SweeperServiceImpl(
+            SpecificTableSweeper specificTableSweeper, AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
         this.specificTableSweeper = specificTableSweeper;
         this.sweepBatchConfigSource = sweepBatchConfigSource;
     }
@@ -52,20 +50,21 @@ public final class SweeperServiceImpl implements SweeperService {
         checkTableExists(tableName, tableRef);
 
         byte[] decodedStartRow = startRow.map(PtBytes::decodeHexString).orElse(PtBytes.EMPTY_BYTE_ARRAY);
-        SweepBatchConfig config = buildConfigWithOverrides(maxCellTsPairsToExamine, candidateBatchSize,
-                deleteBatchSize);
+        SweepBatchConfig config =
+                buildConfigWithOverrides(maxCellTsPairsToExamine, candidateBatchSize, deleteBatchSize);
 
         return SweepTableResponse.from(runSweep(fullSweep, tableRef, decodedStartRow, config));
     }
 
-    private SweepResults runSweep(Optional<Boolean> fullSweep, TableReference tableRef, byte[] decodedStartRow,
-            SweepBatchConfig config) {
+    private SweepResults runSweep(
+            Optional<Boolean> fullSweep, TableReference tableRef, byte[] decodedStartRow, SweepBatchConfig config) {
         if (!fullSweep.isPresent()) {
             log.warn("fullSweep parameter was not specified, defaulting to true");
         }
 
         if (fullSweep.orElse(true)) {
-            log.info("Running sweep of full table {}, "
+            log.info(
+                    "Running sweep of full table {}, "
                             + "with maxCellTsPairsToExamine: {}, candidateBatchSize: {}, deleteBatchSize: {}, "
                             + "starting from row {}",
                     LoggingArgs.tableRef(tableRef),
@@ -75,7 +74,8 @@ public final class SweeperServiceImpl implements SweeperService {
                     UnsafeArg.of("decodedStartRow", decodedStartRow));
             return runFullSweepWithoutSavingResults(tableRef, decodedStartRow, config);
         } else {
-            log.info("Running sweep of a single batch on table {}, "
+            log.info(
+                    "Running sweep of a single batch on table {}, "
                             + "with maxCellTsPairsToExamine: {}, candidateBatchSize: {}, deleteBatchSize: {}, "
                             + "starting from row {}",
                     LoggingArgs.tableRef(tableRef),
@@ -91,8 +91,8 @@ public final class SweeperServiceImpl implements SweeperService {
             Optional<Integer> maxCellTsPairsToExamine,
             Optional<Integer> candidateBatchSize,
             Optional<Integer> deleteBatchSize) {
-        ImmutableSweepBatchConfig.Builder batchConfigBuilder = ImmutableSweepBatchConfig.builder()
-                .from(sweepBatchConfigSource.getAdjustedSweepConfig());
+        ImmutableSweepBatchConfig.Builder batchConfigBuilder =
+                ImmutableSweepBatchConfig.builder().from(sweepBatchConfigSource.getAdjustedSweepConfig());
 
         maxCellTsPairsToExamine.ifPresent(batchConfigBuilder::maxCellTsPairsToExamine);
         candidateBatchSize.ifPresent(batchConfigBuilder::candidateBatchSize);
@@ -102,30 +102,28 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     private TableReference getTableRef(String tableName) {
-        WebPreconditions.checkArgument(TableReference.isFullyQualifiedName(tableName),
-                "Table name {} is not fully qualified", tableName);
+        WebPreconditions.checkArgument(
+                TableReference.isFullyQualifiedName(tableName), "Table name {} is not fully qualified", tableName);
         return TableReference.createFromFullyQualifiedName(tableName);
     }
 
     private void checkTableExists(String tableName, TableReference tableRef) {
-        WebPreconditions.checkArgument(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
-                "Table requested to sweep %s does not exist", tableName);
+        WebPreconditions.checkArgument(
+                specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
+                "Table requested to sweep %s does not exist",
+                tableName);
     }
 
     private SweepResults runFullSweepWithoutSavingResults(
-            TableReference tableRef,
-            byte[] startRow,
-            SweepBatchConfig sweepBatchConfig) {
+            TableReference tableRef, byte[] startRow, SweepBatchConfig sweepBatchConfig) {
         SweepResults cumulativeResults = SweepResults.createEmptySweepResult(Optional.of(startRow));
 
         while (cumulativeResults.getNextStartRow().isPresent()) {
             SweepResults results = runOneBatchWithoutSavingResults(
-                    tableRef,
-                    cumulativeResults.getNextStartRow().get(),
-                    sweepBatchConfig);
+                    tableRef, cumulativeResults.getNextStartRow().get(), sweepBatchConfig);
 
-            specificTableSweeper.updateTimeMetricsOneIteration(results.getTimeInMillis(),
-                    results.getTimeElapsedSinceStartedSweeping());
+            specificTableSweeper.updateTimeMetricsOneIteration(
+                    results.getTimeInMillis(), results.getTimeElapsedSinceStartedSweeping());
             cumulativeResults = cumulativeResults.accumulateWith(results);
         }
 
@@ -133,14 +131,7 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     private SweepResults runOneBatchWithoutSavingResults(
-            TableReference tableRef,
-            byte[] startRow,
-            SweepBatchConfig sweepBatchConfig) {
-        return specificTableSweeper.runOneIteration(
-                    tableRef,
-                    startRow,
-                    sweepBatchConfig);
+            TableReference tableRef, byte[] startRow, SweepBatchConfig sweepBatchConfig) {
+        return specificTableSweeper.runOneIteration(tableRef, startRow, sweepBatchConfig);
     }
-
 }
-

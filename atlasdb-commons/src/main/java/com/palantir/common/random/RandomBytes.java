@@ -21,12 +21,11 @@ public final class RandomBytes {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private RandomBytes() { }
+    private RandomBytes() {}
 
     public static byte[] ofLength(int dataSize) {
         byte[] result = new byte[dataSize];
         RANDOM.nextBytes(result);
         return result;
     }
-
 }

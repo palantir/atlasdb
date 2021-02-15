@@ -17,12 +17,11 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
+import org.junit.Test;
 
 public class NemesisResilienceCheckerTest {
     private static final long ZERO_TIME = 0L;
@@ -41,23 +40,23 @@ public class NemesisResilienceCheckerTest {
 
     private static final Event ERROR_1 = TestEventUtils.createFailEvent(ZERO_TIME, PROCESS_1, "timeout");
 
-    private static final Event NEMESIS_START = TestEventUtils
-            .createInfoEvent(ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.START_FUNCTION, VALUE_1);
+    private static final Event NEMESIS_START = TestEventUtils.createInfoEvent(
+            ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.START_FUNCTION, VALUE_1);
 
-    private static final Event NEMESIS_START_2 = TestEventUtils
-            .createInfoEvent(ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.START_FUNCTION, VALUE_2);
+    private static final Event NEMESIS_START_2 = TestEventUtils.createInfoEvent(
+            ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.START_FUNCTION, VALUE_2);
 
-    private static final Event NEMESIS_STOP = TestEventUtils
-            .createInfoEvent(ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.STOP_FUNCTION, VALUE_1);
+    private static final Event NEMESIS_STOP = TestEventUtils.createInfoEvent(
+            ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.STOP_FUNCTION, VALUE_1);
 
-    private static final Event NEMESIS_STOP_2 = TestEventUtils
-            .createInfoEvent(ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.STOP_FUNCTION, VALUE_2);
+    private static final Event NEMESIS_STOP_2 = TestEventUtils.createInfoEvent(
+            ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.STOP_FUNCTION, VALUE_2);
 
-    private static final Event IMPOSTOR_START = TestEventUtils
-            .createInfoEvent(ZERO_TIME, IMPOSTOR_PROCESS, JepsenConstants.START_FUNCTION);
+    private static final Event IMPOSTOR_START =
+            TestEventUtils.createInfoEvent(ZERO_TIME, IMPOSTOR_PROCESS, JepsenConstants.START_FUNCTION);
 
-    private static final Event IMPOSTOR_STOP = TestEventUtils
-            .createInfoEvent(ZERO_TIME, IMPOSTOR_PROCESS, JepsenConstants.STOP_FUNCTION);
+    private static final Event IMPOSTOR_STOP =
+            TestEventUtils.createInfoEvent(ZERO_TIME, IMPOSTOR_PROCESS, JepsenConstants.STOP_FUNCTION);
 
     @Test
     public void succeedsWithNoEvents() {
@@ -136,11 +135,8 @@ public class NemesisResilienceCheckerTest {
 
     @Test
     public void reportsInnerEventsAsOffending() {
-        CheckerResult result = runNemesisResilienceChecker(
-                NEMESIS_START,
-                NEMESIS_START_2,
-                NEMESIS_STOP,
-                NEMESIS_STOP_2);
+        CheckerResult result =
+                runNemesisResilienceChecker(NEMESIS_START, NEMESIS_START_2, NEMESIS_STOP, NEMESIS_STOP_2);
 
         assertThat(result.valid()).isFalse();
         assertThat(result.errors()).containsExactly(NEMESIS_START_2, NEMESIS_STOP);
@@ -154,14 +150,7 @@ public class NemesisResilienceCheckerTest {
     @Test
     public void failsIfCycleNotBetweenInnermostEvents() {
         CheckerResult result = runNemesisResilienceChecker(
-                NEMESIS_START,
-                INVOKE_1,
-                NEMESIS_START_2,
-                OK_1,
-                INVOKE_2,
-                NEMESIS_STOP,
-                OK_2,
-                NEMESIS_STOP_2);
+                NEMESIS_START, INVOKE_1, NEMESIS_START_2, OK_1, INVOKE_2, NEMESIS_STOP, OK_2, NEMESIS_STOP_2);
 
         assertThat(result.valid()).isFalse();
         assertThat(result.errors()).containsExactly(NEMESIS_START_2, NEMESIS_STOP);
@@ -169,11 +158,8 @@ public class NemesisResilienceCheckerTest {
 
     @Test
     public void reportsMultipleOffendingNemesisEvents() {
-        CheckerResult result = runNemesisResilienceChecker(
-                NEMESIS_START,
-                NEMESIS_STOP,
-                NEMESIS_START_2,
-                NEMESIS_STOP_2);
+        CheckerResult result =
+                runNemesisResilienceChecker(NEMESIS_START, NEMESIS_STOP, NEMESIS_START_2, NEMESIS_STOP_2);
 
         assertThat(result.valid()).isFalse();
         assertThat(result.errors()).containsExactly(NEMESIS_START, NEMESIS_STOP, NEMESIS_START_2, NEMESIS_STOP_2);
@@ -182,12 +168,7 @@ public class NemesisResilienceCheckerTest {
     @Test
     public void onlyReportsRelevantOffendingEvents() {
         CheckerResult result = runNemesisResilienceChecker(
-                NEMESIS_START,
-                INVOKE_1,
-                OK_1,
-                NEMESIS_STOP,
-                NEMESIS_START_2,
-                NEMESIS_STOP_2);
+                NEMESIS_START, INVOKE_1, OK_1, NEMESIS_STOP, NEMESIS_START_2, NEMESIS_STOP_2);
 
         assertThat(result.valid()).isFalse();
         assertThat(result.errors()).containsExactly(NEMESIS_START_2, NEMESIS_STOP_2);
@@ -196,12 +177,7 @@ public class NemesisResilienceCheckerTest {
     @Test
     public void failsOnDistributedCycle() {
         CheckerResult result = runNemesisResilienceChecker(
-                NEMESIS_START,
-                INVOKE_1,
-                NEMESIS_STOP,
-                NEMESIS_START_2,
-                OK_1,
-                NEMESIS_STOP_2);
+                NEMESIS_START, INVOKE_1, NEMESIS_STOP, NEMESIS_START_2, OK_1, NEMESIS_STOP_2);
 
         assertThat(result.valid()).isFalse();
         assertThat(result.errors()).containsExactly(NEMESIS_START, NEMESIS_STOP, NEMESIS_START_2, NEMESIS_STOP_2);

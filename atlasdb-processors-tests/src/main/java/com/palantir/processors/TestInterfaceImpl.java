@@ -27,7 +27,5 @@ public class TestInterfaceImpl implements AutoDelegate_TestInterface {
     }
 
     @Override
-    public void methodThatMustBeImplemented() {
-
-    }
+    public void methodThatMustBeImplemented() {}
 }

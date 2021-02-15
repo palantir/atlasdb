@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.Map;
-import java.util.SortedMap;
-
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
+import java.util.Map;
+import java.util.SortedMap;
 
 /**
  * This is the underlying store used by the scrubber for keeping track in a persistent way of the
@@ -43,9 +42,7 @@ public interface ScrubberStore {
     void markCellsAsScrubbed(Map<TableReference, Multimap<Cell, Long>> cellToScrubTimestamp, int batchSize);
 
     BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> getBatchingVisitableScrubQueue(
-            long maxScrubTimestamp /* exclusive */,
-            byte[] startRow,
-            byte[] endRow);
+            long maxScrubTimestamp /* exclusive */, byte[] startRow, byte[] endRow);
 
     int getNumberRemainingScrubCells(int maxCellsToScan);
 }

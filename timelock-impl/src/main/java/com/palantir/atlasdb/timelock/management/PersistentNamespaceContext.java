@@ -16,18 +16,16 @@
 
 package com.palantir.atlasdb.timelock.management;
 
-import java.nio.file.Path;
-
-import javax.sql.DataSource;
-
-import org.derive4j.Data;
-
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
+import java.nio.file.Path;
+import javax.sql.DataSource;
+import org.derive4j.Data;
 
 @Data
 public interface PersistentNamespaceContext {
     interface Cases<R> {
         R timestampBoundPaxos(Path fileDataDirectory, DataSource sqliteDataSource);
+
         R dbBound(TimestampSeriesProvider seriesProvider);
     }
 

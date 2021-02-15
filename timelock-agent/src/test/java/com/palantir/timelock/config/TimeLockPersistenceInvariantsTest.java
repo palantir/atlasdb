@@ -23,14 +23,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 
 public class TimeLockPersistenceInvariantsTest {
 
@@ -91,11 +89,11 @@ public class TimeLockPersistenceInvariantsTest {
                 .build();
 
         assertThatThrownBy(ImmutableTimeLockInstallConfiguration.builder()
-                .cluster(differentClusterConfig)
-                .paxos(ImmutablePaxosInstallConfiguration.builder()
-                        .dataDirectory(mockFile)
-                        .isNewService(false)
-                        .build())::build)
+                        .cluster(differentClusterConfig)
+                        .paxos(ImmutablePaxosInstallConfiguration.builder()
+                                .dataDirectory(mockFile)
+                                .isNewService(false)
+                                .build())::build)
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -110,11 +108,11 @@ public class TimeLockPersistenceInvariantsTest {
                 .build();
 
         assertThatCode(ImmutableTimeLockInstallConfiguration.builder()
-                .cluster(differentClusterConfig)
-                .paxos(ImmutablePaxosInstallConfiguration.builder()
-                        .dataDirectory(mockFile)
-                        .isNewService(false)
-                        .build())::build)
+                        .cluster(differentClusterConfig)
+                        .paxos(ImmutablePaxosInstallConfiguration.builder()
+                                .dataDirectory(mockFile)
+                                .isNewService(false)
+                                .build())::build)
                 .doesNotThrowAnyException();
     }
 
@@ -127,15 +125,20 @@ public class TimeLockPersistenceInvariantsTest {
         return mockFile;
     }
 
+    @SuppressWarnings("CheckReturnValue")
     private void assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.Builder configBuilder) {
         PaxosInstallConfiguration installConfiguration = configBuilder.build();
-        ImmutableTimeLockInstallConfiguration.builder().cluster(CLUSTER_CONFIG).paxos(installConfiguration).build();
+        ImmutableTimeLockInstallConfiguration.builder()
+                .cluster(CLUSTER_CONFIG)
+                .paxos(installConfiguration)
+                .build();
     }
 
     private void assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.Builder configBuilder) {
         PaxosInstallConfiguration installConfiguration = configBuilder.build();
         assertThatThrownBy(ImmutableTimeLockInstallConfiguration.builder()
-                .cluster(CLUSTER_CONFIG)
-                .paxos(installConfiguration)::build).isInstanceOf(IllegalArgumentException.class);
+                        .cluster(CLUSTER_CONFIG)
+                        .paxos(installConfiguration)::build)
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

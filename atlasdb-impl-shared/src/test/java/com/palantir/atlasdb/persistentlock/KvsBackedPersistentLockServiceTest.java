@@ -15,19 +15,18 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import static org.junit.Assert.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import org.junit.Before;
+import org.junit.Test;
 
 public class KvsBackedPersistentLockServiceTest {
     private static final String TEST_REASON = "for-test";
@@ -46,7 +45,7 @@ public class KvsBackedPersistentLockServiceTest {
     public void canCreatePersistentLockService() {
         KeyValueService kvs = new InMemoryKeyValueService(false);
         PersistentLockService pls = KvsBackedPersistentLockService.create(kvs);
-        assertNotNull(pls);
+        assertThat(pls).isNotNull();
     }
 
     @Test

@@ -16,11 +16,12 @@
 
 package com.palantir.timelock.history.models;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.palantir.paxos.Client;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 /**
  * Data structure to contain Paxos learner and acceptor state values against sequence numbers
@@ -39,4 +40,13 @@ public interface CompletePaxosHistoryForNamespaceAndUseCase {
 
     @Value.Parameter
     List<ConsolidatedLearnerAndAcceptorRecord> localAndRemoteLearnerAndAcceptorRecords();
+
+    @Value.Lazy
+    default Set<Long> getAllSequenceNumbers() {
+        return localAndRemoteLearnerAndAcceptorRecords().stream()
+                .map(ConsolidatedLearnerAndAcceptorRecord::record)
+                .map(Map::keySet)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+    }
 }

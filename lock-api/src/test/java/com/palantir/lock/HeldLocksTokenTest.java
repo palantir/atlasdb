@@ -15,17 +15,14 @@
  */
 package com.palantir.lock;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-import java.math.BigInteger;
-import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSortedMap;
+import java.math.BigInteger;
+import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
+import org.junit.Test;
 
 public final class HeldLocksTokenTest {
 
@@ -47,7 +44,6 @@ public final class HeldLocksTokenTest {
 
         HeldLocksToken deserializedHeldLocksToken =
                 mapper.readValue(mapper.writeValueAsString(heldLocksToken), HeldLocksToken.class);
-        assertThat(deserializedHeldLocksToken, is(heldLocksToken));
+        assertThat(deserializedHeldLocksToken).isEqualTo(heldLocksToken);
     }
-
 }

@@ -27,12 +27,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
-
-import org.junit.Test;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -52,6 +46,10 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.conjure.java.serialization.ObjectMappers;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import org.junit.Test;
 
 public class KeyValueServiceCoordinationStoreTest {
     private static final byte[] COORDINATION_ROW = PtBytes.toBytes("aaaaa");
@@ -61,9 +59,8 @@ public class KeyValueServiceCoordinationStoreTest {
     private static final String VALUE_2 = "twodoszweier2";
     private static final SequenceAndBound SEQUENCE_AND_BOUND_1 = ImmutableSequenceAndBound.of(1, 2);
     private static final SequenceAndBound SEQUENCE_AND_BOUND_2 = ImmutableSequenceAndBound.of(3, 4);
-    private static final Function<ValueAndBound<String>, String> VALUE_PRESERVING_FUNCTION
-            = valueAndBound -> valueAndBound.value()
-            .orElseThrow(() -> new IllegalStateException("Can only preserve a present value"));
+    private static final Function<ValueAndBound<String>, String> VALUE_PRESERVING_FUNCTION = valueAndBound ->
+            valueAndBound.value().orElseThrow(() -> new IllegalStateException("Can only preserve a present value"));
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
 
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
@@ -81,19 +78,20 @@ public class KeyValueServiceCoordinationStoreTest {
         CheckAndSetResult<ValueAndBound<String>> casResult = coordinationStore.transformAgreedValue(unused -> VALUE_1);
         assertThat(casResult.successful()).isTrue();
         assertThat(Iterables.getOnlyElement(casResult.existingValues()).value()).contains(VALUE_1);
-        assertThat(coordinationStore.getAgreedValue()).hasValueSatisfying(
-                valueAndBound -> {
-                    assertThat(valueAndBound.value()).contains(VALUE_1);
-                    assertThat(valueAndBound.bound()).isGreaterThanOrEqualTo(0);
-                });
+        assertThat(coordinationStore.getAgreedValue()).hasValueSatisfying(valueAndBound -> {
+            assertThat(valueAndBound.value()).contains(VALUE_1);
+            assertThat(valueAndBound.bound()).isGreaterThanOrEqualTo(0);
+        });
     }
 
     @Test
     public void canApplyMultipleTransformations() {
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
-        ValueAndBound<String> firstValueAndBound = coordinationStore.getAgreedValue().get();
+        ValueAndBound<String> firstValueAndBound =
+                coordinationStore.getAgreedValue().get();
         coordinationStore.transformAgreedValue(unused -> VALUE_2);
-        ValueAndBound<String> secondValueAndBound = coordinationStore.getAgreedValue().get();
+        ValueAndBound<String> secondValueAndBound =
+                coordinationStore.getAgreedValue().get();
 
         assertThat(firstValueAndBound.value()).contains(VALUE_1);
         assertThat(secondValueAndBound.value()).contains(VALUE_2);
@@ -103,9 +101,11 @@ public class KeyValueServiceCoordinationStoreTest {
     @Test
     public void valuePreservingTransformationsDoNotAdvanceBoundIfStillValid() {
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
-        ValueAndBound<String> firstValueAndBound = coordinationStore.getAgreedValue().get();
+        ValueAndBound<String> firstValueAndBound =
+                coordinationStore.getAgreedValue().get();
         coordinationStore.transformAgreedValue(VALUE_PRESERVING_FUNCTION);
-        ValueAndBound<String> secondValueAndBound = coordinationStore.getAgreedValue().get();
+        ValueAndBound<String> secondValueAndBound =
+                coordinationStore.getAgreedValue().get();
 
         assertThat(firstValueAndBound.value()).contains(VALUE_1);
         assertThat(secondValueAndBound.value()).contains(VALUE_1);
@@ -115,11 +115,13 @@ public class KeyValueServiceCoordinationStoreTest {
     @Test
     public void valuePreservingTransformationsAdvanceBoundIfNeeded() {
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
-        ValueAndBound<String> firstValueAndBound = coordinationStore.getAgreedValue().get();
+        ValueAndBound<String> firstValueAndBound =
+                coordinationStore.getAgreedValue().get();
 
         makeBoundInvalid(firstValueAndBound.bound());
         coordinationStore.transformAgreedValue(VALUE_PRESERVING_FUNCTION);
-        ValueAndBound<String> secondValueAndBound = coordinationStore.getAgreedValue().get();
+        ValueAndBound<String> secondValueAndBound =
+                coordinationStore.getAgreedValue().get();
 
         assertThat(firstValueAndBound.value()).contains(VALUE_1);
         assertThat(secondValueAndBound.value()).contains(VALUE_1);
@@ -129,11 +131,13 @@ public class KeyValueServiceCoordinationStoreTest {
     @Test
     public void valuePreservingTransformationsDoNotWriteTheSameValueAgain() {
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
-        SequenceAndBound firstSequenceAndBound = coordinationStore.getCoordinationValue().get();
+        SequenceAndBound firstSequenceAndBound =
+                coordinationStore.getCoordinationValue().get();
 
         makeBoundInvalid(firstSequenceAndBound.bound());
         coordinationStore.transformAgreedValue(VALUE_PRESERVING_FUNCTION);
-        SequenceAndBound secondSequenceAndBound = coordinationStore.getCoordinationValue().get();
+        SequenceAndBound secondSequenceAndBound =
+                coordinationStore.getCoordinationValue().get();
 
         assertThat(firstSequenceAndBound.sequence()).isEqualTo(secondSequenceAndBound.sequence());
     }
@@ -169,23 +173,21 @@ public class KeyValueServiceCoordinationStoreTest {
     public void canCheckAndSetBetweenValues() {
         coordinationStore.checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_1);
         assertThat(coordinationStore.checkAndSetCoordinationValue(
-                Optional.of(SEQUENCE_AND_BOUND_1), SEQUENCE_AND_BOUND_2))
+                        Optional.of(SEQUENCE_AND_BOUND_1), SEQUENCE_AND_BOUND_2))
                 .isEqualTo(ImmutableCheckAndSetResult.of(true, ImmutableList.of(SEQUENCE_AND_BOUND_2)));
     }
 
     @Test
     public void checkAndSetFailsIfOldValueNotCorrect() {
         coordinationStore.checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_1);
-        assertThat(coordinationStore.checkAndSetCoordinationValue(
-                Optional.empty(), SEQUENCE_AND_BOUND_2))
+        assertThat(coordinationStore.checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_2))
                 .isEqualTo(ImmutableCheckAndSetResult.of(false, ImmutableList.of(SEQUENCE_AND_BOUND_1)));
     }
 
     @Test
     public void multipleStoresCanCoexist() {
         byte[] otherCoordinationKey = PtBytes.toBytes("bbbbb");
-        CoordinationStore<String> otherCoordinationStore
-                = KeyValueServiceCoordinationStore.create(
+        CoordinationStore<String> otherCoordinationStore = KeyValueServiceCoordinationStore.create(
                 ObjectMappers.newServerObjectMapper(),
                 keyValueService,
                 otherCoordinationKey,
@@ -209,8 +211,8 @@ public class KeyValueServiceCoordinationStoreTest {
                         store.getCoordinationValueCell(),
                         Value.create(store.serializeSequenceAndBound(SEQUENCE_AND_BOUND_1), 0L)));
 
-        CheckAndSetResult<SequenceAndBound> casResult = store
-                .checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_2);
+        CheckAndSetResult<SequenceAndBound> casResult =
+                store.checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_2);
 
         assertThat(casResult.successful()).isFalse();
         assertThat(casResult.existingValues()).containsExactly(SEQUENCE_AND_BOUND_1);
@@ -235,7 +237,8 @@ public class KeyValueServiceCoordinationStoreTest {
         KeyValueServiceCoordinationStore<String> store = coordinationStoreForKvs(mockKvs);
         setupOnceFailingMockKvs(mockKvs, store);
 
-        assertThat(store.getAgreedValue()).isPresent()
+        assertThat(store.getAgreedValue())
+                .isPresent()
                 .contains(ValueAndBound.of(VALUE_2, SEQUENCE_AND_BOUND_2.bound()));
 
         verifyReadsOnOnceFailingMockKvs(mockKvs, store);
@@ -247,8 +250,8 @@ public class KeyValueServiceCoordinationStoreTest {
         KeyValueServiceCoordinationStore<String> store = coordinationStoreForKvs(mockKvs);
         setupOnceFailingMockKvs(mockKvs, store);
 
-        CheckAndSetResult<ValueAndBound<String>> casResult = store.transformAgreedValue(value ->
-                value.value().orElseThrow(() -> new RuntimeException("unexpected absent value")) + ".");
+        CheckAndSetResult<ValueAndBound<String>> casResult = store.transformAgreedValue(
+                value -> value.value().orElseThrow(() -> new RuntimeException("unexpected absent value")) + ".");
         assertThat(casResult.successful()).isTrue();
         assertThat(Iterables.getOnlyElement(casResult.existingValues()).value()).contains(VALUE_2 + ".");
 
@@ -258,35 +261,40 @@ public class KeyValueServiceCoordinationStoreTest {
     private void setupOnceFailingMockKvs(KeyValueService mockKvs, KeyValueServiceCoordinationStore<String> store)
             throws JsonProcessingException {
         when(mockKvs.get(
-                eq(AtlasDbConstants.COORDINATION_TABLE),
-                eq(ImmutableMap.of(store.getCoordinationValueCell(), Long.MAX_VALUE))))
+                        eq(AtlasDbConstants.COORDINATION_TABLE),
+                        eq(ImmutableMap.of(store.getCoordinationValueCell(), Long.MAX_VALUE))))
                 .thenReturn(ImmutableMap.of(
                         store.getCoordinationValueCell(),
                         Value.create(store.serializeSequenceAndBound(SEQUENCE_AND_BOUND_1), 0L)))
                 .thenReturn(ImmutableMap.of(
                         store.getCoordinationValueCell(),
                         Value.create(store.serializeSequenceAndBound(SEQUENCE_AND_BOUND_2), 0L)));
-        when(mockKvs.get(eq(AtlasDbConstants.COORDINATION_TABLE), eq(ImmutableMap.of(
-                store.getCellForSequence(SEQUENCE_AND_BOUND_1.sequence()), Long.MAX_VALUE))))
+        when(mockKvs.get(
+                        eq(AtlasDbConstants.COORDINATION_TABLE),
+                        eq(ImmutableMap.of(store.getCellForSequence(SEQUENCE_AND_BOUND_1.sequence()), Long.MAX_VALUE))))
                 .thenReturn(ImmutableMap.of());
-        when(mockKvs.get(eq(AtlasDbConstants.COORDINATION_TABLE), eq(ImmutableMap.of(
-                store.getCellForSequence(SEQUENCE_AND_BOUND_2.sequence()), Long.MAX_VALUE))))
+        when(mockKvs.get(
+                        eq(AtlasDbConstants.COORDINATION_TABLE),
+                        eq(ImmutableMap.of(store.getCellForSequence(SEQUENCE_AND_BOUND_2.sequence()), Long.MAX_VALUE))))
                 .thenReturn(ImmutableMap.of(
                         store.getCellForSequence(SEQUENCE_AND_BOUND_2.sequence()),
                         Value.create(OBJECT_MAPPER.writeValueAsBytes(VALUE_2), 0L)));
     }
 
-    private void verifyReadsOnOnceFailingMockKvs(KeyValueService mockKvs,
-            KeyValueServiceCoordinationStore<String> store) {
-        verify(mockKvs, times(2)).get(
-                eq(AtlasDbConstants.COORDINATION_TABLE),
-                eq(ImmutableMap.of(store.getCoordinationValueCell(), Long.MAX_VALUE)));
-        verify(mockKvs).get(
-                eq(AtlasDbConstants.COORDINATION_TABLE),
-                eq(ImmutableMap.of(store.getCellForSequence(SEQUENCE_AND_BOUND_1.sequence()), Long.MAX_VALUE)));
-        verify(mockKvs).get(
-                eq(AtlasDbConstants.COORDINATION_TABLE),
-                eq(ImmutableMap.of(store.getCellForSequence(SEQUENCE_AND_BOUND_2.sequence()), Long.MAX_VALUE)));
+    private void verifyReadsOnOnceFailingMockKvs(
+            KeyValueService mockKvs, KeyValueServiceCoordinationStore<String> store) {
+        verify(mockKvs, times(2))
+                .get(
+                        eq(AtlasDbConstants.COORDINATION_TABLE),
+                        eq(ImmutableMap.of(store.getCoordinationValueCell(), Long.MAX_VALUE)));
+        verify(mockKvs)
+                .get(
+                        eq(AtlasDbConstants.COORDINATION_TABLE),
+                        eq(ImmutableMap.of(store.getCellForSequence(SEQUENCE_AND_BOUND_1.sequence()), Long.MAX_VALUE)));
+        verify(mockKvs)
+                .get(
+                        eq(AtlasDbConstants.COORDINATION_TABLE),
+                        eq(ImmutableMap.of(store.getCellForSequence(SEQUENCE_AND_BOUND_2.sequence()), Long.MAX_VALUE)));
     }
 
     private KeyValueServiceCoordinationStore<String> coordinationStoreForKvs(KeyValueService kvs) {

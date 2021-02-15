@@ -37,9 +37,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
     @Override
     public ListenableFuture<PaxosQuorumStatus> isLatestRoundAsync(long round) {
         return Futures.transform(
-                collectResponses(round),
-                PaxosResponses::getQuorumResult,
-                MoreExecutors.directExecutor());
+                collectResponses(round), PaxosResponses::getQuorumResult, MoreExecutors.directExecutor());
     }
 
     private ListenableFuture<PaxosResponses<PaxosResponse>> collectResponses(long round) {
@@ -50,9 +48,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
     }
 
     private static BooleanPaxosResponse acceptorAgreesIsLatestRound(
-            PaxosLong latestRoundFromAcceptor,
-            long roundInQuestion) {
+            PaxosLong latestRoundFromAcceptor, long roundInQuestion) {
         return new BooleanPaxosResponse(roundInQuestion >= latestRoundFromAcceptor.getValue());
     }
-
 }

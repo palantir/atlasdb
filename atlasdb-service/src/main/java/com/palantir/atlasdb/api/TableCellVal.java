@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.api;
 
-import java.util.Map;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.logsafe.Preconditions;
+import java.util.Map;
 
 /**
  * For tables with named columns,

@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import java.util.Map;
+import java.util.Set;
 
 public interface TableMappingService {
     /**
@@ -41,6 +40,7 @@ public interface TableMappingService {
      */
     @Idempotent
     void removeTable(TableReference tableRef);
+
     default void removeTables(Set<TableReference> tableRefs) {
         tableRefs.forEach(this::removeTable);
     }

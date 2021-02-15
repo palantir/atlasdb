@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
-
 import com.google.common.collect.ForwardingObject;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -39,6 +31,12 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 public abstract class ForwardingTransaction extends ForwardingObject implements Transaction {
 
@@ -51,31 +49,26 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     public abstract Transaction delegate();
 
     @Override
-    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
-                                                        Iterable<byte[]> rows,
-                                                        ColumnSelection columnSelection) {
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
         return delegate().getRows(tableRef, rows, columnSelection);
     }
 
     @Override
-    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
-            Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection) {
+    public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection);
     }
 
     @Override
-    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(TableReference tableRef,
-            Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection) {
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return delegate().getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
     }
 
     @Override
-    public Iterator<Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
-                                                            Iterable<byte[]> rows,
-                                                            ColumnRangeSelection columnRangeSelection,
-                                                            int batchHint) {
+    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
     }
 
@@ -90,8 +83,8 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(TableReference tableRef,
-                                                                    Iterable<RangeRequest> rangeRequests) {
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
         return delegate().getRanges(tableRef, rangeRequests);
     }
 

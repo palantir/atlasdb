@@ -15,16 +15,14 @@
  */
 package com.palantir.lock.client;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableIdentifiedLockRequest.class)
@@ -45,19 +43,13 @@ public interface IdentifiedLockRequest {
 
     static IdentifiedLockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
         return ImmutableIdentifiedLockRequest.of(
-                UUID.randomUUID(),
-                lockDescriptors,
-                acquireTimeoutMs,
-                Optional.empty());
+                UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.empty());
     }
 
     static IdentifiedLockRequest of(
             Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
         return ImmutableIdentifiedLockRequest.of(
-                UUID.randomUUID(),
-                lockDescriptors,
-                acquireTimeoutMs,
-                Optional.of(clientDescription));
+                UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.of(clientDescription));
     }
 
     static IdentifiedLockRequest from(LockRequest lockRequest) {
@@ -69,5 +61,4 @@ public interface IdentifiedLockRequest {
         }
         return of(lockRequest.getLockDescriptors(), lockRequest.getAcquireTimeoutMs());
     }
-
 }

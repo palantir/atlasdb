@@ -16,12 +16,10 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableRefreshLockResponseV2.class)

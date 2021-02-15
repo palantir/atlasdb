@@ -15,14 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Optional;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 /**
  * A request to be supplied to KeyValueService.checkAndSet.

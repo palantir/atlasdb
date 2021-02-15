@@ -16,6 +16,21 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
+import com.palantir.atlasdb.timelock.api.LockWatchRequest;
+import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LeadershipId;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -26,19 +41,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
-import com.google.common.collect.TreeRangeSet;
-import com.palantir.atlasdb.timelock.api.LockWatchRequest;
-import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
-import com.palantir.lock.watch.LockWatchStateUpdate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Note on concurrency: We use a fair read write lock mechanism and synchronisation as follows:
@@ -57,12 +61,14 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
  */
 @SuppressWarnings("UnstableApiUsage")
 public class LockWatchingServiceImpl implements LockWatchingService {
+    private static final Logger log = LoggerFactory.getLogger(LockWatchingServiceImpl.class);
+
     private final LockEventLog lockEventLog;
     private final AtomicReference<LockWatches> watches = new AtomicReference<>(LockWatches.create());
     private final ReadWriteLock watchesLock = new ReentrantReadWriteLock(true);
 
-    public LockWatchingServiceImpl(HeldLocksCollection heldLocksCollection) {
-        this(UUID.randomUUID(), heldLocksCollection);
+    public LockWatchingServiceImpl(HeldLocksCollection heldLocksCollection, LeadershipId leadershipId) {
+        this(leadershipId.id(), heldLocksCollection);
     }
 
     @VisibleForTesting
@@ -73,7 +79,16 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
         Optional<LockWatches> changes = addToWatches(locksToWatch);
+        changes.ifPresent(changedWatches -> log.info(
+                "New references watched",
+                SafeArg.of("sizeOfReferences", changedWatches.references().size()),
+                UnsafeArg.of("references", changedWatches.references())));
         changes.ifPresent(this::logLockWatchEvent);
+        Set<LockWatchReference> allReferences = watches.get().references();
+        log.info(
+                "All references currently watched",
+                SafeArg.of("sizeOfReferences", allReferences.size()),
+                UnsafeArg.of("allWatchedTables", allReferences));
     }
 
     @Override
@@ -82,8 +97,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public <T> ValueAndLockWatchStateUpdate<T> runTask(
-            Optional<LockWatchVersion> lastKnownVersion, Supplier<T> task) {
+    public <T> ValueAndLockWatchStateUpdate<T> runTask(Optional<LockWatchVersion> lastKnownVersion, Supplier<T> task) {
         return lockEventLog.runTask(lastKnownVersion, task);
     }
 
@@ -129,12 +143,13 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         lockEventLog.logLockWatchCreated(newWatches);
     }
 
-    private void runIfDescriptorsMatchLockWatches(Set<LockDescriptor> unfiltered,
-            Consumer<Set<LockDescriptor>> consumer) {
+    private void runIfDescriptorsMatchLockWatches(
+            Set<LockDescriptor> unfiltered, Consumer<Set<LockDescriptor>> consumer) {
         watchesLock.readLock().lock();
         try {
             RangeSet<LockDescriptor> ranges = watches.get().ranges();
-            Set<LockDescriptor> filtered = unfiltered.stream().filter(ranges::contains).collect(Collectors.toSet());
+            Set<LockDescriptor> filtered =
+                    unfiltered.stream().filter(ranges::contains).collect(Collectors.toSet());
             if (!filtered.isEmpty()) {
                 consumer.accept(filtered);
             }

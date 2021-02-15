@@ -15,9 +15,8 @@
  */
 package com.palantir.util;
 
-import java.util.Iterator;
-
 import com.google.common.base.Splitter;
+import java.util.Iterator;
 
 public final class VersionStrings {
     private VersionStrings() {

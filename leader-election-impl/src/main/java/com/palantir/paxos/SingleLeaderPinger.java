@@ -16,26 +16,7 @@
 
 package com.palantir.paxos;
 
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
@@ -48,11 +29,28 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.sls.versions.VersionComparator;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SingleLeaderPinger implements LeaderPinger {
     private static final Logger log = LoggerFactory.getLogger(SingleLeaderPinger.class);
 
-    private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache = Maps.newConcurrentMap();
+    private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache =
+            new ConcurrentHashMap<>();
     private final Map<LeaderPingerContext<PingableLeader>, CheckedRejectionExecutorService> leaderPingExecutors;
     private final Duration leaderPingResponseWait;
     private final UUID localUuid;
@@ -60,7 +58,6 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final Optional<OrderableSlsVersion> timeLockVersion;
     private final RateLimiter pingV2RateLimiter = RateLimiter.create(1.0 / (5 * 60));
     private final RateLimiter greeningNodeShouldBecomeLeaderRateLimiter = RateLimiter.create(1.0 / (10 * 60));
-
 
     private Map<LeaderPingerContext<PingableLeader>, Boolean> pingV2StatusOnRemotes = new HashMap<>();
 
@@ -83,7 +80,9 @@ public class SingleLeaderPinger implements LeaderPinger {
             UUID localUuid,
             boolean cancelRemainingCalls) {
         return new SingleLeaderPinger(
-                KeyedStream.stream(otherPingableExecutors).map(CheckedRejectionExecutorService::new).collectToMap(),
+                KeyedStream.stream(otherPingableExecutors)
+                        .map(CheckedRejectionExecutorService::new)
+                        .collectToMap(),
                 leaderPingResponseWait,
                 localUuid,
                 cancelRemainingCalls,
@@ -98,24 +97,20 @@ public class SingleLeaderPinger implements LeaderPinger {
         }
         LeaderPingerContext<PingableLeader> leader = suspectedLeader.get();
 
-        MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult> multiplexingCompletionService
-                = MultiplexingCompletionService.createFromCheckedExecutors(leaderPingExecutors);
+        MultiplexingCompletionService<LeaderPingerContext<PingableLeader>, PingResult> multiplexingCompletionService =
+                MultiplexingCompletionService.createFromCheckedExecutors(leaderPingExecutors);
 
         LeaderPingResult pingResult = null;
 
         if (shouldUsePingV2(leader)) {
-            pingResult = actuallyPingLeaderWithUuid(multiplexingCompletionService,
-                    uuid,
-                    leader,
-                    leader.pinger()::pingV2);
+            pingResult =
+                    actuallyPingLeaderWithUuid(multiplexingCompletionService, uuid, leader, leader.pinger()::pingV2);
         }
 
         if (pingResult == null || pingResult.pingCallFailedDueToExecutionException()) {
             pingV2StatusOnRemotes.putIfAbsent(leader, false);
-            pingResult = actuallyPingLeaderWithUuid(multiplexingCompletionService,
-                    uuid,
-                    leader,
-                    () -> getPingResultFromLegacyEndpoint(leader));
+            pingResult = actuallyPingLeaderWithUuid(
+                    multiplexingCompletionService, uuid, leader, () -> getPingResultFromLegacyEndpoint(leader));
         } else if (pingResult.pingCallWasSuccessfullyExecuted()) {
             pingV2StatusOnRemotes.put(leader, true);
         }
@@ -124,8 +119,7 @@ public class SingleLeaderPinger implements LeaderPinger {
     }
 
     private boolean shouldUsePingV2(LeaderPingerContext<PingableLeader> leader) {
-        return pingV2StatusOnRemotes.getOrDefault(leader, true)
-                || pingV2RateLimiter.tryAcquire();
+        return pingV2StatusOnRemotes.getOrDefault(leader, true) || pingV2RateLimiter.tryAcquire();
     }
 
     private PingResult getPingResultFromLegacyEndpoint(LeaderPingerContext<PingableLeader> leader) {
@@ -140,12 +134,10 @@ public class SingleLeaderPinger implements LeaderPinger {
             Callable<PingResult> pingEndpoint) {
         try {
             multiplexingCompletionService.submit(leader, pingEndpoint);
-            Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture
-                    = multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
-            return getLeaderPingResult(uuid,
-                    pingFuture,
-                    timeLockVersion,
-                    greeningNodeShouldBecomeLeaderRateLimiter::tryAcquire);
+            Future<Map.Entry<LeaderPingerContext<PingableLeader>, PingResult>> pingFuture =
+                    multiplexingCompletionService.poll(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
+            return getLeaderPingResult(
+                    uuid, pingFuture, timeLockVersion, greeningNodeShouldBecomeLeaderRateLimiter::tryAcquire);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return LeaderPingResults.pingCallFailure(e);
@@ -170,9 +162,9 @@ public class SingleLeaderPinger implements LeaderPinger {
             }
             return (!shouldGreeningNodeBecomeLeader.getAsBoolean() || isAtLeastOurVersion(pingResult, timeLockVersion))
                     ? LeaderPingResults.pingReturnedTrue(
-                            uuid,
-                            Futures.getDone(pingFuture).getKey().hostAndPort())
-                    : LeaderPingResults.pingReturnedTrueWithOlderVersion(pingResult.timeLockVersion().get());
+                            uuid, Futures.getDone(pingFuture).getKey().hostAndPort())
+                    : LeaderPingResults.pingReturnedTrueWithOlderVersion(
+                            pingResult.timeLockVersion().get());
         } catch (ExecutionException e) {
             return LeaderPingResults.pingCallFailedWithExecutionException(e.getCause());
         }
@@ -180,7 +172,9 @@ public class SingleLeaderPinger implements LeaderPinger {
 
     private static boolean isAtLeastOurVersion(PingResult pingResult, Optional<OrderableSlsVersion> timeLockVersion) {
         return (pingResult.timeLockVersion().isPresent() && timeLockVersion.isPresent())
-                ? VersionComparator.INSTANCE.compare(pingResult.timeLockVersion().get(), timeLockVersion.get()) >= 0
+                ? VersionComparator.INSTANCE.compare(
+                                pingResult.timeLockVersion().get(), timeLockVersion.get())
+                        >= 0
                 : true;
     }
 
@@ -211,14 +205,16 @@ public class SingleLeaderPinger implements LeaderPinger {
     }
 
     private Optional<LeaderPingerContext<PingableLeader>> getSuspectedLeaderOverNetwork(UUID uuid) {
-        PaxosResponsesWithRemote<LeaderPingerContext<PingableLeader>, PaxosString> responses = PaxosQuorumChecker
-                .collectUntil(
+        PaxosResponsesWithRemote<LeaderPingerContext<PingableLeader>, PaxosString> responses =
+                PaxosQuorumChecker.collectUntil(
                         ImmutableList.copyOf(leaderPingExecutors.keySet()),
-                        pingableLeader -> new PaxosString(pingableLeader.pinger().getUUID()),
+                        pingableLeader ->
+                                new PaxosString(pingableLeader.pinger().getUUID()),
                         leaderPingExecutors,
                         leaderPingResponseWait,
-                        state -> state.responses().values().stream().map(PaxosString::get).anyMatch(
-                                uuid.toString()::equals),
+                        state -> state.responses().values().stream()
+                                .map(PaxosString::get)
+                                .anyMatch(uuid.toString()::equals),
                         cancelRemainingCalls);
 
         for (Map.Entry<LeaderPingerContext<PingableLeader>, PaxosString> cacheEntry :
@@ -237,15 +233,16 @@ public class SingleLeaderPinger implements LeaderPinger {
         return Optional.empty();
     }
 
-    private void throwIfInvalidSetup(LeaderPingerContext<PingableLeader> cachedService,
+    private void throwIfInvalidSetup(
+            LeaderPingerContext<PingableLeader> cachedService,
             LeaderPingerContext<PingableLeader> pingedService,
             UUID pingedServiceUuid) {
         if (cachedService == null) {
             return;
         }
 
-        IllegalStateException exception = new SafeIllegalStateException(
-                "There is a fatal problem with the leadership election configuration! "
+        IllegalStateException exception =
+                new SafeIllegalStateException("There is a fatal problem with the leadership election configuration! "
                         + "This is probably caused by invalid pref files setting up the cluster "
                         + "(e.g. for lock server look at lock.prefs, leader.prefs, and lock_client.prefs)."
                         + "If the preferences are specified with a host port pair list and localhost index "

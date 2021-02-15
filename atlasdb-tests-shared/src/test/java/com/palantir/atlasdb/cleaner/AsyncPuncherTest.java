@@ -19,16 +19,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.function.LongSupplier;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.base.Suppliers;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
+import java.util.function.LongSupplier;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AsyncPuncherTest {
 
@@ -60,9 +58,7 @@ public class AsyncPuncherTest {
         Puncher puncher = AsyncPuncher.create(delegate, ASYNC_PUNCHER_INTERVAL, THROWING_BACKUP_TIMESTAMP_SUPPLIER);
         try {
 
-            when(delegate.isInitialized())
-                    .thenReturn(false)
-                    .thenReturn(true);
+            when(delegate.isInitialized()).thenReturn(false).thenReturn(true);
 
             assertThat(puncher.isInitialized()).isFalse();
             assertThat(puncher.isInitialized()).isTrue();
@@ -82,7 +78,6 @@ public class AsyncPuncherTest {
             asyncPuncher.shutdown();
         }
     }
-
 
     @Test
     public void testPuncherTimestampLessThanFreshTimestamp() throws Exception {
@@ -126,5 +121,4 @@ public class AsyncPuncherTest {
         }
         assertThat(expected).isEqualTo(retrieved);
     }
-
 }

@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks;
 
-import java.util.Map;
-import java.util.Optional;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
@@ -37,6 +34,8 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import java.util.Map;
+import java.util.Optional;
 
 public class BenchmarksResource implements BenchmarksService {
 
@@ -51,20 +50,21 @@ public class BenchmarksResource implements BenchmarksService {
                 .addSchemas(BenchmarksSchema.SCHEMA)
                 .allowHiddenTableAccess(true)
                 .runtimeConfigSupplier(Optional::empty)
-                .build().serializable();
+                .build()
+                .serializable();
     }
 
     @Override
-    public Map<String, Object> transactionWriteRows(int numClients, int numRequestsPerClient, int numRows,
-            int dataSize) {
+    public Map<String, Object> transactionWriteRows(
+            int numClients, int numRequestsPerClient, int numRows, int dataSize) {
         return TransactionWriteRowsBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows, dataSize);
     }
 
     @Override
-    public Map<String, Object> transactionWriteDynamicColumns(int numClients, int numRequestsPerClient, int numRows,
-            int dataSize) {
-        return TransactionWriteDynamicColumnsBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows,
-                dataSize);
+    public Map<String, Object> transactionWriteDynamicColumns(
+            int numClients, int numRequestsPerClient, int numRows, int dataSize) {
+        return TransactionWriteDynamicColumnsBenchmark.execute(
+                txnManager, numClients, numRequestsPerClient, numRows, dataSize);
     }
 
     @Override
@@ -83,8 +83,8 @@ public class BenchmarksResource implements BenchmarksService {
     }
 
     @Override
-    public Map<String, Object> transactionReadRows(int numClients, int numRequestsPerClient, int numRows,
-            int dataSize) {
+    public Map<String, Object> transactionReadRows(
+            int numClients, int numRequestsPerClient, int numRows, int dataSize) {
         return TransactionReadRowsBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows, dataSize);
     }
 
@@ -114,9 +114,9 @@ public class BenchmarksResource implements BenchmarksService {
     }
 
     @Override
-    public Map<String, Object> rangeScanDynamicColumns(int numClients, int numRequestsPerClient, int dataSize,
-            int numRows) {
-        return RangeScanDynamicColumnsBenchmark.execute(txnManager, numClients, numRequestsPerClient, dataSize,
-                numRows);
+    public Map<String, Object> rangeScanDynamicColumns(
+            int numClients, int numRequestsPerClient, int dataSize, int numRows) {
+        return RangeScanDynamicColumnsBenchmark.execute(
+                txnManager, numClients, numRequestsPerClient, dataSize, numRows);
     }
 }

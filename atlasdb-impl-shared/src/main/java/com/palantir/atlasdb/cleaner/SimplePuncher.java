@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.function.Supplier;
-
 import com.palantir.common.time.Clock;
+import java.util.function.Supplier;
 
 /**
  * Puncher implementation that calls the underlying PuncherStore directly, and blockingly, on every
@@ -27,9 +26,8 @@ import com.palantir.common.time.Clock;
  * @author jweel
  */
 public final class SimplePuncher implements Puncher {
-    public static SimplePuncher create(PuncherStore puncherStore,
-                                       Clock clock,
-                                       Supplier<Long> transactionReadTimeoutMillisSupplier) {
+    public static SimplePuncher create(
+            PuncherStore puncherStore, Clock clock, Supplier<Long> transactionReadTimeoutMillisSupplier) {
         return new SimplePuncher(puncherStore, clock, transactionReadTimeoutMillisSupplier);
     }
 
@@ -51,7 +49,6 @@ public final class SimplePuncher implements Puncher {
     @Override
     public void punch(long timestamp) {
         puncherStore.put(timestamp, clock.getTimeMillis());
-
     }
 
     @Override

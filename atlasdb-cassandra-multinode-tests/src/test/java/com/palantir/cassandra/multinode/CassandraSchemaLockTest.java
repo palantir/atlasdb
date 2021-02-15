@@ -15,11 +15,19 @@
  */
 package com.palantir.cassandra.multinode;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -34,7 +42,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
+import org.assertj.core.api.HamcrestCondition;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -42,24 +50,12 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.Containers;
-import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class CassandraSchemaLockTest {
     private static final int THREAD_COUNT = 4;
 
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class)
-            .with(new ThreeNodeCassandraCluster());
+    public static final Containers CONTAINERS =
+            new Containers(CassandraSchemaLockTest.class).with(new ThreeNodeCassandraCluster());
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
 
@@ -72,8 +68,7 @@ public class CassandraSchemaLockTest {
             CyclicBarrier barrier = new CyclicBarrier(THREAD_COUNT);
             for (int i = 0; i < THREAD_COUNT; i++) {
                 async(() -> {
-                    CassandraKeyValueService keyValueService =
-                            CassandraKeyValueServiceImpl.createForTesting(config);
+                    CassandraKeyValueService keyValueService = CassandraKeyValueServiceImpl.createForTesting(config);
                     barrier.await();
                     keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
                     return null;
@@ -81,14 +76,14 @@ public class CassandraSchemaLockTest {
             }
         } finally {
             executorService.shutdown();
-            assertTrue(executorService.awaitTermination(4, TimeUnit.MINUTES));
+            assertThat(executorService.awaitTermination(4, TimeUnit.MINUTES)).isTrue();
         }
 
         CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config);
-        assertThat(kvs.getAllTableNames(), hasItem(table1));
+        assertThat(kvs.getAllTableNames()).contains(table1);
 
-        assertThat(new File(CONTAINERS.getLogDirectory()),
-                containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
+        assertThat(new File(CONTAINERS.getLogDirectory()))
+                .is(new HamcrestCondition<>(containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError()))));
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
@@ -96,11 +91,9 @@ public class CassandraSchemaLockTest {
         executorService.submit(callable);
     }
 
-    private static Matcher<File> containsFiles(Matcher<Iterable<File>> fileMatcher) {
+    private static Matcher<File> containsFiles(Matcher<Iterable<? extends File>> fileMatcher) {
         return new FeatureMatcher<File, List<File>>(
-                fileMatcher,
-                "Directory with files such that",
-                "Directory contains") {
+                fileMatcher, "Directory with files such that", "Directory contains") {
             @Override
             protected List<File> featureValueOf(File actual) {
                 return ImmutableList.copyOf(actual.listFiles());

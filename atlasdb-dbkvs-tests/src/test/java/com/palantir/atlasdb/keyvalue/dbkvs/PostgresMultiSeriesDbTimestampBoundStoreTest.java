@@ -17,15 +17,14 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.After;
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
+import org.junit.After;
+import org.junit.Test;
 
 public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
     private static final TimestampSeries DEFAULT_SERIES = TimestampSeries.of("defaultSeries");
@@ -83,10 +82,8 @@ public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTime
         assertThat(store.getUpperLimit()).isEqualTo(ONE_BILLION);
     }
 
-    private InDbTimestampBoundStore createDbTimestampBoundStore(TimestampSeries series) {
+    private TimestampBoundStore createDbTimestampBoundStore(TimestampSeries series) {
         return InDbTimestampBoundStore.createForMultiSeries(
-                kvs.getConnectionManager(),
-                AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE,
-                series);
+                kvs.getConnectionManager(), AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, series);
     }
 }

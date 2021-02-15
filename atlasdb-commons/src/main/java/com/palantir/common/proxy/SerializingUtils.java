@@ -15,21 +15,22 @@
  */
 package com.palantir.common.proxy;
 
+import com.palantir.util.ByteArrayIOStream;
+import com.palantir.util.ObjectInputStreamFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.util.ByteArrayIOStream;
-import com.palantir.util.ObjectInputStreamFactory;
+@SuppressWarnings("BanSerializableRead")
+public final class SerializingUtils {
+    private static final Logger log = LoggerFactory.getLogger(SerializingUtils.class);
 
-public class SerializingUtils {
-    protected static final Logger log = LoggerFactory.getLogger(SerializingUtils.class);
-
-    private SerializingUtils() { /* */ }
+    private SerializingUtils() {
+        /* */
+    }
 
     public static <T> T copy(T orig) {
         return copy(orig, (is, codebase) -> new ObjectInputStream(is));
@@ -52,15 +53,12 @@ public class SerializingUtils {
             // Make an input stream from the byte array and read
             // a copy of the object back in.
             in = factory.create(byteStream.getInputStream(), null);
-            obj = (T)in.readObject();
-        }
-        catch(IOException e) {
+            obj = (T) in.readObject();
+        } catch (IOException e) {
             log.error("IO exception", e);
-        }
-        catch(ClassNotFoundException cnfe) {
+        } catch (ClassNotFoundException cnfe) {
             log.error("class not found exception", cnfe);
-        }
-        finally {
+        } finally {
             closeQuietly(in);
             closeQuietly(out);
         }
@@ -68,14 +66,13 @@ public class SerializingUtils {
     }
 
     private static void closeQuietly(Closeable closeable) {
-       if (closeable == null) {
-           return;
-       }
-       try {
-           closeable.close();
-       } catch (IOException e) {
-           // Ignore
-       }
+        if (closeable == null) {
+            return;
+        }
+        try {
+            closeable.close();
+        } catch (IOException e) {
+            // Ignore
+        }
     }
-
 }

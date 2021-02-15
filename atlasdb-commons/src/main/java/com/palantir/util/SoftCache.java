@@ -15,26 +15,23 @@
  */
 package com.palantir.util;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 /**
  * Thread Safe
@@ -45,7 +42,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
     private static final Logger log = LoggerFactory.getLogger(SoftCache.class);
 
-    final protected Map<K, CacheEntry<V>> cacheEntries;
+    protected final Map<K, CacheEntry<V>> cacheEntries;
 
     public SoftCache() {
         this(INITIAL_SIZE);
@@ -88,21 +85,21 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      *******************
      */
 
-    private synchronized void removeReference(Reference<? extends V> ref){
-        if (ref instanceof KeyedReference){
+    private synchronized void removeReference(Reference<? extends V> ref) {
+        if (ref instanceof KeyedReference) {
             Object key = ((KeyedReference) ref).getKey();
             CacheEntry<V> entry = cacheEntries.get(key);
 
             // only remove the cache entry if it holds the current reference
             // (it could have already been replaced by a new entry)
-            if (entry != null && entry.valueRef == ref){
-                if (log.isDebugEnabled()){
+            if (entry != null && entry.valueRef == ref) {
+                if (log.isDebugEnabled()) {
                     log.debug("Removing from cache reference with key: {}", key);
                 }
 
                 cacheEntries.remove(key);
             }
-        } else{
+        } else {
             assert false : "All references should be of type KeyedReference";
         }
     }
@@ -143,8 +140,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      * @param value
      * @return The value that was in the cache, null if none was there before
      */
-    public synchronized V putIfAbsent(K key, V value)
-    {
+    public synchronized V putIfAbsent(K key, V value) {
         if (!containsKey(key)) {
             return put(key, value);
         } else {
@@ -169,17 +165,15 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         putAllIfAbsent(map);
     }
 
-
     /** Gets an object from the cache.
      * @param key
      */
     @Override
-    public synchronized V get(K key)
-    {
+    public synchronized V get(K key) {
         CacheEntry<V> entry = cacheEntries.get(key);
 
         // a) not cached, return null
-        if(entry == null) {
+        if (entry == null) {
             mbean.misses.incrementAndGet();
             if (log.isTraceEnabled()) {
                 log.trace("Cache miss (not cached) on {}", key);
@@ -187,11 +181,11 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
             return null;
         }
 
-        //must get the hard ref before the check to isValid, otherwise it could become invalid before (c)
+        // must get the hard ref before the check to isValid, otherwise it could become invalid before (c)
         V ret = entry.getValue();
 
         // b) stale entry, remove it
-        if(!entry.isValid()) {
+        if (!entry.isValid()) {
             mbean.misses.incrementAndGet();
             if (log.isTraceEnabled()) {
                 log.trace("Cache miss (stale entry) on {}", key);
@@ -237,15 +231,15 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
     }
 
     public synchronized Set<V> removeMatchingKeys(Predicate<K> predicate) {
-        Set<V> removedValues = Sets.newHashSet();
+        Set<V> removedValues = new HashSet<>();
 
-        Iterator<Entry<K, CacheEntry<V>>> entryIterator = cacheEntries.entrySet().iterator();
+        Iterator<Map.Entry<K, CacheEntry<V>>> entryIterator =
+                cacheEntries.entrySet().iterator();
         while (entryIterator.hasNext()) {
-            Entry<K, CacheEntry<V>> entry = entryIterator.next();
+            Map.Entry<K, CacheEntry<V>> entry = entryIterator.next();
             if (predicate.apply(entry.getKey())) {
                 entryIterator.remove();
                 removedValues.add(entry.getValue().getValue());
-
             }
         }
 
@@ -262,7 +256,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      */
     public final void cleanup() {
         mbean.cleanups.incrementAndGet();
-        if(log.isTraceEnabled()) {
+        if (log.isTraceEnabled()) {
             log.trace("cleanup() called on {} of size: {}", getName(), cacheEntries.size());
         }
 
@@ -270,12 +264,12 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         Reference<? extends V> ref = referenceQueue.poll();
         while (ref != null) {
             i++;
-            assert ref.get() == null :  "Referent should be null by the time the Reference is added to the queue";
+            assert ref.get() == null : "Referent should be null by the time the Reference is added to the queue";
             removeReference(ref);
             ref = referenceQueue.poll();
         }
 
-        if(log.isTraceEnabled()) {
+        if (log.isTraceEnabled()) {
             log.trace("cleanup() finished on {}.  {} keys were cleaned up. ", getName(), i);
         }
     }
@@ -298,7 +292,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
     public Collection<V> filter(Collection<K> request) {
         Collection<V> rv = new ArrayList<V>();
 
-        for (Iterator<K> iter = request.iterator(); iter.hasNext();) {
+        for (Iterator<K> iter = request.iterator(); iter.hasNext(); ) {
             K key = iter.next();
 
             V val = get(key);
@@ -327,7 +321,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      */
     public void canonicalize(Map<K, V> returnVal) {
         Map<K, V> canonicalizedMappings = new HashMap<K, V>();
-        for (Iterator<Map.Entry<K, V> > iter = returnVal.entrySet().iterator(); iter.hasNext();) {
+        for (Iterator<Map.Entry<K, V>> iter = returnVal.entrySet().iterator(); iter.hasNext(); ) {
             Map.Entry<K, V> entry = iter.next();
 
             V myValue = get(entry.getKey());
@@ -341,16 +335,15 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         returnVal.putAll(canonicalizedMappings);
     }
 
-
     /**
      * CacheEntry is a cache entry that stores its value as a soft reference.  Cache entries do not
      * time out, so it is extremely important that these entries be invalidated if the underlying
      * objects change.
      */
-    protected static abstract class CacheEntry<V> {
+    protected abstract static class CacheEntry<V> {
         protected Reference<V> valueRef;
 
-        protected CacheEntry(Reference<V> ref){
+        protected CacheEntry(Reference<V> ref) {
             this.valueRef = ref;
         }
 
@@ -368,7 +361,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
         @Override
         public String toString() {
-            return (valueRef.get() != null)?valueRef.get().toString():"null";
+            return (valueRef.get() != null) ? valueRef.get().toString() : "null";
         }
     }
 
@@ -376,7 +369,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         return new SoftCacheEntry<K, V>(key, value, referenceQueue);
     }
 
-    protected static class SoftCacheEntry<K, V> extends CacheEntry<V> {
+    protected static final class SoftCacheEntry<K, V> extends CacheEntry<V> {
         private SoftCacheEntry(K key, V value, ReferenceQueue<V> queue) {
             super(new KeyedSoftReference<K, V>(key, value, queue));
         }
@@ -386,7 +379,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         return new WeakCacheEntry<K, V>(key, value, referenceQueue);
     }
 
-    protected static class WeakCacheEntry<K, V> extends CacheEntry<V> {
+    protected static final class WeakCacheEntry<K, V> extends CacheEntry<V> {
         private WeakCacheEntry(K key, V value, ReferenceQueue<V> queue) {
             super(new KeyedWeakReference<K, V>(key, value, queue));
         }
@@ -441,5 +434,4 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
         t.schedule(task, 0, CLEANUP_DELAY);
     }
-
 }

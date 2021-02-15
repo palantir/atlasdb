@@ -15,26 +15,24 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-
-import org.jmock.Mockery;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.auto.service.AutoService;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import org.jmock.Mockery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @AutoService(AtlasDbFactory.class)
 public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
@@ -68,9 +66,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs,
-            Optional<DbTimestampCreationSetting> timestampTable,
-            boolean initializeAsync) {
+            KeyValueService rawKvs, Optional<TableReference> timestampTable, boolean initializeAsync) {
         return nextTimestampServices.remove(0);
     }
 

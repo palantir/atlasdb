@@ -15,11 +15,25 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.base.Verify;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.net.InetSocketAddress;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
@@ -30,28 +44,10 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Verify;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
-
 public final class CassandraVerifier {
     private static final Logger log = LoggerFactory.getLogger(CassandraVerifier.class);
     private static final KsDef SIMPLE_RF_TEST_KS_DEF = new KsDef(
-            CassandraConstants.SIMPLE_RF_TEST_KEYSPACE,
-            CassandraConstants.SIMPLE_STRATEGY,
-            ImmutableList.of())
+                    CassandraConstants.SIMPLE_RF_TEST_KEYSPACE, CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of())
             .setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1"));
     private static final String SIMPLE_PARTITIONING_ERROR_MSG = "This cassandra cluster is running using the simple "
             + "partitioning strategy. This partitioner is not rack aware and is not intended for use on prod. "
@@ -74,7 +70,7 @@ public final class CassandraVerifier {
         createSimpleRfTestKeyspaceIfNotExists(client);
 
         Multimap<String, String> datacenterToRack = HashMultimap.create();
-        Set<String> hosts = Sets.newHashSet();
+        Set<String> hosts = new HashSet<>();
         for (TokenRange tokenRange : client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE)) {
             for (EndpointDetails details : tokenRange.getEndpoint_details()) {
                 datacenterToRack.put(details.datacenter, details.rack);
@@ -106,10 +102,11 @@ public final class CassandraVerifier {
         return datacenterToRack.values().size() == 1;
     }
 
-    private static void checkMoreRacksThanRfOrFewerHostsThanRf(CassandraKeyValueServiceConfig config, Set<String> hosts,
-            Multimap<String, String> dcRack) {
+    private static void checkMoreRacksThanRfOrFewerHostsThanRf(
+            CassandraKeyValueServiceConfig config, Set<String> hosts, Multimap<String, String> dcRack) {
         if (dcRack.values().size() < config.replicationFactor() && hosts.size() > config.replicationFactor()) {
-            logErrorOrThrow("The cassandra cluster only has one DC, "
+            logErrorOrThrow(
+                    "The cassandra cluster only has one DC, "
                             + "and is set up with less racks than the desired number of replicas, "
                             + "and there are more hosts than the replication factor. "
                             + "It is very likely that your rack configuration is incorrect and replicas "
@@ -125,13 +122,13 @@ public final class CassandraVerifier {
             String datacenter = Iterables.getOnlyElement(dcRack.keySet());
             String rack = Iterables.getOnlyElement(dcRack.values());
             if (datacenter.equals(CassandraConstants.DEFAULT_DC) && rack.equals(CassandraConstants.DEFAULT_RACK)) {
-                logErrorOrThrow("The cassandra cluster is not set up to be datacenter and rack aware. Please set up "
+                logErrorOrThrow(
+                        "The cassandra cluster is not set up to be datacenter and rack aware. Please set up "
                                 + "Cassandra to use NetworkTopology and add corresponding snitch information "
                                 + "before running with a replication factor higher than 1. "
                                 + "If you're running in some sort of environment where nodes have no known correlated "
                                 + "failure patterns, you can set the 'ignoreNodeTopologyChecks' KVS config option.",
                         config.ignoreNodeTopologyChecks());
-
             }
         }
     }
@@ -139,10 +136,12 @@ public final class CassandraVerifier {
     @SuppressWarnings("ValidateConstantMessage") // https://github.com/palantir/gradle-baseline/pull/175
     static void sanityCheckTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
-        Validate.isTrue(!(tableName.startsWith("_") && tableName.contains("."))
-                || AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)
-                || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
-                "invalid tableName: %s", tableName);
+        Validate.isTrue(
+                !(tableName.startsWith("_") && tableName.contains("."))
+                        || AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)
+                        || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
+                "invalid tableName: %s",
+                tableName);
     }
 
     /**
@@ -152,8 +151,10 @@ public final class CassandraVerifier {
      */
     static void logErrorOrThrow(String errorMessage, boolean shouldLogAndNotThrow) {
         if (shouldLogAndNotThrow) {
-            log.error("{} This would have normally resulted in Palantir exiting however "
-                    + "safety checks have been disabled.", SafeArg.of("errorMessage", errorMessage));
+            log.error(
+                    "{} This would have normally resulted in Palantir exiting however "
+                            + "safety checks have been disabled.",
+                    SafeArg.of("errorMessage", errorMessage));
         } else {
             throw new IllegalStateException(errorMessage);
         }
@@ -164,8 +165,8 @@ public final class CassandraVerifier {
             Verify.verify(
                     CassandraConstants.ALLOWED_PARTITIONERS.contains(partitioner),
                     "Invalid partitioner. Allowed: %s, but partitioner is: %s. "
-                    + "If you fully understand how it will affect range scan performance and vnode generation, "
-                    + "you can set 'ignorePartitionerChecks' in your config.",
+                            + "If you fully understand how it will affect range scan performance and vnode generation, "
+                            + "you can set 'ignorePartitionerChecks' in your config.",
                     CassandraConstants.ALLOWED_PARTITIONERS,
                     partitioner);
         }
@@ -194,10 +195,11 @@ public final class CassandraVerifier {
         try {
             return keyspaceAlreadyExists(host, config) || attemptToCreateKeyspaceOnHost(host, config);
         } catch (Exception exception) {
-            log.warn("Couldn't use host {} to create keyspace."
-                    + " It returned exception \"{}\" during the attempt."
-                    + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
-                    + " See the debug-level log for the stack trace.",
+            log.warn(
+                    "Couldn't use host {} to create keyspace."
+                            + " It returned exception \"{}\" during the attempt."
+                            + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
+                            + " See the debug-level log for the stack trace.",
                     SafeArg.of("host", CassandraLogHelper.host(host)),
                     UnsafeArg.of("exceptionMessage", exception.toString()));
             log.debug("Specifically, creating the keyspace failed with the following stack trace", exception);
@@ -210,8 +212,8 @@ public final class CassandraVerifier {
             throws TException {
         try (CassandraClient client = CassandraClientFactory.getClientInternal(host, config)) {
             client.describe_keyspace(config.getKeyspaceOrThrow());
-            CassandraKeyValueServices.waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client,
-                    "while checking if schemas diverged on startup");
+            CassandraKeyValueServices.waitForSchemaVersions(
+                    config.schemaMutationTimeoutMillis(), client, "while checking if schemas diverged on startup");
             return true;
         } catch (NotFoundException e) {
             return false;
@@ -224,15 +226,16 @@ public final class CassandraVerifier {
             KsDef ksDef = createKsDefForFresh(client, config);
             client.system_add_keyspace(ksDef);
             log.info("Created keyspace: {}", SafeArg.of("keyspace", config.getKeyspaceOrThrow()));
-            CassandraKeyValueServices.waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client,
-                    "after adding the initial empty keyspace");
+            CassandraKeyValueServices.waitForSchemaVersions(
+                    config.schemaMutationTimeoutMillis(), client, "after adding the initial empty keyspace");
             return true;
         } catch (InvalidRequestException e) {
             boolean keyspaceAlreadyExists = keyspaceAlreadyExists(host, config);
             if (!keyspaceAlreadyExists) {
-                log.info("Encountered an invalid request exception {} when attempting to create a keyspace"
-                        + " on a given Cassandra host {}, but the keyspace doesn't seem to exist yet. This may"
-                        + " cause issues if it recurs persistently, so logging for debugging purposes.",
+                log.info(
+                        "Encountered an invalid request exception {} when attempting to create a keyspace"
+                                + " on a given Cassandra host {}, but the keyspace doesn't seem to exist yet. This may"
+                                + " cause issues if it recurs persistently, so logging for debugging purposes.",
                         SafeArg.of("host", CassandraLogHelper.host(host)),
                         UnsafeArg.of("exceptionMessage", e.toString()));
                 log.debug("Specifically, creating the keyspace failed with the following stack trace", e);
@@ -248,35 +251,29 @@ public final class CassandraVerifier {
             // there was an existing keyspace
             // check and make sure it's definition is up to date with our config
             KsDef modifiedKsDef = originalKsDef.deepCopy();
-            checkAndSetReplicationFactor(
-                    client,
-                    modifiedKsDef,
-                    config);
+            checkAndSetReplicationFactor(client, modifiedKsDef, config);
 
             if (!modifiedKsDef.equals(originalKsDef)) {
                 // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 modifiedKsDef.setCf_defs(ImmutableList.of());
                 client.system_update_keyspace(modifiedKsDef);
                 CassandraKeyValueServices.waitForSchemaVersions(
-                        config.schemaMutationTimeoutMillis(),
-                        client,
-                        "after updating the existing keyspace");
+                        config.schemaMutationTimeoutMillis(), client, "after updating the existing keyspace");
             }
             return null;
         });
     }
 
     static KsDef createKsDefForFresh(CassandraClient client, CassandraKeyValueServiceConfig config) throws TException {
-        KsDef ksDef = new KsDef(config.getKeyspaceOrThrow(), CassandraConstants.NETWORK_STRATEGY,
-                ImmutableList.of());
+        KsDef ksDef = new KsDef(config.getKeyspaceOrThrow(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
         Set<String> dcs = sanityCheckDatacenters(client, config);
         ksDef.setStrategy_options(Maps.asMap(dcs, ignore -> String.valueOf(config.replicationFactor())));
         ksDef.setDurable_writes(true);
         return ksDef;
     }
 
-    static KsDef checkAndSetReplicationFactor(CassandraClient client, KsDef ksDef,
-            CassandraKeyValueServiceConfig config) throws TException {
+    static KsDef checkAndSetReplicationFactor(
+            CassandraClient client, KsDef ksDef, CassandraKeyValueServiceConfig config) throws TException {
         KsDef result = ksDef;
         Set<String> datacenters;
         if (Objects.equals(result.getStrategy_class(), CassandraConstants.SIMPLE_STRATEGY)) {
@@ -290,16 +287,16 @@ public final class CassandraVerifier {
         return result;
     }
 
-    private static Set<String> getDcForSimpleStrategy(CassandraClient client, KsDef ksDef,
-            CassandraKeyValueServiceConfig config) throws TException {
+    private static Set<String> getDcForSimpleStrategy(
+            CassandraClient client, KsDef ksDef, CassandraKeyValueServiceConfig config) throws TException {
         checkKsDefRfEqualsOne(ksDef, config);
         Set<String> datacenters = sanityCheckDatacenters(client, config);
         checkOneDatacenter(config, datacenters);
         return datacenters;
     }
 
-    private static KsDef setNetworkStrategyIfCheckedTopology(KsDef ksDef, CassandraKeyValueServiceConfig config,
-            Set<String> datacenters) {
+    private static KsDef setNetworkStrategyIfCheckedTopology(
+            KsDef ksDef, CassandraKeyValueServiceConfig config, Set<String> datacenters) {
         if (!config.ignoreNodeTopologyChecks()) {
             ksDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
             ksDef.setStrategy_options(ImmutableMap.of(Iterables.getOnlyElement(datacenters), "1"));
@@ -332,19 +329,20 @@ public final class CassandraVerifier {
         checkRfsMatchConfig(ks, config, dcs, ks.getStrategy_options());
     }
 
-    private static void checkRfsSpecified(CassandraKeyValueServiceConfig config, Set<String> dcs,
-            Map<String, String> strategyOptions) {
+    private static void checkRfsSpecified(
+            CassandraKeyValueServiceConfig config, Set<String> dcs, Map<String, String> strategyOptions) {
         for (String datacenter : dcs) {
             if (strategyOptions.get(datacenter) == null) {
-                logErrorOrThrow("The datacenter for this cassandra cluster is invalid. "
-                        + " failed dc: " + datacenter + "  strategyOptions: " + strategyOptions,
+                logErrorOrThrow(
+                        "The datacenter for this cassandra cluster is invalid. " + " failed dc: " + datacenter
+                                + "  strategyOptions: " + strategyOptions,
                         config.ignoreDatacenterConfigurationChecks());
             }
         }
     }
 
-    private static void checkRfsMatchConfig(KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs,
-            Map<String, String> strategyOptions) {
+    private static void checkRfsMatchConfig(
+            KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs, Map<String, String> strategyOptions) {
         for (String datacenter : dcs) {
             if (Integer.parseInt(strategyOptions.get(datacenter)) != config.replicationFactor()) {
                 throw new UnsupportedOperationException("Your current Cassandra keyspace (" + ks.getName()

@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongUnaryOperator;
-
 import org.junit.Test;
 
 public class CassandraMutationTimestampProvidersTest {
@@ -38,7 +37,8 @@ public class CassandraMutationTimestampProvidersTest {
 
     @Test
     public void legacyProviderWritesTombstonesAtAtlasTimestampPlusOne() {
-        assertThat(LEGACY_PROVIDER.getDeletionTimestampOperatorForBatchDelete().applyAsLong(1234)).isEqualTo(1234 + 1);
+        assertThat(LEGACY_PROVIDER.getDeletionTimestampOperatorForBatchDelete().applyAsLong(1234))
+                .isEqualTo(1234 + 1);
         assertThat(LEGACY_PROVIDER.getDeletionTimestampOperatorForBatchDelete().applyAsLong(12345678))
                 .isEqualTo(12345678 + 1);
     }
@@ -58,10 +58,17 @@ public class CassandraMutationTimestampProvidersTest {
 
     @Test
     public void supplierBackedProviderQueriesSupplierForDeletionTimestamps() {
-        assertThat(supplierBackedProvider.getDeletionTimestampOperatorForBatchDelete().applyAsLong(1234)).isEqualTo(1);
-        assertThat(supplierBackedProvider.getDeletionTimestampOperatorForBatchDelete().applyAsLong(12345678))
+        assertThat(supplierBackedProvider
+                        .getDeletionTimestampOperatorForBatchDelete()
+                        .applyAsLong(1234))
+                .isEqualTo(1);
+        assertThat(supplierBackedProvider
+                        .getDeletionTimestampOperatorForBatchDelete()
+                        .applyAsLong(12345678))
                 .isEqualTo(2);
-        assertThat(supplierBackedProvider.getDeletionTimestampOperatorForBatchDelete().applyAsLong(314159265358979L))
+        assertThat(supplierBackedProvider
+                        .getDeletionTimestampOperatorForBatchDelete()
+                        .applyAsLong(314159265358979L))
                 .isEqualTo(3);
     }
 

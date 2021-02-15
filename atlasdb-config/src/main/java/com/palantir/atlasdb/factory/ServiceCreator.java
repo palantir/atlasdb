@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAuxiliaryRemotingParameters;
@@ -30,15 +27,16 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class ServiceCreator {
     private final MetricsManager metricsManager;
     private final Supplier<ServerListConfig> servers;
     private final AuxiliaryRemotingParameters parameters;
 
-    private ServiceCreator(MetricsManager metricsManager,
-            Supplier<ServerListConfig> servers,
-            AuxiliaryRemotingParameters parameters) {
+    private ServiceCreator(
+            MetricsManager metricsManager, Supplier<ServerListConfig> servers, AuxiliaryRemotingParameters parameters) {
         this.metricsManager = metricsManager;
         this.servers = servers;
         this.parameters = parameters;
@@ -75,8 +73,8 @@ public final class ServiceCreator {
     }
 
     public <T> T createServiceWithShortTimeout(Class<T> serviceClass) {
-        AuxiliaryRemotingParameters blockingUnsupportedParameters
-                = ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldUseExtendedTimeout(false);
+        AuxiliaryRemotingParameters blockingUnsupportedParameters =
+                ImmutableAuxiliaryRemotingParameters.copyOf(parameters).withShouldUseExtendedTimeout(false);
         return create(metricsManager, servers, serviceClass, blockingUnsupportedParameters);
     }
 
@@ -94,18 +92,11 @@ public final class ServiceCreator {
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                metricsManager,
-                serverListConfigSupplier,
-                type,
-                parameters);
+                metricsManager, serverListConfigSupplier, type, parameters);
     }
 
     public static <T> T instrumentService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
-                serviceClass,
-                service,
-                MetricRegistry.name(serviceClass));
+        return AtlasDbMetrics.instrument(metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass));
     }
 
     private static AuxiliaryRemotingParameters toAuxiliaryRemotingParameters(

@@ -16,18 +16,16 @@
 
 package com.palantir.paxos;
 
-import java.io.IOException;
-import java.util.OptionalLong;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.io.IOException;
+import java.util.OptionalLong;
+import java.util.concurrent.atomic.AtomicLong;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This implementation of {@link PaxosStateLog} delegates all reads and writes of rounds to one of two delegates, as
@@ -44,7 +42,8 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
     private final long cutoffInclusive;
     private final AtomicLong legacyLogLeastLogEntry;
 
-    private SplittingPaxosStateLog(PaxosStateLog<V> legacyLog,
+    private SplittingPaxosStateLog(
+            PaxosStateLog<V> legacyLog,
             PaxosStateLog<V> currentLog,
             Runnable markLegacyWrite,
             Runnable markLegacyRead,
@@ -59,7 +58,8 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
     }
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> create(SplittingParameters<V> parameters) {
-        Preconditions.checkState(parameters.cutoffInclusive() == PaxosAcceptor.NO_LOG_ENTRY
+        Preconditions.checkState(
+                parameters.cutoffInclusive() == PaxosAcceptor.NO_LOG_ENTRY
                         || parameters.currentLog().getGreatestLogEntry() >= parameters.cutoffInclusive(),
                 "Cutoff value must either be -1, or the current log must contain an entry after the cutoff.");
         return new SplittingPaxosStateLog<>(
@@ -86,11 +86,18 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
                 .hydrator(hydrator)
                 .migrationState(SqlitePaxosStateLogMigrationState.create(namespaceUseCase, params.sqliteDataSource()))
                 .migrateFrom(migrateFrom)
+                .namespaceAndUseCase(namespaceUseCase)
+                .skipValidationAndTruncateSourceIfMigrated(params.skipConsistencyCheckAndTruncateOldPaxosLog())
                 .build();
 
-        log.info("Starting migration for namespace and use case {} if migration has not run before.",
+        log.info(
+                "Starting migration for namespace and use case {} if migration has not run before.",
                 SafeArg.of("namespaceAndUseCase", params.namespaceAndUseCase()));
         long cutoff = PaxosStateLogMigrator.migrateAndReturnCutoff(migrationContext);
+
+        if (params.skipConsistencyCheckAndTruncateOldPaxosLog()) {
+            return migrationContext.destinationLog();
+        }
 
         SplittingParameters<V> splittingParameters = ImmutableSplittingParameters.<V>builder()
                 .legacyLog(migrationContext.sourceLog())
@@ -141,17 +148,26 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
         log.warn("Tried to truncate paxos state log with an implementation that does not support truncations.");
     }
 
+    @Override
+    public void truncateAllRounds() {
+        log.warn("Tried to truncate paxos state log with an implementation that does not support truncations.");
+    }
+
     @Value.Immutable
     interface SplittingParameters<V extends Persistable & Versionable> {
         PaxosStateLog<V> legacyLog();
+
         PaxosStateLog<V> currentLog();
+
         LegacyOperationMarkers legacyOperationMarkers();
+
         long cutoffInclusive();
     }
 
     @Value.Immutable
     public interface LegacyOperationMarkers {
         Runnable markLegacyWrite();
+
         Runnable markLegacyRead();
     }
 }

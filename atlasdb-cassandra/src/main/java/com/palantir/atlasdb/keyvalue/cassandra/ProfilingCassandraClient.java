@@ -15,11 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils;
+import com.palantir.atlasdb.logging.KvsProfilingLogger;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.SafeArg;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -38,12 +42,6 @@ import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils;
-import com.palantir.atlasdb.logging.KvsProfilingLogger;
-import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.logsafe.SafeArg;
-
 @SuppressWarnings({"all"}) // thrift variable names.
 public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     private final CassandraClient client;
@@ -58,7 +56,8 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
+    public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(
+            String kvsMethodName,
             TableReference tableRef,
             List<ByteBuffer> keys,
             SlicePredicate predicate,
@@ -71,7 +70,8 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<Map<ByteBuffer, List<ColumnOrSuperColumn>>, TException>)
                         () -> client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level),
-                (logger, timer) -> logger.log("CassandraClient.multiget_slice({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
+                (logger, timer) -> logger.log(
+                        "CassandraClient.multiget_slice({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.keyCount(numberOfKeys),
                         LoggingArgs.columnCount(numberOfColumns),
@@ -79,14 +79,16 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
                         LoggingArgs.startTimeMillis(startTime),
                         SafeArg.of("kvsMethodName", kvsMethodName),
                         LoggingArgs.durationMillis(timer)),
-                (logger, rowsToColumns) -> logger.log("and returned {} cells in {} rows with {} bytes",
+                (logger, rowsToColumns) -> logger.log(
+                        "and returned {} cells in {} rows with {} bytes",
                         LoggingArgs.cellCount(countCells(rowsToColumns.values())),
                         LoggingArgs.rowCount(rowsToColumns.size()),
                         LoggingArgs.sizeInBytes(ThriftObjectSizeUtils.getApproximateSizeOfColsByKey(rowsToColumns))));
     }
 
     @Override
-    public Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(String kvsMethodName,
+    public Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(
+            String kvsMethodName,
             TableReference tableRef,
             List<KeyPredicate> keyPredicates,
             ConsistencyLevel consistency_level)
@@ -96,15 +98,16 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
 
         return KvsProfilingLogger.maybeLog(
                 () -> client.multiget_multislice(kvsMethodName, tableRef, keyPredicates, consistency_level),
-                (logger, timer) -> logger.log("CassandraClient.multiget_multislice({}, {}, {}) at time {}, on kvs.{}"
-                                + " took {} ms",
+                (logger, timer) -> logger.log(
+                        "CassandraClient.multiget_multislice({}, {}, {}) at time {}, on kvs.{}" + " took {} ms",
                         LoggingArgs.tableRef(tableRef),
                         SafeArg.of("numberOfKeyPredicates", numberOfKeyPredicates),
                         SafeArg.of("consistency", consistency_level.toString()),
                         LoggingArgs.startTimeMillis(startTime),
                         SafeArg.of("kvsMethodName", kvsMethodName),
                         LoggingArgs.durationMillis(timer)),
-                (logger, rowsToColumnLists) -> logger.log("and returned {} cells in {} rows with {} bytes",
+                (logger, rowsToColumnLists) -> logger.log(
+                        "and returned {} cells in {} rows with {} bytes",
                         LoggingArgs.cellCount(countCellsAcrossKeys(rowsToColumnLists)),
                         LoggingArgs.rowCount(rowsToColumnLists.size()),
                         LoggingArgs.sizeInBytes(
@@ -112,7 +115,8 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public List<KeySlice> get_range_slices(String kvsMethodName,
+    public List<KeySlice> get_range_slices(
+            String kvsMethodName,
             TableReference tableRef,
             SlicePredicate predicate,
             KeyRange range,
@@ -125,7 +129,8 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<List<KeySlice>, TException>)
                         () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
-                (logger, timer) -> logger.log("CassandraClient.get_range_slices({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
+                (logger, timer) -> logger.log(
+                        "CassandraClient.get_range_slices({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.keyCount(numberOfKeys),
                         LoggingArgs.columnCount(numberOfColumns),
@@ -133,23 +138,28 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
                         LoggingArgs.startTimeMillis(startTime),
                         SafeArg.of("kvsMethodName", kvsMethodName),
                         LoggingArgs.durationMillis(timer)),
-                (logger, rows) -> logger.log("and returned {} rows with {} bytes",
+                (logger, rows) -> logger.log(
+                        "and returned {} rows with {} bytes",
                         LoggingArgs.rowCount(rows.size()),
                         LoggingArgs.sizeInBytes(ThriftObjectSizeUtils.getApproximateSizeOfKeySlices(rows))));
     }
 
     @Override
-    public void remove(String kvsMethodName, TableReference tableRef, byte[] row, long timestamp,
+    public void remove(
+            String kvsMethodName,
+            TableReference tableRef,
+            byte[] row,
+            long timestamp,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         long startTime = System.currentTimeMillis();
         KvsProfilingLogger.maybeLog(
-                (KvsProfilingLogger.CallableCheckedException<Void, TException>)
-                        () -> {
-                             client.remove(kvsMethodName, tableRef, row, timestamp, consistency_level);
-                             return null;
-                        },
-                (logger, timer) -> logger.log("CassandraClient.remove({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
+                (KvsProfilingLogger.CallableCheckedException<Void, TException>) () -> {
+                    client.remove(kvsMethodName, tableRef, row, timestamp, consistency_level);
+                    return null;
+                },
+                (logger, timer) -> logger.log(
+                        "CassandraClient.remove({}, {}, {}, {}) at time {}, on kvs.{} took {} ms",
                         LoggingArgs.tableRef(tableRef),
                         SafeArg.of("timestamp", timestamp),
                         SafeArg.of("consistency", consistency_level.toString()),
@@ -159,26 +169,29 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public void batch_mutate(String kvsMethodName,
+    public void batch_mutate(
+            String kvsMethodName,
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         long startTime = System.currentTimeMillis();
 
         KvsProfilingLogger.maybeLog(
-                (KvsProfilingLogger.CallableCheckedException<Void, TException>)
-                        () -> {
-                            client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
-                            return null;
-                        },
+                (KvsProfilingLogger.CallableCheckedException<Void, TException>) () -> {
+                    client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
+                    return null;
+                },
                 (logger, timer) -> {
                     logger.log("CassandraClient.batch_mutate(");
-                    ThriftObjectSizeUtils.getSizeOfMutationPerTable(mutation_map).forEach((tableName, size) -> {
-                        logger.log("{} -> {}",
-                                LoggingArgs.safeInternalTableNameOrPlaceholder(tableName),
-                                LoggingArgs.sizeInBytes(size));
-                    });
-                    logger.log(") with consistency {} at time {}, on kvs.{} took {} ms",
+                    ThriftObjectSizeUtils.getSizeOfMutationPerTable(mutation_map)
+                            .forEach((tableName, size) -> {
+                                logger.log(
+                                        "{} -> {}",
+                                        LoggingArgs.safeInternalTableNameOrPlaceholder(tableName),
+                                        LoggingArgs.sizeInBytes(size));
+                            });
+                    logger.log(
+                            ") with consistency {} at time {}, on kvs.{} took {} ms",
                             SafeArg.of("consistency", consistency_level.toString()),
                             LoggingArgs.startTimeMillis(startTime),
                             SafeArg.of("kvsMethodName", kvsMethodName),
@@ -187,17 +200,16 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public ColumnOrSuperColumn get(TableReference tableReference,
-            ByteBuffer key,
-            byte[] column,
-            ConsistencyLevel consistency_level)
+    public ColumnOrSuperColumn get(
+            TableReference tableReference, ByteBuffer key, byte[] column, ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
         long startTime = System.currentTimeMillis();
 
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<ColumnOrSuperColumn, TException>)
                         () -> client.get(tableReference, key, column, consistency_level),
-                (logger, timer) -> logger.log("CassandraClient.get({}, {}) at time {} took {} ms",
+                (logger, timer) -> logger.log(
+                        "CassandraClient.get({}, {}) at time {} took {} ms",
                         LoggingArgs.tableRef(tableReference),
                         SafeArg.of("consistency", consistency_level.toString()),
                         LoggingArgs.startTimeMillis(startTime),
@@ -205,7 +217,8 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public CASResult cas(TableReference tableReference,
+    public CASResult cas(
+            TableReference tableReference,
             ByteBuffer key,
             List<Column> expected,
             List<Column> updates,
@@ -215,10 +228,10 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
         long startTime = System.currentTimeMillis();
 
         return KvsProfilingLogger.maybeLog(
-                (KvsProfilingLogger.CallableCheckedException<CASResult, TException>)
-                        () -> client.cas(tableReference, key, expected, updates, serial_consistency_level,
-                                commit_consistency_level),
-                (logger, timer) -> logger.log("CassandraClient.cas({}) at time {} took {} ms",
+                (KvsProfilingLogger.CallableCheckedException<CASResult, TException>) () -> client.cas(
+                        tableReference, key, expected, updates, serial_consistency_level, commit_consistency_level),
+                (logger, timer) -> logger.log(
+                        "CassandraClient.cas({}) at time {} took {} ms",
                         LoggingArgs.tableRef(tableReference),
                         LoggingArgs.startTimeMillis(startTime),
                         LoggingArgs.durationMillis(timer)));
@@ -227,20 +240,22 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     @Override
     public CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
-            TException {
+                    TException {
         long startTime = System.currentTimeMillis();
 
         return KvsProfilingLogger.maybeLog(
                 (KvsProfilingLogger.CallableCheckedException<CqlResult, TException>)
                         () -> client.execute_cql3_query(cqlQuery, compression, consistency),
-                (logger, timer) -> cqlQuery.logSlowResult(logger, timer),
+                cqlQuery::logSlowResult,
                 (logger, cqlResult) -> {
                     if (cqlResult.getRows() == null) {
                         // different from an empty list
-                        logger.log("and returned null rows. The query was started at time {}",
+                        logger.log(
+                                "and returned null rows. The query was started at time {}",
                                 LoggingArgs.startTimeMillis(startTime));
                     } else {
-                        logger.log("and returned {} rows. The query was started at time {}",
+                        logger.log(
+                                "and returned {} rows. The query was started at time {}",
                                 SafeArg.of("numRows", cqlResult.getRows().size()),
                                 LoggingArgs.startTimeMillis(startTime));
                     }
@@ -248,7 +263,9 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     private static int countCellsAcrossKeys(Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> rowsToColumnLists) {
-        return rowsToColumnLists.values().stream().mapToInt(ProfilingCassandraClient::countCells).sum();
+        return rowsToColumnLists.values().stream()
+                .mapToInt(ProfilingCassandraClient::countCells)
+                .sum();
     }
 
     private static int countCells(Collection<List<ColumnOrSuperColumn>> values) {

@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Set;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.SweepStrategy;
+import java.util.Set;
 
 public interface SweepStrategyManager {
     SweepStrategy get(TableReference tableRef);

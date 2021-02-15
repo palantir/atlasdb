@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.containers;
 
-import java.net.SocketAddress;
-
 import com.datastax.driver.core.NettyOptions;
-
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.proxy.Socks5ProxyHandler;
+import java.net.SocketAddress;
 
 final class SocksProxyNettyOptions extends NettyOptions {
     private final SocketAddress proxyAddress;

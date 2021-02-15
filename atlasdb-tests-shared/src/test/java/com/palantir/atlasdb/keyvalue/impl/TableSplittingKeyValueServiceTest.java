@@ -17,12 +17,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
-
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -30,6 +24,10 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Map;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
+import org.junit.Test;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Expectations syntax
 public class TableSplittingKeyValueServiceTest {
@@ -49,13 +47,13 @@ public class TableSplittingKeyValueServiceTest {
     @Test
     public void delegatesMethodsToTheKvsAssociatedWithTheTable() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
-                ImmutableList.of(defaultKvs, tableDelegate),
-                ImmutableMap.of(TABLE, tableDelegate)
-        );
+                ImmutableList.of(defaultKvs, tableDelegate), ImmutableMap.of(TABLE, tableDelegate));
 
-        mockery.checking(new Expectations() {{
-            oneOf(tableDelegate).put(TABLE, VALUES, TIMESTAMP);
-        }});
+        mockery.checking(new Expectations() {
+            {
+                oneOf(tableDelegate).put(TABLE, VALUES, TIMESTAMP);
+            }
+        });
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
     }
@@ -65,12 +63,13 @@ public class TableSplittingKeyValueServiceTest {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
                 ImmutableList.of(tableDelegate, namespaceDelegate),
                 ImmutableMap.<TableReference, KeyValueService>of(),
-                ImmutableMap.of(NAMESPACE, namespaceDelegate)
-        );
+                ImmutableMap.of(NAMESPACE, namespaceDelegate));
 
-        mockery.checking(new Expectations() {{
-            oneOf(namespaceDelegate).put(TABLE, VALUES, TIMESTAMP);
-        }});
+        mockery.checking(new Expectations() {
+            {
+                oneOf(namespaceDelegate).put(TABLE, VALUES, TIMESTAMP);
+            }
+        });
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
     }
@@ -80,12 +79,13 @@ public class TableSplittingKeyValueServiceTest {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
                 ImmutableList.of(tableDelegate, namespaceDelegate),
                 ImmutableMap.of(TABLE, tableDelegate),
-                ImmutableMap.of(NAMESPACE, namespaceDelegate)
-        );
+                ImmutableMap.of(NAMESPACE, namespaceDelegate));
 
-        mockery.checking(new Expectations() {{
-            oneOf(tableDelegate).put(TABLE, VALUES, TIMESTAMP);
-        }});
+        mockery.checking(new Expectations() {
+            {
+                oneOf(tableDelegate).put(TABLE, VALUES, TIMESTAMP);
+            }
+        });
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
     }
@@ -94,12 +94,13 @@ public class TableSplittingKeyValueServiceTest {
     public void defaultsToTheFirstKvsInTheListIfNoMappingsMatch() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
                 ImmutableList.of(defaultKvs, tableDelegate),
-                ImmutableMap.of(TableReference.createWithEmptyNamespace("not-this"), tableDelegate)
-        );
+                ImmutableMap.of(TableReference.createWithEmptyNamespace("not-this"), tableDelegate));
 
-        mockery.checking(new Expectations() {{
-            oneOf(defaultKvs).put(TABLE, VALUES, TIMESTAMP);
-        }});
+        mockery.checking(new Expectations() {
+            {
+                oneOf(defaultKvs).put(TABLE, VALUES, TIMESTAMP);
+            }
+        });
 
         splittingKvs.put(TABLE, VALUES, TIMESTAMP);
     }
@@ -114,21 +115,19 @@ public class TableSplittingKeyValueServiceTest {
                 ImmutableMap.of(
                         table1, tableDelegate,
                         table2, otherTableDelegate,
-                        table3, otherTableDelegate)
-        );
+                        table3, otherTableDelegate));
 
-        final ImmutableMap<TableReference, byte[]> tableSpec1 = ImmutableMap.of(
-                table1, "1".getBytes()
-        );
+        final ImmutableMap<TableReference, byte[]> tableSpec1 = ImmutableMap.of(table1, "1".getBytes());
         final ImmutableMap<TableReference, byte[]> tableSpec2 = ImmutableMap.of(
                 table2, "2".getBytes(),
-                table3, "3".getBytes()
-        );
+                table3, "3".getBytes());
 
-        mockery.checking(new Expectations() {{
-            oneOf(tableDelegate).createTables(tableSpec1);
-            oneOf(otherTableDelegate).createTables(tableSpec2);
-        }});
+        mockery.checking(new Expectations() {
+            {
+                oneOf(tableDelegate).createTables(tableSpec1);
+                oneOf(otherTableDelegate).createTables(tableSpec2);
+            }
+        });
 
         splittingKvs.createTables(merge(tableSpec1, tableSpec2));
     }
@@ -136,22 +135,22 @@ public class TableSplittingKeyValueServiceTest {
     @Test
     public void evaluatesCheckAndSetCompatibilityCorrectly() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
-                ImmutableList.of(defaultKvs, tableDelegate),
-                ImmutableMap.of(TABLE, tableDelegate));
+                ImmutableList.of(defaultKvs, tableDelegate), ImmutableMap.of(TABLE, tableDelegate));
 
-        mockery.checking(new Expectations() {{
-            oneOf(defaultKvs).getCheckAndSetCompatibility();
-            will(returnValue(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE));
-            oneOf(tableDelegate).getCheckAndSetCompatibility();
-            will(returnValue(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE));
-        }});
+        mockery.checking(new Expectations() {
+            {
+                oneOf(defaultKvs).getCheckAndSetCompatibility();
+                will(returnValue(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE));
+                oneOf(tableDelegate).getCheckAndSetCompatibility();
+                will(returnValue(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE));
+            }
+        });
         assertThat(splittingKvs.getCheckAndSetCompatibility())
                 .isEqualTo(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE);
     }
 
     private Map<TableReference, byte[]> merge(
-            ImmutableMap<TableReference, byte[]> left,
-            ImmutableMap<TableReference, byte[]> right) {
+            ImmutableMap<TableReference, byte[]> left, ImmutableMap<TableReference, byte[]> right) {
         return ImmutableMap.<TableReference, byte[]>builder()
                 .putAll(left)
                 .putAll(right)

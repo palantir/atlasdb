@@ -16,6 +16,8 @@
 
 package com.palantir.util;
 
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,9 +26,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public class SafeShutdownRunner implements AutoCloseable {
     private final ExecutorService executor = PTExecutors.newCachedThreadPool("safe-shutdown-runner");
@@ -56,8 +55,8 @@ public class SafeShutdownRunner implements AutoCloseable {
     public void close() {
         executor.shutdown();
         if (!failures.isEmpty()) {
-            RuntimeException closeFailed = new SafeRuntimeException(
-                    "Close failed. Please inspect the code and fix the failures");
+            RuntimeException closeFailed =
+                    new SafeRuntimeException("Close failed. Please inspect the code and fix the failures");
             failures.forEach(closeFailed::addSuppressed);
             throw closeFailed;
         }

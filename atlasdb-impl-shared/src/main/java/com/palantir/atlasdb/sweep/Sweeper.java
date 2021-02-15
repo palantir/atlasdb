@@ -15,28 +15,26 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.function.Function;
-
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.function.Function;
 
 public enum Sweeper {
-    CONSERVATIVE(provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()),
-                 false,
-                 true),
-    THOROUGH(provider -> provider.getImmutableTimestamp(),
-             true,
-             false);
+    CONSERVATIVE(
+            provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()), false, true),
+    THOROUGH(SpecialTimestampsSupplier::getImmutableTimestamp, true, false);
 
     private final Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier;
     private final boolean shouldSweepLastCommitted;
     private final boolean shouldAddSentinels;
 
-    Sweeper(Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier,
-            boolean shouldSweepLastCommitted, boolean shouldAddSentinels) {
+    Sweeper(
+            Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier,
+            boolean shouldSweepLastCommitted,
+            boolean shouldAddSentinels) {
         this.sweepTimestampSupplier = sweepTimestampSupplier;
         this.shouldSweepLastCommitted = shouldSweepLastCommitted;
         this.shouldAddSentinels = shouldAddSentinels;

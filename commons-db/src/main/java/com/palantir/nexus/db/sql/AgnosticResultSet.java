@@ -15,7 +15,6 @@
  */
 package com.palantir.nexus.db.sql;
 
-
 import java.util.List;
 
 public interface AgnosticResultSet {
@@ -25,5 +24,4 @@ public interface AgnosticResultSet {
     AgnosticResultRow get(int row);
 
     int size();
-
 }

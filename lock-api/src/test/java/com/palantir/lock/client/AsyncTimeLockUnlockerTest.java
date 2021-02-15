@@ -23,25 +23,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.awaitility.Awaitility;
-import org.awaitility.Duration;
-import org.awaitility.core.ThrowingRunnable;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ThrowingRunnable;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AsyncTimeLockUnlockerTest {
     private static final int ONE_THOUSAND = 1000;
@@ -55,15 +53,17 @@ public class AsyncTimeLockUnlockerTest {
     @Before
     public void setUp() {
         tokenList = createLockTokenList(ONE_THOUSAND);
-        unlockedTokens = Lists.newArrayList();
+        unlockedTokens = new ArrayList<>();
     }
 
     @Test(timeout = 2_000)
     public void enqueueDoesNotBlock() {
         doAnswer(invocation -> {
-            Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
-            return null;
-        }).when(timelockService).tryUnlock(any());
+                    Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30));
+                    return null;
+                })
+                .when(timelockService)
+                .tryUnlock(any());
 
         unlocker.enqueue(ImmutableSet.copyOf(tokenList));
         // If enqueue blocked till unlock completed, this test would fail after 2 seconds
@@ -96,20 +96,24 @@ public class AsyncTimeLockUnlockerTest {
         AtomicBoolean concurrentlyInvoked = new AtomicBoolean(false);
 
         doAnswer(invocation -> {
-            if (timelockInUse.get()) {
-                concurrentlyInvoked.set(true);
-            }
-            timelockInUse.set(true);
-            unlockedTokens.addAll((Set<LockToken>) invocation.getArguments()[0]);
-            timelockInUse.set(false);
-            return null;
-        }).when(timelockService).tryUnlock(any());
+                    if (timelockInUse.get()) {
+                        concurrentlyInvoked.set(true);
+                    }
+                    timelockInUse.set(true);
+                    unlockedTokens.addAll((Set<LockToken>) invocation.getArguments()[0]);
+                    timelockInUse.set(false);
+                    return null;
+                })
+                .when(timelockService)
+                .tryUnlock(any());
 
         tokenList.forEach(token -> unlocker.enqueue(ImmutableSet.of(token)));
 
         verifyTryUnlockAttemptedAtLeastOnce();
         assertAllTokensEventuallyUnlocked();
-        assertThat(concurrentlyInvoked.get()).as("TimeLock was, at some point, called concurrently").isFalse();
+        assertThat(concurrentlyInvoked.get())
+                .as("TimeLock was, at some point, called concurrently")
+                .isFalse();
     }
 
     private static List<LockToken> createLockTokenList(int size) {
@@ -122,9 +126,11 @@ public class AsyncTimeLockUnlockerTest {
     @SuppressWarnings("unchecked") // Mock invocation known to be correct
     private void setupTokenCollectingTimeLock() {
         doAnswer(invocation -> {
-            unlockedTokens.addAll((Set<LockToken>) invocation.getArguments()[0]);
-            return null;
-        }).when(timelockService).tryUnlock(any());
+                    unlockedTokens.addAll((Set<LockToken>) invocation.getArguments()[0]);
+                    return null;
+                })
+                .when(timelockService)
+                .tryUnlock(any());
     }
 
     private void verifyTryUnlockAttemptedAtLeastOnce() {
@@ -140,8 +146,8 @@ public class AsyncTimeLockUnlockerTest {
 
     private void assertConditionEventuallyTrue(ThrowingRunnable throwingRunnable) {
         Awaitility.await()
-                .atMost(Duration.TEN_SECONDS)
-                .pollInterval(Duration.ONE_HUNDRED_MILLISECONDS)
+                .atMost(Duration.ofSeconds(10))
+                .pollInterval(Duration.ofMillis(100))
                 .untilAsserted(throwingRunnable);
     }
 }

@@ -21,7 +21,9 @@ dependencies {
     runtime project(':atlasdb-dbkvs')
     runtime project(':atlasdb-cassandra')
 
-    compile group: 'org.apache.thrift', name: 'libthrift'
+    compile (group: 'org.apache.thrift', name: 'libthrift') {
+        exclude group: 'org.apache.httpcomponents'
+    }
 
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'

@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.INITIAL_DELAY;
+import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
@@ -24,25 +26,21 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.sweep.queue.ScalingSweepTaskScheduler.INITIAL_DELAY;
-import static com.palantir.logsafe.testing.Assertions.assertThat;
-
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ScalingSweepTaskSchedulerTest {
-    private static final SweepIterationResult SUCCESS_HUGE = SweepIterationResults
-            .success(SweepQueueUtils.SWEEP_BATCH_SIZE);
-    private static final SweepIterationResult SUCCESS_MEDIUM = SweepIterationResults
-            .success(SweepDelay.BATCH_CELLS_LOW_THRESHOLD + 1);
-    private static final SweepIterationResult SUCCESS_TINY = SweepIterationResults
-            .success(SweepDelay.BATCH_CELLS_LOW_THRESHOLD);
+    private static final SweepIterationResult SUCCESS_HUGE =
+            SweepIterationResults.success(SweepQueueUtils.SWEEP_BATCH_SIZE);
+    private static final SweepIterationResult SUCCESS_MEDIUM =
+            SweepIterationResults.success(SweepDelay.BATCH_CELLS_LOW_THRESHOLD + 1);
+    private static final SweepIterationResult SUCCESS_TINY =
+            SweepIterationResults.success(SweepDelay.BATCH_CELLS_LOW_THRESHOLD);
     private static final long DELAY = 1L;
     private static final long INITIAL_PAUSE = 5L;
 
@@ -53,7 +51,8 @@ public class ScalingSweepTaskSchedulerTest {
     private final AtomicBoolean schedulerEnabled = new AtomicBoolean(true);
     private final ScalingSweepTaskScheduler scheduler = createScheduler(delay);
     private final AtomicLong metrics = new AtomicLong();
-    private final ScalingSweepTaskScheduler schedulerWithDelay = createScheduler(new SweepDelay(DELAY, metrics::set));
+    private final ScalingSweepTaskScheduler schedulerWithDelay =
+            createScheduler(new SweepDelay(DELAY, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE));
 
     private boolean firstIteration = true;
 
@@ -88,10 +87,11 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void whenInsufficientConsistencyRescheduleAfterBackoff() throws Exception {
-        when(sweepIteration.call()).thenReturn(
-                SweepIterationResults.insufficientConsistency(),
-                SweepIterationResults.insufficientConsistency(),
-                SUCCESS_MEDIUM);
+        when(sweepIteration.call())
+                .thenReturn(
+                        SweepIterationResults.insufficientConsistency(),
+                        SweepIterationResults.insufficientConsistency(),
+                        SUCCESS_MEDIUM);
 
         schedulerWithDelay.start(2);
         runSweepIterations(2, SweepDelay.BACKOFF);
@@ -102,10 +102,8 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void whenOtherErrorRescheduleAfterMaxPause() throws Exception {
-        when(sweepIteration.call()).thenReturn(
-                SweepIterationResults.otherError(),
-                SweepIterationResults.otherError(),
-                SUCCESS_MEDIUM);
+        when(sweepIteration.call())
+                .thenReturn(SweepIterationResults.otherError(), SweepIterationResults.otherError(), SUCCESS_MEDIUM);
 
         schedulerWithDelay.start(2);
         runSweepIterations(2, SweepDelay.DEFAULT_MAX_PAUSE_MILLIS);
@@ -116,7 +114,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void whenVeryFewEntriesIncreasePause() throws Exception {
-        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set);
+        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE);
         ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
         when(sweepIteration.call()).thenReturn(SUCCESS_TINY);
 
@@ -128,7 +126,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void whenVeryManyEntriesDecreasePause() throws Exception {
-        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set);
+        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE);
         ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
         when(sweepIteration.call()).thenReturn(SUCCESS_HUGE);
 
@@ -140,13 +138,14 @@ public class ScalingSweepTaskSchedulerTest {
 
     @Test
     public void exceptionalIterationsDoNotAffectPause() throws Exception {
-        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set);
+        SweepDelay sweepDelay = new SweepDelay(100L, metrics::set, () -> SweepQueueUtils.SWEEP_BATCH_SIZE);
         ScalingSweepTaskScheduler schedulerWithRealDelay = createScheduler(sweepDelay);
-        when(sweepIteration.call()).thenReturn(
-                SweepIterationResults.otherError(),
-                SweepIterationResults.unableToAcquireShard(),
-                SweepIterationResults.otherError(),
-                SweepIterationResults.insufficientConsistency());
+        when(sweepIteration.call())
+                .thenReturn(
+                        SweepIterationResults.otherError(),
+                        SweepIterationResults.unableToAcquireShard(),
+                        SweepIterationResults.otherError(),
+                        SweepIterationResults.insufficientConsistency());
 
         schedulerWithRealDelay.start(4);
         runSweepIterations(1);
@@ -155,11 +154,7 @@ public class ScalingSweepTaskSchedulerTest {
     }
 
     private ScalingSweepTaskScheduler createScheduler(SweepDelay sweepDelay) {
-        return new ScalingSweepTaskScheduler(
-                deterministicScheduler,
-                sweepDelay,
-                sweepIteration,
-                schedulerEnabled::get);
+        return new ScalingSweepTaskScheduler(deterministicScheduler, sweepDelay, sweepIteration, schedulerEnabled::get);
     }
 
     private void runSweepIterations(int iterations) {

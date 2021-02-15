@@ -1,5 +1,6 @@
 package com.palantir.example.profile.schema.generated;
 
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -82,7 +83,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     private final ProfileTableFactory tables;
 
     private UserPhotosStreamStore(TransactionManager txManager, ProfileTableFactory tables) {
-        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        this(txManager, tables, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 
     private UserPhotosStreamStore(TransactionManager txManager, ProfileTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
@@ -271,7 +272,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
                     "Should only index successfully stored streams.");
 
             Sha256Hash hash = Sha256Hash.EMPTY;
-            if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {
+            if (!ByteString.EMPTY.equals(metadata.getHash())) {
                 hash = new Sha256Hash(metadata.getHash().toByteArray());
             }
             UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow hashRow = UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow.of(hash);
@@ -306,7 +307,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
             }
             ByteString streamHash = e.getValue().getHash();
             Sha256Hash hash = Sha256Hash.EMPTY;
-            if (streamHash != com.google.protobuf.ByteString.EMPTY) {
+            if (!ByteString.EMPTY.equals(streamHash)) {
                 hash = new Sha256Hash(streamHash.toByteArray());
             } else {
                 log.error("Empty hash for stream {}", streamId);

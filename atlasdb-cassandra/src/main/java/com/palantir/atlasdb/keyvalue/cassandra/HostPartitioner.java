@@ -15,30 +15,32 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.logsafe.Preconditions;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 final class HostPartitioner {
     private HostPartitioner() {
         // Static class
     }
 
-    static <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(CassandraClientPool clientPool,
-            Iterable<Map.Entry<Cell, V>> cells) {
+    static <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(
+            CassandraClientPool clientPool, Iterable<Map.Entry<Cell, V>> cells) {
         Map<InetSocketAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
                 partitionByHost(clientPool, cells, entry -> entry.getKey().getRowName());
-        Map<InetSocketAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
+        Map<InetSocketAddress, Map<Cell, V>> cellsByHost = new HashMap<>();
         for (Map.Entry<InetSocketAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
-            Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());
+            Map<Cell, V> cellsForHost =
+                    Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());
             for (Map.Entry<Cell, V> entry : hostAndCells.getValue()) {
                 cellsForHost.put(entry.getKey(), entry.getValue());
             }
@@ -47,9 +49,8 @@ final class HostPartitioner {
         return cellsByHost;
     }
 
-    static <V> Map<InetSocketAddress, List<V>> partitionByHost(CassandraClientPool clientPool,
-            Iterable<V> iterable,
-            Function<V, byte[]> keyExtractor) {
+    static <V> Map<InetSocketAddress, List<V>> partitionByHost(
+            CassandraClientPool clientPool, Iterable<V> iterable, Function<V, byte[]> keyExtractor) {
         // Ensure that the same key goes to the same partition. This is important when writing multiple columns
         // to the same row, since this is a normally a single write in cassandra, whereas splitting the columns
         // into different requests results in multiple writes.
@@ -59,6 +60,9 @@ final class HostPartitioner {
         }
         ListMultimap<InetSocketAddress, V> valuesByHost = ArrayListMultimap.create();
         for (ByteBuffer key : partitionedByKey.keySet()) {
+            Preconditions.checkState(key.hasArray(), "Expected an array backed buffer");
+            Preconditions.checkState(key.arrayOffset() == 0, "Buffer array must have no offset");
+            Preconditions.checkState(key.limit() == key.array().length, "Array length must match the limit");
             InetSocketAddress host = clientPool.getRandomHostForKey(key.array());
             valuesByHost.putAll(host, partitionedByKey.get(key));
         }

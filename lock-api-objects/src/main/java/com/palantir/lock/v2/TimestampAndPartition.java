@@ -16,10 +16,9 @@
 
 package com.palantir.lock.v2;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 /**
  * A pair of a timestamp along with a numeric partition identifier that may be used by some Atlas clients operating

@@ -16,36 +16,12 @@
 package com.palantir.lock.logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.file.Files;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.assertj.core.util.Strings;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.yaml.snakeyaml.Yaml;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.MapMaker;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollections;
@@ -59,6 +35,26 @@ import com.palantir.lock.impl.ClientAwareReadWriteLock;
 import com.palantir.lock.impl.LockClientIndices;
 import com.palantir.lock.impl.LockServerLock;
 import com.palantir.lock.impl.LockServiceImpl;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.assertj.core.util.Strings;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.yaml.snakeyaml.Yaml;
 
 public class LockServiceStateLoggerTest {
 
@@ -68,8 +64,7 @@ public class LockServiceStateLoggerTest {
     private static final SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap =
             Multimaps.synchronizedSetMultimap(HashMultimap.<LockClient, LockRequest>create());
 
-    private static final Map<LockDescriptor, ClientAwareReadWriteLock> syncStateMap =
-            Maps.newHashMap();
+    private static final Map<LockDescriptor, ClientAwareReadWriteLock> syncStateMap = new HashMap<>();
 
     private static final LockDescriptor DESCRIPTOR_1 = StringLockDescriptor.of("logger-lock");
     private static final LockDescriptor DESCRIPTOR_2 = StringLockDescriptor.of("logger-AAA");
@@ -82,11 +77,11 @@ public class LockServiceStateLoggerTest {
         LockClient clientB = LockClient.of("Client B");
 
         LockRequest request1 = LockRequest.builder(
-                LockCollections.of(ImmutableSortedMap.of(DESCRIPTOR_1, LockMode.WRITE)))
+                        LockCollections.of(ImmutableSortedMap.of(DESCRIPTOR_1, LockMode.WRITE)))
                 .blockForAtMost(SimpleTimeDuration.of(1000, TimeUnit.MILLISECONDS))
                 .build();
         LockRequest request2 = LockRequest.builder(
-                LockCollections.of(ImmutableSortedMap.of(DESCRIPTOR_2, LockMode.WRITE)))
+                        LockCollections.of(ImmutableSortedMap.of(DESCRIPTOR_2, LockMode.WRITE)))
                 .blockForAtMost(SimpleTimeDuration.of(1000, TimeUnit.MILLISECONDS))
                 .build();
 
@@ -94,12 +89,10 @@ public class LockServiceStateLoggerTest {
         outstandingLockRequestMultimap.put(clientB, request2);
         outstandingLockRequestMultimap.put(clientA, request2);
 
-        HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken("client A", "Fake thread",
-                new BigInteger("1"), "held-lock-1",
-                "logger-lock");
-        HeldLocksToken token2 = LockServiceTestUtils.getFakeHeldLocksToken("client B", "Fake thread 2",
-                new BigInteger("2"), "held-lock-2",
-                "held-lock-3");
+        HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken(
+                "client A", "Fake thread", new BigInteger("1"), "held-lock-1", "logger-lock");
+        HeldLocksToken token2 = LockServiceTestUtils.getFakeHeldLocksToken(
+                "client B", "Fake thread 2", new BigInteger("2"), "held-lock-2", "held-lock-3");
 
         heldLocksTokenMap.putIfAbsent(token, LockServiceImpl.HeldLocks.of(token, LockCollections.of()));
         heldLocksTokenMap.putIfAbsent(token2, LockServiceImpl.HeldLocks.of(token2, LockCollections.of()));
@@ -122,37 +115,49 @@ public class LockServiceStateLoggerTest {
     public void testFilesExist() throws Exception {
         List<File> files = LockServiceTestUtils.logStateDirFiles();
 
-        assertEquals("Unexpected number of descriptor files", files.stream()
-                .filter(file -> file.getName().startsWith(LockServiceStateLogger.DESCRIPTORS_FILE_PREFIX))
-                .count(), 1);
+        assertThat(files.stream()
+                        .filter(file -> file.getName().startsWith(LockServiceStateLogger.DESCRIPTORS_FILE_PREFIX))
+                        .count())
+                .describedAs("Unexpected number of descriptor files")
+                .isEqualTo(1);
 
-        assertEquals("Unexpected number of lock state files", files.stream()
-                .filter(file -> file.getName().startsWith(LockServiceStateLogger.LOCKSTATE_FILE_PREFIX))
-                .count(), 1);
+        assertThat(files.stream()
+                        .filter(file -> file.getName().startsWith(LockServiceStateLogger.LOCKSTATE_FILE_PREFIX))
+                        .count())
+                .describedAs("Unexpected number of lock state files")
+                .isEqualTo(1);
 
-        assertEquals("Unexpected number of lock sync state files", files.stream()
-                .filter(file -> file.getName().startsWith(LockServiceStateLogger.SYNC_STATE_FILE_PREFIX))
-                .count(), 1);
+        assertThat(files.stream()
+                        .filter(file -> file.getName().startsWith(LockServiceStateLogger.SYNC_STATE_FILE_PREFIX))
+                        .count())
+                .describedAs("Unexpected number of lock sync state files")
+                .isEqualTo(1);
 
-        assertEquals("Unexpected number of synthesized request state files", files.stream()
-                .filter(file -> file.getName().startsWith(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_FILE_PREFIX))
-                .count(), 1);
+        assertThat(files.stream()
+                        .filter(file ->
+                                file.getName().startsWith(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_FILE_PREFIX))
+                        .count())
+                .describedAs("Unexpected number of synthesized request state files")
+                .isEqualTo(1);
     }
 
     @Test
     public void testDescriptors() throws Exception {
         List<File> files = LockServiceTestUtils.logStateDirFiles();
 
-        Optional<File> descriptorsFile = files.stream().filter(
-                file -> file.getName().startsWith(LockServiceStateLogger.DESCRIPTORS_FILE_PREFIX)).findFirst();
+        Optional<File> descriptorsFile = files.stream()
+                .filter(file -> file.getName().startsWith(LockServiceStateLogger.DESCRIPTORS_FILE_PREFIX))
+                .findFirst();
 
         Map<String, String> descriptorsMap = new Yaml().loadAs(new FileInputStream(descriptorsFile.get()), Map.class);
 
         Set<LockDescriptor> allDescriptors = getAllDescriptors();
 
         for (LockDescriptor descriptor : allDescriptors) {
-            assertTrue("Existing descriptor can't be found in dumped descriptors",
-                    descriptorsMap.values().stream().anyMatch(descriptorFromFile -> descriptorFromFile.equals(descriptor.toString())));
+            assertThat(descriptorsMap.values().stream()
+                            .anyMatch(descriptorFromFile -> descriptorFromFile.equals(descriptor.toString())))
+                    .describedAs("Existing descriptor can't be found in dumped descriptors")
+                    .isTrue();
         }
     }
 
@@ -160,24 +165,29 @@ public class LockServiceStateLoggerTest {
     public void testLockState() throws Exception {
         List<File> files = LockServiceTestUtils.logStateDirFiles();
 
-        Optional<File> lockStateFile = files.stream().filter(
-                file -> file.getName().startsWith(LockServiceStateLogger.LOCKSTATE_FILE_PREFIX)).findFirst();
+        Optional<File> lockStateFile = files.stream()
+                .filter(file -> file.getName().startsWith(LockServiceStateLogger.LOCKSTATE_FILE_PREFIX))
+                .findFirst();
 
         Iterable<Object> lockState = new Yaml().loadAll(new FileInputStream(lockStateFile.get()));
 
         for (Object ymlMap : lockState) {
-            assertTrue("Lock state contains unrecognizable object", ymlMap instanceof Map);
+            assertThat(ymlMap)
+                    .describedAs("Lock state contains unrecognizable object")
+                    .isInstanceOf(Map.class);
             Map map = (Map) ymlMap;
             if (map.containsKey(LockServiceStateLogger.OUTSTANDING_LOCK_REQUESTS_TITLE)) {
                 Object arrayObj = map.get(LockServiceStateLogger.OUTSTANDING_LOCK_REQUESTS_TITLE);
-                assertTrue("Outstanding lock requests is not a list", arrayObj instanceof List);
+                assertThat(arrayObj)
+                        .describedAs("Outstanding lock requests is not a list")
+                        .isInstanceOf(List.class);
 
-                assertEquals(getOutstandingDescriptors().size(), ((List) arrayObj).size());
+                assertThat(((List) arrayObj)).hasSameSizeAs(getOutstandingDescriptors());
             } else if (map.containsKey(LockServiceStateLogger.HELD_LOCKS_TITLE)) {
                 Object mapObj = map.get(LockServiceStateLogger.HELD_LOCKS_TITLE);
-                assertTrue("Held locks is not a map", mapObj instanceof Map);
+                assertThat(mapObj).describedAs("Held locks is not a map").isInstanceOf(Map.class);
 
-                assertEquals(getHeldDescriptors().size(), ((Map) mapObj).size());
+                assertThat(((Map) mapObj)).hasSameSizeAs(getHeldDescriptors());
             } else {
                 throw new IllegalStateException("Map found in YAML document without an expected key");
             }
@@ -188,8 +198,9 @@ public class LockServiceStateLoggerTest {
     public void testSyncState() throws Exception {
         List<File> files = LockServiceTestUtils.logStateDirFiles();
 
-        Optional<File> syncStateFile = files.stream().filter(
-                file -> file.getName().startsWith(LockServiceStateLogger.SYNC_STATE_FILE_PREFIX)).findFirst();
+        Optional<File> syncStateFile = files.stream()
+                .filter(file -> file.getName().startsWith(LockServiceStateLogger.SYNC_STATE_FILE_PREFIX))
+                .findFirst();
 
         assertThat(syncStateFile).isPresent();
         assertSyncStateStructureCorrect(syncStateFile.get());
@@ -200,8 +211,8 @@ public class LockServiceStateLoggerTest {
     public void testSynthesizedRequestState() throws Exception {
         List<File> files = LockServiceTestUtils.logStateDirFiles();
 
-        Optional<File> synthesizedRequestStateFile = files.stream().filter(
-                file -> file.getName().startsWith(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_FILE_PREFIX))
+        Optional<File> synthesizedRequestStateFile = files.stream()
+                .filter(file -> file.getName().startsWith(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_FILE_PREFIX))
                 .findFirst();
 
         assertThat(synthesizedRequestStateFile).isPresent();
@@ -224,13 +235,15 @@ public class LockServiceStateLoggerTest {
         Iterable<Object> syncState = new Yaml().loadAll(new FileInputStream(syncStateFile));
 
         for (Object ymlMap : syncState) {
-            assertTrue("Sync state contains unrecognizable object", ymlMap instanceof Map);
+            assertThat(ymlMap)
+                    .describedAs("Sync state contains unrecognizable object")
+                    .isInstanceOf(Map.class);
             Map map = (Map) ymlMap;
             if (map.containsKey(LockServiceStateLogger.SYNC_STATE_TITLE)) {
                 Object mapObj = map.get(LockServiceStateLogger.SYNC_STATE_TITLE);
-                assertTrue("Sync state is not a map", mapObj instanceof Map);
+                assertThat(mapObj).describedAs("Sync state is not a map").isInstanceOf(Map.class);
 
-                assertEquals(getSyncStateDescriptors().size(), ((Map) mapObj).size());
+                assertThat(((Map) mapObj)).hasSameSizeAs(getSyncStateDescriptors());
             } else {
                 throw new IllegalStateException("Map found in YAML document without an expected key");
             }
@@ -241,13 +254,15 @@ public class LockServiceStateLoggerTest {
         Iterable<Object> synthesizedRequestState = new Yaml().loadAll(new FileInputStream(file));
 
         for (Object ymlMap : synthesizedRequestState) {
-            assertTrue("Request state contains unrecognizable object", ymlMap instanceof Map);
+            assertThat(ymlMap)
+                    .describedAs("Request state contains unrecognizable object")
+                    .isInstanceOf(Map.class);
             Map map = (Map) ymlMap;
             if (map.containsKey(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_TITLE)) {
                 Object mapObj = map.get(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_TITLE);
-                assertTrue("Request state is not a map", mapObj instanceof Map);
+                assertThat(mapObj).describedAs("Request state is not a map").isInstanceOf(Map.class);
 
-                assertEquals(getSyncStateDescriptors().size(), ((Map) mapObj).size());
+                assertThat(((Map) mapObj)).hasSameSizeAs(getSyncStateDescriptors());
             } else {
                 throw new IllegalStateException("Map found in YAML document without an expected key");
             }
@@ -260,7 +275,7 @@ public class LockServiceStateLoggerTest {
     }
 
     private Set<LockDescriptor> getAllDescriptors() {
-        Set<LockDescriptor> allDescriptors = Sets.newHashSet();
+        Set<LockDescriptor> allDescriptors = new HashSet<>();
 
         allDescriptors.addAll(getOutstandingDescriptors());
         allDescriptors.addAll(getHeldDescriptors());
@@ -270,10 +285,10 @@ public class LockServiceStateLoggerTest {
 
     private Set<LockDescriptor> getHeldDescriptors() {
         return heldLocksTokenMap.values().stream()
-                    .map(LockServiceImpl.HeldLocks::getRealToken)
-                    .map(HeldLocksToken::getLockDescriptors)
-                    .flatMap(SortedLockCollection::stream)
-                    .collect(Collectors.toSet());
+                .map(LockServiceImpl.HeldLocks::getRealToken)
+                .map(HeldLocksToken::getLockDescriptors)
+                .flatMap(SortedLockCollection::stream)
+                .collect(Collectors.toSet());
     }
 
     private Set<LockDescriptor> getOutstandingDescriptors() {

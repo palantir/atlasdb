@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
-
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @State(Scope.Benchmark)
 public class ModeratelyWideRowTable extends WideRowTable {

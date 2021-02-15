@@ -15,9 +15,8 @@
  */
 package com.palantir.paxos;
 
-import javax.annotation.Nullable;
-
 import com.palantir.atlasdb.metrics.Timed;
+import javax.annotation.Nullable;
 
 public interface PaxosProposer {
 
@@ -37,8 +36,7 @@ public interface PaxosProposer {
      *         but requires it be enforced on a higher level.
      */
     @Timed
-    byte[] propose(long seq, @Nullable byte[] proposalValue)
-            throws PaxosRoundFailureException;
+    byte[] propose(long seq, @Nullable byte[] proposalValue) throws PaxosRoundFailureException;
 
     /**
      * Reaches a consensus with peers on a value of type V using a single instance of paxos, as in

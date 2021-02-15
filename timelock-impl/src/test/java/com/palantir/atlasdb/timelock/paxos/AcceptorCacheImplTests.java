@@ -20,16 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.Client;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.junit.Test;
 
 public class AcceptorCacheImplTests {
 
@@ -75,13 +73,12 @@ public class AcceptorCacheImplTests {
         AcceptorCache cache = cache(before);
         AcceptorCacheDigest digest = cache.getAllUpdates();
 
-        cache.updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(Client.of("client1"), 10L),
-                WithSeq.of(Client.of("client2"), 3L)));
+        cache.updateSequenceNumbers(
+                ImmutableSet.of(WithSeq.of(Client.of("client1"), 10L), WithSeq.of(Client.of("client2"), 3L)));
 
-        AcceptorCacheDigest secondDigest = cache.updatesSinceCacheKey(digest.newCacheKey()).get();
-        assertThat(secondDigest.updates())
-                .containsOnly(entry(Client.of("client1"), 10L));
+        AcceptorCacheDigest secondDigest =
+                cache.updatesSinceCacheKey(digest.newCacheKey()).get();
+        assertThat(secondDigest.updates()).containsOnly(entry(Client.of("client1"), 10L));
 
         cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(Client.of("client3"), 5L)));
 
@@ -139,9 +136,8 @@ public class AcceptorCacheImplTests {
                 .as("we should see the two updates as normal")
                 .contains(diffAfterFirstUpdate);
 
-        cache.updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(Client.of("client4"), 30L),
-                WithSeq.of(Client.of("client3"), 50L)));
+        cache.updateSequenceNumbers(
+                ImmutableSet.of(WithSeq.of(Client.of("client4"), 30L), WithSeq.of(Client.of("client3"), 50L)));
 
         Map<Client, Long> diffAfterSecondUpdate = ImmutableMap.<Client, Long>builder()
                 .put(Client.of("client1"), 20L)

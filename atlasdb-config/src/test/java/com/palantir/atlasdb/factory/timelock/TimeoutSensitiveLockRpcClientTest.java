@@ -20,27 +20,26 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.StringLockDescriptor;
+import org.junit.Test;
 
 public class TimeoutSensitiveLockRpcClientTest {
     private static final String NAMESPACE = "namespace";
     private static final String LOCK_CLIENT_STRING = "client";
     private static final LockClient LOCK_CLIENT = LockClient.of(LOCK_CLIENT_STRING);
     private static final LockRequest LOCK_REQUEST = LockRequest.builder(
-            ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
+                    ImmutableSortedMap.of(StringLockDescriptor.of("lock"), LockMode.WRITE))
             .build();
 
     private final LockRpcClient longTimeout = mock(LockRpcClient.class);
     private final LockRpcClient shortTimeout = mock(LockRpcClient.class);
-    private final LockRpcClient sensitiveClient = new TimeoutSensitiveLockRpcClient(
-            ImmutableShortAndLongTimeoutServices.<LockRpcClient>builder()
+    private final LockRpcClient sensitiveClient =
+            new TimeoutSensitiveLockRpcClient(ImmutableShortAndLongTimeoutServices.<LockRpcClient>builder()
                     .longTimeout(longTimeout)
                     .shortTimeout(shortTimeout)
                     .build());
@@ -75,6 +74,5 @@ public class TimeoutSensitiveLockRpcClientTest {
 
         verify(shortTimeout).currentTimeMillis(NAMESPACE);
         verify(longTimeout, never()).currentTimeMillis(NAMESPACE);
-
     }
 }

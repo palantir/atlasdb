@@ -17,10 +17,12 @@ package com.palantir.atlasdb;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
@@ -32,10 +34,6 @@ import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SuperColumn;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils;
 
 public class ThriftObjectSizeUtilsTest {
     private static final String TEST_NAME = "foo";
@@ -75,9 +73,9 @@ public class ThriftObjectSizeUtilsTest {
     @Test
     public void getSizeForColumnOrSuperColumnWithANonEmptyColumnAndSuperColumn() {
         assertThat(ThriftObjectSizeUtils.getColumnOrSuperColumnSize(new ColumnOrSuperColumn()
-                .setColumn(TEST_COLUMN)
-                .setSuper_column(new SuperColumn(ByteBuffer.wrap(TEST_NAME.getBytes()),
-                        ImmutableList.of(TEST_COLUMN)))))
+                        .setColumn(TEST_COLUMN)
+                        .setSuper_column(
+                                new SuperColumn(ByteBuffer.wrap(TEST_NAME.getBytes()), ImmutableList.of(TEST_COLUMN)))))
                 .isEqualTo(NULL_SIZE * 2 + TEST_COLUMN_SIZE + TEST_NAME_BYTES_SIZE + TEST_COLUMN_SIZE);
     }
 
@@ -112,7 +110,7 @@ public class ThriftObjectSizeUtilsTest {
     @Test
     public void getSizeForCqlResultWithRows() {
         assertThat(ThriftObjectSizeUtils.getCqlResultSize(
-                new CqlResult(CqlResultType.ROWS).setRows(ImmutableList.of(new CqlRow()))))
+                        new CqlResult(CqlResultType.ROWS).setRows(ImmutableList.of(new CqlRow()))))
                 .isEqualTo(NULL_SIZE * 5);
     }
 
@@ -128,40 +126,38 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForMutationWithColumnOrSuperColumn() {
-        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
-                .setColumn_or_supercolumn(EMPTY_COLUMN_OR_SUPERCOLUMN)))
+        assertThat(ThriftObjectSizeUtils.getMutationSize(
+                        new Mutation().setColumn_or_supercolumn(EMPTY_COLUMN_OR_SUPERCOLUMN)))
                 .isEqualTo(NULL_SIZE + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
     }
 
     @Test
     public void getSizeForMutationWithEmptyDeletion() {
         long emptyDeletionSize = Long.BYTES + 2 * NULL_SIZE;
-        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
-                .setDeletion(new Deletion())))
+        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation().setDeletion(new Deletion())))
                 .isEqualTo(NULL_SIZE + emptyDeletionSize);
     }
 
     @Test
     public void getSizeForMutationWithDeletionContainingSuperColumn() {
         long nonEmptyDeletionSize = Long.BYTES + TEST_NAME.getBytes().length + NULL_SIZE;
-        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
-                .setDeletion(new Deletion().setSuper_column(TEST_NAME.getBytes()))))
+        assertThat(ThriftObjectSizeUtils.getMutationSize(
+                        new Mutation().setDeletion(new Deletion().setSuper_column(TEST_NAME.getBytes()))))
                 .isEqualTo(NULL_SIZE + nonEmptyDeletionSize);
     }
 
     @Test
     public void getSizeForMutationWithDeletionContainingEmptySlicePredicate() {
         long deletionSize = Long.BYTES + NULL_SIZE + NULL_SIZE * 2;
-        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
-                .setDeletion(new Deletion().setPredicate(new SlicePredicate()))))
+        assertThat(ThriftObjectSizeUtils.getMutationSize(
+                        new Mutation().setDeletion(new Deletion().setPredicate(new SlicePredicate()))))
                 .isEqualTo(NULL_SIZE + deletionSize);
     }
 
     @Test
     public void getSizeForMutationWithDeletionContainingNonEmptySlicePredicate() {
-        long deletionSize = (Long.BYTES) + NULL_SIZE + (TEST_NAME.getBytes().length + NULL_SIZE);
-        assertThat(ThriftObjectSizeUtils
-                .getMutationSize(new Mutation()
+        long deletionSize = Long.BYTES + NULL_SIZE + (TEST_NAME.getBytes().length + NULL_SIZE);
+        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
                         .setDeletion(new Deletion()
                                 .setPredicate(new SlicePredicate()
                                         .setColumn_names(ImmutableList.of(ByteBuffer.wrap(TEST_NAME.getBytes())))))))
@@ -172,8 +168,8 @@ public class ThriftObjectSizeUtilsTest {
     public void getSizeForMutationWithColumnOrSuperColumnAndDeletion() {
         long emptyDeletionSize = Long.BYTES + 2 * NULL_SIZE;
         assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
-                .setColumn_or_supercolumn(EMPTY_COLUMN_OR_SUPERCOLUMN)
-                .setDeletion(new Deletion())))
+                        .setColumn_or_supercolumn(EMPTY_COLUMN_OR_SUPERCOLUMN)
+                        .setDeletion(new Deletion())))
                 .isEqualTo(EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE + emptyDeletionSize);
     }
 
@@ -184,8 +180,8 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForKeySliceWithKeyNotSetButColumnsSet() {
-        assertThat(ThriftObjectSizeUtils.getKeySliceSize(new KeySlice()
-                .setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN))))
+        assertThat(ThriftObjectSizeUtils.getKeySliceSize(
+                        new KeySlice().setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN))))
                 .isEqualTo(NULL_SIZE + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
     }
 
@@ -198,8 +194,8 @@ public class ThriftObjectSizeUtilsTest {
     @Test
     public void getSizeForKeySliceWithKeyAndColumns() {
         assertThat(ThriftObjectSizeUtils.getKeySliceSize(new KeySlice()
-                .setKey(TEST_NAME.getBytes())
-                .setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN))))
+                        .setKey(TEST_NAME.getBytes())
+                        .setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN))))
                 .isEqualTo(TEST_NAME.getBytes().length + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
     }
 
@@ -211,12 +207,10 @@ public class ThriftObjectSizeUtilsTest {
                         TEST_NAME,
                         ImmutableList.of(new Mutation().setColumn_or_supercolumn(EMPTY_COLUMN_OR_SUPERCOLUMN))));
 
-        long expectedSize = TEST_NAME_BYTES_SIZE
-                + TEST_NAME_SIZE
-                + NULL_SIZE
-                + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
+        long expectedSize = TEST_NAME_BYTES_SIZE + TEST_NAME_SIZE + NULL_SIZE + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
 
-        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfMutationMap(batchMutateMap)).isEqualTo(expectedSize);
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfMutationMap(batchMutateMap))
+                .isEqualTo(expectedSize);
     }
 
     @Test
@@ -227,9 +221,7 @@ public class ThriftObjectSizeUtilsTest {
                         TEST_NAME,
                         ImmutableList.of(new Mutation().setColumn_or_supercolumn(EMPTY_COLUMN_OR_SUPERCOLUMN))));
 
-        long expectedSize = EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE
-                + NULL_SIZE
-                + TEST_NAME_BYTES_SIZE;
+        long expectedSize = EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE + NULL_SIZE + TEST_NAME_BYTES_SIZE;
 
         assertThat(ThriftObjectSizeUtils.getSizeOfMutationPerTable(batchMutateMap))
                 .isEqualTo(ImmutableMap.of(TEST_NAME, expectedSize));
@@ -242,69 +234,64 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getMultigetResultSize() {
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> result = ImmutableMap.of(
-                TEST_NAME_BYTES, ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN));
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> result =
+                ImmutableMap.of(TEST_NAME_BYTES, ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN));
 
-        long expectedSize = TEST_NAME_BYTES_SIZE
-                + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
+        long expectedSize = TEST_NAME_BYTES_SIZE + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
 
         assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColsByKey(result)).isEqualTo(expectedSize);
     }
 
     @Test
     public void getMultigetMultisliceResultSizeOneRowOneColumn() {
-        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> result = ImmutableMap.of(
-                TEST_NAME_BYTES, ImmutableList.of(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN)));
+        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> result =
+                ImmutableMap.of(TEST_NAME_BYTES, ImmutableList.of(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN)));
 
-        long expectedSize = TEST_NAME_BYTES_SIZE
-                + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
+        long expectedSize = TEST_NAME_BYTES_SIZE + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
 
-        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColListsByKey(result)).isEqualTo(expectedSize);
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColListsByKey(result))
+                .isEqualTo(expectedSize);
     }
 
     @Test
     public void getMultigetMultisliceResultSizeMultipleColumnsOneQuery() {
         Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> result = ImmutableMap.of(
-                TEST_NAME_BYTES, ImmutableList.of(
-                        ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN, EMPTY_COLUMN_OR_SUPERCOLUMN)));
+                TEST_NAME_BYTES,
+                ImmutableList.of(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN, EMPTY_COLUMN_OR_SUPERCOLUMN)));
 
-        long expectedSize = TEST_NAME_BYTES_SIZE
-                + (2 * EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
+        long expectedSize = TEST_NAME_BYTES_SIZE + (2 * EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
 
-        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColListsByKey(result)).isEqualTo(expectedSize);
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColListsByKey(result))
+                .isEqualTo(expectedSize);
     }
 
     @Test
     public void getMultigetMultisliceResultSizeMultipleColumnsMultipleQueries() {
         Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> result = ImmutableMap.of(
-                TEST_NAME_BYTES, ImmutableList.of(
+                TEST_NAME_BYTES,
+                ImmutableList.of(
                         ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN),
                         ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN, EMPTY_COLUMN_OR_SUPERCOLUMN)));
 
-        long expectedSize = TEST_NAME_BYTES_SIZE
-                + (3 * EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
+        long expectedSize = TEST_NAME_BYTES_SIZE + (3 * EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
 
-        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColListsByKey(result)).isEqualTo(expectedSize);
+        assertThat(ThriftObjectSizeUtils.getApproximateSizeOfColListsByKey(result))
+                .isEqualTo(expectedSize);
     }
 
     @Test
     public void getKeySlicesSize() {
         List<KeySlice> slices = ImmutableList.of(
-                new KeySlice()
-                        .setKey(TEST_NAME_BYTES)
-                        .setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN)));
+                new KeySlice().setKey(TEST_NAME_BYTES).setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN)));
 
-        long expectedSize = TEST_NAME_BYTES_SIZE
-                + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
+        long expectedSize = TEST_NAME_BYTES_SIZE + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE;
 
         assertThat(ThriftObjectSizeUtils.getApproximateSizeOfKeySlices(slices)).isEqualTo(expectedSize);
     }
 
     @Test
     public void getCasSize() {
-        List<Column> columns = ImmutableList.of(
-                TEST_COLUMN,
-                TEST_COLUMN);
+        List<Column> columns = ImmutableList.of(TEST_COLUMN, TEST_COLUMN);
 
         long expectedSize = TEST_COLUMN_SIZE * 2;
 

@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.Set;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -25,6 +23,7 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.common.annotation.Idempotent;
+import java.util.Set;
 
 public final class TransactionManagersInitializer extends AsyncInitializer {
 
@@ -33,10 +32,7 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
     private final boolean allSafeForLogging;
 
     public static TransactionManagersInitializer createInitialTables(
-            KeyValueService keyValueService,
-            Set<Schema> schemas,
-            boolean initializeAsync,
-            boolean allSafeForLogging) {
+            KeyValueService keyValueService, Set<Schema> schemas, boolean initializeAsync, boolean allSafeForLogging) {
         TransactionManagersInitializer initializer =
                 new TransactionManagersInitializer(keyValueService, schemas, allSafeForLogging);
         initializer.initialize(initializeAsync);

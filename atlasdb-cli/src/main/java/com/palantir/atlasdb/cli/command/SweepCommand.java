@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Functions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -45,28 +35,39 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.slf4j.LoggerFactory;
 
 @Command(name = "sweep", description = "Sweep old table rows")
 public class SweepCommand extends SingleBackendCommand {
 
     private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(SweepCommand.class));
 
-    @Option(name = {"-n", "--namespace"},
+    @Option(
+            name = {"-n", "--namespace"},
             description = "An atlas namespace to sweep")
     String namespace;
 
-    @Option(name = {"-t", "--table"},
+    @Option(
+            name = {"-t", "--table"},
             description = "An atlas table to sweep")
     String table;
 
-    @Option(name = {"-r", "--row"},
+    @Option(
+            name = {"-r", "--row"},
             description = "A row to start from (hex encoded bytes)")
     String row;
 
-    @Option(name = {"-a", "--all"},
+    @Option(
+            name = {"-a", "--all"},
             description = "Sweep all tables")
     boolean sweepAllTables;
 
@@ -74,41 +75,47 @@ public class SweepCommand extends SingleBackendCommand {
      * @deprecated Use --candidate-batch-hint instead.
      */
     @Deprecated
-    @Option(name = {"--batch-size"},
-            description = "Sweeper row batch size. This option has been deprecated "
-                    + "in favor of --candidate-batch-hint")
+    @Option(
+            name = {"--batch-size"},
+            description =
+                    "Sweeper row batch size. This option has been deprecated " + "in favor of --candidate-batch-hint")
     Integer batchSize;
 
     /**
      * @deprecated Use --read-limit instead.
      */
     @Deprecated
-    @Option(name = {"--cell-batch-size"},
-            description = "Sweeper cell batch size. This option has been deprecated "
-                    + "in favor of --read-limit")
+    @Option(
+            name = {"--cell-batch-size"},
+            description = "Sweeper cell batch size. This option has been deprecated " + "in favor of --read-limit")
     Integer cellBatchSize;
 
-    @Option(name = {"--delete-batch-hint"},
+    @Option(
+            name = {"--delete-batch-hint"},
             description = "Target number of (cell, timestamp) pairs to delete in a single batch (default: "
                     + AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT + ")")
     int deleteBatchHint = AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT;
 
-    @Option(name = {"--candidate-batch-hint"},
+    @Option(
+            name = {"--candidate-batch-hint"},
             description = "Approximate number of candidate (cell, timestamp) pairs to load at once (default: "
                     + AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT + ")")
     Integer candidateBatchHint;
 
-    @Option(name = {"--read-limit"},
+    @Option(
+            name = {"--read-limit"},
             description = "Target number of (cell, timestamp) pairs to examine (default: "
                     + AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT + ")")
     Integer readLimit;
 
-    @Option(name = {"--sleep"},
+    @Option(
+            name = {"--sleep"},
             description = "Time to wait in milliseconds after each sweep batch"
                     + " (throttles long-running sweep jobs, default: 0)")
     long sleepTimeInMs = 0;
 
-    @Option(name = {"--dry-run"},
+    @Option(
+            name = {"--dry-run"},
             description = "Run sweep in dry run mode to get how much would have been deleted and check safety."
                     + " This will not delete any data.")
     boolean dryRun = false;
@@ -127,12 +134,12 @@ public class SweepCommand extends SingleBackendCommand {
             return 1;
         }
         if ((namespace != null) && (row != null)) {
-            printer.error("Cannot specify a start row (" + row
-                    + ") when sweeping multiple tables (in namespace " + namespace + ")");
+            printer.error("Cannot specify a start row (" + row + ") when sweeping multiple tables (in namespace "
+                    + namespace + ")");
             return 1;
         }
 
-        Map<TableReference, byte[]> tableToStartRow = Maps.newHashMap();
+        Map<TableReference, byte[]> tableToStartRow = new HashMap<>();
 
         if (table != null) {
             TableReference tableToSweep = TableReference.createUnsafe(table);
@@ -146,8 +153,7 @@ public class SweepCommand extends SingleBackendCommand {
             }
             tableToStartRow.put(tableToSweep, startRow);
         } else if (namespace != null) {
-            Set<TableReference> tablesInNamespace = services.getKeyValueService().getAllTableNames()
-                    .stream()
+            Set<TableReference> tablesInNamespace = services.getKeyValueService().getAllTableNames().stream()
                     .filter(tableRef -> tableRef.getNamespace().getName().equals(namespace))
                     .collect(Collectors.toSet());
             for (TableReference tableInNamespace : tablesInNamespace) {
@@ -155,8 +161,7 @@ public class SweepCommand extends SingleBackendCommand {
             }
         } else if (sweepAllTables) {
             tableToStartRow.putAll(Maps.asMap(
-                    Sets.difference(
-                            services.getKeyValueService().getAllTableNames(), AtlasDbConstants.HIDDEN_TABLES),
+                    Sets.difference(services.getKeyValueService().getAllTableNames(), AtlasDbConstants.HIDDEN_TABLES),
                     Functions.constant(new byte[0])));
         }
 
@@ -169,8 +174,14 @@ public class SweepCommand extends SingleBackendCommand {
 
             while (accumulatedResults.getNextStartRow().isPresent()) {
                 SweepResults newResults = dryRun
-                        ? sweepRunner.dryRun(tableToSweep, batchConfig, accumulatedResults.getNextStartRow().get())
-                        : sweepRunner.run(tableToSweep, batchConfig, accumulatedResults.getNextStartRow().get());
+                        ? sweepRunner.dryRun(
+                                tableToSweep,
+                                batchConfig,
+                                accumulatedResults.getNextStartRow().get())
+                        : sweepRunner.run(
+                                tableToSweep,
+                                batchConfig,
+                                accumulatedResults.getNextStartRow().get());
 
                 accumulatedResults = accumulatedResults.accumulateWith(newResults);
                 printer.info(
@@ -195,8 +206,8 @@ public class SweepCommand extends SingleBackendCommand {
             if (!dryRun) {
                 services.getTransactionManager().runTaskWithRetry((TxTask) t -> {
                     SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
-                    SweepPriorityTable.SweepPriorityRow row1 = SweepPriorityTable.SweepPriorityRow.of(
-                            tableToSweep.getQualifiedName());
+                    SweepPriorityTable.SweepPriorityRow row1 =
+                            SweepPriorityTable.SweepPriorityRow.of(tableToSweep.getQualifiedName());
                     priorityTable.putWriteCount(row1, 0L);
                     priorityTable.putCellsExamined(row1, finalAccumulatedResults.getCellTsPairsExamined());
                     priorityTable.putCellsDeleted(row1, finalAccumulatedResults.getStaleValuesDeleted());
@@ -221,14 +232,10 @@ public class SweepCommand extends SingleBackendCommand {
                     + "'candidateBatchHint' and 'readLimit'. Please use the new options in the future.");
         }
         return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(chooseBestValue(
-                        readLimit,
-                        cellBatchSize,
-                        AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT))
+                .maxCellTsPairsToExamine(
+                        chooseBestValue(readLimit, cellBatchSize, AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT))
                 .candidateBatchSize(chooseBestValue(
-                        candidateBatchHint,
-                        batchSize,
-                        AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
+                        candidateBatchHint, batchSize, AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
                 .deleteBatchSize(deleteBatchHint)
                 .build();
     }

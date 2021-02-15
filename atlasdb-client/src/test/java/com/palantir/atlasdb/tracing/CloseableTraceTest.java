@@ -15,23 +15,16 @@
  */
 package com.palantir.atlasdb.tracing;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-
-import java.util.List;
-import java.util.Optional;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.tracing.AlwaysSampler;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.Span;
+import java.util.List;
+import java.util.Optional;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CloseableTraceTest {
 
@@ -49,32 +42,32 @@ public class CloseableTraceTest {
     public void after() throws Exception {
         Tracer.unsubscribe(NAME);
         Tracer.setSampler(AlwaysSampler.INSTANCE);
-        Tracer.completeSpan();
+        Tracer.fastCompleteSpan();
     }
 
     @Test
     public void noOp() throws Exception {
-        assertSame(CloseableTrace.noOp(), CloseableTrace.noOp());
+        assertThat(CloseableTrace.noOp()).isSameAs(CloseableTrace.noOp());
     }
 
     @Test
     public void startLocalTrace() throws Exception {
         try (CloseableTrace trace = CloseableTrace.startLocalTrace("service", "method({})", "foo")) {
-            assertNotNull(trace);
+            assertThat(trace).isNotNull();
         }
         List<Span> spans = observer.spans();
-        assertThat(spans, hasSize(1));
-        assertThat(spans.get(0).getOperation(), equalTo("service.method(foo)"));
+        assertThat(spans).hasSize(1);
+        assertThat(spans.get(0).getOperation()).isEqualTo("service.method(foo)");
     }
 
     @Test
     public void startLocalTraceWhileNotSampling() throws Exception {
         Tracer.initTrace(Optional.of(false), "abc");
-        assertFalse(Tracer.isTraceObservable());
+        assertThat(Tracer.isTraceObservable()).isFalse();
         try (CloseableTrace trace = CloseableTrace.startLocalTrace("service", "method({})", "foo")) {
-            assertNotNull(trace);
+            assertThat(trace).isNotNull();
         }
         List<Span> spans = observer.spans();
-        assertThat("Expected empty spans: " + spans, spans, hasSize(0));
+        assertThat(spans).describedAs("Expected empty spans: " + spans).isEmpty();
     }
 }

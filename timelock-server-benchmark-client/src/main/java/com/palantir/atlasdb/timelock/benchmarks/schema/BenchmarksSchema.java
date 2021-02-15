@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.schema;
 
-import java.io.File;
-import java.io.IOException;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.AtlasSchema;
@@ -26,6 +23,8 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.io.File;
+import java.io.IOException;
 
 public final class BenchmarksSchema implements AtlasSchema {
     public static final Namespace NAMESPACE = Namespace.create("benchmarks");
@@ -33,17 +32,22 @@ public final class BenchmarksSchema implements AtlasSchema {
 
     public static final TableReference BLOBS_TABLE_REF = TableReference.create(NAMESPACE, "Blobs");
 
-    @Override public Namespace getNamespace() {
+    @Override
+    public Namespace getNamespace() {
         return NAMESPACE;
     }
 
-    @Override public Schema getLatestSchema() {
+    @Override
+    public Schema getLatestSchema() {
         return generateSchema();
     }
 
     private static Schema generateSchema() {
-        Schema schema = new Schema("Benchmarks", BenchmarksSchema.class.getPackage().getName() + ".generated",
-                NAMESPACE, OptionalType.JAVA8);
+        Schema schema = new Schema(
+                "Benchmarks",
+                BenchmarksSchema.class.getPackage().getName() + ".generated",
+                NAMESPACE,
+                OptionalType.JAVA8);
         createTables(schema);
         schema.validate();
         return schema;
@@ -66,7 +70,6 @@ public final class BenchmarksSchema implements AtlasSchema {
 
         schema.addTableDefinition("KvDynamicColumns", new TableDefinition() {
             {
-
                 rowName();
                 hashFirstRowComponent();
                 rowComponent("bucket", ValueType.VAR_STRING);
@@ -103,7 +106,6 @@ public final class BenchmarksSchema implements AtlasSchema {
 
         schema.addTableDefinition("Metadata", new TableDefinition() {
             {
-
                 rowName();
                 hashFirstRowComponent();
                 rowComponent("key", ValueType.VAR_STRING);

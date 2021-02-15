@@ -15,15 +15,13 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.reflect.AbstractInvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
-
 import javax.sql.DataSource;
-
-import com.google.common.base.MoreObjects;
-import com.google.common.reflect.AbstractInvocationHandler;
 
 /**
  * Allows you to intercept and override methods in {@link DataSource}.
@@ -42,13 +40,12 @@ public abstract class InterceptorDataSource {
     protected InterceptorDataSource(final DataSource delegate) {
         this.handler = new AbstractInvocationHandler() {
             @Override
-            protected Object handleInvocation(Object proxy, Method method, Object[] args)
-                    throws Throwable {
+            protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
                 Object ret;
                 try {
                     ret = method.invoke(delegate, args);
                 } catch (InvocationTargetException e) {
-                    throw e.getTargetException();
+                    throw e.getCause();
                 }
                 if (method.getName().equals("getConnection")) {
                     Connection conn = (Connection) ret;
@@ -57,12 +54,13 @@ public abstract class InterceptorDataSource {
                     ret = conn;
                 }
                 return ret;
-
             }
 
             @Override
             public String toString() {
-                return MoreObjects.toStringHelper(getClass()).add("delegate", delegate).toString();
+                return MoreObjects.toStringHelper(getClass())
+                        .add("delegate", delegate)
+                        .toString();
             }
         };
     }
@@ -71,8 +69,6 @@ public abstract class InterceptorDataSource {
 
     public static DataSource wrapInterceptor(InterceptorDataSource instance) {
         return (DataSource) Proxy.newProxyInstance(
-                instance.getClass().getClassLoader(),
-                new Class[]{DataSource.class},
-                instance.handler);
+                instance.getClass().getClassLoader(), new Class[] {DataSource.class}, instance.handler);
     }
 }

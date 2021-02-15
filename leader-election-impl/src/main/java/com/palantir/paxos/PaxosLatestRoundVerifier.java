@@ -19,5 +19,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 public interface PaxosLatestRoundVerifier {
     PaxosQuorumStatus isLatestRound(long round);
+
     ListenableFuture<PaxosQuorumStatus> isLatestRoundAsync(long round);
 }

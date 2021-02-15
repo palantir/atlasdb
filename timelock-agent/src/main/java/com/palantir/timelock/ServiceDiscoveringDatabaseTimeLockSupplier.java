@@ -16,13 +16,9 @@
 
 package com.palantir.timelock;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -34,6 +30,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * See {@link com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier}. This differs in that it encodes
@@ -45,21 +43,14 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
     private final Function<TableReference, TimestampSeriesProvider> timestampSeriesProvider;
 
     public ServiceDiscoveringDatabaseTimeLockSupplier(
-            MetricsManager metricsManager,
-            KeyValueServiceConfig config,
-            LeaderConfig leaderConfig) {
+            MetricsManager metricsManager, KeyValueServiceConfig config, LeaderConfig leaderConfig) {
         DbTimeLockFactory dbTimeLockFactory = AtlasDbServiceDiscovery.createDbTimeLockFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(
                 () -> dbTimeLockFactory.createRawKeyValueService(metricsManager, config, leaderConfig));
-        timestampServiceFactory = creationSetting ->
-                dbTimeLockFactory.createManagedTimestampService(
-                        keyValueService.get(),
-                        creationSetting,
-                        AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        timestampServiceFactory = creationSetting -> dbTimeLockFactory.createManagedTimestampService(
+                keyValueService.get(), creationSetting, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         timestampSeriesProvider = tableRef -> dbTimeLockFactory.createTimestampSeriesProvider(
-                keyValueService.get(),
-                tableRef,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                keyValueService.get(), tableRef, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     @Override
@@ -69,10 +60,7 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
 
     public synchronized ManagedTimestampService getManagedTimestampService(DbTimestampCreationSetting setting) {
         Preconditions.checkState(
-                DbTimestampCreationSettings.caseOf(setting)
-                .multipleSeries((tableReference, series) ->
-                        tableReference.equals(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE))
-                .otherwise_(false),
+                setting.tableReference().equals(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE),
                 "Attempted to create a managed timestamp service in db timelock that was not the normal db timelock"
                         + " timestamp table! This is unexpected, and we are prohibiting this creation for safety.",
                 SafeArg.of("setting", setting));
@@ -80,7 +68,8 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
     }
 
     public synchronized TimestampSeriesProvider getTimestampSeriesProvider(TableReference tableReference) {
-        Preconditions.checkState(tableReference.equals(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE),
+        Preconditions.checkState(
+                tableReference.equals(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE),
                 "Attempted to create a timestamp series provider in db timelock that was not the normal db timelock"
                         + " timestamp table! This is unexpected, and we are prohibiting this creation for safety.");
         return timestampSeriesProvider.apply(tableReference);

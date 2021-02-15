@@ -22,7 +22,10 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public interface TestTransactionManager extends TransactionManager {
     Transaction commitAndStartNewTransaction(Transaction txn);
+
     Transaction createNewTransaction();
+
     void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler);
+
     void setUnreadableTimestamp(long timestamp);
 }

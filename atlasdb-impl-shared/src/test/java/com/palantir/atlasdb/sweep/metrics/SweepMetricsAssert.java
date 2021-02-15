@@ -15,17 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import java.util.Map;
-
-import javax.annotation.CheckReturnValue;
-
-import org.assertj.core.api.AbstractAssert;
-import org.assertj.core.api.WritableAssertionInfo;
-import org.assertj.core.data.Offset;
-import org.assertj.core.internal.Doubles;
-import org.assertj.core.internal.LongArrays;
-import org.assertj.core.internal.Objects;
-
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Snapshot;
@@ -36,6 +25,14 @@ import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.Map;
+import javax.annotation.CheckReturnValue;
+import org.assertj.core.api.AbstractAssert;
+import org.assertj.core.api.WritableAssertionInfo;
+import org.assertj.core.data.Offset;
+import org.assertj.core.internal.Doubles;
+import org.assertj.core.internal.LongArrays;
+import org.assertj.core.internal.Objects;
 
 public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert, MetricsManager> {
     private final MetricsManager metrics;
@@ -59,47 +56,73 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     }
 
     public void hasEnqueuedWritesConservativeEqualTo(long value) {
-        objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
+        objects.assertEqual(
+                info, getGaugeConservative(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
     }
 
     public void hasEntriesReadConservativeEqualTo(long value) {
-        objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.ENTRIES_READ).getValue(), value);
+        objects.assertEqual(
+                info, getGaugeConservative(AtlasDbMetricNames.ENTRIES_READ).getValue(), value);
     }
 
     public void hasTombstonesPutConservativeEqualTo(long value) {
-        objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.TOMBSTONES_PUT).getValue(), value);
+        objects.assertEqual(
+                info, getGaugeConservative(AtlasDbMetricNames.TOMBSTONES_PUT).getValue(), value);
     }
 
     public void hasAbortedWritesDeletedConservativeEquals(long value) {
-        objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.ABORTED_WRITES_DELETED).getValue(), value);
+        objects.assertEqual(
+                info,
+                getGaugeConservative(AtlasDbMetricNames.ABORTED_WRITES_DELETED).getValue(),
+                value);
     }
 
     public void hasSweepTimestampConservativeEqualTo(Long value) {
-        objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.SWEEP_TS).getValue(), value);
+        objects.assertEqual(
+                info, getGaugeConservative(AtlasDbMetricNames.SWEEP_TS).getValue(), value);
     }
 
     public void hasLastSweptTimestampConservativeEqualTo(Long value) {
-        objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.LAST_SWEPT_TS).getValue(), value);
+        objects.assertEqual(
+                info, getGaugeConservative(AtlasDbMetricNames.LAST_SWEPT_TS).getValue(), value);
     }
 
     public void hasMillisSinceLastSweptConservativeEqualTo(Long value) {
-        objects.assertEqual(info, getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
+        objects.assertEqual(
+                info,
+                getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS, AtlasDbMetricNames.TAG_CUMULATIVE)
+                        .getValue(),
+                value);
+    }
+
+    public void hasMillisSinceLastSweptConservativeForShardEqualTo(int shard, Long value) {
+        objects.assertEqual(
+                info,
+                getGaugeConservative(AtlasDbMetricNames.LAG_MILLIS, Integer.toString(shard))
+                        .getValue(),
+                value);
     }
 
     public void hasEnqueuedWritesThoroughEqualTo(long value) {
-        objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
+        objects.assertEqual(
+                info, getGaugeThorough(AtlasDbMetricNames.ENQUEUED_WRITES).getValue(), value);
     }
 
     public void hasEntriesReadThoroughEqualTo(long value) {
-        objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.ENTRIES_READ).getValue(), value);
+        objects.assertEqual(
+                info, getGaugeThorough(AtlasDbMetricNames.ENTRIES_READ).getValue(), value);
     }
 
     public void hasTombstonesPutThoroughEqualTo(long value) {
-        objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.TOMBSTONES_PUT).getValue(), value);
+        objects.assertEqual(
+                info, getGaugeThorough(AtlasDbMetricNames.TOMBSTONES_PUT).getValue(), value);
     }
 
     public void hasAbortedWritesDeletedThoroughEqualTo(long value) {
-        objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.ABORTED_WRITES_DELETED).getValue(), value);
+        objects.assertEqual(
+                info,
+                getGaugeThorough(AtlasDbMetricNames.ABORTED_WRITES_DELETED).getValue(),
+                value);
     }
 
     public void hasSweepTimestampThoroughEqualTo(long value) {
@@ -107,19 +130,34 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     }
 
     public void hasLastSweptTimestampThoroughEqualTo(long value) {
-        objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.LAST_SWEPT_TS).getValue(), value);
+        objects.assertEqual(
+                info, getGaugeThorough(AtlasDbMetricNames.LAST_SWEPT_TS).getValue(), value);
     }
 
-    public void hasMillisSinceLastSweptThoroughEqualTo(long value) {
-        objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
+    public void hasMillisSinceLastSweptThoroughEqualTo(Long value) {
+        objects.assertEqual(
+                info,
+                getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS, AtlasDbMetricNames.TAG_CUMULATIVE)
+                        .getValue(),
+                value);
+    }
+
+    public void hasMillisSinceLastSweptThoroughForShardEqualTo(int shard, Long value) {
+        objects.assertEqual(
+                info,
+                getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS, Integer.toString(shard))
+                        .getValue(),
+                value);
     }
 
     public void containsEntriesReadInBatchConservative(long... outcomes) {
-        arrays.assertContainsExactlyInAnyOrder(info, getBatchSizeSnapshotConservative().getValues(), outcomes);
+        arrays.assertContainsExactlyInAnyOrder(
+                info, getBatchSizeSnapshotConservative().getValues(), outcomes);
     }
 
     public void containsEntriesReadInBatchThorough(long... outcomes) {
-        arrays.assertContainsExactlyInAnyOrder(info, getBatchSizeSnapshotThorough().getValues(), outcomes);
+        arrays.assertContainsExactlyInAnyOrder(
+                info, getBatchSizeSnapshotThorough().getValues(), outcomes);
     }
 
     public void hasEntriesReadInBatchMeanConservativeEqualTo(double value) {
@@ -150,8 +188,23 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         return getGaugeForTargetedSweep(AtlasDbMetricNames.TAG_CONSERVATIVE, name);
     }
 
+    private <N> Gauge<N> getGaugeConservative(String name, String shard) {
+        Map<String, String> tags = ImmutableMap.of(
+                AtlasDbMetricNames.TAG_STRATEGY,
+                AtlasDbMetricNames.TAG_CONSERVATIVE,
+                AtlasDbMetricNames.TAG_SHARD,
+                shard);
+        return getGauge("targetedSweepProgress", name, tags);
+    }
+
     private <N> Gauge<N> getGaugeThorough(String name) {
         return getGaugeForTargetedSweep(AtlasDbMetricNames.TAG_THOROUGH, name);
+    }
+
+    private <N> Gauge<N> getGaugeThorough(String name, String shard) {
+        Map<String, String> tags = ImmutableMap.of(
+                AtlasDbMetricNames.TAG_STRATEGY, AtlasDbMetricNames.TAG_THOROUGH, AtlasDbMetricNames.TAG_SHARD, shard);
+        return getGauge("targetedSweepProgress", name, tags);
     }
 
     private <N> Gauge<N> getGaugeForTargetedSweep(String strategy, String name) {
@@ -160,14 +213,21 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     }
 
     private Gauge<Long> getGaugeForLegacyOutcome(SweepOutcome outcome) {
-        return getGauge(BackgroundSweeperImpl.class, AtlasDbMetricNames.SWEEP_OUTCOME,
+        return getGauge(
+                BackgroundSweeperImpl.class,
+                AtlasDbMetricNames.SWEEP_OUTCOME,
                 ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name()));
     }
 
     private Gauge<Long> getGaugeForTargetedOutcome(SweeperStrategy strategy, SweepOutcome outcome) {
-        return getGauge(TargetedSweepMetrics.class, AtlasDbMetricNames.SWEEP_OUTCOME,
-                ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name(),
-                        AtlasDbMetricNames.TAG_STRATEGY, getTagForStrategy(strategy)));
+        return getGauge(
+                TargetedSweepMetrics.class,
+                AtlasDbMetricNames.SWEEP_OUTCOME,
+                ImmutableMap.of(
+                        AtlasDbMetricNames.TAG_OUTCOME,
+                        outcome.name(),
+                        AtlasDbMetricNames.TAG_STRATEGY,
+                        getTagForStrategy(strategy)));
     }
 
     private Double getEntriesReadInBatchMeanConservative() {

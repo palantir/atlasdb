@@ -15,14 +15,12 @@
  */
 package com.palantir.lock;
 
-import java.io.Serializable;
-import java.math.BigInteger;
-
-import javax.annotation.concurrent.Immutable;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.logsafe.Preconditions;
+import java.io.Serializable;
+import java.math.BigInteger;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class LockRefreshToken implements Serializable {
@@ -32,8 +30,8 @@ public final class LockRefreshToken implements Serializable {
     private final long expirationDateMs;
 
     @JsonCreator
-    public LockRefreshToken(@JsonProperty("tokenId") BigInteger tokenId,
-                            @JsonProperty("expirationDateMs") long expirationDateMs) {
+    public LockRefreshToken(
+            @JsonProperty("tokenId") BigInteger tokenId, @JsonProperty("expirationDateMs") long expirationDateMs) {
         this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
         this.expirationDateMs = expirationDateMs;
     }

@@ -15,12 +15,13 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.net.HttpHeaders;
+import com.palantir.common.remoting.HeaderAccessUtils;
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import javax.ws.rs.core.MediaType;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;
@@ -29,17 +30,12 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.net.HttpHeaders;
-import com.palantir.common.remoting.HeaderAccessUtils;
-
 @State(Scope.Thread)
 public class HttpBenchmarks {
     private static final String LOWERCASE_CONTENT_TYPE = HttpHeaders.CONTENT_TYPE.toLowerCase();
 
     // The headers here are all in lowercase, following OkHttp3.3.0+
-    private static final Map<String, Collection<String>> HEADERS =
+    private static final ImmutableMap<String, Collection<String>> HEADERS =
             ImmutableMap.<String, Collection<String>>builder()
                     .put(HttpHeaders.ACCEPT.toLowerCase(), ImmutableList.of(MediaType.APPLICATION_JSON))
                     .put(HttpHeaders.ACCEPT_ENCODING.toLowerCase(), ImmutableList.of("UTF-8"))
@@ -57,8 +53,6 @@ public class HttpBenchmarks {
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public void parseHttpHeaders(Blackhole blackhole) {
         blackhole.consume(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(
-                HEADERS,
-                LOWERCASE_CONTENT_TYPE,
-                MediaType.TEXT_PLAIN));
+                HEADERS, LOWERCASE_CONTENT_TYPE, MediaType.TEXT_PLAIN));
     }
 }

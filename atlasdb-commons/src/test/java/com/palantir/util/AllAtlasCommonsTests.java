@@ -15,13 +15,12 @@
  */
 package com.palantir.util;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
-
 import com.palantir.common.base.ThrowablesTest;
 import com.palantir.util.crypto.Sha256HashTest;
 import com.palantir.util.paging.PageDrainerTest;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({

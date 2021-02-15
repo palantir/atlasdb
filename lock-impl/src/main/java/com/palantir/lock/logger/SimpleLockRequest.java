@@ -15,15 +15,13 @@
  */
 package com.palantir.lock.logger;
 
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.LockGroupBehavior;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.TimeDuration;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class SimpleLockRequest {
@@ -39,7 +37,8 @@ public abstract class SimpleLockRequest {
                 .blockingDuration(extractBlockingDurationOrNull(request.getBlockingDuration()))
                 .versionId(request.getVersionId())
                 .creatingThread(request.getCreatingThreadName())
-                .clientId(clientId).build();
+                .clientId(clientId)
+                .build();
     }
 
     @Value.Parameter
@@ -76,6 +75,6 @@ public abstract class SimpleLockRequest {
 
     @Nullable
     private static Long extractBlockingDurationOrNull(TimeDuration blockingDuration) {
-        return  (blockingDuration != null) ? blockingDuration.toMillis() : null;
+        return (blockingDuration != null) ? blockingDuration.toMillis() : null;
     }
 }

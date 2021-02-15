@@ -16,15 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.time.Duration;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.StopStrategies;
@@ -33,6 +24,13 @@ import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverServic
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
+import java.time.Duration;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class NamespaceTakeoverResource implements NamespaceLeadershipTakeoverService {
 
@@ -58,9 +56,7 @@ public final class NamespaceTakeoverResource implements NamespaceLeadershipTakeo
             log.info("request failed, should not reach here", e);
             return false;
         } catch (RetryException e) {
-            log.info("failed repeatedly",
-                    SafeArg.of("numberOfAttempts", e.getNumberOfFailedAttempts()),
-                    e);
+            log.info("failed repeatedly", SafeArg.of("numberOfAttempts", e.getNumberOfFailedAttempts()), e);
             return false;
         }
     }
@@ -75,5 +71,4 @@ public final class NamespaceTakeoverResource implements NamespaceLeadershipTakeo
     private boolean nonRetriedTakeover(String namespace) {
         return leadershipComponents.requestHostileTakeover(Client.of(namespace));
     }
-
 }

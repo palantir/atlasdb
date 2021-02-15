@@ -16,21 +16,16 @@
 
 package com.palantir.atlasdb.http;
 
-import java.util.Optional;
-import java.util.function.Supplier;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 public interface TargetFactory {
     <T> InstanceAndVersion<T> createProxy(
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters);
+            Optional<TrustContext> trustContext, String uri, Class<T> type, AuxiliaryRemotingParameters parameters);
 
     /**
      * Creates a proxy that performs failover - that is, if the client encounters problems talking to a node of the
@@ -40,9 +35,7 @@ public interface TargetFactory {
      * {@link AuxiliaryRemotingParameters#shouldRetry()} is ignored; we will always retry in this case.
      */
     <T> InstanceAndVersion<T> createProxyWithFailover(
-            ServerListConfig serverListConfig,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters);
+            ServerListConfig serverListConfig, Class<T> type, AuxiliaryRemotingParameters parameters);
 
     /**
      * Creates a live reloading proxy that performs failover.
@@ -55,9 +48,7 @@ public interface TargetFactory {
      * {@link #createProxyWithFailover(ServerListConfig, Class, AuxiliaryRemotingParameters)} in that case.
      */
     <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
-            Supplier<ServerListConfig> serverListConfigSupplier,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters);
+            Supplier<ServerListConfig> serverListConfigSupplier, Class<T> type, AuxiliaryRemotingParameters parameters);
 
     @Value.Immutable
     interface InstanceAndVersion<T> {

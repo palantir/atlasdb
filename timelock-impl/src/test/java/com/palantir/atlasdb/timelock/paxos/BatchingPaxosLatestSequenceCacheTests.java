@@ -23,21 +23,19 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutablePaxosLong;
 import com.palantir.paxos.PaxosLong;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BatchingPaxosLatestSequenceCacheTests {
@@ -45,7 +43,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
     private static final Client CLIENT_1 = Client.of("client-1");
     private static final Client CLIENT_2 = Client.of("client-2");
     private static final Client CLIENT_3 = Client.of("client-3");
-    private static final Map<Client, PaxosLong> INITIAL_UPDATES = ImmutableMap.<Client, PaxosLong>builder()
+    private static final ImmutableMap<Client, PaxosLong> INITIAL_UPDATES = ImmutableMap.<Client, PaxosLong>builder()
             .put(CLIENT_1, PaxosLong.of(5L))
             .put(CLIENT_2, PaxosLong.of(10L))
             .put(CLIENT_3, PaxosLong.of(15L))
@@ -71,9 +69,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
         BatchingPaxosLatestSequenceCache cache = new BatchingPaxosLatestSequenceCache(remote);
         Map<Client, PaxosLong> result = cache.apply(ImmutableSet.of(CLIENT_1, CLIENT_2));
 
-        assertThat(result).containsOnly(
-                entry(CLIENT_1, PaxosLong.of(5L)),
-                entry(CLIENT_2, PaxosLong.of(10L)));
+        assertThat(result).containsOnly(entry(CLIENT_1, PaxosLong.of(5L)), entry(CLIENT_2, PaxosLong.of(10L)));
     }
 
     @Test
@@ -82,8 +78,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
         when(remote.latestSequencesPreparedOrAcceptedCached(any(AcceptorCacheKey.class)))
                 .thenReturn(Optional.empty());
 
-        assertThat(cache.apply(ImmutableSet.of(CLIENT_1)))
-                .containsEntry(CLIENT_1, INITIAL_UPDATES.get(CLIENT_1));
+        assertThat(cache.apply(ImmutableSet.of(CLIENT_1))).containsEntry(CLIENT_1, INITIAL_UPDATES.get(CLIENT_1));
     }
 
     @Test
@@ -133,7 +128,8 @@ public class BatchingPaxosLatestSequenceCacheTests {
                 .cacheTimestamp(cacheTimestamp.getAndIncrement())
                 .build();
 
-        doReturn(newDigest).when(remote)
+        doReturn(newDigest)
+                .when(remote)
                 .latestSequencesPreparedOrAccepted(Optional.empty(), ImmutableSet.of(CLIENT_1, CLIENT_2, CLIENT_3));
 
         assertThat(cache.apply(ImmutableSet.of(CLIENT_1)).get(CLIENT_1))
@@ -142,9 +138,8 @@ public class BatchingPaxosLatestSequenceCacheTests {
     }
 
     private BatchingPaxosLatestSequenceCache initialCache() throws InvalidAcceptorCacheKeyException {
-        Map<Client, Long> asLong = KeyedStream.stream(INITIAL_UPDATES)
-                .map(PaxosLong::getValue)
-                .collectToMap();
+        Map<Client, Long> asLong =
+                KeyedStream.stream(INITIAL_UPDATES).map(PaxosLong::getValue).collectToMap();
         AcceptorCacheDigest digest = ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putAllUpdates(asLong)

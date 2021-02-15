@@ -15,16 +15,6 @@
  */
 package com.palantir.leader;
 
-import java.time.Duration;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableCollection;
@@ -47,6 +37,14 @@ import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of a paxos member than can be a designated proposer (leader) and designated
@@ -97,9 +95,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         this.updatePollingRate = updatePollingWait;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.eventRecorder = eventRecorder;
-        this.leaderAddressCache = Caffeine.newBuilder()
-                .expireAfterWrite(leaderAddressCacheTtl)
-                .build();
+        this.leaderAddressCache =
+                Caffeine.newBuilder().expireAfterWrite(leaderAddressCacheTtl).build();
     }
 
     @Override
@@ -169,21 +166,20 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     private LeaderPingResult pingLeader(Optional<PaxosValue> maybeGreatestLearnedValue) {
-        Optional<LeaderPingResult> maybeLeaderPingResult = extractLeaderUuid(maybeGreatestLearnedValue)
-                .map(leaderPinger::pingLeaderWithUuid);
+        Optional<LeaderPingResult> maybeLeaderPingResult =
+                extractLeaderUuid(maybeGreatestLearnedValue).map(leaderPinger::pingLeaderWithUuid);
         maybeLeaderPingResult.ifPresent(leaderPingResult -> leaderPingResult.recordEvent(eventRecorder));
         maybeLeaderPingResult.ifPresent(leaderPingResult -> LeaderPingResults.caseOf(leaderPingResult)
                 .pingReturnedTrue((key, value) -> {
                     leaderAddressCache.put(key, value);
                     return null;
-                }).otherwise_(null));
+                })
+                .otherwise_(null));
         return maybeLeaderPingResult.orElseGet(LeaderPingResults::pingReturnedFalse);
     }
 
     private static Optional<UUID> extractLeaderUuid(Optional<PaxosValue> maybeGreatestLearnedValue) {
-        return maybeGreatestLearnedValue
-                .map(PaxosValue::getLeaderUUID)
-                .map(UUID::fromString);
+        return maybeGreatestLearnedValue.map(PaxosValue::getLeaderUUID).map(UUID::fromString);
     }
 
     private void proposeLeadershipAfter(Optional<PaxosValue> value) {
@@ -217,13 +213,15 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         return determineAndRecordLeadershipStatus(paxosToken);
     }
 
-    private ListenableFuture<StillLeadingStatus> determineAndRecordLeadershipStatus(
-            PaxosLeadershipToken paxosToken) {
+    private ListenableFuture<StillLeadingStatus> determineAndRecordLeadershipStatus(PaxosLeadershipToken paxosToken) {
         ListenableFuture<StillLeadingStatus> statusFuture = determineLeadershipStatus(paxosToken.value);
-        return Futures.transform(statusFuture, status -> {
-            recordLeadershipStatus(paxosToken, status);
-            return status;
-        }, MoreExecutors.directExecutor());
+        return Futures.transform(
+                statusFuture,
+                status -> {
+                    recordLeadershipStatus(paxosToken, status);
+                    return status;
+                },
+                MoreExecutors.directExecutor());
     }
 
     private StillLeadingStatus determineLeadershipStatus(Optional<PaxosValue> value) {
@@ -255,9 +253,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         return valueIfAny.equals(knowledge.getGreatestLearnedValue());
     }
 
-    private void recordLeadershipStatus(
-            PaxosLeadershipToken token,
-            StillLeadingStatus status) {
+    private void recordLeadershipStatus(PaxosLeadershipToken token, StillLeadingStatus status) {
         if (status == StillLeadingStatus.NO_QUORUM) {
             eventRecorder.recordNoQuorum(token.value);
         } else if (status == StillLeadingStatus.NOT_LEADING) {
@@ -301,12 +297,12 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         if (status == StillLeadingStatus.LEADING) {
             try {
                 proposer.proposeAnonymously(
-                        getNextSequenceNumber(leadershipState.greatestLearnedValue()),
-                        LEADERSHIP_PROPOSAL_VALUE);
+                        getNextSequenceNumber(leadershipState.greatestLearnedValue()), LEADERSHIP_PROPOSAL_VALUE);
                 return true;
             } catch (PaxosRoundFailureException e) {
-                log.info("Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
-                        + " state was {}.",
+                log.info(
+                        "Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
+                                + " state was {}.",
                         SafeArg.of("leadershipState", leadershipState));
                 return false;
             }
@@ -324,8 +320,7 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             case NOT_LEADING:
                 try {
                     proposer.propose(
-                            getNextSequenceNumber(leadershipState.greatestLearnedValue()),
-                            LEADERSHIP_PROPOSAL_VALUE);
+                            getNextSequenceNumber(leadershipState.greatestLearnedValue()), LEADERSHIP_PROPOSAL_VALUE);
                     StillLeadingStatus newStatus = determineLeadershipState().status();
                     if (newStatus == StillLeadingStatus.LEADING) {
                         log.info("Successfully took over", SafeArg.of("newStatus", newStatus));
@@ -335,7 +330,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
                         return false;
                     }
                 } catch (PaxosRoundFailureException e) {
-                    log.info("Couldn't takeover leadership because a quorum could not be obtained.",
+                    log.info(
+                            "Couldn't takeover leadership because a quorum could not be obtained.",
                             SafeArg.of("lastObservedState", leadershipState));
                     return false;
                 }
@@ -367,7 +363,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
         default Optional<LeadershipToken> confirmedToken() {
             if (status() == StillLeadingStatus.LEADING) {
-                return Optional.of(new PaxosLeadershipToken(greatestLearnedValue().get()));
+                return Optional.of(
+                        new PaxosLeadershipToken(greatestLearnedValue().get()));
             }
             return Optional.empty();
         }

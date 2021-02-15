@@ -16,21 +16,18 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.collect.SetMultimap;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosValue;
 import java.util.Map;
 import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.google.common.collect.SetMultimap;
-import com.palantir.paxos.Client;
-import com.palantir.paxos.PaxosValue;
-
-@Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
-        + "/learner")
+@Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE + "/learner")
 public class BatchPaxosLearnerResource {
 
     private final BatchPaxosLearner batchPaxosLearner;
@@ -62,5 +59,4 @@ public class BatchPaxosLearnerResource {
     public SetMultimap<Client, PaxosValue> getLearnedValuesSince(Map<Client, Long> seqLowerBoundsByClient) {
         return batchPaxosLearner.getLearnedValuesSince(seqLowerBoundsByClient);
     }
-
 }

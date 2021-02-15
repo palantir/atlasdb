@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.io.File;
-import java.util.stream.Stream;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.table.description.test.StringValuePersister;
+import java.io.File;
+import java.util.stream.Stream;
 
 /**
  * Schema used to test for Table API correctness and for accidental TableRenderer changes.
@@ -32,7 +31,8 @@ public class ApiTestSchema implements AtlasSchema {
     private static final Schema GENERIC_TEST_SCHEMA = generateSchema();
 
     private static Schema generateSchema() {
-        Schema schema = new Schema("ApiTest",
+        Schema schema = new Schema(
+                "ApiTest",
                 ApiTestSchema.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE,
                 OptionalType.JAVA8);

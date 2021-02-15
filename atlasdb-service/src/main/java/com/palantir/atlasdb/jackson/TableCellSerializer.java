@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -29,6 +27,7 @@ import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.io.IOException;
 
 public class TableCellSerializer extends StdSerializer<TableCell> {
     private static final long serialVersionUID = 1L;
@@ -70,8 +69,7 @@ public class TableCellSerializer extends StdSerializer<TableCell> {
         jgen.writeEndObject();
     }
 
-    private static String getLongColumnName(ColumnMetadataDescription colDescription,
-                                            String shortName) {
+    private static String getLongColumnName(ColumnMetadataDescription colDescription, String shortName) {
         for (NamedColumnDescription description : colDescription.getNamedColumns()) {
             if (shortName.equals(description.getShortName())) {
                 return description.getLongName();

@@ -15,19 +15,15 @@
  */
 package com.palantir.remoting;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-
-import java.util.Collection;
-import java.util.Map;
-
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.common.remoting.HeaderAccessUtils;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.junit.Test;
 
 public class HeaderAccessUtilsTest {
     private static final String FOO = "foo";
@@ -38,11 +34,12 @@ public class HeaderAccessUtilsTest {
     private static final ImmutableList<String> VALUE_2 = ImmutableList.of("ls", "du", "cut");
     private static final ImmutableList<String> VALUE_3 = ImmutableList.of();
 
-    private static final Map<String, Collection<String>> HEADERS = ImmutableMap.<String, Collection<String>>builder()
-            .put(KEY_1, VALUE_1)
-            .put(KEY_2, VALUE_2)
-            .put(KEY_3, VALUE_3)
-            .build();
+    private static final ImmutableMap<String, Collection<String>> HEADERS =
+            ImmutableMap.<String, Collection<String>>builder()
+                    .put(KEY_1, VALUE_1)
+                    .put(KEY_2, VALUE_2)
+                    .put(KEY_3, VALUE_3)
+                    .build();
 
     @Test
     public void caseInsensitiveContainsEntryIgnoresCaseOnKeys() {
@@ -69,12 +66,12 @@ public class HeaderAccessUtilsTest {
 
     @Test
     public void caseInsensitiveContainsEntryShortcircuits() {
-        Map<String, Collection<String>> testMap = Maps.newLinkedHashMap();
+        Map<String, Collection<String>> testMap = new LinkedHashMap<>();
         String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
-        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(testMap, KEY_2, additionalCommand),
-                is(false));
+        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(testMap, KEY_2, additionalCommand))
+                .isFalse();
     }
 
     @Test
@@ -90,18 +87,21 @@ public class HeaderAccessUtilsTest {
 
     @Test
     public void caseInsensitiveGetShortcircuits() {
-        Map<String, Collection<String>> testMap = Maps.newLinkedHashMap();
+        Map<String, Collection<String>> testMap = new LinkedHashMap<>();
         String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
-        assertEquals(VALUE_2, HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(testMap, KEY_2.toUpperCase()));
+        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(testMap, KEY_2.toUpperCase()))
+                .isEqualTo(VALUE_2);
     }
 
     private static void assertCaseInsensitiveContainsEntry(String key, String value, boolean outcome) {
-        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(HEADERS, key, value), is(outcome));
+        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(HEADERS, key, value))
+                .isEqualTo(outcome);
     }
 
     private static void assertCaseInsensitiveGet(String key, Collection<String> expected) {
-        assertEquals(expected, HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(HEADERS, key));
+        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(HEADERS, key))
+                .isEqualTo(expected);
     }
 }

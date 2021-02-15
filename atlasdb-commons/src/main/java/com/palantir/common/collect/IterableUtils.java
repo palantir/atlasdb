@@ -15,12 +15,6 @@
  */
 package com.palantir.common.collect;
 
-import java.util.AbstractCollection;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
@@ -28,9 +22,16 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
+import java.util.AbstractCollection;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
-public class IterableUtils {
-    private IterableUtils() { /* */ }
+public final class IterableUtils {
+    private IterableUtils() {
+        /* */
+    }
 
     public static <T> Collection<T> toCollection(Iterable<T> iterable) {
         return new IterableCollection<T>(iterable, false);
@@ -51,7 +52,7 @@ public class IterableUtils {
 
     public static <T> Collection<T> append(Collection<? extends T> a, T b) {
         Preconditions.checkNotNull(a);
-        return toCollection(append((Iterable<? extends T>)a, b));
+        return toCollection(append((Iterable<? extends T>) a, b));
     }
 
     /**
@@ -82,7 +83,7 @@ public class IterableUtils {
     }
 
     public static <T, U> Iterable<Pair<T, U>> zip(final Iterable<? extends T> it1, final Iterable<? extends U> it2) {
-        return new Iterable<Pair<T,U>>() {
+        return new Iterable<Pair<T, U>>() {
             @Override
             public Iterator<Pair<T, U>> iterator() {
                 return IteratorUtils.zip(it1.iterator(), it2.iterator());
@@ -95,7 +96,8 @@ public class IterableUtils {
         };
     }
 
-    public static <T, U> Iterable<Pair<T, U>> zip(final Iterable<? extends T> itT, final Function<T, U> transformationToU) {
+    public static <T, U> Iterable<Pair<T, U>> zip(
+            final Iterable<? extends T> itT, final Function<T, U> transformationToU) {
         return zip(itT, Iterables.transform(itT, transformationToU));
     }
 
@@ -149,8 +151,8 @@ public class IterableUtils {
      * {@code List} or {@code Collection} respectively and is beneficial for
      * efficiently copying the result to a new collection.
      */
-    public static <F, T> Iterable<T> transform(final Iterable<F> fromIterable,
-                                               final Function<? super F, ? extends T> function) {
+    public static <F, T> Iterable<T> transform(
+            final Iterable<F> fromIterable, final Function<? super F, ? extends T> function) {
         /*
          * Ideally this would be automatic from Guava's Iterables.transform but
          * it is not yet supported, see
@@ -174,5 +176,4 @@ public class IterableUtils {
     private static <T> Iterable<T> cast(Collection<? extends T> c) {
         return (Iterable<T>) c;
     }
-
 }

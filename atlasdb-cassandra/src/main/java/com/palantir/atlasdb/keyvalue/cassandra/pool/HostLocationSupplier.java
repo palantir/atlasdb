@@ -16,56 +16,51 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
+    private static final int NUM_RETRIES = 5;
 
-import com.google.common.base.Suppliers;
-import com.palantir.logsafe.SafeArg;
+    @VisibleForTesting
+    static final String EC2_SNITCH = "org.apache.cassandra.locator.Ec2Snitch";
 
-public final class HostLocationSupplier implements Supplier<Optional<HostLocation>> {
-
-    private final Supplier<String> snitchSupplier;
-    private final Supplier<HostLocation> ec2Supplier;
+    private final Supplier<Optional<String>> snitchSupplier;
+    private final Supplier<Optional<HostLocation>> ec2Supplier;
     private final Optional<HostLocation> overrideLocation;
 
-    private static final Logger log = LoggerFactory.getLogger(HostLocationSupplier.class);
-
-
-    public HostLocationSupplier(Supplier<String> snitchSupplier,
-            Supplier<HostLocation> ec2Supplier,
+    @VisibleForTesting
+    HostLocationSupplier(
+            Supplier<Optional<String>> snitchSupplier,
+            Supplier<Optional<HostLocation>> ec2Supplier,
             Optional<HostLocation> overrideLocation) {
         this.snitchSupplier = Suppliers.memoize(snitchSupplier::get);
         this.ec2Supplier = Suppliers.memoize(ec2Supplier::get);
         this.overrideLocation = overrideLocation;
     }
 
-    public HostLocationSupplier(Supplier<String> snitchSupplier,
-            Optional<HostLocation> overrideLocation) {
-        this(snitchSupplier, new Ec2HostLocationSupplier(), overrideLocation);
+    static HostLocationSupplier create(Supplier<String> snitchSupplier, Optional<HostLocation> overrideLocation) {
+        return new HostLocationSupplier(
+                ExceptionHandlingSupplier.create(snitchSupplier, NUM_RETRIES),
+                ExceptionHandlingSupplier.create(new Ec2HostLocationSupplier(), NUM_RETRIES),
+                overrideLocation);
     }
 
     @Override
     public Optional<HostLocation> get() {
-        try {
-            if (overrideLocation.isPresent()) {
-                return overrideLocation;
-            }
+        if (overrideLocation.isPresent()) {
+            return overrideLocation;
+        }
 
-            String snitch = snitchSupplier.get();
-            log.debug("Snitch successfully detected", SafeArg.of("snitch", snitch));
-
+        return snitchSupplier.get().flatMap(snitch -> {
             switch (snitch) {
-                case "org.apache.cassandra.locator.Ec2Snitch":
-                    return Optional.of(ec2Supplier.get());
+                case EC2_SNITCH:
+                    return ec2Supplier.get();
                 default:
                     return Optional.empty();
             }
-        } catch (RuntimeException e) {
-            log.warn("Host location supplier failed to retrieve the host location", e);
-            return Optional.empty();
-        }
+        });
     }
 }

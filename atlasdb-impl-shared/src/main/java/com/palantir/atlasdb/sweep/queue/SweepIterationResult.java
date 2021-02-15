@@ -22,9 +22,13 @@ import org.derive4j.Data;
 public abstract class SweepIterationResult {
     public interface Cases<R> {
         R success(long entriesSwept);
+
         R unableToAcquireShard();
+
         R insufficientConsistency();
+
         R otherError();
+
         R disabled();
     }
 

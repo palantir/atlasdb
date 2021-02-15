@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.console;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 
 /**
  * Utility for joins.
@@ -31,28 +30,29 @@ import com.google.common.collect.Maps;
 public class AtlasConsoleJoins {
 
     public enum JoinComponent {
-        JOIN_KEY, INPUT_VALUE, OUTPUT_VALUE
+        JOIN_KEY,
+        INPUT_VALUE,
+        OUTPUT_VALUE
     }
 
-    public static Iterable<Map<String, Object>> join(Iterable<Map<?, ?>> input, int batchSize,
-            Function<List<?>, List<Map<String, ?>>> getRowsFunction) {
+    public static Iterable<Map<String, Object>> join(
+            Iterable<Map<?, ?>> input, int batchSize, Function<List<?>, List<Map<String, ?>>> getRowsFunction) {
         Iterable<Entry<?, ?>> entries = Iterables.concat(Iterables.transform(input, Map::entrySet));
-        return FluentIterable.from(Iterables.partition(entries, batchSize)).transformAndConcat(
-                batch -> {
-                    List<?> keys = batch.stream().map(Entry::getKey).collect(Collectors.toList());
-                    List<Map<String, ?>> batchResult = getRowsFunction.apply(keys);
-                    Map<?, ?> resultMap = Maps.uniqueIndex(batchResult, m -> m.get("row"));
-                    return batch.stream()
-                            .filter(inputItem -> resultMap.containsKey(inputItem.getKey()))
-                            .map(batchItem -> {
-                                Map<String, Object> map = Maps.newHashMap();
-                                Object row = batchItem.getKey();
-                                map.put(JoinComponent.JOIN_KEY.toString(), row);
-                                map.put(JoinComponent.OUTPUT_VALUE.toString(), resultMap.get(row));
-                                map.put(JoinComponent.INPUT_VALUE.toString(), batchItem.getValue());
-                                return map;
-                            }).collect(Collectors.toList());
-                }
-        );
+        return FluentIterable.from(Iterables.partition(entries, batchSize)).transformAndConcat(batch -> {
+            List<?> keys = batch.stream().map(Entry::getKey).collect(Collectors.toList());
+            List<Map<String, ?>> batchResult = getRowsFunction.apply(keys);
+            Map<?, ?> resultMap = Maps.uniqueIndex(batchResult, m -> m.get("row"));
+            return batch.stream()
+                    .filter(inputItem -> resultMap.containsKey(inputItem.getKey()))
+                    .map(batchItem -> {
+                        Map<String, Object> map = Maps.newHashMap();
+                        Object row = batchItem.getKey();
+                        map.put(JoinComponent.JOIN_KEY.toString(), row);
+                        map.put(JoinComponent.OUTPUT_VALUE.toString(), resultMap.get(row));
+                        map.put(JoinComponent.INPUT_VALUE.toString(), batchItem.getValue());
+                        return map;
+                    })
+                    .collect(Collectors.toList());
+        });
     }
 }

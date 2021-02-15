@@ -23,9 +23,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
  */
 public abstract class MBeanCache<K, V> implements NonDistributedCache<K, V> {
 
-    final protected CacheStats mbean = new CacheStats(this);
+    protected final CacheStats mbean = new CacheStats(this);
 
-    volatile private String name = "MBeanCache";
+    private volatile String name = "MBeanCache";
 
     /**
      * Sets the name for this cache.  Useful
@@ -42,13 +42,14 @@ public abstract class MBeanCache<K, V> implements NonDistributedCache<K, V> {
     }
 
     public abstract int getMaxCacheSize();
+
     public abstract void setMaxCacheSize(int size);
 
     public static final String OBJECT_NAME_PREFIX = "com.palantir.caching:type=";
+
     public String getStatBeanName() {
         return OBJECT_NAME_PREFIX + name;
     }
-
 
     /**
      * Registers an mbean for this cache with the provided object name.

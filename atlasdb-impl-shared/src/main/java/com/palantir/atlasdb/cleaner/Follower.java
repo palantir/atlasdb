@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.Set;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.Set;
 
 /**
  * A callback that is called as part of scrubbing and sweeping.

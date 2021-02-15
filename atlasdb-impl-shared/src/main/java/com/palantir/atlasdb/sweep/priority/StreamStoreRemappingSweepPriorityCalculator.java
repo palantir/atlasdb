@@ -15,23 +15,22 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.annotation.Output;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class StreamStoreRemappingSweepPriorityCalculator {
     public static final long INDEX_TO_VALUE_TABLE_SLEEP_TIME = TimeUnit.MINUTES.toMillis(65);
     private SweepPriorityCalculator delegate;
     private SweepPriorityStore sweepPriorityStore;
 
-    public StreamStoreRemappingSweepPriorityCalculator(SweepPriorityCalculator delegate,
-            SweepPriorityStore sweepPriorityStore) {
+    public StreamStoreRemappingSweepPriorityCalculator(
+            SweepPriorityCalculator delegate, SweepPriorityStore sweepPriorityStore) {
         this.delegate = delegate;
         this.sweepPriorityStore = sweepPriorityStore;
     }
@@ -55,7 +54,8 @@ public class StreamStoreRemappingSweepPriorityCalculator {
                 .collect(Collectors.toMap(SweepPriority::tableRef, Function.identity()));
     }
 
-    private void adjustStreamStoreScores(TableReference valueTable,
+    private void adjustStreamStoreScores(
+            TableReference valueTable,
             @Output Map<TableReference, Double> scores,
             Map<TableReference, SweepPriority> tableToSweepPriority) {
 

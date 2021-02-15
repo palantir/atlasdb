@@ -25,8 +25,7 @@ public abstract class ForwardingPoolingContainer<T> extends ForwardingObject imp
     protected abstract PoolingContainer<T> delegate();
 
     @Override
-    public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<T, V, K> f)
-            throws K {
+    public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<T, V, K> f) throws K {
         return delegate().runWithPooledResource(f);
     }
 
@@ -39,5 +38,4 @@ public abstract class ForwardingPoolingContainer<T> extends ForwardingObject imp
     public void shutdownPooling() {
         delegate().shutdownPooling();
     }
-
 }

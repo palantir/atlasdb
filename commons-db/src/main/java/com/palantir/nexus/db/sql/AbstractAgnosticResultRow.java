@@ -15,19 +15,17 @@
  */
 package com.palantir.nexus.db.sql;
 
+import com.palantir.common.base.Throwables;
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.DBType;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
 import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.common.base.Throwables;
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.DBType;
 
 public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
 
@@ -59,9 +57,13 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
             // column name is mixed case or invalid, fall back on slow path
             colIdx = columnMap.get(colname.toLowerCase());
             if (colIdx == null) {
-                throw new IllegalArgumentException("Column named {" + colname + "} not found in result set"); //$NON-NLS-1$ //$NON-NLS-2$
+                throw new IllegalArgumentException(
+                        "Column named {" + colname + "} not found in result set"); // $NON-NLS-1$ //$NON-NLS-2$
             } else {
-                log.debug("Column name '{}' supplied in mixed case - leads to slower execution of AgnosticResultRow.findColumn", colname); //$NON-NLS-1$
+                log.debug(
+                        "Column name '{}' supplied in mixed case - leads to slower execution of"
+                                + " AgnosticResultRow.findColumn",
+                        colname); //$NON-NLS-1$
             }
         }
         return colIdx.intValue();
@@ -151,7 +153,6 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
     @Deprecated // use the get by colname variant instead
     protected abstract long getLong(int col, long fallback) throws PalantirSqlException;
 
-
     @Override
     public Long getLongObject(String colname) throws PalantirSqlException {
         return getLongObject(findColumn(colname));
@@ -202,31 +203,35 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
     }
 
     protected abstract String getNullableString(int col) throws PalantirSqlException;
+
     protected abstract String getString(int col) throws PalantirSqlException;
 
     protected String convertReaderToString(final InputStreamReader reader) throws PalantirSqlException {
-        if (reader == null){
+        if (reader == null) {
             return null;
         }
 
-        try{
+        try {
             final int SIZE = 1024;
             char[] cbuf = new char[SIZE];
 
             int length;
             StringBuilder sb = new StringBuilder();
-            while ( (length = reader.read(cbuf, 0, SIZE)) > 0){
+            while ((length = reader.read(cbuf, 0, SIZE)) > 0) {
                 sb.append(cbuf, 0, length);
             }
 
             return sb.toString();
-        } catch (IOException e){
-            throw Throwables.chain(PalantirSqlException.createForChaining(), Throwables.chain(new SQLException("Could not convert BufferedReader into a String"), e)); //$NON-NLS-1$
+        } catch (IOException e) {
+            throw Throwables.chain(
+                    PalantirSqlException.createForChaining(),
+                    Throwables.chain(
+                            new SQLException("Could not convert BufferedReader into a String"), e)); // $NON-NLS-1$
         }
     }
 
     protected byte[] convertToBytes(final InputStream bias) throws IOException {
-        if (bias == null){
+        if (bias == null) {
             return new byte[0];
         }
 
@@ -234,7 +239,7 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
         byte[] buf = new byte[SIZE];
         int length;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        while ( (length = bias.read(buf, 0, SIZE)) > 0){
+        while ((length = bias.read(buf, 0, SIZE)) > 0) {
             baos.write(buf, 0, length);
         }
 

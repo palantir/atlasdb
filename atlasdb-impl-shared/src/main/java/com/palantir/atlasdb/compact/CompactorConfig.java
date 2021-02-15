@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.compact;
 
-import java.util.concurrent.TimeUnit;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import java.util.concurrent.TimeUnit;
+import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableCompactorConfig.class)
 @JsonDeserialize(as = ImmutableCompactorConfig.class)
@@ -68,10 +66,14 @@ public interface CompactorConfig {
 
     @Value.Check
     default void checkIntervalsNonnegative() {
-        Preconditions.checkState(compactPauseOnFailureMillis() >= 0,
-                "Compact pause-on-failure interval must be nonnegative, but found %s", compactPauseOnFailureMillis());
-        Preconditions.checkState(compactPauseMillis() >= 0,
-                "Compact pause interval must be nonnegative, but found %s", compactPauseMillis());
+        Preconditions.checkState(
+                compactPauseOnFailureMillis() >= 0,
+                "Compact pause-on-failure interval must be nonnegative, but found %s",
+                compactPauseOnFailureMillis());
+        Preconditions.checkState(
+                compactPauseMillis() >= 0,
+                "Compact pause interval must be nonnegative, but found %s",
+                compactPauseMillis());
     }
 
     static CompactorConfig defaultCompactorConfig() {

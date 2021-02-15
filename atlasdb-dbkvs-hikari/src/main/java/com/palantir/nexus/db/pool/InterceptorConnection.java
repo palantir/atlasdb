@@ -15,6 +15,9 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.reflect.AbstractInvocationHandler;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -23,11 +26,6 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-import java.util.Map;
-
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.reflect.AbstractInvocationHandler;
 
 /**
  * Allows you to intercept and override methods in {@link Connection}.
@@ -35,12 +33,12 @@ import com.google.common.reflect.AbstractInvocationHandler;
 public final class InterceptorConnection extends AbstractInvocationHandler implements InvocationHandler {
     private final Connection delegate;
 
-    private static final Map<String, Class<? extends Statement>> INTERCEPT_METHODS
-            = ImmutableMap.<String, Class<? extends Statement>>builder()
-            .put("createStatement", Statement.class)
-            .put("prepareCall", CallableStatement.class)
-            .put("prepareStatement", PreparedStatement.class)
-            .build();
+    private static final ImmutableMap<String, Class<? extends Statement>> INTERCEPT_METHODS =
+            ImmutableMap.<String, Class<? extends Statement>>builder()
+                    .put("createStatement", Statement.class)
+                    .put("prepareCall", CallableStatement.class)
+                    .put("prepareStatement", PreparedStatement.class)
+                    .build();
 
     private InterceptorConnection(final Connection delegate) {
         this.delegate = delegate;
@@ -52,7 +50,7 @@ public final class InterceptorConnection extends AbstractInvocationHandler imple
         try {
             ret = method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
-            throw e.getTargetException();
+            throw e.getCause();
         }
 
         Class<? extends Statement> wrapperClazz = INTERCEPT_METHODS.get(method.getName());
@@ -75,8 +73,6 @@ public final class InterceptorConnection extends AbstractInvocationHandler imple
     public static Connection wrapInterceptor(Connection delegate) {
         InterceptorConnection instance = new InterceptorConnection(delegate);
         return (Connection) Proxy.newProxyInstance(
-                InterceptorConnection.class.getClassLoader(),
-                new Class[]{Connection.class},
-                instance);
+                InterceptorConnection.class.getClassLoader(), new Class[] {Connection.class}, instance);
     }
 }

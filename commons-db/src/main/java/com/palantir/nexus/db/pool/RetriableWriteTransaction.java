@@ -17,7 +17,6 @@ package com.palantir.nexus.db.pool;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-
 import javax.annotation.Nullable;
 
 /**
@@ -40,5 +39,6 @@ import javax.annotation.Nullable;
  * *) Under sufficiently dire DB conditions (e.g.  DB goes down permanently right as transaction is running) you may get a [unknowingly] committed transaction plus a thrown {@link SQLException} (commit attempted which completes and throws, DB is hosed enough after that to be unable to verify this).
  */
 public interface RetriableWriteTransaction<T> {
-    public @Nullable T run(Connection c) throws SQLException;
+    @Nullable
+    T run(Connection c) throws SQLException;
 }

@@ -16,10 +16,9 @@
 
 package com.palantir.timelock.invariants;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class ServerKiller {
     private static final Logger log = LoggerFactory.getLogger(ServerKiller.class);
@@ -29,7 +28,8 @@ public final class ServerKiller {
     }
 
     public static Error killMeNow(Throwable error) {
-        log.error("Something bad happened and we can't continue safely, so we're preemptively killing the server.",
+        log.error(
+                "Something bad happened and we can't continue safely, so we're preemptively killing the server.",
                 error);
         System.exit(1);
         throw new SafeIllegalStateException("We should have exited before we get to this point", error);

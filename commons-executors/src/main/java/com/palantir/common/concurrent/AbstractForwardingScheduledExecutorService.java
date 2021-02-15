@@ -68,17 +68,13 @@ public abstract class AbstractForwardingScheduledExecutorService extends Abstrac
     }
 
     @Override
-    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period,
-            TimeUnit unit) {
-        return delegate().scheduleAtFixedRate(wrap(command), initialDelay, period,
-                unit);
+    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
+        return delegate().scheduleAtFixedRate(wrap(command), initialDelay, period, unit);
     }
 
     @Override
-    public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
-            long delay, TimeUnit unit) {
-        return delegate().scheduleWithFixedDelay(wrap(command), initialDelay, delay,
-                unit);
+    public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
+        return delegate().scheduleWithFixedDelay(wrap(command), initialDelay, delay, unit);
     }
 
     protected Runnable wrap(Runnable runnable) {

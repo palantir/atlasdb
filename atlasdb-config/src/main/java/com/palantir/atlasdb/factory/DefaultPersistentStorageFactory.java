@@ -16,18 +16,16 @@
 
 package com.palantir.atlasdb.factory;
 
+import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.UUID;
-
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.atlasdb.config.RocksDbPersistentStorageConfig;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 
 /**
  * Constructs a new {@link PersistentStore} with new persistent storage connection on each call of
@@ -42,9 +40,11 @@ public final class DefaultPersistentStorageFactory implements PersistentStorageF
      * @param config of the requested RocksDB persistent storage
      * @return RockDB implementation of {@link PersistentStore}
      */
+    @Override
     public PersistentStore constructPersistentStore(RocksDbPersistentStorageConfig config) {
         Path magicPath = PersistentStoragePathSanitizer.sanitizeStoragePath(config.storagePath());
-        File databaseFolder = new File(magicPath.toAbsolutePath().toString(), UUID.randomUUID().toString());
+        File databaseFolder = new File(
+                magicPath.toAbsolutePath().toString(), UUID.randomUUID().toString());
         RocksDB rocksDb = openRocksConnection(databaseFolder);
         return new RocksDbPersistentStore(rocksDb, databaseFolder);
     }

@@ -15,19 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
-import java.util.stream.Collectors;
-
-import javax.annotation.concurrent.GuardedBy;
-
-import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.NotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -43,9 +30,19 @@ import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.util.debug.ThreadDumps;
+import java.nio.ByteBuffer;
+import java.util.stream.Collectors;
+import javax.annotation.concurrent.GuardedBy;
+import org.apache.cassandra.thrift.CASResult;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.NotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TimestampBoundStore {
+    private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TimestampBoundStore {
         @Override
         public TimestampBoundStore delegate() {
             checkInitialized();
@@ -106,47 +103,54 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     @Override
     public synchronized long getUpperLimit() {
         DebugLogger.logger.debug("[GET] Getting upper limit");
-        Long upperLimit = clientPool.runWithRetry(new FunctionCheckedException<CassandraClient, Long,
-                RuntimeException>() {
+        Long upperLimit =
+                clientPool.runWithRetry(new FunctionCheckedException<CassandraClient, Long, RuntimeException>() {
 
-            @GuardedBy("CassandraTimestampBoundStore.this")
-            @Override
-            public Long apply(CassandraClient client) {
-                ByteBuffer rowName = getRowName();
-                ColumnOrSuperColumn result;
-                try {
-                    result = client.get(AtlasDbConstants.TIMESTAMP_TABLE, rowName, getColumnName(),
-                            ConsistencyLevel.LOCAL_QUORUM);
-                } catch (NotFoundException e) {
-                    result = null;
-                } catch (Exception e) {
-                    throw Throwables.throwUncheckedException(e);
-                }
-                if (result == null) {
-                    DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}",
-                            CassandraTimestampUtils.INITIAL_VALUE);
-                    cas(client, null, CassandraTimestampUtils.INITIAL_VALUE);
-                    return CassandraTimestampUtils.INITIAL_VALUE;
-                }
-                return extractUpperLimit(result);
-            }
+                    @GuardedBy("CassandraTimestampBoundStore.this")
+                    @Override
+                    public Long apply(CassandraClient client) {
+                        ByteBuffer rowName = getRowName();
+                        ColumnOrSuperColumn result;
+                        try {
+                            result = client.get(
+                                    AtlasDbConstants.TIMESTAMP_TABLE,
+                                    rowName,
+                                    getColumnName(),
+                                    ConsistencyLevel.LOCAL_QUORUM);
+                        } catch (NotFoundException e) {
+                            result = null;
+                        } catch (Exception e) {
+                            throw Throwables.throwUncheckedException(e);
+                        }
+                        if (result == null) {
+                            DebugLogger.logger.info(
+                                    "[GET] Null result, setting timestamp limit to {}",
+                                    CassandraTimestampUtils.INITIAL_VALUE);
+                            cas(client, null, CassandraTimestampUtils.INITIAL_VALUE);
+                            return CassandraTimestampUtils.INITIAL_VALUE;
+                        }
+                        return extractUpperLimit(result);
+                    }
 
-            private long extractUpperLimit(ColumnOrSuperColumn result) {
-                try {
-                    Column column = result.getColumn();
-                    return PtBytes.toLong(column.getValue());
-                } catch (IllegalArgumentException e) {
-                    String msg = "Caught an IllegalArgumentException trying to convert the stored value to a long. "
-                            + "This can happen if you attempt to run AtlasDB without a timelock block after having "
-                            + "previously migrated to the TimeLock server. Please adjust your configuration to allow "
-                            + "AtlasDB to talk to TimeLock, shut down all service nodes, and then restart. Consult the "
-                            + "documentation here: https://palantir.github.io/atlasdb/html/configuration/"
-                            + "external_timelock_service_configs/timelock_client_config.html#timelock-client-"
-                            + "configuration - contact AtlasDB support for additional guidance if necessary.";
-                    throw new IllegalStateException(msg, e);
-                }
-            }
-        });
+                    private long extractUpperLimit(ColumnOrSuperColumn result) {
+                        try {
+                            Column column = result.getColumn();
+                            return PtBytes.toLong(column.getValue());
+                        } catch (IllegalArgumentException e) {
+                            String msg =
+                                    "Caught an IllegalArgumentException trying to convert the stored value to a long."
+                                            + " This can happen if you attempt to run AtlasDB without a timelock block"
+                                            + " after having previously migrated to the TimeLock server. Please adjust"
+                                            + " your configuration to allow AtlasDB to talk to TimeLock, shut down all"
+                                            + " service nodes, and then restart. Consult the documentation here:"
+                                            + " https://palantir.github.io/atlasdb/html/configuration/"
+                                            + "external_timelock_service_configs/timelock_client_config.html"
+                                            + "#timelock-client-configuration"
+                                            + " - contact AtlasDB support for additional guidance if necessary.";
+                            throw new IllegalStateException(msg, e);
+                        }
+                    }
+                });
 
         DebugLogger.logger.debug("[GET] Setting cached timestamp limit to {}.", currentLimit);
         currentLimit = upperLimit;
@@ -180,11 +184,13 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     ConsistencyLevel.SERIAL,
                     ConsistencyLevel.EACH_QUORUM);
         } catch (Exception e) {
-            log.error("[CAS] Error trying to set from {} to {}",
+            log.error(
+                    "[CAS] Error trying to set from {} to {}",
                     SafeArg.of("oldValue", oldVal),
                     SafeArg.of("newValue", newVal),
                     e);
-            DebugLogger.logger.error("[CAS] Error trying to set from {} to {}",
+            DebugLogger.logger.error(
+                    "[CAS] Error trying to set from {} to {}",
                     SafeArg.of("oldValue", oldVal),
                     SafeArg.of("newValue", newVal),
                     e);
@@ -197,26 +203,27 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     + " This is likely caused by multiple copies of a service running without a configured set of"
                     + " leaders or a CLI being run with an embedded timestamp service against an already running"
                     + " service.";
-            MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(
-                    String.format(replaceBracesWithStringFormatSpecifier(msg),
-                            oldVal,
-                            newVal,
-                            currentLimit,
-                            getCurrentTimestampValues(result)));
-            log.error(msg,
+            MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(String.format(
+                    replaceBracesWithStringFormatSpecifier(msg),
+                    oldVal,
+                    newVal,
+                    currentLimit,
+                    getCurrentTimestampValues(result)));
+            log.error(
+                    msg,
                     SafeArg.of("oldValue", oldVal),
                     SafeArg.of("newValue", newVal),
                     SafeArg.of("inMemoryLimit", currentLimit),
                     SafeArg.of("dbLimit", getCurrentTimestampValues(result)),
                     err);
-            DebugLogger.logger.error(msg,
+            DebugLogger.logger.error(
+                    msg,
                     SafeArg.of("oldValue", oldVal),
                     SafeArg.of("newValue", newVal),
                     SafeArg.of("inMemoryLimit", currentLimit),
                     SafeArg.of("dbLimit", getCurrentTimestampValues(result)),
                     err);
-            DebugLogger.logger.error("Thread dump: {}",
-                    SafeArg.of("threadDump", ThreadDumps.programmaticThreadDump()));
+            DebugLogger.logger.error("Thread dump: {}", SafeArg.of("threadDump", ThreadDumps.programmaticThreadDump()));
             throw err;
         } else {
             DebugLogger.logger.debug("[CAS] Setting cached limit to {}.", newVal);
@@ -245,8 +252,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private static byte[] getColumnName() {
-        return CassandraKeyValueServices
-                .makeCompositeBuffer(PtBytes.toBytes(ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP)
+        return CassandraKeyValueServices.makeCompositeBuffer(PtBytes.toBytes(ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP)
                 .array();
     }
 

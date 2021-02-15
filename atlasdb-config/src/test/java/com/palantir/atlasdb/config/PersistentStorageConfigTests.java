@@ -19,18 +19,17 @@ package com.palantir.atlasdb.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
-
 import org.assertj.core.util.Files;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-
+@SuppressWarnings("CheckReturnValue")
 public final class PersistentStorageConfigTests {
     private static final File CURRENT_WORKING_DIR = Files.currentFolder();
 
@@ -47,9 +46,11 @@ public final class PersistentStorageConfigTests {
     @Test
     public void rocksPathToFileThrowsAnException() throws IOException {
         Path filePath = testFolder.newFile("testFile").toPath();
-        assertThatThrownBy(() ->
-                ImmutableRocksDbPersistentStorageConfig.builder()
-                        .storagePath(CURRENT_WORKING_DIR.toPath().relativize(filePath).toString())
+        assertThatThrownBy(() -> ImmutableRocksDbPersistentStorageConfig.builder()
+                        .storagePath(CURRENT_WORKING_DIR
+                                .toPath()
+                                .relativize(filePath)
+                                .toString())
                         .build())
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("has to point to a directory");
@@ -57,13 +58,12 @@ public final class PersistentStorageConfigTests {
 
     @Test
     public void testSerialize() throws IOException {
-        assertThat(deserializeClassFromFile("rocksdb-config.yml"))
-                .isInstanceOf(RocksDbPersistentStorageConfig.class);
+        assertThat(deserializeClassFromFile("rocksdb-config.yml")).isInstanceOf(RocksDbPersistentStorageConfig.class);
     }
 
     private static PersistentStorageConfig deserializeClassFromFile(String configPath) throws IOException {
         URL configUrl = RocksDbPersistentStorageConfig.class.getClassLoader().getResource(configPath);
-        return AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), RocksDbPersistentStorageConfig.class);
+        return AtlasDbConfigs.OBJECT_MAPPER.readValue(
+                new File(configUrl.getPath()), RocksDbPersistentStorageConfig.class);
     }
 }

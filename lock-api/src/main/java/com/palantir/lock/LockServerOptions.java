@@ -15,20 +15,17 @@
  */
 package com.palantir.lock;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 /**
  * Provides the set of options which can be passed to the
@@ -36,13 +33,14 @@ import com.google.common.base.Objects;
  *
  * @author jtamer
  */
-
-@JsonDeserialize(builder =
-        LockServerOptions.SerializationProxy.class)
+@JsonDeserialize(builder = LockServerOptions.SerializationProxy.class)
 @Value.Immutable
+@SuppressWarnings("ClassInitializationDeadlock")
 public class LockServerOptions implements Serializable {
     private static final long serialVersionUID = 2930574230723753879L;
-    public static final LockServerOptions DEFAULT = builder().build();
+
+    @Deprecated
+    public static final LockServerOptions DEFAULT = LockServerOptions.builder().build();
 
     /**
      * Returns <code>true</code> if this is a standalone lock server or
@@ -134,20 +132,21 @@ public class LockServerOptions implements Serializable {
             return false;
         }
         LockServerOptions other = (LockServerOptions) obj;
-        return Objects.equal(isStandaloneServer(), other.isStandaloneServer())
-                && Objects.equal(getMaxAllowedLockTimeout(), other.getMaxAllowedLockTimeout())
-                && Objects.equal(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
-                && Objects.equal(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
-                && Objects.equal(getMaxNormalLockAge(), other.getMaxNormalLockAge())
-                && Objects.equal(getRandomBitCount(), other.getRandomBitCount())
-                && Objects.equal(getStuckTransactionTimeout(), other.getStuckTransactionTimeout())
-                && Objects.equal(getLockStateLoggerDir(), other.getLockStateLoggerDir())
-                && Objects.equal(slowLogTriggerMillis(), other.slowLogTriggerMillis());
+        return isStandaloneServer() == other.isStandaloneServer()
+                && slowLogTriggerMillis() == other.slowLogTriggerMillis()
+                && getRandomBitCount() == other.getRandomBitCount()
+                && Objects.equals(getMaxAllowedLockTimeout(), other.getMaxAllowedLockTimeout())
+                && Objects.equals(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
+                && Objects.equals(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
+                && Objects.equals(getMaxNormalLockAge(), other.getMaxNormalLockAge())
+                && Objects.equals(getStuckTransactionTimeout(), other.getStuckTransactionTimeout())
+                && Objects.equals(getLockStateLoggerDir(), other.getLockStateLoggerDir());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(isStandaloneServer(),
+        return Objects.hash(
+                isStandaloneServer(),
                 getMaxAllowedLockTimeout(),
                 getMaxAllowedClockDrift(),
                 getMaxAllowedBlockingDuration(),
@@ -173,8 +172,7 @@ public class LockServerOptions implements Serializable {
                 .toString();
     }
 
-    private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
-            throws InvalidObjectException {
+    private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
     }
 
@@ -208,23 +206,19 @@ public class LockServerOptions implements Serializable {
 
         SerializationProxy(LockServerOptions lockServerOptions) {
             isStandaloneServer = lockServerOptions.isStandaloneServer();
-            maxAllowedLockTimeout = SimpleTimeDuration.of(
-                    lockServerOptions.getMaxAllowedLockTimeout());
-            maxAllowedClockDrift = SimpleTimeDuration.of(
-                    lockServerOptions.getMaxAllowedClockDrift());
-            maxAllowedBlockingDuration = SimpleTimeDuration.of(
-                    lockServerOptions.getMaxAllowedBlockingDuration());
-            maxNormalLockAge = SimpleTimeDuration.of(
-                    lockServerOptions.getMaxNormalLockAge());
+            maxAllowedLockTimeout = SimpleTimeDuration.of(lockServerOptions.getMaxAllowedLockTimeout());
+            maxAllowedClockDrift = SimpleTimeDuration.of(lockServerOptions.getMaxAllowedClockDrift());
+            maxAllowedBlockingDuration = SimpleTimeDuration.of(lockServerOptions.getMaxAllowedBlockingDuration());
+            maxNormalLockAge = SimpleTimeDuration.of(lockServerOptions.getMaxNormalLockAge());
             randomBitCount = lockServerOptions.getRandomBitCount();
-            stuckTransactionTimeout = SimpleTimeDuration.of(
-                    lockServerOptions.getStuckTransactionTimeout());
+            stuckTransactionTimeout = SimpleTimeDuration.of(lockServerOptions.getStuckTransactionTimeout());
             lockStateLoggerDir = lockServerOptions.getLockStateLoggerDir();
             slowLogTriggerMillis = lockServerOptions.slowLogTriggerMillis();
         }
 
         @JsonCreator
-        SerializationProxy(@JsonProperty("isStandaloneServer") boolean isStandaloneServer,
+        SerializationProxy(
+                @JsonProperty("isStandaloneServer") boolean isStandaloneServer,
                 @JsonProperty("maxAllowedLockTimeout") SimpleTimeDuration maxAllowedLockTimeout,
                 @JsonProperty("maxAllowedClockDrift") SimpleTimeDuration maxAllowedClockDrift,
                 @JsonProperty("maxAllowedBlockingDuration") SimpleTimeDuration maxAllowedBlockingDuration,

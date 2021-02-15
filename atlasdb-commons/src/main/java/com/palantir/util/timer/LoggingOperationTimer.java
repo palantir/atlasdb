@@ -15,12 +15,11 @@
  */
 package com.palantir.util.timer;
 
+import com.palantir.util.jmx.OperationTimer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.util.jmx.OperationTimer;
-
-public class LoggingOperationTimer implements OperationTimer {
+public final class LoggingOperationTimer implements OperationTimer {
     private final Logger delegate;
 
     private LoggingOperationTimer(Logger l) {
@@ -31,19 +30,19 @@ public class LoggingOperationTimer implements OperationTimer {
         return delegate;
     }
 
-    static public LoggingOperationTimer create(Logger log) {
+    public static LoggingOperationTimer create(Logger log) {
         return new LoggingOperationTimer(log);
     }
 
-    static public LoggingOperationTimer create(Class<?> clazz) {
+    public static LoggingOperationTimer create(Class<?> clazz) {
         return new LoggingOperationTimer(LoggerFactory.getLogger(clazz.getName()));
     }
 
-    static public LoggingOperationTimer create(String categoryName) {
+    public static LoggingOperationTimer create(String categoryName) {
         return new LoggingOperationTimer(LoggerFactory.getLogger(categoryName));
     }
 
-    private class TimeBegin implements TimingState {
+    private final class TimeBegin implements TimingState {
         private final long tBegin = System.currentTimeMillis();
         private final String msg;
 
@@ -54,7 +53,7 @@ public class LoggingOperationTimer implements OperationTimer {
         @Override
         public void end() {
             if (delegate.isTraceEnabled()) {
-                delegate.trace("Duration [{}] ms : {}", System.currentTimeMillis() - tBegin,  msg);
+                delegate.trace("Duration [{}] ms : {}", System.currentTimeMillis() - tBegin, msg);
             }
         }
     }
@@ -63,5 +62,4 @@ public class LoggingOperationTimer implements OperationTimer {
     public TimingState begin(String operationName) {
         return new TimeBegin(operationName);
     }
-
 }

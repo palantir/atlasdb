@@ -18,10 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -30,12 +26,12 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.Test;
 
 public class CassandraClientPoolMetricsTest {
-    private final MetricsManager metricsManager = MetricsManagers.of(
-            new MetricRegistry(),
-            new DefaultTaggedMetricRegistry(),
-            Refreshable.only(true));
+    private final MetricsManager metricsManager =
+            MetricsManagers.of(new MetricRegistry(), new DefaultTaggedMetricRegistry(), Refreshable.only(true));
 
     @Test
     public void metricsAreProducedAndFiltered() {
@@ -63,7 +59,8 @@ public class CassandraClientPoolMetricsTest {
 
     private static MetricName createMeanActiveTimeMillisMetric(String pool) {
         return MetricName.builder()
-                .safeName(MetricRegistry.name(CassandraClientPoolingContainer.class,
+                .safeName(MetricRegistry.name(
+                        CassandraClientPoolingContainer.class,
                         CassandraClientPoolHostLevelMetric.MEAN_ACTIVE_TIME_MILLIS.metricName))
                 .safeTags(ImmutableMap.of("pool", pool))
                 .build();

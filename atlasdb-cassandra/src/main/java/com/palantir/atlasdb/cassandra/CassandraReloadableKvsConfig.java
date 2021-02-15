@@ -15,6 +15,11 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import com.google.common.base.MoreObjects;
+import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
@@ -22,18 +27,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import com.google.common.base.MoreObjects;
-import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
-import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-
 public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceConfig {
     private final CassandraKeyValueServiceConfig config;
     private final Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigSupplier;
 
-    public CassandraReloadableKvsConfig(CassandraKeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
+    public CassandraReloadableKvsConfig(
+            CassandraKeyValueServiceConfig config, Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
         this.config = config;
         this.runtimeConfigSupplier = runtimeConfig;
     }
@@ -85,7 +84,8 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public int unresponsiveHostBackoffTimeSeconds() {
-        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds,
+        return chooseConfig(
+                CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds,
                 config.unresponsiveHostBackoffTimeSeconds());
     }
 
@@ -144,23 +144,20 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
         return config.replicationFactor();
     }
 
-
     @Override
     public int mutationBatchCount() {
-        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::mutationBatchCount,
-                config.mutationBatchCount());
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::mutationBatchCount, config.mutationBatchCount());
     }
 
     @Override
     public int mutationBatchSizeBytes() {
-        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::mutationBatchSizeBytes,
-                config.mutationBatchSizeBytes());
+        return chooseConfig(
+                CassandraKeyValueServiceRuntimeConfig::mutationBatchSizeBytes, config.mutationBatchSizeBytes());
     }
 
     @Override
     public int fetchBatchCount() {
-        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::fetchBatchCount,
-                config.fetchBatchCount());
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::fetchBatchCount, config.fetchBatchCount());
     }
 
     @Override
@@ -225,8 +222,7 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public Integer sweepReadThreads() {
-        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::sweepReadThreads,
-                config.sweepReadThreads());
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::sweepReadThreads, config.sweepReadThreads());
     }
 
     @Override
@@ -256,14 +252,12 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public void check() {
-//         The config instance passed here gets checked at the time its of construction
-//         (default implementation in the parent class). Hence, it is okay to do no operation here.
+        //         The config instance passed here gets checked at the time its of construction
+        //         (default implementation in the parent class). Hence, it is okay to do no operation here.
     }
 
     private <T> T chooseConfig(Function<CassandraKeyValueServiceRuntimeConfig, T> runtimeConfig, T installConfig) {
-        return MoreObjects.firstNonNull(
-                unwrapRuntimeConfig(runtimeConfig),
-                installConfig);
+        return MoreObjects.firstNonNull(unwrapRuntimeConfig(runtimeConfig), installConfig);
     }
 
     private <T> T unwrapRuntimeConfig(Function<CassandraKeyValueServiceRuntimeConfig, T> function) {

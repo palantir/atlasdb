@@ -18,9 +18,8 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.lock.LockResource;
+import org.junit.Test;
 
 public class LockWithTimelockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
@@ -38,7 +37,6 @@ public class LockWithTimelockEteTest {
     @Test
     public void largeV1LockSucceeds() {
         assertThat(lockResource.lockUsingLegacyLockApi(50, 100_000)).isTrue();
-
     }
 
     @Test

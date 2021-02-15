@@ -15,17 +15,14 @@
  */
 package com.palantir.common.random;
 
-
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public class SecureRandomPool {
     private static final Logger log = LoggerFactory.getLogger(SecureRandomPool.class);
@@ -57,7 +54,7 @@ public class SecureRandomPool {
         seedSource = getSeedSource(algorithm, (seed != null) ? seed : new SecureRandom());
 
         try {
-            for (int i=0; i<poolSize; i++) {
+            for (int i = 0; i < poolSize; i++) {
                 byte[] seedBytes = new byte[20];
                 seedSource.nextBytes(seedBytes);
                 SecureRandom random = SecureRandom.getInstance(algorithm); // (authorized)
@@ -71,7 +68,7 @@ public class SecureRandomPool {
     }
 
     public SecureRandom getSecureRandom() {
-        int i = (int) (Math.abs(next.getAndIncrement() % pool.size()));
+        int i = (int) Math.abs(next.getAndIncrement() % pool.size());
         return pool.get(i);
     }
 

@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Map;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -35,11 +29,15 @@ import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.PersistableBoolean;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShardProgress {
     private static final Logger log = LoggerFactory.getLogger(ShardProgress.class);
-    static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
-            .getSweepShardProgressTable(null).getTableRef();
+    static final TableReference TABLE_REF =
+            TargetedSweepTableFactory.of().getSweepShardProgressTable(null).getTableRef();
 
     private static final int SHARD_COUNT_INDEX = -1;
     static final ShardAndStrategy SHARD_COUNT_SAS = ShardAndStrategy.conservative(SHARD_COUNT_INDEX);
@@ -54,7 +52,9 @@ public class ShardProgress {
      * Returns the persisted number of shards for the sweep queue.
      */
     public int getNumberOfShards() {
-        return maybeGet(SHARD_COUNT_SAS).map(Long::intValue).orElse(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        return maybeGet(SHARD_COUNT_SAS)
+                .map(Long::intValue)
+                .orElse(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
     }
 
     /**
@@ -104,8 +104,8 @@ public class ShardProgress {
         SweepShardProgressTable.SweepShardProgressRow row = SweepShardProgressTable.SweepShardProgressRow.of(
                 shardAndStrategy.shard(),
                 PersistableBoolean.of(shardAndStrategy.isConservative()).persistToBytes());
-        return Cell.create(row.persistToBytes(),
-                SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
+        return Cell.create(
+                row.persistToBytes(), SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
     }
 
     private static long getValue(Map<Cell, Value> entry) {
@@ -124,7 +124,8 @@ public class ShardProgress {
                 kvs.checkAndSet(casRequest);
                 return newVal;
             } catch (CheckAndSetException e) {
-                log.info("Failed to check and set from expected old value {} to new value {}. Retrying if the old "
+                log.info(
+                        "Failed to check and set from expected old value {} to new value {}. Retrying if the old "
                                 + "value changed under us.",
                         SafeArg.of("old value", currentValue),
                         SafeArg.of("new value", newVal));
@@ -158,15 +159,16 @@ public class ShardProgress {
 
     private static boolean isDefaultValue(ShardAndStrategy shardAndStrategy, long oldVal) {
         return SweepQueueUtils.firstSweep(oldVal)
-                || (shardAndStrategy == SHARD_COUNT_SAS && oldVal == AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+                || (shardAndStrategy == SHARD_COUNT_SAS
+                        && oldVal == AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
     }
 
     static CheckAndSetRequest createNewCellRequest(ShardAndStrategy shardAndStrategy, byte[] colValNew) {
         return CheckAndSetRequest.newCell(TABLE_REF, cellForShard(shardAndStrategy), colValNew);
     }
 
-    private static CheckAndSetRequest createSingleCellRequest(ShardAndStrategy shardAndStrategy, long oldVal,
-            byte[] colValNew) {
+    private static CheckAndSetRequest createSingleCellRequest(
+            ShardAndStrategy shardAndStrategy, long oldVal, byte[] colValNew) {
         byte[] colValOld = createColumnValue(oldVal);
         return CheckAndSetRequest.singleCell(TABLE_REF, cellForShard(shardAndStrategy), colValOld, colValNew);
     }

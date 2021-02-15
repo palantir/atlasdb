@@ -16,14 +16,8 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import static java.util.stream.Collectors.toMap;
-
 import static com.google.common.collect.ImmutableSortedMap.toImmutableSortedMap;
-
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Set;
+import static java.util.stream.Collectors.toMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -33,9 +27,12 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Set;
 
-final class LearnedValuesSinceCoalescingFunction
-        implements CoalescingRequestFunction<WithSeq<Client>, PaxosUpdate> {
+final class LearnedValuesSinceCoalescingFunction implements CoalescingRequestFunction<WithSeq<Client>, PaxosUpdate> {
 
     private final BatchPaxosLearner delegate;
 
@@ -45,8 +42,7 @@ final class LearnedValuesSinceCoalescingFunction
 
     @Override
     public Map<WithSeq<Client>, PaxosUpdate> apply(Set<WithSeq<Client>> request) {
-        Map<Client, Long> remoteRequest = request.stream()
-                .collect(toMap(WithSeq::value, WithSeq::seq, Math::min));
+        Map<Client, Long> remoteRequest = request.stream().collect(toMap(WithSeq::value, WithSeq::seq, Math::min));
 
         SetMultimap<Client, PaxosValue> learnedValuesSince = delegate.getLearnedValuesSince(remoteRequest);
 
@@ -62,8 +58,7 @@ final class LearnedValuesSinceCoalescingFunction
     }
 
     private static Collection<PaxosValue> getPaxosValuesSinceSeq(
-            WithSeq<Client> clientWithSeq,
-            ImmutableSortedMap<Long, PaxosValue> paxosValuesByRound) {
+            WithSeq<Client> clientWithSeq, ImmutableSortedMap<Long, PaxosValue> paxosValuesByRound) {
         return paxosValuesByRound.tailMap(clientWithSeq.seq()).values();
     }
 

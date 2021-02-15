@@ -17,28 +17,6 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import org.awaitility.Awaitility;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -56,6 +34,26 @@ import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.InProgressResponseState;
 import com.palantir.paxos.PaxosQuorumChecker;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import org.awaitility.Awaitility;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
 public class TestableTimelockCluster implements TestRule {
 
@@ -69,7 +67,7 @@ public class TestableTimelockCluster implements TestRule {
     private final FailoverProxyFactory proxyFactory;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    private final Map<String, NamespacedClients> clientsByNamespace = Maps.newConcurrentMap();
+    private final Map<String, NamespacedClients> clientsByNamespace = new ConcurrentHashMap<>();
 
     public TestableTimelockCluster(String configFileTemplate, TemplateVariables... variables) {
         this(name(), configFileTemplate, variables);
@@ -80,18 +78,21 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     public TestableTimelockCluster(String name, String configFileTemplate, Iterable<TemplateVariables> variables) {
-        this(name, configFileTemplate, StreamSupport.stream(variables.spliterator(), false)
-                .map(variablesInstance -> ImmutableTestableTimelockServerConfiguration.builder()
-                        .templateVariables(variablesInstance)
-                        .build())
-                .collect(Collectors.toList()));
+        this(
+                name,
+                configFileTemplate,
+                StreamSupport.stream(variables.spliterator(), false)
+                        .map(variablesInstance -> ImmutableTestableTimelockServerConfiguration.builder()
+                                .templateVariables(variablesInstance)
+                                .build())
+                        .collect(Collectors.toList()));
     }
 
     public TestableTimelockCluster(
             String name, String configFileTemplate, List<TestableTimelockServerConfiguration> configurations) {
         this.name = name;
-        this.needsPostgresDatabase = configurations.stream()
-                .anyMatch(TestableTimelockServerConfiguration::needsPostgresDatabase);
+        this.needsPostgresDatabase =
+                configurations.stream().anyMatch(TestableTimelockServerConfiguration::needsPostgresDatabase);
         Map<TemplateVariables, TemporaryConfigurationHolder> configMap = KeyedStream.of(configurations)
                 .mapKeys(TestableTimelockServerConfiguration::templateVariables)
                 .map(configuration -> getConfigHolder(configFileTemplate, configuration.templateVariables()))
@@ -107,7 +108,8 @@ public class TestableTimelockCluster implements TestRule {
                 .map(server -> Sets.difference(servers, server))
                 .flatMap(Collection::stream)
                 .collectToSetMultimap();
-        this.proxyFactory = new FailoverProxyFactory(new TestProxies("https://localhost", ImmutableList.copyOf(servers)));
+        this.proxyFactory =
+                new FailoverProxyFactory(new TestProxies("https://localhost", ImmutableList.copyOf(servers)));
     }
 
     private static String name() {
@@ -124,11 +126,12 @@ public class TestableTimelockCluster implements TestRule {
 
     private void waitUntilReadyToServeNamespaces(List<String> namespaces) {
         Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
-                .pollInterval(500, TimeUnit.MILLISECONDS)
+                .atMost(Duration.ofSeconds(60))
+                .pollInterval(Duration.ofMillis(500))
                 .until(() -> {
                     try {
-                        namespaces.forEach(namespace -> client(namespace).throughWireMockProxy().getFreshTimestamp());
+                        namespaces.forEach(namespace ->
+                                client(namespace).throughWireMockProxy().getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -142,8 +145,7 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     void killAndAwaitTermination(Iterable<TestableTimelockServer> serversToKill) throws ExecutionException {
-        Set<ListenableFuture<Void>> shutdownFutures = ImmutableSet.copyOf(serversToKill)
-                .stream()
+        Set<ListenableFuture<Void>> shutdownFutures = ImmutableSet.copyOf(serversToKill).stream()
                 .map(TestableTimelockServer::killAsync)
                 .collect(Collectors.toSet());
 
@@ -186,7 +188,6 @@ public class TestableTimelockCluster implements TestRule {
                 .collect(Collectors.toSet())
                 .containsAll(namespacesIterable);
     }
-
 
     SetMultimap<String, TestableTimelockServer> nonLeaders(String... namespaces) {
         SetMultimap<String, TestableTimelockServer> currentLeaderPerNamespace = currentLeaders(namespaces);
@@ -248,7 +249,6 @@ public class TestableTimelockCluster implements TestRule {
         public <T> T createProxy(Class<T> clazz, ProxyMode proxyMode) {
             return proxies.failover(clazz, proxyMode);
         }
-
     }
 
     RuleChain getRuleChain() {
@@ -270,8 +270,7 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     private static TimeLockServerHolder getServerHolder(
-            TemporaryConfigurationHolder configHolder,
-            TemplateVariables templateVariables) {
+            TemporaryConfigurationHolder configHolder, TemplateVariables templateVariables) {
         return new TimeLockServerHolder(configHolder::getTemporaryConfigFileLocation, templateVariables);
     }
 

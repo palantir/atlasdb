@@ -15,17 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -38,6 +27,15 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NextTableToSweepProvider {
     private static final Logger log = LoggerFactory.getLogger(NextTableToSweepProvider.class);
@@ -46,14 +44,15 @@ public class NextTableToSweepProvider {
     private final StreamStoreRemappingSweepPriorityCalculator calculator;
 
     @VisibleForTesting
-    NextTableToSweepProvider(LockService lockService,
+    NextTableToSweepProvider(
+            LockService lockService,
             StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator) {
         this.lockService = lockService;
         this.calculator = streamStoreRemappingSweepPriorityCalculator;
     }
 
-    public static NextTableToSweepProvider create(KeyValueService kvs, LockService lockService,
-            SweepPriorityStore sweepPriorityStore) {
+    public static NextTableToSweepProvider create(
+            KeyValueService kvs, LockService lockService, SweepPriorityStore sweepPriorityStore) {
         SweepPriorityCalculator basicCalculator = new SweepPriorityCalculator(kvs, sweepPriorityStore);
         StreamStoreRemappingSweepPriorityCalculator streamStoreRemappingSweepPriorityCalculator =
                 new StreamStoreRemappingSweepPriorityCalculator(basicCalculator, sweepPriorityStore);
@@ -61,15 +60,12 @@ public class NextTableToSweepProvider {
         return new NextTableToSweepProvider(lockService, streamStoreRemappingSweepPriorityCalculator);
     }
 
-    public Optional<TableToSweep> getNextTableToSweep(Transaction tx,
-            long conservativeSweepTimestamp) {
+    public Optional<TableToSweep> getNextTableToSweep(Transaction tx, long conservativeSweepTimestamp) {
         return getNextTableToSweep(tx, conservativeSweepTimestamp, SweepPriorityOverrideConfig.defaultConfig());
     }
 
     public Optional<TableToSweep> getNextTableToSweep(
-            Transaction tx,
-            long conservativeSweepTimestamp,
-            SweepPriorityOverrideConfig overrideConfig) {
+            Transaction tx, long conservativeSweepTimestamp, SweepPriorityOverrideConfig overrideConfig) {
         if (!overrideConfig.priorityTables().isEmpty()) {
             Optional<TableToSweep> maybeChosenTable = attemptToChooseTable(overrideConfig);
             if (maybeChosenTable.isPresent()) {
@@ -79,16 +75,16 @@ public class NextTableToSweepProvider {
 
         Map<TableReference, Double> scores = calculator.calculateSweepPriorityScores(tx, conservativeSweepTimestamp);
 
-        Map<TableReference, Double> tablesWithNonZeroPriority
-                = getTablesToBeConsideredForSweepAndScores(overrideConfig, scores);
+        Map<TableReference, Double> tablesWithNonZeroPriority =
+                getTablesToBeConsideredForSweepAndScores(overrideConfig, scores);
         if (tablesWithNonZeroPriority.isEmpty()) {
             return logDecision(Optional.empty(), scores, overrideConfig);
         }
 
         List<TableReference> tablesOrderedByPriority = orderTablesByPriority(tablesWithNonZeroPriority);
 
-        Optional<TableToSweep> chosenTable = attemptToChooseTableFromPrioritisedList(tablesOrderedByPriority,
-                "it has a high priority score");
+        Optional<TableToSweep> chosenTable =
+                attemptToChooseTableFromPrioritisedList(tablesOrderedByPriority, "it has a high priority score");
 
         return logDecision(chosenTable, scores, overrideConfig);
     }
@@ -114,15 +110,20 @@ public class NextTableToSweepProvider {
             try {
                 sweepLockForTable.lockOrRefresh();
                 if (sweepLockForTable.haveLocks()) {
-                    log.info("Decided to start sweeping {} because {}.",
-                            LoggingArgs.safeTableOrPlaceholder(tableRefToSweep), reason);
+                    log.info(
+                            "Decided to start sweeping {} because {}.",
+                            LoggingArgs.safeTableOrPlaceholder(tableRefToSweep),
+                            reason);
                     return Optional.of(TableToSweep.newTable(tableRefToSweep, sweepLockForTable));
                 }
             } catch (InterruptedException e) {
-                log.info("Got interrupted while attempting to lock {} for sweeping.",
-                        LoggingArgs.safeTableOrPlaceholder(tableRefToSweep), e);
+                log.info(
+                        "Got interrupted while attempting to lock {} for sweeping.",
+                        LoggingArgs.safeTableOrPlaceholder(tableRefToSweep),
+                        e);
             }
-            log.info("Did not start sweeping {}, because it is being swept elsewhere. Another table will be chosen.",
+            log.info(
+                    "Did not start sweeping {}, because it is being swept elsewhere. Another table will be chosen.",
                     LoggingArgs.safeTableOrPlaceholder(tableRefToSweep));
         }
 
@@ -134,12 +135,11 @@ public class NextTableToSweepProvider {
         Set<TableReference> blacklistedTableReferences = overrideConfig.blacklistTables().stream()
                 .map(TableReference::createFromFullyQualifiedName)
                 .collect(Collectors.toSet());
-        return Maps.filterEntries(scores, entry -> shouldTableBeConsideredForSweep(
-                blacklistedTableReferences, entry));
+        return Maps.filterEntries(scores, entry -> shouldTableBeConsideredForSweep(blacklistedTableReferences, entry));
     }
 
-    private static boolean shouldTableBeConsideredForSweep(Set<TableReference> blacklistedTables,
-            Map.Entry<TableReference, Double> entry) {
+    private static boolean shouldTableBeConsideredForSweep(
+            Set<TableReference> blacklistedTables, Map.Entry<TableReference, Double> entry) {
         return !blacklistedTables.contains(entry.getKey()) && entry.getValue() > 0.0;
     }
 
@@ -164,10 +164,12 @@ public class NextTableToSweepProvider {
                 .collect(Collectors.joining(", ", "[", "]"));
 
         String chosenTableString = chosenTable.isPresent()
-                ? LoggingArgs.safeTableOrPlaceholder(chosenTable.get().getTableRef()).toString()
+                ? LoggingArgs.safeTableOrPlaceholder(chosenTable.get().getTableRef())
+                        .toString()
                 : "no table";
 
-        log.debug("Chose {} from scores: {}, unsafeScores: {}, overrides: {}",
+        log.debug(
+                "Chose {} from scores: {}, unsafeScores: {}, overrides: {}",
                 SafeArg.of("chosenTable", chosenTableString),
                 SafeArg.of("scores", safeTableNamesToScore),
                 UnsafeArg.of("unsafeScores", scores),

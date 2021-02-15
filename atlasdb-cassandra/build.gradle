@@ -29,6 +29,7 @@ dependencies {
     exclude(group: 'org.apache.ant', module: 'ant')
     exclude(group: 'com.github.rholder', module: 'snowball-stemmer')
     exclude(group: 'com.carrotsearch', module: 'hppc')
+    exclude group: 'org.apache.httpcomponents'
   }
 
   explicitShadow ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
@@ -36,7 +37,7 @@ dependencies {
   }
   explicitShadow group: 'com.google.guava', name: 'guava'
 
-  explicitShadow 'org.apache.commons:commons-pool2:2.4.2'
+  explicitShadow 'org.apache.commons:commons-pool2'
 
   explicitShadow group: 'com.palantir.conjure.java.api', name: 'ssl-config'
   explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'keystores'
@@ -52,7 +53,6 @@ dependencies {
   testCompile project(":atlasdb-config")
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'org.awaitility', name: 'awaitility'
   testCompile group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
   testCompile(group: 'org.jmock', name: 'jmock') {
@@ -61,6 +61,7 @@ dependencies {
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
+  testCompileOnly 'org.immutables:value::annotations'
   annotationProcessor 'com.google.auto.service:auto-service'
   compileOnly 'com.google.auto.service:auto-service'
   annotationProcessor project(":atlasdb-processors")

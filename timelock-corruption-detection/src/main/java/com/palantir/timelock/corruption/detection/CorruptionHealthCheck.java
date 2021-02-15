@@ -16,16 +16,21 @@
 
 package com.palantir.timelock.corruption.detection;
 
-import java.util.List;
-
 public class CorruptionHealthCheck {
-    private final List<CorruptionDetector> corruptionDetectors;
+    private final LocalCorruptionDetector localCorruptionDetector;
+    private final RemoteCorruptionDetector remoteCorruptionDetector;
 
-    public CorruptionHealthCheck(List<CorruptionDetector> corruptionDetectors) {
-        this.corruptionDetectors = corruptionDetectors;
+    public CorruptionHealthCheck(
+            LocalCorruptionDetector localCorruptionDetector, RemoteCorruptionDetector remoteCorruptionDetector) {
+        this.localCorruptionDetector = localCorruptionDetector;
+        this.remoteCorruptionDetector = remoteCorruptionDetector;
     }
 
-    public boolean isHealthy() {
-        return corruptionDetectors.stream().noneMatch(CorruptionDetector::hasDetectedCorruption);
+    public boolean shouldRejectRequests() {
+        return localCorruptionDetector.shouldRejectRequests() || remoteCorruptionDetector.shouldRejectRequests();
+    }
+
+    public CorruptionHealthReport localCorruptionReport() {
+        return localCorruptionDetector.corruptionHealthReport();
     }
 }

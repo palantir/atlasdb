@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -27,21 +26,19 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Test;
-import org.mockito.InOrder;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Test;
+import org.mockito.InOrder;
 
 public class LockAcquirerTest {
 
@@ -60,10 +57,7 @@ public class LockAcquirerTest {
     private final ExclusiveLock lockC = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
 
     private final LockAcquirer lockAcquirer = new LockAcquirer(
-            new LockLog(new MetricRegistry(), () -> 2L),
-            executor,
-            leaderClock,
-            mock(LockWatchingService.class));
+            new LockLog(new MetricRegistry(), () -> 2L), executor, leaderClock, mock(LockWatchingService.class));
 
     @Test
     public void acquiresLocksInOrder() {
@@ -89,7 +83,7 @@ public class LockAcquirerTest {
         AsyncResult<HeldLocks> acquisitions = acquire(lockA, lockB);
 
         lockA.unlock(OTHER_REQUEST_ID);
-        assertFalse(acquisitions.isComplete());
+        assertThat(acquisitions.isComplete()).isFalse();
         lockB.unlock(OTHER_REQUEST_ID);
 
         assertThat(acquisitions.isCompletedSuccessfully()).isTrue();
@@ -225,8 +219,8 @@ public class LockAcquirerTest {
     }
 
     private AsyncResult<Void> waitFor(AsyncLock... locks) {
-        return lockAcquirer.waitForLocks(REQUEST_ID, OrderedLocks.fromOrderedList(ImmutableList.copyOf(locks)),
-                TIMEOUT);
+        return lockAcquirer.waitForLocks(
+                REQUEST_ID, OrderedLocks.fromOrderedList(ImmutableList.copyOf(locks)), TIMEOUT);
     }
 
     private AsyncResult<HeldLocks> acquire(AsyncLock... locks) {
@@ -240,5 +234,4 @@ public class LockAcquirerTest {
     private void assertNotLocked(ExclusiveLock lock) {
         assertThat(lock.lock(UUID.randomUUID()).isCompletedSuccessfully()).isTrue();
     }
-
 }

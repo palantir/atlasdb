@@ -15,12 +15,11 @@
  */
 package com.palantir.nexus.streaming;
 
+import com.palantir.common.io.ForwardingInputStream;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
-
-import com.palantir.common.io.ForwardingInputStream;
 
 public class PTInputStream extends ForwardingInputStream implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -48,6 +47,7 @@ public class PTInputStream extends ForwardingInputStream implements Serializable
 
     @Override
     public String toString() {
-        return "PTInputStream [length=" + length + ", inputStream=" + is + "]"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        return "PTInputStream [length=" + length + ", inputStream=" + is
+                + "]"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
 }

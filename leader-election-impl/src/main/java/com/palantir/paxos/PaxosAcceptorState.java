@@ -16,12 +16,12 @@
 package com.palantir.paxos;
 
 import com.google.common.base.Defaults;
-import com.google.common.base.Objects;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
+import java.util.Objects;
 
 /**
  * The logged state (per round) for a paxos acceptor.
@@ -53,10 +53,7 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
         this.version = Defaults.defaultValue(long.class);
     }
 
-    private PaxosAcceptorState(PaxosProposalId pid,
-                               PaxosProposalId aid,
-                               PaxosValue val,
-                               long version) {
+    private PaxosAcceptorState(PaxosProposalId pid, PaxosProposalId aid, PaxosValue val, long version) {
         this.lastPromisedId = pid;
         this.lastAcceptedId = aid;
         this.lastAcceptedValue = val;
@@ -67,9 +64,7 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
         return new PaxosAcceptorState(pid, lastAcceptedId, lastAcceptedValue, version + 1);
     }
 
-    public PaxosAcceptorState withState(PaxosProposalId pid,
-                                        PaxosProposalId aid,
-                                        PaxosValue val) {
+    public PaxosAcceptorState withState(PaxosProposalId pid, PaxosProposalId aid, PaxosValue val) {
         return new PaxosAcceptorState(pid, aid, val, version + 1);
     }
 
@@ -131,12 +126,24 @@ public final class PaxosAcceptorState implements Persistable, Versionable {
             return false;
         }
         PaxosAcceptorState other = (PaxosAcceptorState) obj;
-        if (!Objects.equal(lastPromisedId, other.lastPromisedId)) {
+        if (!Objects.equals(lastPromisedId, other.lastPromisedId)) {
             return false;
         }
-        if (!Objects.equal(lastAcceptedId, other.lastAcceptedId)) {
+        if (!Objects.equals(lastAcceptedId, other.lastAcceptedId)) {
             return false;
         }
-        return Objects.equal(lastAcceptedValue, other.lastAcceptedValue);
+        return Objects.equals(lastAcceptedValue, other.lastAcceptedValue);
+    }
+
+    @Override
+    public String toString() {
+        return "PaxosAcceptorState ["
+                + "lastPromisedId="
+                + lastPromisedId
+                + ", lastAcceptedId="
+                + lastAcceptedId
+                + ", lastAcceptedValue="
+                + lastAcceptedValue
+                + "]";
     }
 }

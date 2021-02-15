@@ -15,30 +15,28 @@
  */
 package com.palantir.lock;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.NotThreadSafe;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.palantir.logsafe.Preconditions;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * An encapsulation of all parameters needed to make a locking request to the
@@ -47,11 +45,12 @@ import com.palantir.logsafe.Preconditions;
  * @author jtamer
  */
 @JsonDeserialize(builder = LockRequest.SerializationProxy.class)
-@Immutable public final class LockRequest implements Serializable {
+@Immutable
+public final class LockRequest implements Serializable {
     private static final long serialVersionUID = 0xf6c12b970b44af68L;
 
-    private static final AtomicReference<TimeDuration> DEFAULT_LOCK_TIMEOUT = new AtomicReference<>(
-            SimpleTimeDuration.of(120, TimeUnit.SECONDS));
+    private static final AtomicReference<TimeDuration> DEFAULT_LOCK_TIMEOUT =
+            new AtomicReference<>(SimpleTimeDuration.of(120, TimeUnit.SECONDS));
 
     /** The default amount of time that it takes a lock (lease) to expire. */
     public static TimeDuration getDefaultLockTimeout() {
@@ -78,9 +77,15 @@ import com.palantir.logsafe.Preconditions;
     private final TimeDuration lockTimeout;
     private final LockGroupBehavior lockGroupBehavior;
     private final BlockingMode blockingMode;
-    @Nullable private final TimeDuration blockingDuration;
-    @Nullable private final Long versionId;
-    @Nullable private volatile Integer hashCode;
+
+    @Nullable
+    private final TimeDuration blockingDuration;
+
+    @Nullable
+    private final Long versionId;
+
+    private transient int hashCode;
+
     private final String creatingThreadName;
 
     /** Creates a new lock request builder for the given locks. */
@@ -93,10 +98,14 @@ import com.palantir.logsafe.Preconditions;
         return new Builder(locks);
     }
 
-    private LockRequest(SortedLockCollection<LockDescriptor> lockMap,
-            TimeDuration lockTimeout, LockGroupBehavior lockGroupBehavior,
-            BlockingMode blockingMode, @Nullable TimeDuration blockingDuration,
-            @Nullable Long versionId, String creatingThreadName) {
+    private LockRequest(
+            SortedLockCollection<LockDescriptor> lockMap,
+            TimeDuration lockTimeout,
+            LockGroupBehavior lockGroupBehavior,
+            BlockingMode blockingMode,
+            @Nullable TimeDuration blockingDuration,
+            @Nullable Long versionId,
+            String creatingThreadName) {
         this.lockMap = lockMap;
         this.lockTimeout = lockTimeout;
         this.lockGroupBehavior = lockGroupBehavior;
@@ -153,7 +162,8 @@ import com.palantir.logsafe.Preconditions;
      * acquiring locks, or <code>null</code> if the blocking mode is not set to
      * {@link BlockingMode#BLOCK_UNTIL_TIMEOUT}.
      */
-    @Nullable public TimeDuration getBlockingDuration() {
+    @Nullable
+    public TimeDuration getBlockingDuration() {
         return blockingDuration;
     }
 
@@ -163,7 +173,8 @@ import com.palantir.logsafe.Preconditions;
      *
      * @see LockService#getMinLockedInVersionId()
      */
-    @Nullable public Long getVersionId() {
+    @Nullable
+    public Long getVersionId() {
         return versionId;
     }
 
@@ -175,7 +186,8 @@ import com.palantir.logsafe.Preconditions;
         return creatingThreadName;
     }
 
-    @Override public boolean equals(@Nullable Object obj) {
+    @Override
+    public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;
         }
@@ -183,19 +195,23 @@ import com.palantir.logsafe.Preconditions;
             return false;
         }
         LockRequest other = (LockRequest) obj;
-        return lockMap.equals(other.lockMap) && lockTimeout.equals(other.lockTimeout)
+        return lockMap.equals(other.lockMap)
+                && lockTimeout.equals(other.lockTimeout)
                 && (lockGroupBehavior == other.lockGroupBehavior)
                 && (blockingMode == other.blockingMode)
-                && Objects.equal(blockingDuration, other.blockingDuration)
-                && Objects.equal(versionId, other.versionId);
+                && Objects.equals(blockingDuration, other.blockingDuration)
+                && Objects.equals(versionId, other.versionId);
     }
 
-    @Override public int hashCode() {
-        if (hashCode == null) {
-            hashCode = Objects.hashCode(lockMap, lockTimeout, lockGroupBehavior, blockingMode,
-                    blockingDuration, versionId);
+    @Override
+    public int hashCode() {
+        int tempHashCode = hashCode;
+        if (tempHashCode == 0) {
+            tempHashCode =
+                    Objects.hash(lockMap, lockTimeout, lockGroupBehavior, blockingMode, blockingDuration, versionId);
+            hashCode = tempHashCode;
         }
-        return hashCode;
+        return tempHashCode;
     }
 
     public static void setLocalServerName(String serverName) {
@@ -206,7 +222,8 @@ import com.palantir.logsafe.Preconditions;
         localServerName = serverName;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .omitNullValues()
                 .add("lockCount", lockMap.size())
@@ -219,8 +236,7 @@ import com.palantir.logsafe.Preconditions;
                 .toString();
     }
 
-    private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
-            throws InvalidObjectException {
+    private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
     }
 
@@ -234,14 +250,28 @@ import com.palantir.logsafe.Preconditions;
      *
      * @author jtamer
      */
-    @NotThreadSafe public static final class Builder {
-        @Nullable private SortedLockCollection<LockDescriptor> lockMap;
-        @Nullable private TimeDuration lockTimeout;
-        @Nullable private LockGroupBehavior lockGroupBehavior;
-        @Nullable private BlockingMode blockingMode;
-        @Nullable private TimeDuration blockingDuration;
-        @Nullable private Long versionId;
-        @Nullable private String creatingThreadName;
+    @NotThreadSafe
+    public static final class Builder {
+        @Nullable
+        private SortedLockCollection<LockDescriptor> lockMap;
+
+        @Nullable
+        private TimeDuration lockTimeout;
+
+        @Nullable
+        private LockGroupBehavior lockGroupBehavior;
+
+        @Nullable
+        private BlockingMode blockingMode;
+
+        @Nullable
+        private TimeDuration blockingDuration;
+
+        @Nullable
+        private Long versionId;
+
+        @Nullable
+        private String creatingThreadName;
 
         private Builder(SortedMap<LockDescriptor, LockMode> lockMap) {
             this(LockCollections.of(lockMap));
@@ -256,7 +286,7 @@ import com.palantir.logsafe.Preconditions;
          * Instructs the lock server to release these locks if a refresh request
          * has not been received for the period of time represented by the
          * <code>lockTimeout</code> parameter. The default value is controlled
-         * by {@link #LockRequest#getDefaultLockTimeout()}.
+         * by {@link LockRequest#getDefaultLockTimeout()}.
          * You may not call this method multiple times.
          */
         public Builder timeoutAfter(TimeDuration newLockTimeout) {
@@ -376,17 +406,22 @@ import com.palantir.logsafe.Preconditions;
             if (!localServerName.isEmpty()) {
                 serverName = " (on server " + localServerName + ")";
             }
-            LockRequest request = new LockRequest(lockMap,
+            LockRequest request = new LockRequest(
+                    lockMap,
                     MoreObjects.firstNonNull(lockTimeout, getDefaultLockTimeout()),
                     MoreObjects.firstNonNull(lockGroupBehavior, LockGroupBehavior.LOCK_ALL_OR_NONE),
                     MoreObjects.firstNonNull(blockingMode, BlockingMode.BLOCK_INDEFINITELY),
-                    blockingDuration, versionId,
-                    MoreObjects.firstNonNull(creatingThreadName, Thread.currentThread().getName()) + serverName);
+                    blockingDuration,
+                    versionId,
+                    MoreObjects.firstNonNull(
+                                    creatingThreadName, Thread.currentThread().getName())
+                            + serverName);
             lockMap = null;
             return request;
         }
 
-        @Override public String toString() {
+        @Override
+        public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("lockTimeout", lockTimeout)
                     .add("lockGroupBehavior", lockGroupBehavior)
@@ -405,8 +440,13 @@ import com.palantir.logsafe.Preconditions;
         private final TimeDuration lockTimeout;
         private final LockGroupBehavior lockGroupBehavior;
         private final BlockingMode blockingMode;
-        @Nullable private final TimeDuration blockingDuration;
-        @Nullable private final Long versionId;
+
+        @Nullable
+        private final TimeDuration blockingDuration;
+
+        @Nullable
+        private final Long versionId;
+
         private final String creatingThreadName;
 
         SerializationProxy(LockRequest lockRequest) {
@@ -420,15 +460,16 @@ import com.palantir.logsafe.Preconditions;
         }
 
         @JsonCreator
-        SerializationProxy(@JsonProperty("locks") List<LockWithMode> locks,
-                           @JsonProperty("lockTimeout") TimeDuration lockTimeout,
-                           @JsonProperty("lockGroupBehavior") LockGroupBehavior lockGroupBehavior,
-                           @JsonProperty("blockingMode") BlockingMode blockingMode,
-                           @JsonProperty("blockingDuration") TimeDuration blockingDuration,
-                           @JsonProperty("versionId") Long versionId,
-                           @JsonProperty("creatingThreadName") String creatingThreadName) {
-            ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder
-                    = ImmutableSortedMap.naturalOrder();
+        SerializationProxy(
+                @JsonProperty("locks") List<LockWithMode> locks,
+                @JsonProperty("lockTimeout") TimeDuration lockTimeout,
+                @JsonProperty("lockGroupBehavior") LockGroupBehavior lockGroupBehavior,
+                @JsonProperty("blockingMode") BlockingMode blockingMode,
+                @JsonProperty("blockingDuration") TimeDuration blockingDuration,
+                @JsonProperty("versionId") Long versionId,
+                @JsonProperty("creatingThreadName") String creatingThreadName) {
+            ImmutableSortedMap.Builder<LockDescriptor, LockMode> localLockMapBuilder =
+                    ImmutableSortedMap.naturalOrder();
             for (LockWithMode lock : locks) {
                 localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
             }

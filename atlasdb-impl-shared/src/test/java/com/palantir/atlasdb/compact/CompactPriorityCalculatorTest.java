@@ -19,13 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.Optional;
+import org.junit.Test;
 
 public class CompactPriorityCalculatorTest {
     private static final String TABLE_1 = "table1";
@@ -36,8 +34,8 @@ public class CompactPriorityCalculatorTest {
     private final SweepHistoryProvider sweepHistoryProvider = mock(SweepHistoryProvider.class);
     private final CompactionHistoryProvider compactionHistoryProvider = mock(CompactionHistoryProvider.class);
 
-    private final CompactPriorityCalculator calculator = new CompactPriorityCalculator(transactionManager,
-            sweepHistoryProvider, compactionHistoryProvider);
+    private final CompactPriorityCalculator calculator =
+            new CompactPriorityCalculator(transactionManager, sweepHistoryProvider, compactionHistoryProvider);
 
     @Test
     public void returnsEmptyWhenNothingHasBeenSwept() {
@@ -72,8 +70,8 @@ public class CompactPriorityCalculatorTest {
     public void canReturnTableEvenIfItWasCompactedAfterTheLastSweep() {
         // TABLE_1 was compacted too recently, chooses randomly one compacted over one hour ago
         when(sweepHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1, 4L, TABLE_2, 3L));
-        when(compactionHistoryProvider.getHistory(mockTx)).thenReturn(ImmutableMap.of(TABLE_1,
-                System.currentTimeMillis(), TABLE_2, 5L));
+        when(compactionHistoryProvider.getHistory(mockTx))
+                .thenReturn(ImmutableMap.of(TABLE_1, System.currentTimeMillis(), TABLE_2, 5L));
 
         Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
         assertThat(table).isEqualTo(Optional.of(TABLE_2));
@@ -86,7 +84,7 @@ public class CompactPriorityCalculatorTest {
         when(sweepHistoryProvider.getHistory(mockTx))
                 .thenReturn(ImmutableMap.of(TABLE_1, currentTime - 5, TABLE_2, currentTime - 4));
         when(compactionHistoryProvider.getHistory(mockTx))
-                .thenReturn(ImmutableMap.of(TABLE_1, currentTime  - 1, TABLE_2, currentTime - 2));
+                .thenReturn(ImmutableMap.of(TABLE_1, currentTime - 1, TABLE_2, currentTime - 2));
 
         Optional<String> table = calculator.selectTableToCompactInternal(mockTx);
         assertThat(table).isEmpty();

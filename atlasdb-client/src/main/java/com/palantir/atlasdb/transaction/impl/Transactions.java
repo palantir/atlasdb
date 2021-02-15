@@ -15,18 +15,19 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
-
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
-public class Transactions {
-    private Transactions() { /* */ }
+public final class Transactions {
+    private Transactions() {
+        /* */
+    }
 
     /**
      * For tables that provide write-write conflict detection, touch is a useful tool.
@@ -43,7 +44,7 @@ public class Transactions {
      * isolation.
      */
     public static void touchCells(Transaction t, TableReference tableRef, Set<Cell> cells) {
-        Map<Cell, byte[]> results = Maps.newHashMap(t.get(tableRef, cells));
+        Map<Cell, byte[]> results = new HashMap<>(t.get(tableRef, cells));
         for (Cell cell : cells) {
             if (!results.containsKey(cell)) {
                 results.put(cell, PtBytes.EMPTY_BYTE_ARRAY);
@@ -66,5 +67,4 @@ public class Transactions {
         }
         return Arrays.equals(v1, v2);
     }
-
 }

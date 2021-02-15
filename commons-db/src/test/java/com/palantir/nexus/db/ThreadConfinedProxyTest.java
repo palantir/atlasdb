@@ -15,10 +15,13 @@
  */
 package com.palantir.nexus.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 
+import com.google.common.collect.Iterables;
+import com.palantir.common.proxy.TimingProxy;
+import com.palantir.util.timer.LoggingOperationTimer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,28 +31,23 @@ import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-import com.palantir.common.proxy.TimingProxy;
-import com.palantir.util.timer.LoggingOperationTimer;
-
 public class ThreadConfinedProxyTest {
 
-    Logger log = LoggerFactory.getLogger(ThreadConfinedProxyTest.class);
+    static Logger log = LoggerFactory.getLogger(ThreadConfinedProxyTest.class);
 
     String testString = "test";
 
     @Test
     public void testCurrentThreadCanCreateAndUseSubject() {
         @SuppressWarnings("unchecked")
-        List<String> subject = ThreadConfinedProxy.newProxyInstance(List.class, new ArrayList<String>(),
-                ThreadConfinedProxy.Strictness.VALIDATE);
+        List<String> subject = ThreadConfinedProxy.newProxyInstance(
+                List.class, new ArrayList<String>(), ThreadConfinedProxy.Strictness.VALIDATE);
         subject.add(testString);
-        assertEquals(testString, Iterables.getOnlyElement(subject));
+        assertThat(Iterables.getOnlyElement(subject)).isEqualTo(testString);
     }
 
     @Test
@@ -67,13 +65,13 @@ public class ThreadConfinedProxyTest {
         });
 
         @SuppressWarnings("unchecked")
-        List<String> subject = ThreadConfinedProxy.newProxyInstance(List.class, new ArrayList<String>(),
-                ThreadConfinedProxy.Strictness.VALIDATE, childThread);
+        List<String> subject = ThreadConfinedProxy.newProxyInstance(
+                List.class, new ArrayList<String>(), ThreadConfinedProxy.Strictness.VALIDATE, childThread);
         inputReference.set(subject);
         childThread.start();
         childThread.join(10000);
 
-        assertTrue(outputReference.get());
+        assertThat(outputReference.get()).isTrue();
     }
 
     @Test
@@ -91,18 +89,18 @@ public class ThreadConfinedProxyTest {
         });
 
         @SuppressWarnings("unchecked")
-        List<String> subject = ThreadConfinedProxy.newProxyInstance(List.class, new ArrayList<String>(),
-                ThreadConfinedProxy.Strictness.VALIDATE);
+        List<String> subject = ThreadConfinedProxy.newProxyInstance(
+                List.class, new ArrayList<String>(), ThreadConfinedProxy.Strictness.VALIDATE);
         inputReference.set(subject);
         childThread.start();
         childThread.join(10000);
 
-        assertTrue(outputReference.get());
+        assertThat(outputReference.get()).isTrue();
     }
 
-
     @Test
-    public void testMainThreadCanDelegateToExplicitThreadAndLoseAccessAndAbilityToDelegate() throws InterruptedException {
+    public void testMainThreadCanDelegateToExplicitThreadAndLoseAccessAndAbilityToDelegate()
+            throws InterruptedException {
 
         final AtomicReference<List<String>> inputReference = new AtomicReference<List<String>>(null);
         final AtomicInteger outputReference = new AtomicInteger(0);
@@ -120,23 +118,23 @@ public class ThreadConfinedProxyTest {
         });
 
         @SuppressWarnings("unchecked")
-        List<String> subject = ThreadConfinedProxy.newProxyInstance(List.class, new ArrayList<String>(),
-                ThreadConfinedProxy.Strictness.VALIDATE);
+        List<String> subject = ThreadConfinedProxy.newProxyInstance(
+                List.class, new ArrayList<String>(), ThreadConfinedProxy.Strictness.VALIDATE);
         inputReference.set(subject);
         childThread.start();
         childThread.join(10000);
 
-        assertEquals(2, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(2);
 
         // Cannot be access from main thread anymore
         try {
             subject.add(testString);
-            fail();
+            fail("fail");
         } catch (Exception e) {
             outputReference.compareAndSet(2, 3);
         }
 
-        assertEquals(3, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(3);
 
         // Cannot give to another thread because main thread does not own it
         Thread otherThread = new Thread(() -> {
@@ -148,19 +146,17 @@ public class ThreadConfinedProxyTest {
 
         otherThread.start();
         otherThread.join(10000);
-        assertEquals(4, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(4);
 
         // Cannot give away from main thread either
         try {
             ThreadConfinedProxy.changeThread(subject, mainThread, otherThread);
-            fail();
+            fail("fail");
         } catch (Exception e) {
             outputReference.compareAndSet(4, 5);
         }
-        assertEquals(5, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(5);
     }
-
-
 
     @Test
     public void testChildThreadCanDelegateBackToMainThread() throws InterruptedException {
@@ -182,18 +178,17 @@ public class ThreadConfinedProxyTest {
         });
 
         @SuppressWarnings("unchecked")
-        List<String> subject = ThreadConfinedProxy.newProxyInstance(List.class, new ArrayList<String>(),
-                ThreadConfinedProxy.Strictness.VALIDATE);
+        List<String> subject = ThreadConfinedProxy.newProxyInstance(
+                List.class, new ArrayList<String>(), ThreadConfinedProxy.Strictness.VALIDATE);
         inputReference.set(subject);
         childThread.start();
         childThread.join(10000);
 
-        assertEquals(2, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(2);
 
         // We got delegated back, so we can use subject again
-        assertEquals(testString, Iterables.getOnlyElement(subject));
+        assertThat(Iterables.getOnlyElement(subject)).isEqualTo(testString);
     }
-
 
     @Test
     @SuppressWarnings("unchecked")
@@ -215,14 +210,13 @@ public class ThreadConfinedProxyTest {
             ThreadConfinedProxy.changeThread(subjectInChildThread, Thread.currentThread(), mainThread);
         });
 
-        // Make sure subject is wrapped in proxies, including multiple ThreadConfinedProxy objects, and also does not start with a
+        // Make sure subject is wrapped in proxies, including multiple ThreadConfinedProxy objects, and also does not
+        // start with a
         // ThreadConfinedProxy
         List<String> subject = new ArrayList<String>();
-        subject = ThreadConfinedProxy.newProxyInstance(List.class, subject,
-                ThreadConfinedProxy.Strictness.VALIDATE);
+        subject = ThreadConfinedProxy.newProxyInstance(List.class, subject, ThreadConfinedProxy.Strictness.VALIDATE);
         subject = TimingProxy.newProxyInstance(List.class, subject, LoggingOperationTimer.create(log));
-        subject = ThreadConfinedProxy.newProxyInstance(List.class, subject,
-                ThreadConfinedProxy.Strictness.VALIDATE);
+        subject = ThreadConfinedProxy.newProxyInstance(List.class, subject, ThreadConfinedProxy.Strictness.VALIDATE);
         subject = new DelegatingArrayListString(subject);
         subject = TimingProxy.newProxyInstance(List.class, subject, LoggingOperationTimer.create(log));
 
@@ -230,46 +224,41 @@ public class ThreadConfinedProxyTest {
         childThread.start();
         childThread.join(10000);
 
-        assertEquals(2, outputReference.get());
+        assertThat(outputReference.get()).isEqualTo(2);
 
         // We got delegated back, so we can use subject again
-        assertEquals(testString, Iterables.getOnlyElement(subject));
+        assertThat(Iterables.getOnlyElement(subject)).isEqualTo(testString);
     }
 
     @Test
     public void testPropagateExceptions() throws SQLException {
 
-        IThingThatThrows thing = ThreadConfinedProxy.newProxyInstance(IThingThatThrows.class, new ThingThatThrows(),
-                ThreadConfinedProxy.Strictness.VALIDATE);
+        IThingThatThrows thing = ThreadConfinedProxy.newProxyInstance(
+                IThingThatThrows.class, new ThingThatThrows(), ThreadConfinedProxy.Strictness.VALIDATE);
 
-        assertEquals(1, thing.doStuff(IThingThatThrows.Behavior.RETURN_ONE));
+        assertThat(thing.doStuff(IThingThatThrows.Behavior.RETURN_ONE)).isEqualTo(1);
 
-        try {
-            thing.doStuff(IThingThatThrows.Behavior.THROW_RUNTIME);
-            fail("Should throw Runtime Exception");
-        } catch (RuntimeException e) {
-            // OK
-        }
+        assertThatThrownBy(() -> thing.doStuff(IThingThatThrows.Behavior.THROW_RUNTIME))
+                .describedAs("Should throw Runtime Exception")
+                .isInstanceOf(RuntimeException.class);
 
-        try {
-            thing.doStuff(IThingThatThrows.Behavior.THROW_SQL);
-            fail("Should throw SQL Exception");
-        } catch (SQLException e) {
-            // OK
-        }
-
-
+        assertThatThrownBy(() -> thing.doStuff(IThingThatThrows.Behavior.THROW_SQL))
+                .describedAs("Should throw SQL Exception")
+                .isInstanceOf(SQLException.class);
     }
 
     private interface IThingThatThrows {
 
-        enum Behavior {RETURN_ONE, THROW_RUNTIME, THROW_SQL;}
+        enum Behavior {
+            RETURN_ONE,
+            THROW_RUNTIME,
+            THROW_SQL;
+        }
 
         int doStuff(Behavior b) throws SQLException;
-
     }
 
-    private class ThingThatThrows implements IThingThatThrows {
+    private static final class ThingThatThrows implements IThingThatThrows {
         @Override
         public int doStuff(Behavior b) throws SQLException {
             switch (b) {
@@ -287,6 +276,7 @@ public class ThreadConfinedProxyTest {
 
     private class DelegatingArrayListString implements List<String>, Delegator<List<String>> {
         private final List<String> inner;
+
         public DelegatingArrayListString(List<String> subject) {
             inner = subject;
         }
@@ -420,7 +410,5 @@ public class ThreadConfinedProxyTest {
         public List<String> subList(int fromIndex, int toIndex) {
             return inner.subList(fromIndex, toIndex);
         }
-
     }
 }
-

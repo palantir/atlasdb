@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.table.description.constraints;
 
-public enum TableConstraint implements Constraint{
+public enum TableConstraint implements Constraint {
     /**
      * This is a constraint defined as: once a row has been added, no cells in that row
      * may be added or modified in future transactions. If
@@ -40,6 +40,4 @@ public enum TableConstraint implements Constraint{
     };
 
     public abstract String getMethodName();
-
-
 }

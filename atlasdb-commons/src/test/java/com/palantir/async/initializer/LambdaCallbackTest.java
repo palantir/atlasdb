@@ -120,12 +120,11 @@ public class LambdaCallbackTest {
     @Value.Modifiable
     interface InitsAndCleanups {
         int inits();
+
         int cleanups();
 
         static ModifiableInitsAndCleanups createInitialized() {
-            return ModifiableInitsAndCleanups.create()
-                    .setInits(0)
-                    .setCleanups(0);
+            return ModifiableInitsAndCleanups.create().setInits(0).setCleanups(0);
         }
     }
 }

@@ -16,15 +16,13 @@
 
 package com.palantir.lock.client;
 
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Iterables;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.SafeArg;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class LockWatchLogUtility {
     private static final Logger log = LoggerFactory.getLogger(LockWatchLogUtility.class);
@@ -35,26 +33,24 @@ final class LockWatchLogUtility {
 
     static void logTransactionEvents(Optional<LockWatchVersion> requestedVersion, LockWatchStateUpdate update) {
         if (log.isDebugEnabled()) {
-            Optional<LockWatchStateUpdate.Success> successfulUpdate = update.accept(
-                    new LockWatchStateUpdate.Visitor<Optional<LockWatchStateUpdate.Success>>() {
+            Optional<LockWatchStateUpdate.Success> successfulUpdate =
+                    update.accept(new LockWatchStateUpdate.Visitor<Optional<LockWatchStateUpdate.Success>>() {
                         @Override
-                        public Optional<LockWatchStateUpdate.Success> visit(
-                                LockWatchStateUpdate.Success success) {
+                        public Optional<LockWatchStateUpdate.Success> visit(LockWatchStateUpdate.Success success) {
                             return Optional.of(success);
                         }
 
                         @Override
-                        public Optional<LockWatchStateUpdate.Success> visit(
-                                LockWatchStateUpdate.Snapshot snapshot) {
+                        public Optional<LockWatchStateUpdate.Success> visit(LockWatchStateUpdate.Snapshot snapshot) {
                             return Optional.empty();
                         }
                     });
 
-            successfulUpdate.ifPresent(success ->
-                    log.debug("Lock watch state update information",
-                            SafeArg.of("requestedVersion", requestedVersion),
-                            SafeArg.of("responseFirstVersion", Iterables.getFirst(success.events(), null)),
-                            SafeArg.of("responseLatestVersion", success.lastKnownVersion())));
+            successfulUpdate.ifPresent(success -> log.debug(
+                    "Lock watch state update information",
+                    SafeArg.of("requestedVersion", requestedVersion),
+                    SafeArg.of("responseFirstVersion", Iterables.getFirst(success.events(), null)),
+                    SafeArg.of("responseLatestVersion", success.lastKnownVersion())));
         }
     }
 }

@@ -16,10 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.timelock.paxos.BatchPaxosLearnerRpcClient;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
@@ -30,6 +26,9 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosLearner;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public final class TimelockPaxosLearnerAdapters {
     private TimelockPaxosLearnerAdapters() {
@@ -44,9 +43,9 @@ public final class TimelockPaxosLearnerAdapters {
         switch (paxosUseCase) {
             case LEADER_FOR_ALL_CLIENTS:
                 return Streams.zip(
-                        remoteClients.batchLearner().stream(),
-                        remoteClients.singleLeaderLearner().stream(),
-                        (batch, legacy) -> createSwitchingClient(batch, legacy, useBatchedSingleLeader))
+                                remoteClients.batchLearner().stream(),
+                                remoteClients.singleLeaderLearner().stream(),
+                                (batch, legacy) -> createSwitchingClient(batch, legacy, useBatchedSingleLeader))
                         .collect(Collectors.toList());
             case LEADER_FOR_EACH_CLIENT:
                 throw new SafeIllegalArgumentException("This should not be possible and is semantically meaningless");
@@ -64,13 +63,15 @@ public final class TimelockPaxosLearnerAdapters {
             WithDedicatedExecutor<BatchPaxosLearnerRpcClient> batched,
             WithDedicatedExecutor<PaxosRemoteClients.TimelockSingleLeaderPaxosLearnerRpcClient> legacy,
             Supplier<Boolean> useBatched) {
-        Preconditions.checkState(batched.executor() == legacy.executor(),
+        Preconditions.checkState(
+                batched.executor() == legacy.executor(),
                 "Different executors provided to a switching client! This is unexpected");
-        return WithDedicatedExecutor.of(PredicateSwitchedProxy.newProxyInstance(
-                BatchTimelockPaxosLearnerAdapter.singleLeader(batched.service()),
-                legacy.service(),
-                useBatched,
-                PaxosLearner.class),
+        return WithDedicatedExecutor.of(
+                PredicateSwitchedProxy.newProxyInstance(
+                        BatchTimelockPaxosLearnerAdapter.singleLeader(batched.service()),
+                        legacy.service(),
+                        useBatched,
+                        PaxosLearner.class),
                 batched.executor());
     }
 }

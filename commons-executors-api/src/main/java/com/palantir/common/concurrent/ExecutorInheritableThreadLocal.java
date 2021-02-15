@@ -158,7 +158,7 @@ public class ExecutorInheritableThreadLocal<T> {
      * @return the old map installed on that thread
      */
     static ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> installMapOnThread(
-                Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> map) {
+            Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> map) {
         ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
                 mapForThisThread.get();
         if (map.isEmpty()) {
@@ -202,7 +202,8 @@ public class ExecutorInheritableThreadLocal<T> {
     static void uninstallMapOnThread(
             ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap) {
         try {
-            for (WeakReference<? extends ExecutorInheritableThreadLocal<?>> ref : mapForThisThread.get().keySet()) {
+            for (WeakReference<? extends ExecutorInheritableThreadLocal<?>> ref :
+                    mapForThisThread.get().keySet()) {
                 @SuppressWarnings("unchecked")
                 ExecutorInheritableThreadLocal<Object> threadLocal = (ExecutorInheritableThreadLocal<Object>) ref.get();
                 if (threadLocal != null) {

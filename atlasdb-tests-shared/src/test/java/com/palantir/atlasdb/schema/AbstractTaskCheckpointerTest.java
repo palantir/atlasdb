@@ -15,19 +15,16 @@
  */
 package com.palantir.atlasdb.schema;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import org.junit.Before;
+import org.junit.Test;
 
 public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
     protected AbstractTaskCheckpointer checkpointer;
@@ -69,10 +66,10 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
         final Map<Long, byte[]> next1 = createRandomCheckpoints();
         final Map<Long, byte[]> next2 = createRandomCheckpoints();
         txManager.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
-            for (Entry<Long, byte[]> e : next1.entrySet()) {
+            for (Map.Entry<Long, byte[]> e : next1.entrySet()) {
                 checkpointer.checkpoint(t1, e.getKey(), e.getValue(), txn);
             }
-            for (Entry<Long, byte[]> e : next2.entrySet()) {
+            for (Map.Entry<Long, byte[]> e : next2.entrySet()) {
                 checkpointer.checkpoint(t2, e.getKey(), e.getValue(), txn);
             }
             return null;
@@ -94,7 +91,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
 
         final Map<Long, byte[]> next1 = createRandomCheckpoints();
         txManager.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
-            for (Entry<Long, byte[]> e : next1.entrySet()) {
+            for (Map.Entry<Long, byte[]> e : next1.entrySet()) {
                 checkpointer.checkpoint(t1, e.getKey(), new byte[0], txn);
             }
             return null;
@@ -103,7 +100,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
             for (long rangeId : next1.keySet()) {
                 byte[] oldCheckpoint = checkpointer.getCheckpoint(t1, rangeId, txn);
-                Assert.assertNull(oldCheckpoint);
+                assertThat(oldCheckpoint).isNull();
             }
             return null;
         });
@@ -112,7 +109,7 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
     private Map<Long, byte[]> createRandomCheckpoints() {
         byte[] bytes = new byte[64];
         Random random = new Random();
-        Map<Long, byte[]> ret = Maps.newHashMap();
+        Map<Long, byte[]> ret = new HashMap<>();
         for (int i = 0; i < 4; i++) {
             random.nextBytes(bytes);
             ret.put((long) i, bytes.clone());
@@ -120,13 +117,11 @@ public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
         return ret;
     }
 
-    private void verifyCheckpoints(final String extraId,
-                                   final Map<Long, byte[]> startById,
-                                   Transaction txn) {
-        for (Entry<Long, byte[]> e : startById.entrySet()) {
+    private void verifyCheckpoints(final String extraId, final Map<Long, byte[]> startById, Transaction txn) {
+        for (Map.Entry<Long, byte[]> e : startById.entrySet()) {
             byte[] oldCheckpoint = checkpointer.getCheckpoint(extraId, e.getKey(), txn);
             byte[] currentCheckpoint = e.getValue();
-            Assert.assertTrue(Arrays.equals(oldCheckpoint, currentCheckpoint));
+            assertThat(oldCheckpoint).isEqualTo(currentCheckpoint);
         }
     }
 }

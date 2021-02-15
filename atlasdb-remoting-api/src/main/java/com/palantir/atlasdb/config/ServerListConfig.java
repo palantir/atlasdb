@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.config;
 
-import java.util.Optional;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import java.util.Optional;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableServerListConfig.class)
 @JsonSerialize(as = ImmutableServerListConfig.class)

@@ -16,25 +16,23 @@
 
 package com.palantir.lock.watch;
 
-import java.util.OptionalLong;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.OptionalLong;
+import org.immutables.value.Value;
 
-@Value.Immutable
 @JsonSerialize(as = ImmutableLockWatchInfo.class)
 @JsonDeserialize(as = ImmutableLockWatchInfo.class)
+@Value.Immutable
+@SuppressWarnings("ClassInitializationDeadlock")
 public interface LockWatchInfo {
-    /**
-     * Used to denote lock watch info for locks that are not watched, or more generally, for locks for which the state
-     * is currently unknown.
-     */
+
+    @Deprecated
     LockWatchInfo UNKNOWN = ImmutableLockWatchInfo.of(State.NOT_WATCHED, OptionalLong.empty());
 
     @Value.Parameter
     State state();
+
     @Value.Parameter
     OptionalLong lastLocked();
 
@@ -47,6 +45,8 @@ public interface LockWatchInfo {
     }
 
     enum State {
-        LOCKED, UNLOCKED, NOT_WATCHED
+        LOCKED,
+        UNLOCKED,
+        NOT_WATCHED
     }
 }

@@ -19,9 +19,8 @@ package com.palantir.timelock.history.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import org.junit.Test;
 
 public class UseCaseUtilsTest {
     @Test

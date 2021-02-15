@@ -15,30 +15,31 @@
  */
 package com.palantir.cassandra.multinode;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import java.util.Arrays;
-
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
-
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        LessThanQuorumNodeAvailabilityTest.class,
-        TwoNodesDownGetTest.class,
-        TwoNodesDownMetadataTest.class,
-        TwoNodesDownPutTest.class,
-        TwoNodesDownTableManipulationTest.class
-        })
+    LessThanQuorumNodeAvailabilityTest.class,
+    TwoNodesDownGetTest.class,
+    TwoNodesDownMetadataTest.class,
+    TwoNodesDownPutTest.class,
+    TwoNodesDownTableManipulationTest.class
+})
 public final class TwoNodesDownTestSuite extends NodesDownTestSetup {
 
     @BeforeClass
     public static void setup() throws Exception {
         NodesDownTestSetup.initializeKvsAndDegradeCluster(
-                Arrays.asList(TwoNodesDownTestSuite.class.getAnnotation(Suite.SuiteClasses.class).value()),
-                ImmutableList.of(ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
+                Arrays.asList(TwoNodesDownTestSuite.class
+                        .getAnnotation(Suite.SuiteClasses.class)
+                        .value()),
+                ImmutableList.of(
+                        ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
                         ThreeNodeCassandraCluster.THIRD_CASSANDRA_CONTAINER_NAME));
     }
 }

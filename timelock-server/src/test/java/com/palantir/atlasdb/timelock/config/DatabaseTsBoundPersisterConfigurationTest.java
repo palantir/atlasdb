@@ -17,11 +17,10 @@ package com.palantir.atlasdb.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterConfiguration;
+import org.junit.Test;
 
 public class DatabaseTsBoundPersisterConfigurationTest {
     @Test

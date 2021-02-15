@@ -20,12 +20,12 @@ import java.time.Instant;
 public interface Clock {
     /**
      * @return The time in milliseconds. This is conventionally interpreted as the number of
-     *         milliseconds since 1970-01-01T00:00Z excluding leap seconds not included in the
+     *         milliseconds since 1970-01-01T00:00Z excluding leap seconds not included in the
      *         present UTC day, which means it is not monotonic even if the underlying clock is
      *         perfectly accurate and never adjusted! Clock geekery aside, this should just return
      *         System.currentTimeMillis().
      */
-    public long getTimeMillis();
+    long getTimeMillis();
 
     default Instant instant() {
         return Instant.ofEpochMilli(getTimeMillis());

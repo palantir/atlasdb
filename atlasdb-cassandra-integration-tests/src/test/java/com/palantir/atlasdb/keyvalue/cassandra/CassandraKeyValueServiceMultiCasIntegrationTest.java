@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import org.junit.ClassRule;
-
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.impl.AbstractMultiCasTest;
+import org.junit.ClassRule;
 
 public class CassandraKeyValueServiceMultiCasIntegrationTest extends AbstractMultiCasTest {
     @ClassRule

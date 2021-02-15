@@ -25,18 +25,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Optional;
-
-import javax.ws.rs.core.Response;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
@@ -47,6 +35,15 @@ import com.palantir.atlasdb.util.DropwizardClientRule;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
+import java.util.List;
+import java.util.Optional;
+import javax.ws.rs.core.Response;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 public class SweeperServiceImplTest extends SweeperTestSetup {
 
@@ -120,21 +117,29 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Test
     public void sweepTableFromStartRowWithInValidStartRowShouldThrow() {
         assertThatExceptionOfType(RemoteException.class)
-                .isThrownBy(() ->
-                        sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), INVALID_START_ROW))
+                .isThrownBy(() -> sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), INVALID_START_ROW))
                 .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
     }
 
     @Test
     public void sweepTableFromStartRowWithBatchConfigWithNullStartRowShouldBeSuccessful() {
-        sweeperService.sweepTable(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.empty(), Optional.of(1000),
-                Optional.of(1000), Optional.of(500));
+        sweeperService.sweepTable(
+                TABLE_REF.getQualifiedName(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(1000),
+                Optional.of(1000),
+                Optional.of(500));
     }
 
     @Test
     public void sweepTableFromStartRowWithBatchConfigWithExactlyOneNonNullBatchConfigShouldBeSuccessful() {
-        sweeperService.sweepTable(TABLE_REF.getQualifiedName(),
-                Optional.of(encodeStartRow(new byte[] {1, 2, 3})), Optional.empty(), Optional.of(10), Optional.empty(),
+        sweeperService.sweepTable(
+                TABLE_REF.getQualifiedName(),
+                Optional.of(encodeStartRow(new byte[] {1, 2, 3})),
+                Optional.empty(),
+                Optional.of(10),
+                Optional.empty(),
                 Optional.empty());
     }
 
@@ -150,16 +155,12 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     @Test
     public void sweepsEntireTableByDefault() {
-        List<byte[]> startRows = ImmutableList.of(
-                PtBytes.EMPTY_BYTE_ARRAY,
-                new byte[] {0x10},
-                new byte[] {0x50});
+        List<byte[]> startRows = ImmutableList.of(PtBytes.EMPTY_BYTE_ARRAY, new byte[] {0x10}, new byte[] {0x50});
 
         for (int i = 0; i < startRows.size(); i++) {
             byte[] currentRow = startRows.get(i);
-            Optional<byte[]> nextRow = (i + 1) == startRows.size()
-                    ? Optional.empty()
-                    : Optional.of(startRows.get(i + 1));
+            Optional<byte[]> nextRow =
+                    (i + 1) == startRows.size() ? Optional.empty() : Optional.of(startRows.get(i + 1));
 
             SweepResults results = SweepResults.createEmptySweepResult(nextRow);
             when(sweepTaskRunner.run(any(), any(), eq(currentRow))).thenReturn(results);
@@ -171,13 +172,17 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         verifyNoMoreInteractions(sweepTaskRunner);
     }
 
-
     @Test
     public void runsOneIterationIfRequested() {
         setupTaskRunner(RESULTS_MORE_TO_SWEEP);
 
-        sweeperService.sweepTable(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.of(false),
-                Optional.empty(), Optional.empty(), Optional.empty());
+        sweeperService.sweepTable(
+                TABLE_REF.getQualifiedName(),
+                Optional.empty(),
+                Optional.of(false),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty());
 
         verify(sweepTaskRunner, times(1)).run(any(), any(), any());
         verifyNoMoreInteractions(sweepTaskRunner);
@@ -185,9 +190,10 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
 
     private void verifyExpectedArgument(long sweepTime, long totalTimeElapsed) {
         assertThat(RESULTS_NO_MORE_TO_SWEEP.getTimeInMillis()).isEqualTo(sweepTime);
-        assertThat(totalTimeElapsed).isBetween(
-                RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping() - 1000L,
-                RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping());
+        assertThat(totalTimeElapsed)
+                .isBetween(
+                        RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping() - 1000L,
+                        RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping());
     }
 
     private String encodeStartRow(byte[] rowBytes) {
@@ -198,5 +204,4 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         verify(progressStore, never()).saveProgress(any());
         verify(priorityStore, never()).update(any(), any(), any());
     }
-
 }

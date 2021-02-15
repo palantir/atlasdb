@@ -15,35 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.apache.cassandra.thrift.Compression;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlPreparedResult;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
@@ -56,19 +29,44 @@ import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlPreparedResult;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CqlExecutorImpl implements CqlExecutor {
     private final QueryExecutor queryExecutor;
-    private Logger log = LoggerFactory.getLogger(CqlExecutor.class);
+    private static final Logger log = LoggerFactory.getLogger(CqlExecutorImpl.class);
 
     public interface QueryExecutor {
         CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
+
         CqlPreparedResult prepare(ByteBuffer query, byte[] rowHintForHostSelection, Compression compression);
+
         CqlResult executePrepared(int queryId, List<ByteBuffer> values);
     }
 
-    CqlExecutorImpl(CassandraClientPool clientPool,
-            ConsistencyLevel consistency) {
+    CqlExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
         this.queryExecutor = new QueryExecutorImpl(clientPool, consistency);
     }
 
@@ -84,15 +82,15 @@ public class CqlExecutorImpl implements CqlExecutor {
             int limit,
             ExecutorService executor,
             Integer executorThreads) {
-        String preparedSelQuery = String.format("SELECT key, column1, column2 FROM %s WHERE key = ? LIMIT %d;",
-                quotedTableName(tableRef).getValue(),
-                limit);
+        String preparedSelQuery = String.format(
+                "SELECT key, column1, column2 FROM %s WHERE key = ? LIMIT %d;",
+                quotedTableName(tableRef).getValue(), limit);
         ByteBuffer queryBytes = ByteBuffer.wrap(preparedSelQuery.getBytes(StandardCharsets.UTF_8));
 
         CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, rowsAscending.get(0), Compression.NONE);
         int queryId = preparedResult.getItemId();
 
-        List<CellWithTimestamp> result = Lists.newArrayList();
+        List<CellWithTimestamp> result = new ArrayList<>();
 
         List<Future<CqlResult>> futures = new ArrayList<>(rowsAscending.size());
         for (int i = 0; i < rowsAscending.size(); i++) {
@@ -100,8 +98,8 @@ public class CqlExecutorImpl implements CqlExecutor {
         }
         AtomicInteger nextRowToQuery = new AtomicInteger(0);
         for (int i = 0; i < executorThreads; i++) {
-            scheduleSweepRowTask(futures, queryId, nextRowToQuery.getAndIncrement(), nextRowToQuery, rowsAscending,
-                    executor);
+            scheduleSweepRowTask(
+                    futures, queryId, nextRowToQuery.getAndIncrement(), nextRowToQuery, rowsAscending, executor);
         }
 
         try {
@@ -124,7 +122,8 @@ public class CqlExecutorImpl implements CqlExecutor {
         return result;
     }
 
-    private void scheduleSweepRowTask(@Output List<Future<CqlResult>> futures,
+    private void scheduleSweepRowTask(
+            @Output List<Future<CqlResult>> futures,
             int queryId,
             int rowIndex,
             AtomicInteger nextRowToQuery,
@@ -139,8 +138,8 @@ public class CqlExecutorImpl implements CqlExecutor {
         Callable<CqlResult> task = () -> {
             CqlResult cqlResult = queryExecutor.executePrepared(queryId, ImmutableList.of(ByteBuffer.wrap(row)));
             if (!Thread.interrupted()) {
-                scheduleSweepRowTask(futures, queryId, nextRowToQuery.getAndIncrement(), nextRowToQuery, rows,
-                        executor);
+                scheduleSweepRowTask(
+                        futures, queryId, nextRowToQuery.getAndIncrement(), nextRowToQuery, rows, executor);
             }
             return cqlResult;
         };
@@ -166,11 +165,7 @@ public class CqlExecutorImpl implements CqlExecutor {
      */
     @Override
     public List<CellWithTimestamp> getTimestampsWithinRow(
-            TableReference tableRef,
-            byte[] row,
-            byte[] startColumnInclusive,
-            long startTimestampExclusive,
-            int limit) {
+            TableReference tableRef, byte[] row, byte[] startColumnInclusive, long startTimestampExclusive, int limit) {
         long invertedTimestamp = ~startTimestampExclusive;
         String selQuery = "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;";
         CqlQuery query = CqlQuery.builder()
@@ -183,14 +178,11 @@ public class CqlExecutorImpl implements CqlExecutor {
                         limit(limit))
                 .build();
 
-        return executeAndGetCells(query, row,
-                result -> CqlExecutorImpl.getCellFromKeylessRow(result, row));
+        return executeAndGetCells(query, row, result -> CqlExecutorImpl.getCellFromKeylessRow(result, row));
     }
 
     private List<CellWithTimestamp> executeAndGetCells(
-            CqlQuery query,
-            byte[] rowHintForHostSelection,
-            Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
+            CqlQuery query, byte[] rowHintForHostSelection, Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
         CqlResult cqlResult = queryExecutor.execute(query, rowHintForHostSelection);
         return CqlExecutorImpl.getCells(cellTsExtractor, cqlResult);
     }
@@ -241,13 +233,9 @@ public class CqlExecutorImpl implements CqlExecutor {
         return LoggingArgs.customTableName(tableRef, tableNameWithQuotes);
     }
 
-    private static List<CellWithTimestamp> getCells(Function<CqlRow,
-            CellWithTimestamp> cellTsExtractor,
-            CqlResult cqlResult) {
-        return cqlResult.getRows()
-                .stream()
-                .map(cellTsExtractor)
-                .collect(Collectors.toList());
+    private static List<CellWithTimestamp> getCells(
+            Function<CqlRow, CellWithTimestamp> cellTsExtractor, CqlResult cqlResult) {
+        return cqlResult.getRows().stream().map(cellTsExtractor).collect(Collectors.toList());
     }
 
     private static class QueryExecutorImpl implements QueryExecutor {
@@ -259,7 +247,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         QueryExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
             this.clientPool = clientPool;
             this.consistency = consistency;
-            this.hostsPerPreparedQuery = Maps.newHashMap();
+            this.hostsPerPreparedQuery = new HashMap<>();
         }
 
         @Override
@@ -269,13 +257,12 @@ public class CqlExecutorImpl implements CqlExecutor {
 
         @Override
         public CqlPreparedResult prepare(ByteBuffer query, byte[] rowHintForHostSelection, Compression compression) {
-            FunctionCheckedException<CassandraClient, CqlPreparedResult, TException> prepareFunction = client ->
-                    client.prepare_cql3_query(query, compression);
+            FunctionCheckedException<CassandraClient, CqlPreparedResult, TException> prepareFunction =
+                    client -> client.prepare_cql3_query(query, compression);
 
             try {
                 InetSocketAddress hostForRow = getHostForRow(rowHintForHostSelection);
-                CqlPreparedResult preparedResult = clientPool.runWithRetryOnHost(hostForRow,
-                        prepareFunction);
+                CqlPreparedResult preparedResult = clientPool.runWithRetryOnHost(hostForRow, prepareFunction);
                 hostsPerPreparedQuery.put(preparedResult.getItemId(), hostForRow);
                 return preparedResult;
             } catch (TException e) {
@@ -285,10 +272,11 @@ public class CqlExecutorImpl implements CqlExecutor {
 
         @Override
         public CqlResult executePrepared(int queryId, List<ByteBuffer> values) {
-            FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction = client ->
-                    client.execute_prepared_cql3_query(queryId, values, consistency);
+            FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction =
+                    client -> client.execute_prepared_cql3_query(queryId, values, consistency);
 
-            InetSocketAddress host = hostsPerPreparedQuery.getOrDefault(queryId, getHostForRow(values.get(0).array()));
+            InetSocketAddress host = hostsPerPreparedQuery.getOrDefault(
+                    queryId, getHostForRow(values.get(0).array()));
 
             return executeFunctionOnHost(cqlFunction, host);
         }
@@ -329,5 +317,4 @@ public class CqlExecutorImpl implements CqlExecutor {
             };
         }
     }
-
 }

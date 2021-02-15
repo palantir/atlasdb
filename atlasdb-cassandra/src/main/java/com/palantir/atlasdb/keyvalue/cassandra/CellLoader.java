@@ -15,24 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.function.Supplier;
-
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ColumnParent;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.KeyPredicate;
-import org.apache.cassandra.thrift.SlicePredicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -47,6 +29,23 @@ import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.Callable;
+import java.util.function.Supplier;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.ColumnParent;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.KeyPredicate;
+import org.apache.cassandra.thrift.SlicePredicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class CellLoader {
     private static final Logger log = LoggerFactory.getLogger(CellLoader.class);
@@ -73,28 +72,28 @@ final class CellLoader {
             TaskRunner taskRunner,
             Supplier<CassandraKeyValueServiceRuntimeConfig> configSupplier) {
         CellLoadingBatcher batcher = new CellLoadingBatcher(
-                () -> configSupplier.get().cellLoadingConfig(),
-                CellLoader::logRebatchingWarnMessage);
+                () -> configSupplier.get().cellLoadingConfig(), CellLoader::logRebatchingWarnMessage);
         return new CellLoader(clientPool, queryRunner, taskRunner, batcher);
     }
 
-    Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts,
-            ConsistencyLevel consistency) {
+    Multimap<Cell, Long> getAllTimestamps(
+            TableReference tableRef, Set<Cell> cells, long ts, ConsistencyLevel consistency) {
         CassandraKeyValueServices.AllTimestampsCollector collector =
                 new CassandraKeyValueServices.AllTimestampsCollector();
         loadWithTs("getAllTimestamps", tableRef, cells, ts, true, collector, consistency);
         return collector.getCollectedResults();
     }
 
-    void loadWithTs(String kvsMethodName,
+    void loadWithTs(
+            String kvsMethodName,
             TableReference tableRef,
             Set<Cell> cells,
             long startTs,
             boolean loadAllTs,
             CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             ConsistencyLevel consistency) {
-        Map<InetSocketAddress, List<Cell>> hostsAndCells = HostPartitioner.partitionByHost(clientPool, cells,
-                Cell::getRowName);
+        Map<InetSocketAddress, List<Cell>> hostsAndCells =
+                HostPartitioner.partitionByHost(clientPool, cells, Cell::getRowName);
         int totalPartitions = hostsAndCells.keySet().size();
 
         if (log.isTraceEnabled()) {
@@ -107,7 +106,7 @@ final class CellLoader {
                     SafeArg.of("totalPartitions", totalPartitions));
         }
 
-        List<Callable<Void>> tasks = Lists.newArrayList();
+        List<Callable<Void>> tasks = new ArrayList<>();
         for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
             if (log.isTraceEnabled()) {
                 log.trace(
@@ -119,7 +118,8 @@ final class CellLoader {
                         SafeArg.of("ipPort", hostAndCells.getKey()));
             }
 
-            tasks.addAll(getLoadWithTsTasksForSingleHost(kvsMethodName,
+            tasks.addAll(getLoadWithTsTasksForSingleHost(
+                    kvsMethodName,
                     hostAndCells.getKey(),
                     tableRef,
                     hostAndCells.getValue(),
@@ -133,7 +133,8 @@ final class CellLoader {
     }
 
     // TODO(unknown): after cassandra api change: handle different column select per row
-    private List<Callable<Void>> getLoadWithTsTasksForSingleHost(final String kvsMethodName,
+    private List<Callable<Void>> getLoadWithTsTasksForSingleHost(
+            final String kvsMethodName,
             final InetSocketAddress host,
             final TableReference tableRef,
             final Collection<Cell> cells,
@@ -142,18 +143,17 @@ final class CellLoader {
             final CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        List<Callable<Void>> tasks = Lists.newArrayList();
+        List<Callable<Void>> tasks = new ArrayList<>();
         for (final List<Cell> partition : batcher.partitionIntoBatches(cells, host, tableRef)) {
             Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(
-                    host,
-                    new FunctionCheckedException<CassandraClient, Void, Exception>() {
+                    host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
                         @Override
                         public Void apply(CassandraClient client) throws Exception {
-                            List<KeyPredicate> query
-                                    = translatePartitionToKeyPredicates(partition, startTs, loadAllTs);
+                            List<KeyPredicate> query = translatePartitionToKeyPredicates(partition, startTs, loadAllTs);
 
                             if (log.isTraceEnabled()) {
-                                log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
+                                log.trace(
+                                        "Requesting {} cells from {} {}starting at timestamp {} on {}",
                                         SafeArg.of("cells", partition.size()),
                                         LoggingArgs.tableRef(tableRef),
                                         SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
@@ -163,20 +163,20 @@ final class CellLoader {
 
                             Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = queryRunner.multiget_multislice(
                                     kvsMethodName, client, tableRef, query, consistency);
-                            Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults = Maps.transformValues(results,
-                                    lists -> Lists.newArrayList(Iterables.concat(lists)));
+                            Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults =
+                                    Maps.transformValues(results, lists -> Lists.newArrayList(Iterables.concat(lists)));
                             visitor.visit(aggregatedResults);
                             return null;
                         }
 
                         @Override
                         public String toString() {
-                            return "multiget_multislice(" + host + ", " + colFam + ", "
-                                    + partition.size() + " cells" + ")";
+                            return "multiget_multislice(" + host + ", " + colFam + ", " + partition.size() + " cells"
+                                    + ")";
                         }
-
                     });
-            tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
+            tasks.add(AnnotatedCallable.wrapWithThreadName(
+                    AnnotationType.PREPEND,
                     "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
                     multiGetCallable));
         }
@@ -185,30 +185,26 @@ final class CellLoader {
 
     private static List<KeyPredicate> translatePartitionToKeyPredicates(
             List<Cell> partition, long startTs, boolean loadAllTs) {
-        Map<byte[], SlicePredicate> canonicalPredicates = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        Map<byte[], SlicePredicate> canonicalPredicates = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         List<KeyPredicate> keyPredicates = new ArrayList<>(partition.size());
 
         for (Cell cell : partition) {
-            SlicePredicate predicate = canonicalPredicates.computeIfAbsent(
-                    cell.getColumnName(),
-                    columnKey -> {
-                        SlicePredicates.Range range = SlicePredicates.Range.singleColumn(columnKey, startTs);
-                        SlicePredicates.Limit limit = loadAllTs
-                                ? SlicePredicates.Limit.NO_LIMIT
-                                : SlicePredicates.Limit.ONE;
-                        return SlicePredicates.create(range, limit);
-                    });
+            SlicePredicate predicate = canonicalPredicates.computeIfAbsent(cell.getColumnName(), columnKey -> {
+                SlicePredicates.Range range = SlicePredicates.Range.singleColumn(columnKey, startTs);
+                SlicePredicates.Limit limit = loadAllTs ? SlicePredicates.Limit.NO_LIMIT : SlicePredicates.Limit.ONE;
+                return SlicePredicates.create(range, limit);
+            });
 
-            KeyPredicate keyPredicate = new KeyPredicate()
-                    .setKey(cell.getRowName())
-                    .setPredicate(predicate);
+            KeyPredicate keyPredicate =
+                    new KeyPredicate().setKey(cell.getRowName()).setPredicate(predicate);
             keyPredicates.add(keyPredicate);
         }
         return keyPredicates;
     }
 
     private static void logRebatchingWarnMessage(InetSocketAddress host, TableReference tableRef, int numRows) {
-        log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to"
+        log.warn(
+                "Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to"
                         + " multiget {} rows; this may indicate overly-large batching on a higher level."
                         + " Note that batches are executed in parallel, which may cause load on both"
                         + " your Atlas client as well as on Cassandra if the number of rows is exceptionally"

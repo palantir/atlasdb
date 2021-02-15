@@ -22,13 +22,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.palantir.logsafe.SafeArg;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
-
-import com.palantir.logsafe.SafeArg;
 
 public class PostgresVersionCheckTest {
 
@@ -53,12 +52,13 @@ public class PostgresVersionCheckTest {
         assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion(lowVersion, log))
                 .isInstanceOf(AssertionError.class)
                 .hasMessageContaining(expectedMessage);
-        verify(log).error(
-                eq("Assertion with exception!"),
-                eq(lowVersion),
-                eq(PostgresVersionCheck.MIN_POSTGRES_VERSION),
-                isA(SafeArg.class),
-                Mockito.any(Exception.class));
+        verify(log)
+                .error(
+                        eq("Assertion with exception!"),
+                        eq(lowVersion),
+                        eq(PostgresVersionCheck.MIN_POSTGRES_VERSION),
+                        isA(SafeArg.class),
+                        Mockito.any(Exception.class));
         verifyNoMoreInteractions(log);
     }
 
@@ -81,5 +81,4 @@ public class PostgresVersionCheckTest {
         PostgresVersionCheck.checkDatabaseVersion("9.6.12", log);
         verifyNoMoreInteractions(log);
     }
-
 }

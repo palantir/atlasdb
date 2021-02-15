@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import javax.inject.Inject;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
@@ -56,6 +46,14 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.logsafe.Preconditions;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import javax.inject.Inject;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
     private static final TableMetadata RAW_METADATA = TableMetadata.builder()
@@ -68,13 +66,11 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     private final KeyValueService kvs;
     private final TransactionManager txManager;
     private final Cache<TransactionToken, OpenTransaction> transactions =
-            CacheBuilder.newBuilder().expireAfterAccess(12, TimeUnit.HOURS).build();
+            CacheBuilder.newBuilder().expireAfterAccess(Duration.ofHours(12)).build();
     private final TableMetadataCache metadataCache;
 
     @Inject
-    public AtlasDbServiceImpl(KeyValueService kvs,
-            TransactionManager txManager,
-            TableMetadataCache metadataCache) {
+    public AtlasDbServiceImpl(KeyValueService kvs, TransactionManager txManager, TableMetadataCache metadataCache) {
         this.kvs = kvs;
         this.txManager = txManager;
         this.metadataCache = metadataCache;
@@ -82,7 +78,9 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Override
     public Set<String> getAllTableNames() {
-        return kvs.getAllTableNames().stream().map(TableReference::getQualifiedName).collect(Collectors.toSet());
+        return kvs.getAllTableNames().stream()
+                .map(TableReference::getQualifiedName)
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -96,28 +94,26 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     }
 
     @Override
-    public TableRowResult getRows(TransactionToken token,
-            final TableRowSelection rows) {
+    public TableRowResult getRows(TransactionToken token, final TableRowSelection rows) {
         return runReadOnly(token, transaction -> {
-            Collection<RowResult<byte[]>> values = transaction.getRows(
-                    getTableRef(rows.getTableName()), rows.getRows(), rows.getColumnSelection()).values();
+            Collection<RowResult<byte[]>> values = transaction
+                    .getRows(getTableRef(rows.getTableName()), rows.getRows(), rows.getColumnSelection())
+                    .values();
             return new TableRowResult(rows.getTableName(), values);
         });
     }
 
     @Override
-    public TableCellVal getCells(TransactionToken token,
-            final TableCell cells) {
+    public TableCellVal getCells(TransactionToken token, final TableCell cells) {
         return runReadOnly(token, transaction -> {
-            Map<Cell, byte[]> values = transaction.get(getTableRef(cells.getTableName()),
-                    ImmutableSet.copyOf(cells.getCells()));
+            Map<Cell, byte[]> values =
+                    transaction.get(getTableRef(cells.getTableName()), ImmutableSet.copyOf(cells.getCells()));
             return new TableCellVal(cells.getTableName(), values);
         });
     }
 
     @Override
-    public RangeToken getRange(TransactionToken token,
-            final TableRange range) {
+    public RangeToken getRange(TransactionToken token, final TableRange range) {
         return runReadOnly(token, transaction -> {
             int limit = range.getBatchSize() + 1;
             RangeRequest request = RangeRequest.builder()
@@ -126,9 +122,10 @@ public class AtlasDbServiceImpl implements AtlasDbService {
                     .batchHint(limit)
                     .retainColumns(range.getColumns())
                     .build();
-            BatchingVisitable<RowResult<byte[]>> visitable = transaction.getRange(getTableRef(range.getTableName()),
-                    request);
-            List<RowResult<byte[]>> results = BatchingVisitables.limit(visitable, limit).immutableCopy();
+            BatchingVisitable<RowResult<byte[]>> visitable =
+                    transaction.getRange(getTableRef(range.getTableName()), request);
+            List<RowResult<byte[]>> results =
+                    BatchingVisitables.limit(visitable, limit).immutableCopy();
             if (results.size() == limit) {
                 TableRowResult data = new TableRowResult(range.getTableName(), results.subList(0, limit - 1));
                 RowResult<byte[]> lastResultInBatch = results.get(limit - 1);
@@ -142,8 +139,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     }
 
     @Override
-    public void put(TransactionToken token,
-            final TableCellVal data) {
+    public void put(TransactionToken token, final TableCellVal data) {
         runWithRetry(token, (TxTask) transaction -> {
             transaction.put(getTableRef(data.getTableName()), data.getResults());
             return null;
@@ -151,8 +147,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     }
 
     @Override
-    public void delete(TransactionToken token,
-            final TableCell cells) {
+    public void delete(TransactionToken token, final TableCell cells) {
         runWithRetry(token, (TxTask) transaction -> {
             transaction.delete(getTableRef(cells.getTableName()), ImmutableSet.copyOf(cells.getCells()));
             return null;
@@ -188,8 +183,8 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public TransactionToken startTransaction() {
         String id = UUID.randomUUID().toString();
         TransactionToken token = new TransactionToken(id);
-        OpenTransaction openTxn = Iterables.getOnlyElement(
-                txManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
+        OpenTransaction openTxn =
+                Iterables.getOnlyElement(txManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
         transactions.put(token, openTxn);
         return token;
     }

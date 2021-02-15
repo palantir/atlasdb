@@ -15,18 +15,18 @@
  */
 package com.palantir.atlasdb.factory.timestamp;
 
-import java.util.function.LongSupplier;
-
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampService;
+import java.util.function.LongSupplier;
 
 public class FreshTimestampSupplierAdapter implements LongSupplier {
     private volatile TimestampService timestampService;
 
     public void setTimestampService(TimestampService timestampService) {
-        Preconditions.checkNotNull(timestampService, "Should not re-set timestamp service in a"
-                + " FreshTimestampSupplierAdapter to null");
+        Preconditions.checkNotNull(
+                timestampService,
+                "Should not re-set timestamp service in a" + " FreshTimestampSupplierAdapter to null");
         this.timestampService = timestampService;
     }
 

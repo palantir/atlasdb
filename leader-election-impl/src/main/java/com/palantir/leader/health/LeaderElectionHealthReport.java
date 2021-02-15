@@ -21,6 +21,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface LeaderElectionHealthReport {
     LeaderElectionHealthStatus status();
+
     double leaderElectionRate();
 
     static ImmutableLeaderElectionHealthReport.Builder builder() {

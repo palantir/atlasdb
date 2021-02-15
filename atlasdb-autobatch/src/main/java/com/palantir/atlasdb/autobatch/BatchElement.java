@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.autobatch;
 
 import javax.annotation.Nullable;
-
 import org.immutables.value.Value;
 
 @Value.Immutable

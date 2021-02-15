@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.Preconditions;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class CellTsPairToken {

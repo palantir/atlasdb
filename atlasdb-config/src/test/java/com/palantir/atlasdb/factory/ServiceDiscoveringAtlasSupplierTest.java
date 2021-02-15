@@ -19,13 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.mockito.Mockito.mock;
 
-import java.io.IOException;
-import java.util.Optional;
-
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -34,6 +27,11 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.io.IOException;
+import java.util.Optional;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class ServiceDiscoveringAtlasSupplierTest {
     private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
@@ -80,8 +78,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
     public void returnDifferentTimestampServicesOnSubsequentCalls() {
         ServiceDiscoveringAtlasSupplier supplier = createAtlasSupplier(kvsConfig);
         AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(
-                mock(ManagedTimestampService.class),
-                mock(ManagedTimestampService.class));
+                mock(ManagedTimestampService.class), mock(ManagedTimestampService.class));
 
         assertThat(supplier.getManagedTimestampService())
                 .as("Need to get a newly-initialized timestamp service in case leadership changed between calls")
@@ -99,7 +96,8 @@ public class ServiceDiscoveringAtlasSupplierTest {
     }
 
     private ServiceDiscoveringAtlasSupplier createAtlasSupplier(KeyValueServiceConfig providedKvsConfig) {
-        return new ServiceDiscoveringAtlasSupplier(metrics,
+        return new ServiceDiscoveringAtlasSupplier(
+                metrics,
                 providedKvsConfig,
                 Optional::empty,
                 leaderConfig,
@@ -108,5 +106,4 @@ public class ServiceDiscoveringAtlasSupplierTest {
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
-
 }

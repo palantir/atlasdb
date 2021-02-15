@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.endpoint;
 
+import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
+import com.palantir.timestamp.TimestampRange;
+import com.palantir.timestamp.TimestampService;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
-
-import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
-import com.palantir.timestamp.TimestampRange;
-import com.palantir.timestamp.TimestampService;
 
 @State(Scope.Benchmark)
 public class TimestampServiceEndpoint {
@@ -50,4 +49,3 @@ public class TimestampServiceEndpoint {
         this.connector.close();
     }
 }
-

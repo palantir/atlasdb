@@ -23,13 +23,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
 import org.junit.Test;
 
 public class AwaitedLocksCollectionTest {
@@ -80,10 +78,10 @@ public class AwaitedLocksCollectionTest {
 
     @Test
     public void removesRequestIfSupplierThrows() {
-        assertThatThrownBy(() ->
-                awaitedLocks.getExistingOrAwait(REQUEST_1, () -> {
+        assertThatThrownBy(() -> awaitedLocks.getExistingOrAwait(REQUEST_1, () -> {
                     throw new RuntimeException("foo");
-                })).isInstanceOf(RuntimeException.class);
+                }))
+                .isInstanceOf(RuntimeException.class);
 
         assertRequestsWereRemoved(REQUEST_1);
     }
@@ -103,13 +101,12 @@ public class AwaitedLocksCollectionTest {
 
     private void assertRequestsWereRemoved(UUID... requests) {
         Awaitility.await()
-                .atMost(Duration.ONE_SECOND)
-                .pollInterval(5, TimeUnit.MILLISECONDS)
+                .atMost(Duration.ofSeconds(1))
+                .pollInterval(Duration.ofMillis(5))
                 .untilAsserted(() -> {
                     for (UUID requestId : Arrays.asList(requests)) {
                         assertThat(awaitedLocks.requestsById).doesNotContainKey(requestId);
                     }
                 });
     }
-
 }

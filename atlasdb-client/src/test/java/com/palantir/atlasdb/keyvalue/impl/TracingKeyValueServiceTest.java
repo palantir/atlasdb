@@ -15,29 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
@@ -61,6 +45,17 @@ import com.palantir.atlasdb.tracing.TestSpanObserver;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.SpanType;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.assertj.core.api.HamcrestCondition;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TracingKeyValueServiceTest {
@@ -88,7 +83,7 @@ public class TracingKeyValueServiceTest {
         Tracer.subscribe(getClass().getName(), observer);
         delegate = mock(KeyValueService.class);
         kvs = TracingKeyValueService.create(delegate);
-        assertThat(observer.spans(), hasSize(0));
+        assertThat(observer.spans()).isEmpty();
     }
 
     @After
@@ -105,12 +100,10 @@ public class TracingKeyValueServiceTest {
 
     @Test
     public void delegatesInitializationCheck() {
-        when(delegate.isInitialized())
-                .thenReturn(false)
-                .thenReturn(true);
+        when(delegate.isInitialized()).thenReturn(false).thenReturn(true);
 
-        assertFalse(kvs.isInitialized());
-        assertTrue(kvs.isInitialized());
+        assertThat(kvs.isInitialized()).isFalse();
+        assertThat(kvs.isInitialized()).isTrue();
     }
 
     @Test
@@ -207,7 +200,7 @@ public class TracingKeyValueServiceTest {
 
         Map<Cell, Value> result = kvs.get(TABLE_REF, cells);
 
-        assertThat(result, equalTo(expectedResult));
+        assertThat(result).isEqualTo(expectedResult);
         checkSpan("atlasdb-kvs.get({table}, 1 cells)");
         verify(delegate).get(TABLE_REF, cells);
         verifyNoMoreInteractions(delegate);
@@ -237,8 +230,8 @@ public class TracingKeyValueServiceTest {
         Collection<? extends KeyValueService> delegates = kvs.getDelegates();
 
         checkSpan("atlasdb-kvs.getDelegates()");
-        assertThat(delegates, hasSize(1));
-        assertThat(delegates.iterator().next(), equalTo(delegate));
+        assertThat(delegates).hasSize(1);
+        assertThat(delegates.iterator().next()).isEqualTo(delegate);
         verify(delegate).getDelegates();
         verifyNoMoreInteractions(delegate);
     }
@@ -246,10 +239,10 @@ public class TracingKeyValueServiceTest {
     @Test
     public void getFirstBatchForRanges() throws Exception {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> expectedResult = ImmutableMap.of();
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result = kvs.getFirstBatchForRanges(
-                TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result =
+                kvs.getFirstBatchForRanges(TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
 
-        assertThat(result, equalTo(expectedResult));
+        assertThat(result).isEqualTo(expectedResult);
         checkSpan("atlasdb-kvs.getFirstBatchForRanges({table}, 1 ranges, ts 1)");
         verify(delegate).getFirstBatchForRanges(TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
@@ -262,7 +255,7 @@ public class TracingKeyValueServiceTest {
 
         Map<Cell, Long> result = kvs.getLatestTimestamps(TABLE_REF, cells);
 
-        assertThat(result.entrySet(), hasSize(1));
+        assertThat(result.entrySet()).hasSize(1);
         checkSpan("atlasdb-kvs.getLatestTimestamps({table}, 1 cells)");
         verify(delegate).getLatestTimestamps(TABLE_REF, cells);
         verifyNoMoreInteractions(delegate);
@@ -274,7 +267,7 @@ public class TracingKeyValueServiceTest {
 
         byte[] result = kvs.getMetadataForTable(TABLE_REF);
 
-        assertThat(result, equalTo(METADATA_BYTES));
+        assertThat(result).isEqualTo(METADATA_BYTES);
         checkSpan("atlasdb-kvs.getMetadataForTable({table})");
         verify(delegate).getMetadataForTable(TABLE_REF);
         verifyNoMoreInteractions(delegate);
@@ -287,7 +280,7 @@ public class TracingKeyValueServiceTest {
 
         Map<TableReference, byte[]> result = kvs.getMetadataForTables();
 
-        assertThat(result, equalTo(expectedResult));
+        assertThat(result).isEqualTo(expectedResult);
         checkSpan("atlasdb-kvs.getMetadataForTables()");
         verify(delegate).getMetadataForTables();
         verifyNoMoreInteractions(delegate);
@@ -297,11 +290,12 @@ public class TracingKeyValueServiceTest {
     public void getRows() throws Exception {
         ImmutableList<byte[]> rows = ImmutableList.of(ROW_NAME);
         Map<Cell, Value> expectedResult = ImmutableMap.of();
-        when(delegate.getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP)).thenReturn(expectedResult);
+        when(delegate.getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP))
+                .thenReturn(expectedResult);
 
         Map<Cell, Value> result = kvs.getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP);
 
-        assertThat(result, equalTo(expectedResult));
+        assertThat(result).isEqualTo(expectedResult);
         checkSpan("atlasdb-kvs.getRows({table}, 1 rows, ts 1)");
         verify(delegate).getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP);
         verifyNoMoreInteractions(delegate);
@@ -317,7 +311,7 @@ public class TracingKeyValueServiceTest {
 
         Map<byte[], RowColumnRangeIterator> result = kvs.getRowsColumnRange(TABLE_REF, rows, range, TIMESTAMP);
 
-        assertThat(result, equalTo(expectedResult));
+        assertThat(result).isEqualTo(expectedResult);
         checkSpan("atlasdb-kvs.getRowsColumnRange({table}, 1 rows, ts 1)");
         verify(delegate).getRowsColumnRange(TABLE_REF, rows, range, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
@@ -400,10 +394,10 @@ public class TracingKeyValueServiceTest {
     }
 
     private void checkSpan(String opName) {
-        assertThat(observer.spans(), hasSize(1));
-        assertThat(observer.spans().get(0).getOperation(), equalTo(opName));
-        assertThat(observer.spans().get(0).type(), equalTo(SpanType.LOCAL));
-        assertThat(observer.spans().get(0).getDurationNanoSeconds(), greaterThanOrEqualTo(0L));
+        assertThat(observer.spans()).hasSize(1);
+        assertThat(observer.spans().get(0).getOperation()).isEqualTo(opName);
+        assertThat(observer.spans().get(0).type()).isEqualTo(SpanType.LOCAL);
+        assertThat(observer.spans().get(0).getDurationNanoSeconds())
+                .is(new HamcrestCondition<>(greaterThanOrEqualTo(0L)));
     }
-
 }

@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import org.junit.After;
-
 import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueService;
 import com.palantir.atlasdb.keyvalue.jdbc.JdbcTimestampBoundStore;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
+import org.junit.After;
 
 public class JdbcTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
     private JdbcKeyValueService kvs;

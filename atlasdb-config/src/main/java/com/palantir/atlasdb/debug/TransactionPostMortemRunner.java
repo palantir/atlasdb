@@ -16,19 +16,6 @@
 
 package com.palantir.atlasdb.debug;
 
-import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -52,6 +39,17 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -93,22 +91,22 @@ public class TransactionPostMortemRunner {
                 .map(LockDiagnosticInfo::requestIdsEvictedMidLockRequest)
                 .orElseGet(ImmutableSet::of);
 
-        log.info("lock Request Ids Evicted Mid Lock Request",
+        log.info(
+                "lock Request Ids Evicted Mid Lock Request",
                 SafeArg.of("lockRequestIdsEvictedMidLockRequest", lockRequestIdsEvictedMidLockRequest));
 
-        Set<FullDiagnosticDigest.CompletedTransactionDigest<String>> transactionDigests = digest
-                .completedOrAbortedTransactions().keySet().stream()
-                .map(startTimestamp -> transactionDigest(
-                        startTimestamp,
-                        digest,
-                        lockDiagnosticInfo,
-                        snapshot.getOrDefault(startTimestamp, ClientLockDiagnosticDigest.missingEntry())))
-                .collect(Collectors.toSet());
+        Set<FullDiagnosticDigest.CompletedTransactionDigest<String>> transactionDigests =
+                digest.completedOrAbortedTransactions().keySet().stream()
+                        .map(startTimestamp -> transactionDigest(
+                                startTimestamp,
+                                digest,
+                                lockDiagnosticInfo,
+                                snapshot.getOrDefault(startTimestamp, ClientLockDiagnosticDigest.missingEntry())))
+                        .collect(Collectors.toSet());
 
         log.info("transaction digests", SafeArg.of("transactionDigests", transactionDigests));
 
-        List<LocalLockTracker.TrackedLockEvent> locallyTrackedLockEvents
-                = localLockTracker.getLocalLockHistory();
+        List<LocalLockTracker.TrackedLockEvent> locallyTrackedLockEvents = localLockTracker.getLocalLockHistory();
 
         return ImmutableFullDiagnosticDigest.<String>builder()
                 .rawData(ImmutableRawData.of(digest, lockDiagnosticInfo, snapshot))
@@ -119,8 +117,7 @@ public class TransactionPostMortemRunner {
                 .build();
     }
 
-    private Optional<LockDiagnosticInfo> getTimelockDiagnostics(
-            Map<Long, ClientLockDiagnosticDigest> snapshot) {
+    private Optional<LockDiagnosticInfo> getTimelockDiagnostics(Map<Long, ClientLockDiagnosticDigest> snapshot) {
         try {
             return timelockDiagnosticService.getEnhancedLockDiagnosticInfo(timelockNamespace, requestIds(snapshot));
         } catch (Exception e) {
@@ -173,10 +170,9 @@ public class TransactionPostMortemRunner {
     }
 
     private static LockDigest lockDigest(
-            Set<ConjureLockDescriptor> lockDescriptors,
-            Optional<Map<LockState, Instant>> maybeLockStates) {
-        Map<LockState, Instant> lockStates = maybeLockStates
-                .orElseGet(() -> ImmutableMap.of(LockState.NOT_PRESENT_ON_TIMELOCK, Instant.EPOCH));
+            Set<ConjureLockDescriptor> lockDescriptors, Optional<Map<LockState, Instant>> maybeLockStates) {
+        Map<LockState, Instant> lockStates =
+                maybeLockStates.orElseGet(() -> ImmutableMap.of(LockState.NOT_PRESENT_ON_TIMELOCK, Instant.EPOCH));
         return ImmutableLockDigest.builder()
                 .addAllLockDescriptors(lockDescriptors)
                 .putAllLockStates(lockStates)
@@ -184,8 +180,7 @@ public class TransactionPostMortemRunner {
     }
 
     private static LockDiagnosticInfoService createRpcClient(
-            AtlasDbConfig config,
-            Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
+            AtlasDbConfig config, Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
@@ -201,17 +196,14 @@ public class TransactionPostMortemRunner {
     }
 
     private static String timelockNamespace(AtlasDbConfig config) {
-        return OptionalResolver.resolve(
-                config.timelock().flatMap(TimeLockClientConfig::client), config.namespace());
+        return OptionalResolver.resolve(config.timelock().flatMap(TimeLockClientConfig::client), config.namespace());
     }
 
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
-            AtlasDbConfig config,
-            Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
+            AtlasDbConfig config, Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         TimeLockClientConfig clientConfig = config.timelock()
                 .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());
         return ServerListConfigs.parseInstallAndRuntimeConfigs(
-                clientConfig,
-                runtimeConfigSupplier.map(AtlasDbRuntimeConfig::timelockRuntime));
+                clientConfig, runtimeConfigSupplier.map(AtlasDbRuntimeConfig::timelockRuntime));
     }
 }

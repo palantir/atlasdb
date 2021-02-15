@@ -17,6 +17,8 @@ package com.palantir.atlasdb.schema;
 
 public interface TaskProgress {
     void beginTask(String message, int tasks);
+
     void subTaskComplete();
+
     void taskComplete();
 }

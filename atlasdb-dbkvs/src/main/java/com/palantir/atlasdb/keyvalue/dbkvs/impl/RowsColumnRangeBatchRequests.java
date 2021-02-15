@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class RowsColumnRangeBatchRequests {
     private RowsColumnRangeBatchRequests() {
@@ -66,13 +65,12 @@ public final class RowsColumnRangeBatchRequests {
      * also the last).
      */
     private static RowsColumnRangeBatchRequest getFirstRequestInPartition(
-            RowsColumnRangeBatchRequest originalRequest,
-            List<byte[]> allRowsInFirstPartition) {
-        ImmutableRowsColumnRangeBatchRequest.Builder firstPartition =
-                ImmutableRowsColumnRangeBatchRequest.builder()
-                        .columnRangeSelection(originalRequest.getColumnRangeSelection());
+            RowsColumnRangeBatchRequest originalRequest, List<byte[]> allRowsInFirstPartition) {
+        ImmutableRowsColumnRangeBatchRequest.Builder firstPartition = ImmutableRowsColumnRangeBatchRequest.builder()
+                .columnRangeSelection(originalRequest.getColumnRangeSelection());
         if (originalRequest.getPartialFirstRow().isPresent()) {
-            firstPartition.partialFirstRow(originalRequest.getPartialFirstRow())
+            firstPartition
+                    .partialFirstRow(originalRequest.getPartialFirstRow())
                     .rowsToLoadFully(Iterables.skip(allRowsInFirstPartition, 1));
         } else {
             firstPartition.rowsToLoadFully(allRowsInFirstPartition);
@@ -85,13 +83,12 @@ public final class RowsColumnRangeBatchRequests {
      * also the first).
      */
     private static RowsColumnRangeBatchRequest getLastRequestInPartition(
-            RowsColumnRangeBatchRequest originalRequest,
-            List<byte[]> allRowsInLastPartition) {
-        ImmutableRowsColumnRangeBatchRequest.Builder lastPartition =
-                ImmutableRowsColumnRangeBatchRequest.builder()
-                        .columnRangeSelection(originalRequest.getColumnRangeSelection());
+            RowsColumnRangeBatchRequest originalRequest, List<byte[]> allRowsInLastPartition) {
+        ImmutableRowsColumnRangeBatchRequest.Builder lastPartition = ImmutableRowsColumnRangeBatchRequest.builder()
+                .columnRangeSelection(originalRequest.getColumnRangeSelection());
         if (originalRequest.getPartialLastRow().isPresent()) {
-            lastPartition.partialLastRow(originalRequest.getPartialLastRow())
+            lastPartition
+                    .partialLastRow(originalRequest.getPartialLastRow())
                     .rowsToLoadFully(allRowsInLastPartition.subList(0, allRowsInLastPartition.size() - 1));
         } else {
             lastPartition.rowsToLoadFully(allRowsInLastPartition);

@@ -16,15 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.function.IntPredicate;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.github.rholder.retry.Attempt;
 import com.github.rholder.retry.BlockStrategies;
@@ -41,6 +32,13 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.function.IntPredicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TransactionRetryStrategy {
     public enum Strategies {
@@ -85,8 +83,8 @@ public final class TransactionRetryStrategy {
         try {
             return retryer.call(task::run);
         } catch (RetryException e) {
-            Throwable wrapped =  Throwables.rewrap(String.format("Failing after %d tries.",
-                    e.getNumberOfFailedAttempts()),
+            Throwable wrapped = Throwables.rewrap(
+                    String.format("Failing after %d tries.", e.getNumberOfFailedAttempts()),
                     e.getLastFailedAttempt().getExceptionCause());
             throw throwTaskException(wrapped);
         } catch (ExecutionException e) {
@@ -94,12 +92,12 @@ public final class TransactionRetryStrategy {
         }
     }
 
-
     private void logAttempt(UUID runId, Attempt<?> attempt, IntPredicate shouldStopRetrying) {
         int failureCount = Ints.checkedCast(attempt.getAttemptNumber()) - 1;
         if (attempt.hasResult()) {
             if (failureCount > 0) {
-                log.info("[{}] Successfully completed transaction after {} retries.",
+                log.info(
+                        "[{}] Successfully completed transaction after {} retries.",
                         SafeArg.of("runId", runId),
                         SafeArg.of("failureCount", failureCount));
             }
@@ -108,17 +106,22 @@ public final class TransactionRetryStrategy {
             if (thrown instanceof TransactionFailedException) {
                 TransactionFailedException exception = (TransactionFailedException) thrown;
                 if (!exception.canTransactionBeRetried()) {
-                    log.warn("[{}] Non-retriable exception while processing transaction.",
+                    log.warn(
+                            "[{}] Non-retriable exception while processing transaction.",
                             SafeArg.of("runId", runId),
                             SafeArg.of("failureCount", failureCount));
                 } else if (shouldStopRetrying.test(failureCount)) {
-                    log.warn("[{}] Failing after {} tries.",
+                    log.warn(
+                            "[{}] Failing after {} tries.",
                             SafeArg.of("runId", runId),
-                            SafeArg.of("failureCount", failureCount), exception);
+                            SafeArg.of("failureCount", failureCount),
+                            exception);
                 } else if (failureCount > 2) {
-                    log.info("[{}] Retrying transaction after {} failure(s).",
+                    log.info(
+                            "[{}] Retrying transaction after {} failure(s).",
                             SafeArg.of("runId", runId),
-                            SafeArg.of("failureCount", failureCount), thrown);
+                            SafeArg.of("failureCount", failureCount),
+                            thrown);
                 }
             } else if (thrown instanceof NotInitializedException) {
                 log.info("TransactionManager is not initialized. Aborting transaction with runTaskWithRetry", thrown);
@@ -155,7 +158,7 @@ public final class TransactionRetryStrategy {
     }
 
     @JsonCreator
-    private static TransactionRetryStrategy of(Strategies strategy) {
+    static TransactionRetryStrategy of(Strategies strategy) {
         return strategy.strategy;
     }
 
@@ -167,7 +170,6 @@ public final class TransactionRetryStrategy {
     @VisibleForTesting
     static TransactionRetryStrategy createExponential(BlockStrategy blockStrategy, Random random) {
         return new TransactionRetryStrategy(
-                randomize(random, WaitStrategies.exponentialWait(100, 1, TimeUnit.MINUTES)),
-                blockStrategy);
+                randomize(random, WaitStrategies.exponentialWait(100, 1, TimeUnit.MINUTES)), blockStrategy);
     }
 }

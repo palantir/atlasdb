@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.OptionalLong;
-
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -35,15 +31,19 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.UnmodifiableTransaction;
+import java.util.Collection;
+import java.util.List;
+import java.util.OptionalLong;
 
 public final class SweepPriorityStoreImpl implements SweepPriorityStore {
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepPriorityStore {
+    private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_SweepPriorityStore {
 
         @Override
         public SweepPriorityStoreImpl delegate() {
             checkInitialized();
             return SweepPriorityStoreImpl.this;
         }
+
         @Override
         protected void tryInitialize() {
             SweepPriorityStoreImpl.this.tryInitialize();
@@ -53,7 +53,6 @@ public final class SweepPriorityStoreImpl implements SweepPriorityStore {
         protected String getInitializingClassName() {
             return "SweepPriorityStore";
         }
-
     }
 
     private static final int READ_BATCH_SIZE = 100;
@@ -67,8 +66,8 @@ public final class SweepPriorityStoreImpl implements SweepPriorityStore {
         this.sweepTableFactory = sweepTableFactory;
     }
 
-    public static SweepPriorityStore create(KeyValueService kvs, SweepTableFactory sweepTableFactory,
-            boolean initializeAsync) {
+    public static SweepPriorityStore create(
+            KeyValueService kvs, SweepTableFactory sweepTableFactory, boolean initializeAsync) {
         SweepPriorityStoreImpl sweepPriorityStore = new SweepPriorityStoreImpl(kvs, sweepTableFactory);
         sweepPriorityStore.wrapper.initialize(initializeAsync);
         return sweepPriorityStore.wrapper.isInitialized() ? sweepPriorityStore : sweepPriorityStore.wrapper;
@@ -97,8 +96,9 @@ public final class SweepPriorityStoreImpl implements SweepPriorityStore {
 
     @Override
     public void delete(Transaction tx, Collection<TableReference> tableRefs) {
-        sweepTableFactory.getSweepPriorityTable(tx).delete(
-                Collections2.transform(tableRefs, tr -> SweepPriorityRow.of(tr.getQualifiedName())));
+        sweepTableFactory
+                .getSweepPriorityTable(tx)
+                .delete(Collections2.transform(tableRefs, tr -> SweepPriorityRow.of(tr.getQualifiedName())));
     }
 
     private void tryInitialize() {
@@ -111,13 +111,14 @@ public final class SweepPriorityStoreImpl implements SweepPriorityStore {
         // Load a single column first for each row. This is a much more efficient query on Cassandra
         // than the full table scan that occurs otherwise.
         List<SweepPriorityRowResult> rows = table.getRange(RangeRequest.builder()
-                .retainColumns(SweepPriorityTable.getColumnSelection(SweepPriorityNamedColumn.CELLS_DELETED))
-                .batchHint(READ_BATCH_SIZE)
-                .build())
+                        .retainColumns(SweepPriorityTable.getColumnSelection(SweepPriorityNamedColumn.CELLS_DELETED))
+                        .batchHint(READ_BATCH_SIZE)
+                        .build())
                 .immutableCopy();
 
         // Fetch all columns for the above rows directly
-        return Lists.transform(table.getRows(Lists.transform(rows, SweepPriorityRowResult::getRowName)),
+        return Lists.transform(
+                table.getRows(Lists.transform(rows, SweepPriorityRowResult::getRowName)),
                 SweepPriorityStoreImpl::hydrate);
     }
 
@@ -125,9 +126,8 @@ public final class SweepPriorityStoreImpl implements SweepPriorityStore {
         return ImmutableSweepPriority.builder()
                 .tableRef(TableReference.createUnsafe(rr.getRowName().getFullTableName()))
                 .writeCount(rr.hasWriteCount() ? rr.getWriteCount() : 0L)
-                .lastSweepTimeMillis(rr.hasLastSweepTime()
-                        ? OptionalLong.of(rr.getLastSweepTime())
-                        : OptionalLong.empty())
+                .lastSweepTimeMillis(
+                        rr.hasLastSweepTime() ? OptionalLong.of(rr.getLastSweepTime()) : OptionalLong.empty())
                 .minimumSweptTimestamp(rr.hasMinimumSweptTimestamp() ? rr.getMinimumSweptTimestamp() : Long.MIN_VALUE)
                 .staleValuesDeleted(rr.hasCellsDeleted() ? rr.getCellsDeleted() : 0L)
                 .cellTsPairsExamined(rr.hasCellsExamined() ? rr.getCellsExamined() : 0L)
@@ -155,5 +155,4 @@ public final class SweepPriorityStoreImpl implements SweepPriorityStore {
             return TransactionReadSentinelBehavior.IGNORE;
         }
     }
-
 }

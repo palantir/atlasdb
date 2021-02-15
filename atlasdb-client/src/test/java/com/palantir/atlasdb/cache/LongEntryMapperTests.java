@@ -19,29 +19,23 @@ package com.palantir.atlasdb.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.table.description.ValueType;
-
 import okio.ByteString;
+import org.junit.Test;
 
 public final class LongEntryMapperTests {
     private LongEntryMapper mapper = new LongEntryMapper();
 
     @Test
     public void failsOnNulls() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> mapper.deserializeKey(null));
-        assertThatNullPointerException()
-                .isThrownBy(() -> mapper.deserializeValue(null, toByteString(4L)));
-        assertThatNullPointerException()
-                .isThrownBy(() -> mapper.deserializeValue(toByteString(2L), null));
+        assertThatNullPointerException().isThrownBy(() -> mapper.deserializeKey(null));
+        assertThatNullPointerException().isThrownBy(() -> mapper.deserializeValue(null, toByteString(4L)));
+        assertThatNullPointerException().isThrownBy(() -> mapper.deserializeValue(toByteString(2L), null));
     }
 
     @Test
     public void encodedValue() {
-        assertThat(mapper.deserializeKey(mapper.serializeKey(1L)))
-                .isEqualTo(1L);
+        assertThat(mapper.deserializeKey(mapper.serializeKey(1L))).isEqualTo(1L);
         assertThat(mapper.deserializeValue(mapper.serializeKey(1L), mapper.serializeValue(1L, 3L)))
                 .isEqualTo(3L);
     }

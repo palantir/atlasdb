@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Time further endpoints for the leader election metrics reporting flow.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5094

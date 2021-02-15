@@ -17,20 +17,6 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.ete.cassandra.util.CassandraCommands;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -38,6 +24,18 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.atlasdb.todo.TodoSchema;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.function.BooleanSupplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.awaitility.Awaitility;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CassandraTimestampsEteTest {
     private static final Todo TODO = ImmutableTodo.of("todo");
@@ -69,12 +67,9 @@ public class CassandraTimestampsEteTest {
         CassandraCommands.nodetoolCompact(CASSANDRA_CONTAINER_NAME);
 
         List<String> ssTables = CassandraCommands.nodetoolGetSsTables(
-                CASSANDRA_CONTAINER_NAME,
-                "atlasete",
-                TodoSchema.todoTable(),
-                ValueType.FIXED_LONG.convertFromJava(ID));
-        String sstableMetadata = CassandraCommands.ssTableMetadata(
-                CASSANDRA_CONTAINER_NAME, Iterables.getOnlyElement(ssTables));
+                CASSANDRA_CONTAINER_NAME, "atlasete", TodoSchema.todoTable(), ValueType.FIXED_LONG.convertFromJava(ID));
+        String sstableMetadata =
+                CassandraCommands.ssTableMetadata(CASSANDRA_CONTAINER_NAME, Iterables.getOnlyElement(ssTables));
 
         // Failure here implies that a range tombstone is being written at a very conservative timestamp.
         assertMinimumTimestampIsAtLeast(sstableMetadata, secondWriteTimestamp);
@@ -93,7 +88,7 @@ public class CassandraTimestampsEteTest {
             throws IOException, InterruptedException {
         long firstWriteTimestamp = todoClient.addNamespacedTodoWithIdAndReturnTimestamp(ID, NAMESPACE, TODO);
         todoClient.addNamespacedTodoWithIdAndReturnTimestamp(ID, NAMESPACE, TODO_2);
-        sweepuntilNoValueExistsForNamespaceAtTimestamp(ID, firstWriteTimestamp, NAMESPACE);
+        sweepUntilNoValueExistsForNamespaceAtTimestamp(ID, firstWriteTimestamp, NAMESPACE);
 
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
 
@@ -102,8 +97,8 @@ public class CassandraTimestampsEteTest {
                 "atlasete",
                 TodoSchema.namespacedTodoTable(),
                 ValueType.STRING.convertFromJava(NAMESPACE));
-        String sstableMetadata = CassandraCommands.ssTableMetadata(
-                CASSANDRA_CONTAINER_NAME, Iterables.getOnlyElement(ssTables));
+        String sstableMetadata =
+                CassandraCommands.ssTableMetadata(CASSANDRA_CONTAINER_NAME, Iterables.getOnlyElement(ssTables));
 
         // The table should contain the first value, and timestamps thereafter should be higher.
         // Failure here means either that the range tombstone was written at a lower Cassandra timestamp than the
@@ -121,14 +116,14 @@ public class CassandraTimestampsEteTest {
         sweepUntilConditionSatisfied(() -> todoClient.doesNotExistBeforeTimestamp(id, timestamp));
     }
 
-    private void sweepuntilNoValueExistsForNamespaceAtTimestamp(long id, long timestamp, String namespace) {
+    private void sweepUntilNoValueExistsForNamespaceAtTimestamp(long id, long timestamp, String namespace) {
         sweepUntilConditionSatisfied(
                 () -> todoClient.namespacedTodoDoesNotExistBeforeTimestamp(id, timestamp, namespace));
     }
 
     private void sweepUntilConditionSatisfied(BooleanSupplier predicate) {
-        Awaitility.waitAtMost(30, TimeUnit.SECONDS)
-                .pollInterval(1, TimeUnit.SECONDS)
+        Awaitility.waitAtMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     todoClient.runIterationOfTargetedSweep();
                     return predicate.getAsBoolean();
@@ -162,7 +157,8 @@ public class CassandraTimestampsEteTest {
     }
 
     private boolean hasEstimatedTombstones(String sstableMetadata) {
-        Iterator<String> it = Arrays.stream(sstableMetadata.split(System.lineSeparator())).iterator();
+        Iterator<String> it =
+                Arrays.stream(sstableMetadata.split(System.lineSeparator())).iterator();
         while (it.hasNext()) {
             String nextLine = it.next();
             if (nextLine.startsWith("Estimated tombstone drop times:")) {

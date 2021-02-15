@@ -15,19 +15,19 @@
  */
 package com.palantir.atlasdb.compact;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.palantir.atlasdb.schema.generated.CompactMetadataTable;
 import com.palantir.atlasdb.schema.generated.CompactTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.HashMap;
+import java.util.Map;
 
 class CompactionHistoryProvider {
     Map<String, Long> getHistory(Transaction tx) {
         Map<String, Long> tableToLastTimeCompacted = new HashMap<>();
         CompactMetadataTable compactMetadataTable = CompactTableFactory.of().getCompactMetadataTable(tx);
-        compactMetadataTable.getAllRowsUnordered(CompactMetadataTable.getColumnSelection(
-                CompactMetadataTable.CompactMetadataNamedColumn.LAST_COMPACT_TIME))
+        compactMetadataTable
+                .getAllRowsUnordered(CompactMetadataTable.getColumnSelection(
+                        CompactMetadataTable.CompactMetadataNamedColumn.LAST_COMPACT_TIME))
                 .forEach(row -> {
                     Long lastCompactTime = row.getLastCompactTime();
                     String tableName = row.getRowName().getFullTableName();

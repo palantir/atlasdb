@@ -15,17 +15,7 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.AtlasTimestampLockDescriptor;
 import com.palantir.lock.LockClient;
@@ -45,6 +35,15 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * A {@link TimelockService} implementation that delegates to a {@link LockService} and {@link TimestampService}.
@@ -55,8 +54,8 @@ public class LegacyTimelockService implements TimelockService {
     private final LockService lockService;
     private final LockClient immutableTsLockClient;
 
-    public LegacyTimelockService(TimestampService timestampService, LockService lockService,
-            LockClient immutableTsLockClient) {
+    public LegacyTimelockService(
+            TimestampService timestampService, LockService lockService, LockClient immutableTsLockClient) {
         this.timestampService = timestampService;
         this.lockService = lockService;
         this.immutableTsLockClient = immutableTsLockClient;
@@ -87,8 +86,9 @@ public class LegacyTimelockService implements TimelockService {
         long immutableLockTs = timestampService.getFreshTimestamp();
         LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
         com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
-                ImmutableSortedMap.of(lockDesc, LockMode.READ))
-                .withLockedInVersionId(immutableLockTs).build();
+                        ImmutableSortedMap.of(lockDesc, LockMode.READ))
+                .withLockedInVersionId(immutableLockTs)
+                .build();
         LockRefreshToken lock;
 
         try {
@@ -99,8 +99,7 @@ public class LegacyTimelockService implements TimelockService {
 
         try {
             return LockImmutableTimestampResponse.of(
-                    getImmutableTimestampInternal(immutableLockTs),
-                    LockTokenConverter.toTokenV2(lock));
+                    getImmutableTimestampInternal(immutableLockTs), LockTokenConverter.toTokenV2(lock));
         } catch (Throwable e) {
             if (lock != null) {
                 try {
@@ -119,18 +118,18 @@ public class LegacyTimelockService implements TimelockService {
         List<LockImmutableTimestampResponse> immutableTimestampLocks = new ArrayList<>();
         List<StartIdentifiedAtlasDbTransactionResponse> responses = new ArrayList<>();
         try {
-            IntStream.range(0, count).forEach(
-                    $ -> {
-                        LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
-                        immutableTimestampLocks.add(immutableTimestamp);
-                        responses.add(StartIdentifiedAtlasDbTransactionResponse.of(immutableTimestamp,
-                                TimestampAndPartition.of(getFreshTimestamp(), 0)));
-                    });
+            IntStream.range(0, count).forEach($ -> {
+                LockImmutableTimestampResponse immutableTimestamp = lockImmutableTimestamp();
+                immutableTimestampLocks.add(immutableTimestamp);
+                responses.add(StartIdentifiedAtlasDbTransactionResponse.of(
+                        immutableTimestamp, TimestampAndPartition.of(getFreshTimestamp(), 0)));
+            });
             return responses;
         } catch (RuntimeException | Error throwable) {
             try {
-                unlock(immutableTimestampLocks.stream().map(LockImmutableTimestampResponse::getLock).collect(
-                        Collectors.toSet()));
+                unlock(immutableTimestampLocks.stream()
+                        .map(LockImmutableTimestampResponse::getLock)
+                        .collect(Collectors.toSet()));
             } catch (Throwable unlockThrowable) {
                 throwable.addSuppressed(unlockThrowable);
             }
@@ -177,9 +176,8 @@ public class LegacyTimelockService implements TimelockService {
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        Set<LockRefreshToken> refreshTokens = tokens.stream()
-                .map(LockTokenConverter::toLegacyToken)
-                .collect(Collectors.toSet());
+        Set<LockRefreshToken> refreshTokens =
+                tokens.stream().map(LockTokenConverter::toLegacyToken).collect(Collectors.toSet());
         return lockService.refreshLockRefreshTokens(refreshTokens).stream()
                 .map(LockTokenConverter::toTokenV2)
                 .collect(Collectors.toSet());
@@ -187,7 +185,7 @@ public class LegacyTimelockService implements TimelockService {
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        Set<LockToken> unlocked = Sets.newHashSet();
+        Set<LockToken> unlocked = new HashSet<>();
         for (LockToken tokenV2 : tokens) {
             LockRefreshToken legacyToken = LockTokenConverter.toLegacyToken(tokenV2);
             if (lockService.unlock(legacyToken)) {
@@ -222,11 +220,10 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     private SortedMap<LockDescriptor, LockMode> buildLockMap(Set<LockDescriptor> lockDescriptors, LockMode lockMode) {
-        SortedMap<LockDescriptor, LockMode> locks = Maps.newTreeMap();
+        SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
         for (LockDescriptor descriptor : lockDescriptors) {
             locks.put(descriptor, lockMode);
         }
         return locks;
     }
-
 }

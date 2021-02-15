@@ -28,10 +28,7 @@ public final class StandardStreamUtilities {
     }
 
     private static String wrapGenericStream(
-            Runnable runnable,
-            PrintStream original,
-            StandardStreamSetter standardStreamSetter,
-            boolean singleLine) {
+            Runnable runnable, PrintStream original, StandardStreamSetter standardStreamSetter, boolean singleLine) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         standardStreamSetter.set(new PrintStream(baos));
         try {

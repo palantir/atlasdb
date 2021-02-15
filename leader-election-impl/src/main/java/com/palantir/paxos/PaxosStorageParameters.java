@@ -17,14 +17,20 @@
 package com.palantir.paxos;
 
 import java.util.Optional;
-
 import javax.sql.DataSource;
-
 import org.immutables.value.Value;
+import org.immutables.value.Value.Default;
 
 @Value.Immutable
 public interface PaxosStorageParameters {
     NamespaceAndUseCase namespaceAndUseCase();
+
     DataSource sqliteDataSource();
+
     Optional<String> fileBasedLogDirectory();
+
+    @Default
+    default boolean skipConsistencyCheckAndTruncateOldPaxosLog() {
+        return false;
+    }
 }

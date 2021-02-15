@@ -15,8 +15,10 @@
  */
 package com.palantir.lock;
 
+import com.palantir.common.annotation.Idempotent;
+import com.palantir.common.annotation.NonIdempotent;
+import com.palantir.logsafe.Safe;
 import java.util.Set;
-
 import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -24,10 +26,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import com.palantir.common.annotation.Idempotent;
-import com.palantir.common.annotation.NonIdempotent;
-import com.palantir.logsafe.Safe;
 
 public interface RemoteLockService {
     /**
@@ -67,7 +65,8 @@ public interface RemoteLockService {
     @Path("unlock")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @NonIdempotent boolean unlock(LockRefreshToken token);
+    @NonIdempotent
+    boolean unlock(LockRefreshToken token);
 
     /**
      * Refreshes the given lock tokens.
@@ -78,7 +77,8 @@ public interface RemoteLockService {
     @Path("refresh-lock-tokens")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens);
+    @Idempotent
+    Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens);
 
     /**
      * Returns the minimum version ID for all locks that are currently acquired
@@ -90,13 +90,15 @@ public interface RemoteLockService {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    @Nullable Long getMinLockedInVersionId(@Safe @PathParam("client") String client);
+    @Nullable
+    Long getMinLockedInVersionId(@Safe @PathParam("client") String client);
 
     /** Returns the current time in milliseconds on the server. */
     @POST
     @Path("current-time-millis")
     @Produces(MediaType.APPLICATION_JSON)
-    @Idempotent long currentTimeMillis();
+    @Idempotent
+    long currentTimeMillis();
 
     @POST
     @Path("log-current-state")

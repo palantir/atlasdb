@@ -15,11 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.metrics.Timed;
+import com.palantir.processors.AutoDelegate;
 import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
@@ -43,10 +45,6 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocol;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.metrics.Timed;
-import com.palantir.processors.AutoDelegate;
-
 @SuppressWarnings({"all"}) // thrift variable names.
 @AutoDelegate
 public interface CassandraClient extends Closeable {
@@ -58,75 +56,77 @@ public interface CassandraClient extends Closeable {
      */
     boolean isValid();
 
-    String describe_snitch() throws org.apache.thrift.TException;
+    String describe_snitch() throws TException;
 
     @Timed
-    Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName,
+    Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(
+            String kvsMethodName,
             TableReference tableRef,
             List<ByteBuffer> keys,
             SlicePredicate predicate,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Timed
-    Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(String kvsMethodName,
+    Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(
+            String kvsMethodName,
             TableReference tableRef,
             List<KeyPredicate> keyPredicates,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Timed
-    List<KeySlice> get_range_slices(String kvsMethodName,
+    List<KeySlice> get_range_slices(
+            String kvsMethodName,
             TableReference tableRef,
             SlicePredicate predicate,
             KeyRange range,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Timed
-    void batch_mutate(String kvsMethodName,
+    void batch_mutate(
+            String kvsMethodName,
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Timed
-    ColumnOrSuperColumn get(TableReference tableReference,
-            ByteBuffer key,
-            byte[] column,
-            ConsistencyLevel consistency_level)
-            throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException,
-            org.apache.thrift.TException;
+    ColumnOrSuperColumn get(
+            TableReference tableReference, ByteBuffer key, byte[] column, ConsistencyLevel consistency_level)
+            throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException;
 
     @Timed
-    CASResult cas(TableReference tableReference,
+    CASResult cas(
+            TableReference tableReference,
             ByteBuffer key,
             List<Column> expected,
             List<Column> updates,
             ConsistencyLevel serial_consistency_level,
             ConsistencyLevel commit_consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Timed
-    public CASResult put_unless_exists(TableReference tableReference,
+    CASResult put_unless_exists(
+            TableReference tableReference,
             ByteBuffer key,
             List<Column> updates,
             ConsistencyLevel serial_consistency_level,
             ConsistencyLevel commit_consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
-    CqlResult execute_cql3_query(CqlQuery cqlQuery,
-            Compression compression,
-            ConsistencyLevel consistency)
+    CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
-            org.apache.thrift.TException;
+                    TException;
 
     @Timed
-    void remove(String kvsMethodName,
+    void remove(
+            String kvsMethodName,
             TableReference tableRef,
             byte[] row,
             long timestamp,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     TProtocol getOutputProtocol();
 
@@ -140,16 +140,13 @@ public interface CassandraClient extends Closeable {
 
     String describe_partitioner() throws TException;
 
-    KsDef describe_keyspace(String keyspace)
-            throws NotFoundException, InvalidRequestException, TException;
+    KsDef describe_keyspace(String keyspace) throws NotFoundException, InvalidRequestException, TException;
 
     List<KsDef> describe_keyspaces() throws InvalidRequestException, TException;
 
-    String system_add_keyspace(KsDef ks_def)
-            throws InvalidRequestException, SchemaDisagreementException, TException;
+    String system_add_keyspace(KsDef ks_def) throws InvalidRequestException, SchemaDisagreementException, TException;
 
-    String system_update_keyspace(KsDef ks_def)
-            throws InvalidRequestException, SchemaDisagreementException, TException;
+    String system_update_keyspace(KsDef ks_def) throws InvalidRequestException, SchemaDisagreementException, TException;
 
     String system_update_column_family(CfDef cf_def)
             throws InvalidRequestException, SchemaDisagreementException, TException;
@@ -163,14 +160,14 @@ public interface CassandraClient extends Closeable {
 
     @Timed
     CqlResult execute_prepared_cql3_query(int intemId, List<ByteBuffer> values, ConsistencyLevel consistency)
-            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException;
+            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
+                    TException;
 
     @Timed
     ByteBuffer trace_next_query() throws TException;
 
     @Timed
-    void truncate(String cfname)
-            throws InvalidRequestException, UnavailableException, TimedOutException, TException;
+    void truncate(String cfname) throws InvalidRequestException, UnavailableException, TimedOutException, TException;
 
     @Override
     void close();

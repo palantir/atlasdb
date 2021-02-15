@@ -32,7 +32,7 @@ public class Mutable<T> implements Serializable {
 
     private volatile T value;
 
-    public static<T> Mutable<T> create() {
+    public static <T> Mutable<T> create() {
         return new Mutable<T>();
     }
 
@@ -74,8 +74,9 @@ public class Mutable<T> implements Serializable {
     @Override
     public int hashCode() {
         T v = get();
-        if(v == null)
+        if (v == null) {
             return 0;
+        }
         return v.hashCode();
     }
 
@@ -85,21 +86,26 @@ public class Mutable<T> implements Serializable {
      */
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (!(obj instanceof Mutable<?>))
+        }
+        if (!(obj instanceof Mutable<?>)) {
             return false;
+        }
         final Mutable<?> other = (Mutable<?>) obj;
         T v = get();
         Object otherV = other.get();
 
         if (v == null) {
-            if (otherV != null)
+            if (otherV != null) {
                 return false;
-        } else if (!v.equals(otherV))
+            }
+        } else if (!v.equals(otherV)) {
             return false;
+        }
         return true;
     }
 

@@ -15,19 +15,17 @@
  */
 package com.palantir.lock;
 
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.palantir.logsafe.Preconditions;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.Objects;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * A client of the lock server. Clients who desire reentrancy are required to
@@ -35,7 +33,8 @@ import com.palantir.logsafe.Preconditions;
  *
  * @author jtamer
  */
-@Immutable public final class LockClient implements Serializable {
+@Immutable
+public final class LockClient implements Serializable {
     private static final long serialVersionUID = 0xf5637f2c8d7c94bdL;
 
     /**
@@ -50,10 +49,10 @@ import com.palantir.logsafe.Preconditions;
     /**
      * This should only be used by the lock service.
      */
-    public static final LockClient INTERNAL_LOCK_GRANT_CLIENT = new LockClient(
-            INTERNAL_LOCK_GRANT_CLIENT_ID);
+    public static final LockClient INTERNAL_LOCK_GRANT_CLIENT = new LockClient(INTERNAL_LOCK_GRANT_CLIENT_ID);
 
-    @Nullable private final String clientId;
+    @Nullable
+    private final String clientId;
 
     /**
      * Returns a {@code LockClient} instance for the given client ID.
@@ -86,26 +85,28 @@ import com.palantir.logsafe.Preconditions;
         return clientId;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return clientId;
     }
 
-    @Override public boolean equals(@Nullable Object obj) {
+    @Override
+    public boolean equals(@Nullable Object obj) {
         if (this == obj) {
             return true;
         }
         if (!(obj instanceof LockClient)) {
             return false;
         }
-        return Objects.equal(clientId, ((LockClient) obj).clientId);
+        return Objects.equals(clientId, ((LockClient) obj).clientId);
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return Objects.hashCode(clientId);
     }
 
-    private void readObject(@SuppressWarnings("unused") ObjectInputStream in)
-            throws InvalidObjectException {
+    private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
     }
 
@@ -116,7 +117,8 @@ import com.palantir.logsafe.Preconditions;
     private static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 0x495befe620789284L;
 
-        @Nullable private final String clientId;
+        @Nullable
+        private final String clientId;
 
         SerializationProxy(LockClient lockClient) {
             clientId = lockClient.clientId;

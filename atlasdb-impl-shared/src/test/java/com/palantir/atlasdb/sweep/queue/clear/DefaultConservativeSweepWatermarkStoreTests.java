@@ -18,9 +18,6 @@ package com.palantir.atlasdb.sweep.queue.clear;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -28,6 +25,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.table.description.Schemas;
+import org.junit.Before;
+import org.junit.Test;
 
 public class DefaultConservativeSweepWatermarkStoreTests {
     private static final TableReference TABLE = TableReference.create(Namespace.create("foo"), "bar");

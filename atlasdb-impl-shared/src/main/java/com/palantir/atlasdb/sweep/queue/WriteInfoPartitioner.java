@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -36,6 +27,13 @@ import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WriteInfoPartitioner {
     private static final Logger log = LoggerFactory.getLogger(WriteInfoPartitioner.class);
@@ -43,14 +41,13 @@ public class WriteInfoPartitioner {
     private final KeyValueService kvs;
     private final Supplier<Integer> numShards;
 
-    private final LoadingCache<TableReference, Optional<SweeperStrategy>> cache = CacheBuilder
-            .newBuilder().build(
-                    new CacheLoader<TableReference, Optional<SweeperStrategy>>() {
-                        @Override
-                        public Optional<SweeperStrategy> load(TableReference key) throws Exception {
-                            return getStrategyFromKvs(key);
-                        }
-                    });
+    private final LoadingCache<TableReference, Optional<SweeperStrategy>> cache = CacheBuilder.newBuilder()
+            .build(new CacheLoader<TableReference, Optional<SweeperStrategy>>() {
+                @Override
+                public Optional<SweeperStrategy> load(TableReference key) throws Exception {
+                    return getStrategyFromKvs(key);
+                }
+            });
 
     public WriteInfoPartitioner(KeyValueService kvs, Supplier<Integer> numShards) {
         this.kvs = kvs;
@@ -91,16 +88,21 @@ public class WriteInfoPartitioner {
 
     @VisibleForTesting
     Optional<SweeperStrategy> getStrategy(WriteInfo writeInfo) {
-        return cache.getUnchecked(writeInfo.tableRef());
+        return getStrategyForTable(writeInfo.tableRef());
+    }
+
+    Optional<SweeperStrategy> getStrategyForTable(TableReference tableRef) {
+        return cache.getUnchecked(tableRef);
     }
 
     private Optional<SweeperStrategy> getStrategyFromKvs(TableReference tableRef) {
         try {
-            return SweepStrategy.from(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(
-                    kvs.getMetadataForTable(tableRef)).getSweepStrategy()).getSweeperStrategy();
+            return SweepStrategy.from(TableMetadata.BYTES_HYDRATOR
+                            .hydrateFromBytes(kvs.getMetadataForTable(tableRef))
+                            .getSweepStrategy())
+                    .getSweeperStrategy();
         } catch (Exception e) {
-            log.warn("Failed to obtain sweep strategy for table {}.",
-                    LoggingArgs.tableRef(tableRef), e);
+            log.warn("Failed to obtain sweep strategy for table {}.", LoggingArgs.tableRef(tableRef), e);
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }

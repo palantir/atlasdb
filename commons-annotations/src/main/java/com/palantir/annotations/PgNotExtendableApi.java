@@ -27,5 +27,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @PgPublicApi
 public @interface PgNotExtendableApi {
-    //Nothing to do
+    // Nothing to do
 }

@@ -16,22 +16,8 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Histogram;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.FluentFuture;
@@ -45,6 +31,18 @@ import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Clients register their intent to check whether the given remote is their leader. Periodically, the total set of
@@ -60,7 +58,7 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
     private final Duration leaderPingResponseWait;
     private final UUID nodeUuid;
 
-    private final Map<Client, SettableFuture<Void>> hasProcessedFirstRequest = Maps.newConcurrentMap();
+    private final Map<Client, SettableFuture<Void>> hasProcessedFirstRequest = new ConcurrentHashMap<>();
     private final AtomicReference<LastSuccessfulResult> lastSuccessfulResult = new AtomicReference<>();
     private final Histogram histogram;
 
@@ -97,18 +95,21 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
                         // set after a ping containing the client is made.
                         $ -> {
                             checkNotShutdown();
-                            return lastSuccessfulResult.get().result(
-                                    client,
-                                    requestTime.minus(leaderPingResponseWait),
-                                    remoteClient.hostAndPort(),
-                                    requestedUuid);
+                            return lastSuccessfulResult
+                                    .get()
+                                    .result(
+                                            client,
+                                            requestTime.minus(leaderPingResponseWait),
+                                            remoteClient.hostAndPort(),
+                                            requestedUuid);
                         },
                         MoreExecutors.directExecutor());
     }
 
     private void checkNotShutdown() {
         State state = state();
-        Preconditions.checkState(state != State.STOPPING && state != State.TERMINATED,
+        Preconditions.checkState(
+                state != State.STOPPING && state != State.TERMINATED,
                 "pinger is either shutdown or in the process of shutting down");
     }
 
@@ -132,7 +133,8 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
 
             Duration pingDuration = Duration.between(before, after);
             if (pingDuration.compareTo(leaderPingResponseWait) >= 0) {
-                log.info("Ping took more than ping response wait, any waiters will report that ping timed out",
+                log.info(
+                        "Ping took more than ping response wait, any waiters will report that ping timed out",
                         SafeArg.of("pingDuration", pingDuration),
                         SafeArg.of("leaderPingResponseWait", leaderPingResponseWait));
             }
@@ -140,11 +142,11 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
             this.lastSuccessfulResult.set(newResult);
 
             histogram.update(clientsToCheck.size());
-            clientsToCheck.forEach(clientJustProcessed -> hasProcessedFirstRequest.get(clientJustProcessed).set(null));
+            clientsToCheck.forEach(clientJustProcessed ->
+                    hasProcessedFirstRequest.get(clientJustProcessed).set(null));
         } catch (Exception e) {
             log.warn("Failed to ping node, trying again in the next round", e);
         }
-
     }
 
     @Override
@@ -161,14 +163,12 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
     interface LastSuccessfulResult {
         @Value.Parameter
         Instant timestamp();
+
         @Value.Parameter
         Set<Client> clientsNodeIsTheLeaderFor();
 
         default LeaderPingResult result(
-                Client client,
-                Instant earliestCompletedByDeadline,
-                HostAndPort hostAndPort,
-                UUID requestedUuid) {
+                Client client, Instant earliestCompletedByDeadline, HostAndPort hostAndPort, UUID requestedUuid) {
             if (timestamp().isBefore(earliestCompletedByDeadline)) {
                 return LeaderPingResults.pingTimedOut();
             }
@@ -179,6 +179,5 @@ final class CumulativeLeaderPinger extends AbstractScheduledService implements C
                 return LeaderPingResults.pingReturnedFalse();
             }
         }
-
     }
 }

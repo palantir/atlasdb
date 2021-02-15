@@ -17,8 +17,9 @@ package com.palantir.atlasdb.performance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.performance.backend.CassandraKeyValueServiceInstrumentation;
 import java.util.List;
-
 import org.apache.commons.math3.stat.inference.TestUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
@@ -29,29 +30,25 @@ import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.WorkloadParams;
 import org.openjdk.jmh.util.MultisetStatistics;
 
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.performance.backend.CassandraKeyValueServiceInstrumentation;
-
 public class PerformanceResultsTest {
     private static final String SUITE_NAME = "PerformanceResults";
     private static final String BENCHMARK_NAME = "doStuff";
-    private static final String FULL_BENCHMARK_NAME
-            = "com.palantir.atlasdb.performance." + SUITE_NAME + "." + BENCHMARK_NAME;
+    private static final String FULL_BENCHMARK_NAME =
+            "com.palantir.atlasdb.performance." + SUITE_NAME + "." + BENCHMARK_NAME;
     private static final String FORMATTED_BENCHMARK_NAME = SUITE_NAME + "#" + BENCHMARK_NAME;
 
-    private static final String FORMATTED_BENCHMARK_NAME_AGNOSTIC
-            = FORMATTED_BENCHMARK_NAME + "-" + PerformanceResults.KVS_AGNOSTIC_SUFFIX;
+    private static final String FORMATTED_BENCHMARK_NAME_AGNOSTIC =
+            FORMATTED_BENCHMARK_NAME + "-" + PerformanceResults.KVS_AGNOSTIC_SUFFIX;
 
-    private static final String DOCKERIZED_CASSANDRA_URI
-            = CassandraKeyValueServiceInstrumentation.class.getCanonicalName() + "@192.168.99.100:9160";
-    private static final String FORMATTED_BENCHMARK_NAME_CASSANDRA
-            = FORMATTED_BENCHMARK_NAME + "-" + new CassandraKeyValueServiceInstrumentation().toString();
+    private static final String DOCKERIZED_CASSANDRA_URI =
+            CassandraKeyValueServiceInstrumentation.class.getCanonicalName() + "@192.168.99.100:9160";
+    private static final String FORMATTED_BENCHMARK_NAME_CASSANDRA =
+            FORMATTED_BENCHMARK_NAME + "-" + new CassandraKeyValueServiceInstrumentation().toString();
 
     private static final RunResult mockRunResult = Mockito.mock(RunResult.class);
     private static final Result mockResult = Mockito.mock(Result.class);
     private static final List<Double> SMALL_SAMPLE = Lists.newArrayList();
     private static final List<Double> LARGE_SAMPLE = Lists.newArrayList();
-
 
     static {
         Mockito.when(mockRunResult.getPrimaryResult()).thenReturn(mockResult);
@@ -72,9 +69,8 @@ public class PerformanceResultsTest {
 
     @Test
     public void canGenerateBenchmarkNameForTestWithKeyValueService() {
-        BenchmarkParams params = createBenchmarkParams("PerformanceResults.doStuff",
-                BenchmarkParam.URI.getKey(),
-                DOCKERIZED_CASSANDRA_URI);
+        BenchmarkParams params = createBenchmarkParams(
+                "PerformanceResults.doStuff", BenchmarkParam.URI.getKey(), DOCKERIZED_CASSANDRA_URI);
 
         assertThat(PerformanceResults.getBenchmarkName(params)).isEqualTo(FORMATTED_BENCHMARK_NAME_CASSANDRA);
     }
@@ -86,7 +82,6 @@ public class PerformanceResultsTest {
         Mockito.when(mockResult.getStatistics()).thenReturn(stats);
         assertThat(PerformanceResults.getData(mockRunResult)).containsExactlyElementsOf(ImmutableList.of(3.14));
     }
-
 
     @Test
     public void doesNotDownsampleSampleMaxsizeSample() {
@@ -114,9 +109,10 @@ public class PerformanceResultsTest {
     public void downSampledDistributionIsRepresentativeForReasonableData() {
         MultisetStatistics stats = new MultisetStatistics();
         for (double number : LARGE_SAMPLE) {
-            int elements = (int) (10 * PerformanceResults.DOWNSAMPLE_MAXIMUM_SIZE
+            int elements = (int) (10
+                    * PerformanceResults.DOWNSAMPLE_MAXIMUM_SIZE
                     / (Math.abs(PerformanceResults.DOWNSAMPLE_MAXIMUM_SIZE - number) + 1));
-            stats.addValue(number,  elements);
+            stats.addValue(number, elements);
         }
         Mockito.when(mockResult.getStatistics()).thenReturn(stats);
         List<Double> downSampledData = PerformanceResults.getData(mockRunResult);
@@ -127,7 +123,7 @@ public class PerformanceResultsTest {
         }
 
         // Hypothesis that means are the same cannot be rejected with confidence more than 0.5
-        assertThat(TestUtils.tTest(stats, downSampledStats, 1 - 0.5)).isEqualTo(false);
+        assertThat(TestUtils.tTest(stats, downSampledStats, 1 - 0.5)).isFalse();
         // The typical p value is 0.05, but I went with 0.5 because I can
         assertThat(TestUtils.homoscedasticTTest(stats, downSampledStats)).isGreaterThan(0.5d);
     }
@@ -137,7 +133,8 @@ public class PerformanceResultsTest {
         workloadParams.put(paramKey, paramValue, 0);
 
         // Sorry, JMH API doesn't have a builder. Isolating the badness to just here.
-        return new BenchmarkParams(benchmarkName,
+        return new BenchmarkParams(
+                benchmarkName,
                 null,
                 false,
                 0,

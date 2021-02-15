@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.containers;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -50,7 +49,8 @@ public class CassandraCliParserTest {
                 + "UN  172.30.0.2  1.87 MB    512          69.6%           "
                 + "  58b310df-5ce2-4565-a479-0ed37e69b04f  rack1";
 
-        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(3));
+        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus))
+                .isEqualTo(3);
     }
 
     @Test
@@ -68,12 +68,14 @@ public class CassandraCliParserTest {
                 + "UN  172.30.0.2  1.87 MB    512          69.6%           "
                 + "  58b310df-5ce2-4565-a479-0ed37e69b04f  rack1";
 
-        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(2));
+        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus))
+                .isEqualTo(2);
     }
 
     @Test
     public void parsesCorruptResponseFromNodetoolStatusSilently() {
-        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(CORRUPT_STRING), is(0));
+        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(CORRUPT_STRING))
+                .isEqualTo(0);
     }
 
     @Test
@@ -91,7 +93,7 @@ public class CassandraCliParserTest {
                 + "| {\"replication_factor\":\"3\"}\n"
                 + "\n"
                 + "(3 rows)";
-        assertThat(parser.parseSystemAuthReplicationFromCqlsh(output), is(4));
+        assertThat(parser.parseSystemAuthReplicationFromCqlsh(output)).isEqualTo(4);
     }
 
     @Test
@@ -100,16 +102,21 @@ public class CassandraCliParserTest {
         CassandraCliParser parserThreeSeven = new CassandraCliParser(CassandraVersion.from("3.7"));
 
         String output = "\n"
-                + " keyspace_name      | durable_writes | replication\n"
-                + "--------------------+----------------+-------------------------------------------------------------------------------------\n"
-                + "             system |           True |                             {'class': 'org.apache.cassandra.locator.LocalStrategy'}\n"
-                + "        system_auth |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '4'}\n"
-                + " system_distributed |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '3'}\n"
-                + "      system_schema |           True |                             {'class': 'org.apache.cassandra.locator.LocalStrategy'}\n"
-                + "      system_traces |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '2'}\n"
-                + "\n"
-                + "(5 rows)";
-        assertThat(parserThreeSeven.parseSystemAuthReplicationFromCqlsh(output), is(4));
+            + " keyspace_name      | durable_writes | replication\n"
+            + "--------------------+----------------+-------------------------------------------------------------------------------------\n"
+            + "             system |           True |                             {'class':"
+            + " 'org.apache.cassandra.locator.LocalStrategy'}\n"
+            + "        system_auth |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy',"
+            + " 'replication_factor': '4'}\n"
+            + " system_distributed |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy',"
+            + " 'replication_factor': '3'}\n"
+            + "      system_schema |           True |                             {'class':"
+            + " 'org.apache.cassandra.locator.LocalStrategy'}\n"
+            + "      system_traces |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy',"
+            + " 'replication_factor': '2'}\n"
+            + "\n"
+            + "(5 rows)";
+        assertThat(parserThreeSeven.parseSystemAuthReplicationFromCqlsh(output)).isEqualTo(4);
     }
 
     @Test(expected = IllegalArgumentException.class)

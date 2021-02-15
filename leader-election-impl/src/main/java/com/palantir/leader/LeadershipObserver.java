@@ -17,17 +17,14 @@ package com.palantir.leader;
 
 public interface LeadershipObserver {
     void gainedLeadership();
+
     void lostLeadership();
 
     LeadershipObserver NO_OP = new LeadershipObserver() {
         @Override
-        public void gainedLeadership() {
-
-        }
+        public void gainedLeadership() {}
 
         @Override
-        public void lostLeadership() {
-
-        }
+        public void lostLeadership() {}
     };
 }

@@ -16,23 +16,25 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Optional;
-import java.util.Set;
-
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import java.util.Optional;
+import java.util.Set;
 
 public abstract class LockWatchManager {
     /**
-     * Registers a set of lock watches.
+     * Registers precisely a set of lock watches. Lock watches registered on a previous invocation of this method will
+     * not be remembered.
      */
     @Idempotent
-    public abstract void registerWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
+    public abstract void registerPreciselyWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
 
     // These methods are hidden on purpose as they should not be generally available, only for brave souls!
+
+    abstract boolean isEnabled();
 
     /**
      * Gets the {@link CommitUpdate} taking into account all changes to lock watch state since the start of the
@@ -48,6 +50,6 @@ public abstract class LockWatchManager {
      * that version, and a map associating each start timestamp with its respective lock watch state version, and a flag
      * that is true if a snapshot or timelock leader election occurred.
      */
-    abstract TransactionsLockWatchUpdate getUpdateForTransactions(Set<Long> startTimestamps,
-            Optional<LockWatchVersion> version);
+    abstract TransactionsLockWatchUpdate getUpdateForTransactions(
+            Set<Long> startTimestamps, Optional<LockWatchVersion> version);
 }

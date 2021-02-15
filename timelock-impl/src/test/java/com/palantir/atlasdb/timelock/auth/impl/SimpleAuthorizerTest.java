@@ -19,18 +19,16 @@ package com.palantir.atlasdb.timelock.auth.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
+import java.util.HashMap;
+import java.util.Map;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SimpleAuthorizerTest {
@@ -47,6 +45,7 @@ public class SimpleAuthorizerTest {
 
     @Mock
     private NamespaceLocker namespaceLocker;
+
     private Map<ClientId, Privileges> privileges = new HashMap<>();
 
     @Test
@@ -90,11 +89,13 @@ public class SimpleAuthorizerTest {
     }
 
     private void assertAuthorized(AuthenticatedClient authenticatedClient, TimelockNamespace namespace) {
-        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(authenticatedClient, namespace)).isTrue();
+        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(authenticatedClient, namespace))
+                .isTrue();
     }
 
     private void assertUnauthorized(AuthenticatedClient authenticatedClient, TimelockNamespace namespace) {
-        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(authenticatedClient, namespace)).isFalse();
+        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(authenticatedClient, namespace))
+                .isFalse();
     }
 
     private void withUnlockedNamespace(TimelockNamespace namespace) {

@@ -16,15 +16,13 @@
 
 package com.palantir.timelock.invariants;
 
-import java.util.OptionalLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.OptionalLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TimeLockActivityChecker {
     private static final Logger log = LoggerFactory.getLogger(TimeLockActivityChecker.class);
@@ -38,10 +36,12 @@ public class TimeLockActivityChecker {
 
     public OptionalLong getFreshTimestampFromNodeForClient(String client) {
         try {
-            return OptionalLong.of(conjureTimelockService.getFreshTimestamps(
-                    AUTH_HEADER, client, ConjureGetFreshTimestampsRequest.of(1)).getInclusiveLower());
+            return OptionalLong.of(conjureTimelockService
+                    .getFreshTimestamps(AUTH_HEADER, client, ConjureGetFreshTimestampsRequest.of(1))
+                    .getInclusiveLower());
         } catch (Exception e) {
-            log.info("Suppressed exception when checking TimeLock activity for client {}",
+            log.info(
+                    "Suppressed exception when checking TimeLock activity for client {}",
                     SafeArg.of("client", client),
                     e);
             return OptionalLong.empty();

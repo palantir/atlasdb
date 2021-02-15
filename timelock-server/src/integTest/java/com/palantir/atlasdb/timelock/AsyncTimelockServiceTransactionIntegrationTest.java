@@ -17,21 +17,6 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.assertj.core.api.ThrowableAssert;
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -48,6 +33,18 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.assertj.core.api.ThrowableAssert;
+import org.junit.Test;
 
 public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
@@ -57,7 +54,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
     private static final String AGENT = "smith";
 
     private static final LockRequest EXCLUSIVE_ADVISORY_LOCK_REQUEST = LockRequest.builder(
-            ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
+                    ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
             .build();
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -92,15 +89,17 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
     public void canCommitWritesWithExclusiveAdvisoryLocks() throws ExecutionException, InterruptedException {
         AtomicBoolean isExecuting = new AtomicBoolean(false);
 
-        List<Future<?>> tasks = IntStream.range(0, 5).mapToObj(i -> executor.submit((Callable<Void>) () ->
-                txnManager.runTaskWithLocksWithRetry(() -> EXCLUSIVE_ADVISORY_LOCK_REQUEST, (txn, locks) -> {
-                    assertTrue(isExecuting.compareAndSet(false, true));
-                    Uninterruptibles.sleepUninterruptibly(500L, TimeUnit.MILLISECONDS);
-                    assertTrue(isExecuting.compareAndSet(true, false));
+        List<Future<?>> tasks = IntStream.range(0, 5)
+                .mapToObj(i -> executor.submit((Callable<Void>) () ->
+                        txnManager.runTaskWithLocksWithRetry(() -> EXCLUSIVE_ADVISORY_LOCK_REQUEST, (txn, locks) -> {
+                            assertThat(isExecuting.compareAndSet(false, true)).isTrue();
+                            Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(500L));
+                            assertThat(isExecuting.compareAndSet(true, false)).isTrue();
 
-                    txn.put(TABLE, ImmutableMap.of(CELL, DATA));
-                    return null;
-                }))).collect(Collectors.toList());
+                            txn.put(TABLE, ImmutableMap.of(CELL, DATA));
+                            return null;
+                        })))
+                .collect(Collectors.toList());
 
         for (Future<?> task : tasks) {
             task.get();
@@ -109,9 +108,8 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
 
     @Test
     public void advisoryLocksCanFail() throws ExecutionException, InterruptedException {
-        ThrowableAssert.ThrowingCallable failingTxn = () -> txnManager.runTaskWithLocksWithRetry(
-                () -> EXCLUSIVE_ADVISORY_LOCK_REQUEST,
-                (txn, locks) -> {
+        ThrowableAssert.ThrowingCallable failingTxn =
+                () -> txnManager.runTaskWithLocksWithRetry(() -> EXCLUSIVE_ADVISORY_LOCK_REQUEST, (txn, locks) -> {
                     LockRefreshToken token = locks.iterator().next().getLockRefreshToken();
                     txnManager.getLockService().unlock(token);
                     txn.put(TABLE, ImmutableMap.of(CELL, DATA));

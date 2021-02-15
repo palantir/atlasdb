@@ -18,33 +18,33 @@ package com.palantir.atlasdb.factory.startup;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.factory.ImmutableTransactionManagerConsistencyResult;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
+import com.palantir.atlasdb.factory.TransactionManagerConsistencyResults;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
 import com.palantir.exception.NotInitializedException;
+import org.junit.Test;
 
 public class ConsistencyCheckRunnerTest {
     private static final RuntimeException EXCEPTION_1 = new RuntimeException("bad");
     private static final RuntimeException EXCEPTION_2 = new RuntimeException("worse");
 
-    private static final TransactionManagerConsistencyCheck CONSISTENT_CHECK = getConsistencyCheckReturning(
-            TransactionManagerConsistencyResult.CONSISTENT_RESULT);
-    private static final TransactionManagerConsistencyCheck INDETERMINATE_CHECK = getConsistencyCheckReturning(
-            ImmutableTransactionManagerConsistencyResult.builder()
+    private static final TransactionManagerConsistencyCheck CONSISTENT_CHECK =
+            getConsistencyCheckReturning(TransactionManagerConsistencyResults.CONSISTENT_RESULT);
+    private static final TransactionManagerConsistencyCheck INDETERMINATE_CHECK =
+            getConsistencyCheckReturning(ImmutableTransactionManagerConsistencyResult.builder()
                     .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.INDETERMINATE)
                     .reasonForInconsistency(EXCEPTION_1)
                     .build());
-    private static final TransactionManagerConsistencyCheck INDETERMINATE_CHECK_2 = getConsistencyCheckReturning(
-            ImmutableTransactionManagerConsistencyResult.builder()
+    private static final TransactionManagerConsistencyCheck INDETERMINATE_CHECK_2 =
+            getConsistencyCheckReturning(ImmutableTransactionManagerConsistencyResult.builder()
                     .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.INDETERMINATE)
                     .reasonForInconsistency(EXCEPTION_2)
                     .build());
-    private static final TransactionManagerConsistencyCheck TERMINAL_CHECK = getConsistencyCheckReturning(
-            ImmutableTransactionManagerConsistencyResult.builder()
+    private static final TransactionManagerConsistencyCheck TERMINAL_CHECK =
+            getConsistencyCheckReturning(ImmutableTransactionManagerConsistencyResult.builder()
                     .consistencyState(TransactionManagerConsistencyResult.ConsistencyState.TERMINAL)
                     .reasonForInconsistency(EXCEPTION_2)
                     .build());
@@ -109,7 +109,7 @@ public class ConsistencyCheckRunnerTest {
 
     private static TransactionManagerConsistencyCheck getConsistencyCheckReturning(
             TransactionManagerConsistencyResult result) {
-        return (unused) -> result;
+        return unused -> result;
     }
 
     private void initializeRunnerWithChecks(TransactionManagerConsistencyCheck... checks) {

@@ -16,15 +16,13 @@
 
 package com.palantir.lock.logger;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.impl.LockServiceStateDebugger;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableSanitizedLockRequestProgress.class)
@@ -34,25 +32,34 @@ public interface SanitizedLockRequestProgress {
             + " but we have not cleared it from the map>";
 
     List<SimpleLockRequest> getRequests();
+
     String getNextLock();
+
     int getNumLocksAcquired();
+
     int getTotalNumLocks();
 
-    static SanitizedLockRequestProgress create(LockServiceStateDebugger.LockRequestProgress progress,
+    static SanitizedLockRequestProgress create(
+            LockServiceStateDebugger.LockRequestProgress progress,
             LockDescriptorMapper descriptorMapper,
             String clientId) {
         return ImmutableSanitizedLockRequestProgress.builder()
                 .totalNumLocks(progress.getTotalNumLocks())
                 .numLocksAcquired(progress.getNumLocksAcquired())
-                .nextLock(progress.getNextLock().map(descriptorMapper::getDescriptorMapping)
+                .nextLock(progress.getNextLock()
+                        .map(descriptorMapper::getDescriptorMapping)
                         .orElse(UNKNOWN_NEXT_LOCK_MESSAGE))
-                .requests(
-                        StreamSupport.stream(progress.getRequest().getLockDescriptors().entries().spliterator(), false)
-                                .map(descriptor -> SimpleLockRequest.of(
-                                        progress.getRequest(),
-                                        descriptorMapper.getDescriptorMapping(descriptor.getKey()),
-                                        descriptor.getValue(),
-                                        clientId))
+                .requests(StreamSupport.stream(
+                                progress.getRequest()
+                                        .getLockDescriptors()
+                                        .entries()
+                                        .spliterator(),
+                                false)
+                        .map(descriptor -> SimpleLockRequest.of(
+                                progress.getRequest(),
+                                descriptorMapper.getDescriptorMapping(descriptor.getKey()),
+                                descriptor.getValue(),
+                                clientId))
                         .collect(Collectors.toList()))
                 .build();
     }

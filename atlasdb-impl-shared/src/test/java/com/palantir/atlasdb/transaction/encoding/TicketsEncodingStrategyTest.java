@@ -19,6 +19,10 @@ package com.palantir.atlasdb.transaction.encoding;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import com.google.protobuf.ByteString;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -27,13 +31,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-
 import org.junit.Test;
-
-import com.google.protobuf.ByteString;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class TicketsEncodingStrategyTest {
     private static final TicketsEncodingStrategy STRATEGY = TicketsEncodingStrategy.INSTANCE;
@@ -85,7 +83,8 @@ public class TicketsEncodingStrategyTest {
             long startTimestamp = ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE - 1);
             long commitTimestamp = ThreadLocalRandom.current().nextLong(startTimestamp, Long.MAX_VALUE);
             byte[] encoded = STRATEGY.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
-            assertThat(STRATEGY.decodeValueAsCommitTimestamp(startTimestamp, encoded)).isEqualTo(commitTimestamp);
+            assertThat(STRATEGY.decodeValueAsCommitTimestamp(startTimestamp, encoded))
+                    .isEqualTo(commitTimestamp);
         });
     }
 
@@ -93,7 +92,7 @@ public class TicketsEncodingStrategyTest {
     public void storesLargeCommitTimestampsCompactly() {
         long highTimestamp = Long.MAX_VALUE - 1;
         byte[] commitTimestampEncoding = STRATEGY.encodeCommitTimestampAsValue(highTimestamp, highTimestamp + 1);
-        assertThat(commitTimestampEncoding.length).isEqualTo(1);
+        assertThat(commitTimestampEncoding).hasSize(1);
         assertThat(STRATEGY.decodeValueAsCommitTimestamp(highTimestamp, commitTimestampEncoding))
                 .isEqualTo(highTimestamp + 1);
     }
@@ -113,10 +112,10 @@ public class TicketsEncodingStrategyTest {
                 .collect(Collectors.toSet());
 
         // groupingBy evaluates arrays on instance equality, which is a no-go, so we need ByteStrings
-        Map<ByteString, List<Cell>> cellsGroupedByRow = associatedCells.stream()
-                .collect(Collectors.groupingBy(cell -> ByteString.copyFrom(cell.getRowName())));
+        Map<ByteString, List<Cell>> cellsGroupedByRow =
+                associatedCells.stream().collect(Collectors.groupingBy(cell -> ByteString.copyFrom(cell.getRowName())));
         for (List<Cell> cellsInEachRow : cellsGroupedByRow.values()) {
-            assertThat(cellsInEachRow.size()).isEqualTo(elementsExpectedPerRow);
+            assertThat(cellsInEachRow).hasSize(elementsExpectedPerRow);
         }
     }
 
@@ -128,16 +127,18 @@ public class TicketsEncodingStrategyTest {
                 .map(Cell::getRowName)
                 .map(ByteString::copyFrom)
                 .collect(Collectors.toSet());
-        assertThat(rowNamesForInitialRows.size()).isEqualTo(numPartitions);
+        assertThat(rowNamesForInitialRows).hasSize(numPartitions);
 
         // This test may be too strong.
-        Map<Integer, Integer> rowsKeyedByFirstFourBits = rowNamesForInitialRows.stream()
-                .collect(Collectors.groupingBy(byteString -> byteString.byteAt(0) >> 4))
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().size()));
+        Map<Integer, Integer> rowsKeyedByFirstFourBits =
+                rowNamesForInitialRows.stream()
+                        .collect(Collectors.groupingBy(byteString -> byteString.byteAt(0) >> 4))
+                        .entrySet()
+                        .stream()
+                        .collect(Collectors.toMap(
+                                Map.Entry::getKey, entry -> entry.getValue().size()));
         assertThat(rowsKeyedByFirstFourBits.values()).containsOnly(1);
-        assertThat(rowsKeyedByFirstFourBits.size()).isEqualTo(16);
+        assertThat(rowsKeyedByFirstFourBits).hasSize(16);
     }
 
     @Test
@@ -147,13 +148,16 @@ public class TicketsEncodingStrategyTest {
 
     @Test
     public void canStoreAbortedTransactionCompactly() {
-        assertThat(STRATEGY.encodeCommitTimestampAsValue(537369, TransactionConstants.FAILED_COMMIT_TS)).hasSize(0);
+        assertThat(STRATEGY.encodeCommitTimestampAsValue(537369, TransactionConstants.FAILED_COMMIT_TS))
+                .hasSize(0);
     }
 
     @Test
     public void canDecodeEmptyByteArrayAsAbortedTransaction() {
-        assertThat(STRATEGY.decodeValueAsCommitTimestamp(1, PtBytes.EMPTY_BYTE_ARRAY)).isEqualTo(-1);
-        assertThat(STRATEGY.decodeValueAsCommitTimestamp(862846378267L, PtBytes.EMPTY_BYTE_ARRAY)).isEqualTo(-1);
+        assertThat(STRATEGY.decodeValueAsCommitTimestamp(1, PtBytes.EMPTY_BYTE_ARRAY))
+                .isEqualTo(-1);
+        assertThat(STRATEGY.decodeValueAsCommitTimestamp(862846378267L, PtBytes.EMPTY_BYTE_ARRAY))
+                .isEqualTo(-1);
     }
 
     private static void fuzzOneThousandTrials(Runnable test) {
@@ -165,6 +169,6 @@ public class TicketsEncodingStrategyTest {
                 .boxed()
                 .map(STRATEGY::encodeStartTimestampAsCell)
                 .collect(Collectors.toSet());
-        assertThat(convertedCells.size()).isEqualTo(timestamps.length);
+        assertThat(convertedCells).hasSameSizeAs(timestamps);
     }
 }

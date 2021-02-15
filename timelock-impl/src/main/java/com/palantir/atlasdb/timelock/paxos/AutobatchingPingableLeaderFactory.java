@@ -16,6 +16,15 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.atlasdb.autobatch.Autobatchers;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.paxos.Client;
+import com.palantir.paxos.LeaderPingResult;
+import com.palantir.paxos.LeaderPingResults;
+import com.palantir.paxos.LeaderPinger;
+import com.palantir.paxos.LeaderPingerContext;
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
@@ -28,22 +37,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.autobatch.Autobatchers;
-import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.common.concurrent.CheckedRejectionExecutorService;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.paxos.Client;
-import com.palantir.paxos.LeaderPingResult;
-import com.palantir.paxos.LeaderPingResults;
-import com.palantir.paxos.LeaderPinger;
-import com.palantir.paxos.LeaderPingerContext;
-
-public class AutobatchingPingableLeaderFactory implements Closeable {
+public final class AutobatchingPingableLeaderFactory implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(AutobatchingPingableLeaderFactory.class);
 
@@ -70,18 +68,11 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
                 .collect(Collectors.toSet());
 
         DisruptorAutobatcher<UUID, Optional<ClientAwareLeaderPinger>> uuidAutobatcher = Autobatchers.independent(
-                new GetSuspectedLeaderWithUuid(
-                        executors,
-                        clientAwarePingables,
-                        localUuid,
-                        pingResponseWait))
+                        new GetSuspectedLeaderWithUuid(executors, clientAwarePingables, localUuid, pingResponseWait))
                 .safeLoggablePurpose("batch-paxos-pingable-leader.uuid")
                 .build();
 
-        return new AutobatchingPingableLeaderFactory(
-                clientAwarePingables,
-                uuidAutobatcher,
-                pingResponseWait);
+        return new AutobatchingPingableLeaderFactory(clientAwarePingables, uuidAutobatcher, pingResponseWait);
     }
 
     @Override
@@ -105,11 +96,8 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
             Duration leaderPingRate,
             Duration leaderPingResponseWait,
             UUID localUuid) {
-        CumulativeLeaderPinger manualBatchingPingableLeader = new CumulativeLeaderPinger(
-                remoteClient,
-                leaderPingRate,
-                leaderPingResponseWait,
-                localUuid);
+        CumulativeLeaderPinger manualBatchingPingableLeader =
+                new CumulativeLeaderPinger(remoteClient, leaderPingRate, leaderPingResponseWait, localUuid);
         manualBatchingPingableLeader.startAsync();
         return manualBatchingPingableLeader;
     }
@@ -125,39 +113,35 @@ public class AutobatchingPingableLeaderFactory implements Closeable {
         @Override
         public LeaderPingResult pingLeaderWithUuid(UUID uuid) {
             try {
-                Optional<ClientAwareLeaderPinger> maybePingableLeader = uuidToRemoteAutobatcher.apply(uuid).get();
+                Optional<ClientAwareLeaderPinger> maybePingableLeader =
+                        uuidToRemoteAutobatcher.apply(uuid).get();
                 if (!maybePingableLeader.isPresent()) {
                     return LeaderPingResults.pingReturnedFalse();
                 }
 
-                return maybePingableLeader.get().registerAndPing(uuid, client)
+                return maybePingableLeader
+                        .get()
+                        .registerAndPing(uuid, client)
                         .get(leaderPingResponseWait.toMillis(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
-                log.warn("received interrupt whilst trying to ping leader",
-                        SafeArg.of("client", client),
-                        e);
+                log.warn("received interrupt whilst trying to ping leader", SafeArg.of("client", client), e);
                 Thread.currentThread().interrupt();
                 return LeaderPingResults.pingCallFailure(e);
             } catch (ExecutionException e) {
-                log.warn("received error whilst trying to ping leader",
-                        SafeArg.of("client", client),
-                        e.getCause());
+                log.warn("received error whilst trying to ping leader", SafeArg.of("client", client), e.getCause());
                 return LeaderPingResults.pingCallFailure(e.getCause());
             } catch (TimeoutException e) {
-                log.warn("timed out whilst trying to ping leader",
-                        SafeArg.of("client", client),
-                        e);
+                log.warn("timed out whilst trying to ping leader", SafeArg.of("client", client), e);
                 return LeaderPingResults.pingTimedOut();
             }
         }
-
     }
 
     @Value.Immutable
     @Value.Style(allParameters = true)
     interface PingRequest {
         Client client();
+
         UUID requestedLeaderId();
     }
-
 }

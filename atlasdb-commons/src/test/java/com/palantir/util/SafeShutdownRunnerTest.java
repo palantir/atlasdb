@@ -25,16 +25,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.time.Duration;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
 public class SafeShutdownRunnerTest {
     private static final RuntimeException EXCEPTION = new RuntimeException("test");
@@ -46,9 +43,11 @@ public class SafeShutdownRunnerTest {
     @Before
     public void setupMocks() {
         doAnswer(invocation -> {
-            new Semaphore(0).acquireUninterruptibly();
-            return null;
-        }).when(blockingUninterruptibleRunnable).run();
+                    new Semaphore(0).acquireUninterruptibly();
+                    return null;
+                })
+                .when(blockingUninterruptibleRunnable)
+                .run();
         doThrow(EXCEPTION).when(throwingRunnable).run();
     }
 
@@ -102,12 +101,10 @@ public class SafeShutdownRunnerTest {
     }
 
     private void closeAndAssertNumberOfTimeouts(SafeShutdownRunner runner, int number) {
-        assertThatThrownBy(runner::close)
-                .isInstanceOf(RuntimeException.class)
-                .satisfies(exception -> {
-                    Throwable[] suppressed = exception.getSuppressed();
-                    assertThat(suppressed.length).isEqualTo(number);
-                    Stream.of(suppressed).forEach(th -> assertThat(th).isInstanceOf(TimeoutException.class));
-                });
+        assertThatThrownBy(runner::close).isInstanceOf(RuntimeException.class).satisfies(exception -> {
+            Throwable[] suppressed = exception.getSuppressed();
+            assertThat(suppressed).hasSize(number);
+            Stream.of(suppressed).forEach(th -> assertThat(th).isInstanceOf(TimeoutException.class));
+        });
     }
 }

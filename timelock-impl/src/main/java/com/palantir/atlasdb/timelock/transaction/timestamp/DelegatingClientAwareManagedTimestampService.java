@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.timelock.transaction.timestamp;
 
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.timelock.transaction.client.CachingPartitionAllocator;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
@@ -31,6 +26,9 @@ import com.palantir.timestamp.AutoDelegate_ManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampRanges;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DelegatingClientAwareManagedTimestampService
         implements AutoDelegate_ManagedTimestampService, ClientAwareManagedTimestampService {
@@ -44,8 +42,7 @@ public class DelegatingClientAwareManagedTimestampService
 
     @VisibleForTesting
     DelegatingClientAwareManagedTimestampService(
-            NumericPartitionAllocator<UUID> allocator,
-            ManagedTimestampService delegate) {
+            NumericPartitionAllocator<UUID> allocator, ManagedTimestampService delegate) {
         this.allocator = allocator;
         this.delegate = delegate;
     }
@@ -59,11 +56,10 @@ public class DelegatingClientAwareManagedTimestampService
     public PartitionedTimestamps getFreshTimestampsForClient(UUID clientIdentifier, int numTransactionsRequested) {
         while (true) {
             TimestampRange timestampRange = delegate.getFreshTimestamps(NUM_PARTITIONS * numTransactionsRequested);
-            int targetResidue = allocator.getRelevantModuli(clientIdentifier).iterator().next();
-            PartitionedTimestamps partitionedTimestamps = TimestampRanges.getPartitionedTimestamps(
-                    timestampRange,
-                    targetResidue,
-                    NUM_PARTITIONS);
+            int targetResidue =
+                    allocator.getRelevantModuli(clientIdentifier).iterator().next();
+            PartitionedTimestamps partitionedTimestamps =
+                    TimestampRanges.getPartitionedTimestamps(timestampRange, targetResidue, NUM_PARTITIONS);
 
             if (partitionedTimestamps.count() > 0) {
                 return partitionedTimestamps;
@@ -71,7 +67,8 @@ public class DelegatingClientAwareManagedTimestampService
 
             // Not a bug - getFreshTimestamps is permitted to return less than the number of timestamps asked for,
             // so this case is possible.
-            log.info("The timestamp range we received from the underlying timestamp service - {} -"
+            log.info(
+                    "The timestamp range we received from the underlying timestamp service - {} -"
                             + " did not contain a value with residue {} modulo {}. We will try again."
                             + " This is not a bug; but if it happens excessively frequently, please contact support.",
                     SafeArg.of("timestampRange", timestampRange),

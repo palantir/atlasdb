@@ -78,6 +78,7 @@ dependencies {
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
+  testCompileOnly 'org.immutables:value::annotations'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
@@ -85,7 +86,6 @@ dependencies {
       exclude group: 'org.hamcrest'
   }
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
-  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'ch.qos.logback', name: 'logback-classic'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.awaitility', name: 'awaitility'

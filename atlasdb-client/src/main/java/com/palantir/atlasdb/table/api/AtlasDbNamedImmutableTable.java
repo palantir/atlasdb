@@ -15,15 +15,15 @@
  */
 package com.palantir.atlasdb.table.api;
 
-import java.util.List;
-
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import java.util.List;
 
 /*
  * All named atlasdb tables should implement this interface.
  */
-public interface AtlasDbNamedImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends
-            AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
+public interface AtlasDbNamedImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT>
+        extends AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
     List<ROW_RESULT> getRows(Iterable<ROW> rows);
+
     List<ROW_RESULT> getRows(Iterable<ROW> rows, ColumnSelection columnSelection);
 }

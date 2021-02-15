@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableWriteReference.class)
 @JsonSerialize(as = ImmutableWriteReference.class)
@@ -28,14 +27,19 @@ public abstract class WriteReference {
 
     @JsonProperty("t")
     public abstract TableReference tableRef();
+
     @JsonProperty("c")
     public abstract Cell cell();
+
     @JsonProperty("d")
     public abstract boolean isTombstone();
 
     @Value.Lazy
     public CellReference cellReference() {
-        return ImmutableCellReference.builder().tableRef(tableRef()).cell(cell()).build();
+        return ImmutableCellReference.builder()
+                .tableRef(tableRef())
+                .cell(cell())
+                .build();
     }
 
     public static WriteReference tombstone(TableReference tableRef, Cell cell) {
@@ -47,6 +51,10 @@ public abstract class WriteReference {
     }
 
     public static WriteReference of(TableReference tableRef, Cell cell, boolean isTombstone) {
-        return ImmutableWriteReference.builder().tableRef(tableRef).cell(cell).isTombstone(isTombstone).build();
+        return ImmutableWriteReference.builder()
+                .tableRef(tableRef)
+                .cell(cell)
+                .isTombstone(isTombstone)
+                .build();
     }
 }

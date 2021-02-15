@@ -15,19 +15,17 @@
  */
 package com.palantir.atlasdb.cli.runner;
 
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.concurrent.Callable;
-
-import org.apache.commons.lang3.ArrayUtils;
-
 import com.palantir.atlasdb.cli.AtlasCli;
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.concurrent.Callable;
+import org.apache.commons.lang3.ArrayUtils;
 
 public abstract class AbstractTestRunner<S extends AtlasDbServices> implements SingleBackendCliTestRunner {
 
@@ -56,7 +54,7 @@ public abstract class AbstractTestRunner<S extends AtlasDbServices> implements S
 
     private String[] buildArgs() throws URISyntaxException {
         String filePath = getResourcePath(getKvsConfigFileName());
-        String[] initArgs = new String[] { "-c", filePath };
+        String[] initArgs = new String[] {"-c", filePath};
         return (String[]) ArrayUtils.addAll(initArgs, args);
     }
 
@@ -72,12 +70,14 @@ public abstract class AbstractTestRunner<S extends AtlasDbServices> implements S
 
     @Override
     public String run(boolean failOnNonZeroExit, boolean singleLine) {
-        return StandardStreamUtilities.wrapSystemOut(() -> {
-            int ret = cmd.execute(services);
-            if (ret != 0 && failOnNonZeroExit) {
-                throw new SafeRuntimeException("CLI returned with nonzero exit code");
-            }
-        }, singleLine);
+        return StandardStreamUtilities.wrapSystemOut(
+                () -> {
+                    int ret = cmd.execute(services);
+                    if (ret != 0 && failOnNonZeroExit) {
+                        throw new SafeRuntimeException("CLI returned with nonzero exit code");
+                    }
+                },
+                singleLine);
     }
 
     @Override
@@ -93,11 +93,14 @@ public abstract class AbstractTestRunner<S extends AtlasDbServices> implements S
     protected abstract void cleanup(KeyValueServiceConfig kvsConfig);
 
     public static String getResourcePath(String fileName) throws URISyntaxException {
-        return Paths.get(AbstractTestRunner.class.getClassLoader().getResource(fileName).toURI()).toString();
+        return Paths.get(AbstractTestRunner.class
+                        .getClassLoader()
+                        .getResource(fileName)
+                        .toURI())
+                .toString();
     }
 
     public static <T extends Callable<Integer>> T buildCommand(Class<T> cmd, String... args) {
         return (T) AtlasCli.buildCli().parse(args);
     }
-
 }

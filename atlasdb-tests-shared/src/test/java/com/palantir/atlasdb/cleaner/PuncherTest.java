@@ -15,22 +15,20 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Collection;
-import java.util.function.Supplier;
-
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.common.time.Clock;
+import java.util.Collection;
+import java.util.function.Supplier;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class PuncherTest {
@@ -42,29 +40,22 @@ public class PuncherTest {
         InMemoryKeyValueService cachingKvsPuncherStoreKvs = new InMemoryKeyValueService(false);
 
         InMemoryPuncherStore inMemoryPuncherStore = InMemoryPuncherStore.create();
-        PuncherStore puncherStore =
-                KeyValueServicePuncherStore.create(kvsPuncherStoreKvs);
+        PuncherStore puncherStore = KeyValueServicePuncherStore.create(kvsPuncherStoreKvs);
         CachingPuncherStore cachingInMemoryPuncherStore =
                 CachingPuncherStore.create(InMemoryPuncherStore.create(), GRANULARITY_MILLIS);
         CachingPuncherStore cachingKeyValueServicePuncherStore = CachingPuncherStore.create(
-                KeyValueServicePuncherStore.create(cachingKvsPuncherStoreKvs),
-                GRANULARITY_MILLIS);
-        Object[][] parameters = new Object[][] { { inMemoryPuncherStore, null },
-                { puncherStore, kvsPuncherStoreKvs },
-                { cachingInMemoryPuncherStore, null },
-                { cachingKeyValueServicePuncherStore, cachingKvsPuncherStoreKvs } };
+                KeyValueServicePuncherStore.create(cachingKvsPuncherStoreKvs), GRANULARITY_MILLIS);
+        Object[][] parameters = new Object[][] {
+            {inMemoryPuncherStore, null},
+            {puncherStore, kvsPuncherStoreKvs},
+            {cachingInMemoryPuncherStore, null},
+            {cachingKeyValueServicePuncherStore, cachingKvsPuncherStoreKvs}
+        };
         return ImmutableList.copyOf(parameters);
     }
 
     private final PuncherStore puncherStore;
     private final KeyValueService kvs;
-
-    private final Clock clock = new Clock() {
-        @Override
-        public long getTimeMillis() {
-            return timeMillis;
-        }
-    };
 
     public PuncherTest(PuncherStore puncherStore, KeyValueService kvs) {
         this.puncherStore = puncherStore;
@@ -80,6 +71,8 @@ public class PuncherTest {
 
     long timeMillis = 0;
 
+    private final Clock clock = () -> timeMillis;
+
     final long firstPunchTimestamp = 33L;
     final long secondPunchTimestamp = 35L;
     final long thirdPunchTimestamp = 37L;
@@ -94,35 +87,38 @@ public class PuncherTest {
         Supplier<Long> timestampSupplier = puncher.getTimestampSupplier();
 
         timeMillis += 60000L;
-        assertEquals(Long.MIN_VALUE, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(Long.MIN_VALUE);
         timeMillis += 60000L;
-        assertEquals(Long.MIN_VALUE, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(Long.MIN_VALUE);
         timeMillis += 60000L;
 
         final long firstExpectedMillis = timeMillis;
         puncher.punch(firstPunchTimestamp);
 
         timeMillis += 60000L;
-        assertEquals(firstPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(firstPunchTimestamp);
 
         final long secondExpectedMillis = timeMillis;
         puncher.punch(secondPunchTimestamp);
 
-        assertEquals(firstPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(firstPunchTimestamp);
         timeMillis += 60000L;
-        assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(secondPunchTimestamp);
         timeMillis += 10L;
-        assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(secondPunchTimestamp);
 
         puncher.punch(thirdPunchTimestamp);
 
-        assertEquals(secondPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(secondPunchTimestamp);
         timeMillis += 60000L;
-        assertEquals(thirdPunchTimestamp, (long) timestampSupplier.get());
+        assertThat((long) timestampSupplier.get()).isEqualTo(thirdPunchTimestamp);
 
-        assertEquals(firstExpectedMillis, puncherStore.getMillisForTimestamp(firstTimestampToGetMillis));
-        assertEquals(secondExpectedMillis, puncherStore.getMillisForTimestamp(secondTimestampToGetMillis));
-        assertEquals(secondExpectedMillis, puncherStore.getMillisForTimestamp(thirdTimestampToGetMillis));
+        assertThat(puncherStore.getMillisForTimestamp(firstTimestampToGetMillis))
+                .isEqualTo(firstExpectedMillis);
+        assertThat(puncherStore.getMillisForTimestamp(secondTimestampToGetMillis))
+                .isEqualTo(secondExpectedMillis);
+        assertThat(puncherStore.getMillisForTimestamp(thirdTimestampToGetMillis))
+                .isEqualTo(secondExpectedMillis);
     }
 
     @Test

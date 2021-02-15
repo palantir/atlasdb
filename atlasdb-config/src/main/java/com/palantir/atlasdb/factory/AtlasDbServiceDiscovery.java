@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.factory;
 
-import java.util.ServiceLoader;
-import java.util.function.Function;
-
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.ServiceLoader;
+import java.util.function.Function;
 
 public final class AtlasDbServiceDiscovery {
     private AtlasDbServiceDiscovery() {
@@ -39,17 +38,16 @@ public final class AtlasDbServiceDiscovery {
     }
 
     private static <T> T createAtlasDbServiceOfCorrectType(
-            KeyValueServiceConfig config,
-            Function<T, String> typeExtractor,
-            Class<T> clazz) {
+            KeyValueServiceConfig config, Function<T, String> typeExtractor, Class<T> clazz) {
         for (T element : ServiceLoader.load(clazz)) {
             if (config.type().equalsIgnoreCase(typeExtractor.apply(element))) {
                 return element;
             }
         }
-        throw new SafeIllegalStateException("No atlas provider for the configured type could be found. "
-                + "Ensure that the implementation of the AtlasDbFactory is annotated "
-                + "@AutoService with a suitable class as parameter and that it is on your classpath.",
+        throw new SafeIllegalStateException(
+                "No atlas provider for the configured type could be found. "
+                        + "Ensure that the implementation of the AtlasDbFactory is annotated "
+                        + "@AutoService with a suitable class as parameter and that it is on your classpath.",
                 SafeArg.of("class", clazz),
                 SafeArg.of("type", config.type()));
     }

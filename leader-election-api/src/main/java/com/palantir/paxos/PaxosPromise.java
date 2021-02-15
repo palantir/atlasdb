@@ -15,15 +15,13 @@
  */
 package com.palantir.paxos;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.apache.commons.lang3.builder.CompareToBuilder;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.logsafe.Preconditions;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 
 /**
  * A promise to not accept new proposals less than promisedID.
@@ -36,14 +34,16 @@ public final class PaxosPromise implements Comparable<PaxosPromise>, PaxosRespon
 
     final boolean ack;
 
-    @Nonnull final PaxosProposalId promisedId;
-    @Nullable final PaxosProposalId lastAcceptedId;
-    @Nullable final PaxosValue lastAcceptedValue;
+    @Nonnull
+    final PaxosProposalId promisedId;
 
-    public static PaxosPromise accept(
-            PaxosProposalId promisedId,
-            PaxosProposalId lastAcceptedId,
-            PaxosValue val) {
+    @Nullable
+    final PaxosProposalId lastAcceptedId;
+
+    @Nullable
+    final PaxosValue lastAcceptedValue;
+
+    public static PaxosPromise accept(PaxosProposalId promisedId, PaxosProposalId lastAcceptedId, PaxosValue val) {
         return new PaxosPromise(promisedId, lastAcceptedId, val);
     }
 
@@ -71,9 +71,7 @@ public final class PaxosPromise implements Comparable<PaxosPromise>, PaxosRespon
         lastAcceptedValue = null;
     }
 
-    private PaxosPromise(PaxosProposalId promisedId,
-            PaxosProposalId lastAcceptedId,
-            PaxosValue val) {
+    private PaxosPromise(PaxosProposalId promisedId, PaxosProposalId lastAcceptedId, PaxosValue val) {
         ack = true;
         this.promisedId = Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
         this.lastAcceptedId = lastAcceptedId;
@@ -84,7 +82,9 @@ public final class PaxosPromise implements Comparable<PaxosPromise>, PaxosRespon
     // XXX Contrary to common wisdom, this is NOT consistent with equals().
     public int compareTo(PaxosPromise promise) {
         // nulls are less than non-nulls so nacks are less than acks
-        return new CompareToBuilder().append(lastAcceptedId, promise.lastAcceptedId).toComparison();
+        return new CompareToBuilder()
+                .append(lastAcceptedId, promise.lastAcceptedId)
+                .toComparison();
     }
 
     @Override
@@ -109,14 +109,9 @@ public final class PaxosPromise implements Comparable<PaxosPromise>, PaxosRespon
         final int prime = 31;
         int result = 1;
         result = prime * result + (ack ? 1231 : 1237);
-        result = prime * result
-                + ((lastAcceptedId == null) ? 0 : lastAcceptedId.hashCode());
-        result = prime
-                * result
-                + ((lastAcceptedValue == null) ? 0
-                : lastAcceptedValue.hashCode());
-        result = prime * result
-                + ((promisedId == null) ? 0 : promisedId.hashCode());
+        result = prime * result + ((lastAcceptedId == null) ? 0 : lastAcceptedId.hashCode());
+        result = prime * result + ((lastAcceptedValue == null) ? 0 : lastAcceptedValue.hashCode());
+        result = prime * result + ((promisedId == null) ? 0 : promisedId.hashCode());
         return result;
     }
 

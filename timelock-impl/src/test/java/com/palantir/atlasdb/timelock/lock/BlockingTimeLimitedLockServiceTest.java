@@ -24,12 +24,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.FakeTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
@@ -39,13 +33,18 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.remoting.BlockingTimeoutException;
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+import org.junit.Before;
+import org.junit.Test;
 
 public class BlockingTimeLimitedLockServiceTest {
     private static final long BLOCKING_TIME_LIMIT_MILLIS = 10L;
     private static final long TEST_CURRENT_TIME_MILLIS = 42L;
     private static final String CLIENT = "client";
-    private static final LockRequest LOCK_REQUEST
-            = LockRequest.builder(ImmutableSortedMap.of(StringLockDescriptor.of("lockId"), LockMode.WRITE)).build();
+    private static final LockRequest LOCK_REQUEST = LockRequest.builder(
+                    ImmutableSortedMap.of(StringLockDescriptor.of("lockId"), LockMode.WRITE))
+            .build();
 
     private final TimeLimiter acceptingLimiter = new FakeTimeLimiter();
     private final TimeLimiter timingOutLimiter = mock(TimeLimiter.class);

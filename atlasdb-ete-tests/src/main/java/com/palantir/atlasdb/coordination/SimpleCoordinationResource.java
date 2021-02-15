@@ -29,8 +29,8 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.TimestampService;
 
 public final class SimpleCoordinationResource implements CoordinationResource {
-    private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName(
-            "test." + SimpleCoordinationResource.class.getSimpleName());
+    private static final TableReference TEST_TABLE =
+            TableReference.createFromFullyQualifiedName("test." + SimpleCoordinationResource.class.getSimpleName());
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
 
     private final TransactionManager transactionManager;
@@ -38,21 +38,20 @@ public final class SimpleCoordinationResource implements CoordinationResource {
     private final TimestampService timestampService;
 
     private SimpleCoordinationResource(
-            TransactionManager transactionManager,
-            TransactionSchemaManager transactionSchemaManager) {
+            TransactionManager transactionManager, TransactionSchemaManager transactionSchemaManager) {
         this.transactionManager = transactionManager;
         this.transactionSchemaManager = transactionSchemaManager;
         this.timestampService = transactionManager.getTimestampService();
     }
 
     public static CoordinationResource create(TransactionManager transactionManager) {
-        return new SimpleCoordinationResource(transactionManager,
-                new TransactionSchemaManager(
-                        CoordinationServices.createDefault(
-                                transactionManager.getKeyValueService(),
-                                transactionManager.getTimestampService(),
-                                MetricsManagers.createForTests(),
-                                false)));
+        return new SimpleCoordinationResource(
+                transactionManager,
+                new TransactionSchemaManager(CoordinationServices.createDefault(
+                        transactionManager.getKeyValueService(),
+                        transactionManager.getTimestampService(),
+                        MetricsManagers.createForTests(),
+                        false)));
     }
 
     @Override
@@ -104,7 +103,8 @@ public final class SimpleCoordinationResource implements CoordinationResource {
     }
 
     private void advanceOneHundredMillionTimestamps() {
-        transactionManager.getTimestampManagementService().fastForwardTimestamp(
-                timestampService.getFreshTimestamp() + 100_000_000);
+        transactionManager
+                .getTimestampManagementService()
+                .fastForwardTimestamp(timestampService.getFreshTimestamp() + 100_000_000);
     }
 }

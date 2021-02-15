@@ -20,5 +20,6 @@ import com.palantir.atlasdb.table.description.Schema;
 
 public interface AtlasSchema {
     Namespace getNamespace();
+
     Schema getLatestSchema();
 }

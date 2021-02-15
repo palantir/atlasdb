@@ -15,15 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
@@ -53,19 +55,14 @@ import org.apache.thrift.protocol.TProtocolException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
     private final Cassandra.Client client;
     private volatile AtomicReference<Throwable> invalidated = new AtomicReference<>();
 
-    //Client is considered to be invalid if a blacklisted exception is thrown.
-    private static final Set<Class> BLACKLISTED_EXCEPTIONS =
-            ImmutableSet.of(TTransportException.class,  TProtocolException.class, NoSuchElementException.class);
+    // Client is considered to be invalid if a blacklisted exception is thrown.
+    private static final ImmutableSet<Class> BLACKLISTED_EXCEPTIONS =
+            ImmutableSet.of(TTransportException.class, TProtocolException.class, NoSuchElementException.class);
 
     public CassandraClientImpl(Cassandra.Client client) {
         this.client = client;
@@ -102,7 +99,8 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
-    public List<KeySlice> get_range_slices(String kvsMethodName,
+    public List<KeySlice> get_range_slices(
+            String kvsMethodName,
             TableReference tableRef,
             SlicePredicate predicate,
             KeyRange range,
@@ -121,11 +119,12 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public List<KsDef> describe_keyspaces() throws InvalidRequestException, TException {
-        return executeHandlingExceptions(() -> client.describe_keyspaces());
+        return executeHandlingExceptions(client::describe_keyspaces);
     }
 
     @Override
-    public void batch_mutate(String kvsMethodName,
+    public void batch_mutate(
+            String kvsMethodName,
             Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
@@ -133,10 +132,8 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
-    public ColumnOrSuperColumn get(TableReference tableReference,
-            ByteBuffer key,
-            byte[] column,
-            ConsistencyLevel consistency_level)
+    public ColumnOrSuperColumn get(
+            TableReference tableReference, ByteBuffer key, byte[] column, ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
         ColumnPath columnPath = new ColumnPath(tableReference.getQualifiedName());
         columnPath.setColumn(column);
@@ -145,27 +142,27 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
-    public void remove(String kvsMethodName, TableReference tableRef,
-            byte[] row, long timestamp, ConsistencyLevel consistency_level)
+    public void remove(
+            String kvsMethodName,
+            TableReference tableRef,
+            byte[] row,
+            long timestamp,
+            ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         String internalTableName = AbstractKeyValueService.internalTableName(tableRef);
         ColumnPath columnPath = new ColumnPath();
         columnPath.setColumn_family(internalTableName);
-        executeHandlingExceptions(() -> client.remove(
-                ByteBuffer.wrap(row),
-                columnPath,
-                timestamp,
-                consistency_level));
+        executeHandlingExceptions(() -> client.remove(ByteBuffer.wrap(row), columnPath, timestamp, consistency_level));
     }
 
     @Override
     public TProtocol getOutputProtocol() {
-        return executeMethodWithoutException(() -> client.getOutputProtocol());
+        return executeMethodWithoutException(client::getOutputProtocol);
     }
 
     @Override
     public TProtocol getInputProtocol() {
-        return executeMethodWithoutException(() -> client.getInputProtocol());
+        return executeMethodWithoutException(client::getInputProtocol);
     }
 
     @Override
@@ -193,7 +190,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public String describe_partitioner() throws TException {
-        return executeHandlingExceptions(() -> client.describe_partitioner());
+        return executeHandlingExceptions(client::describe_partitioner);
     }
 
     @Override
@@ -208,7 +205,7 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public String describe_version() throws TException {
-        return executeHandlingExceptions(() -> client.describe_version());
+        return executeHandlingExceptions(client::describe_version);
     }
 
     @Override
@@ -225,22 +222,24 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public CqlResult execute_prepared_cql3_query(int intemId, List<ByteBuffer> values, ConsistencyLevel consistency)
-            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
+            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
+                    TException {
         return executeHandlingExceptions(() -> client.execute_prepared_cql3_query(intemId, values, consistency));
     }
 
     @Override
     public ByteBuffer trace_next_query() throws TException {
-        return executeHandlingExceptions(() -> client.trace_next_query());
+        return executeHandlingExceptions(client::trace_next_query);
     }
 
     @Override
     public Map<String, List<String>> describe_schema_versions() throws InvalidRequestException, TException {
-        return executeHandlingExceptions(() -> client.describe_schema_versions());
+        return executeHandlingExceptions(client::describe_schema_versions);
     }
 
     @Override
-    public CASResult cas(TableReference tableReference,
+    public CASResult cas(
+            TableReference tableReference,
             ByteBuffer key,
             List<Column> expected,
             List<Column> updates,
@@ -249,8 +248,8 @@ public class CassandraClientImpl implements CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         String internalTableName = AbstractKeyValueService.internalTableName(tableReference);
 
-        return executeHandlingExceptions(() -> client.cas(key, internalTableName, expected, updates, serial_consistency_level,
-                commit_consistency_level));
+        return executeHandlingExceptions(() -> client.cas(
+                key, internalTableName, expected, updates, serial_consistency_level, commit_consistency_level));
     }
 
     @Override
@@ -268,11 +267,9 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
-    public CqlResult execute_cql3_query(CqlQuery cqlQuery,
-            Compression compression,
-            ConsistencyLevel consistency)
+    public CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
-            TException {
+                    TException {
         ByteBuffer queryBytes = ByteBuffer.wrap(cqlQuery.toString().getBytes(StandardCharsets.UTF_8));
 
         return executeHandlingExceptions(() -> client.execute_cql3_query(queryBytes, compression, consistency));
@@ -294,7 +291,8 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     private <T> T executeHandlingExceptions(ThrowingSupplier<T> supplier)
-            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
+            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
+                    TException {
         checkIfValidClient();
         try {
             return supplier.apply();
@@ -305,7 +303,8 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     private void executeHandlingExceptions(ThrowingVoidSupplier supplier)
-            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
+            throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
+                    TException {
         checkIfValidClient();
         try {
             supplier.apply();
@@ -326,11 +325,15 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     private interface ThrowingVoidSupplier {
-        void apply() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException;
+        void apply()
+                throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
+                        TException;
     }
 
     private interface ThrowingSupplier<T> {
-        T apply() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException;
+        T apply()
+                throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
+                        TException;
     }
 
     private void updateIsValid(Exception e) {

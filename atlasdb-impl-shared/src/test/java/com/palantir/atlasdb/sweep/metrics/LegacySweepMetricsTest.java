@@ -17,17 +17,15 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import java.util.List;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LegacySweepMetricsTest {
     private static final long EXAMINED = 15L;
@@ -44,10 +42,8 @@ public class LegacySweepMetricsTest {
     private static final String CELLS_SWEPT = AtlasDbMetricNames.CELLS_SWEPT;
     private static final String TIME_SPENT_SWEEPING = AtlasDbMetricNames.TIME_SPENT_SWEEPING;
 
-    private static final List<String> CURRENT_VALUE_LONG_METRIC_NAMES = ImmutableList.of(
-            CELLS_EXAMINED,
-            CELLS_SWEPT,
-            TIME_SPENT_SWEEPING);
+    private static final ImmutableList<String> CURRENT_VALUE_LONG_METRIC_NAMES =
+            ImmutableList.of(CELLS_EXAMINED, CELLS_SWEPT, TIME_SPENT_SWEEPING);
 
     private static final SweepResults SWEEP_RESULTS = SweepResults.builder()
             .cellTsPairsExamined(EXAMINED)
@@ -78,36 +74,27 @@ public class LegacySweepMetricsTest {
     @Test
     public void allMetricsAreSet() {
         sweepMetrics.updateSweepTime(
-                SWEEP_RESULTS.getTimeInMillis(),
-                SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
+                SWEEP_RESULTS.getTimeInMillis(), SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
         sweepMetrics.updateCellsExaminedDeleted(EXAMINED, DELETED);
 
-        assertRecordedExaminedDeletedTime(
-                ImmutableList.of(EXAMINED, DELETED, TIME_SWEEPING)
-        );
+        assertRecordedExaminedDeletedTime(ImmutableList.of(EXAMINED, DELETED, TIME_SWEEPING));
 
         sweepMetrics.updateSweepTime(
-                OTHER_SWEEP_RESULTS.getTimeInMillis(),
-                OTHER_SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
+                OTHER_SWEEP_RESULTS.getTimeInMillis(), OTHER_SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
         sweepMetrics.updateCellsExaminedDeleted(OTHER_EXAMINED, OTHER_DELETED);
 
-        assertRecordedExaminedDeletedTime(
-                ImmutableList.of(EXAMINED + OTHER_EXAMINED,
-                DELETED + OTHER_DELETED,
-                TIME_SWEEPING + OTHER_TIME_SWEEPING)
-        );
+        assertRecordedExaminedDeletedTime(ImmutableList.of(
+                EXAMINED + OTHER_EXAMINED, DELETED + OTHER_DELETED, TIME_SWEEPING + OTHER_TIME_SWEEPING));
     }
 
     @Test
     public void timeElapsedMeterIsSet() {
         sweepMetrics.updateSweepTime(
-                SWEEP_RESULTS.getTimeInMillis(),
-                SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
+                SWEEP_RESULTS.getTimeInMillis(), SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
         assertSweepTimeElapsedCurrentValueWithinMarginOfError(START_TIME);
 
         sweepMetrics.updateSweepTime(
-                OTHER_SWEEP_RESULTS.getTimeInMillis(),
-                OTHER_SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
+                OTHER_SWEEP_RESULTS.getTimeInMillis(), OTHER_SWEEP_RESULTS.getTimeElapsedSinceStartedSweeping());
         assertSweepTimeElapsedCurrentValueWithinMarginOfError(OTHER_START_TIME);
     }
 

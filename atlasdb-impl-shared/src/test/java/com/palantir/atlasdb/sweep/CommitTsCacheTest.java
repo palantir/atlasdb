@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -27,21 +27,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
-
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public class CommitTsCacheTest {
     private static final Long VALID_START_TIMESTAMP = 100L;
@@ -54,8 +52,7 @@ public class CommitTsCacheTest {
 
     @Test
     public void loadShouldReturnTheValidTimestamp() throws Exception {
-        when(mockTransactionService.get(VALID_START_TIMESTAMP))
-                .thenReturn(VALID_COMMIT_TIMESTAMP);
+        when(mockTransactionService.get(VALID_START_TIMESTAMP)).thenReturn(VALID_COMMIT_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(VALID_COMMIT_TIMESTAMP);
     }
@@ -64,13 +61,16 @@ public class CommitTsCacheTest {
     public void loadShouldPutRollbackIfCommitTsIsNull() throws Exception {
         AtomicLong answerCount = new AtomicLong();
 
-        doAnswer((invocation) -> answerCount.get() > 0 ? ROLLBACK_TIMESTAMP : NO_TIMESTAMP)
-                .when(mockTransactionService).get(VALID_START_TIMESTAMP);
+        doAnswer(invocation -> answerCount.get() > 0 ? ROLLBACK_TIMESTAMP : NO_TIMESTAMP)
+                .when(mockTransactionService)
+                .get(VALID_START_TIMESTAMP);
 
-        doAnswer((invocation) -> {
-            answerCount.set(1);
-            return null;
-        }).when(mockTransactionService).putUnlessExists(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
+        doAnswer(invocation -> {
+                    answerCount.set(1);
+                    return null;
+                })
+                .when(mockTransactionService)
+                .putUnlessExists(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
 
@@ -81,13 +81,16 @@ public class CommitTsCacheTest {
     public void loadShouldContinueIfKeyAlreadyExistsIsThrown() throws Exception {
         AtomicLong answerCount = new AtomicLong();
 
-        doAnswer((invocation) -> answerCount.get() > 0 ? VALID_COMMIT_TIMESTAMP : NO_TIMESTAMP)
-                .when(mockTransactionService).get(VALID_START_TIMESTAMP);
+        doAnswer(invocation -> answerCount.get() > 0 ? VALID_COMMIT_TIMESTAMP : NO_TIMESTAMP)
+                .when(mockTransactionService)
+                .get(VALID_START_TIMESTAMP);
 
-        doAnswer((invocation) -> {
-            answerCount.set(1);
-            throw new KeyAlreadyExistsException("Already exists");
-        }).when(mockTransactionService).putUnlessExists(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
+        doAnswer(invocation -> {
+                    answerCount.set(1);
+                    throw new KeyAlreadyExistsException("Already exists");
+                })
+                .when(mockTransactionService)
+                .putUnlessExists(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(VALID_COMMIT_TIMESTAMP);
 
@@ -96,8 +99,7 @@ public class CommitTsCacheTest {
 
     @Test
     public void loadShouldThrowIfANullIsToBeReturned() throws Exception {
-        doAnswer((invocation) -> NO_TIMESTAMP)
-                .when(mockTransactionService).get(VALID_START_TIMESTAMP);
+        doAnswer(invocation -> NO_TIMESTAMP).when(mockTransactionService).get(VALID_START_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
     }
@@ -107,15 +109,18 @@ public class CommitTsCacheTest {
     public void warmingCacheShouldNotPlaceUndueLoadOnTransactionService() throws Exception {
         long valuesToInsert = 1_000_000;
 
-        doAnswer((invocation) -> {
-            Collection<Long> timestamps = (Collection<Long>) invocation.getArguments()[0];
-            if (timestamps.size() > AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT) {
-                fail("Requested more timestamps in a batch than is reasonable!");
-            }
-            return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
-        }).when(mockTransactionService).get(any());
+        doAnswer(invocation -> {
+                    Collection<Long> timestamps = (Collection<Long>) invocation.getArguments()[0];
+                    if (timestamps.size() > AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT) {
+                        fail("Requested more timestamps in a batch than is reasonable!");
+                    }
+                    return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
+                })
+                .when(mockTransactionService)
+                .get(any());
 
-        Set<Long> initialTimestamps = LongStream.range(0, valuesToInsert).boxed().collect(Collectors.toSet());
+        Set<Long> initialTimestamps =
+                LongStream.range(0, valuesToInsert).boxed().collect(Collectors.toSet());
 
         loader.loadBatch(initialTimestamps);
         assertThat(loader.load(valuesToInsert - 1)).isEqualTo(valuesToInsert - 1);
@@ -125,23 +130,26 @@ public class CommitTsCacheTest {
     public void onlyRequestNonCachedTimestamps() throws Exception {
         Set<Long> initialTimestamps = LongStream.range(0L, 20L).boxed().collect(Collectors.toSet());
         doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation, initialTimestamps))
-                .when(mockTransactionService).get(any());
+                .when(mockTransactionService)
+                .get(any());
 
         loader.loadBatch(initialTimestamps);
         assertThat(loader.load(19L)).isEqualTo(19L);
 
         Set<Long> moreTimestamps = LongStream.range(10L, 30L).boxed().collect(Collectors.toSet());
-        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation,
-                Sets.difference(moreTimestamps, initialTimestamps)))
-                .when(mockTransactionService).get(any());
+        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(
+                        invocation, Sets.difference(moreTimestamps, initialTimestamps)))
+                .when(mockTransactionService)
+                .get(any());
 
         loader.loadBatch(moreTimestamps);
         assertThat(loader.load(27L)).isEqualTo(27L);
 
         Set<Long> evenMoreTimestamps = LongStream.range(7L, 50L).boxed().collect(Collectors.toSet());
-        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation,
-                Sets.difference(evenMoreTimestamps, Sets.union(initialTimestamps, moreTimestamps))))
-                .when(mockTransactionService).get(any());
+        doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(
+                        invocation, Sets.difference(evenMoreTimestamps, Sets.union(initialTimestamps, moreTimestamps))))
+                .when(mockTransactionService)
+                .get(any());
 
         loader.loadBatch(evenMoreTimestamps);
         assertThat(loader.load(3L)).isEqualTo(3L);
@@ -179,8 +187,8 @@ public class CommitTsCacheTest {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<Long, Long> assertRequestedTimestampsAndMapIdentity(InvocationOnMock invocation,
-            Collection<Long> expected) {
+    private Map<Long, Long> assertRequestedTimestampsAndMapIdentity(
+            InvocationOnMock invocation, Collection<Long> expected) {
         Collection<Long> timestamps = (Collection<Long>) invocation.getArguments()[0];
         assertThat(timestamps).containsExactlyElementsOf(expected);
         return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));

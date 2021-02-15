@@ -15,12 +15,12 @@
  */
 package com.palantir.processors;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -30,16 +30,12 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.TypeMirror;
 
-import com.google.common.collect.Sets;
-
 final class TypeToExtend {
     private final TypeElement typeToExtend;
     private final PackageElement typePackage;
     private final Set<ExecutableElement> methods;
 
-    TypeToExtend(PackageElement typePackage,
-            TypeElement typeToExtend,
-            TypeElement... supertypes) {
+    TypeToExtend(PackageElement typePackage, TypeElement typeToExtend, TypeElement... supertypes) {
 
         this.typeToExtend = typeToExtend;
         this.typePackage = typePackage;
@@ -49,19 +45,19 @@ final class TypeToExtend {
             allMethods.addAll(extractMethods(supertype));
         }
 
-        Map<String, ExecutableElement> methodSignatureToMethod = allMethods
-                .stream()
-                .collect(Collectors.toMap(ExecutableElement::toString, Function.identity(),
+        Map<String, ExecutableElement> methodSignatureToMethod = allMethods.stream()
+                .collect(Collectors.toMap(
+                        ExecutableElement::toString,
+                        Function.identity(),
                         // In the case of methods with same signature, just pick any of them,
                         // since they're both the same.
                         (methodSignature1, methodSignature2) -> methodSignature1));
 
-        methods = Sets.newHashSet(methodSignatureToMethod.values());
+        methods = new HashSet<>(methodSignatureToMethod.values());
     }
 
     private static List<ExecutableElement> extractMethods(TypeElement typeToExtractMethodsFrom) {
-        return typeToExtractMethodsFrom.getEnclosedElements()
-                .stream()
+        return typeToExtractMethodsFrom.getEnclosedElements().stream()
                 .filter(TypeToExtend::interfaceMethodFilter)
                 .map(element -> (ExecutableElement) element)
                 .collect(Collectors.toList());

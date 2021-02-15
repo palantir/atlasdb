@@ -13,15 +13,21 @@ dependencies {
     conjureCompiler 'com.palantir.conjure:conjure'
     conjureJava 'com.palantir.conjure.java:conjure-java'
 
+    compile project(':atlasdb-api')
+
     compile project(":timelock-corruption-detection:timelock-corruption-detection-undertow")
     compile project(":timelock-corruption-detection:timelock-corruption-detection-jersey")
 
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.conjure.java.api', name: 'service-config'
+    compile group: 'one.util', name: 'streamex'
 
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
+
+    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    testCompileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.mockito', name: 'mockito-core'

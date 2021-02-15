@@ -18,25 +18,6 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.assertj.core.api.Condition;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.Metric;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -75,6 +56,23 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.assertj.core.api.Condition;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
@@ -116,8 +114,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void locksAreExclusive() {
         LockToken token = namespace.lock(requestFor(LOCK_A)).getToken();
-        Future<LockToken> futureToken = lockAsync(requestFor(LOCK_A))
-                .thenApply(LockResponse::getToken);
+        Future<LockToken> futureToken = lockAsync(requestFor(LOCK_A)).thenApply(LockResponse::getToken);
 
         assertNotYetLocked(futureToken);
 
@@ -132,10 +129,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void canLockImmutableTimestamp() {
-        LockImmutableTimestampResponse response1 = namespace.timelockService()
-                .lockImmutableTimestamp();
-        LockImmutableTimestampResponse response2 = namespace.timelockService()
-                .lockImmutableTimestamp();
+        LockImmutableTimestampResponse response1 = namespace.timelockService().lockImmutableTimestamp();
+        LockImmutableTimestampResponse response2 = namespace.timelockService().lockImmutableTimestamp();
 
         long immutableTs = namespace.timelockService().getImmutableTimestamp();
         assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
@@ -157,11 +152,13 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .lastKnownVersion(Optional.empty())
                 .build();
 
-        LockImmutableTimestampResponse response1 = namespace.namespacedConjureTimelockService()
+        LockImmutableTimestampResponse response1 = namespace
+                .namespacedConjureTimelockService()
                 .startTransactions(request)
                 .getImmutableTimestamp();
 
-        LockImmutableTimestampResponse response2 = namespace.namespacedConjureTimelockService()
+        LockImmutableTimestampResponse response2 = namespace
+                .namespacedConjureTimelockService()
                 .startTransactions(request)
                 .getImmutableTimestamp();
 
@@ -170,13 +167,17 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         long immutableTs = namespace.timelockService().getImmutableTimestamp();
         assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
 
-        namespace.namespacedConjureTimelockService().unlock(
-                ConjureUnlockRequest.of(ImmutableSet.of(ConjureLockToken.of(response1.getLock().getRequestId()))));
+        namespace
+                .namespacedConjureTimelockService()
+                .unlock(ConjureUnlockRequest.of(
+                        ImmutableSet.of(ConjureLockToken.of(response1.getLock().getRequestId()))));
 
         assertThat(immutableTs).isEqualTo(response2.getImmutableTimestamp());
 
-        namespace.namespacedConjureTimelockService().unlock(
-                ConjureUnlockRequest.of(ImmutableSet.of(ConjureLockToken.of(response2.getLock().getRequestId()))));
+        namespace
+                .namespacedConjureTimelockService()
+                .unlock(ConjureUnlockRequest.of(
+                        ImmutableSet.of(ConjureLockToken.of(response2.getLock().getRequestId()))));
     }
 
     @Test
@@ -191,7 +192,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         NamespacedClients randomNamespace = cluster.clientForRandomNamespace();
         randomNamespace.getFreshTimestamp();
         Map<MetricName, Metric> metrics = cluster.currentLeaderFor(randomNamespace.namespace())
-                .taggedMetricRegistry().getMetrics();
+                .taggedMetricRegistry()
+                .getMetrics();
         assertThat(metrics).hasKeySatisfying(new Condition<MetricName>("contains random namespace") {
             @Override
             public boolean matches(MetricName value) {
@@ -293,8 +295,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     public void canPerformLockAndRefreshLock() throws InterruptedException {
         HeldLocksToken token1 = lockWithFullResponse(requestForWriteLock(LOCK_A), TEST_CLIENT);
         LockRefreshToken token = token1.getLockRefreshToken();
-        Set<LockRefreshToken> lockRefreshTokens = namespace.legacyLockService().refreshLockRefreshTokens(
-                ImmutableList.of(token));
+        Set<LockRefreshToken> lockRefreshTokens =
+                namespace.legacyLockService().refreshLockRefreshTokens(ImmutableList.of(token));
         assertThat(lockRefreshTokens).contains(token);
 
         unlock(token1);
@@ -304,8 +306,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     public void unlockAndFreezeDoesNotAllowRefreshes() throws InterruptedException {
         HeldLocksToken token = lockWithFullResponse(requestForWriteLock(LOCK_A), TEST_CLIENT);
         namespace.legacyLockService().unlockAndFreeze(token);
-        Set<LockRefreshToken> lockRefreshTokens = namespace.legacyLockService()
-                .refreshLockRefreshTokens(ImmutableList.of(token.getLockRefreshToken()));
+        Set<LockRefreshToken> lockRefreshTokens =
+                namespace.legacyLockService().refreshLockRefreshTokens(ImmutableList.of(token.getLockRefreshToken()));
         assertThat(lockRefreshTokens).isEmpty();
     }
 
@@ -316,13 +318,15 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
         Set<HeldLocksToken> tokens = namespace.legacyLockService().getTokens(TEST_CLIENT);
         assertThat(tokens.stream()
-                .map(token -> Iterables.getOnlyElement(token.getLocks()).getLockDescriptor())
-                .collect(Collectors.toList())).containsExactlyInAnyOrder(LOCK_A, LOCK_B);
+                        .map(token -> Iterables.getOnlyElement(token.getLocks()).getLockDescriptor())
+                        .collect(Collectors.toList()))
+                .containsExactlyInAnyOrder(LOCK_A, LOCK_B);
 
         Set<HeldLocksToken> heldLocksTokens = namespace.legacyLockService().refreshTokens(tokens);
         assertThat(heldLocksTokens.stream()
-                .map(token -> Iterables.getOnlyElement(token.getLocks()).getLockDescriptor())
-                .collect(Collectors.toList())).containsExactlyInAnyOrder(LOCK_A, LOCK_B);
+                        .map(token -> Iterables.getOnlyElement(token.getLocks()).getLockDescriptor())
+                        .collect(Collectors.toList()))
+                .containsExactlyInAnyOrder(LOCK_A, LOCK_B);
 
         unlock(token1, token2);
     }
@@ -342,21 +346,22 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
         namespace.legacyLockService().useGrant(TEST_CLIENT_2, heldLocksGrant);
 
-        SortedLockCollection<LockDescriptor> lockDescriptors =
-                Iterables.getOnlyElement(namespace.legacyLockService().getTokens(TEST_CLIENT_2)).getLockDescriptors();
+        SortedLockCollection<LockDescriptor> lockDescriptors = Iterables.getOnlyElement(
+                        namespace.legacyLockService().getTokens(TEST_CLIENT_2))
+                .getLockDescriptors();
         assertThat(lockDescriptors).contains(LOCK_A);
 
         // Catching any exception since this currently is an error deserialization exception
         // until we stop requiring http-remoting2 errors
-        assertThatThrownBy(
-                () -> namespace.legacyLockService().useGrant(TEST_CLIENT_3, heldLocksGrant.getGrantId()))
+        assertThatThrownBy(() -> namespace.legacyLockService().useGrant(TEST_CLIENT_3, heldLocksGrant.getGrantId()))
                 .isInstanceOf(Exception.class);
     }
 
     @Test
     public void getMinLockedInVersionIdReturnsNullIfNoVersionIdsAreSpecified() throws InterruptedException {
         HeldLocksToken token = lockWithFullResponse(requestForReadLock(LOCK_A), TEST_CLIENT);
-        assertThat(namespace.legacyLockService().getMinLockedInVersionId(TEST_CLIENT)).isNull();
+        assertThat(namespace.legacyLockService().getMinLockedInVersionId(TEST_CLIENT))
+                .isNull();
         unlock(token);
     }
 
@@ -364,7 +369,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     public void getMinLockedInVersionIdReturnsValidValues() throws InterruptedException {
         HeldLocksToken token1 = lockWithFullResponse(requestForReadLock(LOCK_A, 10L), TEST_CLIENT);
         HeldLocksToken token2 = lockWithFullResponse(requestForReadLock(LOCK_B, 12L), TEST_CLIENT);
-        assertThat(namespace.legacyLockService().getMinLockedInVersionId(TEST_CLIENT)).isEqualTo(10L);
+        assertThat(namespace.legacyLockService().getMinLockedInVersionId(TEST_CLIENT))
+                .isEqualTo(10L);
         unlock(token1, token2);
     }
 
@@ -401,7 +407,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         ConjureLockResponse duplicateResponse = duplicateResponseFuture.join();
         assertThat(response).isEqualTo(duplicateResponse);
 
-        namespace.namespacedConjureTimelockService()
+        namespace
+                .namespacedConjureTimelockService()
                 .unlock(ConjureUnlockRequest.of(ImmutableSet.of(getToken(response))));
     }
 
@@ -457,10 +464,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void startIdentifiedAtlasDbTransactionGivesUsTimestampsInSequence() {
-        StartIdentifiedAtlasDbTransactionResponse firstResponse =
-                startSingleTransaction(namespace.timelockService());
-        StartIdentifiedAtlasDbTransactionResponse secondResponse =
-                startSingleTransaction(namespace.timelockService());
+        StartIdentifiedAtlasDbTransactionResponse firstResponse = startSingleTransaction(namespace.timelockService());
+        StartIdentifiedAtlasDbTransactionResponse secondResponse = startSingleTransaction(namespace.timelockService());
 
         assertThatStartIdentifiedTransactionResponseTimestampsInSequence(firstResponse, secondResponse);
     }
@@ -475,10 +480,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void startIdentifiedAtlasDbTransactionGivesUsStartTimestampsInTheSamePartition() {
-        StartIdentifiedAtlasDbTransactionResponse firstResponse =
-                startSingleTransaction(namespace.timelockService());
-        StartIdentifiedAtlasDbTransactionResponse secondResponse =
-                startSingleTransaction(namespace.timelockService());
+        StartIdentifiedAtlasDbTransactionResponse firstResponse = startSingleTransaction(namespace.timelockService());
+        StartIdentifiedAtlasDbTransactionResponse secondResponse = startSingleTransaction(namespace.timelockService());
 
         assertThatStartIdentifiedTransactionResponseTimestampsInSamePartition(firstResponse, secondResponse);
     }
@@ -509,17 +512,33 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void distinctClientsForTheSameNamespaceStillShareTheSameSequenceOfTimestamps() {
-        TimelockService independentClient1 = cluster.uncachedNamespacedClients(namespace.namespace()).timelockService();
-        TimelockService independentClient2 = cluster.uncachedNamespacedClients(namespace.namespace()).timelockService();
+        TimelockService independentClient1 =
+                cluster.uncachedNamespacedClients(namespace.namespace()).timelockService();
+        TimelockService independentClient2 =
+                cluster.uncachedNamespacedClients(namespace.namespace()).timelockService();
 
         List<Long> temporalSequence = ImmutableList.of(
-                startSingleTransaction(independentClient1).startTimestampAndPartition().timestamp(),
-                startSingleTransaction(independentClient1).startTimestampAndPartition().timestamp(),
-                startSingleTransaction(independentClient2).startTimestampAndPartition().timestamp(),
-                startSingleTransaction(independentClient2).startTimestampAndPartition().timestamp(),
-                startSingleTransaction(independentClient1).startTimestampAndPartition().timestamp(),
-                startSingleTransaction(independentClient2).startTimestampAndPartition().timestamp(),
-                startSingleTransaction(independentClient1).startTimestampAndPartition().timestamp());
+                startSingleTransaction(independentClient1)
+                        .startTimestampAndPartition()
+                        .timestamp(),
+                startSingleTransaction(independentClient1)
+                        .startTimestampAndPartition()
+                        .timestamp(),
+                startSingleTransaction(independentClient2)
+                        .startTimestampAndPartition()
+                        .timestamp(),
+                startSingleTransaction(independentClient2)
+                        .startTimestampAndPartition()
+                        .timestamp(),
+                startSingleTransaction(independentClient1)
+                        .startTimestampAndPartition()
+                        .timestamp(),
+                startSingleTransaction(independentClient2)
+                        .startTimestampAndPartition()
+                        .timestamp(),
+                startSingleTransaction(independentClient1)
+                        .startTimestampAndPartition()
+                        .timestamp());
 
         assertThat(temporalSequence).isSorted();
     }
@@ -576,13 +595,15 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         // enough between the first and second call that the immutable timestamp lock expires, then
         // IT on response 2 > FT on response 1.
         assertThat(ImmutableList.of(
-                firstResponse.immutableTimestamp().getImmutableTimestamp(),
-                firstResponse.startTimestampAndPartition().timestamp(),
-                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
+                        firstResponse.immutableTimestamp().getImmutableTimestamp(),
+                        firstResponse.startTimestampAndPartition().timestamp(),
+                        secondResponse.startTimestampAndPartition().timestamp()))
+                .isSorted();
         assertThat(ImmutableList.of(
-                firstResponse.immutableTimestamp().getImmutableTimestamp(),
-                secondResponse.immutableTimestamp().getImmutableTimestamp(),
-                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
+                        firstResponse.immutableTimestamp().getImmutableTimestamp(),
+                        secondResponse.immutableTimestamp().getImmutableTimestamp(),
+                        secondResponse.startTimestampAndPartition().timestamp()))
+                .isSorted();
     }
 
     private void assertThatStartIdentifiedTransactionResponseTimestampsInSamePartition(
@@ -592,9 +613,10 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .isEqualTo(secondResponse.startTimestampAndPartition().partition());
     }
 
-    private HeldLocksToken lockWithFullResponse(com.palantir.lock.LockRequest request,
-            LockClient client) throws InterruptedException {
-        return namespace.legacyLockService()
+    private HeldLocksToken lockWithFullResponse(com.palantir.lock.LockRequest request, LockClient client)
+            throws InterruptedException {
+        return namespace
+                .legacyLockService()
                 .lockWithFullLockResponse(client, request)
                 .getToken();
     }
@@ -655,8 +677,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     private static void assertNotDone(Future<?> future) {
-        assertThatThrownBy(() -> future.get(1, TimeUnit.SECONDS))
-                .isInstanceOf(TimeoutException.class);
+        assertThatThrownBy(() -> future.get(1, TimeUnit.SECONDS)).isInstanceOf(TimeoutException.class);
     }
 
     private static <T> T assertDone(Future<T> future) {
@@ -680,11 +701,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 .numTransactions(numRequestedTimestamps)
                 .lastKnownVersion(Optional.empty())
                 .build();
-        ConjureStartTransactionsResponse response = namespace.namespacedConjureTimelockService()
-                .startTransactions(request);
-        return response.getTimestamps().stream()
-                .boxed()
-                .collect(Collectors.toList());
+        ConjureStartTransactionsResponse response =
+                namespace.namespacedConjureTimelockService().startTransactions(request);
+        return response.getTimestamps().stream().boxed().collect(Collectors.toList());
     }
-
 }

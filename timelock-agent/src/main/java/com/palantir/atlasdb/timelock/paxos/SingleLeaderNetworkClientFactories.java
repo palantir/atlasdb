@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
@@ -36,10 +29,16 @@ import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
 import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorAdapters;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapters;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
+@SuppressWarnings("immutables:subtype")
 @Value.Immutable
-abstract class SingleLeaderNetworkClientFactories implements
-        NetworkClientFactories, Dependencies.NetworkClientFactories {
+abstract class SingleLeaderNetworkClientFactories
+        implements NetworkClientFactories, Dependencies.NetworkClientFactories {
 
     @Value.Default
     Supplier<Boolean> useBatchedEndpoints() {
@@ -51,18 +50,20 @@ abstract class SingleLeaderNetworkClientFactories implements
     @Override
     public Factory<PaxosAcceptorNetworkClient> acceptor() {
         return client -> {
-            List<WithDedicatedExecutor<PaxosAcceptor>> remoteAcceptors = TimelockPaxosAcceptorAdapters
-                    .create(useCase(), remoteClients(), useBatchedEndpoints(), client);
+            List<WithDedicatedExecutor<PaxosAcceptor>> remoteAcceptors =
+                    TimelockPaxosAcceptorAdapters.create(useCase(), remoteClients(), useBatchedEndpoints(), client);
 
             PaxosAcceptor localAcceptor = components().acceptor(client);
             LocalAndRemotes<WithDedicatedExecutor<PaxosAcceptor>> paxosAcceptors = LocalAndRemotes.of(
-                    WithDedicatedExecutor.of(localAcceptor, MoreExecutors.newDirectExecutorService()),
-                    remoteAcceptors)
-                    .enhanceRemotes(remote -> remote.transformService(
-                            service -> metrics().instrument(PaxosAcceptor.class, service)));
+                            WithDedicatedExecutor.of(localAcceptor, MoreExecutors.newDirectExecutorService()),
+                            remoteAcceptors)
+                    .enhanceRemotes(remote ->
+                            remote.transformService(service -> metrics().instrument(PaxosAcceptor.class, service)));
 
             SingleLeaderAcceptorNetworkClient uninstrumentedAcceptor = new SingleLeaderAcceptorNetworkClient(
-                    paxosAcceptors.all().stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()),
+                    paxosAcceptors.all().stream()
+                            .map(WithDedicatedExecutor::service)
+                            .collect(Collectors.toList()),
                     quorumSize(),
                     KeyedStream.of(paxosAcceptors.all())
                             .mapKeys(WithDedicatedExecutor::service)
@@ -78,22 +79,24 @@ abstract class SingleLeaderNetworkClientFactories implements
     @Override
     public Factory<PaxosLearnerNetworkClient> learner() {
         return client -> {
-            List<WithDedicatedExecutor<PaxosLearner>> remoteLearners = TimelockPaxosLearnerAdapters
-                    .create(useCase(), remoteClients(), useBatchedEndpoints(), client)
-                    .stream()
-                    .map(withExecutor -> withExecutor.transformService(
-                            remote -> metrics().instrument(PaxosLearner.class, remote, client)))
-                    .collect(Collectors.toList());
+            List<WithDedicatedExecutor<PaxosLearner>> remoteLearners =
+                    TimelockPaxosLearnerAdapters.create(useCase(), remoteClients(), useBatchedEndpoints(), client)
+                            .stream()
+                            .map(withExecutor -> withExecutor.transformService(
+                                    remote -> metrics().instrument(PaxosLearner.class, remote, client)))
+                            .collect(Collectors.toList());
             PaxosLearner localLearner = components().learner(client);
 
-            Map<PaxosLearner, CheckedRejectionExecutorService> executorMap
-                    = ImmutableMap.<PaxosLearner, CheckedRejectionExecutorService>builder()
+            Map<PaxosLearner, CheckedRejectionExecutorService> executorMap =
+                    ImmutableMap.<PaxosLearner, CheckedRejectionExecutorService>builder()
                             .putAll(KeyedStream.of(remoteLearners)
-                            .mapKeys(WithDedicatedExecutor::service)
-                            .map(WithDedicatedExecutor::executor)
-                            .collectToMap())
-                    .put(localLearner, new CheckedRejectionExecutorService(MoreExecutors.newDirectExecutorService()))
-                    .build();
+                                    .mapKeys(WithDedicatedExecutor::service)
+                                    .map(WithDedicatedExecutor::executor)
+                                    .collectToMap())
+                            .put(
+                                    localLearner,
+                                    new CheckedRejectionExecutorService(MoreExecutors.newDirectExecutorService()))
+                            .build();
 
             SingleLeaderLearnerNetworkClient uninstrumentedLearner = new SingleLeaderLearnerNetworkClient(
                     localLearner,
@@ -106,5 +109,4 @@ abstract class SingleLeaderNetworkClientFactories implements
     }
 
     public abstract static class Builder implements NetworkClientFactories.Builder {}
-
 }

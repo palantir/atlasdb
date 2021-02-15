@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import org.assertj.core.api.Assertions;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import org.assertj.core.api.Assertions;
+import org.junit.Test;
 
 @SuppressWarnings("ThrowableInstanceNeverThrown")
 public class RetryLimitReachedExceptionTest {
@@ -30,22 +29,22 @@ public class RetryLimitReachedExceptionTest {
 
     @Test
     public void noMatches() {
-        RetryLimitReachedException exception = new RetryLimitReachedException(
-                ImmutableList.of(RUNTIME, ATLAS_DEPENDENCY, GENERIC));
+        RetryLimitReachedException exception =
+                new RetryLimitReachedException(ImmutableList.of(RUNTIME, ATLAS_DEPENDENCY, GENERIC));
         Assertions.assertThat(exception.suppressed(IllegalStateException.class)).isFalse();
     }
 
     @Test
     public void exactMatch() {
-        RetryLimitReachedException exception = new RetryLimitReachedException(
-                ImmutableList.of(RUNTIME, ATLAS_DEPENDENCY, GENERIC));
+        RetryLimitReachedException exception =
+                new RetryLimitReachedException(ImmutableList.of(RUNTIME, ATLAS_DEPENDENCY, GENERIC));
         Assertions.assertThat(exception.suppressed(RuntimeException.class)).isTrue();
     }
 
     @Test
     public void superMatch() {
-        RetryLimitReachedException exception = new RetryLimitReachedException(
-                ImmutableList.of(ATLAS_DEPENDENCY, GENERIC));
+        RetryLimitReachedException exception =
+                new RetryLimitReachedException(ImmutableList.of(ATLAS_DEPENDENCY, GENERIC));
         Assertions.assertThat(exception.suppressed(RuntimeException.class)).isTrue();
     }
 }

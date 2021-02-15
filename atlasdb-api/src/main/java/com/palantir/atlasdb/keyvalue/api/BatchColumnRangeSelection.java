@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-import java.util.regex.Pattern;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
+import java.io.Serializable;
+import java.util.regex.Pattern;
 
 public final class BatchColumnRangeSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -40,9 +39,10 @@ public final class BatchColumnRangeSelection implements Serializable {
     }
 
     @JsonCreator
-    public static BatchColumnRangeSelection create(@JsonProperty("startCol") byte[] startCol,
-                                                   @JsonProperty("endCol") byte[] endCol,
-                                                   @JsonProperty("batchHint") int batchHint) {
+    public static BatchColumnRangeSelection create(
+            @JsonProperty("startCol") byte[] startCol,
+            @JsonProperty("endCol") byte[] endCol,
+            @JsonProperty("batchHint") int batchHint) {
         return new BatchColumnRangeSelection(new ColumnRangeSelection(startCol, endCol), batchHint);
     }
 
@@ -91,7 +91,6 @@ public final class BatchColumnRangeSelection implements Serializable {
         }
         return true;
     }
-
 
     private static final Pattern deserializeRegex = Pattern.compile("\\s*,\\s*");
 

@@ -19,15 +19,6 @@ package com.palantir.atlasdb.timelock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Stream;
-
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -37,6 +28,13 @@ import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.errors.QosException;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Stream;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
@@ -53,7 +51,6 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
         return injector.getParameter();
     }
 
-
     @Test
     public void eachNamespaceGetsAssignedDifferentLeaders() {
         // the reason this test works is that unless a namespace has been seen by a node, it won't try to gain
@@ -69,11 +66,11 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
                 .map(NamespacedClients::throughWireMockProxy)
                 .forEach(NamespacedClients::getFreshTimestamp);
 
-        SetMultimap<TestableTimelockServer, String> namespacesByLeader =
-                ImmutableSetMultimap.copyOf(cluster.currentLeaders(allNamespaces)).inverse();
+        SetMultimap<TestableTimelockServer, String> namespacesByLeader = ImmutableSetMultimap.copyOf(
+                        cluster.currentLeaders(allNamespaces))
+                .inverse();
 
-        assertThat(namespacesByLeader)
-                .isEqualTo(allocations);
+        assertThat(namespacesByLeader).isEqualTo(allocations);
 
         cluster.servers().forEach(TestableTimelockServer::allowAllNamespaces);
     }
@@ -82,7 +79,8 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
     public void nonLeadersCorrectly308() {
         SetMultimap<TestableTimelockServer, String> allocations = allocateRandomNamespacesToAllNodes(1);
         String randomNamespace = Iterables.get(allocations.values(), 0);
-        NamespacedClients clientForRandomNamespace = cluster.client(randomNamespace).throughWireMockProxy();
+        NamespacedClients clientForRandomNamespace =
+                cluster.client(randomNamespace).throughWireMockProxy();
         clientForRandomNamespace.getFreshTimestamp();
 
         cluster.servers().forEach(TestableTimelockServer::allowAllNamespaces);
@@ -90,13 +88,12 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
         TestableTimelockServer allocatedLeader = Iterables.getOnlyElement(
                 ImmutableSetMultimap.copyOf(allocations).inverse().get(randomNamespace));
 
-        assertThat(cluster.currentLeaderFor(randomNamespace))
-                .isEqualTo(allocatedLeader);
+        assertThat(cluster.currentLeaderFor(randomNamespace)).isEqualTo(allocatedLeader);
 
-        cluster.nonLeaders(randomNamespace).get(randomNamespace).forEach(nonLeader ->
-                assertThatThrownBy(() -> nonLeader.client(randomNamespace).getFreshTimestamp())
-                        .as("non leaders should return 308")
-                        .hasRootCauseInstanceOf(QosException.RetryOther.class));
+        cluster.nonLeaders(randomNamespace).get(randomNamespace).forEach(nonLeader -> assertThatThrownBy(
+                        () -> nonLeader.client(randomNamespace).getFreshTimestamp())
+                .as("non leaders should return 308")
+                .hasRootCauseInstanceOf(QosException.RetryOther.class));
     }
 
     private SetMultimap<TestableTimelockServer, String> allocateRandomNamespacesToAllNodes(int namespacesPerLeader) {
@@ -113,5 +110,4 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
     private static String randomNamespace() {
         return UUID.randomUUID().toString();
     }
-
 }

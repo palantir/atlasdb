@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -31,6 +26,10 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
     private static final int ACQUIRE_TIMEOUT_MS = 50_000;
@@ -39,14 +38,15 @@ public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
     private final List<LockDescriptor> lockDescriptors;
     private final AtomicLong counter = new AtomicLong(0);
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
-            int requestsPerClient, int numDistinctLocks) {
-        return new LockAndUnlockContendedBenchmark(txnManager.getTimelockService(), numClients, requestsPerClient,
-                numDistinctLocks).execute();
+    public static Map<String, Object> execute(
+            TransactionManager txnManager, int numClients, int requestsPerClient, int numDistinctLocks) {
+        return new LockAndUnlockContendedBenchmark(
+                        txnManager.getTimelockService(), numClients, requestsPerClient, numDistinctLocks)
+                .execute();
     }
 
-    protected LockAndUnlockContendedBenchmark(TimelockService timelock, int numClients, int numRequestsPerClient,
-            int numDistinctLocks) {
+    protected LockAndUnlockContendedBenchmark(
+            TimelockService timelock, int numClients, int numRequestsPerClient, int numDistinctLocks) {
         super(numClients, numRequestsPerClient);
         this.timelock = timelock;
 

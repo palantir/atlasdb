@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.todo;
 
-import java.io.File;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -28,6 +26,7 @@ import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import java.io.File;
 
 public class TodoSchema implements AtlasSchema {
     private static final Schema INDEX_TEST_SCHEMA = generateSchema();
@@ -44,7 +43,8 @@ public class TodoSchema implements AtlasSchema {
                 Namespace.DEFAULT_NAMESPACE,
                 OptionalType.JAVA8);
 
-        schema.addTableDefinition(TODO_TABLE, new TableDefinition() {{
+        schema.addTableDefinition(TODO_TABLE, new TableDefinition() {
+            {
                 rowName();
                 rowComponent("id", ValueType.FIXED_LONG);
                 columns();
@@ -54,7 +54,8 @@ public class TodoSchema implements AtlasSchema {
             }
         });
 
-        schema.addTableDefinition(NAMESPACED_TODO_TABLE, new TableDefinition() {{
+        schema.addTableDefinition(NAMESPACED_TODO_TABLE, new TableDefinition() {
+            {
                 rowName();
                 rowComponent("namespace", ValueType.STRING);
                 dynamicColumns();
@@ -64,7 +65,8 @@ public class TodoSchema implements AtlasSchema {
             }
         });
 
-        schema.addTableDefinition(LATEST_STREAM_TABLE, new TableDefinition() {{
+        schema.addTableDefinition(LATEST_STREAM_TABLE, new TableDefinition() {
+            {
                 rowName();
                 rowComponent("key", ValueType.FIXED_LONG);
                 columns();
@@ -75,8 +77,7 @@ public class TodoSchema implements AtlasSchema {
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder(STREAM_TABLE, "Snapshots", ValueType.FIXED_LONG)
                         .inMemoryThreshold(AtlasDbConstants.DEFAULT_STREAM_IN_MEMORY_THRESHOLD)
-                        .build()
-        );
+                        .build());
 
         return schema;
     }

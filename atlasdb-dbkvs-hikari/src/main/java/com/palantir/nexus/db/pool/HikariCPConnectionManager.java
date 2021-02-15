@@ -15,25 +15,6 @@
  */
 package com.palantir.nexus.db.pool;
 
-import java.lang.management.ManagementFactory;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.TimeZone;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-
-import javax.management.JMX;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Stopwatch;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -45,6 +26,22 @@ import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
+import java.lang.management.ManagementFactory;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.TimeZone;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import javax.management.JMX;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * HikariCP Connection Manager.
@@ -115,7 +112,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 profiler.logConnectionTest();
                 return conn;
             } catch (SQLException e) {
-                log.error("[{}] Dropping connection which failed validation",
+                log.error(
+                        "[{}] Dropping connection which failed validation",
                         SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
                         e);
                 dataSourcePool.evictConnection(conn);
@@ -148,8 +146,10 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                             SafeArg.of("totalConnections", poolProxy.getTotalConnections()),
                             SafeArg.of("threadsAwaitingConnection", poolProxy.getThreadsAwaitingConnection()));
                 } catch (Exception e) {
-                    log.error("[{}] Unable to log pool statistics.",
-                            SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()), e);
+                    log.error(
+                            "[{}] Unable to log pool statistics.",
+                            SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
+                            e);
                 }
             }
         }
@@ -187,7 +187,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     }
 
     private void logConnectionFailure() {
-        log.error("Failed to get connection from the datasource "
+        log.error(
+                "Failed to get connection from the datasource "
                         + "{}. Please check the jdbc url ({}), the password, "
                         + "and that the secure server key is correct for the hashed password.",
                 SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
@@ -282,7 +283,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     private HikariDataSource getDataSourcePool() {
         // Print a stack trace whenever we initialize a pool
         if (log.isDebugEnabled()) {
-            log.debug("Initializing connection pool",
+            log.debug(
+                    "Initializing connection pool",
                     UnsafeArg.of("connConfig", connConfig),
                     new SafeRuntimeException("Initializing connection pool"));
         }
@@ -297,14 +299,18 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 if (e.getMessage().contains("A metric named")) {
                     String poolName = connConfig.getConnectionPoolName();
 
-                    connConfig.getHikariConfig().setPoolName(poolName + "-" + ThreadLocalRandom.current().nextInt());
+                    connConfig
+                            .getHikariConfig()
+                            .setPoolName(
+                                    poolName + "-" + ThreadLocalRandom.current().nextInt());
                     dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
                 } else {
                     throw e;
                 }
             }
         } catch (PoolInitializationException e) {
-            log.error("Failed to initialize hikari data source",
+            log.error(
+                    "Failed to initialize hikari data source",
                     SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
                     UnsafeArg.of("url", connConfig.getUrl()),
                     e);
@@ -318,10 +324,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
                 if (tzname.equals("Etc/Universal")) {
                     // Really common failure case. UTC is both a name AND an abbreviation.
-                    log.error(
-                            "{} The timezone *name* should be UTC. {}",
-                            errorPreamble,
-                            errorAfterward);
+                    log.error("{} The timezone *name* should be UTC. {}", errorPreamble, errorAfterward);
                 } else {
                     log.error(
                             "{} This is caused by using non-standard or unsupported timezone names. {}",
@@ -348,7 +351,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         try {
             poolName = new ObjectName("com.zaxxer.hikari:type=Pool (" + connConfig.getConnectionPoolName() + ")");
         } catch (MalformedObjectNameException e) {
-            log.error("Unable to setup mBean monitoring for pool {}.",
+            log.error(
+                    "Unable to setup mBean monitoring for pool {}.",
                     SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
                     e);
         }
@@ -390,7 +394,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         private void logQueryDuration() {
             long elapsedMillis = globalStopwatch.elapsed(TimeUnit.MILLISECONDS);
             if (elapsedMillis > 1000) {
-                log.warn("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
+                log.warn(
+                        "[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
                         SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
                         SafeArg.of("elapsedMillis", elapsedMillis),
                         SafeArg.of("acquisitionMillis", acquisitionMillis),
@@ -398,7 +403,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 logPoolStats();
             } else {
                 if (log.isDebugEnabled()) {
-                    log.debug("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
+                    log.debug(
+                            "[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
                             SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
                             SafeArg.of("elapsedMillis", elapsedMillis),
                             SafeArg.of("acquisitionMillis", acquisitionMillis),

@@ -22,15 +22,6 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -46,13 +37,20 @@ import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public class TargetedSweepTest extends AtlasDbTestCase {
     private static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.1");
     private static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.2");
     private static final TableReference TABLE_NONAMESPACE = TableReference.createWithEmptyNamespace("empty");
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("col1"));
-    private static final byte[] TEST_DATA = new byte[]{1};
+    private static final byte[] TEST_DATA = new byte[] {1};
     private static final WriteReference SINGLE_WRITE = WriteReference.write(TABLE_CONS, TEST_CELL);
     private static final WriteReference SINGLE_DELETE = WriteReference.tombstone(TABLE_CONS, TEST_CELL);
 
@@ -61,12 +59,13 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     public void setUp() throws Exception {
         super.setUp();
         keyValueService.createTable(TABLE_CONS, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        keyValueService.createTable(TABLE_THOR,
-                TableMetadataPersistence.TableMetadata.newBuilder(
-                TableMetadataPersistence.TableMetadata.parseFrom(AtlasDbConstants.GENERIC_TABLE_METADATA))
-                .setSweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH)
-                .build()
-                .toByteArray());
+        keyValueService.createTable(
+                TABLE_THOR,
+                TableMetadataPersistence.TableMetadata.newBuilder(TableMetadataPersistence.TableMetadata.parseFrom(
+                                AtlasDbConstants.GENERIC_TABLE_METADATA))
+                        .setSweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH)
+                        .build()
+                        .toByteArray());
         keyValueService.createTable(TABLE_NONAMESPACE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
@@ -144,11 +143,11 @@ public class TargetedSweepTest extends AtlasDbTestCase {
 
     @Test
     public void writesNotAddedToSweepQueueOrKvsOnException() {
-        assertThatThrownBy(() ->
-                txManager.runTaskWithRetry(txn -> {
+        assertThatThrownBy(() -> txManager.runTaskWithRetry(txn -> {
                     txn.put(TABLE_CONS, ImmutableMap.of(TEST_CELL, TEST_DATA));
                     throw new RuntimeException("test");
-                })).isInstanceOf(RuntimeException.class);
+                }))
+                .isInstanceOf(RuntimeException.class);
 
         verify(sweepQueue, times(0)).enqueue(anyList());
         assertNoEntryForCellInKvs(TABLE_CONS, TEST_CELL);
@@ -250,24 +249,24 @@ public class TargetedSweepTest extends AtlasDbTestCase {
 
     private void assertLatestEntryBeforeTsIs(long getTs, TableReference tableRef, Cell cell, byte[] data, long ts) {
         Value expected = Value.create(data, ts);
-        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, getTs)).get(cell)).isEqualTo(expected);
+        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, getTs))).containsEntry(cell, expected);
     }
 
     private long putWriteAndFailOnPreCommitConditionReturningStartTimestamp(WriteReference writeRef) {
         AtomicLong startTs = new AtomicLong(0);
-        assertThatThrownBy(() -> serializableTxManager
-                .runTaskWithConditionWithRetry(
-                        FailingPreCommitCondition::new,
-                        (txn, ignore) -> {
+        assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(
+                        FailingPreCommitCondition::new, (txn, ignore) -> {
                             put(txn, writeRef);
                             startTs.set(txn.getTimestamp());
                             return null;
-                        })).isInstanceOf(RuntimeException.class);
+                        }))
+                .isInstanceOf(RuntimeException.class);
         return startTs.get();
     }
 
     private void assertNoEntryForCellInKvs(TableReference tableRef, Cell cell) {
-        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, Long.MAX_VALUE)).get(cell)).isNull();
+        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, Long.MAX_VALUE)))
+                .doesNotContainKey(cell);
     }
 
     private void useOneSweepQueueShard() {
@@ -276,7 +275,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
 
     private void assertOnlySentinelBeforeTs(TableReference tableRef, Cell cell, long ts) {
         Value sentinel = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, ts)).get(cell)).isEqualTo(sentinel);
+        assertThat(keyValueService.get(tableRef, ImmutableMap.of(cell, ts))).containsEntry(cell, sentinel);
     }
 
     private Long writeInTransactionAndGetStartTimestamp(WriteReference writeRef) {
@@ -286,16 +285,14 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         });
     }
 
-    private static class FailingPreCommitCondition implements PreCommitCondition {
+    private static final class FailingPreCommitCondition implements PreCommitCondition {
         @Override
         public void throwIfConditionInvalid(long timestamp) {
             throw new RuntimeException("test");
         }
 
         @Override
-        public void cleanup() {
-
-        }
+        public void cleanup() {}
     }
 
     private void sweepNextBatch(ShardAndStrategy shardStrategy) {

@@ -16,9 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.Map;
-import java.util.stream.Stream;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -37,14 +34,15 @@ import com.palantir.conjure.java.client.config.NodeSelectionStrategy;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
+import java.util.stream.Stream;
 
 public final class TimeLockDialogueServiceProvider {
     private final DialogueClients.ReloadingFactory reloadingFactory;
     private final TaggedMetricRegistry taggedMetricRegistry;
 
     private TimeLockDialogueServiceProvider(
-            DialogueClients.ReloadingFactory reloadingFactory,
-            TaggedMetricRegistry taggedMetricRegistry) {
+            DialogueClients.ReloadingFactory reloadingFactory, TaggedMetricRegistry taggedMetricRegistry) {
         this.reloadingFactory = reloadingFactory;
         this.taggedMetricRegistry = taggedMetricRegistry;
     }
@@ -55,10 +53,11 @@ public final class TimeLockDialogueServiceProvider {
             ServerListConfig serverListConfig,
             AuxiliaryRemotingParameters parameters) {
         UserAgent versionedAgent = parameters.userAgent().addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT);
-        Map<String, RemoteServiceConfiguration> remoteServiceConfigurations
-                = createRemoteServiceConfigurations(serverListConfig, versionedAgent, parameters);
-        DialogueClients.ReloadingFactory reloadingFactory
-                = decorate(baseFactory, Refreshable.only(remoteServiceConfigurations)).withUserAgent(versionedAgent);
+        Map<String, RemoteServiceConfiguration> remoteServiceConfigurations =
+                createRemoteServiceConfigurations(serverListConfig, versionedAgent, parameters);
+        DialogueClients.ReloadingFactory reloadingFactory = decorate(
+                        baseFactory, Refreshable.only(remoteServiceConfigurations))
+                .withUserAgent(versionedAgent);
         return new TimeLockDialogueServiceProvider(reloadingFactory, taggedMetricRegistry);
     }
 
@@ -104,8 +103,8 @@ public final class TimeLockDialogueServiceProvider {
     private static DialogueClients.ReloadingFactory decorate(
             DialogueClients.ReloadingFactory baseFactory,
             Refreshable<Map<String, RemoteServiceConfiguration>> serviceToRemoteConfiguration) {
-        return baseFactory.reloading(serviceToRemoteConfiguration.map(
-                DialogueClientOptions::toServicesConfigBlock))
+        return baseFactory
+                .reloading(serviceToRemoteConfiguration.map(DialogueClientOptions::toServicesConfigBlock))
                 .withNodeSelectionStrategy(NodeSelectionStrategy.PIN_UNTIL_ERROR_WITHOUT_RESHUFFLE)
                 .withClientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS);
     }

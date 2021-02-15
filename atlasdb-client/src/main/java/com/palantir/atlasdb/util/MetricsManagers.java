@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.util;
 
-import java.util.function.BooleanSupplier;
-
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.refreshable.Refreshable;
@@ -31,9 +29,7 @@ public final class MetricsManagers {
     }
 
     public static MetricsManager of(
-            MetricRegistry metrics,
-            TaggedMetricRegistry taggedMetrics,
-            Refreshable<Boolean> performMetricFiltering) {
+            MetricRegistry metrics, TaggedMetricRegistry taggedMetrics, Refreshable<Boolean> performMetricFiltering) {
         return new MetricsManager(metrics, taggedMetrics, performMetricFiltering, LoggingArgs::isSafe);
     }
 
@@ -43,9 +39,6 @@ public final class MetricsManagers {
 
     public static MetricsManager createAlwaysSafeAndFilteringForTests() {
         return new MetricsManager(
-                new MetricRegistry(),
-                new DefaultTaggedMetricRegistry(),
-                Refreshable.only(true),
-                tableRef -> true);
+                new MetricRegistry(), new DefaultTaggedMetricRegistry(), Refreshable.only(true), tableRef -> true);
     }
 }

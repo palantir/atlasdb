@@ -30,17 +30,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.immutables.value.Value;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -51,13 +40,22 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.common.annotation.Output;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.immutables.value.Value;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class WriteBatchingTransactionServiceTest {
     private static final V1EncodingStrategy ENCODING_STRATEGY = V1EncodingStrategy.INSTANCE;
 
     private final EncodingTransactionService mockTransactionService = mock(EncodingTransactionService.class);
-    private final TransactionService writeBatchingTransactionService = WriteBatchingTransactionService.create(
-            mockTransactionService);
+    private final TransactionService writeBatchingTransactionService =
+            WriteBatchingTransactionService.create(mockTransactionService);
 
     @Before
     public void setUp() {
@@ -87,19 +85,20 @@ public class WriteBatchingTransactionServiceTest {
 
     @Test
     public void batchesElementsAndDelegates() {
-        WriteBatchingTransactionService.processBatch(mockTransactionService, ImmutableList.of(
-                TestTransactionBatchElement.of(1L, 100L),
-                TestTransactionBatchElement.of(2L, 200L),
-                TestTransactionBatchElement.of(3L, 300L)));
+        WriteBatchingTransactionService.processBatch(
+                mockTransactionService,
+                ImmutableList.of(
+                        TestTransactionBatchElement.of(1L, 100L),
+                        TestTransactionBatchElement.of(2L, 200L),
+                        TestTransactionBatchElement.of(3L, 300L)));
 
-        verify(mockTransactionService).putUnlessExistsMultiple(
-                ImmutableMap.of(1L, 100L, 2L, 200L, 3L, 300L));
+        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(1L, 100L, 2L, 200L, 3L, 300L));
     }
 
     @Test
     public void filtersOutKeysThatExistOnKeyAlreadyExistsException() {
-        KeyAlreadyExistsException keyAlreadyExistsException = new KeyAlreadyExistsException("boo", ImmutableList.of(
-                ENCODING_STRATEGY.encodeStartTimestampAsCell(2L)));
+        KeyAlreadyExistsException keyAlreadyExistsException = new KeyAlreadyExistsException(
+                "boo", ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(2L)));
         doThrow(keyAlreadyExistsException)
                 .doNothing()
                 .when(mockTransactionService)
@@ -108,8 +107,8 @@ public class WriteBatchingTransactionServiceTest {
         TestTransactionBatchElement elementAlreadyExisting = TestTransactionBatchElement.of(2L, 200L);
         TestTransactionBatchElement elementNotExisting = TestTransactionBatchElement.of(3L, 300L);
 
-        WriteBatchingTransactionService.processBatch(mockTransactionService, ImmutableList.of(
-                elementAlreadyExisting, elementNotExisting));
+        WriteBatchingTransactionService.processBatch(
+                mockTransactionService, ImmutableList.of(elementAlreadyExisting, elementNotExisting));
 
         assertThatThrownBy(() -> elementAlreadyExisting.result().get()).hasCause(keyAlreadyExistsException);
         assertThatCode(() -> elementNotExisting.result().get()).doesNotThrowAnyException();
@@ -127,10 +126,10 @@ public class WriteBatchingTransactionServiceTest {
                 .when(mockTransactionService)
                 .putUnlessExistsMultiple(anyMap());
 
-        assertThatThrownBy(() ->
-                WriteBatchingTransactionService.processBatch(mockTransactionService, ImmutableList.of(
-                        TestTransactionBatchElement.of(1L, 100L),
-                        TestTransactionBatchElement.of(2L, 200L))))
+        assertThatThrownBy(() -> WriteBatchingTransactionService.processBatch(
+                        mockTransactionService,
+                        ImmutableList.of(
+                                TestTransactionBatchElement.of(1L, 100L), TestTransactionBatchElement.of(2L, 200L))))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("claimed no keys already existed");
 
@@ -144,17 +143,14 @@ public class WriteBatchingTransactionServiceTest {
 
         KeyAlreadyExistsException originalException = new KeyAlreadyExistsException("boo", failed, succeeded);
 
-        doThrow(originalException)
-                .doNothing()
-                .when(mockTransactionService)
-                .putUnlessExistsMultiple(anyMap());
+        doThrow(originalException).doNothing().when(mockTransactionService).putUnlessExistsMultiple(anyMap());
 
         TestTransactionBatchElement elementNotExisting = TestTransactionBatchElement.of(2L, 200L);
         TestTransactionBatchElement elementAlreadyExisting = TestTransactionBatchElement.of(3L, 300L);
         TestTransactionBatchElement elementToRetry = TestTransactionBatchElement.of(4L, 400L);
 
-        WriteBatchingTransactionService.processBatch(mockTransactionService, ImmutableList.of(
-                elementNotExisting, elementAlreadyExisting, elementToRetry));
+        WriteBatchingTransactionService.processBatch(
+                mockTransactionService, ImmutableList.of(elementNotExisting, elementAlreadyExisting, elementToRetry));
 
         verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(2L, 200L, 3L, 300L, 4L, 400L));
         verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(4L, 400L));
@@ -168,18 +164,15 @@ public class WriteBatchingTransactionServiceTest {
 
     @Test
     public void repeatedProcessBatchOnlyMakesOneCallWithDuplicatesIfSuccessful() {
-        KeyAlreadyExistsException exception = new KeyAlreadyExistsException("boo",
-                ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(5L)));
-        doNothing()
-                .doThrow(exception)
-                .when(mockTransactionService)
-                .putUnlessExistsMultiple(anyMap());
+        KeyAlreadyExistsException exception = new KeyAlreadyExistsException(
+                "boo", ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(5L)));
+        doNothing().doThrow(exception).when(mockTransactionService).putUnlessExistsMultiple(anyMap());
 
         int numRequests = 100;
-        List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest =
-                IntStream.range(0, numRequests)
-                        .mapToObj(unused -> TestTransactionBatchElement.of(5L, 9L))
-                        .collect(Collectors.toList());
+        List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
+                        0, numRequests)
+                .mapToObj(unused -> TestTransactionBatchElement.of(5L, 9L))
+                .collect(Collectors.toList());
 
         WriteBatchingTransactionService.processBatch(mockTransactionService, batchedRequest);
 
@@ -196,17 +189,15 @@ public class WriteBatchingTransactionServiceTest {
 
     @Test
     public void repeatedProcessBatchOnlyMakesOneCallWithDuplicatesIfFailedAndKnownFailed() {
-        KeyAlreadyExistsException exception = new KeyAlreadyExistsException("boo",
-                ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(5L)));
-        doThrow(exception)
-                .when(mockTransactionService)
-                .putUnlessExistsMultiple(anyMap());
+        KeyAlreadyExistsException exception = new KeyAlreadyExistsException(
+                "boo", ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(5L)));
+        doThrow(exception).when(mockTransactionService).putUnlessExistsMultiple(anyMap());
 
         int numRequests = 100;
-        List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest =
-                IntStream.range(0, numRequests)
-                        .mapToObj(unused -> TestTransactionBatchElement.of(5L, 9L))
-                        .collect(Collectors.toList());
+        List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
+                        0, numRequests)
+                .mapToObj(unused -> TestTransactionBatchElement.of(5L, 9L))
+                .collect(Collectors.toList());
 
         WriteBatchingTransactionService.processBatch(mockTransactionService, batchedRequest);
 
@@ -223,18 +214,17 @@ public class WriteBatchingTransactionServiceTest {
 
     @Test
     public void repeatedProcessBatchFiltersOutPartialSuccesses() {
-        KeyAlreadyExistsException exception = new KeyAlreadyExistsException("boo",
+        KeyAlreadyExistsException exception = new KeyAlreadyExistsException(
+                "boo",
                 ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(5L)),
                 ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(6L)));
-        doThrow(exception)
-                .when(mockTransactionService)
-                .putUnlessExistsMultiple(anyMap());
+        doThrow(exception).when(mockTransactionService).putUnlessExistsMultiple(anyMap());
 
         int numFailingRequests = 100;
-        List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest =
-                IntStream.range(0, numFailingRequests)
-                        .mapToObj(unused -> TestTransactionBatchElement.of(6L, 9L))
-                        .collect(Collectors.toList());
+        List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
+                        0, numFailingRequests)
+                .mapToObj(unused -> TestTransactionBatchElement.of(6L, 9L))
+                .collect(Collectors.toList());
         batchedRequest.add(TestTransactionBatchElement.of(5L, 888L));
 
         WriteBatchingTransactionService.processBatch(mockTransactionService, batchedRequest);
@@ -274,10 +264,10 @@ public class WriteBatchingTransactionServiceTest {
                 SimpleTransactionService.createV1(new InMemoryKeyValueService(true));
 
         int numRequests = 100;
-        List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest =
-                IntStream.range(0, numRequests)
-                        .mapToObj(unused -> TestTransactionBatchElement.of(1L, 5L))
-                        .collect(Collectors.toList());
+        List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
+                        0, numRequests)
+                .mapToObj(unused -> TestTransactionBatchElement.of(1L, 5L))
+                .collect(Collectors.toList());
 
         WriteBatchingTransactionService.processBatch(encodingTransactionService, batchedRequest);
 
@@ -291,10 +281,12 @@ public class WriteBatchingTransactionServiceTest {
                 assertThat(ex)
                         .hasCauseInstanceOf(KeyAlreadyExistsException.class)
                         .satisfies(executionException -> {
-                            KeyAlreadyExistsException keyAlreadyExistsException
-                                    = (KeyAlreadyExistsException) executionException.getCause();
-                            assertThat(keyAlreadyExistsException.getExistingKeys()).containsExactly(
-                                    encodingTransactionService.getEncodingStrategy().encodeStartTimestampAsCell(1L));
+                            KeyAlreadyExistsException keyAlreadyExistsException =
+                                    (KeyAlreadyExistsException) executionException.getCause();
+                            assertThat(keyAlreadyExistsException.getExistingKeys())
+                                    .containsExactly(encodingTransactionService
+                                            .getEncodingStrategy()
+                                            .encodeStartTimestampAsCell(1L));
                         });
                 exceptionCounter.incrementAndGet();
             }
@@ -306,6 +298,7 @@ public class WriteBatchingTransactionServiceTest {
         assertThat(exceptionCounter).hasValue(numRequests - 1);
     }
 
+    @SuppressWarnings("immutables:subtype")
     @Value.Immutable
     interface TestTransactionBatchElement extends BatchElement<WriteBatchingTransactionService.TimestampPair, Void> {
         static TestTransactionBatchElement of(long startTimestamp, long commitTimestamp) {

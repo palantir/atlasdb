@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: '`getRowsColumnRange` and `getRowsColumnRangeIterator` now return a
+    single iterator for a given row. Previously, users could obtain multiple distinct
+    views wrapping an underlying iterator, which can lead to misleading or incorrect
+    results e.g. because iterators may pre-load some of their elements.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5137

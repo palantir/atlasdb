@@ -15,20 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Futures;
@@ -48,8 +37,18 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
@@ -67,7 +66,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     public AbstractKeyValueService(ExecutorService executor) {
         this.executor = executor;
         this.tracingPrefs = new TracingPrefsConfig();
-        tracingPrefsTask = scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
+        tracingPrefsTask = scheduledExecutor.scheduleWithFixedDelay(
+                this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
     }
 
     /**
@@ -123,7 +123,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      */
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> keys) {
-        return Maps.newHashMap(Maps.transformValues(get(tableRef, keys), Value.GET_TIMESTAMP));
+        return new HashMap<>(Maps.transformValues(get(tableRef, keys), Value.GET_TIMESTAMP));
     }
 
     @Override
@@ -152,8 +152,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
-        try (ClosableIterator<RowResult<Set<Long>>> iterator = getRangeOfTimestamps(tableRef, range,
-                AtlasDbConstants.MAX_TS)) {
+        try (ClosableIterator<RowResult<Set<Long>>> iterator =
+                getRangeOfTimestamps(tableRef, range, AtlasDbConstants.MAX_TS)) {
             while (iterator.hasNext()) {
                 RowResult<Set<Long>> rowResult = iterator.next();
                 Multimap<Cell, Long> cellsToDelete = HashMultimap.create();
@@ -177,7 +177,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void truncateTables(final Set<TableReference> tableRefs) {
-        List<Future<Void>> futures = Lists.newArrayList();
+        List<Future<Void>> futures = new ArrayList<>();
         for (final TableReference tableRef : tableRefs) {
             futures.add(executor.submit(() -> {
                 truncateTable(tableRef);
@@ -199,24 +199,22 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
-                                                                  Iterable<byte[]> rows,
-                                                                  BatchColumnRangeSelection batchColumnRangeSelection,
-                                                                  long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            long timestamp) {
         return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, batchColumnRangeSelection, timestamp);
     }
 
     @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
-        return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(this,
-                                                                          tableRef,
-                                                                          rows,
-                                                                          columnRangeSelection,
-                                                                          cellBatchHint,
-                                                                          timestamp);
+    public RowColumnRangeIterator getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            int cellBatchHint,
+            long timestamp) {
+        return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(
+                this, tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
     }
 }

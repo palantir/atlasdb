@@ -19,17 +19,15 @@ package com.palantir.atlasdb.util;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.codahale.metrics.Gauge;
+import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.junit.Test;
-
-import com.codahale.metrics.Gauge;
-import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 
 public class TopNMetricPublicationControllerTest {
     @Test
@@ -57,9 +55,8 @@ public class TopNMetricPublicationControllerTest {
 
         TopNMetricPublicationController<Long> controller = TopNMetricPublicationController.create(7);
 
-        List<MetricPublicationFilter> filtersInOrder = atomicLongs.stream()
-                .map(controller::registerAndCreateFilter)
-                .collect(Collectors.toList());
+        List<MetricPublicationFilter> filtersInOrder =
+                atomicLongs.stream().map(controller::registerAndCreateFilter).collect(Collectors.toList());
 
         assertThat(filtersInOrder.get(0).shouldPublish()).isFalse();
         assertThat(filtersInOrder.get(50).shouldPublish()).isFalse();
@@ -77,10 +74,8 @@ public class TopNMetricPublicationControllerTest {
         Gauge<Long> gauge1 = value1::get;
         Gauge<Long> gauge2 = value2::get;
 
-        TopNMetricPublicationController<Long> controller = new TopNMetricPublicationController<>(
-                Comparator.<Long>naturalOrder(),
-                1,
-                Duration.ofNanos(1));
+        TopNMetricPublicationController<Long> controller =
+                new TopNMetricPublicationController<>(Comparator.<Long>naturalOrder(), 1, Duration.ofNanos(1));
         MetricPublicationFilter filter1 = controller.registerAndCreateFilter(gauge1);
         MetricPublicationFilter filter2 = controller.registerAndCreateFilter(gauge2);
 

@@ -19,10 +19,9 @@ package com.palantir.atlasdb.keyvalue.impl;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import org.junit.Test;
 
 public class ColumnRangeSelectionTest {
     private static final byte[] BYTES_1 = PtBytes.toBytes("aaaaaaa");
@@ -49,8 +48,10 @@ public class ColumnRangeSelectionTest {
 
     @Test
     public void canCreateUnboundedOneEnd() {
-        assertThatCode(() -> new ColumnRangeSelection(BYTES_1, PtBytes.EMPTY_BYTE_ARRAY)).doesNotThrowAnyException();
-        assertThatCode(() -> new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, BYTES_2)).doesNotThrowAnyException();
+        assertThatCode(() -> new ColumnRangeSelection(BYTES_1, PtBytes.EMPTY_BYTE_ARRAY))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, BYTES_2))
+                .doesNotThrowAnyException();
     }
 
     @Test

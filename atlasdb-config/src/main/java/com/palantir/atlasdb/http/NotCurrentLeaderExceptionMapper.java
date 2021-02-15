@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.util.Optional;
-
-import javax.ws.rs.core.Response;
-
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
+import java.util.Optional;
+import javax.ws.rs.core.Response;
 
 /**
  * Converts {@link NotCurrentLeaderException} into appropriate status responses depending on the user's
@@ -47,8 +45,8 @@ public class NotCurrentLeaderExceptionMapper extends ProtocolAwareExceptionMappe
 
     @Override
     QosException handleConjureJavaRuntime(NotCurrentLeaderException exception) {
-        return redirectRetryTargeter.flatMap(redirectTargeter ->
-                redirectTargeter.redirectRequest(exception.getServiceHint()))
+        return redirectRetryTargeter
+                .flatMap(redirectTargeter -> redirectTargeter.redirectRequest(exception.getServiceHint()))
                 .<QosException>map(QosException::retryOther)
                 .orElseGet(QosException::unavailable);
     }

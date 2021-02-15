@@ -23,20 +23,20 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.palantir.exception.PalantirInterruptedException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import com.palantir.exception.PalantirInterruptedException;
 
 public class ErrorCheckingTimestampBoundStoreTest {
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
+
     private final TimestampAllocationFailures allocationFailures = mock(TimestampAllocationFailures.class);
     private final TimestampBoundStore delegate = mock(TimestampBoundStore.class);
-    private final ErrorCheckingTimestampBoundStore store = new ErrorCheckingTimestampBoundStore(delegate,
-            allocationFailures);
+    private final ErrorCheckingTimestampBoundStore store =
+            new ErrorCheckingTimestampBoundStore(delegate, allocationFailures);
 
     @Test
     public void shouldDelegateHandlingOfAllocationFailures() {
@@ -92,5 +92,4 @@ public class ErrorCheckingTimestampBoundStoreTest {
 
         verify(delegate, never()).storeUpperLimit(anyLong());
     }
-
 }

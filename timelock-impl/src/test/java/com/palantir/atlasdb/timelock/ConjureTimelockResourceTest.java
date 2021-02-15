@@ -17,19 +17,8 @@
 package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.when;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.time.Duration;
-import java.util.concurrent.ExecutionException;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
@@ -44,6 +33,15 @@ import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.time.Duration;
+import java.util.concurrent.ExecutionException;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ConjureTimelockResourceTest {
@@ -51,14 +49,16 @@ public class ConjureTimelockResourceTest {
     private static final int REMOTE_PORT = 4321;
     private static final URL LOCAL = url("https://localhost:1234");
     private static final URL REMOTE = url("https://localhost:" + REMOTE_PORT);
-    private static final RedirectRetryTargeter TARGETER = RedirectRetryTargeter.create(
-            LOCAL,
-            ImmutableList.of(LOCAL, REMOTE));
+    private static final RedirectRetryTargeter TARGETER =
+            RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
 
     private static final String NAMESPACE = "test";
 
-    @Mock private AsyncTimelockService timelockService;
-    @Mock private LeaderTime leaderTime;
+    @Mock
+    private AsyncTimelockService timelockService;
+
+    @Mock
+    private LeaderTime leaderTime;
 
     private ConjureTimelockResource resource;
     private ConjureTimelockService service;
@@ -72,7 +72,8 @@ public class ConjureTimelockResourceTest {
 
     @Test
     public void canGetLeaderTime() {
-        assertThat(Futures.getUnchecked(resource.leaderTime(AUTH_HEADER, NAMESPACE))).isEqualTo(leaderTime);
+        assertThat(Futures.getUnchecked(resource.leaderTime(AUTH_HEADER, NAMESPACE)))
+                .isEqualTo(leaderTime);
     }
 
     @Test
@@ -83,12 +84,12 @@ public class ConjureTimelockResourceTest {
                         () -> Futures.immediateFuture(service.leaderTime(AUTH_HEADER, NAMESPACE)),
                         MoreExecutors.directExecutor()),
                 new AssertVisitor() {
-            @Override
-            public Void visit(QosException.Throttle exception) {
-                assertThat(exception.getRetryAfter()).contains(Duration.ZERO);
-                return null;
-            }
-        });
+                    @Override
+                    public Void visit(QosException.Throttle exception) {
+                        assertThat(exception.getRetryAfter()).contains(Duration.ZERO);
+                        return null;
+                    }
+                });
     }
 
     @Test
@@ -117,8 +118,8 @@ public class ConjureTimelockResourceTest {
 
     @Test
     public void handlesNotCurrentLeader() {
-        when(resource.leaderTime(AUTH_HEADER, NAMESPACE)).thenThrow(new NotCurrentLeaderException(
-                "", HostAndPort.fromParts("localhost", REMOTE_PORT)));
+        when(resource.leaderTime(AUTH_HEADER, NAMESPACE))
+                .thenThrow(new NotCurrentLeaderException("", HostAndPort.fromParts("localhost", REMOTE_PORT)));
         assertQosExceptionThrownBy(resource.leaderTime(AUTH_HEADER, NAMESPACE), new AssertVisitor() {
             @Override
             public Void visit(QosException.RetryOther exception) {
@@ -139,7 +140,7 @@ public class ConjureTimelockResourceTest {
         }
     }
 
-    private static abstract class AssertVisitor implements QosException.Visitor<Void> {
+    private abstract static class AssertVisitor implements QosException.Visitor<Void> {
 
         @Override
         public Void visit(QosException.Throttle exception) {

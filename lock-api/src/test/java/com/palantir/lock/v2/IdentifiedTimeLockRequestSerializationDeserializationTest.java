@@ -17,24 +17,23 @@ package com.palantir.lock.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.UUID;
-
 import org.junit.Test;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 
 public class IdentifiedTimeLockRequestSerializationDeserializationTest {
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
     private static final UUID SAMPLE_UUID = UUID.fromString("ed4b106f-8718-4858-a402-d99415124cfe");
     private static final IdentifiedTimeLockRequest REQUEST = ImmutableIdentifiedTimeLockRequest.of(SAMPLE_UUID);
 
-    private static final File IDENTIFIED_TIMELOCK_REQUEST_JSON = new File(
-            IdentifiedTimeLockRequest.class.getResource("/identified-timelock-request.json").getPath());
+    private static final File IDENTIFIED_TIMELOCK_REQUEST_JSON = new File(IdentifiedTimeLockRequest.class
+            .getResource("/identified-timelock-request.json")
+            .getPath());
 
     @Test
     public void canSerializeAndDeserializeRandomUuids() throws Exception {
@@ -54,7 +53,6 @@ public class IdentifiedTimeLockRequestSerializationDeserializationTest {
     public void canSerializeIdentifiedTimeLockRequestToJson() throws IOException {
         assertThat(OBJECT_MAPPER.writeValueAsString(REQUEST))
                 .isEqualTo(new String(
-                        Files.readAllBytes(IDENTIFIED_TIMELOCK_REQUEST_JSON.toPath()),
-                        StandardCharsets.UTF_8));
+                        Files.readAllBytes(IDENTIFIED_TIMELOCK_REQUEST_JSON.toPath()), StandardCharsets.UTF_8));
     }
 }

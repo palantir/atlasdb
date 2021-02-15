@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.ete;
 
-import java.io.IOException;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-
 import com.google.common.base.Throwables;
 import com.palantir.docker.compose.connection.Container;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Set;
+import org.awaitility.Awaitility;
 
 public final class MultiCassandraUtils {
     private static final int CASSANDRA_PORT = 9160;
@@ -58,12 +56,14 @@ public final class MultiCassandraUtils {
 
     private static void waitForCassandraContainer(Container container) {
         Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
-                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(Duration.ofSeconds(60))
+                .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     // TODO (jkong): hack
-                    String curlOutput = EteSetup.execCliCommand("ete1",
-                            String.format("bash -c 'curl %s:%s; echo $?; exit 0;'",
+                    String curlOutput = EteSetup.execCliCommand(
+                            "ete1",
+                            String.format(
+                                    "bash -c 'curl %s:%s; echo $?; exit 0;'",
                                     container.getContainerName(), CASSANDRA_PORT));
                     return curlOutput.contains("52");
                 });

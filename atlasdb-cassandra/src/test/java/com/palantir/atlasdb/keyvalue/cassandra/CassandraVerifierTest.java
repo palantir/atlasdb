@@ -20,19 +20,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-
-import org.apache.cassandra.thrift.EndpointDetails;
-import org.apache.cassandra.thrift.KsDef;
-import org.apache.cassandra.thrift.TokenRange;
-import org.apache.thrift.TException;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import java.util.Arrays;
+import org.apache.cassandra.thrift.EndpointDetails;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.cassandra.thrift.TokenRange;
+import org.apache.thrift.TException;
+import org.junit.Test;
 
 public class CassandraVerifierTest {
     private static final String DC_1 = "dc1";
@@ -71,13 +69,13 @@ public class CassandraVerifierTest {
         setTopology(createDetails(DC_1, RACK_1, HOST_1));
         when(config.replicationFactor()).thenReturn(3);
 
-        assertThat(CassandraVerifier.sanityCheckDatacenters(client, config))
-                .containsExactly(DC_1);
+        assertThat(CassandraVerifier.sanityCheckDatacenters(client, config)).containsExactly(DC_1);
     }
 
     @Test
     public void oneDcOneRackAndMoreHostsThanRfThrows() throws TException {
-        setTopology(createDetails(DC_1, RACK_1, HOST_1),
+        setTopology(
+                createDetails(DC_1, RACK_1, HOST_1),
                 createDetails(DC_1, RACK_1, HOST_2),
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_1, RACK_1, HOST_4));
@@ -89,7 +87,8 @@ public class CassandraVerifierTest {
 
     @Test
     public void oneDcFewerRacksThanRfAndMoreHostsThanRfThrows() throws TException {
-        setTopology(defaultDcDetails(RACK_1, HOST_1),
+        setTopology(
+                defaultDcDetails(RACK_1, HOST_1),
                 defaultDcDetails(RACK_2, HOST_2),
                 defaultDcDetails(RACK_1, HOST_3),
                 defaultDcDetails(RACK_2, HOST_4));
@@ -101,7 +100,8 @@ public class CassandraVerifierTest {
 
     @Test
     public void oneDcMoreRacksThanRfAndMoreHostsThanRfSucceeds() throws TException {
-        setTopology(defaultDcDetails(RACK_1, HOST_1),
+        setTopology(
+                defaultDcDetails(RACK_1, HOST_1),
                 defaultDcDetails(RACK_2, HOST_2),
                 defaultDcDetails(RACK_1, HOST_3),
                 defaultDcDetails(RACK_3, HOST_4));
@@ -113,7 +113,8 @@ public class CassandraVerifierTest {
 
     @Test
     public void oneDcFewerRacksThanRfAndFewerHostsThanRfSucceeds() throws TException {
-        setTopology(defaultDcDetails(RACK_1, HOST_1),
+        setTopology(
+                defaultDcDetails(RACK_1, HOST_1),
                 defaultDcDetails(RACK_2, HOST_2),
                 defaultDcDetails(RACK_1, HOST_2),
                 defaultDcDetails(RACK_2, HOST_1));
@@ -125,19 +126,20 @@ public class CassandraVerifierTest {
 
     @Test
     public void multipleDcSuceeds() throws TException {
-        setTopology(createDetails(DC_1, RACK_1, HOST_1),
+        setTopology(
+                createDetails(DC_1, RACK_1, HOST_1),
                 createDetails(DC_1, RACK_1, HOST_2),
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
         when(config.replicationFactor()).thenReturn(3);
 
-        assertThat(CassandraVerifier.sanityCheckDatacenters(client, config))
-                .containsExactlyInAnyOrder(DC_1, DC_2);
+        assertThat(CassandraVerifier.sanityCheckDatacenters(client, config)).containsExactlyInAnyOrder(DC_1, DC_2);
     }
 
     @Test
     public void freshInstanceSetsStrategyOptions() throws TException {
-        setTopology(createDetails(DC_1, RACK_1, HOST_1),
+        setTopology(
+                createDetails(DC_1, RACK_1, HOST_1),
                 createDetails(DC_1, RACK_1, HOST_2),
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
@@ -152,8 +154,8 @@ public class CassandraVerifierTest {
         setTopology(createDetails(DC_1, RACK_1, HOST_1));
         when(config.replicationFactor()).thenReturn(1);
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
-        ImmutableMap<String, String> strategyOptions = ImmutableMap
-                .of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1");
+        ImmutableMap<String, String> strategyOptions =
+                ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1");
         ksDef.setStrategy_options(strategyOptions);
 
         ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
@@ -172,7 +174,8 @@ public class CassandraVerifierTest {
 
     @Test
     public void simpleStrategyMultipleDcsThrows() throws TException {
-        setTopology(createDetails(DC_1, RACK_1, HOST_1),
+        setTopology(
+                createDetails(DC_1, RACK_1, HOST_1),
                 createDetails(DC_1, RACK_1, HOST_2),
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
@@ -190,8 +193,8 @@ public class CassandraVerifierTest {
         when(config.replicationFactor()).thenReturn(7);
         when(config.ignoreNodeTopologyChecks()).thenReturn(true);
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
-        ImmutableMap<String, String> strategyOptions = ImmutableMap
-                .of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1", DC_1, "7");
+        ImmutableMap<String, String> strategyOptions =
+                ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1", DC_1, "7");
         ksDef.setStrategy_options(strategyOptions);
 
         ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
@@ -201,14 +204,15 @@ public class CassandraVerifierTest {
 
     @Test
     public void networkStrategyMultipleDcsSucceeds() throws TException {
-        setTopology(createDetails(DC_1, RACK_1, HOST_1),
+        setTopology(
+                createDetails(DC_1, RACK_1, HOST_1),
                 createDetails(DC_1, RACK_1, HOST_2),
                 createDetails(DC_1, RACK_1, HOST_3),
                 createDetails(DC_2, RACK_1, HOST_4));
         when(config.replicationFactor()).thenReturn(3);
         KsDef ksDef = new KsDef("test", CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
-        ImmutableMap<String, String> strategyOptions = ImmutableMap.of(
-                CassandraConstants.REPLICATION_FACTOR_OPTION, "3", DC_1, "3", DC_2, "3");
+        ImmutableMap<String, String> strategyOptions =
+                ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "3", DC_1, "3", DC_2, "3");
         ksDef.setStrategy_options(strategyOptions);
 
         ksDef = CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, config);
@@ -220,9 +224,8 @@ public class CassandraVerifierTest {
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(DC_1, "1"));
         assertThatThrownBy(() ->
-                CassandraVerifier.sanityCheckReplicationFactor(ksDef, config, ImmutableSet.of(DC_1, DC_2)))
+                        CassandraVerifier.sanityCheckReplicationFactor(ksDef, config, ImmutableSet.of(DC_1, DC_2)))
                 .isInstanceOf(IllegalStateException.class);
-
     }
 
     @Test
@@ -230,10 +233,9 @@ public class CassandraVerifierTest {
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(DC_1, "1", DC_2, "2"));
         when(config.replicationFactor()).thenReturn(1);
-        assertThatThrownBy(() ->
-                CassandraVerifier.sanityCheckReplicationFactor(ksDef, config, ImmutableSortedSet.of(DC_1, DC_2)))
+        assertThatThrownBy(() -> CassandraVerifier.sanityCheckReplicationFactor(
+                        ksDef, config, ImmutableSortedSet.of(DC_1, DC_2)))
                 .isInstanceOf(UnsupportedOperationException.class);
-
     }
 
     private void setTopology(EndpointDetails... details) throws TException {

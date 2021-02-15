@@ -28,11 +28,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -63,15 +58,17 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
-
+import java.util.Map;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public class KeyValueServiceMigratorsTest {
     private static final long FUTURE_TIMESTAMP = 3141592653589L;
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("test.table");
-    private static final TableReference CHECKPOINT_TABLE_NO_NAMESPACE = TableReference
-            .createWithEmptyNamespace(KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
-    private static final TableReference CHECKPOINT_TABLE = TableReference
-            .create(KeyValueServiceMigrators.CHECKPOINT_NAMESPACE, KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
+    private static final TableReference CHECKPOINT_TABLE_NO_NAMESPACE =
+            TableReference.createWithEmptyNamespace(KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
+    private static final TableReference CHECKPOINT_TABLE = TableReference.create(
+            KeyValueServiceMigrators.CHECKPOINT_NAMESPACE, KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
     private static final ImmutableMap<TableReference, byte[]> TEST_AND_CHECKPOINT_TABLES = ImmutableMap.of(
             TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
             CHECKPOINT_TABLE_NO_NAMESPACE, AtlasDbConstants.GENERIC_TABLE_METADATA,
@@ -111,9 +108,8 @@ public class KeyValueServiceMigratorsTest {
 
         ArgumentCaptor<Long> startTimestampCaptor = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<Long> commitTimestampCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(toServices.getTransactionService()).putUnlessExists(
-                startTimestampCaptor.capture(),
-                commitTimestampCaptor.capture());
+        verify(toServices.getTransactionService())
+                .putUnlessExists(startTimestampCaptor.capture(), commitTimestampCaptor.capture());
         assertThat(startTimestampCaptor.getValue()).isLessThan(commitTimestampCaptor.getValue());
         assertThat(commitTimestampCaptor.getValue())
                 .isLessThan(toServices.getManagedTimestampService().getFreshTimestamp());
@@ -121,13 +117,19 @@ public class KeyValueServiceMigratorsTest {
 
     @Test
     public void throwsIfSpecifyingNegativeThreads() {
-        assertThatThrownBy(() -> ImmutableMigratorSpec.builder().from(migratorSpec).threads(-2).build())
+        assertThatThrownBy(() -> ImmutableMigratorSpec.builder()
+                        .from(migratorSpec)
+                        .threads(-2)
+                        .build())
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsIfSpecifyingNegativeBatchSize() {
-        assertThatThrownBy(() -> ImmutableMigratorSpec.builder().from(migratorSpec).batchSize(-2).build())
+        assertThatThrownBy(() -> ImmutableMigratorSpec.builder()
+                        .from(migratorSpec)
+                        .batchSize(-2)
+                        .build())
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -139,8 +141,11 @@ public class KeyValueServiceMigratorsTest {
         KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(migratorSpec);
         migrator.setup();
 
-        assertThat(toKvs.getAllTableNames()).containsExactlyInAnyOrder(TransactionConstants.TRANSACTION_TABLE,
-                TransactionConstants.TRANSACTIONS2_TABLE, AtlasDbConstants.COORDINATION_TABLE);
+        assertThat(toKvs.getAllTableNames())
+                .containsExactlyInAnyOrder(
+                        TransactionConstants.TRANSACTION_TABLE,
+                        TransactionConstants.TRANSACTIONS2_TABLE,
+                        AtlasDbConstants.COORDINATION_TABLE);
     }
 
     @Test
@@ -148,13 +153,15 @@ public class KeyValueServiceMigratorsTest {
         fromKvs.createTables(TEST_AND_CHECKPOINT_TABLES);
         toKvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         toKvs.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE1), 1);
-        assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))).isNotEmpty();
+        assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)))
+                .isNotEmpty();
 
         KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(migratorSpec);
         migrator.setup();
 
         assertThat(toKvs.getAllTableNames()).containsExactlyInAnyOrderElementsOf(fromKvs.getAllTableNames());
-        assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))).isEmpty();
+        assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)))
+                .isEmpty();
     }
 
     @Test
@@ -199,7 +206,9 @@ public class KeyValueServiceMigratorsTest {
 
         assertThat(fromServices.getTransactionService().get(uncommittedTs))
                 .isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
-        assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL).getContents())
+        assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))
+                        .get(TEST_CELL)
+                        .getContents())
                 .containsExactly(TEST_VALUE1);
     }
 
@@ -227,7 +236,9 @@ public class KeyValueServiceMigratorsTest {
             return null;
         });
 
-        assertThat(toKvs.getAllTimestamps(TEST_TABLE, ImmutableSet.of(TEST_CELL), Long.MAX_VALUE).size()).isEqualTo(1);
+        assertThat(toKvs.getAllTimestamps(TEST_TABLE, ImmutableSet.of(TEST_CELL), Long.MAX_VALUE)
+                        .size())
+                .isEqualTo(1);
     }
 
     @Test
@@ -246,7 +257,8 @@ public class KeyValueServiceMigratorsTest {
         migrator.setup();
         migrator.migrate();
 
-        assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))).isEmpty();
+        assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)))
+                .isEmpty();
     }
 
     @Test
@@ -277,15 +289,17 @@ public class KeyValueServiceMigratorsTest {
                 ImmutableMap.of(FAKE_ATOMIC_TABLE, fromKvs));
 
         AtlasDbServices toSplittingServices = createMock(toTableSplittingKvs);
-        ImmutableMigratorSpec spec  = ImmutableMigratorSpec.builder()
+        ImmutableMigratorSpec spec = ImmutableMigratorSpec.builder()
                 .fromServices(fromServices)
                 .toServices(toSplittingServices)
                 .build();
 
-        assertThat(toSplittingServices.getKeyValueService()
-                .get(FAKE_ATOMIC_TABLE, ImmutableMap.of(TEST_CELL, 1L)).get(TEST_CELL).getContents())
+        assertThat(toSplittingServices
+                        .getKeyValueService()
+                        .get(FAKE_ATOMIC_TABLE, ImmutableMap.of(TEST_CELL, 1L))
+                        .get(TEST_CELL)
+                        .getContents())
                 .containsExactly(TEST_VALUE1);
-
 
         KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(spec);
         migrator.setup();
@@ -300,7 +314,7 @@ public class KeyValueServiceMigratorsTest {
                 Maps.toMap(AtlasDbConstants.HIDDEN_TABLES, ignore -> fromKvs));
 
         AtlasDbServices toSplittingServices = createMock(toTableSplittingKvs);
-        ImmutableMigratorSpec spec  = ImmutableMigratorSpec.builder()
+        ImmutableMigratorSpec spec = ImmutableMigratorSpec.builder()
                 .fromServices(fromServices)
                 .toServices(toSplittingServices)
                 .build();
@@ -330,7 +344,8 @@ public class KeyValueServiceMigratorsTest {
                 timestampService,
                 timestampService,
                 LockClient.of("test"),
-                LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build()),
+                LockServiceImpl.create(
+                        LockServerOptions.builder().isStandaloneServer(false).build()),
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 ConflictDetectionManagers.createWithoutWarmingCache(kvs),

@@ -3,6 +3,7 @@ apply from: "../gradle/shared.gradle"
 dependencies {
     compile('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
         transitive = false
+        exclude group: 'org.apache.httpcomponents'
     }
     compile(group: 'org.apache.commons', name: 'commons-lang3', version: libVersions.commons_lang3)
     compile(group: 'com.google.guava', name: 'guava', version: libVersions.guava)

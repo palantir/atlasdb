@@ -22,5 +22,4 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME) // Used at runtime by ExpectedFailureRule to make decisions
 @Target(ElementType.METHOD)
-public @interface ExpectedFailure {
-}
+public @interface ExpectedFailure {}

@@ -15,17 +15,15 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.function.Supplier;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.ServiceDiscoveringDatabaseTimeLockSupplier;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.function.Supplier;
 
 public final class DbBoundTimestampCreator implements TimestampCreator {
 
@@ -49,7 +47,7 @@ public final class DbBoundTimestampCreator implements TimestampCreator {
 
     @VisibleForTesting
     static DbTimestampCreationSetting getTimestampCreationParameters(Client client) {
-        return DbTimestampCreationSettings.multipleSeries(
+        return DbTimestampCreationSetting.of(
                 AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, TimestampSeries.of(client.value()));
     }
 }

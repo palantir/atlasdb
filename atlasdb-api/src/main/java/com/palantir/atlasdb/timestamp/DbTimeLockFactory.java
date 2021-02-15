@@ -34,17 +34,11 @@ public interface DbTimeLockFactory {
     String getType();
 
     KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager,
-            KeyValueServiceConfig config,
-            LeaderConfig leaderConfig);
+            MetricsManager metricsManager, KeyValueServiceConfig config, LeaderConfig leaderConfig);
 
     ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs,
-            DbTimestampCreationSetting dbTimestampCreationSetting,
-            boolean initializeAsync);
+            KeyValueService rawKvs, DbTimestampCreationSetting dbTimestampCreationSetting, boolean initializeAsync);
 
     TimestampSeriesProvider createTimestampSeriesProvider(
-            KeyValueService rawKvs,
-            TableReference tableReference,
-            boolean initializeAsync);
+            KeyValueService rawKvs, TableReference tableReference, boolean initializeAsync);
 }

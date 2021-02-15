@@ -108,8 +108,7 @@ public class ByteArrayIOStream extends OutputStream {
     public void write(byte b[], int off, int len) throws IOException {
         if (b == null) {
             throw new NullPointerException();
-        } else if ((off < 0) || (off > b.length) || (len < 0) ||
-                ((off + len) > b.length) || ((off + len) < 0)) {
+        } else if ((off < 0) || (off > b.length) || (len < 0) || ((off + len) > b.length) || ((off + len) < 0)) {
             throw new IndexOutOfBoundsException();
         } else if (len == 0) {
             return;
@@ -119,7 +118,7 @@ public class ByteArrayIOStream extends OutputStream {
         outputPos += len;
     }
 
-    private class Input extends InputStream {
+    private final class Input extends InputStream {
         private int pos = 0;
         private int mark = 0;
         private final int size;

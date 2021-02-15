@@ -17,8 +17,6 @@ package com.palantir.atlasdb.logging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -31,6 +29,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.UniformRowNamePartitioner;
 import com.palantir.atlasdb.table.description.ValueType;
+import org.junit.Test;
 
 public class SafeLoggableDataUtilsTest {
     private static final TableReference TABLE_REFERENCE_1 = TableReference.createFromFullyQualifiedName("atlas.db");
@@ -40,18 +39,17 @@ public class SafeLoggableDataUtilsTest {
     private static final String ROW_COMPONENT_NAME = "foo";
     private static final String COLUMN_LONG_NAME = "barrrr";
     private static final NameMetadataDescription NAME_METADATA_DESCRIPTION = NameMetadataDescription.create(
-            ImmutableList.of(
-                    new NameComponentDescription.Builder()
-                            .componentName(ROW_COMPONENT_NAME)
-                            .type(ValueType.VAR_LONG)
-                            .byteOrder(TableMetadataPersistence.ValueByteOrder.ASCENDING)
-                            .uniformRowNamePartitioner(new UniformRowNamePartitioner(ValueType.VAR_LONG))
-                            .logSafety(LogSafety.SAFE)
-                            .build()),
+            ImmutableList.of(new NameComponentDescription.Builder()
+                    .componentName(ROW_COMPONENT_NAME)
+                    .type(ValueType.VAR_LONG)
+                    .byteOrder(TableMetadataPersistence.ValueByteOrder.ASCENDING)
+                    .uniformRowNamePartitioner(new UniformRowNamePartitioner(ValueType.VAR_LONG))
+                    .logSafety(LogSafety.SAFE)
+                    .build()),
             0);
     private static final ColumnMetadataDescription COLUMN_METADATA_DESCRIPTION =
-            new ColumnMetadataDescription(ImmutableList.of(new NamedColumnDescription("bar", COLUMN_LONG_NAME,
-                    ColumnValueDescription.forType(ValueType.VAR_LONG), LogSafety.SAFE)));
+            new ColumnMetadataDescription(ImmutableList.of(new NamedColumnDescription(
+                    "bar", COLUMN_LONG_NAME, ColumnValueDescription.forType(ValueType.VAR_LONG), LogSafety.SAFE)));
 
     private static final TableMetadata TABLE_METADATA_1 = TableMetadata.builder()
             .singleRowComponent(ROW_COMPONENT_NAME, ValueType.VAR_LONG)
@@ -75,8 +73,10 @@ public class SafeLoggableDataUtilsTest {
         SafeLoggableData safeLoggableData = builder.build();
 
         assertThat(safeLoggableData.isTableReferenceSafe(TABLE_REFERENCE_1)).isFalse();
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_NAME)).isFalse();
-        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, "barrrr")).isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_NAME))
+                .isFalse();
+        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, "barrrr"))
+                .isFalse();
     }
 
     @Test
@@ -86,8 +86,10 @@ public class SafeLoggableDataUtilsTest {
         SafeLoggableData safeLoggableData = builder.build();
 
         assertThat(safeLoggableData.isTableReferenceSafe(TABLE_REFERENCE_1)).isTrue();
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_NAME)).isTrue();
-        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, COLUMN_LONG_NAME)).isTrue();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_NAME))
+                .isTrue();
+        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, COLUMN_LONG_NAME))
+                .isTrue();
     }
 
     @Test
@@ -97,7 +99,8 @@ public class SafeLoggableDataUtilsTest {
         SafeLoggableData safeLoggableData = builder.build();
 
         assertThat(safeLoggableData.isTableReferenceSafe(TABLE_REFERENCE_1)).isTrue();
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_NAME)).isTrue();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_NAME))
+                .isTrue();
     }
 
     @Test
@@ -112,12 +115,18 @@ public class SafeLoggableDataUtilsTest {
         assertThat(safeLoggableData.isTableReferenceSafe(TABLE_REFERENCE_2)).isTrue();
         assertThat(safeLoggableData.isTableReferenceSafe(TABLE_REFERENCE_3)).isTrue();
 
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_NAME)).isFalse();
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_2, ROW_COMPONENT_NAME)).isTrue();
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_3, ROW_COMPONENT_NAME)).isTrue();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_NAME))
+                .isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_2, ROW_COMPONENT_NAME))
+                .isTrue();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_3, ROW_COMPONENT_NAME))
+                .isTrue();
 
-        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, COLUMN_LONG_NAME)).isFalse();
-        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_2, COLUMN_LONG_NAME)).isTrue();
-        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_3, COLUMN_LONG_NAME)).isFalse();
+        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, COLUMN_LONG_NAME))
+                .isFalse();
+        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_2, COLUMN_LONG_NAME))
+                .isTrue();
+        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_3, COLUMN_LONG_NAME))
+                .isFalse();
     }
 }

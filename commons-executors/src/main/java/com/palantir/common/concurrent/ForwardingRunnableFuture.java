@@ -60,7 +60,8 @@ public class ForwardingRunnableFuture<V> extends ForwardingFuture<V> implements 
         runnable.run();
     }
 
-    @Override protected Future<V> delegate() {
+    @Override
+    protected Future<V> delegate() {
         return future;
     }
 }

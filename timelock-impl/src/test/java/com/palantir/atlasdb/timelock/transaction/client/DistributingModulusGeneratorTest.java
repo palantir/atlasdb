@@ -20,15 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.Iterables;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 
 public class DistributingModulusGeneratorTest {
     private DistributingModulusGenerator generator;
@@ -87,10 +85,10 @@ public class DistributingModulusGeneratorTest {
         requestResidues(3);
 
         assertThatCode(() -> {
-            unmarkResidue(0);
-            unmarkResidue(1);
-            unmarkResidue(2);
-        })
+                    unmarkResidue(0);
+                    unmarkResidue(1);
+                    unmarkResidue(2);
+                })
                 .as("unmarking all three residues does not throw")
                 .doesNotThrowAnyException();
     }
@@ -135,7 +133,7 @@ public class DistributingModulusGeneratorTest {
 
     @Test
     public void selectionOnFreshGeneratorsDoesNotHotSpot() {
-        Map<Integer, Integer> frequencyMap = Maps.newHashMap();
+        Map<Integer, Integer> frequencyMap = new HashMap<>();
         for (int trial = 0; trial < 20; trial++) {
             setupGeneratorWithModulus(16);
             int residue = Iterables.getOnlyElement(requestResidues(1));
@@ -143,7 +141,7 @@ public class DistributingModulusGeneratorTest {
         }
 
         // Assuming uniform randomness, strobes once in 2^80 times, which we can live with
-        assertThat(frequencyMap.size()).isGreaterThanOrEqualTo(2);
+        assertThat(frequencyMap).hasSizeGreaterThanOrEqualTo(2);
     }
 
     private void setupGeneratorWithModulus(int modulus) {
@@ -159,8 +157,9 @@ public class DistributingModulusGeneratorTest {
 
     private void requestResiduesAndAssertEachUsedOnce(int times) {
         List<Integer> responses = requestResidues(times);
-        assertThat(responses).containsExactlyInAnyOrderElementsOf(
-                IntStream.range(0, times).boxed().collect(Collectors.toList()));
+        assertThat(responses)
+                .containsExactlyInAnyOrderElementsOf(
+                        IntStream.range(0, times).boxed().collect(Collectors.toList()));
     }
 
     private void unmarkResidue(int residue) {

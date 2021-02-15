@@ -17,20 +17,20 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-
 import org.junit.Test;
 
-import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-
 public class AtlasDbConfigDeserializationTest {
-    private static final File TEST_CONFIG_FILE = new File(
-            AtlasDbConfigDeserializationTest.class.getResource("/test-config.yml").getPath());
-    private static final File MINIMAL_TEST_CONFIG_FILE = new File(
-            AtlasDbConfigDeserializationTest.class.getResource("/test-config-minimal.yml").getPath());
+    private static final File TEST_CONFIG_FILE = new File(AtlasDbConfigDeserializationTest.class
+            .getResource("/test-config.yml")
+            .getPath());
+    private static final File MINIMAL_TEST_CONFIG_FILE = new File(AtlasDbConfigDeserializationTest.class
+            .getResource("/test-config-minimal.yml")
+            .getPath());
 
     @Test
     public void canDeserializeAtlasDbConfig() throws IOException {
@@ -38,30 +38,31 @@ public class AtlasDbConfigDeserializationTest {
         assertThat(config.namespace()).contains("brian");
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
 
-        assertThat(config.timelock().isPresent()).isTrue();
+        assertThat(config.timelock()).isPresent();
         assertTimeLockConfigDeserializedCorrectly(config.timelock().get());
         assertThat(config.persistentStorage()).isPresent();
 
-        assertThat(config.leader().isPresent()).isFalse();
+        assertThat(config.leader()).isNotPresent();
     }
 
     @Test
     public void canDeserializeMinimalAtlasDbConfig() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(MINIMAL_TEST_CONFIG_FILE, AtlasDbConfig.class);
-        assertThat(config.namespace().isPresent()).isFalse();
+        assertThat(config.namespace()).isNotPresent();
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
 
-        assertThat(config.timelock().isPresent()).isFalse();
-        assertThat(config.leader().isPresent()).isFalse();
+        assertThat(config.timelock()).isNotPresent();
+        assertThat(config.leader()).isNotPresent();
     }
 
     private void assertTimeLockConfigDeserializedCorrectly(TimeLockClientConfig timeLockClientConfig) {
         assertThat(timeLockClientConfig.getClientOrThrow()).isEqualTo("brian");
-        assertThat(timeLockClientConfig.serversList().servers()).containsExactlyInAnyOrder(
-                "timelock1:8080", "timelock2:8080", "timelock3:8080");
-        assertThat(timeLockClientConfig.serversList().sslConfiguration().isPresent()).isTrue();
+        assertThat(timeLockClientConfig.serversList().servers())
+                .containsExactlyInAnyOrder("timelock1:8080", "timelock2:8080", "timelock3:8080");
+        assertThat(timeLockClientConfig.serversList().sslConfiguration()).isPresent();
 
-        SslConfiguration sslConfiguration = timeLockClientConfig.serversList().sslConfiguration().get();
+        SslConfiguration sslConfiguration =
+                timeLockClientConfig.serversList().sslConfiguration().get();
         assertSslConfigDeserializedCorrectly(sslConfiguration);
     }
 

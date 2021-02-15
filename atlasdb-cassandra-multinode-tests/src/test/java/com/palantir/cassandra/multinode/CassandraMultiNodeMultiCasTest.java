@@ -16,10 +16,9 @@
 
 package com.palantir.cassandra.multinode;
 
-import org.junit.ClassRule;
-
 import com.palantir.atlasdb.containers.ThreeNodeCassandraResource;
 import com.palantir.atlasdb.keyvalue.impl.AbstractMultiCasTest;
+import org.junit.ClassRule;
 
 public class CassandraMultiNodeMultiCasTest extends AbstractMultiCasTest {
     @ClassRule

@@ -15,25 +15,9 @@
  */
 package com.palantir.lock.impl;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import static uk.org.lidalia.slf4jtest.LoggingEvent.debug;
 import static uk.org.lidalia.slf4jtest.LoggingEvent.warn;
-
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.assertj.core.api.Assertions;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSortedMap;
@@ -45,7 +29,18 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.LockRefreshingLockService;
-
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.assertj.core.api.Assertions;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import uk.org.lidalia.slf4jext.Level;
 import uk.org.lidalia.slf4jtest.LoggingEvent;
 import uk.org.lidalia.slf4jtest.TestLogger;
@@ -88,12 +83,12 @@ public final class LockServiceImplTest {
 
     @Test
     public void slowLogShouldBeEnabledIfSlowLogTriggerMillisIsSetToPositiveValue() {
-        assertThat(lockServiceWithSlowLogEnabled.isSlowLogEnabled(), is(true));
+        assertThat(lockServiceWithSlowLogEnabled.isSlowLogEnabled()).isTrue();
     }
 
     @Test
     public void slowLogShouldNotBeEnabledIfSlowLogTriggerMillisIsSetToZero() {
-        assertThat(lockServiceWithSlowLogDisabled.isSlowLogEnabled(), is(false));
+        assertThat(lockServiceWithSlowLogDisabled.isSlowLogEnabled()).isFalse();
     }
 
     @Test
@@ -101,11 +96,12 @@ public final class LockServiceImplTest {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS + 5;
         lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
-        assertThat(testLockServiceImplLogger.isDebugEnabled(), is(true));
-        assertThat(testLockServiceImplLogger.getLoggingEvents().size(), is(0));
+        assertThat(testLockServiceImplLogger.isDebugEnabled()).isTrue();
+        assertThat(testLockServiceImplLogger.getLoggingEvents()).isEmpty();
 
-        assertThat(testSlowLogger.getLoggingEvents().size(), is(1));
-        assertContainsMatchingLoggingEvent(testSlowLogger.getLoggingEvents(),
+        assertThat(testSlowLogger.getLoggingEvents()).hasSize(1);
+        assertContainsMatchingLoggingEvent(
+                testSlowLogger.getLoggingEvents(),
                 warn("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
     }
 
@@ -114,12 +110,13 @@ public final class LockServiceImplTest {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS + 5;
         lockServiceWithSlowLogDisabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
-        assertThat(testLockServiceImplLogger.isDebugEnabled(), is(true));
-        assertThat(testLockServiceImplLogger.getLoggingEvents().size(), is(1));
-        assertContainsMatchingLoggingEvent(testLockServiceImplLogger.getLoggingEvents(),
+        assertThat(testLockServiceImplLogger.isDebugEnabled()).isTrue();
+        assertThat(testLockServiceImplLogger.getLoggingEvents()).hasSize(1);
+        assertContainsMatchingLoggingEvent(
+                testLockServiceImplLogger.getLoggingEvents(),
                 debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
 
-        assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
+        assertThat(testSlowLogger.getLoggingEvents()).isEmpty();
     }
 
     @Test
@@ -127,19 +124,20 @@ public final class LockServiceImplTest {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS - 5;
         lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
 
-        assertThat(testLockServiceImplLogger.isDebugEnabled(), is(true));
-        assertContainsMatchingLoggingEvent(testLockServiceImplLogger.getLoggingEvents(),
+        assertThat(testLockServiceImplLogger.isDebugEnabled()).isTrue();
+        assertContainsMatchingLoggingEvent(
+                testLockServiceImplLogger.getLoggingEvents(),
                 debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
 
-        assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
+        assertThat(testSlowLogger.getLoggingEvents()).isEmpty();
     }
 
     @Test
     public void debugOrSlowLogShouldNotBeLoggedWhenLockResponseIsNotSlow() {
         lockServiceWithSlowLogEnabled.logSlowLockAcquisition(
                 TEST_LOCKID, LockClient.ANONYMOUS, LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS - 5);
-        assertThat(testLockServiceImplLogger.getLoggingEvents().size(), is(0));
-        assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
+        assertThat(testLockServiceImplLogger.getLoggingEvents()).isEmpty();
+        assertThat(testSlowLogger.getLoggingEvents()).isEmpty();
     }
 
     @Test
@@ -148,31 +146,27 @@ public final class LockServiceImplTest {
 
         // divide batch size by 1000 and check size in KB as approximation
         for (int i = 0; i < LockRefreshingLockService.REFRESH_BATCH_SIZE / 1000; i++) {
-            LockRequest request = LockRequest.builder(
-                    ImmutableSortedMap.of(StringLockDescriptor.of(UUID.randomUUID().toString()), LockMode.READ))
+            LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
+                            StringLockDescriptor.of(UUID.randomUUID().toString()), LockMode.READ))
                     .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS))
                     .build();
             tokens.add(lockServiceWithSlowLogDisabled.lock("test", request));
         }
 
-        Assertions.assertThat(new ObjectMapper().writeValueAsString(tokens).length()).isLessThan(45_000);
+        Assertions.assertThat(new ObjectMapper().writeValueAsString(tokens)).hasSizeLessThan(45_000);
     }
 
     private static void assertContainsMatchingLoggingEvent(List<LoggingEvent> actuals, LoggingEvent expected) {
         List<String> expectedParamStrings = extractArgumentsAsStringList(expected);
         assertThat(actuals.stream()
-                .filter(event -> event.getLevel() == expected.getLevel()
-                        && event.getMessage().equals(expected.getMessage())
-                        && expectedParamStrings.equals(extractArgumentsAsStringList(event)))
-                .collect(Collectors.toSet()).size(),
-                is(1));
+                        .filter(event -> event.getLevel() == expected.getLevel()
+                                && event.getMessage().equals(expected.getMessage())
+                                && expectedParamStrings.equals(extractArgumentsAsStringList(event)))
+                        .collect(Collectors.toSet()))
+                .hasSize(1);
     }
 
     private static List<String> extractArgumentsAsStringList(LoggingEvent event) {
-        return event.getArguments()
-                .asList()
-                .stream()
-                .map(Object::toString)
-                .collect(Collectors.toList());
+        return event.getArguments().asList().stream().map(Object::toString).collect(Collectors.toList());
     }
 }

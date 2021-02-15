@@ -25,16 +25,15 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 public class DbTimestampStoreInvalidator implements TimestampStoreInvalidator {
     private final InvalidationRunner invalidationRunner;
 
-    public DbTimestampStoreInvalidator(ConnectionManagerAwareDbKvs kvs,
-            TableReference timestampTable,
-            String tablePrefixString) {
+    public DbTimestampStoreInvalidator(
+            ConnectionManagerAwareDbKvs kvs, TableReference timestampTable, String tablePrefixString) {
         this.invalidationRunner = new InvalidationRunner(kvs.getConnectionManager(), timestampTable, tablePrefixString);
     }
 
-    public static TimestampStoreInvalidator create(KeyValueService kvs,
-            TableReference timestampTable,
-            String tablePrefixString) {
-        Preconditions.checkArgument(kvs instanceof ConnectionManagerAwareDbKvs,
+    public static TimestampStoreInvalidator create(
+            KeyValueService kvs, TableReference timestampTable, String tablePrefixString) {
+        Preconditions.checkArgument(
+                kvs instanceof ConnectionManagerAwareDbKvs,
                 "DbTimestampStoreInvalidator should be instantiated with a ConnectionManagerAwareDbKvs!");
         return new DbTimestampStoreInvalidator((ConnectionManagerAwareDbKvs) kvs, timestampTable, tablePrefixString);
     }

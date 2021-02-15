@@ -15,15 +15,14 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import java.io.File;
-import java.util.Properties;
-
 import com.palantir.atlasdb.jdbc.config.ImmutableHikariDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.jdbc.ImmutableJdbcKeyValueConfiguration;
 import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueConfiguration;
 import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueService;
+import java.io.File;
+import java.util.Properties;
 
-public class JdbcTests {
+public final class JdbcTests {
 
     private JdbcTests() {
         // cannot instantiate

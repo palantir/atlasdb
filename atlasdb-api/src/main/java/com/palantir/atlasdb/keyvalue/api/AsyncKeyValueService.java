@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Map;
-
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.common.annotation.Idempotent;
+import java.util.Map;
 
 public interface AsyncKeyValueService extends AutoCloseable {
     /**

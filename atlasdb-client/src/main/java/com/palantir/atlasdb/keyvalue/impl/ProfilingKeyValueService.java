@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -52,6 +44,12 @@ import com.palantir.atlasdb.logging.KvsProfilingLogger.LoggingFunction;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 public final class ProfilingKeyValueService implements KeyValueService {
 
@@ -78,81 +76,79 @@ public final class ProfilingKeyValueService implements KeyValueService {
         this.delegate = delegate;
     }
 
-    private static BiConsumer<LoggingFunction, Stopwatch> logCellsAndSize(String method,
-            TableReference tableRef,
-            int numCells, long sizeInBytes) {
+    private static BiConsumer<LoggingFunction, Stopwatch> logCellsAndSize(
+            String method, TableReference tableRef, int numCells, long sizeInBytes) {
         long startTime = System.currentTimeMillis();
-        return (logger, stopwatch) ->
-                logger.log("Call to KVS.{} at time {}, on table {} for {} cells of overall size {} bytes took {} ms.",
-                        LoggingArgs.method(method),
-                        LoggingArgs.startTimeMillis(startTime),
-                        LoggingArgs.tableRef(tableRef),
-                        LoggingArgs.cellCount(numCells),
-                        LoggingArgs.sizeInBytes(sizeInBytes),
-                        LoggingArgs.durationMillis(stopwatch));
+        return (logger, stopwatch) -> logger.log(
+                "Call to KVS.{} at time {}, on table {} for {} cells of overall size {} bytes took {} ms.",
+                LoggingArgs.method(method),
+                LoggingArgs.startTimeMillis(startTime),
+                LoggingArgs.tableRef(tableRef),
+                LoggingArgs.cellCount(numCells),
+                LoggingArgs.sizeInBytes(sizeInBytes),
+                LoggingArgs.durationMillis(stopwatch));
     }
 
     private static BiConsumer<LoggingFunction, Stopwatch> logTime(String method) {
         long startTime = System.currentTimeMillis();
-        return (logger, stopwatch) ->
-                logger.log("Call to KVS.{} at time {}, took {} ms.",
-                        LoggingArgs.method(method),
-                        LoggingArgs.startTimeMillis(startTime),
-                        LoggingArgs.durationMillis(stopwatch));
+        return (logger, stopwatch) -> logger.log(
+                "Call to KVS.{} at time {}, took {} ms.",
+                LoggingArgs.method(method),
+                LoggingArgs.startTimeMillis(startTime),
+                LoggingArgs.durationMillis(stopwatch));
     }
 
     private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTable(String method, TableReference tableRef) {
         long startTime = System.currentTimeMillis();
-        return (logger, stopwatch) ->
-                logger.log("Call to KVS.{} at time {}, on table {} took {} ms.",
-                        LoggingArgs.method(method),
-                        LoggingArgs.startTimeMillis(startTime),
-                        LoggingArgs.tableRef(tableRef),
-                        LoggingArgs.durationMillis(stopwatch));
+        return (logger, stopwatch) -> logger.log(
+                "Call to KVS.{} at time {}, on table {} took {} ms.",
+                LoggingArgs.method(method),
+                LoggingArgs.startTimeMillis(startTime),
+                LoggingArgs.tableRef(tableRef),
+                LoggingArgs.durationMillis(stopwatch));
     }
 
     private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableCount(String method, int tableCount) {
         long startTime = System.currentTimeMillis();
-        return (logger, stopwatch) ->
-                logger.log("Call to KVS.{} at time {}, for {} tables took {} ms.",
-                        LoggingArgs.method(method),
-                        LoggingArgs.startTimeMillis(startTime),
-                        LoggingArgs.tableCount(tableCount),
-                        LoggingArgs.durationMillis(stopwatch));
+        return (logger, stopwatch) -> logger.log(
+                "Call to KVS.{} at time {}, for {} tables took {} ms.",
+                LoggingArgs.method(method),
+                LoggingArgs.startTimeMillis(startTime),
+                LoggingArgs.tableCount(tableCount),
+                LoggingArgs.durationMillis(stopwatch));
     }
 
-    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableRange(String method,
-            TableReference tableRef,
-            RangeRequest range) {
+    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableRange(
+            String method, TableReference tableRef, RangeRequest range) {
         long startTime = System.currentTimeMillis();
-        return (logger, stopwatch) ->
-                logger.log("Call to KVS.{} at time {}, on table {} with range {} took {} ms.",
-                        LoggingArgs.method(method),
-                        LoggingArgs.startTimeMillis(startTime),
-                        LoggingArgs.tableRef(tableRef),
-                        LoggingArgs.range(tableRef, range),
-                        LoggingArgs.durationMillis(stopwatch));
+        return (logger, stopwatch) -> logger.log(
+                "Call to KVS.{} at time {}, on table {} with range {} took {} ms.",
+                LoggingArgs.method(method),
+                LoggingArgs.startTimeMillis(startTime),
+                LoggingArgs.tableRef(tableRef),
+                LoggingArgs.range(tableRef, range),
+                LoggingArgs.durationMillis(stopwatch));
     }
 
-    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableRows(String method,
-            TableReference tableRef,
-            Iterable<byte[]> rows) {
+    private static BiConsumer<LoggingFunction, Stopwatch> logTimeAndTableRows(
+            String method, TableReference tableRef, Iterable<byte[]> rows) {
         long startTime = System.currentTimeMillis();
-        return (logger, stopwatch) ->
-                logger.log("Call to KVS.{} at time {}, on table {} for (estimated) {} rows took {} ms.",
-                        LoggingArgs.method(method),
-                        LoggingArgs.startTimeMillis(startTime),
-                        LoggingArgs.tableRef(tableRef),
-                        LoggingArgs.rowCount(Ints.saturatedCast(rows.spliterator().estimateSize())),
-                        LoggingArgs.durationMillis(stopwatch));
+        return (logger, stopwatch) -> logger.log(
+                "Call to KVS.{} at time {}, on table {} for (estimated) {} rows took {} ms.",
+                LoggingArgs.method(method),
+                LoggingArgs.startTimeMillis(startTime),
+                LoggingArgs.tableRef(tableRef),
+                LoggingArgs.rowCount(Ints.saturatedCast(rows.spliterator().estimateSize())),
+                LoggingArgs.durationMillis(stopwatch));
     }
 
     private static BiConsumer<LoggingFunction, Map<Cell, Value>> logCellResultSize(long overhead) {
         return (logger, result) -> {
             long sizeInBytes = 0;
-            for (Entry<Cell, Value> entry : result.entrySet()) {
-                sizeInBytes +=
-                        Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length + overhead;
+            for (Map.Entry<Cell, Value> entry : result.entrySet()) {
+                sizeInBytes += Cells.getApproxSizeOfCell(entry.getKey())
+                        + entry.getValue().getContents().length
+                        + overhead;
             }
             logger.log("and returned {} bytes.", LoggingArgs.sizeInBytes(sizeInBytes));
         };
@@ -161,9 +157,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
         long startTime = System.currentTimeMillis();
-        maybeLog(() -> delegate.addGarbageCollectionSentinelValues(tableRef, cells),
+        maybeLog(
+                () -> delegate.addGarbageCollectionSentinelValues(tableRef, cells),
                 (logger, stopwatch) -> logger.log(
-                        "Call to KVS.addGarbageCollectionSentinelValues at time {}, on table {} over {} cells took {} ms.",
+                        "Call to KVS.addGarbageCollectionSentinelValues at time {}, on table {} over {} cells took {}"
+                                + " ms.",
                         LoggingArgs.startTimeMillis(startTime),
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.cellCount(Iterables.size(cells)),
@@ -172,75 +170,74 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
     @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
-        maybeLog(() -> delegate.createTable(tableRef, tableMetadata),
-                logTimeAndTable("createTable", tableRef));
-
+        maybeLog(() -> delegate.createTable(tableRef, tableMetadata), logTimeAndTable("createTable", tableRef));
     }
 
     @Override
     public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
-        maybeLog(() -> delegate.createTables(tableRefToTableMetadata),
-                logTimeAndTableCount("createTables", tableRefToTableMetadata.keySet().size()));
+        maybeLog(
+                () -> delegate.createTables(tableRefToTableMetadata),
+                logTimeAndTableCount(
+                        "createTables", tableRefToTableMetadata.keySet().size()));
     }
 
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        maybeLog(() -> delegate.delete(tableRef, keys),
+        maybeLog(
+                () -> delegate.delete(tableRef, keys),
                 logCellsAndSize("delete", tableRef, keys.keySet().size(), byteSize(keys)));
     }
 
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
-        maybeLog(() -> delegate.deleteRange(tableRef, range),
-                logTimeAndTableRange("deleteRange", tableRef, range));
+        maybeLog(() -> delegate.deleteRange(tableRef, range), logTimeAndTableRange("deleteRange", tableRef, range));
     }
 
     @Override
     public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
-        maybeLog(() -> delegate.deleteRows(tableRef, rows),
-                logTimeAndTableRows("deleteRows", tableRef, rows));
+        maybeLog(() -> delegate.deleteRows(tableRef, rows), logTimeAndTableRows("deleteRows", tableRef, rows));
     }
 
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
-        maybeLog(() -> delegate.deleteAllTimestamps(tableRef, deletes),
+        maybeLog(
+                () -> delegate.deleteAllTimestamps(tableRef, deletes),
                 logTimeAndTable("deleteAllTimestamps", tableRef));
     }
 
     @Override
     public void dropTable(TableReference tableRef) {
-        maybeLog(() -> delegate.dropTable(tableRef),
-                logTimeAndTable("dropTable", tableRef));
+        maybeLog(() -> delegate.dropTable(tableRef), logTimeAndTable("dropTable", tableRef));
     }
 
     @Override
     public void dropTables(Set<TableReference> tableRefs) {
-        maybeLog(() -> delegate.dropTables(tableRefs),
-                logTimeAndTableCount("dropTable", tableRefs.size()));
+        maybeLog(() -> delegate.dropTables(tableRefs), logTimeAndTableCount("dropTable", tableRefs.size()));
     }
 
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         long startTime = System.currentTimeMillis();
-        return KvsProfilingLogger.maybeLog(() -> delegate.get(tableRef, timestampByCell),
-                (logger, stopwatch) ->
-                        logger.log("Call to KVS.get at time {}, on table {}, requesting {} cells took {} ms ",
-                                LoggingArgs.startTimeMillis(startTime),
-                                LoggingArgs.tableRef(tableRef),
-                                LoggingArgs.cellCount(timestampByCell.size()),
-                                LoggingArgs.durationMillis(stopwatch)),
+        return KvsProfilingLogger.maybeLog(
+                () -> delegate.get(tableRef, timestampByCell),
+                (logger, stopwatch) -> logger.log(
+                        "Call to KVS.get at time {}, on table {}, requesting {} cells took {} ms ",
+                        LoggingArgs.startTimeMillis(startTime),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.cellCount(timestampByCell.size()),
+                        LoggingArgs.durationMillis(stopwatch)),
                 logCellResultSize(4L));
     }
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return maybeLog(delegate::getAllTableNames,
-                logTime("getAllTableNames"));
+        return maybeLog(delegate::getAllTableNames, logTime("getAllTableNames"));
     }
 
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
-        return maybeLog(() -> delegate.getAllTimestamps(tableRef, cells, timestamp),
+        return maybeLog(
+                () -> delegate.getAllTimestamps(tableRef, cells, timestamp),
                 logCellsAndSize("getAllTimestamps", tableRef, cells.size(), cells.size() * Longs.BYTES));
     }
 
@@ -252,107 +249,115 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
-        return maybeLog(() -> delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp),
+        return maybeLog(
+                () -> delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp),
                 logTimeAndTable("getFirstBatchForRanges", tableRef));
     }
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return maybeLog(() -> delegate.getLatestTimestamps(tableRef, timestampByCell),
+        return maybeLog(
+                () -> delegate.getLatestTimestamps(tableRef, timestampByCell),
                 logCellsAndSize("getLatestTimestamps", tableRef, timestampByCell.size(), byteSize(timestampByCell)));
     }
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        return maybeLog(() -> delegate.getMetadataForTable(tableRef),
-                logTimeAndTable("getMetadataForTable", tableRef));
+        return maybeLog(() -> delegate.getMetadataForTable(tableRef), logTimeAndTable("getMetadataForTable", tableRef));
     }
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        return maybeLog(delegate::getMetadataForTables,
-                logTime("getMetadataForTables"));
+        return maybeLog(delegate::getMetadataForTables, logTime("getMetadataForTables"));
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest,
-            long timestamp) {
-        return maybeLog(() -> delegate.getRange(tableRef, rangeRequest, timestamp),
+    public ClosableIterator<RowResult<Value>> getRange(
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+        return maybeLog(
+                () -> delegate.getRange(tableRef, rangeRequest, timestamp),
                 logTimeAndTableRange("getRange", tableRef, rangeRequest));
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
-            RangeRequest rangeRequest, long timestamp) {
-        return maybeLog(() -> delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+        return maybeLog(
+                () -> delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
                 logTimeAndTableRange("getRangeOfTimestamps", tableRef, rangeRequest));
     }
 
     @Override
-    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
-            CandidateCellForSweepingRequest request) {
-        return maybeLog(() -> delegate.getCandidateCellsForSweeping(tableRef, request),
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
+            TableReference tableRef, CandidateCellForSweepingRequest request) {
+        return maybeLog(
+                () -> delegate.getCandidateCellsForSweeping(tableRef, request),
                 logTime("getCandidateCellsForSweeping"));
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection,
-            long timestamp) {
+    public Map<Cell, Value> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         long startTime = System.currentTimeMillis();
-        return KvsProfilingLogger.maybeLog(() -> delegate.getRows(tableRef, rows, columnSelection, timestamp),
-                (logger, stopwatch) ->
-                        logger.log(
-                                "Call to KVS.getRows at time {}, on table {} requesting {} columns from {} rows took {} ms ",
-                                LoggingArgs.startTimeMillis(startTime),
-                                LoggingArgs.tableRef(tableRef),
-                                LoggingArgs.columnCount(columnSelection),
-                                LoggingArgs.rowCount(Iterables.size(rows)),
-                                LoggingArgs.durationMillis(stopwatch)),
+        return KvsProfilingLogger.maybeLog(
+                () -> delegate.getRows(tableRef, rows, columnSelection, timestamp),
+                (logger, stopwatch) -> logger.log(
+                        "Call to KVS.getRows at time {}, on table {} requesting {} columns from {} rows took {} ms ",
+                        LoggingArgs.startTimeMillis(startTime),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.columnCount(columnSelection),
+                        LoggingArgs.rowCount(Iterables.size(rows)),
+                        LoggingArgs.durationMillis(stopwatch)),
                 logCellResultSize(0L));
     }
 
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         long startTime = System.currentTimeMillis();
-        maybeLog(() -> delegate.multiPut(valuesByTable, timestamp),
-                (logger, stopwatch) -> {
-                    int totalCells = 0;
-                    long totalBytes = 0;
-                    for (Map<Cell, byte[]> values : valuesByTable.values()) {
-                        totalCells += values.size();
-                        totalBytes += byteSize(values);
-                    }
-                    logger.log(
-                            "Call to KVS.multiPut at time {}, on {} tables putting {} total cells of {} total bytes took {} ms.",
-                            LoggingArgs.startTimeMillis(startTime),
-                            LoggingArgs.tableCount(valuesByTable.keySet().size()),
-                            LoggingArgs.cellCount(totalCells),
-                            LoggingArgs.sizeInBytes(totalBytes),
-                            LoggingArgs.durationMillis(stopwatch));
-                });
+        maybeLog(() -> delegate.multiPut(valuesByTable, timestamp), (logger, stopwatch) -> {
+            int totalCells = 0;
+            long totalBytes = 0;
+            for (Map<Cell, byte[]> values : valuesByTable.values()) {
+                totalCells += values.size();
+                totalBytes += byteSize(values);
+            }
+            logger.log(
+                    "Call to KVS.multiPut at time {}, on {} tables putting {} total cells of {} total bytes took {}"
+                            + " ms.",
+                    LoggingArgs.startTimeMillis(startTime),
+                    LoggingArgs.tableCount(valuesByTable.keySet().size()),
+                    LoggingArgs.cellCount(totalCells),
+                    LoggingArgs.sizeInBytes(totalBytes),
+                    LoggingArgs.durationMillis(stopwatch));
+        });
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        maybeLog(() -> delegate.put(tableRef, values, timestamp),
+        maybeLog(
+                () -> delegate.put(tableRef, values, timestamp),
                 logCellsAndSize("put", tableRef, values.keySet().size(), byteSize(values)));
     }
 
     @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
-        maybeLog(() -> delegate.putMetadataForTable(tableRef, metadata),
+        maybeLog(
+                () -> delegate.putMetadataForTable(tableRef, metadata),
                 logTimeAndTable("putMetadataForTable", tableRef));
     }
 
     @Override
     public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
-        maybeLog(() -> delegate.putMetadataForTables(tableRefToMetadata),
-                logTimeAndTableCount("putMetadataForTables", tableRefToMetadata.keySet().size()));
+        maybeLog(
+                () -> delegate.putMetadataForTables(tableRefToMetadata),
+                logTimeAndTableCount(
+                        "putMetadataForTables", tableRefToMetadata.keySet().size()));
     }
 
     @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        maybeLog(() -> delegate.putUnlessExists(tableRef, values),
+        maybeLog(
+                () -> delegate.putUnlessExists(tableRef, values),
                 logCellsAndSize("putUnlessExists", tableRef, values.keySet().size(), byteSize(values)));
     }
 
@@ -363,50 +368,46 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
     @Override
     public void checkAndSet(CheckAndSetRequest request) {
-        maybeLog(() -> delegate.checkAndSet(request),
+        maybeLog(
+                () -> delegate.checkAndSet(request),
                 logCellsAndSize("checkAndSet", request.table(), 1, request.newValue().length));
     }
 
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        maybeLog(() -> delegate.putWithTimestamps(tableRef, values),
+        maybeLog(
+                () -> delegate.putWithTimestamps(tableRef, values),
                 logCellsAndSize("putWithTimestamps", tableRef, values.keySet().size(), byteSize(values)));
     }
 
     @Override
     public void close() {
-        maybeLog(delegate::close,
-                logTime("close"));
+        maybeLog(delegate::close, logTime("close"));
     }
 
     @Override
     public void truncateTable(TableReference tableRef) {
-        maybeLog(() -> delegate.truncateTable(tableRef),
-                logTimeAndTable("truncateTable", tableRef));
+        maybeLog(() -> delegate.truncateTable(tableRef), logTimeAndTable("truncateTable", tableRef));
     }
 
     @Override
     public void truncateTables(Set<TableReference> tableRefs) {
-        maybeLog(() -> delegate.truncateTables(tableRefs),
-                logTimeAndTableCount("truncateTables", tableRefs.size()));
+        maybeLog(() -> delegate.truncateTables(tableRefs), logTimeAndTableCount("truncateTables", tableRefs.size()));
     }
 
     @Override
     public void compactInternally(TableReference tableRef) {
-        maybeLog(() -> delegate.compactInternally(tableRef),
-                logTimeAndTable("compactInternally", tableRef));
+        maybeLog(() -> delegate.compactInternally(tableRef), logTimeAndTable("compactInternally", tableRef));
     }
 
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
-        return maybeLog(delegate::getClusterAvailabilityStatus,
-                logTime("getClusterAvailabilityStatus"));
+        return maybeLog(delegate::getClusterAvailabilityStatus, logTime("getClusterAvailabilityStatus"));
     }
 
     @Override
     public boolean isInitialized() {
-        return maybeLog(delegate::isInitialized,
-                logTime("isInitialized"));
+        return maybeLog(delegate::isInitialized, logTime("isInitialized"));
     }
 
     @Override
@@ -416,12 +417,14 @@ public final class ProfilingKeyValueService implements KeyValueService {
             if (inMaintenanceMode) {
                 // Log differently in maintenance mode - if a compactInternally is slow this might be bad in normal
                 // operational hours, but is probably okay in maintenance mode.
-                logger.log("Call to KVS.compactInternally (in maintenance mode) at time {}, on table {} took {} ms.",
+                logger.log(
+                        "Call to KVS.compactInternally (in maintenance mode) at time {}, on table {} took {} ms.",
                         LoggingArgs.startTimeMillis(startTime),
                         LoggingArgs.tableRef(tableRef),
                         LoggingArgs.durationMillis(stopwatch));
             } else {
-                logger.log("Call to KVS.{} at time {}, on table {} took {} ms.",
+                logger.log(
+                        "Call to KVS.{} at time {}, on table {} took {} ms.",
                         LoggingArgs.method("compactInternally"),
                         LoggingArgs.startTimeMillis(startTime),
                         LoggingArgs.tableRef(tableRef),
@@ -431,28 +434,33 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-            BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            long timestamp) {
         long startTime = System.currentTimeMillis();
-        return maybeLog(() -> delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp),
-                (logger, stopwatch) ->
-                        logger.log("Call to KVS.getRowsColumnRange at time {}, on table {} for {} rows with range {} took {} ms.",
-                                LoggingArgs.startTimeMillis(startTime),
-                                LoggingArgs.tableRef(tableRef),
-                                LoggingArgs.rowCount(Iterables.size(rows)),
-                                LoggingArgs.batchColumnRangeSelection(batchColumnRangeSelection),
-                                LoggingArgs.durationMillis(stopwatch)));
+        return maybeLog(
+                () -> delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp),
+                (logger, stopwatch) -> logger.log(
+                        "Call to KVS.getRowsColumnRange at time {}, on table {} for {} rows with range {} took {} ms.",
+                        LoggingArgs.startTimeMillis(startTime),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.rowCount(Iterables.size(rows)),
+                        LoggingArgs.batchColumnRangeSelection(batchColumnRangeSelection),
+                        LoggingArgs.durationMillis(stopwatch)));
     }
 
     @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+    public RowColumnRangeIterator getRowsColumnRange(
+            TableReference tableRef,
             Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {
         long startTime = System.currentTimeMillis();
-        return maybeLog(() ->
-                        delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp),
+        return maybeLog(
+                () -> delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp),
                 (logger, stopwatch) -> logger.log(
                         "Call to KVS.getRowsColumnRange - CellBatch at time {}, on table {} for {} rows with range {} "
                                 + "and batch hint {} took {} ms.",
@@ -474,7 +482,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
     private static <T> long byteSize(Map<Cell, T> values) {
         long sizeInBytes = 0;
-        for (Entry<Cell, T> valueEntry : values.entrySet()) {
+        for (Map.Entry<Cell, T> valueEntry : values.entrySet()) {
             sizeInBytes += Cells.getApproxSizeOfCell(valueEntry.getKey());
             T value = valueEntry.getValue();
             if (value instanceof byte[]) {
@@ -500,15 +508,23 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+        return maybeLog(
+                () -> delegate.getRowKeysInRange(tableRef, startRow, endRow, maxResults),
+                logTimeAndTable("getRowKeysInRange", tableRef));
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         long startTime = System.currentTimeMillis();
-        return KvsProfilingLogger.maybeLogAsync(() -> delegate.getAsync(tableRef, timestampByCell),
-                (logger, stopwatch) ->
-                        logger.log("Call to KVS.getAsync",
-                                LoggingArgs.startTimeMillis(startTime),
-                                LoggingArgs.tableRef(tableRef),
-                                LoggingArgs.cellCount(timestampByCell.size()),
-                                LoggingArgs.durationMillis(stopwatch)),
+        return KvsProfilingLogger.maybeLogAsync(
+                () -> delegate.getAsync(tableRef, timestampByCell),
+                (logger, stopwatch) -> logger.log(
+                        "Call to KVS.getAsync",
+                        LoggingArgs.startTimeMillis(startTime),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.cellCount(timestampByCell.size()),
+                        LoggingArgs.durationMillis(stopwatch)),
                 logCellResultSize(4L));
     }
 }

@@ -15,10 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.sql.Connection;
-import java.util.function.Supplier;
-
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
@@ -31,23 +29,30 @@ import com.palantir.nexus.db.sql.ConnectionBackedSqlConnectionImpl;
 import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
+import java.sql.Connection;
+import java.util.function.Supplier;
 
 // This class should be removed and replaced by DbKvs when InDbTimestampStore depends directly on DbKvs
 public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
-    private final DbKvs kvs;
+    private final DbKeyValueService kvs;
     private final ConnectionManager connManager;
     private final SqlConnectionSupplier sqlConnectionSupplier;
 
     public static ConnectionManagerAwareDbKvs create(DbKeyValueServiceConfig config) {
+        return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static ConnectionManagerAwareDbKvs create(DbKeyValueServiceConfig config, boolean initializeAsync) {
         HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection());
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
-        return new ConnectionManagerAwareDbKvs(DbKvs.create(config, sqlConnSupplier), connManager, sqlConnSupplier);
+        return new ConnectionManagerAwareDbKvs(
+                DbKvs.create(config, sqlConnSupplier, initializeAsync), connManager, sqlConnSupplier);
     }
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
             ReentrantManagedConnectionSupplier connectionSupplier) {
-        Supplier<Connection> supplier = connectionSupplier::get;
+        Supplier<Connection> supplier = connectionSupplier;
         SQL sql = new SQL() {
             @Override
             protected SqlConfig getSqlConfig() {
@@ -58,9 +63,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
                     }
 
                     protected Iterable<SqlTimer> getSqlTimers() {
-                        return ImmutableList.of(
-                                SqlTimers.createDurationSqlTimer(),
-                                SqlTimers.createSqlStatsSqlTimer());
+                        return ImmutableList.of(SqlTimers.createDurationSqlTimer(), SqlTimers.createSqlStatsSqlTimer());
                     }
 
                     @Override
@@ -91,9 +94,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
     }
 
     private ConnectionManagerAwareDbKvs(
-                DbKvs kvs,
-                ConnectionManager connManager,
-                SqlConnectionSupplier sqlConnectionSupplier) {
+            DbKeyValueService kvs, ConnectionManager connManager, SqlConnectionSupplier sqlConnectionSupplier) {
         this.kvs = kvs;
         this.connManager = connManager;
         this.sqlConnectionSupplier = sqlConnectionSupplier;

@@ -40,12 +40,11 @@ public class ExpectedFailureRule implements TestRule {
             private void evaluateBaseExpectingFailure() {
                 try {
                     base.evaluate();
-                    throw new AssertionError(String.format("%s was expected to fail, but passed!",
-                            getTestName(description)));
+                    throw new AssertionError(
+                            String.format("%s was expected to fail, but passed!", getTestName(description)));
                 } catch (Throwable t) {
                     // PASS - a failure was expected
-                    log.info("Test {} failed, which is in line with expectations.",
-                            getTestName(description));
+                    log.info("Test {} failed, which is in line with expectations.", getTestName(description));
                 }
             }
         };

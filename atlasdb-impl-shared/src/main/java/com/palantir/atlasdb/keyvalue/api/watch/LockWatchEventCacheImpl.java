@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Collection;
-import java.util.Optional;
-import java.util.Set;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -31,6 +27,10 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.logsafe.Preconditions;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * This class should only be used through {@link ResilientLockWatchEventCache} as a proxy; failure to do so will result
@@ -45,7 +45,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     public static LockWatchEventCache create(MetricsManager metricsManager) {
         return ResilientLockWatchEventCache.newProxyInstance(
-                new LockWatchEventCacheImpl(LockWatchEventLog.create(MAX_EVENTS)), NoOpLockWatchEventCache.INSTANCE,
+                new LockWatchEventCacheImpl(LockWatchEventLog.create(MAX_EVENTS)),
+                NoOpLockWatchEventCache.create(),
                 metricsManager);
     }
 
@@ -56,22 +57,24 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+    @Override
     public Optional<LockWatchVersion> lastKnownVersion() {
         return eventLog.getLatestKnownVersion();
     }
 
     @Override
-    public void processStartTransactionsUpdate(
-            Set<Long> startTimestamps,
-            LockWatchStateUpdate update) {
+    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
         Optional<LockWatchVersion> updateVersion = processEventLogUpdate(update);
         updateVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
     }
 
     @Override
     public void processGetCommitTimestampsUpdate(
-            Collection<TransactionUpdate> transactionUpdates,
-            LockWatchStateUpdate update) {
+            Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update) {
         Optional<LockWatchVersion> updateVersion = processEventLogUpdate(update);
         updateVersion.ifPresent(version -> timestampStateStore.putCommitUpdates(transactionUpdates, version));
     }
@@ -81,7 +84,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
         Optional<CommitInfo> maybeCommitInfo = timestampStateStore.getCommitInfo(startTs);
 
-        assertTrue(maybeCommitInfo.isPresent() && startVersion.isPresent(),
+        assertTrue(
+                maybeCommitInfo.isPresent() && startVersion.isPresent(),
                 "start or commit info not processed for start timestamp");
 
         CommitInfo commitInfo = maybeCommitInfo.get();
@@ -96,8 +100,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public TransactionsLockWatchUpdate getUpdateForTransactions(
-            Set<Long> startTimestamps,
-            Optional<LockWatchVersion> lastKnownVersion) {
+            Set<Long> startTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
 
         VersionBounds versionBounds = new VersionBounds.Builder()

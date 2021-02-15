@@ -15,14 +15,13 @@
  */
 package com.palantir.util;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 
 public final class OptionalResolver {
     private OptionalResolver() {
@@ -43,10 +42,10 @@ public final class OptionalResolver {
                 .map(Optional::get)
                 .collect(Collectors.toSet());
 
-        com.palantir.logsafe.Preconditions.checkArgument(values.size() >= 1,
-                "All Optionals provided were empty, couldn't determine a value.");
-        Preconditions.checkArgument(values.size() <= 1,
-                "Contradictory values %s found, expected a single common value", values);
+        com.palantir.logsafe.Preconditions.checkArgument(
+                values.size() >= 1, "All Optionals provided were empty, couldn't determine a value.");
+        Preconditions.checkArgument(
+                values.size() <= 1, "Contradictory values %s found, expected a single common value", values);
         return Iterables.getOnlyElement(values);
     }
 }

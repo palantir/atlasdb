@@ -18,21 +18,23 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.UnlockEvent;
+import java.util.Optional;
+import org.junit.Before;
+import org.junit.Test;
 
 public final class VersionedEventStoreTest {
 
-    private static final LockWatchEvent EVENT_1 = UnlockEvent.builder(ImmutableSet.of()).build(1L);
-    private static final LockWatchEvent EVENT_2 = UnlockEvent.builder(ImmutableSet.of()).build(2L);
-    private static final LockWatchEvent EVENT_3 = UnlockEvent.builder(ImmutableSet.of()).build(3L);
-    private static final LockWatchEvent EVENT_4 = UnlockEvent.builder(ImmutableSet.of()).build(4L);
+    private static final LockWatchEvent EVENT_1 =
+            UnlockEvent.builder(ImmutableSet.of()).build(1L);
+    private static final LockWatchEvent EVENT_2 =
+            UnlockEvent.builder(ImmutableSet.of()).build(2L);
+    private static final LockWatchEvent EVENT_3 =
+            UnlockEvent.builder(ImmutableSet.of()).build(3L);
+    private static final LockWatchEvent EVENT_4 =
+            UnlockEvent.builder(ImmutableSet.of()).build(4L);
 
     private VersionedEventStore eventStore;
 
@@ -60,7 +62,8 @@ public final class VersionedEventStoreTest {
     @Test
     public void getEventsBetweenVersionsReturnsInclusiveOnBounds() {
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
-        assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.of(2L), 3L)).containsExactly(EVENT_2, EVENT_3);
+        assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.of(2L), 3L))
+                .containsExactly(EVENT_2, EVENT_3);
     }
 
     @Test
@@ -71,8 +74,6 @@ public final class VersionedEventStoreTest {
     }
 
     private LockWatchEvents makeEvents(LockWatchEvent... events) {
-        return new LockWatchEvents.Builder()
-                .addEvents(events)
-                .build();
+        return new LockWatchEvents.Builder().addEvents(events).build();
     }
 }

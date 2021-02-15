@@ -44,5 +44,4 @@ public class CreationData {
             return PtBytes.toBytes(creationData.timeCreated);
         }
     }
-
 }

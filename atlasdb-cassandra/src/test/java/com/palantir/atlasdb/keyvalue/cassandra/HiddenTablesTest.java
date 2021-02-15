@@ -15,48 +15,51 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import org.junit.Test;
 
 public class HiddenTablesTest {
     @Test
     public void shouldSayTimestampIsHidden() {
-        assertThat(HiddenTables.isHidden(AtlasDbConstants.TIMESTAMP_TABLE), is(true));
+        assertThat(HiddenTables.isHidden(AtlasDbConstants.TIMESTAMP_TABLE)).isTrue();
     }
 
     @Test
     public void shouldSayMetadataIsHidden() {
-        assertThat(HiddenTables.isHidden(AtlasDbConstants.DEFAULT_METADATA_TABLE), is(true));
+        assertThat(HiddenTables.isHidden(AtlasDbConstants.DEFAULT_METADATA_TABLE))
+                .isTrue();
     }
 
     @Test
     public void shouldSayAnOldStyleLocksTableIsHidden() {
-        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks")), is(true));
+        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks")))
+                .isTrue();
     }
 
     @Test
     public void shouldSayANewStyleLocksTableIsHidden() {
-        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks_aaaa_123")), is(true));
+        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks_aaaa_123")))
+                .isTrue();
     }
 
     @Test
     public void shouldSayANamespacedTableIsNotHidden() {
-        assertThat(HiddenTables.isHidden(TableReference.createFromFullyQualifiedName("namespace.table")), is(false));
+        assertThat(HiddenTables.isHidden(TableReference.createFromFullyQualifiedName("namespace.table")))
+                .isFalse();
     }
 
     @Test
     public void shouldSayANonNamespacedVisibleTableIsNotHidden() {
-        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("table")), is(false));
+        assertThat(HiddenTables.isHidden(TableReference.createWithEmptyNamespace("table")))
+                .isFalse();
     }
 
     @Test
     public void shouldSayPersistedLocksTableIsHidden() {
-        assertThat(HiddenTables.isHidden(AtlasDbConstants.PERSISTED_LOCKS_TABLE), is(true));
+        assertThat(HiddenTables.isHidden(AtlasDbConstants.PERSISTED_LOCKS_TABLE))
+                .isTrue();
     }
 }

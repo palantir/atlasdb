@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Bump down the limit on number of rows to be read per iteration for
+    validation against corruption checks. Earlier, the limit was 500 and could cause
+    TimeLock performance degradation.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5112

@@ -15,18 +15,18 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.time.Duration;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * A proxy that chooses between using a local or remote proxy based on a task that may take a while to complete.
@@ -34,14 +34,11 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 final class LocalOrRemoteProxy<T> extends AbstractInvocationHandler {
 
     static <U> U newProxyInstance(
-            Class<U> interfaceClass,
-            U localService,
-            U remoteService,
-            Future<Boolean> useLocalServiceFuture) {
+            Class<U> interfaceClass, U localService, U remoteService, Future<Boolean> useLocalServiceFuture) {
         @SuppressWarnings("unchecked")
         U proxy = (U) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
-                new Class<?>[] { interfaceClass },
+                new Class<?>[] {interfaceClass},
                 new LocalOrRemoteProxy<>(localService, remoteService, useLocalServiceFuture));
         return proxy;
     }
@@ -66,9 +63,9 @@ final class LocalOrRemoteProxy<T> extends AbstractInvocationHandler {
             try {
                 return method.invoke(delegate(), args);
             } catch (InvocationTargetException e) {
-                Throwable targetException = e.getTargetException();
+                Throwable targetException = e.getCause();
                 if (targetException instanceof NotCurrentLeaderException) {
-                    Uninterruptibles.sleepUninterruptibly(10, TimeUnit.MILLISECONDS);
+                    Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(10));
                     continue;
                 }
                 throw targetException;

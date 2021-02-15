@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
+import java.util.function.Supplier;
 
 public final class OverflowSequenceSupplier implements Supplier<Long> {
     static final int OVERFLOW_ID_CACHE_SIZE = 1000;

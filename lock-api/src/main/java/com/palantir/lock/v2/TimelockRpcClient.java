@@ -16,6 +16,7 @@
 
 package com.palantir.lock.v2;
 
+import com.palantir.processors.AutoDelegate;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -23,15 +24,12 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.processors.AutoDelegate;
-
 /**
  * Interface describing timelock endpoints to be used by feign client factories to create raw clients.
  *
  * If you are adding a replacement for an endpoint, please version by number, e.g. a new version of
  * fresh-timestamp might be fresh-timestamp-2.
  */
-
 @Path("/{namespace}/timelock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -45,5 +43,4 @@ public interface TimelockRpcClient {
     @POST
     @Path("current-time-millis")
     long currentTimeMillis(@PathParam("namespace") String namespace);
-
 }

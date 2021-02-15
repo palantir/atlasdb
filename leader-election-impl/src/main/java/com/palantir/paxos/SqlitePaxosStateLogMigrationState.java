@@ -16,11 +16,11 @@
 
 package com.palantir.paxos;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.Optional;
 import java.util.function.Function;
-
 import javax.sql.DataSource;
-
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
@@ -28,9 +28,6 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
-
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 public final class SqlitePaxosStateLogMigrationState {
     private final Client namespace;
@@ -100,8 +97,9 @@ public final class SqlitePaxosStateLogMigrationState {
     }
 
     private void assertCurrentStateAtMost(Queries dao, States state) {
-        dao.getVersion(namespace, useCase).ifPresent(currentVersion ->
-                Preconditions.checkState(currentVersion <= state.getSchemaVersion(),
+        dao.getVersion(namespace, useCase)
+                .ifPresent(currentVersion -> Preconditions.checkState(
+                        currentVersion <= state.getSchemaVersion(),
                         "Could not update migration state because it would cause us to go back in state version.",
                         SafeArg.of("currentVersion", currentVersion),
                         SafeArg.of("migrationState", state),
@@ -120,16 +118,12 @@ public final class SqlitePaxosStateLogMigrationState {
         @SqlUpdate("INSERT OR REPLACE INTO migration_state (namespace, useCase, version) VALUES"
                 + " (:namespace.value, :useCase, :version)")
         boolean migrateToVersion(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("version") int version);
+                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase, @Bind("version") int version);
 
         @SqlUpdate("INSERT OR REPLACE INTO migration_cutoff (namespace, useCase, cutoff) VALUES"
                 + " (:namespace.value, :useCase, :cutoff)")
         boolean setCutoff(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("cutoff") long cutoff);
+                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase, @Bind("cutoff") long cutoff);
 
         @SqlQuery("SELECT version FROM migration_state WHERE namespace = :namespace.value AND useCase = :useCase")
         Optional<Integer> getVersion(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
@@ -139,7 +133,9 @@ public final class SqlitePaxosStateLogMigrationState {
     }
 
     private enum States {
-        NONE(null), VALIDATION(0), MIGRATED(1);
+        NONE(null),
+        VALIDATION(0),
+        MIGRATED(1);
 
         private final Integer schemaVersion;
 

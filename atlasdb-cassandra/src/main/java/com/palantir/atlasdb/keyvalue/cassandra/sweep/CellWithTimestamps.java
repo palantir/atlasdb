@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
-
-import com.google.common.collect.Lists;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 
 @Value.Immutable
 public interface CellWithTimestamps {
@@ -35,7 +33,7 @@ public interface CellWithTimestamps {
     List<Long> sortedTimestamps();
 
     static CellWithTimestamps of(Cell cell, List<Long> unsortedTimestamps) {
-        List<Long> sortedTimestamps = Lists.newArrayList(unsortedTimestamps);
+        List<Long> sortedTimestamps = new ArrayList<>(unsortedTimestamps);
         Collections.sort(sortedTimestamps);
         return ImmutableCellWithTimestamps.builder()
                 .cell(cell)
@@ -44,8 +42,7 @@ public interface CellWithTimestamps {
     }
 
     default CandidateCellForSweeping toSweepCandidate(
-            Predicate<Long> shouldSweepTimestampPredicate,
-            boolean latestValueEmpty) {
+            Predicate<Long> shouldSweepTimestampPredicate, boolean latestValueEmpty) {
         List<Long> filteredTimestamps = sortedTimestamps().stream()
                 .filter(shouldSweepTimestampPredicate)
                 .collect(Collectors.toList());

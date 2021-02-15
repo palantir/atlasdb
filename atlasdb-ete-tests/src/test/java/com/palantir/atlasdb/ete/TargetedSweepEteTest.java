@@ -16,14 +16,6 @@
 package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -31,14 +23,22 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
+import java.time.Duration;
+import org.awaitility.Awaitility;
+import org.junit.After;
+import org.junit.Test;
 
 public class TargetedSweepEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final TodoSchemaTableFactory FACTORY = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
-    private static final TableReference INDEX_TABLE = FACTORY.getSnapshotsStreamIdxTable(null).getTableRef();
-    private static final TableReference HASH_TABLE = FACTORY.getSnapshotsStreamHashAidxTable(null).getTableRef();
-    private static final TableReference METADATA_TABLE = FACTORY.getSnapshotsStreamMetadataTable(null).getTableRef();
-    private static final TableReference VALUES_TABLE = FACTORY.getSnapshotsStreamValueTable(null).getTableRef();
+    private static final TableReference INDEX_TABLE =
+            FACTORY.getSnapshotsStreamIdxTable(null).getTableRef();
+    private static final TableReference HASH_TABLE =
+            FACTORY.getSnapshotsStreamHashAidxTable(null).getTableRef();
+    private static final TableReference METADATA_TABLE =
+            FACTORY.getSnapshotsStreamMetadataTable(null).getTableRef();
+    private static final TableReference VALUES_TABLE =
+            FACTORY.getSnapshotsStreamValueTable(null).getTableRef();
 
     private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
@@ -53,7 +53,8 @@ public class TargetedSweepEteTest {
         assertThat(todoClient.doesNotExistBeforeTimestamp(100L, ts)).isFalse();
 
         todoClient.addTodoWithIdAndReturnTimestamp(100L, TODO);
-        Awaitility.waitAtMost(2, TimeUnit.MINUTES).pollInterval(2, TimeUnit.SECONDS)
+        Awaitility.waitAtMost(Duration.ofMinutes(2))
+                .pollInterval(Duration.ofSeconds(2))
                 .until(() -> todoClient.doesNotExistBeforeTimestamp(100L, ts));
     }
 
@@ -82,7 +83,7 @@ public class TargetedSweepEteTest {
 
     @Test
     public void targetedSweepLargeStreamsTest() {
-        //same as above, except the stream is bigger, so each uses 4 cells in the values table
+        // same as above, except the stream is bigger, so each uses 4 cells in the values table
         StreamTestUtils.storeFiveStreams(todoClient, 1500000);
         todoClient.runIterationOfTargetedSweep();
         assertDeleted(4, 4, 4, 4 * 4);
@@ -104,16 +105,16 @@ public class TargetedSweepEteTest {
     }
 
     private void assertDeleted(long idx, long hash, long meta, long val) {
-        Assert.assertThat(todoClient.numberOfCellsDeleted(INDEX_TABLE), equalTo(idx));
-        Assert.assertThat(todoClient.numberOfCellsDeleted(HASH_TABLE), equalTo(hash));
-        Assert.assertThat(todoClient.numberOfCellsDeleted(METADATA_TABLE), equalTo(meta));
-        Assert.assertThat(todoClient.numberOfCellsDeleted(VALUES_TABLE), equalTo(val));
+        assertThat(todoClient.numberOfCellsDeleted(INDEX_TABLE)).isEqualTo(idx);
+        assertThat(todoClient.numberOfCellsDeleted(HASH_TABLE)).isEqualTo(hash);
+        assertThat(todoClient.numberOfCellsDeleted(METADATA_TABLE)).isEqualTo(meta);
+        assertThat(todoClient.numberOfCellsDeleted(VALUES_TABLE)).isEqualTo(val);
     }
 
     private void assertDeletedAndSwept(long idx, long hash, long meta, long val) {
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(INDEX_TABLE), equalTo(idx));
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(HASH_TABLE), equalTo(hash));
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(METADATA_TABLE), equalTo(meta));
-        Assert.assertThat(todoClient.numberOfCellsDeletedAndSwept(VALUES_TABLE), equalTo(val));
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(INDEX_TABLE)).isEqualTo(idx);
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(HASH_TABLE)).isEqualTo(hash);
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(METADATA_TABLE)).isEqualTo(meta);
+        assertThat(todoClient.numberOfCellsDeletedAndSwept(VALUES_TABLE)).isEqualTo(val);
     }
 }

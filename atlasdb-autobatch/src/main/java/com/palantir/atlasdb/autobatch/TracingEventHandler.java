@@ -16,18 +16,15 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import com.lmax.disruptor.EventHandler;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.lmax.disruptor.EventHandler;
 
 final class TracingEventHandler<I, O> implements EventHandler<BatchElement<I, O>> {
     private final EventHandler<BatchElement<I, O>> handler;
     private final List<BatchElement<I, O>> pending;
 
-    TracingEventHandler(
-            EventHandler<BatchElement<I, O>> delegate,
-            int bufferSize) {
+    TracingEventHandler(EventHandler<BatchElement<I, O>> delegate, int bufferSize) {
         this.handler = delegate;
         this.pending = new ArrayList<>(bufferSize);
     }

@@ -19,6 +19,5 @@ public final class PaxosConstants {
 
     public static final boolean CANCEL_REMAINING_CALLS = false;
 
-    private PaxosConstants() {
-    }
+    private PaxosConstants() {}
 }

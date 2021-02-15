@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.timelock.util;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeLoggable;
+import java.util.List;
 
 // TODO(nziebart): replace this when http-remoting provides a similar class
 public class LoggableIllegalStateException extends IllegalStateException implements SafeLoggable {

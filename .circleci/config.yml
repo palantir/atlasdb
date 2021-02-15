@@ -17,8 +17,7 @@ jobs:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
 
       - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
-      - run: ./scripts/circle-ci/download-moreutils.sh
-      - run: ./scripts/time-cmd.sh ./gradlew --profile --parallel --stacktrace classes testClasses
+      - run: ./gradlew --profile --parallel --stacktrace classes testClasses
 
       - save_cache:
           key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
@@ -33,7 +32,7 @@ jobs:
           paths: [ . ]
 
   test:
-    parallelism: 8
+    parallelism: 9
     machine:
       image: circleci/classic:edge
     resource_class: xlarge
@@ -66,11 +65,10 @@ jobs:
               sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
               curl https://cdn.azul.com/zulu/bin/zulu8.38.0.13-ca-jdk8.0.212-linux_x64.tar.gz | tar -xzf - -C /opt/java
               sudo ln -s /opt/java/zulu*/ /opt/java8
-      - run: ./scripts/circle-ci/download-moreutils.sh
       - run:
-          command: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh
+          command: ./scripts/circle-ci/run-circle-tests.sh
           no_output_timeout: 600
-      - run: ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
       - run:
           command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
@@ -97,15 +95,19 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
       - attach_workspace: { at: . }
+      - add_ssh_keys:
+          fingerprints:
+            - "20:d7:2c:43:a2:d9:38:86:45:c0:70:cc:c9:87:95:5b"
       - run: sudo apt-get update
       - run: sudo apt-get install python python-pip
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
-            if [ $CIRCLE_PROJECT_USERNAME = 'atlasdb' ] && [ -z $CIRCLE_PR_NUMBER ]; then
+            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
               if [[ "${CIRCLE_BRANCH}" =~ develop ]]; then
                 ./scripts/circle-ci/publish-github-page.sh
-                curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
+                # Internal publishing from an external CircleCI is... not a thing.
+                # curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
               else
                 echo "Internal and external docs are typically published from develop, not ${CIRCLE_BRANCH}."
               fi

@@ -5,7 +5,6 @@
 | [commons-codec, v. 1.10](https://commons.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
 | [commons-io, v. 2.6](http://commons.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
 | [commons-lang, v. 2.6, 3-3.1](http://commons.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
-| [commons-logging, v. 1.1.1](https://commons.apache.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |
 | [datastax cassandra driver](https://github.com/datastax/java-driver) | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) |
 | [gson, v. 2.2.4](https://github.com/google/gson) | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) |
 | [guava, v. 18.0](https://github.com/google/guava) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |

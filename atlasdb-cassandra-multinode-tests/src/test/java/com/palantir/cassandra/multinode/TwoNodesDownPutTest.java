@@ -15,10 +15,6 @@
  */
 package com.palantir.cassandra.multinode;
 
-import java.util.Map;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -26,6 +22,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import java.util.Map;
+import org.junit.Test;
 
 public class TwoNodesDownPutTest extends AbstractDegradedClusterTest {
     private static final Cell EMPTY_CELL = Cell.create(PtBytes.toBytes("empty"), FIRST_COLUMN);
@@ -39,39 +37,39 @@ public class TwoNodesDownPutTest extends AbstractDegradedClusterTest {
 
     @Test
     public void putThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().put(TEST_TABLE, ImmutableMap.of(CELL_1_1, CONTENTS), TIMESTAMP));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().put(TEST_TABLE, ImmutableMap.of(CELL_1_1, CONTENTS), TIMESTAMP));
     }
 
     @Test
     public void putWithTimestampsThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(CELL_1_2, VALUE)));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(CELL_1_2, VALUE)));
     }
 
     @Test
     public void multiPutThrows() {
         Map<Cell, byte[]> entries = ImmutableMap.of(CELL_2_1, CONTENTS, CELL_2_2, CONTENTS);
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().multiPut(ImmutableMap.of(TEST_TABLE, entries), TIMESTAMP));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().multiPut(ImmutableMap.of(TEST_TABLE, entries), TIMESTAMP));
     }
 
     @Test
     public void putUnlessExistsThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().putUnlessExists(TEST_TABLE, ImmutableMap.of(EMPTY_CELL, CONTENTS)));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().putUnlessExists(TEST_TABLE, ImmutableMap.of(EMPTY_CELL, CONTENTS)));
     }
 
     @Test
     public void putUnlessExistsThrowsAtlasDbDependencyExceptionOnExists() {
         byte[] newContents = PtBytes.toBytes("new_value");
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().putUnlessExists(TEST_TABLE, ImmutableMap.of(NONEMPTY_CELL, newContents)));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().putUnlessExists(TEST_TABLE, ImmutableMap.of(NONEMPTY_CELL, newContents)));
     }
 
     @Test
     public void addGarbageCollectionSentinelValuesThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(CELL_2_2)));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(CELL_2_2)));
     }
 }

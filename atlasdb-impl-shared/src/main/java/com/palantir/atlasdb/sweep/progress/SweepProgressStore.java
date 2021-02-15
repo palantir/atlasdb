@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
+import java.util.Optional;
 
 @AutoDelegate
 public interface SweepProgressStore {

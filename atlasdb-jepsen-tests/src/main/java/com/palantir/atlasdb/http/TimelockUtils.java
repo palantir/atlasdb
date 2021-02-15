@@ -15,28 +15,24 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public final class TimelockUtils {
     private static final int PORT = 8080;
     static final String NAMESPACE = "test";
 
     private static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(
-            Paths.get("var", "security", "trustStore.jks"),
-            Paths.get("var", "security", "keyStore.jks"),
-            "keystore");
+            Paths.get("var", "security", "trustStore.jks"), Paths.get("var", "security", "keyStore.jks"), "keystore");
 
-    private TimelockUtils() {
-    }
+    private TimelockUtils() {}
 
     public static <T> T createClient(MetricsManager metricsManager, List<String> hosts, Class<T> type) {
         List<String> endpointUris = hostnamesToEndpointUris(hosts);
@@ -44,7 +40,9 @@ public final class TimelockUtils {
     }
 
     private static List<String> hostnamesToEndpointUris(List<String> hosts) {
-        return hosts.stream().map(host -> String.format("https://%s:%d", host, PORT)).collect(Collectors.toList());
+        return hosts.stream()
+                .map(host -> String.format("https://%s:%d", host, PORT))
+                .collect(Collectors.toList());
     }
 
     private static <T> T createFromUris(MetricsManager metricsManager, List<String> endpointUris, Class<T> type) {
@@ -60,9 +58,6 @@ public final class TimelockUtils {
                 .build();
 
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
-                metricsManager,
-                serverListConfig,
-                type,
-                parameters);
+                metricsManager, serverListConfig, type, parameters);
     }
 }

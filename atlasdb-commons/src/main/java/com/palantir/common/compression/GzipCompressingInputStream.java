@@ -15,6 +15,9 @@
  */
 package com.palantir.common.compression;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.io.CountingInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
@@ -29,24 +32,19 @@ import java.util.zip.CheckedInputStream;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterInputStream;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.io.CountingInputStream;
-
-
 public final class GzipCompressingInputStream {
     private static final int GZIP_MAGIC = 0x8b1f;
     private static final byte[] GZIP_HEADER = new byte[] {
-            (byte) GZIP_MAGIC,        // Magic number (short)
-            (byte) (GZIP_MAGIC >> 8),  // Magic number (short)
-            Deflater.DEFLATED,        // Compression method (CM)
-            0,                        // Flags (FLG)
-            0,                        // Modification time MTIME (int)
-            0,                        // Modification time MTIME (int)
-            0,                        // Modification time MTIME (int)
-            0,                        // Modification time MTIME (int)
-            0,                        // Extra flags (XFLG)
-            0                         // Operating system (OS)
+        (byte) GZIP_MAGIC, // Magic number (short)
+        (byte) (GZIP_MAGIC >> 8), // Magic number (short)
+        Deflater.DEFLATED, // Compression method (CM)
+        0, // Flags (FLG)
+        0, // Modification time MTIME (int)
+        0, // Modification time MTIME (int)
+        0, // Modification time MTIME (int)
+        0, // Modification time MTIME (int)
+        0, // Extra flags (XFLG)
+        0 // Operating system (OS)
     };
 
     public static byte[] getMagicPrefix() {
@@ -59,8 +57,8 @@ public final class GzipCompressingInputStream {
         CRC32 crc = new CRC32();
         CheckedInputStream checked = new CheckedInputStream(counting, crc);
         InputStream content = new DeflaterInputStream(checked, new Deflater(Deflater.DEFAULT_COMPRESSION, true));
-        List<Supplier<InputStream>> allStreams = ImmutableList.of(
-                () -> header, () -> content, () -> trailerStream(counting.getCount(), crc));
+        List<Supplier<InputStream>> allStreams =
+                ImmutableList.of(() -> header, () -> content, () -> trailerStream(counting.getCount(), crc));
         return new SequenceInputStream(Collections.enumeration(Lists.transform(allStreams, Supplier::get)));
     }
 
@@ -68,7 +66,7 @@ public final class GzipCompressingInputStream {
         long checksum = crc.getValue();
         byte[] trailer = new byte[Integer.BYTES * 2];
         ByteBuffer buffer = ByteBuffer.wrap(trailer).order(ByteOrder.LITTLE_ENDIAN);
-        buffer.putInt((int)(checksum & 0xffffffffL));
+        buffer.putInt((int) (checksum & 0xffffffffL));
         buffer.putInt((int) count);
         return new ByteArrayInputStream(trailer);
     }

@@ -28,8 +28,8 @@ public class SweepPriorityOverrideConfigTest {
 
     @Test
     public void configIsEmptyByDefault() {
-        SweepPriorityOverrideConfig defaultConfig = ImmutableSweepPriorityOverrideConfig.builder()
-                .build();
+        SweepPriorityOverrideConfig defaultConfig =
+                ImmutableSweepPriorityOverrideConfig.builder().build();
 
         assertThat(defaultConfig.blacklistTables()).isEmpty();
         assertThat(defaultConfig.priorityTables()).isEmpty();
@@ -49,9 +49,9 @@ public class SweepPriorityOverrideConfigTest {
     @Test
     public void cannotSpecifySameTableAsBothBlacklistAndPriority() {
         assertThatThrownBy(() -> ImmutableSweepPriorityOverrideConfig.builder()
-                .addPriorityTables(FULLY_QUALIFIED_TABLE_NAME_1)
-                .addBlacklistTables(FULLY_QUALIFIED_TABLE_NAME_1)
-                .build())
+                        .addPriorityTables(FULLY_QUALIFIED_TABLE_NAME_1)
+                        .addBlacklistTables(FULLY_QUALIFIED_TABLE_NAME_1)
+                        .build())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(FULLY_QUALIFIED_TABLE_NAME_1);
     }
@@ -59,8 +59,8 @@ public class SweepPriorityOverrideConfigTest {
     @Test
     public void cannotSpecifyTableNamesThatAreNotFullyQualified() {
         assertThatThrownBy(() -> ImmutableSweepPriorityOverrideConfig.builder()
-                .addBlacklistTables(NOT_FULLY_QUALIFIED_TABLE_NAME)
-                .build())
+                        .addBlacklistTables(NOT_FULLY_QUALIFIED_TABLE_NAME)
+                        .build())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(NOT_FULLY_QUALIFIED_TABLE_NAME);
     }

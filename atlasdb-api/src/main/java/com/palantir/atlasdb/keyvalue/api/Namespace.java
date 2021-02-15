@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.regex.Pattern;
-
-import org.apache.commons.lang3.Validate;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Objects;
 import com.palantir.logsafe.Preconditions;
+import java.util.Objects;
+import java.util.regex.Pattern;
+import org.apache.commons.lang3.Validate;
 
 public final class Namespace {
     public static final Namespace EMPTY_NAMESPACE = new Namespace("");
@@ -60,8 +58,7 @@ public final class Namespace {
     public static Namespace create(String name, Pattern pattern) {
         Validate.notEmpty(name, "namespace name cannot be empty (see Namespace.EMPTY_NAMESPACE instead).");
         Preconditions.checkArgument(!name.contains("."), "namespace cannot contain dots (atlas reserved).");
-        Validate.isTrue(pattern.matcher(name).matches(), "'%s' does not match namespace pattern '%s'.",
-                name, pattern);
+        Validate.isTrue(pattern.matcher(name).matches(), "'%s' does not match namespace pattern '%s'.", name, pattern);
         return new Namespace(name);
     }
 
@@ -81,7 +78,7 @@ public final class Namespace {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name);
+        return 31 + Objects.hashCode(name);
     }
 
     @Override
@@ -93,12 +90,11 @@ public final class Namespace {
             return false;
         }
         Namespace other = (Namespace) obj;
-        return Objects.equal(name, other.name);
+        return Objects.equals(name, other.name);
     }
 
     @Override
     public String toString() {
         return "Namespace [name=" + name + "]";
     }
-
 }

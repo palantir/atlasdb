@@ -17,10 +17,9 @@ package com.palantir.atlasdb.logging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import org.junit.Test;
 
 public class SafeLoggableDataTest {
     private static final TableReference TABLE_REFERENCE_1 = TableReference.createFromFullyQualifiedName("atlas.db");
@@ -57,7 +56,8 @@ public class SafeLoggableDataTest {
                 .putPermittedRowComponents(TABLE_REFERENCE_1, ImmutableSet.of(ROW_COMPONENT_1))
                 .build();
 
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_1)).isTrue();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_1))
+                .isTrue();
     }
 
     @Test
@@ -66,7 +66,8 @@ public class SafeLoggableDataTest {
                 .putPermittedRowComponents(TABLE_REFERENCE_1, ImmutableSet.of(ROW_COMPONENT_1))
                 .build();
 
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_2)).isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_2))
+                .isFalse();
     }
 
     @Test
@@ -76,14 +77,17 @@ public class SafeLoggableDataTest {
                 .putPermittedRowComponents(TABLE_REFERENCE_2, ImmutableSet.of(ROW_COMPONENT_2))
                 .build();
 
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_2)).isFalse();
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_2, ROW_COMPONENT_1)).isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_2))
+                .isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_2, ROW_COMPONENT_1))
+                .isFalse();
     }
 
     @Test
     public void rowComponentsInUnknownTablesAreNotSafe() {
         SafeLoggableData safeLoggableData = ImmutableSafeLoggableData.builder().build();
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_3, ROW_COMPONENT_1)).isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_3, ROW_COMPONENT_1))
+                .isFalse();
     }
 
     @Test
@@ -92,7 +96,8 @@ public class SafeLoggableDataTest {
                 .putPermittedColumnNames(TABLE_REFERENCE_1, ImmutableSet.of(COLUMN_NAME_1))
                 .build();
 
-        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, COLUMN_NAME_1)).isTrue();
+        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, COLUMN_NAME_1))
+                .isTrue();
     }
 
     @Test
@@ -101,7 +106,8 @@ public class SafeLoggableDataTest {
                 .putPermittedColumnNames(TABLE_REFERENCE_1, ImmutableSet.of(COLUMN_NAME_1))
                 .build();
 
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, COLUMN_NAME_2)).isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, COLUMN_NAME_2))
+                .isFalse();
     }
 
     @Test
@@ -111,14 +117,17 @@ public class SafeLoggableDataTest {
                 .putPermittedColumnNames(TABLE_REFERENCE_2, ImmutableSet.of(COLUMN_NAME_2))
                 .build();
 
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, COLUMN_NAME_2)).isFalse();
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_2, COLUMN_NAME_1)).isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, COLUMN_NAME_2))
+                .isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_2, COLUMN_NAME_1))
+                .isFalse();
     }
 
     @Test
     public void columnNamesInUnknownTablesAreNotSafe() {
         SafeLoggableData safeLoggableData = ImmutableSafeLoggableData.builder().build();
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_3, ROW_COMPONENT_1)).isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_3, ROW_COMPONENT_1))
+                .isFalse();
     }
 
     @Test
@@ -127,7 +136,8 @@ public class SafeLoggableDataTest {
                 .putPermittedRowComponents(TABLE_REFERENCE_1, ImmutableSet.of(ROW_COMPONENT_1))
                 .build();
 
-        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_1)).isFalse();
+        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_1))
+                .isFalse();
     }
 
     @Test
@@ -136,7 +146,8 @@ public class SafeLoggableDataTest {
                 .addPermittedTableReferences(TABLE_REFERENCE_1)
                 .build();
 
-        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_1)).isFalse();
+        assertThat(safeLoggableData.isRowComponentNameSafe(TABLE_REFERENCE_1, ROW_COMPONENT_1))
+                .isFalse();
     }
 
     @Test
@@ -145,6 +156,7 @@ public class SafeLoggableDataTest {
                 .addPermittedTableReferences(TABLE_REFERENCE_1)
                 .build();
 
-        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, COLUMN_NAME_1)).isFalse();
+        assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, COLUMN_NAME_1))
+                .isFalse();
     }
 }

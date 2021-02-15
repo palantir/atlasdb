@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
-
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -49,9 +43,15 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
-    static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+    static final TransactionConfig TRANSACTION_CONFIG =
+            ImmutableTransactionConfig.builder().build();
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     private final WrapperWithTracker<Transaction> transactionWrapper;
@@ -59,7 +59,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     private Optional<Long> unreadableTs = Optional.empty();
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
-    public TestTransactionManagerImpl(MetricsManager metricsManager,
+    public TestTransactionManagerImpl(
+            MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimestampService timestampService,
             TimestampManagementService timestampManagementService,
@@ -89,7 +90,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
-    public TestTransactionManagerImpl(MetricsManager metricsManager,
+    public TestTransactionManagerImpl(
+            MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimestampService timestampService,
             TimestampManagementService timestampManagementService,
@@ -101,8 +103,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.INSTANCE,
-                NoOpLockWatchEventCache.INSTANCE,
+                NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
+                NoOpLockWatchEventCache.create(),
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -120,7 +122,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 () -> TRANSACTION_CONFIG,
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault());
-        this.transactionWrapper =  WrapperWithTracker.TRANSACTION_NO_OP;
+        this.transactionWrapper = WrapperWithTracker.TRANSACTION_NO_OP;
         this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
     }
 
@@ -144,8 +146,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.INSTANCE,
-                NoOpLockWatchEventCache.INSTANCE,
+                NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
+                NoOpLockWatchEventCache.create(),
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -187,7 +189,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         long startTimestamp = timelockService.getFreshTimestamp();
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         return transactionWrapper.apply(
-                new SnapshotTransaction(metricsManager,
+                new SnapshotTransaction(
+                        metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
                         lockWatchManager,

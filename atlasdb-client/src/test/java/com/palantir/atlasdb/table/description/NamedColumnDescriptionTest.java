@@ -17,10 +17,9 @@ package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import org.junit.Test;
 
 public class NamedColumnDescriptionTest {
     private static final String SHORT_NAME = "shortName";
@@ -67,10 +66,8 @@ public class NamedColumnDescriptionTest {
     }
 
     private static void assertCanSerializeAndDeserializeWithSafety(
-            NamedColumnDescription componentDescription,
-            LogSafety logSafety) {
-        TableMetadataPersistence.NamedColumnDescription.Builder builder =
-                componentDescription.persistToProto();
+            NamedColumnDescription componentDescription, LogSafety logSafety) {
+        TableMetadataPersistence.NamedColumnDescription.Builder builder = componentDescription.persistToProto();
         assertThat(NamedColumnDescription.hydrateFromProto(builder.build()))
                 .isEqualTo(componentDescription)
                 .matches(description -> description.logSafety == logSafety);

@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.regex.Pattern;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
@@ -27,6 +22,10 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
 public class ColumnRangeSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -37,11 +36,11 @@ public class ColumnRangeSelection implements Serializable {
     private final byte[] endCol;
 
     @JsonCreator
-    public ColumnRangeSelection(@JsonProperty("startCol") byte[] startCol,
-                                @JsonProperty("endCol") byte[] endCol) {
+    public ColumnRangeSelection(@JsonProperty("startCol") byte[] startCol, @JsonProperty("endCol") byte[] endCol) {
         this.startCol = MoreObjects.firstNonNull(startCol, PtBytes.EMPTY_BYTE_ARRAY);
         this.endCol = MoreObjects.firstNonNull(endCol, PtBytes.EMPTY_BYTE_ARRAY);
-        Preconditions.checkArgument(isValidRange(this.startCol, this.endCol),
+        Preconditions.checkArgument(
+                isValidRange(this.startCol, this.endCol),
                 "Start and end columns (%s, %s respectively) do not form a valid range.",
                 startCol,
                 endCol);
@@ -64,8 +63,7 @@ public class ColumnRangeSelection implements Serializable {
             return false;
         }
         ColumnRangeSelection that = (ColumnRangeSelection) obj;
-        return Arrays.equals(startCol, that.startCol)
-                && Arrays.equals(endCol, that.endCol);
+        return Arrays.equals(startCol, that.startCol) && Arrays.equals(endCol, that.endCol);
     }
 
     @Override

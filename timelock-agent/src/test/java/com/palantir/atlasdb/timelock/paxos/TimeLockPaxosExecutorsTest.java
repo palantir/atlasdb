@@ -20,29 +20,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.concurrent.CheckedRejectedExecutionException;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.junit.Test;
 
 public class TimeLockPaxosExecutorsTest {
     private static final String TEST = "test";
     private static final Callable<Integer> BLOCKING_TASK = () -> {
-        Uninterruptibles.sleepUninterruptibly(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        Uninterruptibles.sleepUninterruptibly(Duration.ofNanos(Long.MAX_VALUE));
         return 42;
     };
 
@@ -53,8 +51,8 @@ public class TimeLockPaxosExecutorsTest {
 
     private final LocalAndRemotes<Object> localAndRemotes = LocalAndRemotes.of(local, remotes);
 
-    private final Map<Object, CheckedRejectionExecutorService> executors
-            = TimeLockPaxosExecutors.createBoundedExecutors(
+    private final Map<Object, CheckedRejectionExecutorService> executors =
+            TimeLockPaxosExecutors.createBoundedExecutors(
                     TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE, localAndRemotes, TEST);
 
     @Test
@@ -77,9 +75,9 @@ public class TimeLockPaxosExecutorsTest {
         for (int i = 0; i < TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE; i++) {
             executors.get(remote1).submit(BLOCKING_TASK);
         }
-        assertThatCode(() -> executors.get(remote2).submit(BLOCKING_TASK))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> executors.get(remote2).submit(BLOCKING_TASK)).doesNotThrowAnyException();
     }
+
     @Test
     public void localExecutorsAreNotBoundedByMaximumPoolSize() {
         int numThreads = TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE * 2;
@@ -87,8 +85,8 @@ public class TimeLockPaxosExecutorsTest {
         List<Future<Integer>> results = IntStream.range(0, numThreads)
                 .mapToObj(ignore -> executor.submit(this::submitToLocalAndGetUnchecked))
                 .collect(Collectors.toList());
-        results.forEach(future -> assertThatCode(() -> AtlasFutures.getUnchecked(future))
-                .doesNotThrowAnyException());
+        results.forEach(future ->
+                assertThatCode(() -> AtlasFutures.getUnchecked(future)).doesNotThrowAnyException());
     }
 
     private Integer submitToLocalAndGetUnchecked() throws CheckedRejectedExecutionException {

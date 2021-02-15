@@ -15,10 +15,9 @@
  */
 package com.palantir.nexus.db;
 
+import com.palantir.exception.PalantirSqlException;
 import java.io.Closeable;
 import java.sql.Connection;
-
-import com.palantir.exception.PalantirSqlException;
 
 public interface ReentrantConnectionSupplier extends ConnectionSupplier, Closeable {
 
@@ -49,5 +48,5 @@ public interface ReentrantConnectionSupplier extends ConnectionSupplier, Closeab
      * @throws PalantirSqlException if an error occurs while closing
      */
     @Override
-    public void close() throws PalantirSqlException;
+    void close() throws PalantirSqlException;
 }

@@ -16,19 +16,16 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
+import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.logsafe.testing.Assertions.assertThat;
-
+import com.palantir.atlasdb.util.TopNMetricPublicationController;
 import java.util.function.Supplier;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import com.palantir.atlasdb.util.TopNMetricPublicationController;
 
 @SuppressWarnings("unchecked") // mocks
 public class DefaultMetricsFilterEvaluationContextTest {
@@ -37,8 +34,8 @@ public class DefaultMetricsFilterEvaluationContextTest {
     private static final String KEY_3 = "oftheancients";
 
     private final Supplier<TopNMetricPublicationController<Long>> controllerFactory = mock(Supplier.class);
-    private final DefaultMetricsFilterEvaluationContext context
-            = new DefaultMetricsFilterEvaluationContext(controllerFactory);
+    private final DefaultMetricsFilterEvaluationContext context =
+            new DefaultMetricsFilterEvaluationContext(controllerFactory);
 
     @Before
     public void setUp() {

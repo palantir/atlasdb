@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -25,14 +24,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -43,6 +34,12 @@ import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSetImpl;
 import com.palantir.nexus.db.sql.SqlConnection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 public class PostgresDdlTableTest {
     private PostgresDdlTable postgresDdlTable;
@@ -55,7 +52,8 @@ public class PostgresDdlTableTest {
 
     @Before
     public void setUp() {
-        postgresDdlTable = new PostgresDdlTable(TEST_TABLE,
+        postgresDdlTable = new PostgresDdlTable(
+                TEST_TABLE,
                 connectionSupplier,
                 ImmutablePostgresDdlConfig.builder()
                         .compactInterval(HumanReadableDuration.milliseconds(COMPACT_INTERVAL_MILLIS))
@@ -85,38 +83,41 @@ public class PostgresDdlTableTest {
 
     @Test
     public void shouldCompactIfVacuumWasPerformedBeforeCompactInterval() throws Exception {
-        SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS - COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR,
-                NOW_MILLIS);
+        SqlConnection sqlConnection =
+                setUpSqlConnection(NOW_MILLIS - COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR, NOW_MILLIS);
 
         assertThatVacuumWasPerformed(sqlConnection);
     }
 
     @Test
     public void shouldNotCompactIfVacuumWasPerformedWithinCompactInterval() {
-        SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS - COMPACT_INTERVAL_MILLIS / SMALL_POSITIVE_FACTOR,
-                NOW_MILLIS);
+        SqlConnection sqlConnection =
+                setUpSqlConnection(NOW_MILLIS - COMPACT_INTERVAL_MILLIS / SMALL_POSITIVE_FACTOR, NOW_MILLIS);
         assertThatVacuumWasNotPerformed(sqlConnection);
     }
 
     @Test
     public void shouldNotCompactIfVacuumTimestampExceedsNowTimestampByLessThanCompactInterval() {
-        SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS + COMPACT_INTERVAL_MILLIS / SMALL_POSITIVE_FACTOR,
-                NOW_MILLIS);
+        SqlConnection sqlConnection =
+                setUpSqlConnection(NOW_MILLIS + COMPACT_INTERVAL_MILLIS / SMALL_POSITIVE_FACTOR, NOW_MILLIS);
         assertThatVacuumWasNotPerformed(sqlConnection);
     }
 
     @Test
     public void shouldCompactIfVacuumTimestampExceedsNowTimestampByMoreThanCompactInterval() {
-        SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS + COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR,
-                NOW_MILLIS);
+        SqlConnection sqlConnection =
+                setUpSqlConnection(NOW_MILLIS + COMPACT_INTERVAL_MILLIS * SMALL_POSITIVE_FACTOR, NOW_MILLIS);
         assertThatVacuumWasNotPerformed(sqlConnection);
     }
 
     @Test
     public void shouldCompactIfCompactMillisIsSetToZero() throws Exception {
-        postgresDdlTable = new PostgresDdlTable(TEST_TABLE,
+        postgresDdlTable = new PostgresDdlTable(
+                TEST_TABLE,
                 connectionSupplier,
-                ImmutablePostgresDdlConfig.builder().compactInterval(HumanReadableDuration.valueOf("0 ms")).build());
+                ImmutablePostgresDdlConfig.builder()
+                        .compactInterval(HumanReadableDuration.valueOf("0 ms"))
+                        .build());
         SqlConnection sqlConnection = setUpSqlConnection(NOW_MILLIS - SMALL_POSITIVE_FACTOR, NOW_MILLIS);
         assertThatVacuumWasPerformed(sqlConnection, false);
 
@@ -131,17 +132,17 @@ public class PostgresDdlTableTest {
         selectResults.add(Arrays.asList(new Object[] {lastVacuumTimestamp, currentTimestamp}));
 
         Mockito.when(sqlConnection.selectResultSetUnregisteredQuery(startsWith("SELECT FLOOR"), any()))
-                .thenReturn(
-                        new AgnosticResultSetImpl(selectResults,
-                                DBType.POSTGRESQL,
-                                // This is the columnName to position mapping in the results map. Column Names are both
-                                // upper-case and lower-case, as postgres allows the query to have either of them.
-                                new ImmutableMap.Builder<String, Integer>()
-                                        .put("last", 0)
-                                        .put("LAST", 0)
-                                        .put("current", 1)
-                                        .put("CURRENT", 1)
-                                        .build()));
+                .thenReturn(new AgnosticResultSetImpl(
+                        selectResults,
+                        DBType.POSTGRESQL,
+                        // This is the columnName to position mapping in the results map. Column Names are both
+                        // upper-case and lower-case, as postgres allows the query to have either of them.
+                        new ImmutableMap.Builder<String, Integer>()
+                                .put("last", 0)
+                                .put("LAST", 0)
+                                .put("current", 1)
+                                .put("CURRENT", 1)
+                                .build()));
         return sqlConnection;
     }
 
@@ -150,7 +151,7 @@ public class PostgresDdlTableTest {
     }
 
     private void assertThatVacuumWasPerformed(SqlConnection sqlConnection, boolean assertThatTimestampsWereChecked) {
-        assertTrue(postgresDdlTable.shouldRunCompaction());
+        assertThat(postgresDdlTable.shouldRunCompaction()).isTrue();
         postgresDdlTable.compactInternally(false);
 
         if (assertThatTimestampsWereChecked) {
@@ -161,12 +162,12 @@ public class PostgresDdlTableTest {
     }
 
     private void assertThatVacuumWasNotPerformed(SqlConnection sqlConnection) {
-        assertFalse(postgresDdlTable.shouldRunCompaction());
+        assertThat(postgresDdlTable.shouldRunCompaction()).isFalse();
         postgresDdlTable.compactInternally(false);
 
         verify(sqlConnection, times(2)).selectResultSetUnregisteredQuery(startsWith("SELECT FLOOR"), any());
 
-        verify(sqlConnection, never()).executeUnregisteredQuery(
-                eq("VACUUM ANALYZE " + DbKvs.internalTableName(TEST_TABLE)));
+        verify(sqlConnection, never())
+                .executeUnregisteredQuery(eq("VACUUM ANALYZE " + DbKvs.internalTableName(TEST_TABLE)));
     }
 }

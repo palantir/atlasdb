@@ -15,20 +15,17 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import java.util.List;
-import java.util.UUID;
-
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import java.util.UUID;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetException> {
     private static final Logger log = LoggerFactory.getLogger(CheckAndSetExceptionMapper.class);
@@ -37,7 +34,8 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
     public Response toResponse(CheckAndSetException ex) {
         String errorId = UUID.randomUUID().toString();
         LockEntry lockEntry = extractStoredLockEntry(ex);
-        log.error("Error handling a request: {}. Stored persistent lock: {}",
+        log.error(
+                "Error handling a request: {}. Stored persistent lock: {}",
                 SafeArg.of("errorId", errorId),
                 SafeArg.of("lockEntry", lockEntry),
                 ex);
@@ -60,8 +58,7 @@ public class CheckAndSetExceptionMapper implements ExceptionMapper<CheckAndSetEx
     private Response createErrorResponse(String errorId, LockEntry lockEntry) {
         String message = String.format("Error %s: Check and set failed. ", errorId)
                 + (lockEntry == null ? "Please contact the AtlasDB team. " : lockEntry);
-        return Response
-                .status(Response.Status.CONFLICT)
+        return Response.status(Response.Status.CONFLICT)
                 .type(MediaType.APPLICATION_JSON_TYPE)
                 .entity(ImmutableMap.of(
                         "exceptionClass", CheckAndSetException.class.getName(),

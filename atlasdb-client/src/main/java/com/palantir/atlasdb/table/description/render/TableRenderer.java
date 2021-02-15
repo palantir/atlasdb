@@ -15,33 +15,6 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import javax.annotation.Generated;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -118,6 +91,28 @@ import com.palantir.common.persist.Persistables;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+import javax.annotation.Generated;
+import javax.annotation.Nullable;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class TableRenderer {
@@ -155,12 +150,8 @@ public class TableRenderer {
         private final String RowResult;
         private final String Trigger;
 
-        public ClassRenderer(String rawTableName,
-                             TableDefinition table,
-                             SortedSet<IndexMetadata> indices) {
-            Preconditions.checkArgument(
-                    Schemas.isTableNameValid(rawTableName),
-                    "Invalid table name %s", rawTableName);
+        public ClassRenderer(String rawTableName, TableDefinition table, SortedSet<IndexMetadata> indices) {
+            Preconditions.checkArgument(Schemas.isTableNameValid(rawTableName), "Invalid table name %s", rawTableName);
             this.tableName = Renderers.getClassTableName(rawTableName, table);
             this.table = table.toTableMetadata();
             this.indices = indices;
@@ -203,8 +194,8 @@ public class TableRenderer {
                 line();
                 importRenderer.renderImports();
             }
-            line("@Generated(\"",  TableRenderer.class.getName(), "\")");
-            line("@SuppressWarnings(\"all\")");
+            line("@Generated(\"", TableRenderer.class.getName(), "\")");
+            line("@SuppressWarnings({\"all\", \"deprecation\"})");
             line("public ", isNestedIndex ? "static " : "", "final class ", Table, " implements");
             if (isNamedSet(table)) {
                 line("        AtlasDbNamedPersistentSet<", Table, ".", Row, ">,");
@@ -221,7 +212,8 @@ public class TableRenderer {
                 line("        AtlasDbNamedMutableTable<", Table, ".", Row, ",");
                 line("                                    ", Table, ".", ColumnValue, ",");
                 line("                                    ", Table, ".", RowResult, "> {");
-            } {
+            }
+            {
                 fields(isDynamic(table));
                 line();
                 staticFactories();
@@ -238,7 +230,8 @@ public class TableRenderer {
                 line();
                 renderGetNamespace();
                 line();
-                new RowOrDynamicColumnRenderer(this, Row, table.getRowMetadata(), table.isRangeScanAllowed(), false).run();
+                new RowOrDynamicColumnRenderer(this, Row, table.getRowMetadata(), table.isRangeScanAllowed(), false)
+                        .run();
                 line();
                 if (isDynamic(table)) {
                     renderDynamic();
@@ -280,7 +273,8 @@ public class TableRenderer {
                     importRenderer.renderImportJavaDoc();
                     renderClassHash();
                 }
-            } line("}");
+            }
+            line("}");
             line();
         }
 
@@ -340,13 +334,19 @@ public class TableRenderer {
         }
 
         private void renderDynamic() {
-            new RowOrDynamicColumnRenderer(this, Column, table.getColumns().getDynamicColumn().getColumnNameDesc(), false, true).run();
+            new RowOrDynamicColumnRenderer(
+                            this, Column, table.getColumns().getDynamicColumn().getColumnNameDesc(), false, true)
+                    .run();
             line();
             renderTrigger();
             line();
             new DynamicColumnValueRenderer(this, tableName, table.getColumns().getDynamicColumn()).run();
             line();
-            new DynamicRowResultRenderer(this, tableName, table.getColumns().getDynamicColumn().getValue()).run();
+            new DynamicRowResultRenderer(
+                            this,
+                            tableName,
+                            table.getColumns().getDynamicColumn().getValue())
+                    .run();
             line();
             renderDynamicDelete();
             line();
@@ -374,39 +374,142 @@ public class TableRenderer {
                 line("private final static String rawTableName = \"" + raw_table_name + "\";");
             }
             line("private final TableReference tableRef;");
-            line("private final static ColumnSelection allColumns = ", isDynamic ? "ColumnSelection.all();" : "getColumnSelection(" + Column + ".values());");
+            line(
+                    "private final static ColumnSelection allColumns = ",
+                    isDynamic ? "ColumnSelection.all();" : "getColumnSelection(" + Column + ".values());");
         }
 
         private void staticFactories() {
             if (isNestedIndex) {
-                line("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ") {"); {
-                    line("return new ", Table, "(table.t, table.tableRef.getNamespace()", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">of());");
-                } line("}");
+                line(
+                        "public static ",
+                        Table,
+                        " of(",
+                        outerTable,
+                        " table",
+                        isGeneric ? ", String tableName" : "",
+                        ") {");
+                {
+                    line(
+                            "return new ",
+                            Table,
+                            "(table.t, table.tableRef.getNamespace()",
+                            isGeneric ? ", tableName" : "",
+                            ", ImmutableList.<",
+                            Trigger,
+                            ">of());");
+                }
+                line("}");
                 line();
-                line("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ", ", Trigger, " trigger, ", Trigger, "... triggers) {"); {
-                    line("return new ", Table, "(table.t, table.tableRef.getNamespace()", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">builder().add(trigger).add(triggers).build());");
-                } line("}");
+                line(
+                        "public static ",
+                        Table,
+                        " of(",
+                        outerTable,
+                        " table",
+                        isGeneric ? ", String tableName" : "",
+                        ", ",
+                        Trigger,
+                        " trigger, ",
+                        Trigger,
+                        "... triggers) {");
+                {
+                    line(
+                            "return new ",
+                            Table,
+                            "(table.t, table.tableRef.getNamespace()",
+                            isGeneric ? ", tableName" : "",
+                            ", ImmutableList.<",
+                            Trigger,
+                            ">builder().add(trigger).add(triggers).build());");
+                }
+                line("}");
                 line();
-                line("public static ", Table, " of(", outerTable, " table", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
-                    line("return new ", Table, "(table.t, table.tableRef.getNamespace()", isGeneric ? ", tableName" : "", ", triggers);");
-                } line("}");
+                line(
+                        "public static ",
+                        Table,
+                        " of(",
+                        outerTable,
+                        " table",
+                        isGeneric ? ", String tableName" : "",
+                        ", List<",
+                        Trigger,
+                        "> triggers) {");
+                {
+                    line(
+                            "return new ",
+                            Table,
+                            "(table.t, table.tableRef.getNamespace()",
+                            isGeneric ? ", tableName" : "",
+                            ", triggers);");
+                }
+                line("}");
             } else {
-                line("static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ") {"); {
-                    line("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">of());");
-                } line("}");
+                line(
+                        "static ",
+                        Table,
+                        " of(Transaction t, Namespace namespace",
+                        isGeneric ? ", String tableName" : "",
+                        ") {");
+                {
+                    line(
+                            "return new ",
+                            Table,
+                            "(t, namespace",
+                            isGeneric ? ", tableName" : "",
+                            ", ImmutableList.<",
+                            Trigger,
+                            ">of());");
+                }
+                line("}");
                 line();
-                line("static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", ", Trigger, " trigger, ", Trigger, "... triggers) {"); {
-                    line("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", ImmutableList.<", Trigger, ">builder().add(trigger).add(triggers).build());");
-                } line("}");
+                line(
+                        "static ",
+                        Table,
+                        " of(Transaction t, Namespace namespace",
+                        isGeneric ? ", String tableName" : "",
+                        ", ",
+                        Trigger,
+                        " trigger, ",
+                        Trigger,
+                        "... triggers) {");
+                {
+                    line(
+                            "return new ",
+                            Table,
+                            "(t, namespace",
+                            isGeneric ? ", tableName" : "",
+                            ", ImmutableList.<",
+                            Trigger,
+                            ">builder().add(trigger).add(triggers).build());");
+                }
+                line("}");
                 line();
-                line("static ", Table, " of(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
+                line(
+                        "static ",
+                        Table,
+                        " of(Transaction t, Namespace namespace",
+                        isGeneric ? ", String tableName" : "",
+                        ", List<",
+                        Trigger,
+                        "> triggers) {");
+                {
                     line("return new ", Table, "(t, namespace", isGeneric ? ", tableName" : "", ", triggers);");
-                } line("}");
+                }
+                line("}");
             }
         }
 
         private void constructors() {
-            line("private ", Table, "(Transaction t, Namespace namespace", isGeneric ? ", String tableName" : "", ", List<", Trigger, "> triggers) {"); {
+            line(
+                    "private ",
+                    Table,
+                    "(Transaction t, Namespace namespace",
+                    isGeneric ? ", String tableName" : "",
+                    ", List<",
+                    Trigger,
+                    "> triggers) {");
+            {
                 line("this.t = t;");
                 if (isGeneric) {
                     line("this.tableRef = TableReference.create(namespace, tableName);");
@@ -414,93 +517,122 @@ public class TableRenderer {
                     line("this.tableRef = TableReference.create(namespace, rawTableName);");
                 }
                 line("this.triggers = triggers;");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderGetRawTableName() {
-            line("public static String getRawTableName() {"); {
+            line("public static String getRawTableName() {");
+            {
                 line("return rawTableName;");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderGetTableRef() {
-            line("public TableReference getTableRef() {"); {
+            line("public TableReference getTableRef() {");
+            {
                 line("return tableRef;");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderGetTableName() {
-            line("public String getTableName() {"); {
+            line("public String getTableName() {");
+            {
                 line("return tableRef.getQualifiedName();");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderGetNamespace() {
-            line("public Namespace getNamespace() {"); {
+            line("public Namespace getNamespace() {");
+            {
                 line("return tableRef.getNamespace();");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderTrigger() {
-            line("public interface ", Trigger, " {"); {
+            line("public interface ", Trigger, " {");
+            {
                 line("public void put", tableName, "(Multimap<", Row, ", ? extends ", ColumnValue, "> newRows);");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderDynamicDelete() {
             line("@Override");
-            line("public void delete(", Row, " row, ", Column, " column) {"); {
+            line("public void delete(", Row, " row, ", Column, " column) {");
+            {
                 line("delete(ImmutableMultimap.of(row, column));");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public void delete(Iterable<", Row, "> rows) {"); {
+            line("public void delete(Iterable<", Row, "> rows) {");
+            {
                 line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.create();");
                 line("Multimap<", Row, ", ", ColumnValue, "> result = getRowsMultimap(rows);");
-                line("for (Entry<", Row, ", ", ColumnValue, "> e : result.entries()) {"); {
+                line("for (Entry<", Row, ", ", ColumnValue, "> e : result.entries()) {");
+                {
                     line("toRemove.put(e.getKey(), e.getValue().getColumnName());");
-                } line("}");
+                }
+                line("}");
                 line("delete(toRemove);");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public void delete(Multimap<", Row, ", ", Column, "> values) {"); {
+            line("public void delete(Multimap<", Row, ", ", Column, "> values) {");
+            {
                 line("t.delete(tableRef, ColumnValues.toCells(values));");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderDynamicPut() {
             line("@Override");
-            line("public void put(", Row, " rowName, Iterable<", ColumnValue, "> values) {"); {
+            line("public void put(", Row, " rowName, Iterable<", ColumnValue, "> values) {");
+            {
                 line("put(ImmutableMultimap.<", Row, ", ", ColumnValue, ">builder().putAll(rowName, values).build());");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public void put(", Row, " rowName, ", ColumnValue, "... values) {"); {
+            line("public void put(", Row, " rowName, ", ColumnValue, "... values) {");
+            {
                 line("put(ImmutableMultimap.<", Row, ", ", ColumnValue, ">builder().putAll(rowName, values).build());");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public void put(Multimap<", Row, ", ? extends ", ColumnValue, "> values) {"); {
+            line("public void put(Multimap<", Row, ", ? extends ", ColumnValue, "> values) {");
+            {
                 line("t.useTable(tableRef, this);");
                 if (!indices.isEmpty()) {
-                    line("for (Entry<", Row, ", ? extends ", ColumnValue, "> e : values.entries()) {"); {
+                    line("for (Entry<", Row, ", ? extends ", ColumnValue, "> e : values.entries()) {");
+                    {
                         for (IndexMetadata index : indices) {
                             renderIndexPut(index);
                         }
-                    } line("}");
+                    }
+                    line("}");
                 }
                 line("t.put(tableRef, ColumnValues.toCellValues(values));");
-                line("for (", Trigger, " trigger : triggers) {"); {
+                line("for (", Trigger, " trigger : triggers) {");
+                {
                     line("trigger.put", tableName, "(values);");
-                } line("}");
-            } line("}");
+                }
+                line("}");
+            }
+            line("}");
         }
 
         private void renderIndexPut(IndexMetadata index) {
-            List<String> rowArgumentNames = Lists.newArrayList();
-            List<String> colArgumentNames = Lists.newArrayList();
-            List<TypeAndName> iterableArgNames = Lists.newArrayList();
+            List<String> rowArgumentNames = new ArrayList<>();
+            List<String> colArgumentNames = new ArrayList<>();
+            List<TypeAndName> iterableArgNames = new ArrayList<>();
             boolean hasCol = index.getColumnNameToAccessData() != null;
             String indexName = Renderers.getIndexTableName(index);
             String columnClass = null;
@@ -510,33 +642,38 @@ public class TableRenderer {
             } else if (isDynamic(table)) {
                 columnClass = tableName + "ColumnValue";
             }
-            line("{"); {
+            line("{");
+            {
                 if (hasCol || isDynamic(table)) {
                     line(columnClass, " col = (", columnClass, ") e.getValue();");
                 }
                 if (index.getIndexCondition() != null) {
                     line("if (" + index.getIndexCondition().getValueCode("col.getValue()") + ")");
                 }
-                line("{"); {
+                line("{");
+                {
                     line(Row, " row = e.getKey();");
                     line(indexName, "Table table = ", indexName, "Table.of(this);");
                     for (IndexComponent component : index.getRowComponents()) {
                         String varName = renderIndexComponent(component);
                         rowArgumentNames.add(varName);
                         if (component.isMultiple()) {
-                            iterableArgNames.add(new TypeAndName(component.getRowKeyDescription().getType().getJavaClassName(), varName));
+                            iterableArgNames.add(new TypeAndName(
+                                    component.getRowKeyDescription().getType().getJavaClassName(), varName));
                         }
                     }
 
                     if (index.getIndexType().equals(IndexType.CELL_REFERENCING)) {
-                        Collections.addAll(colArgumentNames, "row.persistToBytes()", "e.getValue().persistColumnName()");
+                        Collections.addAll(
+                                colArgumentNames, "row.persistToBytes()", "e.getValue().persistColumnName()");
                     }
 
                     for (IndexComponent component : index.getColumnComponents()) {
                         String varName = renderIndexComponent(component);
                         colArgumentNames.add(varName);
                         if (component.isMultiple()) {
-                            iterableArgNames.add(new TypeAndName(component.getRowKeyDescription().getType().getJavaClassName(), varName));
+                            iterableArgNames.add(new TypeAndName(
+                                    component.getRowKeyDescription().getType().getJavaClassName(), varName));
                         }
                     }
 
@@ -544,20 +681,50 @@ public class TableRenderer {
                         line("for (", iterableArg.toString(), " : ", iterableArg.name, "Iterable) {");
                     }
 
-                    line(indexName, "Table.", indexName, "Row indexRow = ", indexName, "Table.", indexName, "Row.of(", Joiner.on(", ").join(rowArgumentNames), ");");
+                    line(
+                            indexName,
+                            "Table.",
+                            indexName,
+                            "Row indexRow = ",
+                            indexName,
+                            "Table.",
+                            indexName,
+                            "Row.of(",
+                            Joiner.on(", ").join(rowArgumentNames),
+                            ");");
                     if (!index.isDynamicIndex() && !index.getIndexType().equals(IndexType.CELL_REFERENCING)) {
                         line("table.putExists(indexRow, 0L);");
                     } else {
-                        line(indexName, "Table.", indexName, "Column indexCol = ", indexName, "Table.", indexName, "Column.of(", Joiner.on(", ").join(colArgumentNames), ");");
-                        line(indexName, "Table.", indexName, "ColumnValue indexColVal = ", indexName, "Table.", indexName, "ColumnValue.of(indexCol, 0L);");
+                        line(
+                                indexName,
+                                "Table.",
+                                indexName,
+                                "Column indexCol = ",
+                                indexName,
+                                "Table.",
+                                indexName,
+                                "Column.of(",
+                                Joiner.on(", ").join(colArgumentNames),
+                                ");");
+                        line(
+                                indexName,
+                                "Table.",
+                                indexName,
+                                "ColumnValue indexColVal = ",
+                                indexName,
+                                "Table.",
+                                indexName,
+                                "ColumnValue.of(indexCol, 0L);");
                         line("table.put(indexRow, indexColVal);");
                     }
 
                     for (int i = 0; i < iterableArgNames.size(); i++) {
                         line("}");
                     }
-                } line("}");
-            } line("}");
+                }
+                line("}");
+            }
+            line("}");
         }
 
         private String renderIndexComponent(IndexComponent component) {
@@ -566,7 +733,14 @@ public class TableRenderer {
             String valueCode = component.getValueCode("row", columnCode, "col.getValue()");
             String varName = Renderers.camelCase(compDesc.getComponentName());
             if (component.isMultiple()) {
-                line("Iterable<", compDesc.getType().getJavaObjectClassName(), "> ", varName, "Iterable = ", valueCode, ";");
+                line(
+                        "Iterable<",
+                        compDesc.getType().getJavaObjectClassName(),
+                        "> ",
+                        varName,
+                        "Iterable = ",
+                        valueCode,
+                        ";");
             } else {
                 line(compDesc.getType().getJavaClassName(), " ", varName, " = ", valueCode, ";");
             }
@@ -575,52 +749,80 @@ public class TableRenderer {
 
         private void renderDynamicTouch() {
             line("@Override");
-            line("public void touch(Multimap<", Row, ", ", Column, "> values) {"); {
+            line("public void touch(Multimap<", Row, ", ", Column, "> values) {");
+            {
                 line("Multimap<", Row, ", ", ColumnValue, "> currentValues = get(values);");
                 line("put(currentValues);");
                 line("Multimap<", Row, ", ", Column, "> toDelete = HashMultimap.create(values);");
-                line("for (Map.Entry<", Row, ", ", ColumnValue, "> e : currentValues.entries()) {"); {
+                line("for (Map.Entry<", Row, ", ", ColumnValue, "> e : currentValues.entries()) {");
+                {
                     line("toDelete.remove(e.getKey(), e.getValue().getColumnName());");
-                } line("}");
+                }
+                line("}");
                 line("delete(toDelete);");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderGetRowColumns(boolean isDynamic) {
             line("@Override");
-            line("public List<", ColumnValue, "> getRowColumns(", Row, " row) {"); {
+            line("public List<", ColumnValue, "> getRowColumns(", Row, " row) {");
+            {
                 line("return getRowColumns(row, allColumns);");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public List<", ColumnValue, "> getRowColumns(", Row, " row, ColumnSelection columns) {"); {
+            line("public List<", ColumnValue, "> getRowColumns(", Row, " row, ColumnSelection columns) {");
+            {
                 line("byte[] bytes = row.persistToBytes();");
                 line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");
-                line("if (rowResult == null) {"); {
+                line("if (rowResult == null) {");
+                {
                     line("return ImmutableList.of();");
-                } line("} else {"); {
-                    line("List<", ColumnValue, "> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());");
-                    line("for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {"); {
+                }
+                line("} else {");
+                {
+                    line(
+                            "List<",
+                            ColumnValue,
+                            "> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());");
+                    line("for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {");
+                    {
                         if (isDynamic) {
                             line(Column, " col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
-                            line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                            line(
+                                    table.getColumns()
+                                            .getDynamicColumn()
+                                            .getValue()
+                                            .getJavaObjectTypeName(),
+                                    " val = ",
+                                    ColumnValue,
+                                    ".hydrateValue(e.getValue());");
                             line("ret.add(", ColumnValue, ".of(col, val));");
                         } else {
-                            line("ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));");
+                            line(
+                                    "ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));");
                         }
-                    } line("}");
+                    }
+                    line("}");
                     line("return ret;");
-                } line("}");
-            } line("}");
+                }
+                line("}");
+            }
+            line("}");
         }
 
         private void renderColumnSelection(boolean isDynamic) {
             line("public static ColumnSelection getColumnSelection(Collection<", Column, "> cols) {");
-                line("return ColumnSelection.create(Collections2.transform(cols, ", isDynamic ? "Persistables.persistToBytesFunction()" : Column + ".toShortName()", "));");
+            line(
+                    "return ColumnSelection.create(Collections2.transform(cols, ",
+                    isDynamic ? "Persistables.persistToBytesFunction()" : Column + ".toShortName()",
+                    "));");
             line("}");
             line();
             line("public static ColumnSelection getColumnSelection(", Column, "... cols) {");
-                line("return getColumnSelection(Arrays.asList(cols));");
+            line("return getColumnSelection(Arrays.asList(cols));");
             line("}");
         }
 
@@ -628,64 +830,122 @@ public class TableRenderer {
             line("private static final Map<String, Hydrator<? extends ", ColumnValue, ">> shortNameToHydrator =");
             line("        ImmutableMap.<String, Hydrator<? extends ", ColumnValue, ">>builder()");
             for (NamedColumnDescription col : table.getColumns().getNamedColumns()) {
-                line("            .put(", ColumnRenderers.short_name(col), ", ", ColumnRenderers.VarName(col), ".BYTES_HYDRATOR)");
+                line(
+                        "            .put(",
+                        ColumnRenderers.short_name(col),
+                        ", ",
+                        ColumnRenderers.VarName(col),
+                        ".BYTES_HYDRATOR)");
             }
             line("            .build();");
         }
 
         private void renderNamedGetColumn(NamedColumnDescription col) {
-            line("public Map<", Row, ", ", ColumnRenderers.TypeName(col), "> get", ColumnRenderers.VarName(col), "s(Collection<", Row, "> rows) {"); {
+            line(
+                    "public Map<",
+                    Row,
+                    ", ",
+                    ColumnRenderers.TypeName(col),
+                    "> get",
+                    ColumnRenderers.VarName(col),
+                    "s(Collection<",
+                    Row,
+                    "> rows) {");
+            {
                 line("Map<Cell, ", Row, "> cells = Maps.newHashMapWithExpectedSize(rows.size());");
-                line("for (", Row, " row : rows) {"); {
-                    line("cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes(", ColumnRenderers.short_name(col), ")), row);");
-                } line("}");
+                line("for (", Row, " row : rows) {");
+                {
+                    line(
+                            "cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes(",
+                            ColumnRenderers.short_name(col),
+                            ")), row);");
+                }
+                line("}");
                 line("Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());");
-                line("Map<", Row, ", ", ColumnRenderers.TypeName(col), "> ret = Maps.newHashMapWithExpectedSize(results.size());");
-                line("for (Entry<Cell, byte[]> e : results.entrySet()) {"); {
-                    line(ColumnRenderers.TypeName(col), " val = ", ColumnRenderers.VarName(col), ".BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();");
+                line(
+                        "Map<",
+                        Row,
+                        ", ",
+                        ColumnRenderers.TypeName(col),
+                        "> ret = Maps.newHashMapWithExpectedSize(results.size());");
+                line("for (Entry<Cell, byte[]> e : results.entrySet()) {");
+                {
+                    line(
+                            ColumnRenderers.TypeName(col),
+                            " val = ",
+                            ColumnRenderers.VarName(col),
+                            ".BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();");
                     line("ret.put(cells.get(e.getKey()), val);");
-                } line("}");
+                }
+                line("}");
                 line("return ret;");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderNamedPutColumn(NamedColumnDescription col) {
             String Value = col.getValue().getJavaObjectTypeName();
-            line("public void put", ColumnRenderers.VarName(col), "(", Row, " row, ", Value, " value) {"); {
+            line("public void put", ColumnRenderers.VarName(col), "(", Row, " row, ", Value, " value) {");
+            {
                 line("put(ImmutableMultimap.of(row, ", ColumnRenderers.VarName(col), ".of(value)));");
-            } line("}");
+            }
+            line("}");
             line();
-            line("public void put", ColumnRenderers.VarName(col), "(Map<", Row, ", ", Value, "> map) {"); {
+            line("public void put", ColumnRenderers.VarName(col), "(Map<", Row, ", ", Value, "> map) {");
+            {
                 line("Map<", Row, ", ", ColumnValue, "> toPut = Maps.newHashMapWithExpectedSize(map.size());");
-                line("for (Entry<", Row, ", ", Value, "> e : map.entrySet()) {"); {
+                line("for (Entry<", Row, ", ", Value, "> e : map.entrySet()) {");
+                {
                     line("toPut.put(e.getKey(), ", ColumnRenderers.VarName(col), ".of(e.getValue()));");
-                } line("}");
+                }
+                line("}");
                 line("put(Multimaps.forMap(toPut));");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderNamedGetAffectedCells() {
-            line("private Multimap<", Row, ", ", ColumnValue, "> getAffectedCells(Multimap<", Row, ", ? extends ", ColumnValue, "> rows) {"); {
+            line(
+                    "private Multimap<",
+                    Row,
+                    ", ",
+                    ColumnValue,
+                    "> getAffectedCells(Multimap<",
+                    Row,
+                    ", ? extends ",
+                    ColumnValue,
+                    "> rows) {");
+            {
                 line("Multimap<", Row, ", ", ColumnValue, "> oldData = getRowsMultimap(rows.keySet());");
                 line("Multimap<", Row, ", ", ColumnValue, "> cellsAffected = ArrayListMultimap.create();");
-                line("for (", Row, " row : oldData.keySet()) {"); {
+                line("for (", Row, " row : oldData.keySet()) {");
+                {
                     line("Set<String> columns = new HashSet<String>();");
-                    line("for (", ColumnValue, " v : rows.get(row)) {"); {
+                    line("for (", ColumnValue, " v : rows.get(row)) {");
+                    {
                         line("columns.add(v.getColumnName());");
-                    } line("}");
-                    line("for (", ColumnValue, " v : oldData.get(row)) {"); {
-                        line("if (columns.contains(v.getColumnName())) {"); {
+                    }
+                    line("}");
+                    line("for (", ColumnValue, " v : oldData.get(row)) {");
+                    {
+                        line("if (columns.contains(v.getColumnName())) {");
+                        {
                             line("cellsAffected.put(row, v);");
-                        } line("}");
-                    } line("}");
-                } line("}");
+                        }
+                        line("}");
+                    }
+                    line("}");
+                }
+                line("}");
                 line("return cellsAffected;");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderNamedPut() {
             line("@Override");
-            line("public void put(Multimap<", Row, ", ? extends ", ColumnValue, "> rows) {"); {
+            line("public void put(Multimap<", Row, ", ? extends ", ColumnValue, "> rows) {");
+            {
                 line("t.useTable(tableRef, this);");
 
                 if (!cellReferencingIndices.isEmpty()) {
@@ -697,61 +957,80 @@ public class TableRenderer {
                 }
 
                 if (!indices.isEmpty()) {
-                    line("for (Entry<", Row, ", ? extends ", ColumnValue, "> e : rows.entries()) {"); {
+                    line("for (Entry<", Row, ", ? extends ", ColumnValue, "> e : rows.entries()) {");
+                    {
                         for (IndexMetadata index : indices) {
                             renderIndexPut(index);
                         }
-                    } line("}");
+                    }
+                    line("}");
                 }
                 line("t.put(tableRef, ColumnValues.toCellValues(rows));");
-                line("for (", Trigger, " trigger : triggers) {"); {
+                line("for (", Trigger, " trigger : triggers) {");
+                {
                     line("trigger.put", tableName, "(rows);");
-                } line("}");
-            } line("}");
+                }
+                line("}");
+            }
+            line("}");
         }
 
         private void renderCellReferencingIndexDelete(IndexMetadata index) {
             String indexName = Renderers.getIndexTableName(index);
-            line("private void delete", indexName, "(Multimap<", Row, ", ", ColumnValue, "> result) {"); {
-                List<String> rowArgumentNames = Lists.newArrayList();
-                List<String> colArgumentNames = Lists.newArrayList();
-                List<TypeAndName> iterableArgNames = Lists.newArrayList();
+            line("private void delete", indexName, "(Multimap<", Row, ", ", ColumnValue, "> result) {");
+            {
+                List<String> rowArgumentNames = new ArrayList<>();
+                List<String> colArgumentNames = new ArrayList<>();
+                List<TypeAndName> iterableArgNames = new ArrayList<>();
 
                 boolean hasCol = index.getColumnNameToAccessData() != null;
                 String columnClass = hasCol ? Renderers.CamelCase(index.getColumnNameToAccessData()) : null;
 
                 line("ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();");
 
-                line("for (Entry<", Row, ", ", ColumnValue, "> e : result.entries()) {"); {
-
+                line("for (Entry<", Row, ", ", ColumnValue, "> e : result.entries()) {");
+                {
                     if (columnClass != null) {
                         line("if (e.getValue() instanceof ", columnClass, ") ");
                     }
-                    lineEnd("{"); {
+                    lineEnd("{");
+                    {
                         if (columnClass != null) {
                             line(columnClass, " col = (", columnClass, ") e.getValue();");
                         }
                         if (index.getIndexCondition() != null) {
                             line("if (" + index.getIndexCondition().getValueCode("col.getValue()") + ") ");
                         }
-                        lineEnd("{"); {
+                        lineEnd("{");
+                        {
                             line(Row, " row = e.getKey();");
 
                             for (IndexComponent component : index.getRowComponents()) {
                                 String varName = renderIndexComponent(component);
                                 rowArgumentNames.add(varName);
                                 if (component.isMultiple()) {
-                                    iterableArgNames.add(new TypeAndName(component.getRowKeyDescription().getType().getJavaClassName(), varName));
+                                    iterableArgNames.add(new TypeAndName(
+                                            component
+                                                    .getRowKeyDescription()
+                                                    .getType()
+                                                    .getJavaClassName(),
+                                            varName));
                                 }
                             }
 
-                            Collections.addAll(colArgumentNames, "row.persistToBytes()", "e.getValue().persistColumnName()");
+                            Collections.addAll(
+                                    colArgumentNames, "row.persistToBytes()", "e.getValue().persistColumnName()");
 
                             for (IndexComponent component : index.getColumnComponents()) {
                                 String varName = renderIndexComponent(component);
                                 colArgumentNames.add(varName);
                                 if (component.isMultiple()) {
-                                    iterableArgNames.add(new TypeAndName(component.getRowKeyDescription().getType().getJavaClassName(), varName));
+                                    iterableArgNames.add(new TypeAndName(
+                                            component
+                                                    .getRowKeyDescription()
+                                                    .getType()
+                                                    .getJavaClassName(),
+                                            varName));
                                 }
                             }
 
@@ -759,32 +1038,62 @@ public class TableRenderer {
                                 line("for (", iterableArg.toString(), " : ", iterableArg.name, "Iterable) {");
                             }
 
-                            line(indexName, "Table.", indexName, "Row indexRow = ", indexName, "Table.", indexName, "Row.of(", Joiner.on(", ").join(rowArgumentNames), ");");
-                            line(indexName, "Table.", indexName, "Column indexCol = ", indexName, "Table.", indexName, "Column.of(", Joiner.on(", ").join(colArgumentNames), ");");
+                            line(
+                                    indexName,
+                                    "Table.",
+                                    indexName,
+                                    "Row indexRow = ",
+                                    indexName,
+                                    "Table.",
+                                    indexName,
+                                    "Row.of(",
+                                    Joiner.on(", ").join(rowArgumentNames),
+                                    ");");
+                            line(
+                                    indexName,
+                                    "Table.",
+                                    indexName,
+                                    "Column indexCol = ",
+                                    indexName,
+                                    "Table.",
+                                    indexName,
+                                    "Column.of(",
+                                    Joiner.on(", ").join(colArgumentNames),
+                                    ");");
                             line("indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));");
 
-                            for (int i = 0 ; i < iterableArgNames.size() ; i++) {
+                            for (int i = 0; i < iterableArgNames.size(); i++) {
                                 line("}");
                             }
-                        } line("}");
-                    } line("}");
-                } line("}");
-                line("t.delete(", Schemas.getTableReferenceString(index.getIndexName(), namespace), ", indexCells.build());");
-            } line("}");
+                        }
+                        line("}");
+                    }
+                    line("}");
+                }
+                line("}");
+                line(
+                        "t.delete(",
+                        Schemas.getTableReferenceString(index.getIndexName(), namespace),
+                        ", indexCells.build());");
+            }
+            line("}");
         }
 
         private void renderNamedDeleteColumn(NamedColumnDescription col) {
-            Collection<IndexMetadata> columnIndices = Lists.newArrayList();
+            Collection<IndexMetadata> columnIndices = new ArrayList<>();
             for (IndexMetadata index : cellReferencingIndices) {
                 if (col.getLongName().equals(index.getColumnNameToAccessData())) {
                     columnIndices.add(index);
                 }
             }
-            line("public void delete", ColumnRenderers.VarName(col), "(", Row, " row) {"); {
+            line("public void delete", ColumnRenderers.VarName(col), "(", Row, " row) {");
+            {
                 line("delete", ColumnRenderers.VarName(col), "(ImmutableSet.of(row));");
-            } line("}");
+            }
+            line("}");
             line();
-            line("public void delete", ColumnRenderers.VarName(col), "(Iterable<", Row, "> rows) {"); {
+            line("public void delete", ColumnRenderers.VarName(col), "(Iterable<", Row, "> rows) {");
+            {
                 line("byte[] col = PtBytes.toCachedBytes(", ColumnRenderers.short_name(col), ");");
                 line("Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);");
                 if (!columnIndices.isEmpty()) {
@@ -794,7 +1103,8 @@ public class TableRenderer {
                     }
                 }
                 line("t.delete(tableRef, cells);");
-            } line("}");
+            }
+            line("}");
             for (IndexMetadata index : columnIndices) {
                 line();
                 renderNamedIndexDeleteRaw(col, index);
@@ -804,13 +1114,21 @@ public class TableRenderer {
         private void renderNamedIndexDeleteRaw(NamedColumnDescription col, IndexMetadata index) {
             String indexName = Renderers.getIndexTableName(index);
             String NamedColumn = Renderers.CamelCase(col.getLongName());
-            line("private void delete", indexName, "Raw(Map<Cell, byte[]> results) {"); {
-                List<String> rowArgumentNames = Lists.newArrayList();
-                List<String> colArgumentNames = Lists.newArrayList();
-                List<TypeAndName> iterableArgNames = Lists.newArrayList();
+            line("private void delete", indexName, "Raw(Map<Cell, byte[]> results) {");
+            {
+                List<String> rowArgumentNames = new ArrayList<>();
+                List<String> colArgumentNames = new ArrayList<>();
+                List<TypeAndName> iterableArgNames = new ArrayList<>();
                 line("Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());");
-                line("for (Entry<Cell, byte[]> result : results.entrySet()) {"); {
-                    line(NamedColumn, " col = (", NamedColumn, ") shortNameToHydrator.get(", ColumnRenderers.short_name(col), ").hydrateFromBytes(result.getValue());");
+                line("for (Entry<Cell, byte[]> result : results.entrySet()) {");
+                {
+                    line(
+                            NamedColumn,
+                            " col = (",
+                            NamedColumn,
+                            ") shortNameToHydrator.get(",
+                            ColumnRenderers.short_name(col),
+                            ").hydrateFromBytes(result.getValue());");
 
                     line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());");
 
@@ -818,7 +1136,8 @@ public class TableRenderer {
                         String varName = renderIndexComponent(component);
                         rowArgumentNames.add(varName);
                         if (component.isMultiple()) {
-                            iterableArgNames.add(new TypeAndName(component.getRowKeyDescription().getType().getJavaClassName(), varName));
+                            iterableArgNames.add(new TypeAndName(
+                                    component.getRowKeyDescription().getType().getJavaClassName(), varName));
                         }
                     }
                     Collections.addAll(colArgumentNames, "row.persistToBytes()", "col.persistColumnName()");
@@ -827,7 +1146,8 @@ public class TableRenderer {
                         String varName = renderIndexComponent(component);
                         colArgumentNames.add(varName);
                         if (component.isMultiple()) {
-                            iterableArgNames.add(new TypeAndName(component.getRowKeyDescription().getType().getJavaClassName(), varName));
+                            iterableArgNames.add(new TypeAndName(
+                                    component.getRowKeyDescription().getType().getJavaClassName(), varName));
                         }
                     }
 
@@ -835,27 +1155,51 @@ public class TableRenderer {
                         line("for (", iterableArg.toString(), " : ", iterableArg.name, "Iterable) {");
                     }
 
-                    line(indexName, "Table.", indexName, "Row indexRow = ", indexName, "Table.", indexName, "Row.of(", Joiner.on(", ").join(rowArgumentNames), ");");
-                    line(indexName, "Table.", indexName, "Column indexCol = ", indexName, "Table.", indexName, "Column.of(", Joiner.on(", ").join(colArgumentNames), ");");
+                    line(
+                            indexName,
+                            "Table.",
+                            indexName,
+                            "Row indexRow = ",
+                            indexName,
+                            "Table.",
+                            indexName,
+                            "Row.of(",
+                            Joiner.on(", ").join(rowArgumentNames),
+                            ");");
+                    line(
+                            indexName,
+                            "Table.",
+                            indexName,
+                            "Column indexCol = ",
+                            indexName,
+                            "Table.",
+                            indexName,
+                            "Column.of(",
+                            Joiner.on(", ").join(colArgumentNames),
+                            ");");
                     line("indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));");
 
-                    for (int i = 0 ; i < iterableArgNames.size() ; i++) {
+                    for (int i = 0; i < iterableArgNames.size(); i++) {
                         line("}");
                     }
-                }  line("}");
+                }
+                line("}");
                 line("t.delete(", Schemas.getTableReferenceString(index.getIndexName(), namespace), ", indexCells);");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderNamedDelete() {
             line("@Override");
-            line("public void delete(", Row, " row) {"); {
+            line("public void delete(", Row, " row) {");
+            {
                 line("delete(ImmutableSet.of(row));");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public void delete(Iterable<", Row, "> rows) {"); {
-
+            line("public void delete(Iterable<", Row, "> rows) {");
+            {
                 if (!cellReferencingIndices.isEmpty()) {
                     line("Multimap<", Row, ", ", ColumnValue, "> result = getRowsMultimap(rows);");
                     for (IndexMetadata index : cellReferencingIndices) {
@@ -865,60 +1209,106 @@ public class TableRenderer {
 
                 SortedSet<NamedColumnDescription> namedColumns = ColumnRenderers.namedColumns(table);
                 line("List<byte[]> rowBytes = Persistables.persistAll(rows);");
-                line("Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size()",
-                        ((namedColumns.size() == 1) ? "" : " * " + namedColumns.size()), ");");
+                line(
+                        "Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size()",
+                        ((namedColumns.size() == 1) ? "" : " * " + namedColumns.size()),
+                        ");");
                 for (NamedColumnDescription col : namedColumns) {
-                    line("cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes(", ColumnRenderers.short_name(col), ")));");
+                    line(
+                            "cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes(",
+                            ColumnRenderers.short_name(col),
+                            ")));");
                 }
                 line("t.delete(tableRef, cells);");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderOptimizeRangeRequests() {
-            line("private RangeRequest optimizeRangeRequest(RangeRequest range) {"); {
-                line("if (range.getColumnNames().isEmpty()) {"); {
+            line("private RangeRequest optimizeRangeRequest(RangeRequest range) {");
+            {
+                line("if (range.getColumnNames().isEmpty()) {");
+                {
                     line("return range.getBuilder().retainColumns(allColumns).build();");
-                } line("}");
+                }
+                line("}");
                 line("return range;");
-            } line("}");
+            }
+            line("}");
             line();
-            line("private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {"); {
+            line("private Iterable<RangeRequest> optimizeRangeRequests(Iterable<RangeRequest> ranges) {");
+            {
                 line("return Iterables.transform(ranges, this::optimizeRangeRequest);");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderGetRange() {
-            line("public BatchingVisitableView<", RowResult, "> getRange(RangeRequest range) {"); {
-                line("return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
+            line("public BatchingVisitableView<", RowResult, "> getRange(RangeRequest range) {");
+            {
+                line(
+                        "return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new"
+                                + " Function<RowResult<byte[]>, ",
+                        RowResult,
+                        ">() {");
+                {
                     line("@Override");
-                    line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
+                    line("public ", RowResult, " apply(RowResult<byte[]> input) {");
+                    {
                         line("return ", RowResult, ".of(input);");
-                    } line("}");
-                } line("});");
-            } line("}");
+                    }
+                    line("}");
+                }
+                line("});");
+            }
+            line("}");
         }
 
         private void renderGetRanges() {
             line("@Deprecated");
-            line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {"); {
-                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));");
+            line("public IterableView<BatchingVisitable<", RowResult, ">> getRanges(Iterable<RangeRequest> ranges) {");
+            {
+                line("Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef,"
+                        + " optimizeRangeRequests(ranges));");
                 line("return IterableView.of(rangeResults).transform(");
-                line("        new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<", RowResult, ">>() {"); {
+                line(
+                        "        new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<",
+                        RowResult,
+                        ">>() {");
+                {
                     line("@Override");
-                    line("public BatchingVisitable<", RowResult, "> apply(BatchingVisitable<RowResult<byte[]>> visitable) {"); {
-                        line("return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
+                    line(
+                            "public BatchingVisitable<",
+                            RowResult,
+                            "> apply(BatchingVisitable<RowResult<byte[]>> visitable) {");
+                    {
+                        line(
+                                "return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, ",
+                                RowResult,
+                                ">() {");
+                        {
                             line("@Override");
-                            line("public ", RowResult, " apply(RowResult<byte[]> row) {"); {
+                            line("public ", RowResult, " apply(RowResult<byte[]> row) {");
+                            {
                                 line("return ", RowResult, ".of(row);");
-                            } line("}");
-                        } line("});");
-                    } line("}");
-                } line("});");
-            } line("}");
+                            }
+                            line("}");
+                        }
+                        line("});");
+                    }
+                    line("}");
+                }
+                line("});");
+            }
+            line("}");
             line();
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
             line("                               int concurrencyLevel,");
-            line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
+            line(
+                    "                               BiFunction<RangeRequest, BatchingVisitable<",
+                    RowResult,
+                    ">, T> visitableProcessor) {");
+            {
                 line("return t.getRanges(ImmutableGetRangesQuery.<T>builder()");
                 line("                    .tableRef(tableRef)");
                 line("                    .rangeRequests(ranges)");
@@ -926,106 +1316,165 @@ public class TableRenderer {
                 line("                    .concurrencyLevel(concurrencyLevel)");
                 line("                    .visitableProcessor((rangeRequest, visitable) ->");
                 line("                            visitableProcessor.apply(rangeRequest,");
-                line("                                    BatchingVisitables.transform(visitable, ", RowResult, "::of)))");
+                line(
+                        "                                    BatchingVisitables.transform(visitable, ",
+                        RowResult,
+                        "::of)))");
                 line("                    .build());");
-            } line("}");
+            }
+            line("}");
             line();
             line("public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,");
-            line("                               BiFunction<RangeRequest, BatchingVisitable<", RowResult, ">, T> visitableProcessor) {"); {
+            line(
+                    "                               BiFunction<RangeRequest, BatchingVisitable<",
+                    RowResult,
+                    ">, T> visitableProcessor) {");
+            {
                 line("return t.getRanges(ImmutableGetRangesQuery.<T>builder()");
                 line("                    .tableRef(tableRef)");
                 line("                    .rangeRequests(ranges)");
                 line("                    .rangeRequestOptimizer(this::optimizeRangeRequest)");
                 line("                    .visitableProcessor((rangeRequest, visitable) ->");
                 line("                            visitableProcessor.apply(rangeRequest,");
-                line("                                    BatchingVisitables.transform(visitable, ", RowResult, "::of)))");
+                line(
+                        "                                    BatchingVisitables.transform(visitable, ",
+                        RowResult,
+                        "::of)))");
                 line("                    .build());");
-            } line("}");
+            }
+            line("}");
             line();
-            line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {"); {
-                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));");
-                line("return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, ", RowResult, "::of));");
-            } line("}");
+            line("public Stream<BatchingVisitable<", RowResult, ">> getRangesLazy(Iterable<RangeRequest> ranges) {");
+            {
+                line("Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef,"
+                        + " optimizeRangeRequests(ranges));");
+                line(
+                        "return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, ",
+                        RowResult,
+                        "::of));");
+            }
+            line("}");
         }
 
         private void renderDeleteRange() {
-            line("public void deleteRange(RangeRequest range) {"); {
+            line("public void deleteRange(RangeRequest range) {");
+            {
                 line("deleteRanges(ImmutableSet.of(range));");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderDynamicDeleteRanges() {
-            line("public void deleteRanges(Iterable<RangeRequest> ranges) {"); {
-                line("BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<", RowResult, ">, RuntimeException>() {"); {
+            line("public void deleteRanges(Iterable<RangeRequest> ranges) {");
+            {
+                line(
+                        "BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<",
+                        RowResult,
+                        ">, RuntimeException>() {");
+                {
                     line("@Override");
-                    line("public boolean visit(List<", RowResult, "> rowResults) {"); {
+                    line("public boolean visit(List<", RowResult, "> rowResults) {");
+                    {
                         line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.create();");
-                        line("for (", RowResult, " rowResult : rowResults) {"); {
-                            line("for (", ColumnValue, " columnValue : rowResult.getColumnValues()) {"); {
+                        line("for (", RowResult, " rowResult : rowResults) {");
+                        {
+                            line("for (", ColumnValue, " columnValue : rowResult.getColumnValues()) {");
+                            {
                                 line("toRemove.put(rowResult.getRowName(), columnValue.getColumnName());");
-                            } line("}");
-                        } line("}");
+                            }
+                            line("}");
+                        }
+                        line("}");
                         line("delete(toRemove);");
                         line("return true;");
-                    } line("}");
-                } line("});");
-            } line("}");
+                    }
+                    line("}");
+                }
+                line("});");
+            }
+            line("}");
         }
 
         private void renderNamedDeleteRanges() {
-            line("public void deleteRanges(Iterable<RangeRequest> ranges) {"); {
+            line("public void deleteRanges(Iterable<RangeRequest> ranges) {");
+            {
                 line("BatchingVisitables.concat(getRanges(ranges))");
                 line("                  .transform(", RowResult, ".getRowNameFun())");
-                line("                  .batchAccept(1000, new AbortingVisitor<List<", Row, ">, RuntimeException>() {"); {
+                line("                  .batchAccept(1000, new AbortingVisitor<List<", Row, ">, RuntimeException>() {");
+                {
                     line("@Override");
-                    line("public boolean visit(List<", Row, "> rows) {"); {
+                    line("public boolean visit(List<", Row, "> rows) {");
+                    {
                         line("delete(rows);");
                         line("return true;");
-                    } line("}");
-                } line("});");
-            } line("}");
+                    }
+                    line("}");
+                }
+                line("});");
+            }
+            line("}");
         }
 
         private void renderOptimizeColumnSelection() {
-            line("private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {"); {
-                line("if (columns.allColumnsSelected()) {"); {
+            line("private ColumnSelection optimizeColumnSelection(ColumnSelection columns) {");
+            {
+                line("if (columns.allColumnsSelected()) {");
+                {
                     line("return allColumns;");
-                } line("}");
+                }
+                line("}");
                 line("return columns;");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderGetAllRowsUnordered() {
-            line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered() {"); {
+            line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered() {");
+            {
                 line("return getAllRowsUnordered(allColumns);");
-            } line("}");
+            }
+            line("}");
             line();
-            line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered(ColumnSelection columns) {"); {
+            line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered(ColumnSelection columns) {");
+            {
                 line("return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()");
                 line("        .retainColumns(optimizeColumnSelection(columns)).build()),");
-                line("        new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
+                line("        new Function<RowResult<byte[]>, ", RowResult, ">() {");
+                {
                     line("@Override");
-                    line("public ", RowResult, " apply(RowResult<byte[]> input) {"); {
+                    line("public ", RowResult, " apply(RowResult<byte[]> input) {");
+                    {
                         line("return ", RowResult, ".of(input);");
-                    } line("}");
-                } line("});");
-            } line("}");
+                    }
+                    line("}");
+                }
+                line("});");
+            }
+            line("}");
         }
 
         private void renderNamedGetRow() {
-            line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row) {"); {
+            line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row) {");
+            {
                 line("return getRow(row, allColumns);");
-            } line("}");
+            }
+            line("}");
             line();
-            line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row, ColumnSelection columns) {"); {
+            line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row, ColumnSelection columns) {");
+            {
                 line("byte[] bytes = row.persistToBytes();");
                 line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");
-                line("if (rowResult == null) {"); {
+                line("if (rowResult == null) {");
+                {
                     renderOptionalReturnValue(null);
-                } line("} else {"); {
+                }
+                line("} else {");
+                {
                     renderOptionalReturnValue("rowResult");
-                } line("}");
-            } line("}");
+                }
+                line("}");
+            }
+            line("}");
         }
 
         private void renderOptionalReturnValue(@Nullable String value) {
@@ -1038,183 +1487,359 @@ public class TableRenderer {
 
         private void renderNamedGetRows() {
             line("@Override");
-            line("public List<", RowResult, "> getRows(Iterable<", Row, "> rows) {"); {
+            line("public List<", RowResult, "> getRows(Iterable<", Row, "> rows) {");
+            {
                 line("return getRows(rows, allColumns);");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public List<", RowResult, "> getRows(Iterable<", Row, "> rows, ColumnSelection columns) {"); {
-                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);");
+            line("public List<", RowResult, "> getRows(Iterable<", Row, "> rows, ColumnSelection columns) {");
+            {
+                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef,"
+                        + " Persistables.persistAll(rows), columns);");
                 line("List<", RowResult, "> rowResults = Lists.newArrayListWithCapacity(results.size());");
-                line("for (RowResult<byte[]> row : results.values()) {"); {
+                line("for (RowResult<byte[]> row : results.values()) {");
+                {
                     line("rowResults.add(", RowResult, ".of(row));");
-                } line("}");
+                }
+                line("}");
                 line("return rowResults;");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderDynamicGet() {
             line("@Override");
-            line("public Multimap<", Row, ", ", ColumnValue, "> get(Multimap<", Row, ", ", Column, "> cells) {"); {
+            line("public Multimap<", Row, ", ", ColumnValue, "> get(Multimap<", Row, ", ", Column, "> cells) {");
+            {
                 line("Set<Cell> rawCells = ColumnValues.toCells(cells);");
                 line("Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);");
                 line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.create();");
-                line("for (Entry<Cell, byte[]> e : rawResults.entrySet()) {"); {
-                    line("if (e.getValue().length > 0) {"); {
+                line("for (Entry<Cell, byte[]> e : rawResults.entrySet()) {");
+                {
+                    line("if (e.getValue().length > 0) {");
+                    {
                         line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());");
-                        line(Column, " col = ", Column,
+                        line(
+                                Column,
+                                " col = ",
+                                Column,
                                 ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
-                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ",
-                                ColumnValue, ".hydrateValue(e.getValue());");
+                        line(
+                                table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(),
+                                " val = ",
+                                ColumnValue,
+                                ".hydrateValue(e.getValue());");
                         line("rowMap.put(row, ", ColumnValue, ".of(col, val));");
-                    } line("}");
-                } line("}");
+                    }
+                    line("}");
+                }
+                line("}");
                 line("return rowMap;");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderGetRowsMultimap(boolean isDynamic) {
             line("@Override");
-            line("public Multimap<", Row, ", ", ColumnValue, "> getRowsMultimap(Iterable<", Row, "> rows) {"); {
+            line("public Multimap<", Row, ", ", ColumnValue, "> getRowsMultimap(Iterable<", Row, "> rows) {");
+            {
                 line("return getRowsMultimapInternal(rows, allColumns);");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public Multimap<", Row, ", ", ColumnValue, "> getRowsMultimap(Iterable<", Row, "> rows, ColumnSelection columns) {"); {
+            line(
+                    "public Multimap<",
+                    Row,
+                    ", ",
+                    ColumnValue,
+                    "> getRowsMultimap(Iterable<",
+                    Row,
+                    "> rows, ColumnSelection columns) {");
+            {
                 line("return getRowsMultimapInternal(rows, columns);");
-            } line("}");
+            }
+            line("}");
             line();
-            line("private Multimap<", Row, ", ", ColumnValue, "> getRowsMultimapInternal(Iterable<", Row, "> rows, ColumnSelection columns) {"); {
-                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);");
+            line(
+                    "private Multimap<",
+                    Row,
+                    ", ",
+                    ColumnValue,
+                    "> getRowsMultimapInternal(Iterable<",
+                    Row,
+                    "> rows, ColumnSelection columns) {");
+            {
+                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef,"
+                        + " Persistables.persistAll(rows), columns);");
                 line("return getRowMapFromRowResults(results.values());");
-            } line("}");
+            }
+            line("}");
             line();
-            line("private static Multimap<", Row, ", ", ColumnValue, "> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {"); {
+            line(
+                    "private static Multimap<",
+                    Row,
+                    ", ",
+                    ColumnValue,
+                    "> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {");
+            {
                 line("Multimap<", Row, ", ", ColumnValue, "> rowMap = HashMultimap.create();");
-                line("for (RowResult<byte[]> result : rowResults) {"); {
+                line("for (RowResult<byte[]> result : rowResults) {");
+                {
                     line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());");
-                    line("for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {"); {
+                    line("for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {");
+                    {
                         if (isDynamic) {
                             line(Column, " col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
-                            line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                            line(
+                                    table.getColumns()
+                                            .getDynamicColumn()
+                                            .getValue()
+                                            .getJavaObjectTypeName(),
+                                    " val = ",
+                                    ColumnValue,
+                                    ".hydrateValue(e.getValue());");
                             line("rowMap.put(row, ", ColumnValue, ".of(col, val));");
                         } else {
-                            line("rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));");
+                            line(
+                                    "rowMap.put(row,"
+                                        + " shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));");
                         }
-                    } line("}");
-                } line("}");
+                    }
+                    line("}");
+                }
+                line("}");
                 line("return rowMap;");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderGetRowsColumnRange(boolean isDynamic) {
             line("@Override");
-            line("public Map<", Row, ", BatchingVisitable<", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, BatchColumnRangeSelection columnRangeSelection) {"); {
-                line("Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);");
-                line("Map<", Row, ", BatchingVisitable<", ColumnValue, ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
-                line("for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {"); {
+            line(
+                    "public Map<",
+                    Row,
+                    ", BatchingVisitable<",
+                    ColumnValue,
+                    ">> getRowsColumnRange(Iterable<",
+                    Row,
+                    "> rows, BatchColumnRangeSelection columnRangeSelection) {");
+            {
+                line("Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results ="
+                        + " t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);");
+                line(
+                        "Map<",
+                        Row,
+                        ", BatchingVisitable<",
+                        ColumnValue,
+                        ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
+                line("for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {");
+                {
                     line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
-                    line("BatchingVisitable<", ColumnValue, "> bv = BatchingVisitables.transform(e.getValue(), result -> {"); {
+                    line(
+                            "BatchingVisitable<",
+                            ColumnValue,
+                            "> bv = BatchingVisitables.transform(e.getValue(), result -> {");
+                    {
                         if (isDynamic) {
-                            line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());");
-                            line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(result.getValue());");
+                            line(
+                                    Column,
+                                    " col = ",
+                                    Column,
+                                    ".BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());");
+                            line(
+                                    table.getColumns()
+                                            .getDynamicColumn()
+                                            .getValue()
+                                            .getJavaObjectTypeName(),
+                                    " val = ",
+                                    ColumnValue,
+                                    ".hydrateValue(result.getValue());");
                             line("return ", ColumnValue, ".of(col, val);");
                         } else {
-                            line("return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
+                            line(
+                                    "return"
+                                        + " shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
                         }
-                    } line("});");
+                    }
+                    line("});");
                     line("transformed.put(row, bv);");
-                } line("}");
+                }
+                line("}");
                 line("return transformed;");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public Iterator<Map.Entry<", Row, ", ", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {"); {
-                line("Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);");
-                line("return Iterators.transform(results, e -> {"); {
+            line(
+                    "public Iterator<Map.Entry<",
+                    Row,
+                    ", ",
+                    ColumnValue,
+                    ">> getRowsColumnRange(Iterable<",
+                    Row,
+                    "> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {");
+            {
+                line("Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(),"
+                        + " Persistables.persistAll(rows), columnRangeSelection, batchHint);");
+                line("return Iterators.transform(results, e -> {");
+                {
                     line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());");
                     if (isDynamic) {
-                        line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
-                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                        line(
+                                Column,
+                                " col = ",
+                                Column,
+                                ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
+                        line(
+                                table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(),
+                                " val = ",
+                                ColumnValue,
+                                ".hydrateValue(e.getValue());");
                         line(ColumnValue, " colValue = ", ColumnValue, ".of(col, val);");
                     } else {
-                        line(ColumnValue, " colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());");
+                        line(
+                                ColumnValue,
+                                " colValue ="
+                                    + " shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());");
                     }
                     line("return Maps.immutableEntry(row, colValue);");
-                } line("});");
-            } line("}");
+                }
+                line("});");
+            }
+            line("}");
         }
 
         private void renderGetRowsColumnRangeIterator(boolean isDynamic) {
             line("@Override");
-            line("public Map<", Row, ", Iterator<", ColumnValue, ">> getRowsColumnRangeIterator(Iterable<", Row, "> rows, BatchColumnRangeSelection columnRangeSelection) {"); {
-                line("Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);");
-                line("Map<", Row, ", Iterator<", ColumnValue, ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
-                line("for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {"); {
+            line(
+                    "public Map<",
+                    Row,
+                    ", Iterator<",
+                    ColumnValue,
+                    ">> getRowsColumnRangeIterator(Iterable<",
+                    Row,
+                    "> rows, BatchColumnRangeSelection columnRangeSelection) {");
+            {
+                line("Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results ="
+                        + " t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows),"
+                        + " columnRangeSelection);");
+                line(
+                        "Map<",
+                        Row,
+                        ", Iterator<",
+                        ColumnValue,
+                        ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
+                line("for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {");
+                {
                     line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
-                    line("Iterator<", ColumnValue, "> bv = Iterators.transform(e.getValue(), result -> {"); {
+                    line("Iterator<", ColumnValue, "> bv = Iterators.transform(e.getValue(), result -> {");
+                    {
                         if (isDynamic) {
-                            line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());");
-                            line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(result.getValue());");
+                            line(
+                                    Column,
+                                    " col = ",
+                                    Column,
+                                    ".BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());");
+                            line(
+                                    table.getColumns()
+                                            .getDynamicColumn()
+                                            .getValue()
+                                            .getJavaObjectTypeName(),
+                                    " val = ",
+                                    ColumnValue,
+                                    ".hydrateValue(result.getValue());");
                             line("return ", ColumnValue, ".of(col, val);");
                         } else {
-                            line("return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
+                            line(
+                                    "return"
+                                        + " shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
                         }
-                    } line("});");
+                    }
+                    line("});");
                     line("transformed.put(row, bv);");
-                } line("}");
+                }
+                line("}");
                 line("return transformed;");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderFindConstraintFailures() {
             line("@Override");
             line("public List<String> findConstraintFailures(Map<Cell, byte[]> writes,");
             line("                                           ConstraintCheckingTransaction transaction,");
-            line("                                           AtlasDbConstraintCheckingMode constraintCheckingMode) {"); {
+            line("                                           AtlasDbConstraintCheckingMode constraintCheckingMode) {");
+            {
                 line("return ImmutableList.of();");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
             line("public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,");
-            line("                                                 AtlasDbConstraintCheckingMode constraintCheckingMode) {"); {
+            line("                                                 AtlasDbConstraintCheckingMode"
+                    + " constraintCheckingMode) {");
+            {
                 line("return ImmutableList.of();");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderAdd() {
             line("@Override");
-            line("public void add(", Row, " row) {"); {
+            line("public void add(", Row, " row) {");
+            {
                 line("add(ImmutableSet.of(row));");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public void add(Set<", Row, "> rows) {"); {
+            line("public void add(Set<", Row, "> rows) {");
+            {
                 line("Map<", Row, ", ", ColumnValue, "> map = Maps.newHashMapWithExpectedSize(rows.size());");
                 line(ColumnValue, " col = Exists.of(0L);");
-                line("for (", Row, " row : rows) {"); {
+                line("for (", Row, " row : rows) {");
+                {
                     line("map.put(row, col);");
-                } line("}");
+                }
+                line("}");
                 line("put(Multimaps.forMap(map));");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public void addUnlessExists(", Row, " row) {"); {
+            line("public void addUnlessExists(", Row, " row) {");
+            {
                 line("addUnlessExists(ImmutableSet.of(row));");
-            } line("}");
+            }
+            line("}");
             line();
             line("@Override");
-            line("public void addUnlessExists(Set<", Row, "> rows) {"); {
-                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), allColumns);");
-                line("Map<", Row, ", ", ColumnValue, "> map = Maps.newHashMapWithExpectedSize(rows.size() - results.size());");
+            line("public void addUnlessExists(Set<", Row, "> rows) {");
+            {
+                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef,"
+                        + " Persistables.persistAll(rows), allColumns);");
+                line(
+                        "Map<",
+                        Row,
+                        ", ",
+                        ColumnValue,
+                        "> map = Maps.newHashMapWithExpectedSize(rows.size() - results.size());");
                 line(ColumnValue, " col = Exists.of(0L);");
-                line("for (", Row, " row : rows) {"); {
-                    line("if (!results.containsKey(row.persistToBytes())) {"); {
+                line("for (", Row, " row : rows) {");
+                {
+                    line("if (!results.containsKey(row.persistToBytes())) {");
+                    {
                         line("map.put(row, col);");
-                    } line("}");
-                } line("}");
+                    }
+                    line("}");
+                }
+                line("}");
                 line("put(Multimaps.forMap(map));");
-            } line("}");
+            }
+            line("}");
         }
 
         private void renderClassHash() {
@@ -1229,7 +1854,9 @@ public class TableRenderer {
 
     private static boolean isNamedSet(TableMetadata table) {
         Set<NamedColumnDescription> namedColumns = table.getColumns().getNamedColumns();
-        return namedColumns != null && namedColumns.size() == 1 && Iterables.getOnlyElement(namedColumns).getLongName().equals("exists");
+        return namedColumns != null
+                && namedColumns.size() == 1
+                && Iterables.getOnlyElement(namedColumns).getLongName().equals("exists");
     }
 
     private static boolean isDynamic(TableMetadata table) {
@@ -1241,7 +1868,7 @@ public class TableRenderer {
     }
 
     private static List<Class<?>> getImports(OptionalType optionalType) {
-        List<Class<?>> classes = Lists.newArrayList();
+        List<Class<?>> classes = new ArrayList<>();
         classes.addAll(Arrays.asList(IMPORTS_WITHOUT_OPTIONAL));
         switch (optionalType) {
             case GUAVA:
@@ -1312,7 +1939,7 @@ public class TableRenderer {
         AtlasDbNamedMutableTable.class,
         ColumnSelection.class,
         Joiner.class,
-        Entry.class,
+        Map.Entry.class,
         Iterator.class,
         Iterables.class,
         Stream.class,
@@ -1340,4 +1967,3 @@ public class TableRenderer {
         ImmutableGetRangesQuery.class,
     };
 }
-

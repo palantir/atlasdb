@@ -15,20 +15,19 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 
 /**
  * DO NOT add new endpoints in here. Instead, define them as Conjure endpoints.
  */
-@Path("/{namespace: (?!tl/)[a-zA-Z0-9_-]+}")
+@Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}")
 @Deprecated
-public class TimeLockResource {
+public final class TimeLockResource {
     private final TimelockNamespaces namespaces;
 
     private TimeLockResource(TimelockNamespaces namespaces) {

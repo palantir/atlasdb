@@ -2,6 +2,7 @@ package com.palantir.atlasdb.schema.stream.generated;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -42,7 +43,7 @@ public class StreamTestMetadataCleanupTask implements OnCleanupTask {
         StreamTestStreamIdxTable indexTable = tables.getStreamTestStreamIdxTable(t);
         Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> rowsWithNoIndexEntries =
                         executeUnreferencedStreamDiagnostics(indexTable, rows);
-        Set<Long> toDelete = Sets.newHashSet();
+        Set<Long> toDelete = new HashSet<>();
         Map<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> currentMetadata =
                 metaTable.getMetadatas(rows);
         for (Map.Entry<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
@@ -101,7 +102,7 @@ public class StreamTestMetadataCleanupTask implements OnCleanupTask {
             log.info("We searched for unreferenced streams with methodological inconsistency: iterators claimed we could delete {}, but multimaps {}.",
                     SafeArg.of("unreferencedByIterator", convertToIdsForLogging(unreferencedStreamsByIterator)),
                     SafeArg.of("unreferencedByMultimap", convertToIdsForLogging(unreferencedStreamsByMultimap)));
-            return Sets.newHashSet();
+            return new HashSet<>();
         } else {
             log.info("We searched for unreferenced streams and consistently found {}.",
                     SafeArg.of("unreferencedStreamIds", convertToIdsForLogging(unreferencedStreamsByIterator)));

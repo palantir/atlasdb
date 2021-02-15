@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: 'TransactionLockAcquisitionTimeoutExceptions are now retryable. The
+    main implications of this are that clients will attempt to retry when lock acquisition
+    times out, which typically happens due to a leader election. However, this also
+    means that requests will retry in cases where lock acquisition timing out is a
+    non-transient issue. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/5154

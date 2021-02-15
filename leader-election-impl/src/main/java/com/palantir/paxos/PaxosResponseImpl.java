@@ -62,5 +62,4 @@ public class PaxosResponseImpl implements PaxosResponse {
     public String toString() {
         return "PaxosResponseImpl [ack=" + ack + "]";
     }
-
 }

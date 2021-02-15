@@ -25,6 +25,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.palantir.conjure.java.api.errors.QosException;
+import com.palantir.logsafe.exceptions.SafeIoException;
+import feign.RetryableException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Date;
@@ -33,14 +36,8 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.function.LongConsumer;
-
 import org.junit.Before;
 import org.junit.Test;
-
-import com.palantir.conjure.java.api.errors.QosException;
-import com.palantir.logsafe.exceptions.SafeIoException;
-
-import feign.RetryableException;
 
 @SuppressWarnings("unchecked") // Mock usage
 public class FastFailoverProxyTest {
@@ -137,8 +134,7 @@ public class FastFailoverProxyTest {
 
     @Test
     public void retryableExceptionWithRetryOtherAsIndirectCauseIsCausedByRetryOther() {
-        SafeIoException safeIoException = new SafeIoException(
-                "Some I/O problem", QosException.retryOther(createUrl()));
+        SafeIoException safeIoException = new SafeIoException("Some I/O problem", QosException.retryOther(createUrl()));
         RetryableException retryableException = createRetryableException(safeIoException);
         assertThat(FastFailoverProxy.isCausedByRetryOther(retryableException)).isTrue();
     }
@@ -150,7 +146,6 @@ public class FastFailoverProxyTest {
     private void createProxy() {
         proxy = FastFailoverProxy.newProxyInstance(BinaryOperator.class, () -> binaryOperator, clock);
     }
-
 
     private static RetryableException createRetryableException(Throwable throwable) {
         return new RetryableException("foo", throwable, Date.from(Instant.EPOCH));

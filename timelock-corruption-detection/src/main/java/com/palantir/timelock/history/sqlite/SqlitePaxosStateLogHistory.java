@@ -16,24 +16,13 @@
 
 package com.palantir.timelock.history.sqlite;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-
-import javax.sql.DataSource;
-
-import org.jdbi.v3.core.Jdbi;
-import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
-import org.jdbi.v3.sqlobject.SqlObjectPlugin;
-import org.jdbi.v3.sqlobject.customizer.Bind;
-import org.jdbi.v3.sqlobject.customizer.BindPojo;
-import org.jdbi.v3.sqlobject.statement.SqlQuery;
-
 import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
+import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosRound;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import com.palantir.timelock.history.HistoryQuerySequenceBounds;
 import com.palantir.timelock.history.PaxosAcceptorData;
 import com.palantir.timelock.history.mappers.AcceptorPaxosRoundMapper;
 import com.palantir.timelock.history.mappers.LearnerPaxosRoundMapper;
@@ -42,6 +31,16 @@ import com.palantir.timelock.history.models.AcceptorUseCase;
 import com.palantir.timelock.history.models.ImmutableLearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.LearnerUseCase;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import javax.sql.DataSource;
+import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
+import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import org.jdbi.v3.sqlobject.customizer.Bind;
+import org.jdbi.v3.sqlobject.customizer.BindPojo;
+import org.jdbi.v3.sqlobject.statement.SqlQuery;
 
 public final class SqlitePaxosStateLogHistory {
     private final Jdbi jdbi;
@@ -65,38 +64,69 @@ public final class SqlitePaxosStateLogHistory {
         return execute(Queries::getAllNamespaceAndUseCaseTuples);
     }
 
-    public LearnerAndAcceptorRecords getLearnerAndAcceptorLogsSince(
-            Client namespace, LearnerUseCase learnerUseCase, AcceptorUseCase acceptorUseCase, long seq) {
+    public LearnerAndAcceptorRecords getLearnerAndAcceptorLogsInRange(
+            Client namespace,
+            LearnerUseCase learnerUseCase,
+            AcceptorUseCase acceptorUseCase,
+            HistoryQuerySequenceBounds querySequenceBounds) {
         return execute(dao -> ImmutableLearnerAndAcceptorRecords.of(
-                dao.getLearnerLogsSince(namespace, learnerUseCase.value(), seq),
-                dao.getAcceptorLogsSince(namespace, acceptorUseCase.value(), seq)));
+                dao.getLearnerLogsInRange(
+                        namespace,
+                        learnerUseCase.value(),
+                        querySequenceBounds.getLowerBoundInclusive(),
+                        querySequenceBounds.getUpperBoundInclusive()),
+                dao.getAcceptorLogsInRange(
+                        namespace,
+                        acceptorUseCase.value(),
+                        querySequenceBounds.getLowerBoundInclusive(),
+                        querySequenceBounds.getUpperBoundInclusive())));
+    }
+
+    public Map<Long, PaxosValue> getLearnerLogsSince(
+            Client namespace, LearnerUseCase learnerUseCase, long lowerBoundInclusive, int learnerLogBatchSizeLimit) {
+        return execute(dao -> dao.getLearnerLogsSince(
+                namespace, learnerUseCase.value(), lowerBoundInclusive, learnerLogBatchSizeLimit));
+    }
+
+    public long getGreatestLogEntry(Client client, LearnerUseCase useCase) {
+        return executeSqlitePaxosStateLogQuery(dao -> dao.getGreatestLogEntry(client, useCase.value()))
+                .orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     private <T> T execute(Function<Queries, T> call) {
         return jdbi.withExtension(Queries.class, call::apply);
     }
 
+    private <T> T executeSqlitePaxosStateLogQuery(Function<SqlitePaxosStateLog.Queries, T> call) {
+        return jdbi.withExtension(SqlitePaxosStateLog.Queries.class, call::apply);
+    }
+
     public interface Queries {
         @SqlQuery("SELECT DISTINCT namespace, useCase FROM paxosLog")
         Set<NamespaceAndUseCase> getAllNamespaceAndUseCaseTuples();
 
-//        TODO(snanda): For now, limit is based on approximation and has not been tested with remotes. We need to
-//         revisit this once we have the remote history providers set up. Also, we may have to make it configurable to
-//         accommodate the rate at which logs are being published.
-        @SqlQuery("SELECT seq, val FROM paxosLog "
-                + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq "
-                + "ORDER BY seq ASC LIMIT 500")
+        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
+                + " :lowerBoundInclusive AND seq <= :upperBoundInclusive")
+        Map<Long, PaxosValue> getLearnerLogsInRange(
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("lowerBoundInclusive") long lowerBoundInclusive,
+                @Bind("upperBoundInclusive") long upperBoundInclusive);
+
+        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
+                + " :lowerBoundInclusive AND seq <= :upperBoundInclusive")
+        Map<Long, PaxosAcceptorData> getAcceptorLogsInRange(
+                @BindPojo("namespace") Client namespace,
+                @Bind("useCase") String useCase,
+                @Bind("lowerBoundInclusive") long lowerBoundInclusive,
+                @Bind("upperBoundInclusive") long upperBoundInclusive);
+
+        @SqlQuery("SELECT seq, val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq >="
+                + " :lowerBoundInclusive ORDER BY seq ASC LIMIT :limit")
         Map<Long, PaxosValue> getLearnerLogsSince(
                 @BindPojo("namespace") Client namespace,
                 @Bind("useCase") String useCase,
-                @Bind("seq") long seq);
-
-        @SqlQuery("SELECT seq, val FROM paxosLog "
-                + "WHERE namespace = :namespace.value AND useCase = :useCase AND seq > :seq "
-                + "ORDER BY seq ASC LIMIT 500")
-        Map<Long, PaxosAcceptorData> getAcceptorLogsSince(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("seq") long seq);
+                @Bind("lowerBoundInclusive") long lowerBoundInclusive,
+                @Bind("limit") long learnerLogBatchSizeLimit);
     }
 }

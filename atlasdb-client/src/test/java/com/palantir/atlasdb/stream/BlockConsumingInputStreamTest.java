@@ -15,26 +15,22 @@
  */
 package com.palantir.atlasdb.stream;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class BlockConsumingInputStreamTest {
@@ -48,7 +44,7 @@ public class BlockConsumingInputStreamTest {
             try {
                 destination.write(data);
             } catch (IOException e) {
-                fail();
+                fail("fail");
             }
         }
 
@@ -64,7 +60,7 @@ public class BlockConsumingInputStreamTest {
             try {
                 os.write(data, (int) offset, (int) numBlocks);
             } catch (IOException e) {
-                fail();
+                fail("fail");
             }
         }
 
@@ -81,7 +77,7 @@ public class BlockConsumingInputStreamTest {
             try {
                 os.write(stored, 3 * (int) offset, 3 * (int) numBlocks);
             } catch (IOException e) {
-                fail();
+                fail("fail");
             }
         }
 
@@ -121,22 +117,22 @@ public class BlockConsumingInputStreamTest {
     @Test
     public void canReadSingleByte() throws IOException {
         int byteAsInt = dataStream.read();
-        byte[] readByte = { (byte) byteAsInt };
-        assertEquals("d", new String(readByte, StandardCharsets.UTF_8));
+        byte[] readByte = {(byte) byteAsInt};
+        assertThat(new String(readByte, StandardCharsets.UTF_8)).isEqualTo("d");
     }
 
     @Test
     public void readEmptyArrayReturnsZero() throws IOException {
         int read = dataStream.read(new byte[0]);
-        assertEquals(0, read);
+        assertThat(read).isEqualTo(0);
     }
 
     @Test
     public void canReadBlock() throws IOException {
         byte[] result = new byte[DATA_SIZE];
         int read = dataStream.read(result);
-        assertEquals(DATA_SIZE, read);
-        assertArrayEquals(data, result);
+        assertThat(read).isEqualTo(DATA_SIZE);
+        assertThat(result).isEqualTo(data);
     }
 
     @Test
@@ -157,8 +153,8 @@ public class BlockConsumingInputStreamTest {
 
         byte[] chunk = new byte[2];
         int read = stream.read(chunk);
-        assertEquals(1, read);
-        assertArrayEquals("e".getBytes(StandardCharsets.UTF_8), Arrays.copyOf(chunk, 1));
+        assertThat(read).isEqualTo(1);
+        assertThat(Arrays.copyOf(chunk, 1)).isEqualTo("e".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -166,7 +162,7 @@ public class BlockConsumingInputStreamTest {
         dataStream.read(new byte[DATA_SIZE]);
 
         int read = dataStream.read();
-        assertEquals(-1, read);
+        assertThat(read).isEqualTo(-1);
     }
 
     @Test
@@ -175,15 +171,15 @@ public class BlockConsumingInputStreamTest {
         dataStream.read(result);
 
         int read = dataStream.read(result);
-        assertEquals(-1, read);
+        assertThat(read).isEqualTo(-1);
     }
 
     @Test
     public void largerArraysThanDataGetPartiallyFilled() throws IOException {
         byte[] result = new byte[DATA_SIZE_PLUS_ONE];
         int read = dataStream.read(result);
-        assertEquals(DATA_SIZE, read);
-        assertArrayEquals(data, Arrays.copyOf(result, DATA_SIZE));
+        assertThat(read).isEqualTo(DATA_SIZE);
+        assertThat(Arrays.copyOf(result, DATA_SIZE)).isEqualTo(data);
     }
 
     @Test
@@ -191,8 +187,8 @@ public class BlockConsumingInputStreamTest {
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE, 1);
         byte[] result = new byte[DATA_SIZE];
         int read = stream.read(result);
-        assertEquals(DATA_SIZE, read);
-        assertArrayEquals(data, result);
+        assertThat(read).isEqualTo(DATA_SIZE);
+        assertThat(result).isEqualTo(data);
     }
 
     @Test
@@ -200,8 +196,8 @@ public class BlockConsumingInputStreamTest {
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE, 1);
         byte[] result = new byte[DATA_SIZE_PLUS_ONE];
         int read = stream.read(result);
-        assertEquals(DATA_SIZE, read);
-        assertArrayEquals(data, Arrays.copyOf(result, DATA_SIZE));
+        assertThat(read).isEqualTo(DATA_SIZE);
+        assertThat(Arrays.copyOf(result, DATA_SIZE)).isEqualTo(data);
     }
 
     @Test(expected = IndexOutOfBoundsException.class)
@@ -217,8 +213,8 @@ public class BlockConsumingInputStreamTest {
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, dataSizeMinusOne, 1);
         byte[] result = new byte[DATA_SIZE];
         int read = stream.read(result);
-        assertEquals(dataSizeMinusOne, read);
-        assertArrayEquals(Arrays.copyOf(data, dataSizeMinusOne), Arrays.copyOf(result, dataSizeMinusOne));
+        assertThat(read).isEqualTo(dataSizeMinusOne);
+        assertThat(Arrays.copyOf(result, dataSizeMinusOne)).isEqualTo(Arrays.copyOf(data, dataSizeMinusOne));
     }
 
     @Test
@@ -255,9 +251,9 @@ public class BlockConsumingInputStreamTest {
 
         // Should fail, because reallyBigGetter.expectedBlockLength() * blocksInMemory = Integer.MAX_VALUE - 7.
         int blocksInMemory = 8;
-        assertTrue("Test assumption violated: expectedBlockLength() * blocksInMemory > MAX_IN_MEMORY_THRESHOLD.",
-                (long) reallyBigGetter.expectedBlockLength() * (long) blocksInMemory
-                        > StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD);
+        assertThat((long) reallyBigGetter.expectedBlockLength() * (long) blocksInMemory)
+                .as("Test assumption violated: expectedBlockLength() * blocksInMemory > MAX_IN_MEMORY_THRESHOLD.")
+                .isGreaterThan(StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD);
         BlockConsumingInputStream.create(reallyBigGetter, 9, blocksInMemory);
     }
 
@@ -278,6 +274,7 @@ public class BlockConsumingInputStreamTest {
         // Should fail, because tooBigGetter.expectedBlockLength() * 1 = Integer.MAX_VALUE - 7.
         BlockConsumingInputStream.create(tooBigGetter, 2, 1);
     }
+
     @Test
     public void canLoadMultipleBlocksAtOnceAndAlsoFewerBlocksAtEnd() throws IOException {
         BlockGetter spiedGetter = Mockito.spy(singleByteConsumer);
@@ -287,15 +284,14 @@ public class BlockConsumingInputStreamTest {
 
         byte[] ata = new byte[3];
         int bytesRead = stream.read(ata);
-        assertEquals(3, bytesRead);
+        assertThat(bytesRead).isEqualTo(3);
         verify(spiedGetter, times(1)).get(anyLong(), eq(1L), any());
     }
 
     private void expectNextBytesFromStream(BlockConsumingInputStream stream, String expectedOutput) throws IOException {
         byte[] chunk = new byte[2];
         int read = stream.read(chunk);
-        assertEquals(2, read);
-        assertArrayEquals(expectedOutput.getBytes(StandardCharsets.UTF_8), chunk);
+        assertThat(read).isEqualTo(2);
+        assertThat(chunk).isEqualTo(expectedOutput.getBytes(StandardCharsets.UTF_8));
     }
-
 }

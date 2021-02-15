@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.timelock.util;
 
+import com.github.peterwippermann.junit4.parameterizedsuite.ParameterContext;
+import com.google.common.collect.ImmutableSet;
 import java.util.function.Supplier;
-
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
-
-import com.github.peterwippermann.junit4.parameterizedsuite.ParameterContext;
-import com.google.common.collect.ImmutableSet;
 
 public final class ParameterInjector<T extends TestRule> implements TestRule {
 

@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
-
-import org.apache.commons.lang3.math.NumberUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Gauge;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AdjustableSweepBatchConfigSource {
-    private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(AdjustableSweepBatchConfigSource.class);
 
     private final Supplier<SweepBatchConfig> rawSweepBatchConfig;
 
@@ -40,19 +38,18 @@ public final class AdjustableSweepBatchConfigSource {
     }
 
     public static AdjustableSweepBatchConfigSource create(
-            MetricsManager metricsManager,
-            Supplier<SweepBatchConfig> rawSweepBatchConfig) {
+            MetricsManager metricsManager, Supplier<SweepBatchConfig> rawSweepBatchConfig) {
         AdjustableSweepBatchConfigSource configSource = new AdjustableSweepBatchConfigSource(rawSweepBatchConfig);
 
         Gauge<Double> gauge = AdjustableSweepBatchConfigSource::getBatchSizeMultiplier;
 
         // We are generally only interested in the batch size if an error occurred, i.e. it was less than 1.
-        metricsManager.addMetricFilter(AdjustableSweepBatchConfigSource.class,
+        metricsManager.addMetricFilter(
+                AdjustableSweepBatchConfigSource.class,
                 "batchSizeMultiplier",
                 ImmutableMap.of(),
                 () -> gauge.getValue() < 1.0);
-        metricsManager.registerMetric(AdjustableSweepBatchConfigSource.class, "batchSizeMultiplier",
-                gauge);
+        metricsManager.registerMetric(AdjustableSweepBatchConfigSource.class, "batchSizeMultiplier", gauge);
 
         return configSource;
     }
@@ -97,7 +94,8 @@ public final class AdjustableSweepBatchConfigSource {
         // Cut batch size in half, always sweep at least one row.
         reduceBatchSizeMultiplier();
 
-        log.info("Sweep failed unexpectedly with candidate batch size {},"
+        log.info(
+                "Sweep failed unexpectedly with candidate batch size {},"
                         + " delete batch size {},"
                         + " and {} cell+timestamp pairs to examine."
                         + " Attempting to continue with new batchSizeMultiplier {}",
@@ -109,8 +107,8 @@ public final class AdjustableSweepBatchConfigSource {
 
     private void reduceBatchSizeMultiplier() {
         SweepBatchConfig config = getRawSweepConfig();
-        double smallestSensibleBatchSizeMultiplier =
-                1.0 / NumberUtils.max(
+        double smallestSensibleBatchSizeMultiplier = 1.0
+                / NumberUtils.max(
                         config.maxCellTsPairsToExamine(), config.candidateBatchSize(), config.deleteBatchSize());
 
         if (batchSizeMultiplier == smallestSensibleBatchSizeMultiplier) {
@@ -119,7 +117,8 @@ public final class AdjustableSweepBatchConfigSource {
 
         double newBatchSizeMultiplier = batchSizeMultiplier / 2;
         if (newBatchSizeMultiplier < smallestSensibleBatchSizeMultiplier) {
-            log.info("batchSizeMultiplier reached the smallest sensible value for the current sweep config ({}), "
+            log.info(
+                    "batchSizeMultiplier reached the smallest sensible value for the current sweep config ({}), "
                             + "will not reduce further.",
                     SafeArg.of("batchSizeMultiplier", smallestSensibleBatchSizeMultiplier));
             batchSizeMultiplier = smallestSensibleBatchSizeMultiplier;

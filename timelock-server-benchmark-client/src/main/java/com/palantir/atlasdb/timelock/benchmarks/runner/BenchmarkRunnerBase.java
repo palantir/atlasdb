@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.runner;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-
-import org.apache.commons.lang3.StringUtils;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -35,11 +26,18 @@ import com.palantir.atlasdb.timelock.benchmarks.BenchmarksService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import org.apache.commons.lang3.StringUtils;
 
 public class BenchmarkRunnerBase {
 
-    private static final UserAgent BENCHMARK_CLIENT_USER_AGENT = UserAgent.of(
-            UserAgent.Agent.of("benchmarks", UserAgent.Agent.DEFAULT_VERSION));
+    private static final UserAgent BENCHMARK_CLIENT_USER_AGENT =
+            UserAgent.of(UserAgent.Agent.of("benchmarks", UserAgent.Agent.DEFAULT_VERSION));
     private static final String BENCHMARK_SERVER = readBenchmarkServerUri();
     private static final int BENCHMARK_SERVER_PORT = 9425;
 
@@ -47,8 +45,8 @@ public class BenchmarkRunnerBase {
 
     protected static final BenchmarksService client = createClient();
 
-    protected void runAndPrintResults(BiFunction<Integer, Integer, Map<String, Object>> test, int numClients,
-            int numRequestsPerClient) {
+    protected void runAndPrintResults(
+            BiFunction<Integer, Integer, Map<String, Object>> test, int numClients, int numRequestsPerClient) {
         Map<String, Object> results = test.apply(numClients, numRequestsPerClient);
         printResults(results);
     }
@@ -80,8 +78,8 @@ public class BenchmarkRunnerBase {
 
     private static String readBenchmarkServerUri() {
         try {
-            for (String line : Files.readLines(new File("../scripts/benchmarks/servers.txt"),
-                    Charset.forName("UTF-8"))) {
+            for (String line :
+                    Files.readLines(new File("../scripts/benchmarks/servers.txt"), Charset.forName("UTF-8"))) {
                 if (line.startsWith("CLIENT")) {
                     String hostname = StringUtils.split(line, '=')[1];
                     return "http://" + hostname + ":" + BENCHMARK_SERVER_PORT;
@@ -93,5 +91,4 @@ public class BenchmarkRunnerBase {
             throw new RuntimeException(e);
         }
     }
-
 }

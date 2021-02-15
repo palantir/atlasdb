@@ -16,13 +16,11 @@
 
 package com.palantir.common.time;
 
-import java.time.Duration;
-import java.util.concurrent.locks.LockSupport;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import java.time.Duration;
+import java.util.concurrent.locks.LockSupport;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
@@ -40,9 +38,7 @@ public abstract class NanoTime implements Comparable<NanoTime> {
 
     @JsonCreator
     static NanoTime create(long nanos) {
-        return ImmutableNanoTime.builder()
-                .time(nanos)
-                .build();
+        return ImmutableNanoTime.builder().time(nanos).build();
     }
 
     /**

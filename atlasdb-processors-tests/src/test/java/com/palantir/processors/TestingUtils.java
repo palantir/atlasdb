@@ -37,10 +37,7 @@ final class TestingUtils {
     }
 
     private static String methodToString(Method method) {
-        return String.format("%s,%s,%s",
-                method.getReturnType(),
-                method.getName(),
-                extractMethodParameterTypes(method));
+        return String.format("%s,%s,%s", method.getReturnType(), method.getName(), extractMethodParameterTypes(method));
     }
 
     private static String extractMethodParameterTypes(Method method) {
@@ -53,5 +50,4 @@ final class TestingUtils {
     static Set<String> extractNonStaticMethods(Class klass) {
         return extractMethodsSatisfyingPredicate(klass, method -> !Modifier.isStatic(method.getModifiers()));
     }
-
 }

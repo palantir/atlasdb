@@ -16,8 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.util.function.Supplier;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
@@ -37,36 +35,40 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.function.Supplier;
 
 public class DialogueAdaptingConjureTimelockService implements ConjureTimelockService {
     private final ConjureTimelockServiceBlocking dialogueDelegate;
     private final ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
 
-    public DialogueAdaptingConjureTimelockService(ConjureTimelockServiceBlocking dialogueDelegate,
+    public DialogueAdaptingConjureTimelockService(
+            ConjureTimelockServiceBlocking dialogueDelegate,
             ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics) {
         this.dialogueDelegate = dialogueDelegate;
         this.conjureTimelockServiceBlockingMetrics = conjureTimelockServiceBlockingMetrics;
     }
 
     @Override
-    public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
-            ConjureStartTransactionsRequest request) {
-        return executeInstrumented(() -> dialogueDelegate.startTransactions(authHeader, namespace, request),
+    public ConjureStartTransactionsResponse startTransactions(
+            AuthHeader authHeader, String namespace, ConjureStartTransactionsRequest request) {
+        return executeInstrumented(
+                () -> dialogueDelegate.startTransactions(authHeader, namespace, request),
                 () -> conjureTimelockServiceBlockingMetrics.startTransactions().time(),
-                () -> conjureTimelockServiceBlockingMetrics.startTransactionErrors());
+                conjureTimelockServiceBlockingMetrics::startTransactionErrors);
     }
 
     @Override
-    public ConjureGetFreshTimestampsResponse getFreshTimestamps(AuthHeader authHeader, String namespace,
-            ConjureGetFreshTimestampsRequest request) {
+    public ConjureGetFreshTimestampsResponse getFreshTimestamps(
+            AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
         return dialogueDelegate.getFreshTimestamps(authHeader, namespace, request);
     }
 
     @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
-        return executeInstrumented(() -> dialogueDelegate.leaderTime(authHeader, namespace),
+        return executeInstrumented(
+                () -> dialogueDelegate.leaderTime(authHeader, namespace),
                 () -> conjureTimelockServiceBlockingMetrics.leaderTime().time(),
-                () -> conjureTimelockServiceBlockingMetrics.leaderTimeErrors());
+                conjureTimelockServiceBlockingMetrics::leaderTimeErrors);
     }
 
     @Override
@@ -75,14 +77,14 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     }
 
     @Override
-    public ConjureWaitForLocksResponse waitForLocks(AuthHeader authHeader, String namespace,
-            ConjureLockRequest request) {
+    public ConjureWaitForLocksResponse waitForLocks(
+            AuthHeader authHeader, String namespace, ConjureLockRequest request) {
         return dialogueDelegate.waitForLocks(authHeader, namespace, request);
     }
 
     @Override
-    public ConjureRefreshLocksResponse refreshLocks(AuthHeader authHeader, String namespace,
-            ConjureRefreshLocksRequest request) {
+    public ConjureRefreshLocksResponse refreshLocks(
+            AuthHeader authHeader, String namespace, ConjureRefreshLocksRequest request) {
         return dialogueDelegate.refreshLocks(authHeader, namespace, request);
     }
 
@@ -92,13 +94,13 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     }
 
     @Override
-    public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
-            GetCommitTimestampsRequest request) {
+    public GetCommitTimestampsResponse getCommitTimestamps(
+            AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
         return dialogueDelegate.getCommitTimestamps(authHeader, namespace, request);
     }
 
-    private <T> T executeInstrumented(Supplier<T> supplier, Supplier<Timer.Context> timerSupplier,
-            Supplier<Meter> meterSupplier) {
+    private <T> T executeInstrumented(
+            Supplier<T> supplier, Supplier<Timer.Context> timerSupplier, Supplier<Meter> meterSupplier) {
         try (Timer.Context timer = timerSupplier.get()) {
             return supplier.get();
         } catch (RuntimeException e) {

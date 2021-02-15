@@ -15,25 +15,28 @@
  */
 package com.palantir.atlasdb.util;
 
+import com.google.common.base.Preconditions;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.google.common.base.Preconditions;
 
 public final class MetricNameUtils {
 
     private static final int MAX_ALLOWED_TAGS = 10;
 
     private MetricNameUtils() {
-        //utility class
+        // utility class
     }
 
     private static final String DELIMITER = ";";
     private static final String EQUALS = "=";
 
     public static String getMetricName(String metricName, Map<String, String> tags) {
-        Preconditions.checkArgument(tags.size() <= MAX_ALLOWED_TAGS, "Too many tags set on the metric %s. "
-                + "Maximum allowed number of tags is %s, found %s.", metricName, MAX_ALLOWED_TAGS, tags.size());
+        Preconditions.checkArgument(
+                tags.size() <= MAX_ALLOWED_TAGS,
+                "Too many tags set on the metric %s. " + "Maximum allowed number of tags is %s, found %s.",
+                metricName,
+                MAX_ALLOWED_TAGS,
+                tags.size());
 
         validateMetricComponentName(metricName, "metric");
         validateMetricTagNames(tags);
@@ -43,22 +46,20 @@ public final class MetricNameUtils {
                 .collect(Collectors.joining(DELIMITER, metricName + DELIMITER, ""));
     }
 
-
     private static void validateMetricTagNames(Map<String, String> tags) {
-      tags.forEach((key, value) -> {
-          validateMetricComponentName(key, "tag key");
-          validateMetricComponentName(value, "tag value");
-      });
+        tags.forEach((key, value) -> {
+            validateMetricComponentName(key, "tag key");
+            validateMetricComponentName(value, "tag value");
+        });
     }
 
     private static void validateMetricComponentName(String metricName, String type) {
-         if (metricName.contains(DELIMITER)) {
-             throw new IllegalArgumentException(
-                     String.format("The %s name: %s contains the forbidden character: %s", type, metricName, DELIMITER));
-         } else if (metricName.contains(EQUALS)){
-             throw new IllegalArgumentException(
-                     String.format("The %s name: %s contains the forbidden character: %s", type, metricName, EQUALS));
-
-         }
+        if (metricName.contains(DELIMITER)) {
+            throw new IllegalArgumentException(
+                    String.format("The %s name: %s contains the forbidden character: %s", type, metricName, DELIMITER));
+        } else if (metricName.contains(EQUALS)) {
+            throw new IllegalArgumentException(
+                    String.format("The %s name: %s contains the forbidden character: %s", type, metricName, EQUALS));
+        }
     }
 }

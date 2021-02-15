@@ -15,17 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 public final class OracleQueryHelpers {
 
-    private OracleQueryHelpers() { }
+    private OracleQueryHelpers() {}
 
-    public static String getValueSubselect(boolean haveOverflow,
-                                           String tableAlias,
-                                           boolean includeValue) {
+    public static String getValueSubselect(boolean haveOverflow, String tableAlias, boolean includeValue) {
         if (includeValue) {
             List<String> colNames = getValueColumnNames(haveOverflow);
             StringBuilder ret = new StringBuilder(10 * colNames.size());
@@ -55,9 +52,14 @@ public final class OracleQueryHelpers {
             //     is a singleton, so MAX will simply return the only element in that set.
             //  To sum it up: for each (row_name, col_name) group, this will select
             //  the value of the row that has the largest 'ts' value within that group.
-            ret.append(", MAX(").append(tableAlias).append('.').append(colName)
+            ret.append(", MAX(")
+                    .append(tableAlias)
+                    .append('.')
+                    .append(colName)
                     .append(") KEEP (DENSE_RANK LAST ORDER BY ")
-                    .append(tableAlias).append(".ts ASC) AS ").append(colName);
+                    .append(tableAlias)
+                    .append(".ts ASC) AS ")
+                    .append(colName);
         }
         return ret.toString();
     }
@@ -72,5 +74,4 @@ public final class OracleQueryHelpers {
 
     private static final ImmutableList<String> VAL_ONLY = ImmutableList.of("val");
     private static final ImmutableList<String> VAL_AND_OVERFLOW = ImmutableList.of("val", "overflow");
-
 }

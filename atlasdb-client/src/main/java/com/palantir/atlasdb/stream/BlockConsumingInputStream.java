@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.stream;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public final class BlockConsumingInputStream extends InputStream {
     private final BlockGetter blockGetter;
@@ -33,10 +32,8 @@ public final class BlockConsumingInputStream extends InputStream {
     private byte[] buffer;
     private int positionInBuffer;
 
-    public static BlockConsumingInputStream create(
-            BlockGetter blockGetter,
-            long numBlocks,
-            int blocksInMemory) throws IOException {
+    public static BlockConsumingInputStream create(BlockGetter blockGetter, long numBlocks, int blocksInMemory)
+            throws IOException {
         ensureExpectedArraySizeDoesNotOverflow(blockGetter, blocksInMemory);
         return new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
     }
@@ -47,7 +44,8 @@ public final class BlockConsumingInputStream extends InputStream {
         int expectedBlockLength = blockGetter.expectedBlockLength();
         int maxBlocksInMemory = StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD / expectedBlockLength;
         long expectedBufferSize = (long) expectedBlockLength * (long) blocksInMemory;
-        Preconditions.checkArgument(blocksInMemory <= maxBlocksInMemory,
+        Preconditions.checkArgument(
+                blocksInMemory <= maxBlocksInMemory,
                 "Promised to load too many blocks into memory. The underlying buffer is stored as a byte array, "
                         + "so can only fit %s bytes. The supplied BlockGetter expected to produce "
                         + "blocks of %s bytes, so %s of them (requested size %s) would cause the array to overflow.",

@@ -16,5 +16,5 @@
 package com.palantir.common.base;
 
 public interface FunctionCheckedException<F, T, K extends Exception> {
-    public T apply(F input) throws K;
+    T apply(F input) throws K;
 }

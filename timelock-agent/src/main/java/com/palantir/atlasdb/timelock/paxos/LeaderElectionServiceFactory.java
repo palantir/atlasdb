@@ -16,29 +16,27 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.time.Duration;
-import java.util.Map;
-
-import com.google.common.collect.Maps;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosProposer;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class LeaderElectionServiceFactory {
 
-    private final Map<Client, BatchingLeaderElectionService> leaderElectionServicesByClient = Maps.newConcurrentMap();
+    private final Map<Client, BatchingLeaderElectionService> leaderElectionServicesByClient = new ConcurrentHashMap<>();
 
     public BatchingLeaderElectionService create(Dependencies.LeaderElectionService dependencies) {
         return leaderElectionServicesByClient.computeIfAbsent(
-                dependencies.paxosClient(),
-                _client -> createNewInstance(dependencies));
+                dependencies.paxosClient(), _client -> createNewInstance(dependencies));
     }
 
     private static BatchingLeaderElectionService createNewInstance(Dependencies.LeaderElectionService dependencies) {
-        PaxosAcceptorNetworkClient acceptorClient = dependencies.networkClientFactories().acceptor()
-                .create(dependencies.paxosClient());
+        PaxosAcceptorNetworkClient acceptorClient =
+                dependencies.networkClientFactories().acceptor().create(dependencies.paxosClient());
 
         return new BatchingLeaderElectionService(new LeaderElectionServiceBuilder()
                 .leaderPinger(dependencies.leaderPinger())
@@ -52,18 +50,13 @@ public class LeaderElectionServiceFactory {
                 .learnerClient(dependencies.networkClientFactories().learner().create(dependencies.paxosClient()))
                 .latestRoundVerifier(dependencies.latestRoundVerifierFactory().create(acceptorClient))
                 .decorateProposer(uninstrumentedPaxosProposer -> instrumentProposer(
-                        dependencies.paxosClient(),
-                        dependencies.metrics(),
-                        uninstrumentedPaxosProposer))
+                        dependencies.paxosClient(), dependencies.metrics(), uninstrumentedPaxosProposer))
                 .leaderAddressCacheTtl(Duration.ofSeconds(1))
                 .build());
     }
 
     private static PaxosProposer instrumentProposer(
-            Client paxosClient,
-            TimelockPaxosMetrics metrics,
-            PaxosProposer uninstrumentedPaxosProposer) {
+            Client paxosClient, TimelockPaxosMetrics metrics, PaxosProposer uninstrumentedPaxosProposer) {
         return metrics.instrument(PaxosProposer.class, uninstrumentedPaxosProposer, paxosClient);
     }
-
 }

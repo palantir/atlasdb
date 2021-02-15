@@ -15,21 +15,6 @@
  */
 package com.palantir.atlasdb.util;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
@@ -49,6 +34,18 @@ import com.palantir.tritium.metrics.registry.DropwizardTaggedMetricSet;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetricsManager {
 
@@ -64,13 +61,15 @@ public class MetricsManager {
     private final ReadWriteLock lock;
     private final MetricNameCache metricNameCache;
 
-    public MetricsManager(MetricRegistry metricRegistry,
+    public MetricsManager(
+            MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry,
             Predicate<TableReference> isSafeToLog) {
         this(metricRegistry, taggedMetricRegistry, Refreshable.only(false), isSafeToLog);
     }
 
-    public MetricsManager(MetricRegistry metricRegistry,
+    public MetricsManager(
+            MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry,
             Refreshable<Boolean> performFiltering,
             Predicate<TableReference> isSafeToLog) {
@@ -92,8 +91,8 @@ public class MetricsManager {
             MetricPublicationArbiter arbiter,
             Refreshable<Boolean> performFiltering) {
         TaggedMetricSet legacyMetricsAsTaggedSet = new DropwizardTaggedMetricSet(metricRegistry);
-        TaggedMetricSet unfilteredUnion
-                = new DisjointUnionTaggedMetricSet(taggedMetricRegistry, legacyMetricsAsTaggedSet);
+        TaggedMetricSet unfilteredUnion =
+                new DisjointUnionTaggedMetricSet(taggedMetricRegistry, legacyMetricsAsTaggedSet);
         return new FilteredTaggedMetricSet(unfilteredUnion, arbiter, performFiltering);
     }
 
@@ -110,10 +109,7 @@ public class MetricsManager {
     }
 
     public void addMetricFilter(
-            Class clazz,
-            String metricName,
-            Map<String, String> tags,
-            MetricPublicationFilter publicationFilter) {
+            Class clazz, String metricName, Map<String, String> tags, MetricPublicationFilter publicationFilter) {
         addMetricFilter(getTaggedMetricName(clazz, metricName, tags), publicationFilter);
     }
 
@@ -142,8 +138,9 @@ public class MetricsManager {
             registerTaggedMetricName(metricToAdd);
             return registeredGauge;
         } catch (IllegalArgumentException ex) {
-            log.error("Tried to add a gauge to a metric name {} that has non-gauge metrics associated with it."
-                    + " This indicates a product bug.",
+            log.error(
+                    "Tried to add a gauge to a metric name {} that has non-gauge metrics associated with it."
+                            + " This indicates a product bug.",
                     SafeArg.of("metricName", metricName),
                     ex);
             throw ex;
@@ -169,13 +166,13 @@ public class MetricsManager {
             registerMetricName(fullyQualifiedMetricName);
         } catch (Exception e) {
             // Primarily to handle integration tests that instantiate this class multiple times in a row
-            log.warn("Unable to register metric {}."
-                    + " This may occur if you are running integration tests that don't clean up completely after "
-                    + " themselves, or if you are trying to use multiple TransactionManagers concurrently in the same"
-                    + " JVM (e.g. in a KVS migration). If this is not the case, this is likely to be a product and/or"
-                    + " an AtlasDB bug. This is no cause for immediate alarm, but it does mean that your telemetry for"
-                    + " the aforementioned metric may be reported incorrectly. Turn on TRACE logging to see the full"
-                    + " exception.",
+            log.warn(
+                    "Unable to register metric {}. This may occur if you are running integration tests that don't"
+                        + " clean up completely after  themselves, or if you are trying to use multiple"
+                        + " TransactionManagers concurrently in the same JVM (e.g. in a KVS migration). If this is not"
+                        + " the case, this is likely to be a product and/or an AtlasDB bug. This is no cause for"
+                        + " immediate alarm, but it does mean that your telemetry for the aforementioned metric may be"
+                        + " reported incorrectly. Turn on TRACE logging to see the full exception.",
                     SafeArg.of("metricName", fullyQualifiedMetricName));
             log.trace("Full exception follows:", e);
         }
@@ -190,6 +187,13 @@ public class MetricsManager {
 
     public Histogram registerOrGetHistogram(Class clazz, String metricName) {
         return registerOrGetHistogram(MetricRegistry.name(clazz, metricName));
+    }
+
+    public Histogram registerOrGetHistogram(Class clazz, String metricName, Supplier<Histogram> histogramSupplier) {
+        String fullyQualifiedHistogramName = MetricRegistry.name(clazz, metricName);
+        Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName, histogramSupplier::get);
+        registerMetricName(fullyQualifiedHistogramName);
+        return histogram;
     }
 
     private Histogram registerOrGetHistogram(String fullyQualifiedHistogramName) {
@@ -239,9 +243,7 @@ public class MetricsManager {
         return meter;
     }
 
-    public Histogram registerOrGetTaggedHistogram(
-            Class clazz, String metricName,
-            Map<String, String> tags) {
+    public Histogram registerOrGetTaggedHistogram(Class clazz, String metricName, Map<String, String> tags) {
         MetricName name = getTaggedMetricName(clazz, metricName, tags);
         Histogram histogram = taggedMetricRegistry.histogram(name);
         registerTaggedMetricName(name);
@@ -249,19 +251,14 @@ public class MetricsManager {
     }
 
     public Histogram registerOrGetTaggedHistogram(
-            Class clazz, String metricName,
-            Map<String, String> tags,
-            Supplier<Histogram> supplier) {
+            Class clazz, String metricName, Map<String, String> tags, Supplier<Histogram> supplier) {
         MetricName name = getTaggedMetricName(clazz, metricName, tags);
         Histogram histogram = taggedMetricRegistry.histogram(name, supplier);
         registerTaggedMetricName(name);
         return histogram;
     }
 
-    public Counter registerOrGetTaggedCounter(
-            Class clazz,
-            String metricName,
-            Map<String, String> tags) {
+    public Counter registerOrGetTaggedCounter(Class clazz, String metricName, Map<String, String> tags) {
         MetricName name = getTaggedMetricName(clazz, metricName, tags);
         Counter counter = taggedMetricRegistry.counter(name);
         registerTaggedMetricName(name);

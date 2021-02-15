@@ -21,17 +21,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.palantir.nexus.db.monitoring.timer.DurationSqlTimer;
+import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-
 import org.junit.Test;
-
-import com.palantir.nexus.db.monitoring.timer.DurationSqlTimer;
-import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 
 @SuppressWarnings("unchecked") // mocked executors
 public class BasicSQLTest {
@@ -68,10 +66,7 @@ public class BasicSQLTest {
     private void executeSqlQuery(BasicSQL basicSql) throws SQLException {
         Connection conn = createMockConnection();
         basicSql.execute(
-                conn,
-                SQLString.getUnregisteredQuery("SELECT 1 FROM a.b;"),
-                new Object[0],
-                BasicSQL.AutoClose.FALSE);
+                conn, SQLString.getUnregisteredQuery("SELECT 1 FROM a.b;"), new Object[0], BasicSQL.AutoClose.FALSE);
     }
 
     private Connection createMockConnection() throws SQLException {
@@ -84,8 +79,7 @@ public class BasicSQLTest {
     private ExecutorService createMockExecuteExecutor() {
         ExecutorService executeExecutor = mock(ExecutorService.class);
         PreparedStatement ps = mock(PreparedStatement.class);
-        when(executeExecutor.submit(any(Callable.class))).thenReturn(
-                CompletableFuture.completedFuture(ps));
+        when(executeExecutor.submit(any(Callable.class))).thenReturn(CompletableFuture.completedFuture(ps));
         return executeExecutor;
     }
 

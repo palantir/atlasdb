@@ -16,11 +16,9 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import java.time.Duration;
-
-import org.immutables.value.Value;
-
 import com.palantir.logsafe.Preconditions;
+import java.time.Duration;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface ServiceLevelObjectiveSpecification {
@@ -38,13 +36,14 @@ public interface ServiceLevelObjectiveSpecification {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(!maximumPermittedSteadyStateP99().isNegative(),
-                "Cannot declare negative p99 service level objective");
-        Preconditions.checkState(maximumPermittedErrorProportion() >= 0 && maximumPermittedErrorProportion() <= 1,
+        Preconditions.checkState(
+                !maximumPermittedSteadyStateP99().isNegative(), "Cannot declare negative p99 service level objective");
+        Preconditions.checkState(
+                maximumPermittedErrorProportion() >= 0 && maximumPermittedErrorProportion() <= 1,
                 "Permitted error proportion must be between 0 and 1.");
-        Preconditions.checkState(minimumRequestRateForConsideration() >= 0,
-                "Cannot declare negative min request rate");
-        Preconditions.checkState(maximumPermittedQuietP99().toNanos()
+        Preconditions.checkState(minimumRequestRateForConsideration() >= 0, "Cannot declare negative min request rate");
+        Preconditions.checkState(
+                maximumPermittedQuietP99().toNanos()
                         > maximumPermittedSteadyStateP99().toNanos(),
                 "p99 limit when request rate is low must be greater than the p99 limit in steady state.");
     }

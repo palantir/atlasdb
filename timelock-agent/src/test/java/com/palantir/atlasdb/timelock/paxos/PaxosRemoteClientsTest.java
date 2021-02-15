@@ -23,15 +23,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
@@ -43,9 +34,16 @@ import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
-import com.palantir.timelock.config.SqlitePaxosPersistenceConfiguration;
+import com.palantir.timelock.config.SqlitePaxosPersistenceConfigurations;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class PaxosRemoteClientsTest {
     @Rule
@@ -60,23 +58,24 @@ public class PaxosRemoteClientsTest {
         paxosInstallConfiguration = ImmutablePaxosInstallConfiguration.builder()
                 .isNewService(false)
                 .dataDirectory(temporaryFolder.getRoot())
-                .sqlitePersistence(SqlitePaxosPersistenceConfiguration.DEFAULT)
+                .sqlitePersistence(SqlitePaxosPersistenceConfigurations.DEFAULT)
                 .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)
                 .build();
         installConfiguration = ImmutableTimeLockInstallConfiguration.builder()
                 .cluster(ImmutableDefaultClusterConfiguration.builder()
                         .localServer("a:1")
-                        .cluster(PartialServiceConfiguration.of(
-                                ImmutableList.of("a:1", "b:2", "c:3"),
-                                Optional.empty()))
+                        .cluster(
+                                PartialServiceConfiguration.of(ImmutableList.of("a:1", "b:2", "c:3"), Optional.empty()))
                         .build())
                 .paxos(paxosInstallConfiguration) // Normally awful, but too onerous to set up
-                .timestampBoundPersistence(ImmutablePaxosTsBoundPersisterConfiguration.builder().build())
+                .timestampBoundPersistence(
+                        ImmutablePaxosTsBoundPersisterConfiguration.builder().build())
                 .build();
         TimeLockDialogueServiceProvider dialogueServiceProvider = mock(TimeLockDialogueServiceProvider.class);
         when(dialogueServiceProvider.createSingleNodeInstrumentedProxy(anyString(), any(), anyBoolean()))
                 .thenAnswer(invocation -> mock(invocation.getArgument(1)));
-        context = ImmutableTimelockPaxosInstallationContext.builder().install(installConfiguration)
+        context = ImmutableTimelockPaxosInstallationContext.builder()
+                .install(installConfiguration)
                 .dialogueServiceProvider(dialogueServiceProvider)
                 .userAgent(UserAgent.of(UserAgent.Agent.of("aaa", "1.2.3")))
                 .timeLockVersion(OrderableSlsVersion.valueOf("0.0.0"))
@@ -89,14 +88,14 @@ public class PaxosRemoteClientsTest {
                 .context(context)
                 .metrics(MetricsManagers.createForTests())
                 .build();
-        Set<CheckedRejectionExecutorService> leaderPingExecutors = remoteClients.batchPingableLeadersWithContext()
-                .stream()
-                .map(WithDedicatedExecutor::executor)
-                .collect(Collectors.toSet());
-        Set<CheckedRejectionExecutorService> paxosExecutionExecutors = remoteClients.nonBatchTimestampAcceptor()
-                .stream()
-                .map(WithDedicatedExecutor::executor)
-                .collect(Collectors.toSet());
+        Set<CheckedRejectionExecutorService> leaderPingExecutors =
+                remoteClients.batchPingableLeadersWithContext().stream()
+                        .map(WithDedicatedExecutor::executor)
+                        .collect(Collectors.toSet());
+        Set<CheckedRejectionExecutorService> paxosExecutionExecutors =
+                remoteClients.nonBatchTimestampAcceptor().stream()
+                        .map(WithDedicatedExecutor::executor)
+                        .collect(Collectors.toSet());
         assertThat(leaderPingExecutors).doesNotContainAnyElementsOf(paxosExecutionExecutors);
     }
 }

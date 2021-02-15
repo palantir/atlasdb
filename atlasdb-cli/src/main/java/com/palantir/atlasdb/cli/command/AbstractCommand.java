@@ -15,30 +15,30 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.Callable;
-
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.Callable;
 
 public abstract class AbstractCommand implements Callable<Integer> {
 
     public static final String ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH = "/atlas";
 
-    @Option(name = {"-c", "--config"},
+    @Option(
+            name = {"-c", "--config"},
             title = "INSTALL CONFIG PATH",
             type = OptionType.GLOBAL,
             description = "path to yaml install configuration file for atlasdb")
     private File configFile;
 
-    @Option(name = {"--runtime-config"},
+    @Option(
+            name = {"--runtime-config"},
             title = "RUNTIME CONFIG PATH",
             type = OptionType.GLOBAL,
             description = "path to yaml runtime configuration file for atlasdb."
@@ -46,25 +46,29 @@ public abstract class AbstractCommand implements Callable<Integer> {
     private File runtimeConfigFile;
 
     // TODO(bgrabham): Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
-    @Option(name = {"--inline-config"},
+    @Option(
+            name = {"--inline-config"},
             title = "INLINE INSTALL CONFIG",
             type = OptionType.GLOBAL,
             description = "inline configuration file for atlasdb")
     private String inlineConfig;
 
-    @Option(name = {"--config-root"},
+    @Option(
+            name = {"--config-root"},
             title = "INSTALL CONFIG ROOT",
             type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 
-    @Option(name = {"--runtime-config-root"},
+    @Option(
+            name = {"--runtime-config-root"},
             title = "RUNTIME CONFIG ROOT",
             type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String runtimeConfigRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 
-    @Option(name = {"--offline"},
+    @Option(
+            name = {"--offline"},
             title = "OFFLINE",
             type = OptionType.GLOBAL,
             description = "run this cli offline")
@@ -87,8 +91,11 @@ public abstract class AbstractCommand implements Callable<Integer> {
                     config = config.toOfflineConfig();
                 }
             } catch (IOException e) {
-                throw new RuntimeException(String.format("IOException thrown reading configuration file: %s",
-                        configFile != null ? configFile.getPath() : "null"), e);
+                throw new RuntimeException(
+                        String.format(
+                                "IOException thrown reading configuration file: %s",
+                                configFile != null ? configFile.getPath() : "null"),
+                        e);
             }
         }
 
@@ -113,10 +120,11 @@ public abstract class AbstractCommand implements Callable<Integer> {
             try {
                 return AtlasDbConfigs.load(confFile, ALTERNATE_ATLASDB_CONFIG_OBJECT_PATH, clazz);
             } catch (Exception ex) {
-                throw new SafeRuntimeException("Failed to load the atlasdb config. One possibility"
-                        + " is that the AtlasDB block root in the config is not '/atlasdb' nor '/atlas'."
-                        + " You can specify a different config root by specifying the --config-root "
-                        + " and the --runtime-config-root options before the command (i.e. sweep, migrate).",
+                throw new SafeRuntimeException(
+                        "Failed to load the atlasdb config. One possibility"
+                                + " is that the AtlasDB block root in the config is not '/atlasdb' nor '/atlas'."
+                                + " You can specify a different config root by specifying the --config-root "
+                                + " and the --runtime-config-root options before the command (i.e. sweep, migrate).",
                         ex);
             }
         }

@@ -16,34 +16,38 @@
 
 package com.palantir.common.compression;
 
+import com.google.common.io.Closeables;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
-
-import com.google.common.io.Closeables;
-
 import net.jpountz.lz4.LZ4BlockInputStream;
 
 public enum StreamCompression {
-    GZIP, LZ4, NONE;
+    GZIP,
+    LZ4,
+    NONE;
 
     private static final byte[] gzipMagic = GzipCompressingInputStream.getMagicPrefix();
     private static final byte[] lz4Magic = "LZ4Block".getBytes(StandardCharsets.UTF_8);
 
     public InputStream compress(InputStream stream) {
         switch (this) {
-            case GZIP: return GzipCompressingInputStream.compress(stream);
-            case LZ4: return new LZ4CompressingInputStream(stream);
-            case NONE: return stream;
+            case GZIP:
+                return GzipCompressingInputStream.compress(stream);
+            case LZ4:
+                return new LZ4CompressingInputStream(stream);
+            case NONE:
+                return stream;
         }
         throw new AssertionError("Unreachable code");
     }
 
     public InputStream decompress(InputStream stream) {
         switch (this) {
-            case NONE: return stream;
+            case NONE:
+                return stream;
             case GZIP:
             case LZ4:
                 return decompressWithHeader(stream);
@@ -82,6 +86,7 @@ public enum StreamCompression {
         }
     }
 
+    @SuppressWarnings("InputStreamSlowMultibyteRead") // Always throws
     private static final class ThrowingInputStream extends InputStream {
         private final Throwable thrown;
 

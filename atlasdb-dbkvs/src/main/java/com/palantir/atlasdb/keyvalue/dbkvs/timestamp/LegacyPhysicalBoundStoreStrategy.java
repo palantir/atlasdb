@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.OptionalLong;
 import java.util.function.Function;
-
 import org.apache.commons.dbutils.QueryRunner;
-
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.nexus.db.DBType;
 
 public class LegacyPhysicalBoundStoreStrategy implements PhysicalBoundStoreStrategy {
     private final TableReference timestampTable;
@@ -65,7 +63,8 @@ public class LegacyPhysicalBoundStoreStrategy implements PhysicalBoundStoreStrat
     @Override
     public void createLimit(Connection connection, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
-        run.update(connection,
+        run.update(
+                connection,
                 String.format("INSERT INTO %s (last_allocated) VALUES (?)", prefixedTimestampTableName()),
                 limit);
     }

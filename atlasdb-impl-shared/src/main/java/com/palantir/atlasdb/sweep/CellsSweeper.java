@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -34,6 +26,12 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CellsSweeper {
     private static final Logger log = LoggerFactory.getLogger(CellsSweeper.class);
@@ -55,16 +53,14 @@ public class CellsSweeper {
     }
 
     public void sweepCells(
-            TableReference tableRef,
-            Multimap<Cell, Long> cellTsPairsToSweep,
-            Collection<Cell> sentinelsToAdd) {
+            TableReference tableRef, Multimap<Cell, Long> cellTsPairsToSweep, Collection<Cell> sentinelsToAdd) {
         if (cellTsPairsToSweep.isEmpty()) {
-            log.info("Attempted to delete 0 cell+timestamp pairs from table {}.",
-                    LoggingArgs.tableRef(tableRef));
+            log.info("Attempted to delete 0 cell+timestamp pairs from table {}.", LoggingArgs.tableRef(tableRef));
             return;
         }
 
-        log.info("Attempted to delete {} stale cell+timestamp pairs from table {}, and add {} sentinels.",
+        log.info(
+                "Attempted to delete {} stale cell+timestamp pairs from table {}, and add {} sentinels.",
                 SafeArg.of("numCellTsPairsToDelete", cellTsPairsToSweep.size()),
                 LoggingArgs.tableRef(tableRef),
                 SafeArg.of("numGarbageCollectionSentinelsToAdd", sentinelsToAdd.size()));
@@ -74,13 +70,12 @@ public class CellsSweeper {
         }
 
         if (!sentinelsToAdd.isEmpty()) {
-            keyValueService.addGarbageCollectionSentinelValues(
-                    tableRef,
-                    sentinelsToAdd);
+            keyValueService.addGarbageCollectionSentinelValues(tableRef, sentinelsToAdd);
         }
 
         if (cellTsPairsToSweep.entries().stream().anyMatch(entry -> entry.getValue() == null)) {
-            log.error("When sweeping table {} found cells to sweep with the start timestamp null."
+            log.error(
+                    "When sweeping table {} found cells to sweep with the start timestamp null."
                             + " This is unexpected. The cellTs pairs to sweep were: {}.",
                     LoggingArgs.tableRef(tableRef),
                     getLoggingArgForCells(cellTsPairsToSweep));

@@ -16,17 +16,14 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @JsonSerialize(as = ImmutableUnlockEvent.class)
 @JsonDeserialize(as = ImmutableUnlockEvent.class)
 @JsonTypeName(UnlockEvent.TYPE)
@@ -46,8 +43,7 @@ public abstract class UnlockEvent implements LockWatchEvent {
     }
 
     public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors) {
-        ImmutableUnlockEvent.Builder builder = ImmutableUnlockEvent.builder()
-                .lockDescriptors(lockDescriptors);
+        ImmutableUnlockEvent.Builder builder = ImmutableUnlockEvent.builder().lockDescriptors(lockDescriptors);
         return seq -> builder.sequence(seq).build();
     }
 }

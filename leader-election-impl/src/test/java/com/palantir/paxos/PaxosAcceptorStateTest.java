@@ -28,9 +28,7 @@ public class PaxosAcceptorStateTest {
     @Test
     public void hydrationEqualityTest() {
         PaxosAcceptorState state = PaxosAcceptorState.newState(LAST_PROMISED);
-        state = state.withState(LAST_PROMISED,
-                LAST_ACCEPTED,
-                VALUE);
+        state = state.withState(LAST_PROMISED, LAST_ACCEPTED, VALUE);
         PaxosAcceptorState hydrated = PaxosAcceptorState.BYTES_HYDRATOR.hydrateFromBytes(state.persistToBytes());
         assertThat(state.equalsIgnoringVersion(hydrated)).isTrue();
     }

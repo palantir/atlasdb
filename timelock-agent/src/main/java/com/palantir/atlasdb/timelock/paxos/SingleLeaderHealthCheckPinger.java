@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.Maps;
 import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.HealthCheckResponse;
+import java.util.Map;
+import java.util.Set;
 
 public final class SingleLeaderHealthCheckPinger implements HealthCheckPinger {
 

@@ -15,14 +15,13 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.util.function.Supplier;
-
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
 import com.palantir.sql.Connections;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.util.function.Supplier;
 
 /**
  * Prefer {@link PalantirSqlConnectionImpl} to this class.
@@ -34,10 +33,8 @@ public class ConnectionBackedSqlConnectionImpl implements ConnectionBackedSqlCon
     private final Supplier<Long> timestampSupplier;
     private final SqlConnectionHelper sqlConnectionHelper;
 
-
-    public ConnectionBackedSqlConnectionImpl(Connection c,
-                                             Supplier<Long> timestampSupplier,
-                                             SqlConnectionHelper sqlConnectionHelper) {
+    public ConnectionBackedSqlConnectionImpl(
+            Connection c, Supplier<Long> timestampSupplier, SqlConnectionHelper sqlConnectionHelper) {
         this.c = c;
         this.timestampSupplier = timestampSupplier;
         this.sqlConnectionHelper = sqlConnectionHelper;
@@ -69,32 +66,27 @@ public class ConnectionBackedSqlConnectionImpl implements ConnectionBackedSqlCon
     }
 
     @Override
-    public void executeUnregisteredQuery(String sql, Object... vs)
-        throws PalantirSqlException {
+    public void executeUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException {
         sqlConnectionHelper.executeUnregisteredQuery(c, sql, vs);
     }
 
     @Override
-    public int executeUnregisteredQueryCountRows(String sql, Object... vs)
-        throws PalantirSqlException {
+    public int executeUnregisteredQueryCountRows(String sql, Object... vs) throws PalantirSqlException {
         return sqlConnectionHelper.executeUnregisteredQueryCountRows(c, sql, vs);
     }
 
     @Override
-    public boolean insertMany(RegisteredSQLString sql, Iterable<Object[]> list)
-        throws PalantirSqlException {
+    public boolean insertMany(RegisteredSQLString sql, Iterable<Object[]> list) throws PalantirSqlException {
         return sqlConnectionHelper.insertMany(c, sql.getKey(), list);
     }
 
     @Override
-    public boolean insertMany(String key, Iterable<Object[]> list)
-        throws PalantirSqlException {
+    public boolean insertMany(String key, Iterable<Object[]> list) throws PalantirSqlException {
         return sqlConnectionHelper.insertMany(c, key, list);
     }
 
     @Override
-    public boolean insertManyUnregisteredQuery(String sql, Iterable<Object[]> list)
-        throws PalantirSqlException {
+    public boolean insertManyUnregisteredQuery(String sql, Iterable<Object[]> list) throws PalantirSqlException {
         return sqlConnectionHelper.insertManyUnregisteredQuery(c, sql, list);
     }
 
@@ -119,140 +111,134 @@ public class ConnectionBackedSqlConnectionImpl implements ConnectionBackedSqlCon
     }
 
     @Override
-    public int insertOneCountRowsUnregisteredQuery(String sql, Object... vs)
-        throws PalantirSqlException {
+    public int insertOneCountRowsUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException {
         return sqlConnectionHelper.insertOneCountRowsUnregisteredQuery(c, sql, vs);
     }
 
     @Override
-    public boolean insertOneUnregisteredQuery(String sql, Object... vs)
-        throws PalantirSqlException {
+    public boolean insertOneUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException {
         return sqlConnectionHelper.insertOneUnregisteredQuery(c, sql, vs);
     }
 
     @Override
     public long selectCount(String tableName, String whereClause, Object... vs)
-        throws PalantirSqlException, PalantirInterruptedException {
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectCount(c, tableName, whereClause, vs);
     }
 
     @Override
-    public long selectCount(String tableName) throws PalantirSqlException,
-        PalantirInterruptedException {
+    public long selectCount(String tableName) throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectCount(c, tableName);
     }
 
     @Override
-    public boolean selectExists(RegisteredSQLString sql, Object... vs) throws PalantirSqlException,
-        PalantirInterruptedException {
+    public boolean selectExists(RegisteredSQLString sql, Object... vs)
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectExists(c, sql.getKey(), vs);
     }
 
     @Override
-    public boolean selectExists(String key, Object... vs) throws PalantirSqlException,
-        PalantirInterruptedException {
+    public boolean selectExists(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectExists(c, key, vs);
     }
 
     @Override
     public boolean selectExistsUnregisteredQuery(String sql, Object... vs)
-        throws PalantirSqlException, PalantirInterruptedException {
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectExistsUnregisteredQuery(c, sql, vs);
     }
 
     @Override
-    public int selectInteger(RegisteredSQLString sql, Object... vs) throws PalantirSqlException,
-        PalantirInterruptedException {
+    public int selectInteger(RegisteredSQLString sql, Object... vs)
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectInteger(c, sql.getKey(), vs);
     }
 
     @Override
-    public int selectInteger(String key, Object... vs) throws PalantirSqlException,
-        PalantirInterruptedException {
+    public int selectInteger(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectInteger(c, key, vs);
     }
 
     @Override
     public int selectIntegerUnregisteredQuery(String sql, Object... vs)
-        throws PalantirSqlException, PalantirInterruptedException {
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectIntegerUnregisteredQuery(c, sql, vs);
     }
 
     @Override
     public AgnosticLightResultSet selectLightResultSet(RegisteredSQLString sql, Object... vs)
-        throws PalantirSqlException, PalantirInterruptedException {
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectLightResultSet(c, sql.getKey(), vs);
     }
 
     @Override
     public AgnosticLightResultSet selectLightResultSet(String key, Object... vs)
-        throws PalantirSqlException, PalantirInterruptedException {
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectLightResultSet(c, key, vs);
     }
 
     @Override
-    public AgnosticLightResultSet selectLightResultSetUnregisteredQuery(String sql,
-        Object... vs) throws PalantirSqlException, PalantirInterruptedException {
+    public AgnosticLightResultSet selectLightResultSetUnregisteredQuery(String sql, Object... vs)
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectLightResultSetUnregisteredQuery(c, sql, vs);
     }
 
     @Override
-    public AgnosticLightResultSet selectLightResultSetUnregisteredQueryWithFetchSize(String sql, int fetchSize,
-            Object... vs) throws PalantirSqlException, PalantirInterruptedException {
+    public AgnosticLightResultSet selectLightResultSetUnregisteredQueryWithFetchSize(
+            String sql, int fetchSize, Object... vs) throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectLightResultSetUnregisteredQueryWithFetchSize(c, sql, fetchSize, vs);
     }
 
     @Override
-    public long selectLong(RegisteredSQLString sql, Object... vs) throws PalantirSqlException,
-        PalantirInterruptedException {
+    public long selectLong(RegisteredSQLString sql, Object... vs)
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectLong(c, sql.getKey(), vs);
     }
 
     @Override
-    public long selectLong(String key, Object... vs) throws PalantirSqlException,
-        PalantirInterruptedException {
+    public long selectLong(String key, Object... vs) throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectLong(c, key, vs);
     }
 
     @Override
     public long selectLongUnregisteredQuery(String sql, Object... vs)
-        throws PalantirSqlException, PalantirInterruptedException {
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectLongUnregisteredQuery(c, sql, vs);
     }
 
     @Override
     public Long selectLongWithDefault(RegisteredSQLString sql, Long defaultVal, Object... vs)
-        throws PalantirSqlException, PalantirInterruptedException {
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectLongWithDefault(c, sql.getKey(), defaultVal, vs);
     }
 
     @Override
     public Long selectLongWithDefault(String key, Long defaultVal, Object... vs)
-        throws PalantirSqlException, PalantirInterruptedException {
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectLongWithDefault(c, key, defaultVal, vs);
     }
 
     @Override
-    public Long selectLongWithDefaultUnregisteredQuery(String sql, Long defaultVal,
-        Object... vs) throws PalantirSqlException, PalantirInterruptedException {
+    public Long selectLongWithDefaultUnregisteredQuery(String sql, Long defaultVal, Object... vs)
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectLongWithDefaultUnregisteredQuery(c, sql, defaultVal, vs);
     }
 
     @Override
     public AgnosticResultSet selectResultSet(RegisteredSQLString sql, Object... vs)
-        throws PalantirSqlException, PalantirInterruptedException {
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectResultSet(c, sql.getKey(), vs);
     }
 
     @Override
     public AgnosticResultSet selectResultSet(String key, Object... vs)
-        throws PalantirSqlException, PalantirInterruptedException {
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectResultSet(c, key, vs);
     }
 
     @Override
-    public AgnosticResultSet selectResultSetUnregisteredQuery(String sql,
-        Object... vs) throws PalantirSqlException, PalantirInterruptedException {
+    public AgnosticResultSet selectResultSetUnregisteredQuery(String sql, Object... vs)
+            throws PalantirSqlException, PalantirInterruptedException {
         return sqlConnectionHelper.selectResultSetUnregisteredQuery(c, sql, vs);
     }
 
@@ -277,14 +263,12 @@ public class ConnectionBackedSqlConnectionImpl implements ConnectionBackedSqlCon
     }
 
     @Override
-    public int updateCountRowsUnregisteredQuery(String sql, Object... vs)
-        throws PalantirSqlException {
+    public int updateCountRowsUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException {
         return sqlConnectionHelper.updateCountRowsUnregisteredQuery(c, sql, vs);
     }
 
     @Override
-    public void updateMany(RegisteredSQLString sql, Iterable<Object[]> list)
-        throws PalantirSqlException {
+    public void updateMany(RegisteredSQLString sql, Iterable<Object[]> list) throws PalantirSqlException {
         sqlConnectionHelper.updateMany(c, sql.getKey(), list);
     }
 
@@ -304,14 +288,12 @@ public class ConnectionBackedSqlConnectionImpl implements ConnectionBackedSqlCon
     }
 
     @Override
-    public void updateManyUnregisteredQuery(String sql, Iterable<Object[]> list)
-        throws PalantirSqlException {
+    public void updateManyUnregisteredQuery(String sql, Iterable<Object[]> list) throws PalantirSqlException {
         sqlConnectionHelper.updateManyUnregisteredQuery(c, sql, list);
     }
 
     @Override
-    public boolean updateUnregisteredQuery(String sql, Object... vs)
-        throws PalantirSqlException {
+    public boolean updateUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException {
         return sqlConnectionHelper.updateUnregisteredQuery(c, sql, vs);
     }
 

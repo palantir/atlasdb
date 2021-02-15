@@ -15,8 +15,6 @@
  */
 package com.palantir.paxos;
 
-import java.util.Objects;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.common.annotation.Immutable;
 
@@ -49,13 +47,11 @@ public class BooleanPaxosResponse implements PaxosResponse {
 
     @Override
     public int hashCode() {
-        return Objects.hash(ack);
+        return Boolean.hashCode(ack);
     }
 
     @Override
     public String toString() {
-        return "BooleanPaxosResponse ["
-                + "ack=" + ack
-                + ']';
+        return "BooleanPaxosResponse [" + "ack=" + ack + ']';
     }
 }

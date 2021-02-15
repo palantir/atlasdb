@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.cleaner.api;
 
-import java.io.Closeable;
-
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.io.Closeable;
 
 /**
  * A {@link Cleaner} is good for two things: it scrubs and it punches. Scrubbing is an on-demand
@@ -49,8 +48,7 @@ public interface Cleaner extends Closeable {
      *        the hard delete transaction will be in the process of committing  @throws
      *        exceptions are simply propagated up if something goes wrong.
      */
-    void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs,
-                                long scrubTimestamp);
+    void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp);
 
     /**
      * @param tableRefToCell Cells to be scrubbed immediately
@@ -59,10 +57,11 @@ public interface Cleaner extends Closeable {
      *        hard delete transaction will have just committed
      * @throws RuntimeException are simply propagated up if something goes wrong.
      */
-    void scrubImmediately(TransactionManager txManager,
-                          Multimap<TableReference, Cell> tableRefToCell,
-                          long scrubTimestamp,
-                          long commitTimestamp);
+    void scrubImmediately(
+            TransactionManager txManager,
+            Multimap<TableReference, Cell> tableRefToCell,
+            long scrubTimestamp,
+            long commitTimestamp);
 
     /**
      * Indicate that the given timestamp has just been created. This must be called frequently

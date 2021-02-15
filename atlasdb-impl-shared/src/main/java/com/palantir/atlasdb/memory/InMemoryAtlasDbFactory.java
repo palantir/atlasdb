@@ -15,18 +15,11 @@
  */
 package com.palantir.atlasdb.memory;
 
-import java.util.Optional;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
-import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -36,6 +29,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Optional;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is the easiest way to try out AtlasDB with your schema.  It runs entirely in memory but has
@@ -83,9 +81,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs,
-            Optional<DbTimestampCreationSetting> unused,
-            boolean initializeAsync) {
+            KeyValueService rawKvs, Optional<TableReference> unused, boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }

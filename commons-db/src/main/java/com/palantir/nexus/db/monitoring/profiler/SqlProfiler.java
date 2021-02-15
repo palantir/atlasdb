@@ -15,10 +15,9 @@
  */
 package com.palantir.nexus.db.monitoring.profiler;
 
-import java.util.Collection;
-
 import com.palantir.nexus.db.sql.BasicSQL;
 import com.palantir.util.sql.SqlCallStats;
+import java.util.Collection;
 
 /**
  * Code extracted from {@link BasicSQL}. This provides one of several competing and overlapping
@@ -37,7 +36,7 @@ public interface SqlProfiler {
 
     void removeSqlProfilerListener(SqlProfilerListener sqlProfilerListener);
 
-    public interface SqlProfilerListener {
+    interface SqlProfilerListener {
         void traceEvent(String key, long durationNs);
     }
 }

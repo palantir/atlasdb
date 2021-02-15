@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.table.description.constraints;
 
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 public final class ForeignKeyConstraintMetadata {
 
@@ -46,30 +45,34 @@ public final class ForeignKeyConstraintMetadata {
         return new Builder(false, null, false, null, tableName, clazz);
     }
 
-    public static Builder builderOtherGeneric(String otherGenericTable, String otherTableName,
-            Class<? extends ForeignKeyConstraint> clazz) {
+    public static Builder builderOtherGeneric(
+            String otherGenericTable, String otherTableName, Class<? extends ForeignKeyConstraint> clazz) {
         return new Builder(false, null, true, otherGenericTable, otherTableName, clazz);
     }
 
-    public static Builder builderThisGeneric(String thisTableName, String otherTableName,
-            Class<? extends ForeignKeyConstraint> clazz) {
+    public static Builder builderThisGeneric(
+            String thisTableName, String otherTableName, Class<? extends ForeignKeyConstraint> clazz) {
         return new Builder(true, thisTableName, false, null, otherTableName, clazz);
     }
 
-    public static Builder builderThisAndOtherGeneric(String thisTableName, String otherGenericTable,
-            String otherTableName, Class<? extends ForeignKeyConstraint> clazz) {
+    public static Builder builderThisAndOtherGeneric(
+            String thisTableName,
+            String otherGenericTable,
+            String otherTableName,
+            Class<? extends ForeignKeyConstraint> clazz) {
         return new Builder(true, thisTableName, true, otherGenericTable, otherTableName, clazz);
     }
 
-    private ForeignKeyConstraintMetadata(String otherTableName,
-                                         Class<? extends ForeignKeyConstraint> clazz,
-                                         List<String> rowVariables,
-                                         List<String> columnVariables,
-                                         List<String> allVariables,
-                                         String otherGenericTable,
-                                         boolean isOtherGeneric,
-                                         String thisTableName,
-                                         boolean isThisGeneric) {
+    private ForeignKeyConstraintMetadata(
+            String otherTableName,
+            Class<? extends ForeignKeyConstraint> clazz,
+            List<String> rowVariables,
+            List<String> columnVariables,
+            List<String> allVariables,
+            String otherGenericTable,
+            boolean isOtherGeneric,
+            String thisTableName,
+            boolean isThisGeneric) {
         this.otherTableName = otherTableName;
         this.rowVariables = ImmutableList.copyOf(rowVariables);
         this.columnVariables = ImmutableList.copyOf(columnVariables);
@@ -117,12 +120,17 @@ public final class ForeignKeyConstraintMetadata {
         private final String otherTableName;
         private final Class<? extends ForeignKeyConstraint> constraintClass;
 
-        private final List<String> rowVariables = Lists.newArrayList();
-        private final List<String> columnVariables = Lists.newArrayList();
-        private final List<String> allVariables = Lists.newArrayList();
+        private final List<String> rowVariables = new ArrayList<>();
+        private final List<String> columnVariables = new ArrayList<>();
+        private final List<String> allVariables = new ArrayList<>();
 
-        public Builder(boolean isThisGeneric, String thisTableName, boolean isOtherGeneric, String otherGenericTable,
-                String otherTableName, Class<? extends ForeignKeyConstraint> constraintClass) {
+        public Builder(
+                boolean isThisGeneric,
+                String thisTableName,
+                boolean isOtherGeneric,
+                String otherGenericTable,
+                String otherTableName,
+                Class<? extends ForeignKeyConstraint> constraintClass) {
             this.isThisGeneric = isThisGeneric;
             this.thisTableName = thisTableName;
             this.isOtherGeneric = isOtherGeneric;
@@ -131,22 +139,29 @@ public final class ForeignKeyConstraintMetadata {
             this.constraintClass = constraintClass;
         }
 
-        public Builder addRowVariables(String ... variables) {
+        public Builder addRowVariables(String... variables) {
             Collections.addAll(rowVariables, variables);
             Collections.addAll(allVariables, variables);
             return this;
         }
 
-        public Builder addColumnVariables(String ... variables) {
+        public Builder addColumnVariables(String... variables) {
             Collections.addAll(columnVariables, variables);
             Collections.addAll(allVariables, variables);
             return this;
         }
 
         public ForeignKeyConstraintMetadata build() {
-            return new ForeignKeyConstraintMetadata(otherTableName, constraintClass,
-                     rowVariables, columnVariables, allVariables,
-                     otherGenericTable, isOtherGeneric, thisTableName, isThisGeneric);
+            return new ForeignKeyConstraintMetadata(
+                    otherTableName,
+                    constraintClass,
+                    rowVariables,
+                    columnVariables,
+                    allVariables,
+                    otherGenericTable,
+                    isOtherGeneric,
+                    thisTableName,
+                    isThisGeneric);
         }
     }
 }

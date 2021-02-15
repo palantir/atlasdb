@@ -15,15 +15,12 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import org.apache.commons.io.IOUtils;
 import org.junit.rules.ExternalResource;
 
@@ -43,11 +40,11 @@ public final class Gradle extends ExternalResource {
     protected void before() throws Throwable {
         if (isRunningOutsideOfGradle()) {
             System.out.println("It looks like you are not running in gradle,"
-                    + " performing the required gradle command: " + command);  // (authorized)
+                    + " performing the required gradle command: " + command); // (authorized)
             gradle();
         } else {
-            System.out.println("You are running in gradle,"
-                    + " allowing gradle task dependencies to make sure " + command + " is run");  // (authorized)
+            System.out.println("You are running in gradle," + " allowing gradle task dependencies to make sure "
+                    + command + " is run"); // (authorized)
         }
     }
 
@@ -61,7 +58,7 @@ public final class Gradle extends ExternalResource {
             try (InputStream processInputStream = process.getInputStream()) {
                 IOUtils.copy(processInputStream, System.out);
             }
-            assertThat(process.waitFor(), is(equalTo(0)));
+            assertThat(process.waitFor()).isEqualTo(0);
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {

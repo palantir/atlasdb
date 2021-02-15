@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.coordination;
 
 import java.util.Optional;
-
 import org.immutables.value.Value;
 
 /**
@@ -34,6 +33,7 @@ public interface ValueAndBound<T> {
 
     @Value.Parameter
     Optional<T> value();
+
     @Value.Parameter
     long bound();
 

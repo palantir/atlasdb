@@ -15,21 +15,20 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class CqlQuery {
     public abstract String safeQueryFormat();
+
     public abstract List<Arg<?>> args();
 
     @Override

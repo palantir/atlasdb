@@ -16,13 +16,13 @@
 
 package com.palantir.paxos;
 
-import org.immutables.value.Value;
-
 import com.palantir.common.persist.Persistable;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class PaxosRound<V extends Persistable & Versionable> {
     public abstract long sequence();
+
     public abstract V value();
 
     @Value.Lazy

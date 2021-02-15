@@ -15,23 +15,19 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 abstract class AbstractDefinition {
     private static final Logger log = LoggerFactory.getLogger(AbstractDefinition.class);
-    private static final ImmutableSet<ValueType> CRITICAL_ROW_TYPES = ImmutableSet.of(
-            ValueType.VAR_LONG,
-            ValueType.VAR_SIGNED_LONG,
-            ValueType.VAR_STRING,
-            ValueType.SIZED_BLOB);
+    private static final ImmutableSet<ValueType> CRITICAL_ROW_TYPES =
+            ImmutableSet.of(ValueType.VAR_LONG, ValueType.VAR_SIGNED_LONG, ValueType.VAR_STRING, ValueType.SIZED_BLOB);
 
     CachePriority cachePriority = CachePriority.WARM;
     ConflictHandler conflictHandler = defaultConflictHandler();
@@ -84,8 +80,8 @@ abstract class AbstractDefinition {
     }
 
     public void explicitCompressionBlockSizeKB(int blockSizeKB) {
-        Preconditions.checkArgument(IntMath.isPowerOfTwo(blockSizeKB),
-                "explicitCompressionBlockSizeKB must be a power of 2");
+        Preconditions.checkArgument(
+                IntMath.isPowerOfTwo(blockSizeKB), "explicitCompressionBlockSizeKB must be a power of 2");
         explicitCompressionBlockSizeKb = blockSizeKB;
     }
 
@@ -122,4 +118,3 @@ abstract class AbstractDefinition {
         }
     }
 }
-

@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-import java.util.Set;
-
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.Map;
+import java.util.Set;
 
 public class GetAsyncDelegate extends ForwardingTransaction {
     private final Transaction delegate;

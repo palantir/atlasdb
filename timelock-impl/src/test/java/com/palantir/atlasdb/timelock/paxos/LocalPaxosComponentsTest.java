@@ -18,20 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Optional;
-import java.util.UUID;
-
-import javax.sql.DataSource;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.PingableLeader;
@@ -43,6 +29,17 @@ import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Optional;
+import java.util.UUID;
+import javax.sql.DataSource;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class LocalPaxosComponentsTest {
     private static final Client CLIENT = Client.of("alice");
@@ -50,10 +47,10 @@ public class LocalPaxosComponentsTest {
     private static final long PAXOS_ROUND_ONE = 1;
     private static final long PAXOS_ROUND_TWO = 2;
     private static final String PAXOS_UUID = "paxos";
-    private static final byte[] PAXOS_DATA = { 0 };
+    private static final byte[] PAXOS_DATA = {0};
     private static final PaxosValue PAXOS_VALUE = new PaxosValue(PAXOS_UUID, PAXOS_ROUND_ONE, PAXOS_DATA);
-    private static final PaxosProposal PAXOS_PROPOSAL = new PaxosProposal(
-            new PaxosProposalId(PAXOS_ROUND_TWO, PAXOS_UUID), PAXOS_VALUE);
+    private static final PaxosProposal PAXOS_PROPOSAL =
+            new PaxosProposal(new PaxosProposalId(PAXOS_ROUND_TWO, PAXOS_UUID), PAXOS_VALUE);
     private static final OrderableSlsVersion DEFAULT_TIME_LOCK_VERSION = OrderableSlsVersion.valueOf("0.0.0");
     private static final OrderableSlsVersion TIMELOCK_VERSION = OrderableSlsVersion.valueOf("1.2.7");
 
@@ -67,7 +64,8 @@ public class LocalPaxosComponentsTest {
     @Before
     public void setUp() throws IOException {
         legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
-        sqlite = SqliteConnections.getPooledDataSource(TEMPORARY_FOLDER.newFolder("sqlite").toPath());
+        sqlite = SqliteConnections.getPooledDataSource(
+                TEMPORARY_FOLDER.newFolder("sqlite").toPath());
         paxosComponents = createPaxosComponents(true);
     }
 
@@ -76,7 +74,9 @@ public class LocalPaxosComponentsTest {
         PaxosLearner learner = paxosComponents.learner(CLIENT);
         learner.learn(PAXOS_ROUND_ONE, PAXOS_VALUE);
 
-        assertThat(learner.getGreatestLearnedValue()).map(PaxosValue::getLeaderUUID).contains(PAXOS_UUID);
+        assertThat(learner.getGreatestLearnedValue())
+                .map(PaxosValue::getLeaderUUID)
+                .contains(PAXOS_UUID);
         assertThat(learner.getGreatestLearnedValue()).map(PaxosValue::getData).contains(PAXOS_DATA);
 
         PaxosAcceptor acceptor = paxosComponents.acceptor(CLIENT);
@@ -87,11 +87,13 @@ public class LocalPaxosComponentsTest {
     @Test
     public void addsClientsInSubdirectory() {
         paxosComponents.learner(CLIENT);
-        File expectedAcceptorLogDir = legacyDirectory.resolve(
-                Paths.get(CLIENT.value(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH)).toFile();
+        File expectedAcceptorLogDir = legacyDirectory
+                .resolve(Paths.get(CLIENT.value(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH))
+                .toFile();
         assertThat(expectedAcceptorLogDir.exists()).isTrue();
-        File expectedLearnerLogDir = legacyDirectory.resolve(
-                Paths.get(CLIENT.value(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH)).toFile();
+        File expectedLearnerLogDir = legacyDirectory
+                .resolve(Paths.get(CLIENT.value(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH))
+                .toFile();
         assertThat(expectedLearnerLogDir.exists()).isTrue();
     }
 
@@ -115,14 +117,11 @@ public class LocalPaxosComponentsTest {
     public void returnsTimeLockVersionWithIsLeaderBoolean() {
         // return default when timeLock version not provided
         PingableLeader pingableLeader = paxosComponents.pingableLeader(CLIENT);
-        assertThat(pingableLeader.pingV2().timeLockVersion())
-                .isEqualTo(Optional.of(DEFAULT_TIME_LOCK_VERSION));
+        assertThat(pingableLeader.pingV2().timeLockVersion()).isEqualTo(Optional.of(DEFAULT_TIME_LOCK_VERSION));
         assertThat(pingableLeader.pingV2().isLeader()).isNotNull();
 
-        pingableLeader = createPaxosComponents(true, TIMELOCK_VERSION)
-                .pingableLeader(CLIENT);
-        assertThat(pingableLeader.pingV2().timeLockVersion()).isPresent();
-        assertThat(pingableLeader.pingV2().timeLockVersion().get()).isEqualTo(TIMELOCK_VERSION);
+        pingableLeader = createPaxosComponents(true, TIMELOCK_VERSION).pingableLeader(CLIENT);
+        assertThat(pingableLeader.pingV2().timeLockVersion()).hasValue(TIMELOCK_VERSION);
     }
 
     // utils
@@ -134,11 +133,12 @@ public class LocalPaxosComponentsTest {
                 sqlite,
                 UUID.randomUUID(),
                 canCreateNewClients,
-                DEFAULT_TIME_LOCK_VERSION);
+                DEFAULT_TIME_LOCK_VERSION,
+                false);
     }
 
-    public LocalPaxosComponents createPaxosComponents(boolean canCreateNewClients,
-            OrderableSlsVersion timeLockVersion) {
+    public LocalPaxosComponents createPaxosComponents(
+            boolean canCreateNewClients, OrderableSlsVersion timeLockVersion) {
         return LocalPaxosComponents.createWithBlockingMigration(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
@@ -146,6 +146,7 @@ public class LocalPaxosComponentsTest {
                 sqlite,
                 UUID.randomUUID(),
                 canCreateNewClients,
-                timeLockVersion);
+                timeLockVersion,
+                false);
     }
 }

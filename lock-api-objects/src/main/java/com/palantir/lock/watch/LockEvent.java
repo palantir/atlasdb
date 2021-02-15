@@ -16,18 +16,15 @@
 
 package com.palantir.lock.watch;
 
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @JsonSerialize(as = ImmutableLockEvent.class)
 @JsonDeserialize(as = ImmutableLockEvent.class)
 @JsonTypeName(LockEvent.TYPE)
@@ -35,6 +32,7 @@ public abstract class LockEvent implements LockWatchEvent {
     static final String TYPE = "lock";
 
     public abstract Set<LockDescriptor> lockDescriptors();
+
     public abstract LockToken lockToken();
 
     @Override
@@ -48,9 +46,8 @@ public abstract class LockEvent implements LockWatchEvent {
     }
 
     public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors, LockToken lockToken) {
-        ImmutableLockEvent.Builder builder = ImmutableLockEvent.builder()
-                .lockDescriptors(lockDescriptors)
-                .lockToken(lockToken);
+        ImmutableLockEvent.Builder builder =
+                ImmutableLockEvent.builder().lockDescriptors(lockDescriptors).lockToken(lockToken);
         return seq -> builder.sequence(seq).build();
     }
 }

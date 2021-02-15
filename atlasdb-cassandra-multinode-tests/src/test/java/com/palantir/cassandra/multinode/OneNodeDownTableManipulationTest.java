@@ -17,13 +17,12 @@ package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import org.junit.Test;
 
 public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTest {
     private static final TableReference TABLE_TO_DROP = TableReference.createWithEmptyNamespace("table_to_drop");
@@ -58,25 +57,25 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
 
     @Test
     public void cannotDropTable() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().dropTable(TABLE_TO_DROP));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().dropTable(TABLE_TO_DROP));
     }
 
     @Test
     public void cannotDropTables() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().dropTables(ImmutableSet.of(TABLE_TO_DROP_2)));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().dropTables(ImmutableSet.of(TABLE_TO_DROP_2)));
     }
 
     @Test
     public void truncateTableThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().truncateTable(TEST_TABLE));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().truncateTable(TEST_TABLE));
     }
 
     @Test
     public void truncateTablesThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().truncateTables(ImmutableSet.of(TEST_TABLE)));
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().truncateTables(ImmutableSet.of(TEST_TABLE)));
     }
 }

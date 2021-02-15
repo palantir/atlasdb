@@ -35,6 +35,7 @@ dependencies {
   compileOnly 'org.immutables:value::annotations'
   annotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13'
   compileOnly 'org.openjdk.jmh:jmh-generator-annprocess:1.13'
+  implementation 'org.assertj:assertj-core'
 }
 
 distZip {

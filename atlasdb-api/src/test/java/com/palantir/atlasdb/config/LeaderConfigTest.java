@@ -16,9 +16,9 @@
 package com.palantir.atlasdb.config;
 
 import java.util.Collections;
-
 import org.junit.Test;
 
+@SuppressWarnings("CheckReturnValue")
 public class LeaderConfigTest {
     @Test(expected = IllegalStateException.class)
     public void cannotCreateALeaderConfigWithNoLeaders() {

@@ -15,20 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
+import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.logsafe.Preconditions;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.SortedSet;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.logsafe.Preconditions;
+import java.util.TreeSet;
 
 public final class ColumnSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -43,7 +42,7 @@ public final class ColumnSelection implements Serializable {
     }
 
     public static ColumnSelection valueOf(String serialized) {
-        Set<byte[]> columns = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+        Set<byte[]> columns = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
         for (String columnString : serialized.split("\\s*,\\s*")) {
             String trimmedColumnString = columnString.trim();
             if (trimmedColumnString.isEmpty()) {
@@ -78,9 +77,8 @@ public final class ColumnSelection implements Serializable {
         }
 
         // Copy contents of 'selectedColumns' into a new set with proper deep comparison semantics.
-        return new ColumnSelection(ImmutableSortedSet.copyOf(
-                UnsignedBytes.lexicographicalComparator(),
-                selectedColumns));
+        return new ColumnSelection(
+                ImmutableSortedSet.copyOf(UnsignedBytes.lexicographicalComparator(), selectedColumns));
     }
 
     public boolean contains(byte[] column) {
@@ -142,5 +140,4 @@ public final class ColumnSelection implements Serializable {
         }
         return true;
     }
-
 }

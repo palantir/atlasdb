@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Unify LeaderClock's LeadershipId with Lock Watch Log's Leader ID
+  links:
+  - https://github.com/palantir/atlasdb/pull/5073

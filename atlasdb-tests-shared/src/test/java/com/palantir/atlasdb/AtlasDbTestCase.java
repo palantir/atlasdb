@@ -17,12 +17,6 @@ package com.palantir.atlasdb;
 
 import static org.mockito.Mockito.spy;
 
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-
-import org.junit.After;
-import org.junit.Before;
-
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -54,6 +48,10 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import org.junit.After;
+import org.junit.Before;
 
 public class AtlasDbTestCase {
     protected LockClient lockClient;
@@ -74,11 +72,12 @@ public class AtlasDbTestCase {
     @Before
     public void setUp() throws Exception {
         lockClient = LockClient.of("fake lock client");
-        lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
+        lockService = LockServiceImpl.create(
+                LockServerOptions.builder().isStandaloneServer(false).build());
         timestampService = new InMemoryTimestampService();
         keyValueService = trackingKeyValueService(getBaseKeyValueService());
         TransactionTables.createTables(keyValueService);
-        transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
+        transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -142,8 +141,15 @@ public class AtlasDbTestCase {
     }
 
     protected void setConstraintCheckingMode(AtlasDbConstraintCheckingMode mode) {
-        txManager = new TestTransactionManagerImpl(metricsManager, keyValueService,
-                timestampService, timestampService, lockClient, lockService, transactionService, mode);
+        txManager = new TestTransactionManagerImpl(
+                metricsManager,
+                keyValueService,
+                timestampService,
+                timestampService,
+                lockClient,
+                lockService,
+                transactionService,
+                mode);
     }
 
     protected void clearTablesWrittenTo() {

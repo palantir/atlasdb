@@ -18,15 +18,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
@@ -34,6 +25,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.MultiSequenceTimestampSeriesProvider;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class PostgresMultiSequenceTimestampSeriesProviderTest {
     private static final TimestampSeries DEFAULT_SERIES = TimestampSeries.of("default");
@@ -70,26 +68,20 @@ public class PostgresMultiSequenceTimestampSeriesProviderTest {
             store.storeUpperLimit(1_234_567);
         });
 
-        Set<String> knownSeries = seriesProvider.getKnownSeries()
-                .stream()
+        Set<String> knownSeries = seriesProvider.getKnownSeries().stream()
                 .map(TimestampSeries::series)
                 .collect(Collectors.toSet());
         assertThat(clients).isSubsetOf(knownSeries);
     }
 
-    private static InDbTimestampBoundStore createDbTimestampBoundStore(
+    private static TimestampBoundStore createDbTimestampBoundStore(
             ConnectionManagerAwareDbKvs keyValueService, TimestampSeries series) {
         return InDbTimestampBoundStore.createForMultiSeries(
-                keyValueService.getConnectionManager(),
-                AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE,
-                series);
+                keyValueService.getConnectionManager(), AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, series);
     }
 
-    private static TimestampSeriesProvider createTimestampSeriesProvider(
-            ConnectionManagerAwareDbKvs keyValueService) {
+    private static TimestampSeriesProvider createTimestampSeriesProvider(ConnectionManagerAwareDbKvs keyValueService) {
         return MultiSequenceTimestampSeriesProvider.create(
-                keyValueService,
-                AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE,
-                false);
+                keyValueService, AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE, false);
     }
 }

@@ -18,26 +18,6 @@ package com.palantir.atlasdb.cli.command;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.AccessDeniedException;
-import java.nio.file.Files;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.io.FileUtils;
-import org.joda.time.format.ISODateTimeFormat;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
@@ -64,6 +44,24 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampService;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.Files;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Scanner;
+import org.apache.commons.io.FileUtils;
+import org.joda.time.format.ISODateTimeFormat;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class TestTimestampCommand {
@@ -115,7 +113,7 @@ public class TestTimestampCommand {
 
     @Parameterized.Parameters
     public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {{ false }, { true }});
+        return Arrays.asList(new Object[][] {{false}, {true}});
     }
 
     private SingleBackendCliTestRunner makeRunner(String... args) {
@@ -123,8 +121,14 @@ public class TestTimestampCommand {
     }
 
     private interface Verifier {
-        void verify(SingleBackendCliTestRunner runner, TimestampService tss, long immutableTs, long prePunch,
-                long lastFreshTs, boolean shouldTestImmutable) throws Exception;
+        void verify(
+                SingleBackendCliTestRunner runner,
+                TimestampService tss,
+                long immutableTs,
+                long prePunch,
+                long lastFreshTs,
+                boolean shouldTestImmutable)
+                throws Exception;
     }
 
     /*
@@ -159,11 +163,10 @@ public class TestTimestampCommand {
                 long wallClockTimestamp = getWallClockTimestamp(scanner);
                 scanner.close();
                 if (shouldTestImmutable && isImmutable) {
-                    verifyImmutableTs(timestamp, immutableTs, prePunch, lastFreshTs, tss.getFreshTimestamp(),
-                            wallClockTimestamp);
+                    verifyImmutableTs(
+                            timestamp, immutableTs, prePunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
                 } else {
-                    verifyFreshTs(timestamp, prePunch, lastFreshTs, tss.getFreshTimestamp(),
-                            wallClockTimestamp);
+                    verifyFreshTs(timestamp, prePunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
                 }
             } catch (RuntimeException e) {
                 throw new RuntimeException("Failed " + e.getMessage() + " while processing result:\n" + output, e);
@@ -176,7 +179,6 @@ public class TestTimestampCommand {
         String inputFileString = "test.timestamp";
         runAndVerifyCliForFile(inputFileString);
     }
-
 
     @Test
     public void testWithFileWithDir() throws Exception {
@@ -221,11 +223,10 @@ public class TestTimestampCommand {
                 long wallClockTimestamp = getWallClockTimestamp(scanner);
                 scanner.close();
                 if (shouldTestImmutable && isImmutable) {
-                    verifyImmutableTs(timestamp, immutableTs, prePunch, lastFreshTs, tss.getFreshTimestamp(),
-                            wallClockTimestamp);
+                    verifyImmutableTs(
+                            timestamp, immutableTs, prePunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
                 } else {
-                    verifyFreshTs(timestamp, prePunch, lastFreshTs, tss.getFreshTimestamp(),
-                            wallClockTimestamp);
+                    verifyFreshTs(timestamp, prePunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
                 }
             } catch (RuntimeException e) {
                 throw new RuntimeException("Failed " + e.getMessage() + " while verifying result:\n" + output, e);
@@ -265,19 +266,21 @@ public class TestTimestampCommand {
 
     private void punch(TestAtlasDbServices services, TimestampService tss, Clock clock) {
         // this is a really hacky way of forcing a punch to test the datetime output
-        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.MILLISECONDS);
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(2));
         long punchTs = tss.getFreshTimestamps(1000).getUpperBound();
         PuncherStore puncherStore = KeyValueServicePuncherStore.create(services.getKeyValueService());
-        Puncher puncher = SimplePuncher.create(puncherStore, clock,
-                Suppliers.ofInstance(AtlasDbConstants.DEFAULT_TRANSACTION_READ_TIMEOUT));
+        Puncher puncher = SimplePuncher.create(
+                puncherStore, clock, Suppliers.ofInstance(AtlasDbConstants.DEFAULT_TRANSACTION_READ_TIMEOUT));
         puncher.punch(punchTs);
-        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.MILLISECONDS);
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(2));
     }
 
     private long getWallClockTimestamp(Scanner scanner) {
         String line = scanner.findInLine(".*Wall\\sclock\\sdatetime.*\\s(\\d+.*)");
         String[] parts = line.split(" ");
-        return ISODateTimeFormat.dateTime().parseDateTime(parts[parts.length - 1]).getMillis();
+        return ISODateTimeFormat.dateTime()
+                .parseDateTime(parts[parts.length - 1])
+                .getMillis();
     }
 
     private long getTimestampFromStdout(Scanner scanner) {
@@ -293,15 +296,20 @@ public class TestTimestampCommand {
         return Long.parseLong(lines.get(0));
     }
 
-    private void verifyFreshTs(long timestamp, long prePunch, long lastFreshTs, long newFreshTs,
-            long wallClockTimestamp) {
+    private void verifyFreshTs(
+            long timestamp, long prePunch, long lastFreshTs, long newFreshTs, long wallClockTimestamp) {
         assertThat(wallClockTimestamp).isGreaterThan(prePunch);
         assertThat(timestamp).isGreaterThan(lastFreshTs);
         assertThat(timestamp).isLessThan(newFreshTs);
     }
 
-    private void verifyImmutableTs(long timestamp, long immutableTs, long prePunch, long lastFreshTs,
-            long newFreshTs, long wallClockTimestamp) {
+    private void verifyImmutableTs(
+            long timestamp,
+            long immutableTs,
+            long prePunch,
+            long lastFreshTs,
+            long newFreshTs,
+            long wallClockTimestamp) {
         assertThat(wallClockTimestamp).isGreaterThan(prePunch);
         assertThat(timestamp).isEqualTo(immutableTs);
         assertThat(timestamp).isLessThan(lastFreshTs);

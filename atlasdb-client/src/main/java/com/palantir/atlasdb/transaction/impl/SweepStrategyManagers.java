@@ -15,13 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -31,23 +26,37 @@ import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
-public class SweepStrategyManagers {
+public final class SweepStrategyManagers {
     private SweepStrategyManagers() {
         //
     }
 
+    public enum CacheWarming {
+        FULL,
+        NONE,
+        ;
+    }
+
     public static SweepStrategyManager createDefault(KeyValueService kvs) {
+        return create(kvs, CacheWarming.FULL);
+    }
+
+    public static SweepStrategyManager create(KeyValueService kvs, CacheWarming cacheWarming) {
         // Wrap in a RecomputingSupplier for its logic to protect against concurrent initialization
         RecomputingSupplier<LoadingCache<TableReference, SweepStrategy>> sweepStrategySupplierLoadingCache =
                 RecomputingSupplier.create(() -> {
                     // On a cache miss, load metadata only for the relevant table. Helpful when many dynamic tables.
                     LoadingCache<TableReference, SweepStrategy> cache = Caffeine.newBuilder()
-                            .expireAfterAccess(1, TimeUnit.DAYS)
+                            .expireAfterAccess(Duration.ofDays(1))
                             .build(tableRef -> getSweepStrategy(kvs.getMetadataForTable(tableRef)));
 
-                    // On async initialization, add all tables to optimize for cases when using mostly non-dynamic tables.
-                    cache.putAll(getSweepStrategies(kvs));
+                    // Possibly warm the cache.
+                    cache.putAll(getSweepStrategiesForWarmingCache(kvs, cacheWarming));
 
                     return cache;
                 });
@@ -76,24 +85,29 @@ public class SweepStrategyManagers {
     }
 
     public static SweepStrategyManager fromMap(final Map<TableReference, SweepStrategy> map) {
-        return tableRef -> Preconditions.checkNotNull(
-                map.get(tableRef),
-                "unknown table",
-                SafeArg.of("tableRef", tableRef));
+        return tableRef ->
+                Preconditions.checkNotNull(map.get(tableRef), "unknown table", SafeArg.of("tableRef", tableRef));
     }
 
     public static SweepStrategyManager completelyConservative() {
         return tableRef -> SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
     }
 
-    private static Map<TableReference, SweepStrategy> getSweepStrategies(KeyValueService kvs) {
-        return ImmutableMap.copyOf(Maps.transformValues(kvs.getMetadataForTables(),
-                SweepStrategyManagers::getSweepStrategy));
+    private static Map<TableReference, SweepStrategy> getSweepStrategiesForWarmingCache(
+            KeyValueService kvs, CacheWarming cacheWarming) {
+        switch (cacheWarming) {
+            case FULL:
+                return Maps.transformValues(kvs.getMetadataForTables(), SweepStrategyManagers::getSweepStrategy);
+            case NONE:
+            default:
+                return Collections.emptyMap();
+        }
     }
 
     private static SweepStrategy getSweepStrategy(byte[] tableMeta) {
         if (tableMeta != null && tableMeta.length > 0) {
-            return SweepStrategy.from(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
+            return SweepStrategy.from(
+                    TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
         } else {
             return SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
         }

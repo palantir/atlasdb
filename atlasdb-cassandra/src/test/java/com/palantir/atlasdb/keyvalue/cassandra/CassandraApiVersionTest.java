@@ -15,51 +15,49 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
 public class CassandraApiVersionTest {
-    @Test public void
-    version_19_36_0_does_not_support_cas() {
+    @Test
+    public void version_19_36_0_does_not_support_cas() {
         CassandraApiVersion version = new CassandraApiVersion("19.36.0");
-        assertThat(version.supportsCheckAndSet(), is(false));
+        assertThat(version.supportsCheckAndSet()).isFalse();
     }
 
-    @Test public void
-    version_19_37_0_supports_cas() {
+    @Test
+    public void version_19_37_0_supports_cas() {
         CassandraApiVersion version = new CassandraApiVersion("19.37.0");
-        assertThat(version.supportsCheckAndSet(), is(true));
+        assertThat(version.supportsCheckAndSet()).isTrue();
     }
 
-    @Test public void
-    version_19_38_0_supports_cas() {
+    @Test
+    public void version_19_38_0_supports_cas() {
         CassandraApiVersion version = new CassandraApiVersion("19.38.0");
-        assertThat(version.supportsCheckAndSet(), is(true));
+        assertThat(version.supportsCheckAndSet()).isTrue();
     }
 
-    @Test public void
-    version_20_1_0_supports_cas() {
+    @Test
+    public void version_20_1_0_supports_cas() {
         CassandraApiVersion version = new CassandraApiVersion("20.1.0");
-        assertThat(version.supportsCheckAndSet(), is(true));
+        assertThat(version.supportsCheckAndSet()).isTrue();
     }
 
-    @Test public void
-    version_18_40_0_does_not_support_cas() {
+    @Test
+    public void version_18_40_0_does_not_support_cas() {
         CassandraApiVersion version = new CassandraApiVersion("18.40.0");
-        assertThat(version.supportsCheckAndSet(), is(false));
+        assertThat(version.supportsCheckAndSet()).isFalse();
     }
 
-    @Test public void
-    version_20_40_1_supports_cas() {
+    @Test
+    public void version_20_40_1_supports_cas() {
         CassandraApiVersion version = new CassandraApiVersion("20.40.1");
-        assertThat(version.supportsCheckAndSet(), is(true));
+        assertThat(version.supportsCheckAndSet()).isTrue();
     }
 
-    @Test(expected = UnsupportedOperationException.class) public void
-    invalid_version_strings_throw_an_error() {
+    @Test(expected = UnsupportedOperationException.class)
+    public void invalid_version_strings_throw_an_error() {
         new CassandraApiVersion("20_4.1");
     }
-
 }

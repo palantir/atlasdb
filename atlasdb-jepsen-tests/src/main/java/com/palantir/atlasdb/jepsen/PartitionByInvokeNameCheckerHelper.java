@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.jepsen;
 
+import com.palantir.atlasdb.jepsen.events.Checker;
+import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.InfoEvent;
+import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -22,11 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import com.palantir.atlasdb.jepsen.events.Checker;
-import com.palantir.atlasdb.jepsen.events.Event;
-import com.palantir.atlasdb.jepsen.events.InfoEvent;
-import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 
 public class PartitionByInvokeNameCheckerHelper implements Checker {
     private final Supplier<Checker> checkerSupplier;
@@ -75,8 +74,8 @@ public class PartitionByInvokeNameCheckerHelper implements Checker {
     }
 
     private CheckerResult combineResults(List<CheckerResult> results) {
-        List<Event> allErrors = results.stream().flatMap(result ->
-                result.errors().stream()).collect(Collectors.toList());
+        List<Event> allErrors =
+                results.stream().flatMap(result -> result.errors().stream()).collect(Collectors.toList());
         boolean allValid = results.stream().allMatch(CheckerResult::valid);
         return ImmutableCheckerResult.builder()
                 .valid(allValid)

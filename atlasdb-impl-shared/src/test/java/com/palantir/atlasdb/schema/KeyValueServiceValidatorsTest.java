@@ -17,8 +17,6 @@ package com.palantir.atlasdb.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -27,35 +25,40 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import org.junit.Test;
 
 public class KeyValueServiceValidatorsTest {
-    private static final TableReference SWEEP_PRIORITY = TableReference.create(
-            SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
-    private static final TableReference OTHER_PRIORITY = TableReference.create(
-            Namespace.create("foo"), SweepPriorityTable.getRawTableName());
+    private static final TableReference SWEEP_PRIORITY =
+            TableReference.create(SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
+    private static final TableReference OTHER_PRIORITY =
+            TableReference.create(Namespace.create("foo"), SweepPriorityTable.getRawTableName());
 
     private final KeyValueService kvs = new InMemoryKeyValueService(true);
 
     @Test
     public void sweepPriorityTableIsASweepTable() {
-        assertThat(KeyValueServiceValidators.isSweepTableReference(SWEEP_PRIORITY)).isTrue();
+        assertThat(KeyValueServiceValidators.isSweepTableReference(SWEEP_PRIORITY))
+                .isTrue();
     }
 
     @Test
     public void otherPriorityTableIsNotASweepTable() {
-        assertThat(KeyValueServiceValidators.isSweepTableReference(OTHER_PRIORITY)).isFalse();
+        assertThat(KeyValueServiceValidators.isSweepTableReference(OTHER_PRIORITY))
+                .isFalse();
     }
 
     @Test
     public void sweepPriorityTableNotValidated() {
         kvs.createTable(SWEEP_PRIORITY, AtlasDbConstants.EMPTY_TABLE_METADATA);
-        assertThat(KeyValueServiceValidators.getValidatableTableNames(kvs, ImmutableSet.of())).isEmpty();
+        assertThat(KeyValueServiceValidators.getValidatableTableNames(kvs, ImmutableSet.of()))
+                .isEmpty();
     }
 
     @Test
     public void transactionTablesNotValidated() {
         TransactionTables.createTables(kvs);
-        assertThat(KeyValueServiceValidators.getValidatableTableNames(kvs, ImmutableSet.of())).isEmpty();
+        assertThat(KeyValueServiceValidators.getValidatableTableNames(kvs, ImmutableSet.of()))
+                .isEmpty();
     }
 
     @Test
@@ -68,6 +71,7 @@ public class KeyValueServiceValidatorsTest {
     @Test
     public void unmigratableTablesAreNotValidated() {
         kvs.createTable(OTHER_PRIORITY, AtlasDbConstants.EMPTY_TABLE_METADATA);
-        assertThat(KeyValueServiceValidators.getValidatableTableNames(kvs, ImmutableSet.of(OTHER_PRIORITY))).isEmpty();
+        assertThat(KeyValueServiceValidators.getValidatableTableNames(kvs, ImmutableSet.of(OTHER_PRIORITY)))
+                .isEmpty();
     }
 }

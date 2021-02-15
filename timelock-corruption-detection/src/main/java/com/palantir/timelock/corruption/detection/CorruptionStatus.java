@@ -18,15 +18,16 @@ package com.palantir.timelock.corruption.detection;
 
 public enum CorruptionStatus {
     HEALTHY(false),
-    CORRUPTION(true);
+    DEFINITIVE_CORRUPTION_DETECTED_BY_LOCAL(true),
+    DEFINITIVE_CORRUPTION_DETECTED_BY_REMOTE(true);
 
-    private final boolean hasCorruption;
+    private final boolean shouldRejectRequests;
 
-    CorruptionStatus(boolean hasCorruption) {
-        this.hasCorruption = hasCorruption;
+    CorruptionStatus(boolean shouldRejectRequests) {
+        this.shouldRejectRequests = shouldRejectRequests;
     }
 
-    public boolean hasCorruption() {
-        return hasCorruption;
+    public boolean shouldRejectRequests() {
+        return shouldRejectRequests;
     }
 }

@@ -15,14 +15,15 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import org.immutables.value.Value;
-
 import com.palantir.util.PersistableBoolean;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface PartitionInfo {
     int shard();
+
     PersistableBoolean isConservative();
+
     long timestamp();
 
     static PartitionInfo of(int shard, boolean isConservative, long timestamp) {

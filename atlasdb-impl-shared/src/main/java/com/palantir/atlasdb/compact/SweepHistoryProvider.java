@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.compact;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityNamedColumn;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.HashMap;
+import java.util.Map;
 
 class SweepHistoryProvider {
 
@@ -31,10 +30,11 @@ class SweepHistoryProvider {
     Map<String, Long> getHistory(Transaction tx) {
         Map<String, Long> tableToLastTimeSwept = new HashMap<>();
         SweepPriorityTable sweepPriorityTable = SweepTableFactory.of().getSweepPriorityTable(tx);
-        sweepPriorityTable.getRange(RangeRequest.builder()
-                .retainColumns(SweepPriorityTable.getColumnSelection(SweepPriorityNamedColumn.LAST_SWEEP_TIME))
-                .batchHint(READ_BATCH_SIZE)
-                .build())
+        sweepPriorityTable
+                .getRange(RangeRequest.builder()
+                        .retainColumns(SweepPriorityTable.getColumnSelection(SweepPriorityNamedColumn.LAST_SWEEP_TIME))
+                        .batchHint(READ_BATCH_SIZE)
+                        .build())
                 .forEach(row -> {
                     Long lastSweepTime = row.getLastSweepTime();
                     String tableName = row.getRowName().getFullTableName();

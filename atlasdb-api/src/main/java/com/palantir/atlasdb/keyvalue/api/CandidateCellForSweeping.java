@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.Collection;
-
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -49,5 +48,4 @@ public interface CandidateCellForSweeping {
                 .cell(cell)
                 .build();
     }
-
 }

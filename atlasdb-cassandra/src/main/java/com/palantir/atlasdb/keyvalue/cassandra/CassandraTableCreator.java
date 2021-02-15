@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Map;
-import java.util.UUID;
-
-import org.apache.cassandra.thrift.Compression;
-import org.apache.thrift.TException;
-
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 import com.datastax.driver.core.schemabuilder.TableOptions.CompactionOptions;
@@ -31,6 +25,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
+import java.util.Map;
+import java.util.UUID;
+import org.apache.cassandra.thrift.Compression;
+import org.apache.thrift.TException;
 
 class CassandraTableCreator {
     private static final String ROW = "key";
@@ -51,7 +49,9 @@ class CassandraTableCreator {
             clientPool.runWithRetry(client -> {
                 for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
                     CassandraKeyValueServices.runWithWaitingForSchemas(
-                            () -> createTable(entry.getKey(), entry.getValue(), client), config, client,
+                            () -> createTable(entry.getKey(), entry.getValue(), client),
+                            config,
+                            client,
                             "adding the column family for table " + entry.getKey() + " in a call to create tables");
                 }
                 return null;
@@ -84,7 +84,7 @@ class CassandraTableCreator {
                 .compactionOptions(getCompaction(appendHeavyReadLight))
                 .compactStorage()
                 .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
-                .dcLocalReadRepairChance(0.1)
+                .dcLocalReadRepairChance(0.0)
                 .gcGraceSeconds(config.gcGraceSeconds())
                 .minIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
                 .maxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
@@ -104,7 +104,8 @@ class CassandraTableCreator {
     }
 
     private CompactionOptions<?> getCompaction(boolean appendHeavyReadLight) {
-        return appendHeavyReadLight ? SchemaBuilder.sizedTieredStategy().minThreshold(4).maxThreshold(32)
+        return appendHeavyReadLight
+                ? SchemaBuilder.sizedTieredStategy().minThreshold(4).maxThreshold(32)
                 : SchemaBuilder.leveledStrategy();
     }
 

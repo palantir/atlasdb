@@ -15,12 +15,10 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 
 /**
  * A reentrant lock linked to a specific {@link LockClient}.
@@ -49,7 +47,8 @@ public interface KnownClientLock {
      * @return {@code null} if the lock was acquired, or one of the current
      *         holders of the lock if it could not be acquired immediately.
      */
-    @Nullable LockClient tryLock();
+    @Nullable
+    LockClient tryLock();
 
     /**
      * Acquires the lock if it is free within the given waiting time and the
@@ -58,7 +57,8 @@ public interface KnownClientLock {
      * @return {@code null} if the lock was acquired, or one of the current
      *         holders of the lock if it could not be acquired immediately.
      */
-    @Nullable LockClient tryLock(long time, TimeUnit unit) throws InterruptedException;
+    @Nullable
+    LockClient tryLock(long time, TimeUnit unit) throws InterruptedException;
 
     /**
      * Changes the state of this lock so that it is held by {@code newClient}

@@ -17,20 +17,18 @@ package com.palantir.flake;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.flake.fail.ExpectedFailure;
+import com.palantir.flake.fail.ExpectedFailureRule;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
 
-import com.google.common.collect.Maps;
-import com.palantir.flake.fail.ExpectedFailure;
-import com.palantir.flake.fail.ExpectedFailureRule;
-
 public class FlakeRetryingRuleTest {
-    private static final Map<String, AtomicLong> counters = Maps.newHashMap();
+    private static final Map<String, AtomicLong> counters = new HashMap<>();
 
     private final FlakeRetryingRule retryingRule = new FlakeRetryingRule();
     private final ExpectedFailureRule expectedFailureRule = new ExpectedFailureRule();
@@ -38,8 +36,7 @@ public class FlakeRetryingRuleTest {
     // The ordering here is essential. We want to try the inner test multiple times and invert the output in some
     // cases (because we're expecting to fail out), not invert the output on each attempt.
     @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(expectedFailureRule)
-            .around(retryingRule);
+    public final RuleChain ruleChain = RuleChain.outerRule(expectedFailureRule).around(retryingRule);
 
     // The ordering of this rule with respect to the rule chain is not essential, as it is merely used to
     // ensure consistency of indexing into the counter-map for the runTestFailingUntilSpecifiedAttempt methods.

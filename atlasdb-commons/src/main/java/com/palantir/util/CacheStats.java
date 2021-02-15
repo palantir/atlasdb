@@ -54,9 +54,10 @@ public class CacheStats implements CacheStatsMBean {
     public float getCacheHitPercentage() {
         long hit = hits.get();
         long miss = misses.get();
-        if(hit + miss == 0)
+        if (hit + miss == 0) {
             return 100.f;
-        return 100.0f*hit/(hit+miss);
+        }
+        return 100.0f * hit / (hit + miss);
     }
 
     @Override
@@ -129,7 +130,6 @@ public class CacheStats implements CacheStatsMBean {
     public void setMaxCacheSize(int size) {
         cache.setMaxCacheSize(size);
     }
-
 
     public void incrementPuts() {
         puts.incrementAndGet();

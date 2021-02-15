@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: The no-op lock watch event cache now correctly tracks the latest known
+    version for the sake of requesting information from Timelock.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5140

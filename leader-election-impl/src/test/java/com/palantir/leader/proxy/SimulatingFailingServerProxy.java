@@ -15,18 +15,17 @@
  */
 package com.palantir.leader.proxy;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import com.palantir.common.proxy.SimulatingServerProxy;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class SimulatingFailingServerProxy {
 
-    public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, long sleep,
-            AtomicBoolean throwException) {
+    public static <T> T newProxyInstance(
+            Class<T> interfaceClass, T delegate, long sleep, AtomicBoolean throwException) {
         return SimulatingServerProxy.newProxyInstance(
                 interfaceClass,
-                ToggleableExceptionProxy.newProxyInstance(interfaceClass, delegate, throwException,
-                        new RuntimeException()),
+                ToggleableExceptionProxy.newProxyInstance(
+                        interfaceClass, delegate, throwException, new RuntimeException()),
                 sleep);
     }
 

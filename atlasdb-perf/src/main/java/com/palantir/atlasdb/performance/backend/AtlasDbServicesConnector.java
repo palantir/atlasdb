@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
-import java.io.Closeable;
-
-import org.openjdk.jmh.annotations.Param;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
-
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -28,6 +22,10 @@ import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.io.Closeable;
+import org.openjdk.jmh.annotations.Param;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
 
 @State(Scope.Benchmark)
 public class AtlasDbServicesConnector implements Closeable {
@@ -46,9 +44,10 @@ public class AtlasDbServicesConnector implements Closeable {
         }
 
         DockerizedDatabaseUri dburi = DockerizedDatabaseUri.fromUriString(uri);
-        KeyValueServiceConfig config = dburi.getKeyValueServiceInstrumentation()
-                .getKeyValueServiceConfig(dburi.getAddress());
-        ImmutableAtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder().keyValueService(config).build();
+        KeyValueServiceConfig config =
+                dburi.getKeyValueServiceInstrumentation().getKeyValueServiceConfig(dburi.getAddress());
+        ImmutableAtlasDbConfig atlasDbConfig =
+                ImmutableAtlasDbConfig.builder().keyValueService(config).build();
         ImmutableAtlasDbRuntimeConfig runtimeConfig = ImmutableAtlasDbRuntimeConfig.defaultRuntimeConfig();
         ServicesConfigModule servicesConfigModule = ServicesConfigModule.create(atlasDbConfig, runtimeConfig);
 
@@ -59,10 +58,10 @@ public class AtlasDbServicesConnector implements Closeable {
         return services;
     }
 
-    @Override public void close() {
+    @Override
+    public void close() {
         if (services != null) {
             services.close();
         }
     }
-
 }

@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
-import java.util.Iterator;
-import java.util.List;
-
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Iterator;
+import java.util.List;
 
 public class DbKvsGetCandidateCellsForSweeping {
 
@@ -32,11 +31,9 @@ public class DbKvsGetCandidateCellsForSweeping {
     }
 
     public Iterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
-            TableReference tableRef,
-            CandidateCellForSweepingRequest request) {
+            TableReference tableRef, CandidateCellForSweepingRequest request) {
         Iterator<List<CellTsPairInfo>> cellTsIter = cellTsPairLoader.createPageIterator(tableRef, request);
         Iterator<List<CandidateCellForSweeping>> rawIter = CandidateGroupingIterator.create(cellTsIter);
         return Iterators.filter(rawIter, page -> !page.isEmpty());
     }
-
 }

@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.time.Duration;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -41,6 +31,14 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BackgroundSweepThread implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweepThread.class);
@@ -63,7 +61,8 @@ public class BackgroundSweepThread implements Runnable {
     // Used in internal test code
     @VisibleForTesting
     @SuppressWarnings("checkstyle:RegexpMultilineCheck")
-    public static BackgroundSweepThread createForTests(LockService lockService,
+    public static BackgroundSweepThread createForTests(
+            LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
@@ -71,12 +70,21 @@ public class BackgroundSweepThread implements Runnable {
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             SpecificTableSweeper specificTableSweeper,
             MetricsManager metricsManager) {
-        return new BackgroundSweepThread(lockService, nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled,
-                sweepPauseMillis, sweepPriorityOverrideConfig, specificTableSweeper,
-                SweepOutcomeMetrics.registerLegacy(metricsManager), new CountDownLatch(1), 1);
+        return new BackgroundSweepThread(
+                lockService,
+                nextTableToSweepProvider,
+                sweepBatchConfigSource,
+                isSweepEnabled,
+                sweepPauseMillis,
+                sweepPriorityOverrideConfig,
+                specificTableSweeper,
+                SweepOutcomeMetrics.registerLegacy(metricsManager),
+                new CountDownLatch(1),
+                1);
     }
 
-    BackgroundSweepThread(LockService lockService,
+    BackgroundSweepThread(
+            LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
             Supplier<Boolean> isSweepEnabled,
@@ -125,15 +133,15 @@ public class BackgroundSweepThread implements Runnable {
                 sleepUntilNextRun(maybeOutcome);
             }
         } catch (InterruptedException e) {
-            log.info(
-                    "Shutting down background sweeper. Please restart the service to rerun background sweep.");
+            log.info("Shutting down background sweeper. Please restart the service to rerun background sweep.");
             closeTableLockIfHeld();
         } catch (Throwable t) {
-            log.error("BackgroundSweeper failed fatally and will not rerun until restarted: {}",
-                    UnsafeArg.of("message", t.getMessage()), t);
+            log.error(
+                    "BackgroundSweeper failed fatally and will not rerun until restarted: {}",
+                    UnsafeArg.of("message", t.getMessage()),
+                    t);
             closeTableLockIfHeld();
-            sweepOutcomeMetrics.registerOccurrenceOf(
-                    SweepOutcome.FATAL);
+            sweepOutcomeMetrics.registerOccurrenceOf(SweepOutcome.FATAL);
         }
     }
 
@@ -148,15 +156,15 @@ public class BackgroundSweepThread implements Runnable {
 
     private void logOutcome(SweepOutcome outcome) {
         if (outcome.equals(SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS)) {
-            log.info("Sweep iteration finished with outcome: {}. This means that sweep is running elsewhere. "
+            log.info(
+                    "Sweep iteration finished with outcome: {}. This means that sweep is running elsewhere. "
                             + "If the lock was in fact leaked, then it should expire within {} seconds (this can be "
                             + "overridden by defaultLockTimeoutSeconds in config), after which "
                             + "time one node should be able to grab the lock. "
                             + "If all nodes in an HA setup report this outcome for longer than expected, "
                             + "then another cluster may be connecting to the same Cassandra keyspace.",
                     SafeArg.of("sweepOutcome", outcome),
-                    SafeArg.of("defaultLockTimeoutSeconds", AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS)
-            );
+                    SafeArg.of("defaultLockTimeoutSeconds", AtlasDbConstants.DEFAULT_LOCK_TIMEOUT_SECONDS));
         } else {
             log.info("Sweep iteration finished with outcome: {}", SafeArg.of("sweepOutcome", outcome));
         }
@@ -180,15 +188,17 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     private Duration getSleepDuration(Optional<SweepOutcome> maybeOutcome) {
-        return maybeOutcome.flatMap(outcome -> {
-            if (outcome == SweepOutcome.SUCCESS) {
-                return Optional.of(Duration.ofMillis(sweepPauseMillis.get()));
-            } else if (outcome == SweepOutcome.NOTHING_TO_SWEEP) {
-                return Optional.of(getBackoffTimeWhenNothingToSweep());
-            } else {
-                return Optional.empty();
-            }
-        }).orElseGet(this::getBackoffTimeWhenSweepHasNotRun);
+        return maybeOutcome
+                .flatMap(outcome -> {
+                    if (outcome == SweepOutcome.SUCCESS) {
+                        return Optional.of(Duration.ofMillis(sweepPauseMillis.get()));
+                    } else if (outcome == SweepOutcome.NOTHING_TO_SWEEP) {
+                        return Optional.of(getBackoffTimeWhenNothingToSweep());
+                    } else {
+                        return Optional.empty();
+                    }
+                })
+                .orElseGet(this::getBackoffTimeWhenSweepHasNotRun);
     }
 
     @VisibleForTesting
@@ -236,8 +246,7 @@ public class BackgroundSweepThread implements Runnable {
         Optional<TableToSweep> tableToSweep = getTableToSweep();
         if (!tableToSweep.isPresent()) {
             // Don't change this log statement. It's parsed by test automation code.
-            log.debug(
-                    "Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
+            log.debug("Skipping sweep because no table has enough new writes to be worth sweeping at the moment.");
             return SweepOutcome.NOTHING_TO_SWEEP;
         }
 
@@ -256,32 +265,30 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     private Optional<TableToSweep> getTableToSweep() {
-        return specificTableSweeper.getTxManager().runTaskWithRetry(
-                tx -> {
-                    Optional<SweepProgress> progress = currentTable.flatMap(
-                            tableToSweep -> specificTableSweeper.getSweepProgressStore().loadProgress(
-                                    tableToSweep.getTableRef()));
-                    SweepPriorityOverrideConfig overrideConfig = sweepPriorityOverrideConfig.get();
-                    if (progress.map(
-                            realProgress -> shouldContinueSweepingCurrentTable(realProgress, overrideConfig))
-                            .orElse(false)) {
-                        try {
-                            // If we're here, currentTable exists and we're going to sweep it again this iteration
-                            updateProgressAndRefreshLock(progress.get());
-                            return currentTable;
-                        } catch (InterruptedException ex) {
-                            log.info("Sweep lost the lock for table {}",
-                                    LoggingArgs.tableRef(progress.get().tableRef()));
-                            closeTableLockIfHeld();
-                            currentTable = Optional.empty();
-                            // We'll fall through and choose a new table
-                        }
-                    }
-
-                    log.info("Sweep is choosing a new table to sweep.");
+        return specificTableSweeper.getTxManager().runTaskWithRetry(tx -> {
+            Optional<SweepProgress> progress = currentTable.flatMap(tableToSweep ->
+                    specificTableSweeper.getSweepProgressStore().loadProgress(tableToSweep.getTableRef()));
+            SweepPriorityOverrideConfig overrideConfig = sweepPriorityOverrideConfig.get();
+            if (progress.map(realProgress -> shouldContinueSweepingCurrentTable(realProgress, overrideConfig))
+                    .orElse(false)) {
+                try {
+                    // If we're here, currentTable exists and we're going to sweep it again this iteration
+                    updateProgressAndRefreshLock(progress.get());
+                    return currentTable;
+                } catch (InterruptedException ex) {
+                    log.info(
+                            "Sweep lost the lock for table {}",
+                            LoggingArgs.tableRef(progress.get().tableRef()));
                     closeTableLockIfHeld();
-                    return getNextTableToSweep(tx, overrideConfig);
-                });
+                    currentTable = Optional.empty();
+                    // We'll fall through and choose a new table
+                }
+            }
+
+            log.info("Sweep is choosing a new table to sweep.");
+            closeTableLockIfHeld();
+            return getNextTableToSweep(tx, overrideConfig);
+        });
     }
 
     @SuppressWarnings("ConstantConditions") // class runs in a single thread, so this is fine
@@ -291,8 +298,7 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     private boolean shouldContinueSweepingCurrentTable(
-            SweepProgress progress,
-            SweepPriorityOverrideConfig overrideConfig) {
+            SweepProgress progress, SweepPriorityOverrideConfig overrideConfig) {
         String currentTableName = progress.tableRef().getQualifiedName();
         if (overrideConfig.priorityTables().isEmpty()) {
             return !overrideConfig.blacklistTables().contains(currentTableName);
@@ -302,9 +308,7 @@ public class BackgroundSweepThread implements Runnable {
 
     private Optional<TableToSweep> getNextTableToSweep(Transaction tx, SweepPriorityOverrideConfig overrideConfig) {
         Optional<TableToSweep> nextTableToSweep = nextTableToSweepProvider.getNextTableToSweep(
-                tx,
-                specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(),
-                overrideConfig);
+                tx, specificTableSweeper.getSweepRunner().getConservativeSweepTimestamp(), overrideConfig);
 
         if (nextTableToSweep.isPresent()) {
             // Check if we're resuming this table after a previous sweep
@@ -316,11 +320,12 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     private Optional<TableToSweep> augmentWithProgress(TableToSweep nextTableWithoutProgress) {
-        Optional<SweepProgress> sweepProgress = specificTableSweeper.getSweepProgressStore().loadProgress(
-                nextTableWithoutProgress.getTableRef());
+        Optional<SweepProgress> sweepProgress =
+                specificTableSweeper.getSweepProgressStore().loadProgress(nextTableWithoutProgress.getTableRef());
 
         if (sweepProgress.isPresent()) {
-            TableToSweep nextTableWithProgress = TableToSweep.continueSweeping(nextTableWithoutProgress.getTableRef(),
+            TableToSweep nextTableWithProgress = TableToSweep.continueSweeping(
+                    nextTableWithoutProgress.getTableRef(),
                     nextTableWithoutProgress.getSweepLock(),
                     sweepProgress.get());
             return Optional.of(nextTableWithProgress);
@@ -340,7 +345,8 @@ public class BackgroundSweepThread implements Runnable {
                 return SweepOutcome.TABLE_DROPPED_WHILE_SWEEPING;
             }
 
-            log.info("The background sweep job failed unexpectedly; will retry with a lower batch size...",
+            log.info(
+                    "The background sweep job failed unexpectedly; will retry with a lower batch size...",
                     originalException);
             return SweepOutcome.ERROR;
 

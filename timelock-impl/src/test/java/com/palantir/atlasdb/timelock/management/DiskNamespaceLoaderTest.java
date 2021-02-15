@@ -18,21 +18,6 @@ package com.palantir.atlasdb.timelock.management;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.file.Path;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.mockito.Mock;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -42,13 +27,29 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.tokens.auth.AuthHeader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Path;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.mockito.Mock;
 
 public class DiskNamespaceLoaderTest {
     private static final String NAMESPACE_1 = "namespace_1";
     private static final String NAMESPACE_2 = "namespace_2";
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
-    @Mock private Function<String, TimeLockServices> serviceFactory;
-    @Mock private Supplier<Integer> maxNumberOfClientsSupplier;
+
+    @Mock
+    private Function<String, TimeLockServices> serviceFactory;
+
+    @Mock
+    private Supplier<Integer> maxNumberOfClientsSupplier;
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private TimeLockManagementResource timeLockManagementResource;
@@ -59,19 +60,17 @@ public class DiskNamespaceLoaderTest {
     @Before
     public void setup() throws MalformedURLException {
         URL testUrl = new URL("http", "host", "file");
-        RedirectRetryTargeter redirectRetryTargeter = RedirectRetryTargeter
-                .create(testUrl, ImmutableList.of(testUrl));
+        RedirectRetryTargeter redirectRetryTargeter = RedirectRetryTargeter.create(testUrl, ImmutableList.of(testUrl));
 
         Path rootFolderPath = tempFolder.getRoot().toPath();
         PersistentNamespaceContext persistentNamespaceContext = PersistentNamespaceContexts.timestampBoundPaxos(
-                rootFolderPath,
-                SqliteConnections.getPooledDataSource(rootFolderPath));
+                rootFolderPath, SqliteConnections.getPooledDataSource(rootFolderPath));
 
-        TimelockNamespaces namespaces = new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
+        TimelockNamespaces namespaces =
+                new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
 
-        timeLockManagementResource = TimeLockManagementResource.create(persistentNamespaceContext,
-                namespaces,
-                redirectRetryTargeter);
+        timeLockManagementResource =
+                TimeLockManagementResource.create(persistentNamespaceContext, namespaces, redirectRetryTargeter);
 
         createDirectoryForLeaderForEachClientUseCase(NAMESPACE_1);
         createDirectoryInRootDataDirectory(NAMESPACE_2);
@@ -79,12 +78,15 @@ public class DiskNamespaceLoaderTest {
 
     @Test
     public void doesNotLoadLeaderPaxosAsNamespace() throws ExecutionException, InterruptedException {
-        Set<String> namespaces = timeLockManagementResource.getNamespaces(AUTH_HEADER).get();
+        Set<String> namespaces =
+                timeLockManagementResource.getNamespaces(AUTH_HEADER).get();
         assertThat(namespaces).containsExactlyInAnyOrder(NAMESPACE_1, NAMESPACE_2);
     }
 
     private void createDirectoryForLeaderForEachClientUseCase(String namespace) {
-        if (tempFolder.getRoot().toPath()
+        if (tempFolder
+                .getRoot()
+                .toPath()
                 .resolve(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
                 .resolve(PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE)
                 .resolve(namespace)

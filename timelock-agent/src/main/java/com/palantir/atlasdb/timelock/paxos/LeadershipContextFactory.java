@@ -16,14 +16,7 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
@@ -32,20 +25,28 @@ import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.paxos.HealthCheckPinger;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 @Value.Immutable
-public abstract class LeadershipContextFactory implements
-        Factory<LeadershipContext>,
-        Dependencies.NetworkClientFactories,
-        Dependencies.LeaderPinger,
-        Dependencies.ClientAwareComponents,
-        Dependencies.HealthCheckPinger {
+public abstract class LeadershipContextFactory
+        implements NetworkClientFactories.Factory<LeadershipContext>,
+                Dependencies.NetworkClientFactories,
+                Dependencies.LeaderPinger,
+                Dependencies.ClientAwareComponents,
+                Dependencies.HealthCheckPinger {
 
     abstract PaxosResourcesFactory.TimelockPaxosInstallationContext install();
+
     abstract Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory();
+
     abstract NetworkClientFactories.Builder networkClientFactoryBuilder();
+
     abstract Factories.LeaderPingerFactoryContainer.Builder leaderPingerFactoryBuilder();
 
+    @Override
     public abstract Factories.PaxosLatestRoundVerifierFactory latestRoundVerifierFactory();
 
     @Value.Derived
@@ -54,6 +55,7 @@ public abstract class LeadershipContextFactory implements
         return install().quorumSize();
     }
 
+    @Override
     @Value.Derived
     public LocalPaxosComponents components() {
         return LocalPaxosComponents.createWithBlockingMigration(
@@ -63,29 +65,37 @@ public abstract class LeadershipContextFactory implements
                 install().sqliteDataSource(),
                 leaderUuid(),
                 install().install().paxos().canCreateNewClients(),
-                install().timeLockVersion());
+                install().timeLockVersion(),
+                install()
+                        .install()
+                        .iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog());
     }
 
+    @Override
     @Value.Derived
     public UUID leaderUuid() {
         return install().nodeUuid();
     }
 
+    @Override
     @Value.Derived
     public NetworkClientFactories networkClientFactories() {
         return networkClientFactoryBuilder().from(this).build();
     }
 
+    @Override
     @Value.Derived
     public Factories.LeaderPingerFactoryContainer leaderPingerFactory() {
         return leaderPingerFactoryBuilder().from(this).build();
     }
 
+    @Override
     @Value.Derived
     public Duration leaderPingResponseWait() {
         return runtime().get().leaderPingResponseWait();
     }
 
+    @Override
     @Value.Derived
     public Duration leaderPingRate() {
         return runtime().get().pingRate();
@@ -124,34 +134,40 @@ public abstract class LeadershipContextFactory implements
                 .build();
     }
 
+    @Override
     @Value.Derived
     public AutobatchingLeadershipObserverFactory leadershipObserverFactory() {
         return TimelockLeadershipMetrics.createFactory(metrics());
     }
 
     @Value.Immutable
-    abstract static class ClientAwareComponents implements
-            Dependencies.ClientAwareComponents,
-            Dependencies.LeaderElectionService,
-            Dependencies.LeadershipMetrics {
+    abstract static class ClientAwareComponents
+            implements Dependencies.ClientAwareComponents,
+                    Dependencies.LeaderElectionService,
+                    Dependencies.LeadershipMetrics {
 
+        @Override
         public abstract Client proxyClient();
 
+        @Override
         @Value.Derived
         public Client paxosClient() {
             return useCase().resolveClient(proxyClient());
         }
 
+        @Override
         @Value.Derived
         public PaxosLearner localLearner() {
             return components().learner(paxosClient());
         }
 
+        @Override
         @Value.Derived
         public PingableLeader localPingableLeader() {
             return components().pingableLeader(paxosClient());
         }
 
+        @Override
         @Value.Derived
         public LeaderPinger leaderPinger() {
             return leaderPingerFactory().get().create(paxosClient());
@@ -162,10 +178,10 @@ public abstract class LeadershipContextFactory implements
             return ImmutableTimelockLeadershipMetrics.builder().from(this).build();
         }
 
+        @Override
         @Value.Derived
         public PaxosLeadershipEventRecorder eventRecorder() {
             return leadershipMetrics().eventRecorder();
         }
-
     }
 }

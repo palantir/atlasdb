@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<!-- IMPORTANT ECLIPSE NOTE: If you change this file, you must restart Eclipse
+ for your changes to take effect in its Checkstyle integration. -->
+
+<!-- custom-suppressions.xml allows users to specify suppressions that will not be overridden by
+     baselineUpdateConfig -->
+<suppressions>
+    <!-- Generated code should not be subjected to checkstyle. -->
+    <suppress files="[/\\].*[/\\]generated_src[/\\]" checks="."/>
+    <suppress files="[/\\].*[/\\]generated_testSrc[/\\]" checks="."/>
+    <suppress files="[/\\].*[/\\]generated[/\\]" checks="."/>
+
+    <!-- ignore tests until they can be remediated -->
+    <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="." />
+
+    <!-- Skip some explicit checks until they can be remediated -->
+    <suppress files=".*" checks="AnnotationUseStyle"/>
+    <suppress files=".*" checks="AvoidStaticImport"/>
+    <suppress files=".*" checks="CyclomaticComplexity"/>
+    <suppress files=".*" checks="DesignForExtension"/>
+    <suppress files=".*" checks="RegexpSinglelineJava"/>
+    <suppress files=".*" checks="RedundantModifier"/>
+    <suppress files=".*" checks="SummaryJavadocCheck"/>
+    <suppress files=".*" checks="VisibilityModifier"/>
+    <suppress files=".*" id="BanGuavaCaches"/>
+
+    <!-- Certain AtlasDB projects are ignored. -->
+    <suppress files="atlasdb-client/*" checks="."/>
+    <suppress files="atlasdb-commons/*" checks="."/>
+    <suppress files="atlasdb-console/*" checks="."/>
+    <suppress files="atlasdb-jdbc/*" checks="."/>
+    <suppress files="atlasdb-jdbc-tests/*" checks="."/>
+    <suppress files="cassandra-partitioner/*" checks="."/>
+    <suppress files="commons-db/*" checks="."/>
+    <suppress files="lock-impl/*" checks="."/>
+</suppressions>

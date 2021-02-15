@@ -15,14 +15,13 @@
  */
 package com.palantir.timelock.config;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestRuntimeConfig;
+import org.immutables.value.Value;
 
 /**
  * Dynamic (live-reloaded) portions of TimeLock's configuration.
@@ -72,9 +71,13 @@ public abstract class TimeLockRuntimeConfiguration {
 
     @Value.Check
     public void check() {
-        Preconditions.checkState(maxNumberOfClients() >= 0,
-                "Maximum number of clients must be non-negative, but found %s", maxNumberOfClients());
-        Preconditions.checkState(slowLockLogTriggerMillis() >= 0,
-                "Slow lock log trigger threshold must be non-negative, but found %s", slowLockLogTriggerMillis());
+        Preconditions.checkState(
+                maxNumberOfClients() >= 0,
+                "Maximum number of clients must be non-negative, but found %s",
+                maxNumberOfClients());
+        Preconditions.checkState(
+                slowLockLogTriggerMillis() >= 0,
+                "Slow lock log trigger threshold must be non-negative, but found %s",
+                slowLockLogTriggerMillis());
     }
 }

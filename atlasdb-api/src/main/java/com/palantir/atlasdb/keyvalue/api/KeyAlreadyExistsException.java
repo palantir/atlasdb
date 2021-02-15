@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Collection;
-
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
 
 /**
  * A {@link KeyAlreadyExistsException} is thrown if an operation that conditionally updates a {@link KeyValueService}
@@ -61,9 +60,8 @@ public class KeyAlreadyExistsException extends RuntimeException {
         this(msg, existingKeys, ImmutableList.of());
     }
 
-    public KeyAlreadyExistsException(String msg,
-            Iterable<Cell> existingKeys,
-            Iterable<Cell> knownSuccessfullyCommittedKeys) {
+    public KeyAlreadyExistsException(
+            String msg, Iterable<Cell> existingKeys, Iterable<Cell> knownSuccessfullyCommittedKeys) {
         super(msg);
         this.existingKeys = ImmutableList.copyOf(existingKeys);
         this.knownSuccessfullyCommittedKeys = ImmutableList.copyOf(knownSuccessfullyCommittedKeys);

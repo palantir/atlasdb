@@ -42,4 +42,3 @@ public class PalantirInterruptedException extends PalantirRuntimeException {
         super(msg, n);
     }
 }
-

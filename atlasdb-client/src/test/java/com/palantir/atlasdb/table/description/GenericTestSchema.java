@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.io.File;
-
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
+import java.io.File;
 
 public class GenericTestSchema implements AtlasSchema {
     public static final AtlasSchema INSTANCE = new GenericTestSchema();
@@ -27,37 +26,42 @@ public class GenericTestSchema implements AtlasSchema {
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private static Schema generateSchema() {
-        Schema schema = new Schema("GenericTestSchema",
+        Schema schema = new Schema(
+                "GenericTestSchema",
                 GenericTestSchema.class.getPackage().getName() + ".generated",
                 Namespace.create("test"),
                 OptionalType.JAVA8);
 
         // use for testing rangeScanAllowed code
-        schema.addTableDefinition("rangeScanTest", new TableDefinition() {{
-            javaTableName("RangeScanTest");
+        schema.addTableDefinition("rangeScanTest", new TableDefinition() {
+            {
+                javaTableName("RangeScanTest");
 
-            rowName();
-            rowComponent("component1", ValueType.STRING);
+                rowName();
+                rowComponent("component1", ValueType.STRING);
 
-            columns();
-            column("column1", "c", ValueType.VAR_LONG);
+                columns();
+                column("column1", "c", ValueType.VAR_LONG);
 
-            rangeScanAllowed();
-        }});
+                rangeScanAllowed();
+            }
+        });
 
-        schema.addTableDefinition("genericRangeScanTest", new TableDefinition() {{
-            javaTableName("GenericRangeScanTest");
+        schema.addTableDefinition("genericRangeScanTest", new TableDefinition() {
+            {
+                javaTableName("GenericRangeScanTest");
 
-            rowName();
-            rowComponent("component1", ValueType.SHA256HASH);
+                rowName();
+                rowComponent("component1", ValueType.SHA256HASH);
 
-            columns();
+                columns();
                 dynamicColumns();
                 columnComponent("component2", ValueType.STRING);
                 value(ValueType.STRING);
 
-            rangeScanAllowed();
-        }});
+                rangeScanAllowed();
+            }
+        });
 
         return schema;
     }
@@ -66,7 +70,7 @@ public class GenericTestSchema implements AtlasSchema {
         return GENERIC_TEST_SCHEMA;
     }
 
-    public static void main(String[]  args) throws Exception {
+    public static void main(String[] args) throws Exception {
         GENERIC_TEST_SCHEMA.renderTables(new File("src/test/java"));
     }
 

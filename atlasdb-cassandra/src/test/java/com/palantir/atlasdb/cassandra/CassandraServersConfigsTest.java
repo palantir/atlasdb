@@ -18,6 +18,9 @@ package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -25,12 +28,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.junit.Test;
-
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
-import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 public class CassandraServersConfigsTest {
 
@@ -40,8 +38,7 @@ public class CassandraServersConfigsTest {
     private static final InetSocketAddress THRIFT_SERVER_1 = new InetSocketAddress("foo", TEST_THRIFT_PORT);
     private static final InetSocketAddress THRIFT_SERVER_2 = new InetSocketAddress("bar", TEST_THRIFT_PORT);
 
-    private static final CqlCapableConfig CQL_CAPABLE_CONFIG =
-            cqlCapable("bar", "foo");
+    private static final CqlCapableConfig CQL_CAPABLE_CONFIG = cqlCapable("bar", "foo");
 
     private static CassandraServersConfigs.DefaultConfig defaultConfig(InetSocketAddress... thriftServers) {
         return ImmutableDefaultConfig.builder().addThriftHosts(thriftServers).build();
@@ -78,6 +75,7 @@ public class CassandraServersConfigsTest {
                 (CqlCapableConfig) deserializeClassFromFile("testServersConfigCqlCapableMulti.yml");
         assertThat(cqlCapableConfig.validateHosts()).isTrue();
     }
+
     @Test
     public void testHostNotTheSame() throws IOException {
         CqlCapableConfig cqlCapableConfig =
@@ -86,9 +84,7 @@ public class CassandraServersConfigsTest {
     }
 
     private static CassandraServersConfig deserializeClassFromFile(String configPath) throws IOException {
-        URL configUrl = CassandraServersConfig.class.getClassLoader()
-                .getResource(configPath);
-        return AtlasDbConfigs.OBJECT_MAPPER
-                .readValue(new File(configUrl.getPath()), CassandraServersConfig.class);
+        URL configUrl = CassandraServersConfig.class.getClassLoader().getResource(configPath);
+        return AtlasDbConfigs.OBJECT_MAPPER.readValue(new File(configUrl.getPath()), CassandraServersConfig.class);
     }
 }

@@ -28,6 +28,4 @@ import java.lang.annotation.Target;
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface Timed {
-}
-
+public @interface Timed {}

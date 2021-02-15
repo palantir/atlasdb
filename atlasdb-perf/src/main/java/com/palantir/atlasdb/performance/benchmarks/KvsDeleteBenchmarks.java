@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.util.concurrent.TimeUnit;
-
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
@@ -32,6 +23,13 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
+import java.util.concurrent.TimeUnit;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
+import org.openjdk.jmh.annotations.Warmup;
 
 @State(Scope.Benchmark)
 public class KvsDeleteBenchmarks {
@@ -42,22 +40,25 @@ public class KvsDeleteBenchmarks {
     }
 
     private Object doDeleteRange(ConsecutiveNarrowTable table, int numBatches) {
-        Iterable<RangeRequest> rangeRequests =
-                numBatches == 1
-                        ? ImmutableList.of(RangeRequest.all())
-                        : table.getRangeRequests(1, table.getNumRows() / numBatches, true);
+        Iterable<RangeRequest> rangeRequests = numBatches == 1
+                ? ImmutableList.of(RangeRequest.all())
+                : table.getRangeRequests(1, table.getNumRows() / numBatches, true);
 
         rangeRequests.forEach(rangeRequest -> table.getKvs().deleteRange(table.getTableRef(), rangeRequest));
         return rangeRequests;
     }
 
     private Object doDeleteAllTimestamps(RegeneratingTable<Cell> table) {
-        table.getKvs().deleteAllTimestamps(table.getTableRef(),
-                ImmutableMap.of(table.getTableCells(), new TimestampRangeDelete.Builder()
-                        .timestamp(RegeneratingTable.CELL_VERSIONS)
-                        .endInclusive(false)
-                        .deleteSentinels(false)
-                        .build()));
+        table.getKvs()
+                .deleteAllTimestamps(
+                        table.getTableRef(),
+                        ImmutableMap.of(
+                                table.getTableCells(),
+                                new TimestampRangeDelete.Builder()
+                                        .timestamp(RegeneratingTable.CELL_VERSIONS)
+                                        .endInclusive(false)
+                                        .deleteSentinels(false)
+                                        .build()));
         return table.getTableCells();
     }
 

@@ -55,7 +55,6 @@ public class TableRowSelection {
 
     @Override
     public String toString() {
-        return "TableRow [tableName=" + tableName + ", rows=" + rows + ", columnSelection="
-                + columnSelection + "]";
+        return "TableRow [tableName=" + tableName + ", rows=" + rows + ", columnSelection=" + columnSelection + "]";
     }
 }

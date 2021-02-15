@@ -15,23 +15,21 @@
  */
 package com.palantir.atlasdb;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
-
 import com.palantir.atlasdb.cleaner.AsyncPuncherTest;
 import com.palantir.atlasdb.cleaner.InMemorySweepTaskRunnerTest;
 import com.palantir.atlasdb.cleaner.PuncherTest;
 import com.palantir.atlasdb.compress.CompressionUtilsTest;
 import com.palantir.atlasdb.keyvalue.impl.RangeRequestsTest;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-                CompressionUtilsTest.class,
-                PuncherTest.class,
-                InMemorySweepTaskRunnerTest.class,
-                AsyncPuncherTest.class,
-                RangeRequestsTest.class
-        })
-public class AllAtlasDbFastTests {
-}
+    CompressionUtilsTest.class,
+    PuncherTest.class,
+    InMemorySweepTaskRunnerTest.class,
+    AsyncPuncherTest.class,
+    RangeRequestsTest.class
+})
+public class AllAtlasDbFastTests {}

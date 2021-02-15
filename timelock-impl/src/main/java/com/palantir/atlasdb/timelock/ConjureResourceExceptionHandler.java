@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import java.time.Duration;
-import java.util.function.Supplier;
-
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -28,6 +25,8 @@ import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
+import java.time.Duration;
+import java.util.function.Supplier;
 
 public class ConjureResourceExceptionHandler {
     private final RedirectRetryTargeter redirectRetryTargeter;
@@ -42,16 +41,26 @@ public class ConjureResourceExceptionHandler {
 
     private <T> ListenableFuture<T> handleExceptions(ListenableFuture<T> future) {
         return FluentFuture.from(future)
-                .catching(BlockingTimeoutException.class, timeout -> {
-                    throw QosException.throttle(Duration.ZERO);
-                }, MoreExecutors.directExecutor())
-                .catching(NotCurrentLeaderException.class, notCurrentLeader -> {
-                    throw redirectRetryTargeter.redirectRequest(notCurrentLeader.getServiceHint())
-                            .<QosException>map(QosException::retryOther)
-                            .orElseGet(QosException::unavailable);
-                }, MoreExecutors.directExecutor())
-                .catching(TooManyRequestsException.class, tooManyRequests -> {
-                    throw QosException.throttle();
-                }, MoreExecutors.directExecutor());
+                .catching(
+                        BlockingTimeoutException.class,
+                        timeout -> {
+                            throw QosException.throttle(Duration.ZERO);
+                        },
+                        MoreExecutors.directExecutor())
+                .catching(
+                        NotCurrentLeaderException.class,
+                        notCurrentLeader -> {
+                            throw redirectRetryTargeter
+                                    .redirectRequest(notCurrentLeader.getServiceHint())
+                                    .<QosException>map(QosException::retryOther)
+                                    .orElseGet(QosException::unavailable);
+                        },
+                        MoreExecutors.directExecutor())
+                .catching(
+                        TooManyRequestsException.class,
+                        tooManyRequests -> {
+                            throw QosException.throttle();
+                        },
+                        MoreExecutors.directExecutor());
     }
 }

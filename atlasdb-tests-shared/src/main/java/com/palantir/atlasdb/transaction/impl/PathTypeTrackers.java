@@ -35,14 +35,10 @@ public final class PathTypeTrackers {
         }
 
         @Override
-        public void expectedToBeInAsync() {
-
-        }
+        public void expectedToBeInAsync() {}
 
         @Override
-        public void checkNotInAsync() {
-
-        }
+        public void checkNotInAsync() {}
     };
 
     public static PathTypeTracker constructSynchronousTracker() {

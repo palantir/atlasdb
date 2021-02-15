@@ -15,15 +15,12 @@
  */
 package com.palantir.lock.logger;
 
-import java.util.Date;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockMode;
 import com.palantir.logsafe.Preconditions;
+import java.time.Instant;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class SimpleTokenInfo {
@@ -35,7 +32,7 @@ public abstract class SimpleTokenInfo {
                 .tokenId(token.getTokenId().toString())
                 .clientId(Preconditions.checkNotNull(token.getClient()).getClientId())
                 .requestThread(token.getRequestingThread())
-                .createAt(new Date(token.getCreationDateMs()).toString())
+                .createAt(Instant.ofEpochMilli(token.getCreationDateMs()).toString())
                 .versionId(token.getVersionId())
                 .build();
     }

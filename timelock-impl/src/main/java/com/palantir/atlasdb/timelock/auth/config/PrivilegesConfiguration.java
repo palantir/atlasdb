@@ -23,10 +23,11 @@ import com.palantir.atlasdb.timelock.auth.api.Privileges;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = ClientPrivilegesConfiguration.class)
 @JsonSubTypes({
-        @JsonSubTypes.Type(AdminPrivilegesConfiguration.class),
-        @JsonSubTypes.Type(ClientPrivilegesConfiguration.class)
+    @JsonSubTypes.Type(AdminPrivilegesConfiguration.class),
+    @JsonSubTypes.Type(ClientPrivilegesConfiguration.class)
 })
 public interface PrivilegesConfiguration {
     ClientId clientId();
+
     Privileges privileges();
 }

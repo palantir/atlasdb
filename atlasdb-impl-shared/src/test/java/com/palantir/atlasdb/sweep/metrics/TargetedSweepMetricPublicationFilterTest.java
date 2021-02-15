@@ -20,7 +20,6 @@ import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.junit.Test;
 
 public class TargetedSweepMetricPublicationFilterTest {
@@ -28,8 +27,8 @@ public class TargetedSweepMetricPublicationFilterTest {
     private final AtomicLong entriesRead = new AtomicLong();
     private final AtomicLong millisSinceLastSweptTs = new AtomicLong();
 
-    private final TargetedSweepMetricPublicationFilter filter = new TargetedSweepMetricPublicationFilter(
-            ImmutableDecisionMetrics.builder()
+    private final TargetedSweepMetricPublicationFilter filter =
+            new TargetedSweepMetricPublicationFilter(ImmutableDecisionMetrics.builder()
                     .enqueuedWrites(enqueuedWrites::get)
                     .entriesRead(entriesRead::get)
                     .millisSinceLastSweptTs(millisSinceLastSweptTs::get)

@@ -16,19 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.ORIGINAL_METADATA;
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.clearOutMetadataTable;
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.insertGenericMetadataIntoLegacyCell;
-
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.junit.After;
-import org.junit.ClassRule;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -38,12 +30,16 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.stream.Collectors;
+import org.junit.After;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class CassandraKeyValueServiceTableManipulationIntegrationTest {
     private static final TableReference UPPER_UPPER = TableReference.createFromFullyQualifiedName("TEST.TABLE");
     private static final TableReference LOWER_UPPER = TableReference.createFromFullyQualifiedName("test.TABLE");
     private static final TableReference LOWER_LOWER = TableReference.createFromFullyQualifiedName("test.table");
-    private static final List<TableReference> TABLES = ImmutableList.of(UPPER_UPPER, LOWER_UPPER, LOWER_LOWER);
+    private static final ImmutableList<TableReference> TABLES = ImmutableList.of(UPPER_UPPER, LOWER_UPPER, LOWER_LOWER);
     private static final byte[] BYTE_ARRAY = new byte[] {1};
     private static final byte[] SECOND_BYTE_ARRAY = new byte[] {2};
     private static final Cell CELL = Cell.create(BYTE_ARRAY, BYTE_ARRAY);
@@ -63,9 +59,7 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
     public void getMetadataForTablesReturnsWithCorrectCapitalization() {
         kvs.createTable(UPPER_UPPER, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        assertThat(kvs.getMetadataForTables().keySet())
-                .contains(UPPER_UPPER)
-                .doesNotContain(LOWER_LOWER);
+        assertThat(kvs.getMetadataForTables().keySet()).contains(UPPER_UPPER).doesNotContain(LOWER_LOWER);
     }
 
     @Test
@@ -99,7 +93,6 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
         assertThat(kvs.getMetadataForTables().get(LOWER_UPPER)).contains(ORIGINAL_METADATA);
         assertThat(kvs.getMetadataForTable(LOWER_UPPER)).contains(ORIGINAL_METADATA);
     }
-
 
     @Test
     public void droppingTablesCleansUpLegacyMetadataAndDoesNotAffectOtherTables() {
@@ -145,7 +138,8 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
         kvs.createTable(LOWER_UPPER, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         TABLES.forEach(table -> assertThat(kvs.getMetadataForTable(table)).isNotEmpty());
-        assertThat(kvs.getMetadataForTable(TableReference.createFromFullyQualifiedName("other.table"))).isEmpty();
+        assertThat(kvs.getMetadataForTable(TableReference.createFromFullyQualifiedName("other.table")))
+                .isEmpty();
     }
 
     @Test
@@ -155,9 +149,11 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
         kvs.put(UPPER_UPPER, ImmutableMap.of(CELL, BYTE_ARRAY), 1);
         kvs.put(LOWER_LOWER, ImmutableMap.of(CELL, SECOND_BYTE_ARRAY), 1);
 
-        assertThat(kvs.get(UPPER_UPPER, ImmutableMap.of(CELL, 2L)).get(CELL).getContents()).contains(BYTE_ARRAY);
+        assertThat(kvs.get(UPPER_UPPER, ImmutableMap.of(CELL, 2L)).get(CELL).getContents())
+                .contains(BYTE_ARRAY);
         assertThat(kvs.get(LOWER_UPPER, ImmutableMap.of(CELL, 2L))).doesNotContainKey(CELL);
-        assertThat(kvs.get(LOWER_LOWER, ImmutableMap.of(CELL, 2L)).get(CELL).getContents()).contains(SECOND_BYTE_ARRAY);
+        assertThat(kvs.get(LOWER_LOWER, ImmutableMap.of(CELL, 2L)).get(CELL).getContents())
+                .contains(SECOND_BYTE_ARRAY);
     }
 
     @Test
@@ -175,7 +171,8 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
         kvs.createTable(LOWER_LOWER, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         kvs.put(UPPER_UPPER, ImmutableMap.of(CELL, BYTE_ARRAY), 1);
-        assertThat(kvs.get(UPPER_UPPER, ImmutableMap.of(CELL, 2L)).get(CELL).getContents()).contains(BYTE_ARRAY);
+        assertThat(kvs.get(UPPER_UPPER, ImmutableMap.of(CELL, 2L)).get(CELL).getContents())
+                .contains(BYTE_ARRAY);
 
         assertThatThrownBy(() -> kvs.get(LOWER_LOWER, ImmutableMap.of(CELL, 2L)))
                 .isInstanceOf(RetryLimitReachedException.class);
@@ -185,14 +182,15 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
     }
 
     private void createTablesIgnoringException() {
-        assertThatThrownBy(() -> kvs.createTables(
-                TABLES.stream().collect(Collectors.toMap(x -> x, no -> AtlasDbConstants.GENERIC_TABLE_METADATA))))
+        assertThatThrownBy(() -> kvs.createTables(TABLES.stream()
+                        .collect(Collectors.toMap(x -> x, no -> AtlasDbConstants.GENERIC_TABLE_METADATA))))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     private void insertMetadataIntoNewCell(TableReference tableRef) {
         Cell metadataCell = CassandraKeyValueServices.getMetadataCell(tableRef);
-        kvs.put(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+        kvs.put(
+                AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 ImmutableMap.of(metadataCell, AtlasDbConstants.GENERIC_TABLE_METADATA),
                 System.currentTimeMillis());
     }

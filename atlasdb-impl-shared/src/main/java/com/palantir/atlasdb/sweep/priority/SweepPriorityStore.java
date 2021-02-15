@@ -15,19 +15,21 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.Collection;
-import java.util.List;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
+import java.util.Collection;
+import java.util.List;
 
 @AutoDelegate
 public interface SweepPriorityStore {
     void delete(Transaction tx, Collection<TableReference> tableRefs);
+
     void update(Transaction tx, TableReference tableRef, UpdateSweepPriority update);
+
     List<SweepPriority> loadNewPriorities(Transaction tx);
+
     List<SweepPriority> loadOldPriorities(Transaction tx, long sweepTimestamp);
 
     @DoDelegate

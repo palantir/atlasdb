@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PostgresTableInitializer implements DbTableInitializer {
     private static final Logger log = LoggerFactory.getLogger(PostgresTableInitializer.class);
@@ -38,13 +37,11 @@ public class PostgresTableInitializer implements DbTableInitializer {
                 "CREATE TABLE dual (id BIGINT, CONSTRAINT "
                         + PrimaryKeyConstraintNames.get("dual")
                         + " PRIMARY KEY (id))",
-                "already exists"
-        );
+                "already exists");
 
         executeIgnoringError(
                 "INSERT INTO dual (id) SELECT 1 WHERE NOT EXISTS ( SELECT id FROM dual WHERE id = 1 )",
-                "duplicate key"
-        );
+                "duplicate key");
     }
 
     @Override
@@ -52,11 +49,11 @@ public class PostgresTableInitializer implements DbTableInitializer {
         executeIgnoringError(
                 String.format(
                         "CREATE TABLE %s ("
-                        + "  table_name VARCHAR(2000) NOT NULL,"
-                        + "  table_size BIGINT NOT NULL,"
-                        + "  value      BYTEA NULL,"
-                        + "  CONSTRAINT %s PRIMARY KEY (table_name) "
-                        + ")",
+                                + "  table_name VARCHAR(2000) NOT NULL,"
+                                + "  table_size BIGINT NOT NULL,"
+                                + "  value      BYTEA NULL,"
+                                + "  CONSTRAINT %s PRIMARY KEY (table_name) "
+                                + ")",
                         metadataTableName, PrimaryKeyConstraintNames.get(metadataTableName)),
                 "already exists");
 

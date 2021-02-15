@@ -15,12 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.OptionalLong;
-
-import javax.annotation.concurrent.GuardedBy;
-
+import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.common.base.Throwables;
@@ -32,15 +28,39 @@ import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.RetriableTransactions;
 import com.palantir.nexus.db.pool.RetriableTransactions.TransactionResult;
 import com.palantir.nexus.db.pool.RetriableWriteTransaction;
+import com.palantir.timestamp.AutoDelegate_TimestampBoundStore;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.OptionalLong;
+import javax.annotation.concurrent.GuardedBy;
 
 // TODO(hsaraogi): switch to using ptdatabase sql running, which more gracefully supports multiple db types.
 public class InDbTimestampBoundStore implements TimestampBoundStore {
+    private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TimestampBoundStore {
+        @Override
+        public TimestampBoundStore delegate() {
+            checkInitialized();
+            return InDbTimestampBoundStore.this;
+        }
+
+        @Override
+        protected void tryInitialize() {
+            InDbTimestampBoundStore.this.init();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return "InDbTimestampBoundStore";
+        }
+    }
+
     private static final String EMPTY_TABLE_PREFIX = "";
 
     private final ConnectionManager connManager;
     private final PhysicalBoundStoreStrategy physicalBoundStoreStrategy;
+    private final InitializingWrapper wrapper = new InitializingWrapper();
 
     @GuardedBy("this") // lazy init to avoid db connections in constructors
     private DBType dbType;
@@ -55,33 +75,58 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         this(connManager, new LegacyPhysicalBoundStoreStrategy(timestampTable, EMPTY_TABLE_PREFIX));
     }
 
-    public static InDbTimestampBoundStore create(ConnectionManager connManager, TableReference timestampTable) {
+    public static TimestampBoundStore create(ConnectionManager connManager, TableReference timestampTable) {
         return InDbTimestampBoundStore.create(connManager, timestampTable, EMPTY_TABLE_PREFIX);
     }
 
-    public static InDbTimestampBoundStore create(
+    public static TimestampBoundStore create(
+            ConnectionManager connManager, TableReference timestampTable, boolean initializeAsync) {
+        return InDbTimestampBoundStore.create(connManager, timestampTable, EMPTY_TABLE_PREFIX, initializeAsync);
+    }
+
+    public static TimestampBoundStore create(
+            ConnectionManager connManager, TableReference timestampTable, String tablePrefixString) {
+        return createWithStrategy(
+                connManager,
+                new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static TimestampBoundStore create(
             ConnectionManager connManager,
             TableReference timestampTable,
-            String tablePrefixString) {
-        return createWithStrategy(connManager, new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString));
+            String tablePrefixString,
+            boolean initializeAsync) {
+        return createWithStrategy(
+                connManager, new LegacyPhysicalBoundStoreStrategy(timestampTable, tablePrefixString), initializeAsync);
     }
 
-    public static InDbTimestampBoundStore createForMultiSeries(
+    public static TimestampBoundStore createForMultiSeries(
+            ConnectionManager connManager, TableReference timestampTable, TimestampSeries series) {
+        return createWithStrategy(
+                connManager,
+                new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    }
+
+    public static TimestampBoundStore createForMultiSeries(
             ConnectionManager connManager,
             TableReference timestampTable,
-            TimestampSeries series) {
-        return createWithStrategy(connManager, new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series));
+            TimestampSeries series,
+            boolean initializeAsync) {
+        return createWithStrategy(
+                connManager, new MultiSequencePhysicalBoundStoreStrategy(timestampTable, series), initializeAsync);
     }
 
-    private static InDbTimestampBoundStore createWithStrategy(ConnectionManager connManager,
-            PhysicalBoundStoreStrategy strategy) {
-        InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(connManager, strategy);
-        inDbTimestampBoundStore.init();
-        return inDbTimestampBoundStore;
+    private static TimestampBoundStore createWithStrategy(
+            ConnectionManager connManager, PhysicalBoundStoreStrategy strategy, boolean initializeAsync) {
+        InDbTimestampBoundStore store = new InDbTimestampBoundStore(connManager, strategy);
+        store.wrapper.initialize(initializeAsync);
+        return store.wrapper.isInitialized() ? store : store.wrapper;
     }
 
-    private InDbTimestampBoundStore(ConnectionManager connManager,
-            PhysicalBoundStoreStrategy physicalBoundStoreStrategy) {
+    private InDbTimestampBoundStore(
+            ConnectionManager connManager, PhysicalBoundStoreStrategy physicalBoundStoreStrategy) {
         this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
         this.physicalBoundStoreStrategy = physicalBoundStoreStrategy;
     }
@@ -118,11 +163,10 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
                         }
                     } else {
                         // disappearance
-                        throw new SafeIllegalStateException(
-                                "Unable to retrieve a timestamp when expected. "
-                                        + "This service is in a dangerous state and should be taken down "
-                                        + "until a new safe timestamp value can be established in the KVS. "
-                                        + "Please contact support.");
+                        throw new SafeIllegalStateException("Unable to retrieve a timestamp when expected. "
+                                + "This service is in a dangerous state and should be taken down "
+                                + "until a new safe timestamp value can be established in the KVS. "
+                                + "Please contact support.");
                     }
                 } else {
                     // first read, no check to be done

@@ -16,27 +16,13 @@
 
 package com.palantir.atlasdb.factory;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import javax.ws.rs.core.MediaType;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -65,10 +51,19 @@ import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tokens.auth.AuthHeader;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import javax.ws.rs.core.MediaType;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class AtlasDbDialogueServiceProviderTest {
-    private static final SslConfiguration SSL_CONFIGURATION
-            = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    private static final SslConfiguration SSL_CONFIGURATION =
+            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
 
     private static final String CLIENT = "tom";
     private static final String TIMESTAMP_PATH = "/tl/ts/" + CLIENT;
@@ -76,8 +71,8 @@ public class AtlasDbDialogueServiceProviderTest {
     private static final String LOCK_PATH = "/tl/l/" + CLIENT;
     private static final MappingBuilder LOCK_MAPPING = post(urlEqualTo(LOCK_PATH));
 
-    private static final DialogueClients.ReloadingFactory DIALOGUE_BASE_FACTORY
-            = DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()));
+    private static final DialogueClients.ReloadingFactory DIALOGUE_BASE_FACTORY = DialogueClients.create(
+            Refreshable.only(ServicesConfigBlock.builder().build()));
     private static final UserAgent USER_USER_AGENT = UserAgent.of(UserAgent.Agent.of("jeremy", "77.79.12"));
 
     private static final int FIRST_LOWER = 58;
@@ -92,10 +87,12 @@ public class AtlasDbDialogueServiceProviderTest {
     private ConjureTimelockService conjureTimelockService;
 
     @Rule
-    public WireMockRule server = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockRule server =
+            new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     @Rule
-    public WireMockRule secondServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockRule secondServer =
+            new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     @Before
     public void setup() {
@@ -108,7 +105,6 @@ public class AtlasDbDialogueServiceProviderTest {
         conjureTimelockService = provider.getConjureTimelockService();
     }
 
-
     @Test
     public void canMakeRequestsThroughDialogue() {
         assertTimestampRange(conjureTimelockService, FIRST_LOWER, FIRST_UPPER);
@@ -119,8 +115,10 @@ public class AtlasDbDialogueServiceProviderTest {
         makeTimestampsRequest(conjureTimelockService);
 
         server.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader(HttpHeaders.USER_AGENT, WireMock.containing(
-                        String.format("%s/%s",
+                .withHeader(
+                        HttpHeaders.USER_AGENT,
+                        WireMock.containing(String.format(
+                                "%s/%s",
                                 USER_USER_AGENT.primary().name(),
                                 USER_USER_AGENT.primary().version()))));
     }
@@ -130,21 +128,22 @@ public class AtlasDbDialogueServiceProviderTest {
         makeTimestampsRequest(conjureTimelockService);
 
         server.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader(HttpHeaders.USER_AGENT, WireMock.containing(
-                        String.format("%s/%s",
+                .withHeader(
+                        HttpHeaders.USER_AGENT,
+                        WireMock.containing(String.format(
+                                "%s/%s",
                                 AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT,
                                 AtlasDbRemotingConstants.CURRENT_CLIENT_PROTOCOL_VERSION.getProtocolVersionString()))));
     }
 
     @Test
     public void resilientToRepeatedRedirects() {
-        server.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse()
-                .withStatus(308)
-                .withHeader(HttpHeaders.LOCATION, getUriForPort(serverPort))));
+        server.stubFor(TIMESTAMP_MAPPING.willReturn(
+                aResponse().withStatus(308).withHeader(HttpHeaders.LOCATION, getUriForPort(serverPort))));
 
         Instant start = Instant.now();
         ExecutorService ex = PTExecutors.newSingleThreadExecutor(true);
-        ex.submit(this::scheduleServerRecoveryAfterFiveSeconds);
+        ex.execute(this::scheduleServerRecoveryAfterFiveSeconds);
 
         assertThatCode(() -> makeTimestampsRequest(conjureTimelockService)).doesNotThrowAnyException();
         assertThat(Instant.now())
@@ -155,8 +154,10 @@ public class AtlasDbDialogueServiceProviderTest {
 
     @Test
     public void lockRequestsBlockingLongerThanShortReadTimeoutAllowed() {
-        int lockBlockingMillis = Ints.checkedCast(
-                ClientOptionsConstants.SHORT_READ_TIMEOUT.toJavaDuration().plusSeconds(1).toMillis());
+        int lockBlockingMillis = Ints.checkedCast(ClientOptionsConstants.SHORT_READ_TIMEOUT
+                .toJavaDuration()
+                .plusSeconds(1)
+                .toMillis());
         server.stubFor(LOCK_MAPPING.willReturn(aResponse()
                 .withFixedDelay(lockBlockingMillis)
                 .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
@@ -183,8 +184,8 @@ public class AtlasDbDialogueServiceProviderTest {
 
     @Test
     public void canTalkToTwoDifferentTimeLockServers() {
-        ConjureTimelockService secondTimelockService = getAtlasDbDialogueServiceProvider(secondServerPort)
-                .getConjureTimelockService();
+        ConjureTimelockService secondTimelockService =
+                getAtlasDbDialogueServiceProvider(secondServerPort).getConjureTimelockService();
 
         assertTimestampRange(conjureTimelockService, FIRST_LOWER, FIRST_UPPER);
         assertTimestampRange(secondTimelockService, SECOND_LOWER, SECOND_UPPER);
@@ -202,7 +203,7 @@ public class AtlasDbDialogueServiceProviderTest {
     }
 
     private void scheduleServerRecoveryAfterFiveSeconds() {
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(5));
         setupServersToGiveOutTimestamps();
     }
 
@@ -218,11 +219,10 @@ public class AtlasDbDialogueServiceProviderTest {
     }
 
     private void assertTimestampRange(ConjureTimelockService timelockService, int expectedLower, int expectedUpper) {
-        assertThat(makeTimestampsRequest(timelockService)).satisfies(
-                range -> {
-                    assertThat(range.getInclusiveLower()).isEqualTo(expectedLower);
-                    assertThat(range.getInclusiveUpper()).isEqualTo(expectedUpper);
-                });
+        assertThat(makeTimestampsRequest(timelockService)).satisfies(range -> {
+            assertThat(range.getInclusiveLower()).isEqualTo(expectedLower);
+            assertThat(range.getInclusiveUpper()).isEqualTo(expectedUpper);
+        });
     }
 
     private ConjureGetFreshTimestampsResponse makeTimestampsRequest(ConjureTimelockService service) {

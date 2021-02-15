@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-import java.util.List;
-import java.util.function.Supplier;
-
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
@@ -33,6 +30,8 @@ import com.palantir.processors.DoDelegate;
 import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.List;
+import java.util.function.Supplier;
 
 @AutoDelegate
 public interface TransactionManager extends AutoCloseable {
@@ -145,8 +144,8 @@ public interface TransactionManager extends AutoCloseable {
      */
     @Timed
     <T, E extends Exception> T runTaskWithLocksWithRetry(
-            Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+            Supplier<LockRequest> lockSupplier, LockAwareTransactionTask<T, E> task)
+            throws E, InterruptedException, LockAcquisitionException;
 
     /**
      * This is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}, but instead
@@ -159,9 +158,9 @@ public interface TransactionManager extends AutoCloseable {
     @Deprecated
     @Timed
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
-            com.google.common.base.Supplier<LockRequest> guavaSupplier,
-            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException {
-        Supplier<LockRequest> javaSupplier = guavaSupplier::get;
+            com.google.common.base.Supplier<LockRequest> guavaSupplier, LockAwareTransactionTask<T, E> task)
+            throws E, InterruptedException, LockAcquisitionException {
+        Supplier<LockRequest> javaSupplier = guavaSupplier;
         return runTaskWithLocksWithRetry(javaSupplier, task);
     }
 
@@ -181,7 +180,8 @@ public interface TransactionManager extends AutoCloseable {
     <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
-            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+            LockAwareTransactionTask<T, E> task)
+            throws E, InterruptedException, LockAcquisitionException;
 
     /**
      * This is the same as {@link #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)}, but instead
@@ -196,8 +196,9 @@ public interface TransactionManager extends AutoCloseable {
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             com.google.common.base.Supplier<LockRequest> guavaSupplier,
-            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException {
-        Supplier<LockRequest> javaSupplier = guavaSupplier::get;
+            LockAwareTransactionTask<T, E> task)
+            throws E, InterruptedException, LockAcquisitionException {
+        Supplier<LockRequest> javaSupplier = guavaSupplier;
         return runTaskWithLocksWithRetry(lockTokens, javaSupplier, task);
     }
 
@@ -214,8 +215,8 @@ public interface TransactionManager extends AutoCloseable {
      */
     @Timed
     <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
-            Iterable<HeldLocksToken> lockTokens,
-            LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
+            Iterable<HeldLocksToken> lockTokens, LockAwareTransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException;
 
     /**
      * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)}, but it will
@@ -247,7 +248,7 @@ public interface TransactionManager extends AutoCloseable {
     @Timed
     default <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             com.google.common.base.Supplier<C> guavaSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
-        Supplier<C> javaSupplier = guavaSupplier::get;
+        Supplier<C> javaSupplier = guavaSupplier;
         return runTaskWithConditionWithRetry(javaSupplier, task);
     }
 
@@ -266,8 +267,7 @@ public interface TransactionManager extends AutoCloseable {
      */
     @Timed
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
-            C condition, ConditionAwareTransactionTask<T, C, E> task)
-            throws E, TransactionFailedRetriableException;
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException;
 
     /**
      * This method is basically the same as {@link #runTaskReadOnly(TransactionTask)}, but it takes

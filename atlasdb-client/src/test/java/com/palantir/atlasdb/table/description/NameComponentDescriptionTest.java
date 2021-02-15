@@ -17,11 +17,10 @@ package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import org.junit.Test;
 
 public class NameComponentDescriptionTest {
     private static final String COMPONENT_NAME = "rowComponent";
@@ -37,8 +36,8 @@ public class NameComponentDescriptionTest {
             .componentName("name")
             .type(ValueType.BLOB)
             .build();
-    private static final NameComponentDescription LOGGABILITY_UNSPECIFIED_DESCRIPTION
-            = new NameComponentDescription.Builder()
+    private static final NameComponentDescription LOGGABILITY_UNSPECIFIED_DESCRIPTION =
+            new NameComponentDescription.Builder()
                     .componentName(COMPONENT_NAME)
                     .type(VALUE_TYPE)
                     .byteOrder(VALUE_BYTE_ORDER)
@@ -163,14 +162,13 @@ public class NameComponentDescriptionTest {
 
     @Test
     public void withPartitionersPreservesNonLoggabilityOfName() {
-        assertThat(LOGGABILITY_UNSPECIFIED_DESCRIPTION.withPartitioners().getLogSafety()).isEqualTo(LogSafety.UNSAFE);
+        assertThat(LOGGABILITY_UNSPECIFIED_DESCRIPTION.withPartitioners().getLogSafety())
+                .isEqualTo(LogSafety.UNSAFE);
     }
 
     private static void assertCanSerializeAndDeserializeWithSafety(
-            NameComponentDescription componentDescription,
-            LogSafety logSafety) {
-        TableMetadataPersistence.NameComponentDescription.Builder builder =
-                componentDescription.persistToProto();
+            NameComponentDescription componentDescription, LogSafety logSafety) {
+        TableMetadataPersistence.NameComponentDescription.Builder builder = componentDescription.persistToProto();
         assertThat(NameComponentDescription.hydrateFromProto(builder.build()))
                 .isEqualTo(componentDescription)
                 .matches(description -> description.getLogSafety() == logSafety);

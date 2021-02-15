@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -26,13 +25,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.sql.Connection;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -41,6 +33,11 @@ import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
+import java.sql.Connection;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class OracleTableNameUnmapperTest {
 
@@ -52,7 +49,6 @@ public class OracleTableNameUnmapperTest {
     private static final TableReference TABLE_REF = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
     private static final TableReference TABLE_REF_2 = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "2");
 
-
     private OracleTableNameUnmapper oracleTableNameUnmapper;
     private AgnosticResultSet resultSet;
     private ConnectionSupplier connectionSupplier;
@@ -63,15 +59,14 @@ public class OracleTableNameUnmapperTest {
     @Before
     public void setup() {
         connectionSupplier = mock(ConnectionSupplier.class);
-        oracleTableNameUnmapper =  new OracleTableNameUnmapper();
+        oracleTableNameUnmapper = new OracleTableNameUnmapper();
         SqlConnection sqlConnection = mock(SqlConnection.class);
         Connection connection = mock(Connection.class);
         when(sqlConnection.getUnderlyingConnection()).thenReturn(connection);
         when(connectionSupplier.get()).thenReturn(sqlConnection);
 
         resultSet = mock(AgnosticResultSet.class);
-        when(sqlConnection
-                .selectResultSetUnregisteredQuery(
+        when(sqlConnection.selectResultSetUnregisteredQuery(
                         startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), anyObject()))
                 .thenReturn(resultSet);
     }
@@ -93,9 +88,9 @@ public class OracleTableNameUnmapperTest {
         when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
         doReturn(ImmutableList.of(row)).when(resultSet).rows();
 
-        String shortName = oracleTableNameUnmapper
-                .getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF);
-        assertThat(shortName, is(SHORT_TABLE_NAME));
+        String shortName =
+                oracleTableNameUnmapper.getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF);
+        assertThat(shortName).isEqualTo(SHORT_TABLE_NAME);
     }
 
     @Test
@@ -107,9 +102,9 @@ public class OracleTableNameUnmapperTest {
         when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
         doReturn(ImmutableList.of(row)).when(resultSet).rows();
 
-        String shortName = oracleTableNameUnmapper
-                .getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF_2);
-        assertThat(shortName, is(SHORT_TABLE_NAME));
+        String shortName =
+                oracleTableNameUnmapper.getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF_2);
+        assertThat(shortName).isEqualTo(SHORT_TABLE_NAME);
 
         // verify that underlying datastore was called once instead of hitting the cache
         verify(row, times(1)).getString("short_table_name");

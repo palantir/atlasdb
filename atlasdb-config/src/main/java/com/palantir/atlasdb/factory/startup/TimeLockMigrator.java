@@ -29,17 +29,14 @@ public class TimeLockMigrator extends AsyncInitializer {
     private final boolean initializeAsync;
 
     private TimeLockMigrator(
-            TimestampStoreInvalidator source,
-            TimestampManagementService destination,
-            boolean initializeAsync) {
+            TimestampStoreInvalidator source, TimestampManagementService destination, boolean initializeAsync) {
         this.source = source;
         this.destination = destination;
         this.initializeAsync = initializeAsync;
     }
 
     public static TimeLockMigrator create(
-            TimestampManagementService timestampManagementService,
-            TimestampStoreInvalidator invalidator) {
+            TimestampManagementService timestampManagementService, TimestampStoreInvalidator invalidator) {
         return create(timestampManagementService, invalidator, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
@@ -85,4 +82,3 @@ public class TimeLockMigrator extends AsyncInitializer {
         return TimeLockMigrator.class.getSimpleName();
     }
 }
-

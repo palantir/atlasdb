@@ -27,7 +27,6 @@ import static org.mockito.Mockito.when;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,8 +34,8 @@ import org.junit.Test;
 public class CachedTransformingSupplierTest {
     private final Supplier<String> STRING_SUPPLIER = mock(Supplier.class);
     private final Function<String, Long> LONG_FUNCTION = mock(Function.class);
-    private final CachedTransformingSupplier<String, Long> TRANSFORMING_SUPPLIER = new CachedTransformingSupplier<>(
-            STRING_SUPPLIER, LONG_FUNCTION);
+    private final CachedTransformingSupplier<String, Long> TRANSFORMING_SUPPLIER =
+            new CachedTransformingSupplier<>(STRING_SUPPLIER, LONG_FUNCTION);
 
     @Before
     public void setUp() {
@@ -45,9 +44,7 @@ public class CachedTransformingSupplierTest {
 
     @Test
     public void getsFreshValuesFromSupplier() {
-        when(STRING_SUPPLIER.get())
-                .thenReturn("42")
-                .thenReturn("4242");
+        when(STRING_SUPPLIER.get()).thenReturn("42").thenReturn("4242");
         assertThat(TRANSFORMING_SUPPLIER.get()).isEqualTo(42);
         assertThat(TRANSFORMING_SUPPLIER.get()).isEqualTo(4242);
     }
@@ -55,8 +52,8 @@ public class CachedTransformingSupplierTest {
     @Test
     public void onlyCallsTransformOnceIfUnderlyingValueNotChanged() {
         when(STRING_SUPPLIER.get()).thenReturn("42");
-        IntStream.range(0, 10).forEach(
-                $ -> assertThat(TRANSFORMING_SUPPLIER.get()).isEqualTo(42));
+        IntStream.range(0, 10)
+                .forEach($ -> assertThat(TRANSFORMING_SUPPLIER.get()).isEqualTo(42));
         verify(STRING_SUPPLIER, times(10)).get();
         verify(LONG_FUNCTION, times(1)).apply(anyString());
     }

@@ -15,16 +15,14 @@
  */
 package com.palantir.timelock.config;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.timelock.utils.KubernetesHostnames;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 /**
  * Generates the current hostname, and those of the expected members of the cluster if the server is being executed
@@ -54,8 +52,7 @@ public interface KubernetesClusterConfiguration extends ClusterConfiguration {
 
     @Override
     default List<String> clusterMembers() {
-        return KubernetesHostnames.INSTANCE.getClusterMembers(expectedClusterSize())
-                .stream()
+        return KubernetesHostnames.INSTANCE.getClusterMembers(expectedClusterSize()).stream()
                 .map(hostname -> String.format("%s:%s%s", hostname, port(), path()))
                 .collect(Collectors.toList());
     }
@@ -67,8 +64,10 @@ public interface KubernetesClusterConfiguration extends ClusterConfiguration {
 
     @Value.Check
     default void k8sCheck() {
-        Preconditions.checkState(expectedClusterSize() > 0,
-                "expected-cluster-size must be a positive integer; provided: %s.", expectedClusterSize());
+        Preconditions.checkState(
+                expectedClusterSize() > 0,
+                "expected-cluster-size must be a positive integer; provided: %s.",
+                expectedClusterSize());
         Preconditions.checkState(port() > 0 && port() < 65535, "Invalid port specified: %s", port());
     }
 }

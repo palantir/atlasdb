@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import org.junit.ClassRule;
-
 import com.palantir.atlasdb.keyvalue.dbkvs.DbkvsPostgresTestSuite;
 import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import org.junit.ClassRule;
 
 public class DbKvsPostgresGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
     @ClassRule

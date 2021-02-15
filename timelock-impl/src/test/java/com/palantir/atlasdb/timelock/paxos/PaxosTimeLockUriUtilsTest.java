@@ -17,16 +17,14 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Set;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
+import org.junit.Test;
 
 public class PaxosTimeLockUriUtilsTest {
     private static final String ADDRESS_1 = "foo:1234";
     private static final String ADDRESS_2 = "bar:5678";
-    private static final Set<String> ADDRESSES = ImmutableSet.of(ADDRESS_1, ADDRESS_2);
+    private static final ImmutableSet<String> ADDRESSES = ImmutableSet.of(ADDRESS_1, ADDRESS_2);
 
     private static final String CLIENT = "testClient";
 
@@ -34,31 +32,37 @@ public class PaxosTimeLockUriUtilsTest {
     public void canGetLeaderUris() {
         Set<String> leaderUris = PaxosTimeLockUriUtils.getLeaderPaxosUris(ADDRESSES);
 
-        assertThat(leaderUris).containsExactlyInAnyOrder(
-                String.join("/",
-                        ADDRESS_1,
-                        PaxosTimeLockConstants.INTERNAL_NAMESPACE,
-                        PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE),
-                String.join("/",
-                        ADDRESS_2,
-                        PaxosTimeLockConstants.INTERNAL_NAMESPACE,
-                        PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE));
+        assertThat(leaderUris)
+                .containsExactlyInAnyOrder(
+                        String.join(
+                                "/",
+                                ADDRESS_1,
+                                PaxosTimeLockConstants.INTERNAL_NAMESPACE,
+                                PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE),
+                        String.join(
+                                "/",
+                                ADDRESS_2,
+                                PaxosTimeLockConstants.INTERNAL_NAMESPACE,
+                                PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE));
     }
 
     @Test
     public void canGetClientPaxosUris() {
         Set<String> clientPaxosUris = PaxosTimeLockUriUtils.getClientPaxosUris(ADDRESSES, CLIENT);
 
-        assertThat(clientPaxosUris).containsExactlyInAnyOrder(
-                String.join("/",
-                        ADDRESS_1,
-                        PaxosTimeLockConstants.INTERNAL_NAMESPACE,
-                        PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
-                        CLIENT),
-                String.join("/",
-                        ADDRESS_2,
-                        PaxosTimeLockConstants.INTERNAL_NAMESPACE,
-                        PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
-                        CLIENT));
+        assertThat(clientPaxosUris)
+                .containsExactlyInAnyOrder(
+                        String.join(
+                                "/",
+                                ADDRESS_1,
+                                PaxosTimeLockConstants.INTERNAL_NAMESPACE,
+                                PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
+                                CLIENT),
+                        String.join(
+                                "/",
+                                ADDRESS_2,
+                                PaxosTimeLockConstants.INTERNAL_NAMESPACE,
+                                PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
+                                CLIENT));
     }
 }

@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -31,6 +27,9 @@ import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 
 public class TableCellValSerializer extends StdSerializer<TableCellVal> {
     private static final long serialVersionUID = 1L;
@@ -48,16 +47,15 @@ public class TableCellValSerializer extends StdSerializer<TableCellVal> {
         jgen.writeStartObject();
         jgen.writeStringField("table", value.getTableName());
         jgen.writeArrayFieldStart("data");
-        for (Entry<Cell, byte[]> result : value.getResults().entrySet()) {
+        for (Map.Entry<Cell, byte[]> result : value.getResults().entrySet()) {
             serialize(jgen, metadata, result);
         }
         jgen.writeEndArray();
         jgen.writeEndObject();
     }
 
-    private static void serialize(JsonGenerator jgen,
-                                  TableMetadata metadata,
-                                  Entry<Cell, byte[]> result) throws IOException {
+    private static void serialize(JsonGenerator jgen, TableMetadata metadata, Map.Entry<Cell, byte[]> result)
+            throws IOException {
         Cell cell = result.getKey();
         byte[] row = cell.getRowName();
         byte[] col = cell.getColumnName();

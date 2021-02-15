@@ -15,17 +15,15 @@
  */
 package com.palantir.timestamp;
 
-import javax.ws.rs.QueryParam;
-
 import com.palantir.logsafe.Preconditions;
+import javax.ws.rs.QueryParam;
 
 public class DelegatingManagedTimestampService implements ManagedTimestampService {
     private final TimestampService timestampService;
     private final TimestampManagementService timestampManagementService;
 
     public DelegatingManagedTimestampService(
-            TimestampService timestampService,
-            TimestampManagementService timestampManagementService) {
+            TimestampService timestampService, TimestampManagementService timestampManagementService) {
         Preconditions.checkNotNull(timestampService, "Timestamp service should not be null");
         Preconditions.checkNotNull(timestampManagementService, "Timestamp management service should not be null");
         this.timestampService = timestampService;

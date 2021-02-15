@@ -16,22 +16,20 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
-
-import java.util.HashSet;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchReferences;
+import java.util.HashSet;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @SuppressWarnings("UnstableApiUsage")
 interface LockWatches {
     @Value.Parameter
     Set<LockWatchReferences.LockWatchReference> references();
+
     @Value.Parameter
     RangeSet<LockDescriptor> ranges();
 

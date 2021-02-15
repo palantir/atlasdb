@@ -16,17 +16,6 @@
 
 package com.palantir.atlasdb.util;
 
-import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
@@ -35,6 +24,14 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
 import com.palantir.tritium.event.DefaultInvocationContext;
 import com.palantir.tritium.event.InvocationContext;
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A modified version of {@link com.palantir.tritium.event.metrics.MetricsInvocationEventHandler} that uses a
@@ -47,8 +44,7 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
     private final Map<Method, Timer> timers = new ConcurrentHashMap<>();
     private final String serviceName;
 
-    public SlidingWindowMetricsInvocationHandler(
-            MetricRegistry metricRegistry, String serviceName) {
+    public SlidingWindowMetricsInvocationHandler(MetricRegistry metricRegistry, String serviceName) {
         super(InstrumentationUtils.getEnabledSupplier(serviceName));
         this.metricRegistry = Preconditions.checkNotNull(metricRegistry, "metricRegistry");
         this.serviceName = Preconditions.checkNotNull(serviceName, "serviceName");
@@ -76,7 +72,8 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
     public void onFailure(@Nullable InvocationContext context, @Nonnull Throwable cause) {
         markGlobalFailure();
         if (context == null) {
-            logger.debug("Encountered null metric context likely due to exception in preInvocation: {}",
+            logger.debug(
+                    "Encountered null metric context likely due to exception in preInvocation: {}",
                     UnsafeArg.of("cause", cause),
                     cause);
             return;
@@ -84,16 +81,19 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
 
         String failuresMetricName = InstrumentationUtils.getFailuresMetricName(context, serviceName);
         metricRegistry.meter(failuresMetricName).mark();
-        metricRegistry.meter(MetricRegistry.name(failuresMetricName, cause.getClass().getName())).mark();
+        metricRegistry
+                .meter(MetricRegistry.name(failuresMetricName, cause.getClass().getName()))
+                .mark();
     }
 
     private Timer getTimer(Method method) {
         return metricRegistry.timer(
-                InstrumentationUtils.getBaseMetricName(method, serviceName),
-                InstrumentationUtils::createNewTimer);
+                InstrumentationUtils.getBaseMetricName(method, serviceName), InstrumentationUtils::createNewTimer);
     }
 
     private void markGlobalFailure() {
-        metricRegistry.meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME.safeName()).mark();
+        metricRegistry
+                .meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME.safeName())
+                .mark();
     }
 }

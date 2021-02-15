@@ -15,11 +15,15 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
-
+import com.google.common.collect.Streams;
+import com.google.common.io.Files;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -29,18 +33,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.google.common.collect.Streams;
-import com.google.common.io.Files;
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaTest {
     @Rule
@@ -101,8 +98,7 @@ public class SchemaTest {
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
         List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>();
         kvsList.add(CharacterLimitType.CASSANDRA);
-        assertThatThrownBy(() ->
-                schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
+        assertThatThrownBy(() -> schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(getErrorMessage(longTableName, kvsList));
     }
@@ -115,8 +111,7 @@ public class SchemaTest {
         List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>();
         kvsList.add(CharacterLimitType.CASSANDRA);
         kvsList.add(CharacterLimitType.POSTGRES);
-        assertThatThrownBy(() ->
-                schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
+        assertThatThrownBy(() -> schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(getErrorMessage(longTableName, kvsList));
     }
@@ -129,8 +124,7 @@ public class SchemaTest {
         TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, longTableName);
         List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>();
         kvsList.add(CharacterLimitType.CASSANDRA);
-        assertThatThrownBy(() ->
-                schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
+        assertThatThrownBy(() -> schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(getErrorMessage(longTableName, kvsList));
     }
@@ -155,8 +149,7 @@ public class SchemaTest {
         Schema schema = ApiTestSchema.getSchema();
         schema.renderTables(testFolder.getRoot());
 
-        List<String> generatedTestTables = ApiTestSchema.getSchema().getTableDefinitions().values()
-                .stream()
+        List<String> generatedTestTables = ApiTestSchema.getSchema().getTableDefinitions().values().stream()
                 .filter(TableDefinition::hasV2TableEnabled)
                 .map(entry -> entry.getJavaTableName() + SCHEMA_V2_TABLE_NAME)
                 .collect(Collectors.toList());
@@ -174,10 +167,10 @@ public class SchemaTest {
         kvsList.add(CharacterLimitType.CASSANDRA);
         schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef));
         assertThatThrownBy(() -> {
-            IndexDefinition id = new IndexDefinition(IndexDefinition.IndexType.ADDITIVE);
-            id.onTable(longTableName);
-            schema.addIndexDefinition(longTableName, id);
-        })
+                    IndexDefinition id = new IndexDefinition(IndexDefinition.IndexType.ADDITIVE);
+                    id.onTable(longTableName);
+                    schema.addIndexDefinition(longTableName, id);
+                })
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(
                         getErrorMessage(longTableName + IndexDefinition.IndexType.ADDITIVE.getIndexSuffix(), kvsList));
@@ -186,18 +179,20 @@ public class SchemaTest {
     @Test
     public void v2SchemaTablesCanBeGeneratedWithAllRowAndColumnComponents() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        schema.addTableDefinition(TEST_TABLE_NAME, new TableDefinition() {{
-            enableV2Table();
-            ignoreHotspottingChecks();
-            rowName();
-            Arrays.stream(ValueType.values())
-                    .filter(valueType -> valueType != ValueType.STRING && valueType != ValueType.BLOB)
-                    .forEach(valueType -> rowComponent(valueType.name(), valueType));
-            rowComponent("BLOB", ValueType.BLOB);
-            columns();
-            Arrays.stream(ValueType.values())
-                    .forEach(valueType -> column(valueType.name(), valueType.name() + "-long", valueType));
-        }});
+        schema.addTableDefinition(TEST_TABLE_NAME, new TableDefinition() {
+            {
+                enableV2Table();
+                ignoreHotspottingChecks();
+                rowName();
+                Arrays.stream(ValueType.values())
+                        .filter(valueType -> valueType != ValueType.STRING && valueType != ValueType.BLOB)
+                        .forEach(valueType -> rowComponent(valueType.name(), valueType));
+                rowComponent("BLOB", ValueType.BLOB);
+                columns();
+                Arrays.stream(ValueType.values())
+                        .forEach(valueType -> column(valueType.name(), valueType.name() + "-long", valueType));
+            }
+        });
 
         schema.validate();
     }
@@ -212,26 +207,22 @@ public class SchemaTest {
             assertThat(expectedFile.length()).isEqualTo(actualFile.length());
 
             try (Stream<String> expectedFileStream = java.nio.file.Files.lines(expectedFile.toPath());
-                Stream<String> actualFileStream = java.nio.file.Files.lines(actualFile.toPath());
-                Stream<Boolean> zipped = correspondingLinesMatchOrAreHashes(expectedFileStream, actualFileStream)) {
+                    Stream<String> actualFileStream = java.nio.file.Files.lines(actualFile.toPath());
+                    Stream<Boolean> zipped = correspondingLinesMatchOrAreHashes(expectedFileStream, actualFileStream)) {
 
                 assertThat(zipped).allMatch(elem -> elem);
             } catch (IOException e) {
                 Assertions.fail("Exception on stream creation", e);
             }
-
         });
     }
 
     private static Stream<Boolean> correspondingLinesMatchOrAreHashes(
-            Stream<String> expectedFileStream,
-            Stream<String> actualFileStream) {
+            Stream<String> expectedFileStream, Stream<String> actualFileStream) {
         return Streams.zip(
                 expectedFileStream,
                 actualFileStream,
-                (first, second) ->
-                    first.equals(second) || (first.contains(CLASS_HASH) && second.contains(CLASS_HASH))
-                );
+                (first, second) -> first.equals(second) || (first.contains(CLASS_HASH) && second.contains(CLASS_HASH)));
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
@@ -240,21 +231,23 @@ public class SchemaTest {
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
-        return new TableDefinition() {{
-            javaTableName(tableRef.getTablename());
-            rowName();
-            rowComponent("rowName", ValueType.STRING);
-            columns();
-            column("col1", "1", ValueType.VAR_LONG);
-        }};
+        return new TableDefinition() {
+            {
+                javaTableName(tableRef.getTablename());
+                rowName();
+                rowComponent("rowName", ValueType.STRING);
+                columns();
+                column("col1", "1", ValueType.VAR_LONG);
+            }
+        };
     }
 
     private String getErrorMessage(String tableName, List<CharacterLimitType> kvsExceeded) {
-        return String.format("Internal table name %s is too long, known to exceed character limits for "
+        return String.format(
+                "Internal table name %s is too long, known to exceed character limits for "
                         + "the following KVS: %s. If using a table prefix, please ensure that the concatenation "
                         + "of the prefix with the internal table name is below the KVS limit. "
                         + "If running only against a different KVS, set the ignoreTableNameLength flag.",
                 tableName, StringUtils.join(kvsExceeded, ", "));
     }
-
 }

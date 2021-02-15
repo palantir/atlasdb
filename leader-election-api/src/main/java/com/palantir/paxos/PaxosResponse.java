@@ -15,9 +15,8 @@
  */
 package com.palantir.paxos;
 
-import java.io.Serializable;
-
 import com.palantir.common.annotation.Immutable;
+import java.io.Serializable;
 
 @Immutable
 public interface PaxosResponse extends Serializable {

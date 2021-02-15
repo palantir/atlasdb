@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.Stream;
-
 import org.junit.Test;
 
 public class CheckAndSetCompatibilityTest {
@@ -33,7 +32,8 @@ public class CheckAndSetCompatibilityTest {
 
     @Test
     public void minReturnsNotSupportedIfOneKvsHasNotSupported() {
-        assertThat(getMinCompatibility(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
+        assertThat(getMinCompatibility(
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
                         CheckAndSetCompatibility.NOT_SUPPORTED,
                         CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
                 .isEqualTo(CheckAndSetCompatibility.NOT_SUPPORTED);
@@ -41,17 +41,19 @@ public class CheckAndSetCompatibilityTest {
 
     @Test
     public void minReturnsSupportedNoDetailIfNotSupportedAbsent() {
-        assertThat(getMinCompatibility(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
+        assertThat(getMinCompatibility(
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
+                        CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
                 .isEqualTo(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE);
     }
 
     @Test
     public void minReturnsSupportedWithDetailIfAllAreSupportedWithDetail() {
-        assertThat(getMinCompatibility(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE))
+        assertThat(getMinCompatibility(
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE))
                 .isEqualTo(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE);
     }
 

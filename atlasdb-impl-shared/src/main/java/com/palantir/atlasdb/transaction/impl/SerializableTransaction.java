@@ -15,32 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.OptionalLong;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -50,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -97,10 +70,37 @@ import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class will track all reads to verify that there are no read-write conflicts at commit time.
@@ -117,70 +117,72 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private static final int BATCH_SIZE = 1000;
 
-    final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> readsByTable = Maps.newConcurrentMap();
-    final ConcurrentMap<TableReference, ConcurrentMap<RangeRequest, byte[]>> rangeEndByTable = Maps.newConcurrentMap();
+    final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> readsByTable = new ConcurrentHashMap<>();
+    final ConcurrentMap<TableReference, ConcurrentMap<RangeRequest, byte[]>> rangeEndByTable =
+            new ConcurrentHashMap<>();
     final ConcurrentMap<TableReference, ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
-            columnRangeEndsByTable = Maps.newConcurrentMap();
-    final ConcurrentMap<TableReference, Set<Cell>> cellsRead = Maps.newConcurrentMap();
-    final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = Maps.newConcurrentMap();
+            columnRangeEndsByTable = new ConcurrentHashMap<>();
+    final ConcurrentMap<TableReference, Set<Cell>> cellsRead = new ConcurrentHashMap<>();
+    final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = new ConcurrentHashMap<>();
 
-    public SerializableTransaction(MetricsManager metricsManager,
-                                   KeyValueService keyValueService,
-                                   TimelockService timelockService,
-                                   LockWatchManager lockWatchManager,
-                                   TransactionService transactionService,
-                                   Cleaner cleaner,
-                                   Supplier<Long> startTimeStamp,
-                                   ConflictDetectionManager conflictDetectionManager,
-                                   SweepStrategyManager sweepStrategyManager,
-                                   long immutableTimestamp,
-                                   Optional<LockToken> immutableTsLock,
-                                   PreCommitCondition preCommitCondition,
-                                   AtlasDbConstraintCheckingMode constraintCheckingMode,
-                                   Long transactionTimeoutMillis,
-                                   TransactionReadSentinelBehavior readSentinelBehavior,
-                                   boolean allowHiddenTableAccess,
-                                   TimestampCache timestampCache,
-                                   ExecutorService getRangesExecutor,
-                                   int defaultGetRangesConcurrency,
-                                   MultiTableSweepQueueWriter sweepQueue,
-                                   ExecutorService deleteExecutor,
-                                   boolean validateLocksOnReads,
-                                   Supplier<TransactionConfig> transactionConfig,
-                                   ConflictTracer conflictTracer,
-                                   TableLevelMetricsController tableLevelMetricsController) {
-        super(metricsManager,
-              keyValueService,
-              timelockService,
-              lockWatchManager,
-              transactionService,
-              cleaner,
-              startTimeStamp,
-              conflictDetectionManager,
-              sweepStrategyManager,
-              immutableTimestamp,
-              immutableTsLock,
-              preCommitCondition,
-              constraintCheckingMode,
-              transactionTimeoutMillis,
-              readSentinelBehavior,
-              allowHiddenTableAccess,
-              timestampCache,
-              getRangesExecutor,
-              defaultGetRangesConcurrency,
-              sweepQueue,
-              deleteExecutor,
-              validateLocksOnReads,
-              transactionConfig,
-              conflictTracer,
-              tableLevelMetricsController);
+    public SerializableTransaction(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TimelockService timelockService,
+            LockWatchManager lockWatchManager,
+            TransactionService transactionService,
+            Cleaner cleaner,
+            Supplier<Long> startTimeStamp,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            long immutableTimestamp,
+            Optional<LockToken> immutableTsLock,
+            PreCommitCondition preCommitCondition,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            Long transactionTimeoutMillis,
+            TransactionReadSentinelBehavior readSentinelBehavior,
+            boolean allowHiddenTableAccess,
+            TimestampCache timestampCache,
+            ExecutorService getRangesExecutor,
+            int defaultGetRangesConcurrency,
+            MultiTableSweepQueueWriter sweepQueue,
+            ExecutorService deleteExecutor,
+            boolean validateLocksOnReads,
+            Supplier<TransactionConfig> transactionConfig,
+            ConflictTracer conflictTracer,
+            TableLevelMetricsController tableLevelMetricsController) {
+        super(
+                metricsManager,
+                keyValueService,
+                timelockService,
+                lockWatchManager,
+                transactionService,
+                cleaner,
+                startTimeStamp,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                immutableTimestamp,
+                immutableTsLock,
+                preCommitCondition,
+                constraintCheckingMode,
+                transactionTimeoutMillis,
+                readSentinelBehavior,
+                allowHiddenTableAccess,
+                timestampCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueue,
+                deleteExecutor,
+                validateLocksOnReads,
+                transactionConfig,
+                conflictTracer,
+                tableLevelMetricsController);
     }
 
     @Override
     @Idempotent
-    public NavigableMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef,
-                                                        Iterable<byte[]> rows,
-                                                        ColumnSelection columnSelection) {
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
         NavigableMap<byte[], RowResult<byte[]>> ret = super.getRows(tableRef, rows, columnSelection);
         markRowsRead(tableRef, rows, columnSelection, ret.values());
         return ret;
@@ -188,37 +190,17 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
-            TableReference tableRef,
-            Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> ret =
                 super.getRowsColumnRange(tableRef, rows, columnRangeSelection);
-        return Maps.transformEntries(ret, (row, visitable) -> new BatchingVisitable<Entry<Cell, byte[]>>() {
-            @Override
-            public <K extends Exception> boolean batchAccept(
-                    int batchSize,
-                    AbortingVisitor<? super List<Entry<Cell, byte[]>>, K> visitor)
-                    throws K {
-                boolean hitEnd = visitable.batchAccept(batchSize, items -> {
-                    if (items.size() < batchSize) {
-                        reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
-                    }
-                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, items);
-                    return visitor.visit(items);
-                });
-                if (hitEnd) {
-                    reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
-                }
-                return hitEnd;
-            }
-        });
+        return KeyedStream.stream(ret)
+                .map((row, visitable) -> wrapWithColumnRangeChecking(tableRef, columnRangeSelection, row, visitable))
+                .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
     @Override
-    public Iterator<Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef,
-            Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
-            int batchHint) {
+    public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         if (isSerializableTable(tableRef)) {
             throw new UnsupportedOperationException("This method does not support serializable conflict handling");
         }
@@ -227,40 +209,12 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
-            TableReference tableRef,
-            Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], Iterator<Entry<Cell, byte[]>>> ret =
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> ret =
                 super.getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
-        return Maps.transformEntries(ret, (row, iterator) -> new Iterator<Entry<Cell, byte[]>>() {
-            Entry<Cell, byte[]> next = null;
-
-            @Override
-            public boolean hasNext() {
-                if (next != null) {
-                    return true;
-                }
-
-                if (iterator.hasNext()) {
-                    next = iterator.next();
-                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, Collections.singletonList(next));
-                    return true;
-                }
-
-                reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
-                return false;
-            }
-
-            @Override
-            public Entry<Cell, byte[]> next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                Entry<Cell, byte[]> result = next;
-                next = null;
-                return result;
-            }
-        });
+        return KeyedStream.stream(ret)
+                .map((row, iterator) -> wrapIteratorWithBoundsChecking(tableRef, columnRangeSelection, row, iterator))
+                .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
     @Override
@@ -268,9 +222,10 @@ public class SerializableTransaction extends SnapshotTransaction {
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
             return getWithLoader(
-                    tableRef,
-                    cells,
-                    (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead))).get();
+                            tableRef,
+                            cells,
+                            (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead)))
+                    .get();
         } catch (InterruptedException | ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
@@ -283,9 +238,9 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
-            TableReference tableRef, Set<Cell> cells,
-            CellLoader cellLoader) {
-        return Futures.transform(cellLoader.load(tableRef, cells),
+            TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
+        return Futures.transform(
+                cellLoader.load(tableRef, cells),
                 loadedCells -> {
                     markCellsRead(tableRef, cells, loadedCells);
                     return loadedCells;
@@ -307,22 +262,21 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     @Idempotent
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(final TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests) {
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
+            final TableReference tableRef, Iterable<RangeRequest> rangeRequests) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> ret = super.getRanges(tableRef, rangeRequests);
         Iterable<Pair<RangeRequest, BatchingVisitable<RowResult<byte[]>>>> zip = IterableUtils.zip(rangeRequests, ret);
         return Iterables.transform(zip, pair -> wrapRange(tableRef, pair.lhSide, pair.rhSide));
     }
 
-    private BatchingVisitable<RowResult<byte[]>> wrapRange(final TableReference tableRef,
-                                                           final RangeRequest rangeRequest,
-                                                           final BatchingVisitable<RowResult<byte[]>> ret) {
+    private BatchingVisitable<RowResult<byte[]>> wrapRange(
+            final TableReference tableRef,
+            final RangeRequest rangeRequest,
+            final BatchingVisitable<RowResult<byte[]>> ret) {
         return new BatchingVisitable<RowResult<byte[]>>() {
             @Override
             public <K extends Exception> boolean batchAccept(
-                    int batchSize,
-                    AbortingVisitor<? super List<RowResult<byte[]>>, K> visitor)
-                    throws K {
+                    int batchSize, AbortingVisitor<? super List<RowResult<byte[]>>, K> visitor) throws K {
                 boolean hitEnd = ret.batchAccept(batchSize, items -> {
                     if (items.size() < batchSize) {
                         reachedEndOfRange(tableRef, rangeRequest);
@@ -345,7 +299,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     private void setRangeEnd(TableReference table, RangeRequest range, byte[] maxRow) {
         Preconditions.checkNotNull(maxRow, "maxRow cannot be null");
         ConcurrentMap<RangeRequest, byte[]> rangeEnds =
-                rangeEndByTable.computeIfAbsent(table, unused -> Maps.newConcurrentMap());
+                rangeEndByTable.computeIfAbsent(table, unused -> new ConcurrentHashMap<>());
 
         if (maxRow.length == 0) {
             rangeEnds.put(range, maxRow);
@@ -362,10 +316,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void setColumnRangeEnd(
-            TableReference table,
-            byte[] unwrappedRow,
-            BatchColumnRangeSelection columnRangeSelection,
-            byte[] maxCol) {
+            TableReference table, byte[] unwrappedRow, BatchColumnRangeSelection columnRangeSelection, byte[] maxCol) {
         Preconditions.checkNotNull(maxCol, "maxCol cannot be null");
         ByteBuffer row = ByteBuffer.wrap(unwrappedRow);
         columnRangeEndsByTable.computeIfAbsent(table, unused -> new ConcurrentHashMap<>());
@@ -424,10 +375,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void markRowColumnRangeRead(
-            TableReference table,
-            byte[] row,
-            BatchColumnRangeSelection range,
-            List<Entry<Cell, byte[]>> result) {
+            TableReference table, byte[] row, BatchColumnRangeSelection range, List<Map.Entry<Cell, byte[]>> result) {
         if (!isSerializableTable(table)) {
             return;
         }
@@ -448,10 +396,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void markRowsRead(
-            TableReference table,
-            Iterable<byte[]> rows,
-            ColumnSelection cols,
-            Iterable<RowResult<byte[]>> result) {
+            TableReference table, Iterable<byte[]> rows, ColumnSelection cols, Iterable<RowResult<byte[]>> result) {
         if (!isSerializableTable(table)) {
             return;
         }
@@ -473,9 +418,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void reachedEndOfColumnRange(
-            TableReference table,
-            byte[] row,
-            BatchColumnRangeSelection columnRangeSelection) {
+            TableReference table, byte[] row, BatchColumnRangeSelection columnRangeSelection) {
         if (!isSerializableTable(table)) {
             return;
         }
@@ -504,15 +447,13 @@ public class SerializableTransaction extends SnapshotTransaction {
 
             ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(table);
             Multimap<ColumnSelection, byte[]> rowsReadByColumns = Multimaps.newSortedSetMultimap(
-                    Maps.newHashMap(),
-                    () -> Sets.newTreeSet(UnsignedBytes.lexicographicalComparator()));
+                    new HashMap<>(), () -> new TreeSet<>(UnsignedBytes.lexicographicalComparator()));
             for (RowRead r : rows) {
                 rowsReadByColumns.putAll(r.cols, r.rows);
             }
             for (ColumnSelection cols : rowsReadByColumns.keySet()) {
                 verifyColumns(ro, table, readsForTable, rowsReadByColumns, cols);
             }
-
         }
     }
 
@@ -540,7 +481,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                     // checking handles this case to ensure the value hasn't changed.
                     originalReads = Maps.filterKeys(
                             originalReads,
-                            Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
+                            Predicates.not(
+                                    Predicates.in(writesByTable.get(table).keySet())));
                 }
 
                 if (currentRow == null && originalReads.isEmpty()) {
@@ -559,7 +501,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                     // checking handles this case to ensure the value hasn't changed.
                     currentCells = Maps.filterKeys(
                             currentCells,
-                            Predicates.not(Predicates.in(writesByTable.get(table).keySet())));
+                            Predicates.not(
+                                    Predicates.in(writesByTable.get(table).keySet())));
                 }
                 if (!areMapsEqual(originalReads, currentCells)) {
                     handleTransactionConflict(table);
@@ -584,7 +527,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void verifyCells(Transaction readOnlyTransaction) {
-        for (Entry<TableReference, Set<Cell>> tableAndCellsEntry : cellsRead.entrySet()) {
+        for (Map.Entry<TableReference, Set<Cell>> tableAndCellsEntry : cellsRead.entrySet()) {
             TableReference table = tableAndCellsEntry.getKey();
             Set<Cell> cells = tableAndCellsEntry.getValue();
 
@@ -593,7 +536,10 @@ public class SerializableTransaction extends SnapshotTransaction {
                 // We don't want to verify any reads that we wrote to cause we will just read our own values.
                 // NB: If the value has changed between read and write, our normal SI checking handles this case
                 Iterable<Cell> batchWithoutWrites = writesByTable.get(table) != null
-                        ? Iterables.filter(batch, Predicates.not(Predicates.in(writesByTable.get(table).keySet())))
+                        ? Iterables.filter(
+                                batch,
+                                Predicates.not(
+                                        Predicates.in(writesByTable.get(table).keySet())))
                         : batch;
                 ImmutableSet<Cell> batchWithoutWritesSet = ImmutableSet.copyOf(batchWithoutWrites);
                 Map<Cell, byte[]> currentBatch = readOnlyTransaction.get(table, batchWithoutWritesSet);
@@ -609,11 +555,12 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private void verifyRanges(Transaction readOnlyTransaction) {
         // verify each set of reads to ensure they are the same.
-        for (Entry<TableReference, ConcurrentMap<RangeRequest, byte[]>> tableAndRange : rangeEndByTable.entrySet()) {
+        for (Map.Entry<TableReference, ConcurrentMap<RangeRequest, byte[]>> tableAndRange :
+                rangeEndByTable.entrySet()) {
             TableReference table = tableAndRange.getKey();
             Map<RangeRequest, byte[]> rangeEnds = tableAndRange.getValue();
 
-            for (Entry<RangeRequest, byte[]> rangeAndRangeEndEntry : rangeEnds.entrySet()) {
+            for (Map.Entry<RangeRequest, byte[]> rangeAndRangeEndEntry : rangeEnds.entrySet()) {
                 RangeRequest range = rangeAndRangeEndEntry.getKey();
                 byte[] rangeEnd = rangeAndRangeEndEntry.getValue();
 
@@ -624,12 +571,12 @@ public class SerializableTransaction extends SnapshotTransaction {
                 }
 
                 ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
-                BatchingVisitableView<RowResult<byte[]>> bv = BatchingVisitableView.of(
-                        readOnlyTransaction.getRange(table, range));
-                NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(
-                        getReadsInRange(table, range),
-                        ByteBuffer::wrap);
-                if (!bv.transformBatch(input -> filterWritesFromRows(input, writes)).isEqual(readsInRange.entrySet())) {
+                BatchingVisitableView<RowResult<byte[]>> bv =
+                        BatchingVisitableView.of(readOnlyTransaction.getRange(table, range));
+                NavigableMap<Cell, ByteBuffer> readsInRange =
+                        Maps.transformValues(getReadsInRange(table, range), ByteBuffer::wrap);
+                if (!bv.transformBatch(input -> filterWritesFromRows(input, writes))
+                        .isEqual(readsInRange.entrySet())) {
                     handleTransactionConflict(table);
                 }
             }
@@ -637,9 +584,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private NavigableMap<Cell, byte[]> getReadsInColumnRangeSkippingWrites(
-            TableReference table,
-            byte[] row,
-            BatchColumnRangeSelection range) {
+            TableReference table, byte[] row, BatchColumnRangeSelection range) {
         NavigableMap<Cell, byte[]> reads = getReadsForTable(table);
         Cell startCell = Cells.createSmallestCellForRow(row);
         if ((range.getStartCol() != null) && (range.getStartCol().length > 0)) {
@@ -662,19 +607,18 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private void verifyColumnRanges(Transaction readOnlyTransaction) {
         // verify each set of reads to ensure they are the same.
-        for (Entry<TableReference,
-                ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>> tableAndColumnRangeEnds :
-                columnRangeEndsByTable.entrySet()) {
+        for (Map.Entry<TableReference, ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
+                tableAndColumnRangeEnds : columnRangeEndsByTable.entrySet()) {
 
             Map<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> columnRangeEnds =
                     tableAndColumnRangeEnds.getValue();
 
             Multimap<BatchColumnRangeSelection, byte[]> rangesToRows = LinkedListMultimap.create();
-            for (Entry<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
+            for (Map.Entry<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
                     columnRangeEnds.entrySet()) {
                 byte[] row = rowAndRangeEnds.getKey().array();
                 Map<BatchColumnRangeSelection, byte[]> rangeEnds = rowAndRangeEnds.getValue();
-                for (Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
+                for (Map.Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
                     BatchColumnRangeSelection range = e.getKey();
                     byte[] rangeEnd = e.getValue();
                     rangesToRows.put(nextLexicographicalRangeEnd(range, rangeEnd), row);
@@ -686,14 +630,15 @@ public class SerializableTransaction extends SnapshotTransaction {
                 Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> result =
                         readOnlyTransaction.getRowsColumnRange(table, rows, columnRange);
 
-                for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> cellValuesForRow : result.entrySet()) {
+                for (Map.Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> cellValuesForRow :
+                        result.entrySet()) {
                     byte[] row = cellValuesForRow.getKey();
-                    BatchingVisitableView<Entry<Cell, byte[]>> visitable =
+                    BatchingVisitableView<Map.Entry<Cell, byte[]>> visitable =
                             BatchingVisitableView.of(cellValuesForRow.getValue());
                     NavigableMap<Cell, ByteBuffer> readsInRange = Maps.transformValues(
-                            getReadsInColumnRangeSkippingWrites(table, row, columnRange),
-                            ByteBuffer::wrap);
-                    boolean isEqual = visitable.transformBatch(cellValues -> filterWritesFromCells(cellValues, table))
+                            getReadsInColumnRangeSkippingWrites(table, row, columnRange), ByteBuffer::wrap);
+                    boolean isEqual = visitable
+                            .transformBatch(cellValues -> filterWritesFromCells(cellValues, table))
                             .isEqual(readsInRange.entrySet());
                     if (!isEqual) {
                         handleTransactionConflict(table);
@@ -704,8 +649,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private static BatchColumnRangeSelection nextLexicographicalRangeEnd(
-            BatchColumnRangeSelection currentRange,
-            byte[] rangeEnd) {
+            BatchColumnRangeSelection currentRange, byte[] rangeEnd) {
         if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(false, rangeEnd)) {
             return BatchColumnRangeSelection.create(
                     currentRange.getStartCol(),
@@ -716,17 +660,15 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
-            Iterable<Entry<Cell, byte[]>> cells,
-            TableReference table) {
+    private List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
+            Iterable<Map.Entry<Cell, byte[]>> cells, TableReference table) {
         return filterWritesFromCells(cells, writesByTable.get(table));
     }
 
-    private static List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
-            Iterable<Entry<Cell, byte[]>> cells,
-            @Nullable Map<Cell, byte[]> writes) {
-        List<Entry<Cell, ByteBuffer>> cellsWithoutWrites = Lists.newArrayList();
-        for (Entry<Cell, byte[]> cell : cells) {
+    private static List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
+            Iterable<Map.Entry<Cell, byte[]>> cells, @Nullable Map<Cell, byte[]> writes) {
+        List<Map.Entry<Cell, ByteBuffer>> cellsWithoutWrites = new ArrayList<>();
+        for (Map.Entry<Cell, byte[]> cell : cells) {
             // NB: We filter our write set out here because our normal SI
             // checking handles this case to ensure the value hasn't changed.
             if (writes == null || !writes.containsKey(cell.getKey())) {
@@ -736,18 +678,16 @@ public class SerializableTransaction extends SnapshotTransaction {
         return cellsWithoutWrites;
     }
 
-    private static List<Entry<Cell, ByteBuffer>> filterWritesFromRows(
-            Iterable<RowResult<byte[]>> rows,
-            @Nullable Map<Cell, byte[]> writes) {
-        List<Entry<Cell, ByteBuffer>> rowsWithoutWrites = Lists.newArrayList();
+    private static List<Map.Entry<Cell, ByteBuffer>> filterWritesFromRows(
+            Iterable<RowResult<byte[]>> rows, @Nullable Map<Cell, byte[]> writes) {
+        List<Map.Entry<Cell, ByteBuffer>> rowsWithoutWrites = new ArrayList<>();
         for (RowResult<byte[]> row : rows) {
             rowsWithoutWrites.addAll(filterWritesFromCells(row.getCells(), writes));
         }
         return rowsWithoutWrites;
     }
 
-    private NavigableMap<Cell, byte[]> getReadsInRange(TableReference table,
-                                                       RangeRequest range) {
+    private NavigableMap<Cell, byte[]> getReadsInRange(TableReference table, RangeRequest range) {
         NavigableMap<Cell, byte[]> reads = getReadsForTable(table);
         if (range.getStartInclusive().length != 0) {
             reads = reads.tailMap(Cells.createSmallestCellForRow(range.getStartInclusive()), true);
@@ -760,9 +700,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
         }
         if (!range.getColumnNames().isEmpty()) {
-            Predicate<Cell> columnInNames = Predicates.compose(
-                    Predicates.in(range.getColumnNames()),
-                    Cell::getColumnName);
+            Predicate<Cell> columnInNames =
+                    Predicates.compose(Predicates.in(range.getColumnNames()), Cell::getColumnName);
             reads = Maps.filterKeys(reads, columnInNames);
         }
         return reads;
@@ -789,7 +728,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 timestampValidationReadCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP,
+                sweepQueue,
                 deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
@@ -802,15 +741,11 @@ public class SerializableTransaction extends SnapshotTransaction {
                     boolean shouldWaitForCommitterToComplete,
                     AsyncTransactionService asyncTransactionService) {
                 long myStart = SerializableTransaction.this.getTimestamp();
-                PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(
-                        myStart,
-                        startTimestamps);
+                PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(myStart, startTimestamps);
 
                 ListenableFuture<Map<Long, Long>> postStartCommitTimestamps =
                         getCommitTimestampsForTransactionsStartedAfterMe(
-                                tableRef,
-                                asyncTransactionService,
-                                partitionedTimestamps.afterStart());
+                                tableRef, asyncTransactionService, partitionedTimestamps.afterStart());
 
                 // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
                 // then at least one of them will be in the ab
@@ -820,13 +755,14 @@ public class SerializableTransaction extends SnapshotTransaction {
                         shouldWaitForCommitterToComplete,
                         asyncTransactionService);
 
-                return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps).call(
-                        () -> ImmutableMap.<Long, Long>builder()
-                                .putAll(AtlasFutures.getDone(preStartCommitTimestamps))
-                                .putAll(AtlasFutures.getDone(postStartCommitTimestamps))
-                                .putAll(partitionedTimestamps.myCommittedTransaction())
-                                .build(),
-                        MoreExecutors.directExecutor());
+                return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps)
+                        .call(
+                                () -> ImmutableMap.<Long, Long>builder()
+                                        .putAll(AtlasFutures.getDone(preStartCommitTimestamps))
+                                        .putAll(AtlasFutures.getDone(postStartCommitTimestamps))
+                                        .putAll(partitionedTimestamps.myCommittedTransaction())
+                                        .build(),
+                                MoreExecutors.directExecutor());
             }
 
             private ListenableFuture<Map<Long, Long>> getCommitTimestampsForTransactionsStartedAfterMe(
@@ -850,13 +786,11 @@ public class SerializableTransaction extends SnapshotTransaction {
                             // should just fail out early.  It may be the case that abort more transactions
                             // than needed to break the deadlock cycle, but this should be pretty rare.
                             transactionOutcomeMetrics.markReadWriteConflict(tableRef);
-                            throw new TransactionSerializableConflictException(
-                                    "An uncommitted conflicting read was "
-                                            + "written after our start timestamp for table "
-                                            + tableRef + ".  "
-                                            + "This case can cause deadlock and is very likely to be a "
-                                            + "read write conflict.");
-
+                            throw new TransactionSerializableConflictException("An uncommitted conflicting read was "
+                                    + "written after our start timestamp for table "
+                                    + tableRef + ".  "
+                                    + "This case can cause deadlock and is very likely to be a "
+                                    + "read write conflict.");
                         },
                         MoreExecutors.directExecutor());
             }
@@ -869,8 +803,8 @@ public class SerializableTransaction extends SnapshotTransaction {
              * @return a {@link PartitionedTimestamps} object containing split timestamps
              */
             private PartitionedTimestamps splitTransactionBeforeAndAfter(long myStart, Iterable<Long> startTimestamps) {
-                ImmutablePartitionedTimestamps.Builder builder = ImmutablePartitionedTimestamps.builder()
-                        .myCommitTimestamp(commitTs);
+                ImmutablePartitionedTimestamps.Builder builder =
+                        ImmutablePartitionedTimestamps.builder().myCommitTimestamp(commitTs);
                 startTimestamps.forEach(startTimestamp -> {
                     if (startTimestamp == myStart) {
                         builder.splittingStartTimestamp(myStart);
@@ -889,15 +823,78 @@ public class SerializableTransaction extends SnapshotTransaction {
     private void handleTransactionConflict(TableReference tableRef) {
         transactionOutcomeMetrics.markReadWriteConflict(tableRef);
         log.info("Serializable conflict", LoggingArgs.tableRef(tableRef));
-        throw TransactionSerializableConflictException.create(tableRef, getTimestamp(),
-                System.currentTimeMillis() - timeCreated);
+        throw TransactionSerializableConflictException.create(
+                tableRef, getTimestamp(), System.currentTimeMillis() - timeCreated);
+    }
+
+    private BatchingVisitable<Map.Entry<Cell, byte[]>> wrapWithColumnRangeChecking(
+            TableReference tableRef,
+            BatchColumnRangeSelection columnRangeSelection,
+            byte[] row,
+            BatchingVisitable<Map.Entry<Cell, byte[]>> visitable) {
+        return new BatchingVisitable<Map.Entry<Cell, byte[]>>() {
+            @Override
+            public <K extends Exception> boolean batchAccept(
+                    int batchSize, AbortingVisitor<? super List<Map.Entry<Cell, byte[]>>, K> visitor) throws K {
+                boolean hitEnd = visitable.batchAccept(batchSize, items -> {
+                    if (items.size() < batchSize) {
+                        reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                    }
+                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, items);
+                    return visitor.visit(items);
+                });
+                if (hitEnd) {
+                    reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                }
+                return hitEnd;
+            }
+        };
+    }
+
+    public Iterator<Map.Entry<Cell, byte[]>> wrapIteratorWithBoundsChecking(
+            TableReference tableRef,
+            BatchColumnRangeSelection columnRangeSelection,
+            byte[] row,
+            Iterator<Map.Entry<Cell, byte[]>> iterator) {
+        return new Iterator<Map.Entry<Cell, byte[]>>() {
+            Map.Entry<Cell, byte[]> next = null;
+
+            @Override
+            public boolean hasNext() {
+                if (next != null) {
+                    return true;
+                }
+
+                if (iterator.hasNext()) {
+                    next = iterator.next();
+                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, Collections.singletonList(next));
+                    return true;
+                }
+
+                reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                return false;
+            }
+
+            @Override
+            public Map.Entry<Cell, byte[]> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                Map.Entry<Cell, byte[]> result = next;
+                next = null;
+                return result;
+            }
+        };
     }
 
     @Value.Immutable
     interface PartitionedTimestamps {
         long myCommitTimestamp();
+
         Set<Long> afterStart();
+
         Set<Long> beforeStart();
+
         OptionalLong splittingStartTimestamp();
 
         @Value.Derived

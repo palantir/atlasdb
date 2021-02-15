@@ -19,14 +19,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class PaxosTimeLockUriUtils {
-    private PaxosTimeLockUriUtils() {
-    }
+    private PaxosTimeLockUriUtils() {}
 
     public static Set<String> getLeaderPaxosUris(Set<String> addresses) {
         return getNamespacedUris(
-                addresses,
-                PaxosTimeLockConstants.INTERNAL_NAMESPACE,
-                PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
+                addresses, PaxosTimeLockConstants.INTERNAL_NAMESPACE, PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
     }
 
     public static Set<String> getClientPaxosUris(Set<String> addresses, String client) {

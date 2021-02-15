@@ -15,14 +15,7 @@
  */
 package com.palantir.atlasdb.schema.indexing;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Arrays;
-import java.util.List;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -44,6 +37,10 @@ import com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.TwoColumns
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
+import java.util.Arrays;
+import java.util.List;
+import org.junit.Before;
+import org.junit.Test;
 
 public class IndexTest extends AtlasDbTestCase {
 
@@ -62,12 +59,15 @@ public class IndexTest extends AtlasDbTestCase {
             return null;
         });
         txManager.runTaskWithRetry((RuntimeTransactionTask<Void>) txn -> {
-            DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(getTableFactory().getDataTable(txn));
-            DataTable.Index2IdxTable index2 = DataTable.Index2IdxTable.of(getTableFactory().getDataTable(txn));
-            DataTable.Index3IdxTable index3 = DataTable.Index3IdxTable.of(getTableFactory().getDataTable(txn));
-            assert index1.getRange(RangeRequest.builder().build()).count() == 1;
-            assert index2.getRange(RangeRequest.builder().build()).count() == 2;
-            assert index3.getRange(RangeRequest.builder().build()).count() == 1;
+            DataTable.Index1IdxTable index1 =
+                    DataTable.Index1IdxTable.of(getTableFactory().getDataTable(txn));
+            DataTable.Index2IdxTable index2 =
+                    DataTable.Index2IdxTable.of(getTableFactory().getDataTable(txn));
+            DataTable.Index3IdxTable index3 =
+                    DataTable.Index3IdxTable.of(getTableFactory().getDataTable(txn));
+            assertThat(index1.getRange(RangeRequest.builder().build()).count()).isEqualTo(1L);
+            assertThat(index2.getRange(RangeRequest.builder().build()).count()).isEqualTo(2L);
+            assertThat(index3.getRange(RangeRequest.builder().build()).count()).isEqualTo(1L);
             return null;
         });
         txManager.runTaskWithRetry((RuntimeTransactionTask<Void>) txn -> {
@@ -76,12 +76,15 @@ public class IndexTest extends AtlasDbTestCase {
             return null;
         });
         txManager.runTaskWithRetry((RuntimeTransactionTask<Void>) txn -> {
-            DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(getTableFactory().getDataTable(txn));
-            DataTable.Index2IdxTable index2 = DataTable.Index2IdxTable.of(getTableFactory().getDataTable(txn));
-            DataTable.Index3IdxTable index3 = DataTable.Index3IdxTable.of(getTableFactory().getDataTable(txn));
-            assert index1.getRange(RangeRequest.builder().build()).count() == 1;
-            assert index2.getRange(RangeRequest.builder().build()).count() == 1;
-            assert index3.getRange(RangeRequest.builder().build()).count() == 1;
+            DataTable.Index1IdxTable index1 =
+                    DataTable.Index1IdxTable.of(getTableFactory().getDataTable(txn));
+            DataTable.Index2IdxTable index2 =
+                    DataTable.Index2IdxTable.of(getTableFactory().getDataTable(txn));
+            DataTable.Index3IdxTable index3 =
+                    DataTable.Index3IdxTable.of(getTableFactory().getDataTable(txn));
+            assertThat(index1.getRange(RangeRequest.builder().build()).count()).isEqualTo(1L);
+            assertThat(index2.getRange(RangeRequest.builder().build()).count()).isEqualTo(1L);
+            assertThat(index3.getRange(RangeRequest.builder().build()).count()).isEqualTo(1L);
             return null;
         });
     }
@@ -94,9 +97,12 @@ public class IndexTest extends AtlasDbTestCase {
             return null;
         });
         txManager.runTaskWithRetry((RuntimeTransactionTask<Void>) txn -> {
-            DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(getTableFactory().getDataTable(txn));
-            assertEquals(1L,
-                    Iterables.getOnlyElement(index1.getRowColumns(Index1IdxRow.of(2L))).getColumnName().getId());
+            DataTable.Index1IdxTable index1 =
+                    DataTable.Index1IdxTable.of(getTableFactory().getDataTable(txn));
+            assertThat(Iterables.getOnlyElement(index1.getRowColumns(Index1IdxRow.of(2L)))
+                            .getColumnName()
+                            .getId())
+                    .isEqualTo(1L);
             return null;
         });
         txManager.runTaskWithRetry((RuntimeTransactionTask<Void>) txn -> {
@@ -105,8 +111,9 @@ public class IndexTest extends AtlasDbTestCase {
             return null;
         });
         txManager.runTaskWithRetry((RuntimeTransactionTask<Void>) txn -> {
-            DataTable.Index1IdxTable index1 = DataTable.Index1IdxTable.of(getTableFactory().getDataTable(txn));
-            assert index1.getRowColumns(Index1IdxRow.of(2L)).isEmpty();
+            DataTable.Index1IdxTable index1 =
+                    DataTable.Index1IdxTable.of(getTableFactory().getDataTable(txn));
+            assertThat(index1.getRowColumns(Index1IdxRow.of(2L))).isEmpty();
             return null;
         });
     }
@@ -130,7 +137,7 @@ public class IndexTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry((RuntimeTransactionTask<Void>) txn -> {
             FooToIdIdxTable index = FooToIdIdxTable.of(getTableFactory().getTwoColumnsTable(txn));
             List<FooToIdIdxRowResult> result = index.getAllRowsUnordered().immutableCopy();
-            assertEquals(2L, Iterables.getOnlyElement(result).getRowName().getFoo());
+            assertThat(Iterables.getOnlyElement(result).getRowName().getFoo()).isEqualTo(2L);
             return null;
         });
     }
@@ -141,12 +148,14 @@ public class IndexTest extends AtlasDbTestCase {
 
         byte[] persistedRow = FooToIdIdxTable.FooToIdIdxRow.of(rawComponent).persistToBytes();
 
-        long hashedValue = Hashing.murmur3_128().hashBytes(ValueType.FIXED_LONG.convertFromJava(rawComponent)).asLong();
+        long hashedValue = Hashing.murmur3_128()
+                .hashBytes(ValueType.FIXED_LONG.convertFromJava(rawComponent))
+                .asLong();
         byte[] expected = PtBytes.toBytes(Long.MIN_VALUE ^ hashedValue);
 
         byte[] firstComponentOfRow = Arrays.copyOf(persistedRow, 8); // We're only interested in the first 8 bytes.
 
-        Assert.assertArrayEquals(expected, firstComponentOfRow);
+        assertThat(firstComponentOfRow).isEqualTo(expected);
     }
 
     private IndexTestTableFactory getTableFactory() {

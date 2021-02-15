@@ -15,19 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.ExecutorService;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -57,11 +44,26 @@ import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class KeyValueServices {
+public final class KeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(KeyValueServices.class);
 
-    private KeyValueServices() {/**/}
+    private KeyValueServices() {
+        /**/
+    }
 
     public static TableMetadata getTableMetadataSafe(KeyValueService service, TableReference tableRef) {
         try {
@@ -116,14 +118,15 @@ public class KeyValueServices {
     }
 
     @SuppressWarnings("checkstyle:LineLength")
-    public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRangeConcurrent(
-            ExecutorService executor,
-            final KeyValueService kv,
-            final TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            final long timestamp,
-            int maxConcurrentRequests) {
-        final Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = Maps.newConcurrentMap();
+    public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>
+            getFirstBatchForRangesUsingGetRangeConcurrent(
+                    ExecutorService executor,
+                    final KeyValueService kv,
+                    final TableReference tableRef,
+                    Iterable<RangeRequest> rangeRequests,
+                    final long timestamp,
+                    int maxConcurrentRequests) {
+        final Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = new ConcurrentHashMap<>();
         BlockingWorkerPool pool = new BlockingWorkerPool(executor, maxConcurrentRequests);
         try {
             for (final RangeRequest request : rangeRequests) {
@@ -137,12 +140,10 @@ public class KeyValueServices {
     }
 
     @SuppressWarnings("checkstyle:LineLength")
-    public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRangesUsingGetRange(
-            KeyValueService kv,
-            TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            long timestamp) {
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = Maps.newHashMap();
+    public static Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>
+            getFirstBatchForRangesUsingGetRange(
+                    KeyValueService kv, TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = new HashMap<>();
         for (final RangeRequest request : rangeRequests) {
             getFirstBatchForRangeUsingGetRange(kv, tableRef, request, timestamp, ret);
         }
@@ -151,12 +152,13 @@ public class KeyValueServices {
 
     public static Collection<Map.Entry<Cell, Value>> toConstantTimestampValues(
             final Collection<Map.Entry<Cell, byte[]>> cells, final long timestamp) {
-        return Collections2.transform(cells,
-                entry -> Maps.immutableEntry(entry.getKey(), Value.create(entry.getValue(), timestamp)));
+        return Collections2.transform(
+                cells, entry -> Maps.immutableEntry(entry.getKey(), Value.create(entry.getValue(), timestamp)));
     }
 
     // TODO(gsheasby): kill this when we can properly implement this on all KVSes
-    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs,
+    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(
+            KeyValueService kvs,
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection,
@@ -164,8 +166,8 @@ public class KeyValueServices {
         log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. "
                 + "Production environments should use a KVS with a proper implementation.");
         Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
-        Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMap();
-        Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = Maps.newHashMap();
+        Map<Sha256Hash, byte[]> hashesToBytes = new HashMap<>();
+        Map<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> rowsToColumns = new HashMap<>();
 
         for (byte[] row : rows) {
             Sha256Hash rowHash = Sha256Hash.computeHash(row);
@@ -179,7 +181,7 @@ public class KeyValueServices {
             rowsToColumns.get(rowHash).put(e.getKey().getColumnName(), e.getValue());
         }
 
-        Map<byte[], RowColumnRangeIterator> results = Maps.newHashMap();
+        Map<byte[], RowColumnRangeIterator> results = new HashMap<>();
         for (Map.Entry<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> row : rowsToColumns.entrySet()) {
             SortedMap<byte[], Value> map = row.getValue().build();
             Set<Map.Entry<byte[], Value>> subMap;
@@ -190,17 +192,21 @@ public class KeyValueServices {
             } else if (columnRangeSelection.getEndCol().length == 0) {
                 subMap = map.tailMap(columnRangeSelection.getStartCol()).entrySet();
             } else {
-                subMap = map.subMap(columnRangeSelection.getStartCol(), columnRangeSelection.getEndCol()).entrySet();
+                subMap = map.subMap(columnRangeSelection.getStartCol(), columnRangeSelection.getEndCol())
+                        .entrySet();
             }
             byte[] rowName = hashesToBytes.get(row.getKey());
-            results.put(hashesToBytes.get(row.getKey()),
-                    new LocalRowColumnRangeIterator(Iterators.transform(subMap.iterator(), e ->
-                            Pair.<Cell, Value>of(Cell.create(rowName, e.getKey()), e.getValue()))));
+            results.put(
+                    hashesToBytes.get(row.getKey()),
+                    new LocalRowColumnRangeIterator(Iterators.transform(
+                            subMap.iterator(),
+                            e -> Pair.<Cell, Value>of(Cell.create(rowName, e.getKey()), e.getValue()))));
         }
         return results;
     }
 
-    public static RowColumnRangeIterator mergeGetRowsColumnRangeIntoSingleIterator(KeyValueService kvs,
+    public static RowColumnRangeIterator mergeGetRowsColumnRangeIntoSingleIterator(
+            KeyValueService kvs,
             TableReference tableRef,
             Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
@@ -229,8 +235,7 @@ public class KeyValueServices {
         return new AsyncKeyValueService() {
             @Override
             public ListenableFuture<Map<Cell, Value>> getAsync(
-                    TableReference tableRef,
-                    Map<Cell, Long> timestampByCell) {
+                    TableReference tableRef, Map<Cell, Long> timestampByCell) {
                 return Futures.immediateFuture(keyValueService.get(tableRef, timestampByCell));
             }
 

@@ -15,21 +15,20 @@
  */
 package com.palantir.atlasdb.factory.startup;
 
-import java.util.Comparator;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
+import com.palantir.atlasdb.factory.TransactionManagerConsistencyResults;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.util.Comparator;
+import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Executes multiple {@link TransactionManagerConsistencyCheck}s in sequence, aggregating the
@@ -65,15 +64,17 @@ public final class ConsistencyCheckRunner extends Callback<TransactionManager> {
     private TransactionManagerConsistencyResult checkAndAggregateResults(TransactionManager resource) {
         return consistencyChecks.stream()
                 .map(check -> check.apply(resource))
-                .max(Comparator.comparingLong(result -> result.consistencyState().severity()))
-                .orElse(TransactionManagerConsistencyResult.CONSISTENT_RESULT);
+                .max(Comparator.comparingLong(
+                        result -> result.consistencyState().severity()))
+                .orElse(TransactionManagerConsistencyResults.CONSISTENT_RESULT);
     }
 
     private void processAggregatedResult(TransactionManagerConsistencyResult consistencyResult) {
         switch (consistencyResult.consistencyState()) {
             case TERMINAL:
                 // Errors get bubbled up to the top level
-                throw new AssertionError("AtlasDB found in an unexpected state!",
+                throw new AssertionError(
+                        "AtlasDB found in an unexpected state!",
                         consistencyResult.reasonForInconsistency().orElse(UNKNOWN));
             case INDETERMINATE:
                 throw new NotInitializedException("ConsistencyCheckRunner");

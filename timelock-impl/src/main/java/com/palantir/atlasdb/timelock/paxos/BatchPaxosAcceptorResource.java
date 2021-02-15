@@ -18,20 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient.CACHE_KEY_NOT_FOUND;
 
-import java.util.Optional;
-import java.util.Set;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.SetMultimap;
 import com.palantir.conjure.java.api.errors.ServiceException;
 import com.palantir.logsafe.SafeArg;
@@ -40,9 +26,19 @@ import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import java.util.Optional;
+import java.util.Set;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
-        + "/acceptor")
+@Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE + "/acceptor")
 public class BatchPaxosAcceptorResource {
 
     private static final Logger log = LoggerFactory.getLogger(BatchPaxosAcceptorResource.class);
@@ -76,8 +72,7 @@ public class BatchPaxosAcceptorResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public AcceptorCacheDigest latestSequencesPreparedOrAccepted(
-            @QueryParam(HttpHeaders.IF_MATCH) Optional<AcceptorCacheKey> maybeCacheKey,
-            Set<Client> clients) {
+            @QueryParam(HttpHeaders.IF_MATCH) Optional<AcceptorCacheKey> maybeCacheKey, Set<Client> clients) {
         try {
             return batchPaxosAcceptor.latestSequencesPreparedOrAccepted(maybeCacheKey, clients);
         } catch (InvalidAcceptorCacheKeyException e) {
@@ -107,5 +102,4 @@ public class BatchPaxosAcceptorResource {
             return new ServiceException(CACHE_KEY_NOT_FOUND, SafeArg.of("cacheKey", cacheKey));
         }
     }
-
 }

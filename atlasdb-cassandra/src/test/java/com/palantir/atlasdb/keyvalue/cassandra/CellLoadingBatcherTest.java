@@ -23,6 +23,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCellLoadingConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,16 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraCellLoadingConfig;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @SuppressWarnings("unchecked") // AssertJ assertions
 public class CellLoadingBatcherTest {
@@ -93,9 +91,8 @@ public class CellLoadingBatcherTest {
     @Test
     public void rebatchesLargeColumnsAndInvokesCallback() {
         List<List<Cell>> batches = partitionUsingMockCallback(rowRange(2 * SINGLE_QUERY_LIMIT, 0));
-        assertBatchContentsMatch(batches,
-                rowRange(0, SINGLE_QUERY_LIMIT, 0),
-                rowRange(SINGLE_QUERY_LIMIT, 2 * SINGLE_QUERY_LIMIT, 0));
+        assertBatchContentsMatch(
+                batches, rowRange(0, SINGLE_QUERY_LIMIT, 0), rowRange(SINGLE_QUERY_LIMIT, 2 * SINGLE_QUERY_LIMIT, 0));
         verify(rebatchingCallback).consume(ADDRESS, TABLE_REFERENCE, 2 * SINGLE_QUERY_LIMIT);
     }
 
@@ -113,7 +110,7 @@ public class CellLoadingBatcherTest {
         List<List<Cell>> batches = partitionUsingMockCallback(manyColumns);
 
         assertBatchContainsAllCells(batches, manyColumns);
-        batches.forEach(batch -> assertThat(batch.size()).isLessThanOrEqualTo(CROSS_COLUMN_LIMIT));
+        batches.forEach(batch -> assertThat(batch).hasSizeLessThanOrEqualTo(CROSS_COLUMN_LIMIT));
     }
 
     @Test
@@ -124,7 +121,8 @@ public class CellLoadingBatcherTest {
         cells.addAll(columnRange(0, 2, 2 + CROSS_COLUMN_LIMIT));
 
         List<List<Cell>> batches = partitionUsingMockCallback(cells);
-        assertBatchContentsMatch(batches,
+        assertBatchContentsMatch(
+                batches,
                 rowRange(SINGLE_QUERY_LIMIT, 0),
                 rowRange(0, SINGLE_QUERY_LIMIT, 1),
                 rowRange(SINGLE_QUERY_LIMIT, 2 * SINGLE_QUERY_LIMIT, 1),
@@ -158,8 +156,8 @@ public class CellLoadingBatcherTest {
         CellLoadingBatcher reloadingBatcher = new CellLoadingBatcher(config::get, rebatchingCallback);
         updateConfig(config, CROSS_COLUMN_LIMIT, 2 * SINGLE_QUERY_LIMIT);
 
-        List<List<Cell>> largerBatches = reloadingBatcher.partitionIntoBatches(
-                rowRange(2 * SINGLE_QUERY_LIMIT, 0), ADDRESS, TABLE_REFERENCE);
+        List<List<Cell>> largerBatches =
+                reloadingBatcher.partitionIntoBatches(rowRange(2 * SINGLE_QUERY_LIMIT, 0), ADDRESS, TABLE_REFERENCE);
         assertBatchContentsMatch(largerBatches, rowRange(2 * SINGLE_QUERY_LIMIT, 0));
         verify(rebatchingCallback, never()).consume(any(), any(), anyInt());
     }
@@ -194,9 +192,11 @@ public class CellLoadingBatcherTest {
 
     private static boolean batchIsSingleColumn(List<Cell> batch) {
         return batch.stream()
-                .map(Cell::getColumnName)
-                .collect(Collectors.toCollection(
-                        () -> new TreeSet<>(UnsignedBytes.lexicographicalComparator()))).size() == 1;
+                        .map(Cell::getColumnName)
+                        .collect(
+                                Collectors.toCollection(() -> new TreeSet<>(UnsignedBytes.lexicographicalComparator())))
+                        .size()
+                == 1;
     }
 
     private static void assertBatchContentsMatch(List<List<Cell>> actual, List<Cell>... expected) {

@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.factory;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,12 +26,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 public final class PersistentStoragePathSanitizer {
     private static final Logger log = LoggerFactory.getLogger(PersistentStoragePathSanitizer.class);

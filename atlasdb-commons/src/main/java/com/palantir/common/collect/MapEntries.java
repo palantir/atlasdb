@@ -15,68 +15,68 @@
  */
 package com.palantir.common.collect;
 
-import java.util.Map;
-import java.util.Map.Entry;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Maps.EntryTransformer;
+import java.util.Map;
 
-
-public class MapEntries {
-    private MapEntries() { /* */ }
-
-    public static <L, R> Function<Entry<L, R>, L> getKeyFunction() {
-        return from -> from.getKey();
+public final class MapEntries {
+    private MapEntries() {
+        /* */
     }
 
-    public static <L, R> Function<Entry<L, R>, R> getValueFunction() {
-        return from -> from.getValue();
+    public static <L, R> Function<Map.Entry<L, R>, L> getKeyFunction() {
+        return Map.Entry::getKey;
     }
 
-    public static <K, V> Map<K, V> putAll(Map<K, V> map, Iterable<? extends Entry<? extends K, ? extends V>> it) {
-        for (Entry<? extends K, ? extends V> e : it) {
+    public static <L, R> Function<Map.Entry<L, R>, R> getValueFunction() {
+        return Map.Entry::getValue;
+    }
+
+    public static <K, V> Map<K, V> putAll(Map<K, V> map, Iterable<? extends Map.Entry<? extends K, ? extends V>> it) {
+        for (Map.Entry<? extends K, ? extends V> e : it) {
             map.put(e.getKey(), e.getValue());
         }
         return map;
     }
 
-    public static <K, V> void put(Map<? super K, ? super V> map, Entry<K, V> e) {
+    public static <K, V> void put(Map<? super K, ? super V> map, Map.Entry<K, V> e) {
         map.put(e.getKey(), e.getValue());
     }
 
-    public static <K, V> ImmutableMap<K, V> toMap(Iterable<Entry<K, V>> it) {
-        Builder<K, V> builder = ImmutableMap.builder();
-        for (Entry<K, V> e : it) {
+    public static <K, V> ImmutableMap<K, V> toMap(Iterable<Map.Entry<K, V>> it) {
+        ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
+        for (Map.Entry<K, V> e : it) {
             builder.put(e.getKey(), e.getValue());
         }
         return builder.build();
     }
 
-    public static <L, F, T>  Function<Entry<L, F>, Entry<L, T>> applyValue(final Function<F, T> f) {
+    public static <L, F, T> Function<Map.Entry<L, F>, Map.Entry<L, T>> applyValue(final Function<F, T> f) {
         return from -> Maps.immutableEntry(from.getKey(), f.apply(from.getValue()));
     }
 
-    public static <F, T, R>  Function<Entry<F, R>, Entry<T, R>> applyKey(final Function<F, T> f) {
+    public static <F, T, R> Function<Map.Entry<F, R>, Map.Entry<T, R>> applyKey(final Function<F, T> f) {
         return from -> Maps.immutableEntry(f.apply(from.getKey()), from.getValue());
     }
 
-    public static <K, V>  Predicate<Map.Entry<K, V>> applyValue(final Predicate<V> f) {
+    public static <K, V> Predicate<Map.Entry<K, V>> applyValue(final Predicate<V> f) {
         return input -> f.apply(input.getValue());
     }
 
-    public static <K, V>  Predicate<Map.Entry<K, V>> applyKey(final Predicate<K> f) {
+    public static <K, V> Predicate<Map.Entry<K, V>> applyKey(final Predicate<K> f) {
         return input -> f.apply(input.getKey());
     }
 
-    public static <K, V1, V2> Function<Entry<K, V1>, V2> funFromEntryTransformer(final EntryTransformer<K, V1, V2> et) {
+    public static <K, V1, V2> Function<Map.Entry<K, V1>, V2> funFromEntryTransformer(
+            final EntryTransformer<K, V1, V2> et) {
         return input -> et.transformEntry(input.getKey(), input.getValue());
     }
 
-    public static <K, V1, V2> EntryTransformer<K, V1, V2> entryTransformerFromFun(final Function<Entry<K, V1>, V2> f) {
+    public static <K, V1, V2> EntryTransformer<K, V1, V2> entryTransformerFromFun(
+            final Function<Map.Entry<K, V1>, V2> f) {
         return (k, v1) -> f.apply(Maps.immutableEntry(k, v1));
     }
 }

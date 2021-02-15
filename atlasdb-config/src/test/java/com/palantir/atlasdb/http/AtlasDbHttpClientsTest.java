@@ -15,39 +15,14 @@
  */
 package com.palantir.atlasdb.http;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-
-import java.net.SocketTimeoutException;
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -74,6 +49,24 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import java.net.SocketTimeoutException;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class AtlasDbHttpClientsTest {
 
@@ -89,26 +82,24 @@ public class AtlasDbHttpClientsTest {
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final String ATLASDB_HTTP_CLIENT = "atlasdb-http-client";
     private static final UserAgent.Agent ATLASDB_CLIENT_V2_AGENT = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, "2.0");
-    private static final String ATLASDB_CLIENT_V2_AGENT_STRING
-            = ATLASDB_HTTP_CLIENT + "/" + ATLASDB_CLIENT_V2_AGENT.version();
+    private static final String ATLASDB_CLIENT_V2_AGENT_STRING =
+            ATLASDB_HTTP_CLIENT + "/" + ATLASDB_CLIENT_V2_AGENT.version();
 
     private static final UserAgent BASE_USER_AGENT = UserAgent.of(UserAgent.Agent.of("bla", "0.1.2"));
-    private static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS
-            = AuxiliaryRemotingParameters.builder()
-            .shouldLimitPayload(false)
-            .userAgent(BASE_USER_AGENT)
-            .shouldRetry(true)
-            .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
-            .build();
+    private static final AuxiliaryRemotingParameters AUXILIARY_REMOTING_PARAMETERS =
+            AuxiliaryRemotingParameters.builder()
+                    .shouldLimitPayload(false)
+                    .userAgent(BASE_USER_AGENT)
+                    .shouldRetry(true)
+                    .remotingClientConfig(() -> RemotingClientConfigs.DEFAULT)
+                    .build();
 
     private static final SslConfiguration SSL_CONFIG = SslConfiguration.of(
-            Paths.get("var/security/trustStore.jks"),
-            Paths.get("var/security/keyStore.jks"),
-            "keystore");
-    private static final Optional<TrustContext> TRUST_CONTEXT
-            = Optional.of(SslSocketFactories.createTrustContext(SSL_CONFIG));
-    private static final RetryOtherFirstResponseTransformer RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER
-            = new RetryOtherFirstResponseTransformer();
+            Paths.get("var/security/trustStore.jks"), Paths.get("var/security/keyStore.jks"), "keystore");
+    private static final Optional<TrustContext> TRUST_CONTEXT =
+            Optional.of(SslSocketFactories.createTrustContext(SSL_CONFIG));
+    private static final RetryOtherFirstResponseTransformer RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER =
+            new RetryOtherFirstResponseTransformer();
     private static final WireMockConfiguration WIRE_MOCK_CONFIGURATION = WireMockConfiguration.wireMockConfig()
             .dynamicPort()
             .dynamicHttpsPort()
@@ -133,7 +124,8 @@ public class AtlasDbHttpClientsTest {
     public WireMockRule unavailableServer = new WireMockRule(WIRE_MOCK_CONFIGURATION);
 
     @Rule
-    public WireMockRule proxyServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockRule proxyServer =
+            new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     public interface TestResource {
         @GET
@@ -159,8 +151,10 @@ public class AtlasDbHttpClientsTest {
     }
 
     private static void setupAvailableServer(String testNumberAsString, WireMockRule availableServer) {
-        availableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
-        availableServer.stubFor(POST_MAPPING.willReturn(aResponse().withStatus(200).withBody(Boolean.toString(true))));
+        availableServer.stubFor(
+                GET_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
+        availableServer.stubFor(
+                POST_MAPPING.willReturn(aResponse().withStatus(200).withBody(Boolean.toString(true))));
     }
 
     @Test
@@ -180,14 +174,11 @@ public class AtlasDbHttpClientsTest {
         int response = client.getTestNumber();
 
         RequestPattern request = getRequestedFor(urlMatching(GET_ENDPOINT)).build();
-        assertThat(availableServer1.findRequestsMatching(request).getRequests())
-                .hasSizeGreaterThanOrEqualTo(1);
+        assertThat(availableServer1.findRequestsMatching(request).getRequests()).hasSizeGreaterThanOrEqualTo(1);
 
-        assertThat(availableServer2.findRequestsMatching(request).getRequests())
-                .hasSizeGreaterThanOrEqualTo(1);
+        assertThat(availableServer2.findRequestsMatching(request).getRequests()).hasSizeGreaterThanOrEqualTo(1);
 
-        assertThat(response)
-                .isIn(TEST_NUMBER_1, TEST_NUMBER_2);
+        assertThat(response).isIn(TEST_NUMBER_1, TEST_NUMBER_2);
 
         RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER.reset();
     }
@@ -195,15 +186,11 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void userAgentIsPresentOnClientRequests() {
         TestResource client = AtlasDbHttpClients.createProxy(
-                TRUST_CONTEXT,
-                getUriForPort(availablePort1),
-                TestResource.class,
-                AUXILIARY_REMOTING_PARAMETERS);
+                TRUST_CONTEXT, getUriForPort(availablePort1), TestResource.class, AUXILIARY_REMOTING_PARAMETERS);
         client.getTestNumber();
 
-        availableServer1.verify(getRequestedFor(urlMatching(GET_ENDPOINT)).withHeader(
-                USER_AGENT_HEADER,
-                WireMock.containing(ATLASDB_CLIENT_V2_AGENT_STRING)));
+        availableServer1.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(ATLASDB_CLIENT_V2_AGENT_STRING)));
     }
 
     @Test
@@ -220,8 +207,7 @@ public class AtlasDbHttpClientsTest {
         clientWithDirectCall.getTestNumber();
 
         availableServer1.verify(getRequestedFor(urlMatching(GET_ENDPOINT))
-                .withHeader(USER_AGENT_HEADER,
-                        WireMock.containing(ATLASDB_CLIENT_V2_AGENT_STRING)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(ATLASDB_CLIENT_V2_AGENT_STRING)));
     }
 
     @Test
@@ -243,10 +229,10 @@ public class AtlasDbHttpClientsTest {
         assertThatThrownBy(client::getTestNumber).isInstanceOf(RuntimeException.class);
 
         servers.add(getUriForPort(availablePort1));
-        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME.getSeconds(), TimeUnit.SECONDS);
+        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME);
 
         int response = client.getTestNumber();
-        assertThat(response, equalTo(TEST_NUMBER_1));
+        assertThat(response).isEqualTo(TEST_NUMBER_1);
         unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
     }
 
@@ -258,26 +244,23 @@ public class AtlasDbHttpClientsTest {
                 .build());
 
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
-                MetricsManagers.createForTests(),
-                config::get,
-                TestResource.class,
-                AUXILIARY_REMOTING_PARAMETERS);
+                MetricsManagers.createForTests(), config::get, TestResource.class, AUXILIARY_REMOTING_PARAMETERS);
 
-        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER_1));
+        assertThat(testResource.getTestNumber()).isEqualTo(TEST_NUMBER_1);
 
         config.set(ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort2))
                 .sslConfiguration(SSL_CONFIG)
                 .build());
-        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME.getSeconds(), TimeUnit.SECONDS);
-        assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER_2));
+        Uninterruptibles.sleepUninterruptibly(SLEEP_TIME);
+        assertThat(testResource.getTestNumber()).isEqualTo(TEST_NUMBER_2);
     }
 
     private static String getUriForPort(int port) {
         return String.format("https://%s:%s", LOCALHOST, port);
     }
 
-    private static class RetryOtherFirstResponseTransformer extends ResponseTransformer {
+    private static final class RetryOtherFirstResponseTransformer extends ResponseTransformer {
 
         private final List<String> urls = new LinkedList<>();
 
@@ -324,9 +307,9 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void testIsPossiblyOkHttpTimeoutBug() {
         assertThat(AtlasDbHttpClients.isPossiblyOkHttpTimeoutBug(
-                new RuntimeException(new UncheckedExecutionException(new SocketTimeoutException())))).isTrue();
+                        new RuntimeException(new UncheckedExecutionException(new SocketTimeoutException()))))
+                .isTrue();
         assertThat(AtlasDbHttpClients.isPossiblyOkHttpTimeoutBug(new RuntimeException(new RuntimeException())))
                 .isFalse();
     }
-
 }

@@ -25,22 +25,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.UUID;
-
-import org.junit.After;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.util.UUID;
+import org.junit.After;
+import org.junit.Test;
 
 @SuppressWarnings("unchecked") // Mocks of parameterised types
 public class DelegatingClientAwareManagedTimestampServiceTest {
-    private static final List<Integer> RESIDUE_ONE = ImmutableList.of(1);
-    private static final List<Integer> RESIDUE_TWO = ImmutableList.of(2);
+    private static final ImmutableList<Integer> RESIDUE_ONE = ImmutableList.of(1);
+    private static final ImmutableList<Integer> RESIDUE_TWO = ImmutableList.of(2);
 
     private static final UUID UUID_ONE = UUID.randomUUID();
     private static final UUID UUID_TWO = UUID.randomUUID();
@@ -48,17 +45,17 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
     private static final TimestampRange TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(
             DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS,
             DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 3);
-    private static final TimestampAndPartition RESIDUE_ONE_TIMESTAMP_IN_RANGE
-            = TimestampAndPartition.of(DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 1, 1);
-    private static final TimestampAndPartition RESIDUE_TWO_TIMESTAMP_IN_RANGE
-            = TimestampAndPartition.of(DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 2, 2);
+    private static final TimestampAndPartition RESIDUE_ONE_TIMESTAMP_IN_RANGE =
+            TimestampAndPartition.of(DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 1, 1);
+    private static final TimestampAndPartition RESIDUE_TWO_TIMESTAMP_IN_RANGE =
+            TimestampAndPartition.of(DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 2, 2);
 
     private static final TimestampRange TIMESTAMP_SEVEN = TimestampRange.createInclusiveRange(7, 7);
 
     private final NumericPartitionAllocator<UUID> allocator = mock(NumericPartitionAllocator.class);
     private final ManagedTimestampService timestamps = mock(ManagedTimestampService.class);
-    private final DelegatingClientAwareManagedTimestampService service
-            = new DelegatingClientAwareManagedTimestampService(allocator, timestamps);
+    private final DelegatingClientAwareManagedTimestampService service =
+            new DelegatingClientAwareManagedTimestampService(allocator, timestamps);
 
     @After
     public void verifyNoFurtherInteractions() {
@@ -92,8 +89,7 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
     @Test
     public void batchedTimestampCallShouldReturnAtLeastOneUsableTimestamp() {
         when(allocator.getRelevantModuli(UUID_ONE)).thenReturn(RESIDUE_ONE);
-        when(timestamps.getFreshTimestamps(anyInt()))
-                .thenReturn(TIMESTAMP_RANGE);
+        when(timestamps.getFreshTimestamps(anyInt())).thenReturn(TIMESTAMP_RANGE);
 
         assertThat(service.getFreshTimestampsForClient(UUID_ONE, 2).stream())
                 .containsExactly(RESIDUE_ONE_TIMESTAMP_IN_RANGE.timestamp());

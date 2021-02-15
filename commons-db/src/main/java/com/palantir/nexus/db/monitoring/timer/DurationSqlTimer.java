@@ -18,7 +18,7 @@ package com.palantir.nexus.db.monitoring.timer;
 import com.palantir.nexus.db.monitoring.profiler.SqlProfilers;
 import com.palantir.util.sql.SqlStats;
 
-final public class DurationSqlTimer implements SqlTimer {
+public final class DurationSqlTimer implements SqlTimer {
     @Override
     public Handle start(String module, final String sqlKey, final String rawSql) {
         final long startNs = System.nanoTime();

@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Deprecation warnings are now suppressed in generated code.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5229

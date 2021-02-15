@@ -16,40 +16,37 @@
 
 package com.palantir.paxos;
 
+import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
+import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.paxos.PaxosStateLogTestUtils.generateRounds;
-import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
-
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.junit.Test;
-
-import com.google.common.util.concurrent.Uninterruptibles;
 
 public class PaxosStateLogBatchReaderTest {
     private static final int START_SEQUENCE = 123;
     private static final int BATCH_SIZE = 250;
-    private static final List<PaxosRound<PaxosValue>> EXPECTED_ROUNDS = generateRounds(
-            LongStream.range(START_SEQUENCE, START_SEQUENCE + BATCH_SIZE));
+    private static final List<PaxosRound<PaxosValue>> EXPECTED_ROUNDS =
+            generateRounds(LongStream.range(START_SEQUENCE, START_SEQUENCE + BATCH_SIZE));
 
     private PaxosStateLog<PaxosValue> mockLog = mock(PaxosStateLog.class);
 
     @Test
     public void readConsecutiveBatch() throws IOException {
         when(mockLog.readRound(anyLong()))
-                .thenAnswer(invocation -> valueForRound((long) invocation.getArguments()[0]).persistToBytes());
+                .thenAnswer(invocation ->
+                        valueForRound((long) invocation.getArguments()[0]).persistToBytes());
 
         try (PaxosStateLogBatchReader<PaxosValue> reader = createReader()) {
             assertThat(reader.readBatch(START_SEQUENCE, BATCH_SIZE)).isEqualTo(EXPECTED_ROUNDS);
@@ -59,31 +56,30 @@ public class PaxosStateLogBatchReaderTest {
     @Test
     public void exceptionsArePropagated() throws IOException {
         IOException ioException = new IOException("test");
-        when(mockLog.readRound(anyLong()))
-                .thenAnswer(invocation -> {
-                    long sequence = (long) invocation.getArguments()[0];
-                    if (sequence == 200) {
-                        throw ioException;
-                    }
-                    return valueForRound(sequence).persistToBytes();
-                });
+        when(mockLog.readRound(anyLong())).thenAnswer(invocation -> {
+            long sequence = (long) invocation.getArguments()[0];
+            if (sequence == 200) {
+                throw ioException;
+            }
+            return valueForRound(sequence).persistToBytes();
+        });
 
         try (PaxosStateLogBatchReader<PaxosValue> reader = createReader()) {
-            assertThatThrownBy(() -> reader.readBatch(START_SEQUENCE, BATCH_SIZE)).isInstanceOf(RuntimeException.class);
+            assertThatThrownBy(() -> reader.readBatch(START_SEQUENCE, BATCH_SIZE))
+                    .isInstanceOf(RuntimeException.class);
         }
     }
 
     @Test
     public void readBatchFiltersOutNulls() throws IOException {
         Predicate<Long> isOdd = num -> num % 2 != 0;
-        when(mockLog.readRound(anyLong()))
-                .thenAnswer(invocation -> {
-                    long sequence = (long) invocation.getArguments()[0];
-                    if (!isOdd.test(sequence)) {
-                        return null;
-                    }
-                    return valueForRound(sequence).persistToBytes();
-                });
+        when(mockLog.readRound(anyLong())).thenAnswer(invocation -> {
+            long sequence = (long) invocation.getArguments()[0];
+            if (!isOdd.test(sequence)) {
+                return null;
+            }
+            return valueForRound(sequence).persistToBytes();
+        });
 
         try (PaxosStateLogBatchReader<PaxosValue> reader = createReader()) {
             assertThat(reader.readBatch(START_SEQUENCE, BATCH_SIZE))
@@ -105,7 +101,7 @@ public class PaxosStateLogBatchReaderTest {
     @Test
     public void executionsGetBatched() throws IOException {
         when(mockLog.readRound(anyLong())).thenAnswer(invocation -> {
-            Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+            Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100));
             return valueForRound((long) invocation.getArguments()[0]).persistToBytes();
         });
 

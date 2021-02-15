@@ -15,6 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
@@ -22,19 +27,12 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
-
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 class CassandraRequestExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(CassandraRequestExceptionHandler.class);
@@ -58,9 +56,7 @@ class CassandraRequestExceptionHandler {
     }
 
     private CassandraRequestExceptionHandler(
-            Supplier<Integer> maxTriesSameHost,
-            Supplier<Integer> maxTriesTotal,
-            Blacklist blacklist) {
+            Supplier<Integer> maxTriesSameHost, Supplier<Integer> maxTriesTotal, Blacklist blacklist) {
         this.maxTriesSameHost = maxTriesSameHost;
         this.maxTriesTotal = maxTriesTotal;
         this.useConservativeHandler = () -> true;
@@ -69,18 +65,13 @@ class CassandraRequestExceptionHandler {
     }
 
     static CassandraRequestExceptionHandler withNoBackoffForTest(
-            Supplier<Integer> maxTriesSameHost,
-            Supplier<Integer> maxTriesTotal,
-            Blacklist blacklist) {
+            Supplier<Integer> maxTriesSameHost, Supplier<Integer> maxTriesTotal, Blacklist blacklist) {
         return new CassandraRequestExceptionHandler(maxTriesSameHost, maxTriesTotal, blacklist);
     }
 
     @SuppressWarnings("unchecked")
     <K extends Exception> void handleExceptionFromRequest(
-            RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried,
-            Exception ex)
-            throws K {
+            RetryableCassandraRequest<?, K> req, InetSocketAddress hostTried, Exception ex) throws K {
         if (!isRetryable(ex)) {
             throw (K) ex;
         }
@@ -118,9 +109,10 @@ class CassandraRequestExceptionHandler {
         }
     }
 
-    private static AtlasDbDependencyException logAndThrowException(int numberOfAttempts, Exception ex,
-            RetryableCassandraRequest<?, ?> req) {
-        log.warn("Tried to connect to cassandra {} times. Exception message was: {} : {}",
+    private static AtlasDbDependencyException logAndThrowException(
+            int numberOfAttempts, Exception ex, RetryableCassandraRequest<?, ?> req) {
+        log.warn(
+                "Tried to connect to cassandra {} times. Exception message was: {} : {}",
                 SafeArg.of("numTries", numberOfAttempts),
                 SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                 UnsafeArg.of("exceptionMessage", ex.getMessage()));
@@ -130,13 +122,15 @@ class CassandraRequestExceptionHandler {
     private void logNumberOfAttempts(Exception ex, int numberOfAttempts) {
         // Only log the actual exception the first time
         if (numberOfAttempts > 1) {
-            log.debug("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
+            log.debug(
+                    "Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
                     SafeArg.of("numTries", numberOfAttempts),
                     SafeArg.of("maxTotalTries", maxTriesTotal.get()),
                     SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                     UnsafeArg.of("exceptionMessage", ex.getMessage()));
         } else {
-            log.debug("Error occurred talking to cassandra. Attempt {} of {}.",
+            log.debug(
+                    "Error occurred talking to cassandra. Attempt {} of {}.",
                     SafeArg.of("numTries", numberOfAttempts),
                     SafeArg.of("maxTotalTries", maxTriesTotal.get()),
                     ex);
@@ -150,15 +144,18 @@ class CassandraRequestExceptionHandler {
                 && !isExceptionNotImplicatingThisParticularNode(ex);
     }
 
-    private <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
+    private <K extends Exception> void handleBackoff(
+            RetryableCassandraRequest<?, K> req,
             InetSocketAddress hostTried,
-            Exception ex, RequestExceptionHandlerStrategy strategy) {
+            Exception ex,
+            RequestExceptionHandlerStrategy strategy) {
         if (!shouldBackoff(ex, strategy)) {
             return;
         }
 
         long backOffPeriod = strategy.getBackoffPeriod(req.getNumberOfAttemptsOnHost(hostTried));
-        log.info("Retrying a query, {}, with backoff of {}ms, intended for host {}.",
+        log.info(
+                "Retrying a query, {}, with backoff of {}ms, intended for host {}.",
                 UnsafeArg.of("queryString", req.getFunction().toString()),
                 SafeArg.of("sleepDuration", backOffPeriod),
                 SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
@@ -176,10 +173,14 @@ class CassandraRequestExceptionHandler {
         return strategy.shouldBackoff(ex);
     }
 
-    private <K extends Exception> void handleRetryOnDifferentHosts(RetryableCassandraRequest<?, K> req,
-            InetSocketAddress hostTried, Exception ex, RequestExceptionHandlerStrategy strategy) {
+    private <K extends Exception> void handleRetryOnDifferentHosts(
+            RetryableCassandraRequest<?, K> req,
+            InetSocketAddress hostTried,
+            Exception ex,
+            RequestExceptionHandlerStrategy strategy) {
         if (shouldRetryOnDifferentHost(ex, req.getNumberOfAttemptsOnHost(hostTried), strategy)) {
-            log.info("Retrying a query intended for host {} on a different host.",
+            log.info(
+                    "Retrying a query intended for host {} on a different host.",
                     SafeArg.of("hostName", CassandraLogHelper.host(hostTried)));
             req.giveUpOnPreferredHost();
         }
@@ -206,15 +207,14 @@ class CassandraRequestExceptionHandler {
         return ex != null
                 // tcp socket timeout, possibly indicating network flake, long GC, or restarting server.
                 && (ex instanceof SocketTimeoutException
-                || ex instanceof CassandraClientFactory.ClientCreationFailedException
-                || isConnectionException(ex.getCause()));
+                        || ex instanceof CassandraClientFactory.ClientCreationFailedException
+                        || isConnectionException(ex.getCause()));
     }
 
     private static boolean isTransientException(Throwable ex) {
         return ex != null
                 // There's a problem with the connection to Cassandra.
-                && (ex instanceof TTransportException
-                || isTransientException(ex.getCause()));
+                && (ex instanceof TTransportException || isTransientException(ex.getCause()));
     }
 
     static boolean isIndicativeOfCassandraLoad(Throwable ex) {
@@ -222,20 +222,19 @@ class CassandraRequestExceptionHandler {
         return ex != null
                 // pool for this node is fully in use
                 && (ex instanceof NoSuchElementException
-                // Cassandra timeout. Maybe took too long to CAS, or Cassandra is under load.
-                || ex instanceof TimedOutException
-                // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
-                || ex instanceof UnavailableException
-                // Not enough Cassandra nodes are up.
-                || ex instanceof InsufficientConsistencyException
-                || isIndicativeOfCassandraLoad(ex.getCause()));
+                        // Cassandra timeout. Maybe took too long to CAS, or Cassandra is under load.
+                        || ex instanceof TimedOutException
+                        // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
+                        || ex instanceof UnavailableException
+                        // Not enough Cassandra nodes are up.
+                        || ex instanceof InsufficientConsistencyException
+                        || isIndicativeOfCassandraLoad(ex.getCause()));
     }
 
     static boolean isFastFailoverException(Throwable ex) {
         return ex != null
                 // underlying cassandra table does not exist. The table might exist on other cassandra nodes.
-                && (ex instanceof InvalidRequestException
-                || isFastFailoverException(ex.getCause()));
+                && (ex instanceof InvalidRequestException || isFastFailoverException(ex.getCause()));
     }
 
     static boolean isExceptionNotImplicatingThisParticularNode(Throwable ex) {
@@ -250,6 +249,7 @@ class CassandraRequestExceptionHandler {
     @VisibleForTesting
     interface RequestExceptionHandlerStrategy {
         boolean shouldBackoff(Exception ex);
+
         long getBackoffPeriod(int numberOfAttempts);
 
         /**
@@ -260,7 +260,7 @@ class CassandraRequestExceptionHandler {
         boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts);
     }
 
-    private static class LegacyExceptionHandler implements RequestExceptionHandlerStrategy {
+    private static final class LegacyExceptionHandler implements RequestExceptionHandlerStrategy {
         private static final RequestExceptionHandlerStrategy INSTANCE = new LegacyExceptionHandler();
 
         private static final long BACKOFF_DURATION = Duration.ofSeconds(1).toMillis();
@@ -273,7 +273,8 @@ class CassandraRequestExceptionHandler {
         @Override
         public long getBackoffPeriod(int numberOfAttempts) {
             // And value between -500 and +500ms to backoff to better spread load on failover
-            return numberOfAttempts * BACKOFF_DURATION + (ThreadLocalRandom.current().nextInt(1000) - 500);
+            return numberOfAttempts * BACKOFF_DURATION
+                    + (ThreadLocalRandom.current().nextInt(1000) - 500);
         }
 
         @Override
@@ -302,12 +303,13 @@ class CassandraRequestExceptionHandler {
 
         @Override
         public boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts) {
-            return isFastFailoverException(ex) || isIndicativeOfCassandraLoad(ex)
+            return isFastFailoverException(ex)
+                    || isIndicativeOfCassandraLoad(ex)
                     || numberOfAttempts >= maxTriesSameHost;
         }
     }
 
-    private static class NoBackoffForTesting extends Conservative {
+    private static final class NoBackoffForTesting extends Conservative {
         private static final RequestExceptionHandlerStrategy INSTANCE = new NoBackoffForTesting();
 
         @Override

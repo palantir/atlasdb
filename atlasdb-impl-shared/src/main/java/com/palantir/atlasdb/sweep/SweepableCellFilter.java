@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -22,10 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class SweepableCellFilter {
     private final CommitTsCache commitTsCache;
@@ -49,8 +48,7 @@ public class SweepableCellFilter {
             getCellToSweep(candidate, startToCommitTs).ifPresent(builder::addCells);
             numCellTsPairsExamined += candidate.sortedTimestamps().size();
         }
-        return builder
-                .numCellTsPairsExamined(numCellTsPairsExamined)
+        return builder.numCellTsPairsExamined(numCellTsPairsExamined)
                 .lastCellExamined(candidates.get(candidates.size() - 1).cell())
                 .build();
     }
@@ -82,8 +80,7 @@ public class SweepableCellFilter {
                     .cell(candidate.cell())
                     .sortedTimestamps(tsToSweep)
                     .needsSentinel(shouldAddSentinel)
-                    .build()
-            );
+                    .build());
         }
     }
 
@@ -107,8 +104,8 @@ public class SweepableCellFilter {
                 .collect(Collectors.toSet());
     }
 
-    private List<Long> checkIfLastShouldBeSwept(List<Long> tsToSweep, boolean lastIsTombstone,
-            boolean lastIsCommittedBeforeSweepTs) {
+    private List<Long> checkIfLastShouldBeSwept(
+            List<Long> tsToSweep, boolean lastIsTombstone, boolean lastIsCommittedBeforeSweepTs) {
         if (!tsToSweep.isEmpty() && !shouldSweepLast(lastIsTombstone, lastIsCommittedBeforeSweepTs)) {
             tsToSweep.remove(tsToSweep.size() - 1);
         }

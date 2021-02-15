@@ -30,5 +30,4 @@ public class Cassandra22XVersion implements CassandraVersion {
     public String getAllKeyspacesCql() {
         return ALL_KEYSPACES_CQL;
     }
-
 }

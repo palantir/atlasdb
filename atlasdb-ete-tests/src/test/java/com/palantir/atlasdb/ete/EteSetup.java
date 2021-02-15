@@ -15,20 +15,6 @@
  */
 package com.palantir.atlasdb.ete;
 
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
-
-import org.awaitility.Awaitility;
-import org.awaitility.Duration;
-import org.junit.rules.ExternalResource;
-import org.junit.rules.RuleChain;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -48,6 +34,18 @@ import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+import org.awaitility.Awaitility;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.RuleChain;
 
 // Important: Some internal tests depend on this class.
 // Please recompile Oracle internal tests if any breaking changes are made to the setup.
@@ -56,8 +54,8 @@ public abstract class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Gradle TIMELOCK_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
 
-    private static final SslConfiguration SSL_CONFIGURATION
-            = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    private static final SslConfiguration SSL_CONFIGURATION =
+            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
     public static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
 
     private static final short SERVER_PORT = 3828;
@@ -67,24 +65,17 @@ public abstract class EteSetup {
     private static Duration waitDuration;
 
     public static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES);
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.ofMinutes(2));
     }
 
     public static RuleChain setupComposition(
-            Class<?> eteClass,
-            String composeFile,
-            List<String> availableClientNames,
-            Duration waitTime) {
+            Class<?> eteClass, String composeFile, List<String> availableClientNames, Duration waitTime) {
         return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of());
     }
 
-
     public static RuleChain setupComposition(
-            Class<?> eteClass,
-            String composeFile,
-            List<String> availableClientNames,
-            Map<String, String> environment) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
+            Class<?> eteClass, String composeFile, List<String> availableClientNames, Map<String, String> environment) {
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.ofMinutes(2), environment);
     }
 
     public static RuleChain setupComposition(
@@ -98,19 +89,13 @@ public abstract class EteSetup {
     }
 
     public static RuleChain setupCompositionWithTimelock(
-            Class<?> eteClass,
-            String composeFile,
-            List<String> availableClientNames,
-            Map<String, String> environment) {
-        waitDuration = Duration.TWO_MINUTES;
+            Class<?> eteClass, String composeFile, List<String> availableClientNames, Map<String, String> environment) {
+        waitDuration = Duration.ofMinutes(2);
         return setup(eteClass, composeFile, availableClientNames, environment, true);
     }
 
     public static RuleChain setup(
-            Class<?> eteClass,
-            String composeFile,
-            List<String> availableClientNames,
-            Map<String, String> environment) {
+            Class<?> eteClass, String composeFile, List<String> availableClientNames, Map<String, String> environment) {
         return setup(eteClass, composeFile, availableClientNames, environment, false);
     }
 
@@ -122,7 +107,8 @@ public abstract class EteSetup {
             boolean usingTimelock) {
         availableClients = ImmutableList.copyOf(availableClientNames);
 
-        DockerMachine machine = DockerMachine.localMachine().withEnvironment(environment).build();
+        DockerMachine machine =
+                DockerMachine.localMachine().withEnvironment(environment).build();
         String logDirectory = EteSetup.class.getSimpleName() + "-" + eteClass.getSimpleName();
 
         docker = DockerComposeRule.builder()
@@ -138,9 +124,7 @@ public abstract class EteSetup {
         if (usingTimelock) {
             ruleChain = ruleChain.around(TIMELOCK_TASK);
         }
-        return ruleChain.around(docker)
-                .around(dockerProxyRule)
-                .around(waitForServersToBeReady());
+        return ruleChain.around(docker).around(dockerProxyRule).around(waitForServersToBeReady());
     }
 
     public static String execCliCommand(String client, String command) throws IOException, InterruptedException {
@@ -173,7 +157,7 @@ public abstract class EteSetup {
                 Awaitility.await()
                         .ignoreExceptions()
                         .atMost(waitDuration)
-                        .pollInterval(Duration.ONE_SECOND)
+                        .pollInterval(Duration.ofSeconds(1))
                         .until(serversAreReady());
             }
         };
@@ -207,18 +191,12 @@ public abstract class EteSetup {
     private static <T> T createClientFor(Class<T> clazz, String host, short port) {
         String uri = String.format("http://%s:%s", host, port);
         return AtlasDbHttpClients.createProxy(
-                Optional.of(TRUST_CONTEXT),
-                uri,
-                clazz,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
+                Optional.of(TRUST_CONTEXT), uri, clazz, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 
     private static <T> T createClientWithExtendedTimeout(Class<T> clazz, String host, short port) {
         String uri = String.format("http://%s:%s", host, port);
         return AtlasDbHttpClients.createProxy(
-                Optional.of(TRUST_CONTEXT),
-                uri,
-                clazz,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_EXTENDED_TIMEOUT);
+                Optional.of(TRUST_CONTEXT), uri, clazz, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_EXTENDED_TIMEOUT);
     }
 }

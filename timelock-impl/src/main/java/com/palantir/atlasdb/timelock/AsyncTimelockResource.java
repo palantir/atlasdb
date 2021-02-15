@@ -15,21 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
-import javax.ws.rs.core.MediaType;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -55,6 +40,19 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.MediaType;
 
 @Path("/timelock")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -72,18 +70,18 @@ public class AsyncTimelockResource {
     @POST
     @Path("fresh-timestamp")
     public void getFreshTimestamp(@Suspended final AsyncResponse response) {
-        addJerseyCallback(Futures.transform(
-                timelock.getFreshTimestampsAsync(1),
-                TimestampRange::getLowerBound,
-                MoreExecutors.directExecutor()),
+        addJerseyCallback(
+                Futures.transform(
+                        timelock.getFreshTimestampsAsync(1),
+                        TimestampRange::getLowerBound,
+                        MoreExecutors.directExecutor()),
                 response);
     }
 
     @POST
     @Path("fresh-timestamps")
     public void getFreshTimestamps(
-            @Suspended final AsyncResponse response,
-            @Safe @QueryParam("number") int numTimestampsRequested) {
+            @Suspended final AsyncResponse response, @Safe @QueryParam("number") int numTimestampsRequested) {
         addJerseyCallback(timelock.getFreshTimestampsAsync(numTimestampsRequested), response);
     }
 
@@ -122,19 +120,22 @@ public class AsyncTimelockResource {
      */
     @POST
     @Path("start-atlasdb-transaction-v4")
-    public void startTransactions(
-            @Suspended final AsyncResponse response, StartTransactionRequestV4 request) {
+    public void startTransactions(@Suspended final AsyncResponse response, StartTransactionRequestV4 request) {
         ConjureStartTransactionsRequest conjureRequest = ConjureStartTransactionsRequest.builder()
                 .requestId(request.requestId())
                 .requestorId(request.requestorId())
                 .numTransactions(request.numTransactions())
                 .build();
-        addJerseyCallback(Futures.transform(timelock.startTransactionsWithWatches(conjureRequest),
-                newResponse -> ImmutableStartTransactionResponseV4.builder()
-                        .timestamps(newResponse.getTimestamps())
-                        .immutableTimestamp(newResponse.getImmutableTimestamp())
-                        .lease(newResponse.getLease())
-                        .build(), MoreExecutors.directExecutor()), response);
+        addJerseyCallback(
+                Futures.transform(
+                        timelock.startTransactionsWithWatches(conjureRequest),
+                        newResponse -> ImmutableStartTransactionResponseV4.builder()
+                                .timestamps(newResponse.getTimestamps())
+                                .immutableTimestamp(newResponse.getImmutableTimestamp())
+                                .lease(newResponse.getLease())
+                                .build(),
+                        MoreExecutors.directExecutor()),
+                response);
     }
 
     @POST
@@ -146,11 +147,13 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void deprecatedLock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
-        addJerseyCallback(Futures.transform(
-                timelock.lock(request), result -> result.accept(LockResponseV2.Visitor.of(
-                        success -> LockResponse.successful(success.getToken()),
-                        unsuccessful -> LockResponse.timedOut())),
-                MoreExecutors.directExecutor()),
+        addJerseyCallback(
+                Futures.transform(
+                        timelock.lock(request),
+                        result -> result.accept(LockResponseV2.Visitor.of(
+                                success -> LockResponse.successful(success.getToken()),
+                                unsuccessful -> LockResponse.timedOut())),
+                        MoreExecutors.directExecutor()),
                 response);
     }
 
@@ -169,10 +172,11 @@ public class AsyncTimelockResource {
     @POST
     @Path("refresh-locks")
     public void deprecatedRefreshLockLeases(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
-        addJerseyCallback(Futures.transform(
-                timelock.refreshLockLeases(tokens),
-                RefreshLockResponseV2::refreshedTokens,
-                MoreExecutors.directExecutor()),
+        addJerseyCallback(
+                Futures.transform(
+                        timelock.refreshLockLeases(tokens),
+                        RefreshLockResponseV2::refreshedTokens,
+                        MoreExecutors.directExecutor()),
                 response);
     }
 
@@ -212,17 +216,19 @@ public class AsyncTimelockResource {
     }
 
     private void addJerseyCallback(ListenableFuture<?> result, AsyncResponse response) {
-        Futures.addCallback(result, new FutureCallback<Object>() {
-            @Override
-            public void onSuccess(Object result) {
-                response.resume(result);
-            }
+        Futures.addCallback(
+                result,
+                new FutureCallback<Object>() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        response.resume(result);
+                    }
 
-            @Override
-            public void onFailure(Throwable thrown) {
-                response.resume(thrown);
-            }
-        }, asyncResponseExecutor);
+                    @Override
+                    public void onFailure(Throwable thrown) {
+                        response.resume(thrown);
+                    }
+                },
+                asyncResponseExecutor);
     }
-
 }

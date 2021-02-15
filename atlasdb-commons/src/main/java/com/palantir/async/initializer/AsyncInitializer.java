@@ -15,19 +15,16 @@
  */
 package com.palantir.async.initializer;
 
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements basic infrastructure to allow an object to be asynchronously initialized.
@@ -64,19 +61,22 @@ public abstract class AsyncInitializer {
     private void tryInitializationLoop() {
         try {
             tryInitializeInternal();
-            log.info("Initialized {} on the attempt {} in {} milliseconds",
+            log.info(
+                    "Initialized {} on the attempt {} in {} milliseconds",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
                     SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime));
         } catch (Throwable throwable) {
-            log.info("Failed to initialize {} on the attempt {}",
+            log.info(
+                    "Failed to initialize {} on the attempt {}",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts++),
                     throwable);
             try {
                 cleanUpOnInitFailure();
             } catch (Throwable cleanupThrowable) {
-                log.error("Failed to cleanup when initialization of {} failed on attempt {} with {} milliseconds",
+                log.error(
+                        "Failed to cleanup when initialization of {} failed on attempt {} with {} milliseconds",
                         SafeArg.of("className", getInitializingClassName()),
                         SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
                         SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime),
@@ -88,14 +88,17 @@ public abstract class AsyncInitializer {
 
     // Not final for tests.
     void scheduleInitialization() {
-        singleThreadedExecutor.schedule(() -> {
-            if (state.isCancelled()) {
-                singleThreadedExecutor.shutdown();
-                return;
-            }
+        singleThreadedExecutor.schedule(
+                () -> {
+                    if (state.isCancelled()) {
+                        singleThreadedExecutor.shutdown();
+                        return;
+                    }
 
-            tryInitializationLoop();
-        }, sleepIntervalInMillis(), TimeUnit.MILLISECONDS);
+                    tryInitializationLoop();
+                },
+                sleepIntervalInMillis(),
+                TimeUnit.MILLISECONDS);
     }
 
     // Not final for tests

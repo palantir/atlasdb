@@ -19,23 +19,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.function.LongSupplier;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import java.util.function.LongSupplier;
+import org.junit.Test;
 
 public class SweepTimestampTest {
     private final LongSupplier mockImmutableTimestampSupplier = mock(LongSupplier.class);
     private final LongSupplier mockUnreadableTimestampSupplier = mock(LongSupplier.class);
-    private final SpecialTimestampsSupplier specialTimestampsSupplier = new SpecialTimestampsSupplier(
-            mockUnreadableTimestampSupplier, mockImmutableTimestampSupplier);
+    private final SpecialTimestampsSupplier specialTimestampsSupplier =
+            new SpecialTimestampsSupplier(mockUnreadableTimestampSupplier, mockImmutableTimestampSupplier);
 
     @Test
     public void thoroughWillReturnTheImmutableTimestamp() {
         when(mockImmutableTimestampSupplier.getAsLong()).thenReturn(123L);
 
-        assertThat(Sweeper.THOROUGH.getSweepTimestamp(specialTimestampsSupplier)).isEqualTo(123L);
+        assertThat(Sweeper.THOROUGH.getSweepTimestamp(specialTimestampsSupplier))
+                .isEqualTo(123L);
     }
 
     @Test
@@ -43,7 +42,8 @@ public class SweepTimestampTest {
         when(mockImmutableTimestampSupplier.getAsLong()).thenReturn(100L);
         when(mockUnreadableTimestampSupplier.getAsLong()).thenReturn(200L);
 
-        assertThat(Sweeper.CONSERVATIVE.getSweepTimestamp(specialTimestampsSupplier)).isEqualTo(100L);
+        assertThat(Sweeper.CONSERVATIVE.getSweepTimestamp(specialTimestampsSupplier))
+                .isEqualTo(100L);
     }
 
     @Test
@@ -51,6 +51,7 @@ public class SweepTimestampTest {
         when(mockImmutableTimestampSupplier.getAsLong()).thenReturn(200L);
         when(mockUnreadableTimestampSupplier.getAsLong()).thenReturn(100L);
 
-        assertThat(Sweeper.CONSERVATIVE.getSweepTimestamp(specialTimestampsSupplier)).isEqualTo(100L);
+        assertThat(Sweeper.CONSERVATIVE.getSweepTimestamp(specialTimestampsSupplier))
+                .isEqualTo(100L);
     }
 }

@@ -15,13 +15,11 @@
  */
 package com.palantir.timestamp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a logger intended for use tracking down problems arising from
@@ -40,12 +38,15 @@ public final class DebugLogger {
 
     public static void handedOutTimestamps(TimestampRange range) {
         long count = range.getUpperBound() - range.getLowerBound() + 1L;
-        logger.trace("Handing out {} timestamps, taking us to {}.", SafeArg.of("count", count),
+        logger.trace(
+                "Handing out {} timestamps, taking us to {}.",
+                SafeArg.of("count", count),
                 SafeArg.of("rangeUpperBound", range.getUpperBound()));
     }
 
     public static void createdPersistentTimestamp() {
-        logger.info("Creating PersistentTimestamp object on thread {}."
+        logger.info(
+                "Creating PersistentTimestamp object on thread {}."
                         + " If you are running embedded AtlasDB, this should only happen once."
                         + " If you are using Timelock, this should happen once per client per leadership election",
                 UnsafeArg.of("threadName", Thread.currentThread().getName()));
@@ -58,5 +59,4 @@ public final class DebugLogger {
     public static void didStoreNewUpperLimit(long newLimit) {
         logger.trace("Stored; upper limit is now {}.", SafeArg.of("newLimit", newLimit));
     }
-
 }

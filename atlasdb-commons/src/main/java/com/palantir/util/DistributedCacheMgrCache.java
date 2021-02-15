@@ -33,7 +33,7 @@ package com.palantir.util;
  *
  */
 public interface DistributedCacheMgrCache<K, V> {
-    public V put(K key, V value);
+    V put(K key, V value);
 
     /**
      * The only thing this call ensures is that it will either return null
@@ -42,5 +42,5 @@ public interface DistributedCacheMgrCache<K, V> {
      *
      * If v1 then v2 is put in this cache, this get call may return null, v1, null, v2, null, v1.
      */
-    public V get(K key);
+    V get(K key);
 }

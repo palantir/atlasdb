@@ -15,28 +15,24 @@
  */
 package com.palantir.paxos;
 
+import com.palantir.logsafe.SafeArg;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentSkipListMap;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.palantir.logsafe.SafeArg;
 
 public final class PaxosAcceptorImpl implements PaxosAcceptor {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
 
     public static PaxosAcceptor newAcceptor(String logDir) {
         PaxosStateLog<PaxosAcceptorState> log = new PaxosStateLogImpl<>(logDir);
-        return new PaxosAcceptorImpl(
-                new ConcurrentSkipListMap<>(),
-                log,
-                log.getGreatestLogEntry());
+        return new PaxosAcceptorImpl(new ConcurrentSkipListMap<>(), log, log.getGreatestLogEntry());
     }
 
-    public static PaxosAcceptor newSplittingAcceptor(PaxosStorageParameters params,
+    public static PaxosAcceptor newSplittingAcceptor(
+            PaxosStorageParameters params,
             SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
             Optional<Long> migrateFrom) {
         PaxosStateLog<PaxosAcceptorState> log = SplittingPaxosStateLog.createWithMigration(
@@ -44,19 +40,17 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
                 PaxosAcceptorState.BYTES_HYDRATOR,
                 legacyOperationMarkers,
                 migrateFrom.map(OptionalLong::of).orElseGet(OptionalLong::empty));
-        return new PaxosAcceptorImpl(
-                new ConcurrentSkipListMap<>(),
-                log,
-                log.getGreatestLogEntry());
+        return new PaxosAcceptorImpl(new ConcurrentSkipListMap<>(), log, log.getGreatestLogEntry());
     }
 
     private final ConcurrentSkipListMap<Long, PaxosAcceptorState> state;
     private final PaxosStateLog<PaxosAcceptorState> log;
     private final long greatestInLogAtStartup;
 
-    private PaxosAcceptorImpl(ConcurrentSkipListMap<Long, PaxosAcceptorState> state,
-                              PaxosStateLog<PaxosAcceptorState> log,
-                              long greatestInLogAtStartup) {
+    private PaxosAcceptorImpl(
+            ConcurrentSkipListMap<Long, PaxosAcceptorState> state,
+            PaxosStateLog<PaxosAcceptorState> log,
+            long greatestInLogAtStartup) {
         this.state = state;
         this.log = log;
         this.greatestInLogAtStartup = greatestInLogAtStartup;
@@ -71,7 +65,7 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
             return PaxosPromise.reject(pid);
         }
 
-        for (;;) {
+        for (; ; ) {
             PaxosAcceptorState oldState = state.get(seq);
 
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) < 0) {
@@ -81,21 +75,16 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
             // allow for the same propose to be repeated and return the same result.
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) == 0) {
                 return PaxosPromise.accept(
-                        oldState.lastPromisedId,
-                        oldState.lastAcceptedId,
-                        oldState.lastAcceptedValue);
+                        oldState.lastPromisedId, oldState.lastAcceptedId, oldState.lastAcceptedValue);
             }
 
-            PaxosAcceptorState newState = oldState != null
-                    ? oldState.withPromise(pid)
-                    : PaxosAcceptorState.newState(pid);
+            PaxosAcceptorState newState =
+                    oldState != null ? oldState.withPromise(pid) : PaxosAcceptorState.newState(pid);
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
                 log.writeRound(seq, newState);
                 return PaxosPromise.accept(
-                        newState.lastPromisedId,
-                        newState.lastAcceptedId,
-                        newState.lastAcceptedValue);
+                        newState.lastPromisedId, newState.lastAcceptedId, newState.lastAcceptedValue);
             }
         }
     }
@@ -109,7 +98,7 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
             return new BooleanPaxosResponse(false); // nack
         }
 
-        for (;;) {
+        for (; ; ) {
             PaxosAcceptorState oldState = state.get(seq);
 
             // nack
@@ -144,8 +133,8 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
         }
 
         if (seq < log.getLeastLogEntry()) {
-            throw new TruncatedStateLogException("round " + seq + " before truncation cutoff of "
-                    + log.getLeastLogEntry());
+            throw new TruncatedStateLogException(
+                    "round " + seq + " before truncation cutoff of " + log.getLeastLogEntry());
         }
 
         if (seq <= log.getGreatestLogEntry()) {
@@ -155,5 +144,4 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
             }
         }
     }
-
 }

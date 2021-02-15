@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -31,6 +26,10 @@ import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
 import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A service which stores key-value pairs.
@@ -67,10 +66,8 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @Idempotent
     @Timed
-    Map<Cell, Value> getRows(TableReference tableRef,
-                             Iterable<byte[]> rows,
-                             ColumnSelection columnSelection,
-                             long timestamp);
+    Map<Cell, Value> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp);
 
     /**
      * Gets values from the key-value store for the specified rows and column range
@@ -175,9 +172,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @Idempotent
     @Timed
-    void put(TableReference tableRef,
-             Map<Cell, byte[]> values,
-             long timestamp) throws KeyAlreadyExistsException;
+    void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) throws KeyAlreadyExistsException;
 
     /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee
@@ -200,8 +195,8 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @Idempotent
     @Timed
-    void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
-                  long timestamp) throws KeyAlreadyExistsException;
+    void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
+            throws KeyAlreadyExistsException;
 
     /**
      * Puts values into the key-value store with individually specified timestamps.
@@ -229,8 +224,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @NonIdempotent
     @Idempotent
     @Timed
-    void putWithTimestamps(TableReference tableRef,
-                           Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
+    void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
 
     /**
      * Puts values into the key-value store. This call <i>does not</i> guarantee
@@ -255,8 +249,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      *                                      one that already exists.
      */
     @Timed
-    void putUnlessExists(TableReference tableRef,
-                         Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
+    void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
      * Check whether CAS is supported. This check can go away when JDBC KVS is deleted.
@@ -417,9 +410,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @Idempotent
     @Timed
-    ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
-                                                RangeRequest rangeRequest,
-                                                long timestamp);
+    ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp);
 
     /**
      * Gets timestamp values from the key-value store. For each row, this returns all associated
@@ -443,9 +434,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Deprecated
     @Timed
     ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
-            TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) throws InsufficientConsistencyException;
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp) throws InsufficientConsistencyException;
 
     /**
      * For a given range of rows, returns all candidate cells for sweeping (and their timestamps).
@@ -464,8 +453,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @Timed
     ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
-            TableReference tableRef,
-            CandidateCellForSweepingRequest request);
+            TableReference tableRef, CandidateCellForSweepingRequest request);
 
     /**
      * For each range passed in the result will have the first page of results for that range.
@@ -486,9 +474,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Idempotent
     @Timed
     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            long timestamp);
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp);
 
     ////////////////////////////////////////////////////////////
     // TABLE CREATION AND METADATA
@@ -502,7 +488,6 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @Idempotent
     void dropTable(TableReference tableRef) throws InsufficientConsistencyException;
-
 
     /**
      * Drops many tables in idempotent fashion. If you are dropping many tables at once,
@@ -520,8 +505,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * (the table is left in its current state).
      */
     @Idempotent
-    void createTable(TableReference tableRef, byte[] tableMetadata)
-            throws InsufficientConsistencyException;
+    void createTable(TableReference tableRef, byte[] tableMetadata) throws InsufficientConsistencyException;
 
     /**
      * Creates many tables in idempotent fashion. If you are making many tables at once,
@@ -662,4 +646,21 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     default boolean shouldTriggerCompactions() {
         return false;
     }
+
+    /**
+     * Returns a sorted list of row keys in the specified range.
+     *
+     * This method is not guaranteed to be implemented for all implementations of {@link KeyValueService}. It may be
+     * changed or removed at any time without warning.
+     *
+     * @deprecated if you wish to use this method, contact the atlasdb team for support
+     *
+     * @param tableRef table for which the request is made.
+     * @param startRow inclusive start of the row key range. Use empty byte array for unbounded.
+     * @param endRow inclusive end of the row key range. Use empty byte array for unbounded.
+     * @param maxResults the request only returns the first maxResults rows in range.
+     */
+    @DoDelegate
+    @Deprecated
+    List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults);
 }

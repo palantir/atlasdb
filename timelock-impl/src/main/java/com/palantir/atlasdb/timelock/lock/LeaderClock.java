@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.function.Supplier;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
+import java.util.function.Supplier;
 
 public class LeaderClock {
     private final LeadershipId leadershipId;

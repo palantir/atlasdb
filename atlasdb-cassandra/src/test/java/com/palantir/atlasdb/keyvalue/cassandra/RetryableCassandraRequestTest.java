@@ -15,15 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-import java.net.InetSocketAddress;
-
-import org.junit.Before;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.common.base.FunctionCheckedException;
+import java.net.InetSocketAddress;
+import org.junit.Before;
+import org.junit.Test;
 
 public class RetryableCassandraRequestTest {
     private static final int DEFAULT_PORT = 5000;
@@ -36,10 +33,7 @@ public class RetryableCassandraRequestTest {
 
     @Before
     public void setup() {
-        request = new RetryableCassandraRequest<>(
-                HOST_1,
-                noOp()
-        );
+        request = new RetryableCassandraRequest<>(HOST_1, noOp());
     }
 
     @Test
@@ -78,11 +72,11 @@ public class RetryableCassandraRequestTest {
     }
 
     private void assertNumberOfTotalAttempts(int expected) {
-        assertThat(request.getNumberOfAttempts(), is(expected));
+        assertThat(request.getNumberOfAttempts()).isEqualTo(expected);
     }
 
     private void assertNumberOfAttemptsOnHost(int expected, InetSocketAddress host) {
-        assertThat(request.getNumberOfAttemptsOnHost(host), is(expected));
+        assertThat(request.getNumberOfAttemptsOnHost(host)).isEqualTo(expected);
     }
 
     private FunctionCheckedException<CassandraClient, Void, RuntimeException> noOp() {

@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Set;
-import java.util.SortedSet;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -34,7 +24,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -42,6 +31,15 @@ import com.palantir.common.annotation.Immutable;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * Allows you to restrict a call on the database
@@ -84,11 +82,12 @@ public final class RangeRequest implements Serializable {
     }
 
     @JsonCreator
-    private RangeRequest(@JsonProperty("startInclusive") byte[] startInclusive,
-                         @JsonProperty("endExclusive") byte[] endExclusive,
-                         @JsonProperty("columnNames") Iterable<byte[]> cols,
-                         @JsonProperty("batchHint") Integer batchHint,
-                         @JsonProperty("reverse") boolean reverse) {
+    private RangeRequest(
+            @JsonProperty("startInclusive") byte[] startInclusive,
+            @JsonProperty("endExclusive") byte[] endExclusive,
+            @JsonProperty("columnNames") Iterable<byte[]> cols,
+            @JsonProperty("batchHint") Integer batchHint,
+            @JsonProperty("reverse") boolean reverse) {
         this.startInclusive = startInclusive;
         this.endExclusive = endExclusive;
         this.columns = cloneSet(cols);
@@ -102,7 +101,8 @@ public final class RangeRequest implements Serializable {
      * <p>
      * This array may be empty if the start is unbounded.
      */
-    @Nonnull public byte[] getStartInclusive() {
+    @Nonnull
+    public byte[] getStartInclusive() {
         return startInclusive.clone();
     }
 
@@ -112,14 +112,16 @@ public final class RangeRequest implements Serializable {
      * <p>
      * This array may be empty if the end doens't have a bound.
      */
-    @Nonnull public byte[] getEndExclusive() {
+    @Nonnull
+    public byte[] getEndExclusive() {
         return endExclusive.clone();
     }
 
     /**
      * An empty set of column names means that all columns are selected.
      */
-    @Nonnull public SortedSet<byte[]> getColumnNames() {
+    @Nonnull
+    public SortedSet<byte[]> getColumnNames() {
         return columns;
     }
 
@@ -189,9 +191,9 @@ public final class RangeRequest implements Serializable {
         PtBytes.addIfNotEmpty(helper, "startInclusive", startInclusive);
         PtBytes.addIfNotEmpty(helper, "endExclusive", endExclusive);
         if (columns != null && !columns.isEmpty()) {
-            helper.add("columns", FluentIterable.from(columns)
-                    .filter(Predicates.notNull())
-                    .transform(PtBytes.BYTES_TO_HEX_STRING));
+            helper.add(
+                    "columns",
+                    FluentIterable.from(columns).filter(Predicates.notNull()).transform(PtBytes.BYTES_TO_HEX_STRING));
         }
         helper.add("batchHint", batchHint);
         helper.add("reverse", reverse);
@@ -223,11 +225,7 @@ public final class RangeRequest implements Serializable {
          */
         if (hashCode == 0) {
             hashCode = Objects.hash(
-                    Arrays.hashCode(startInclusive),
-                    Arrays.hashCode(endExclusive),
-                    columns,
-                    batchHint,
-                    reverse);
+                    Arrays.hashCode(startInclusive), Arrays.hashCode(endExclusive), columns, batchHint, reverse);
         }
         return hashCode;
     }
@@ -270,10 +268,11 @@ public final class RangeRequest implements Serializable {
      * By default, the range covers all rows and columns. To restrict the rows or columns,
      * call      * the methods on the <code>RangeRequest</code> class.
      */
-    @NotThreadSafe public static final class Builder {
+    @NotThreadSafe
+    public static final class Builder {
         private byte[] startInclusive = PtBytes.EMPTY_BYTE_ARRAY;
         private byte[] endExclusive = PtBytes.EMPTY_BYTE_ARRAY;
-        private Set<byte[]> columns = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+        private Set<byte[]> columns = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
         private Integer batchHint = null;
         private final boolean reverse;
 
@@ -304,7 +303,8 @@ public final class RangeRequest implements Serializable {
         }
 
         public Builder startRowInclusive(byte[] start) {
-            this.startInclusive = Preconditions.checkNotNull(start, "start cannot be null").clone();
+            this.startInclusive =
+                    Preconditions.checkNotNull(start, "start cannot be null").clone();
             return this;
         }
 
@@ -317,7 +317,8 @@ public final class RangeRequest implements Serializable {
         }
 
         public Builder endRowExclusive(byte[] end) {
-            this.endExclusive = Preconditions.checkNotNull(end, "end cannot be null").clone();
+            this.endExclusive =
+                    Preconditions.checkNotNull(end, "end cannot be null").clone();
             return this;
         }
 

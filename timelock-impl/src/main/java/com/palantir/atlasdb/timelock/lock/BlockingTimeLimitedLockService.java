@@ -15,20 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import javax.annotation.Nullable;
-import javax.ws.rs.PathParam;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
@@ -46,6 +32,17 @@ import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import javax.annotation.Nullable;
+import javax.ws.rs.PathParam;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BlockingTimeLimitedLockService implements CloseableLockService {
     private static final Logger log = LoggerFactory.getLogger(BlockingTimeLimitedLockService.class);
@@ -56,30 +53,25 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
 
     @VisibleForTesting
     BlockingTimeLimitedLockService(
-            CloseableLockService delegate,
-            TimeLimiter timeLimiter,
-            long blockingTimeLimitMillis) {
+            CloseableLockService delegate, TimeLimiter timeLimiter, long blockingTimeLimitMillis) {
         this.delegate = delegate;
         this.timeLimiter = timeLimiter;
         this.blockingTimeLimitMillis = blockingTimeLimitMillis;
     }
 
-    public static BlockingTimeLimitedLockService create(CloseableLockService lockService,
-            long blockingTimeLimitMillis) {
+    public static BlockingTimeLimitedLockService create(
+            CloseableLockService lockService, long blockingTimeLimitMillis) {
         // TODO (jkong): Inject the executor to allow application lifecycle managed executors.
         // Currently maintaining existing behaviour.
         return new BlockingTimeLimitedLockService(
-                lockService,
-                SimpleTimeLimiter.create(PTExecutors.newCachedThreadPool()),
-                blockingTimeLimitMillis);
+                lockService, SimpleTimeLimiter.create(PTExecutors.newCachedThreadPool()), blockingTimeLimitMillis);
     }
 
     @Nullable
     @Override
     public LockRefreshToken lock(@PathParam("client") String client, LockRequest request) throws InterruptedException {
         return callWithTimeLimit(
-                () -> delegate.lock(client, request),
-                ImmutableLockRequestSpecification.of("lock", client, request));
+                () -> delegate.lock(client, request), ImmutableLockRequestSpecification.of("lock", client, request));
     }
 
     @Override
@@ -214,7 +206,8 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
     }
 
     private static void logInterrupted(LockRequestSpecification specification, InterruptedException e) {
-        log.info("Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
+        log.info(
+                "Lock service was interrupted when servicing {} for client \"{}\"; request was {}",
                 SafeArg.of("method", specification.method()),
                 SafeArg.of("client", specification.client()),
                 UnsafeArg.of("lockRequest", specification.lockRequest()),
@@ -222,9 +215,10 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
     }
 
     private BlockingTimeoutException logAndHandleTimeout(LockRequestSpecification specification) {
-        final String logMessage = "Lock service timed out after {} milliseconds"
-                + " when servicing {} for client \"{}\"";
-        log.info(logMessage,
+        final String logMessage =
+                "Lock service timed out after {} milliseconds" + " when servicing {} for client \"{}\"";
+        log.info(
+                logMessage,
                 SafeArg.of("timeoutDurationMillis", blockingTimeLimitMillis),
                 SafeArg.of("method", specification.method()),
                 SafeArg.of("client", specification.client()),

@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Objects;
-
-import org.apache.commons.lang3.StringUtils;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
 
 public final class TableReference {
     private final Namespace namespace;
@@ -55,9 +53,7 @@ public final class TableReference {
     public static TableReference createLowerCased(TableReference table) {
         String name = table.namespace.getName().toLowerCase();
         Namespace namespace = name.isEmpty() ? Namespace.EMPTY_NAMESPACE : Namespace.create(name);
-        return create(
-                namespace,
-                table.tablename.toLowerCase());
+        return create(namespace, table.tablename.toLowerCase());
     }
 
     /**
@@ -73,8 +69,7 @@ public final class TableReference {
 
     @JsonCreator
     private TableReference(
-            @JsonProperty("namespace") Namespace namespace,
-            @JsonProperty("tablename") String tablename) {
+            @JsonProperty("namespace") Namespace namespace, @JsonProperty("tablename") String tablename) {
         this.namespace = namespace;
         this.tablename = tablename;
     }
@@ -123,8 +118,7 @@ public final class TableReference {
             return false;
         }
         TableReference that = (TableReference) obj;
-        return Objects.equals(namespace, that.namespace)
-                && Objects.equals(tablename, that.tablename);
+        return Objects.equals(namespace, that.namespace) && Objects.equals(tablename, that.tablename);
     }
 
     @Override

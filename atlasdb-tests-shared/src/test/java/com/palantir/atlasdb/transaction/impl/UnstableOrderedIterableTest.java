@@ -18,11 +18,9 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Comparator;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
+import java.util.Comparator;
+import org.junit.Test;
 
 public class UnstableOrderedIterableTest {
     @Test

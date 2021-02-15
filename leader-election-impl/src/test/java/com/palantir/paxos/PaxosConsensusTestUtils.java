@@ -15,24 +15,8 @@
  */
 package com.palantir.paxos;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.sql.DataSource;
-
-import org.apache.commons.io.FileUtils;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
@@ -42,31 +26,42 @@ import com.palantir.leader.proxy.SimulatingFailingServerProxy;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.sql.DataSource;
+import org.apache.commons.io.FileUtils;
 
 public final class PaxosConsensusTestUtils {
 
-    private PaxosConsensusTestUtils() {
-    }
+    private PaxosConsensusTestUtils() {}
 
     private static final long SERVER_DELAY_TIME_MS = 0;
     private static final String LOG_DIR = "testlogs/";
     private static final String LEARNER_DIR_PREFIX = LOG_DIR + "learner/";
     private static final String ACCEPTOR_DIR_PREFIX = LOG_DIR + "acceptor/";
 
-    public static PaxosTestState setup(int numLeaders,
-                                       int quorumSize) {
-        List<LeaderElectionService> leaders = Lists.newArrayList();
-        List<PaxosAcceptor> acceptors = Lists.newArrayList();
-        List<PaxosLearner> learners = Lists.newArrayList();
-        List<AtomicBoolean> failureToggles = Lists.newArrayList();
+    public static PaxosTestState setup(int numLeaders, int quorumSize) {
+        List<LeaderElectionService> leaders = new ArrayList<>();
+        List<PaxosAcceptor> acceptors = new ArrayList<>();
+        List<PaxosLearner> learners = new ArrayList<>();
+        List<AtomicBoolean> failureToggles = new ArrayList<>();
         ExecutorService executor = PTExecutors.newCachedThreadPool();
 
         DataSource sqliteDataSource = SqliteConnections.getPooledDataSource(getSqlitePath());
 
         RuntimeException exception = new SafeRuntimeException("mock server failure");
         SplittingPaxosStateLog.LegacyOperationMarkers noop = ImmutableLegacyOperationMarkers.builder()
-                .markLegacyRead(() -> { })
-                .markLegacyWrite(() -> { })
+                .markLegacyRead(() -> {})
+                .markLegacyWrite(() -> {})
                 .build();
         for (int i = 0; i < numLeaders; i++) {
             failureToggles.add(new AtomicBoolean(false));
@@ -74,25 +69,16 @@ public final class PaxosConsensusTestUtils {
             PaxosLearner learner = PaxosLearnerImpl.newSplittingLearner(
                     getLearnerStorageParameters(i, sqliteDataSource), noop, PaxosKnowledgeEventRecorder.NO_OP);
             learners.add(ToggleableExceptionProxy.newProxyInstance(
-                    PaxosLearner.class,
-                    learner,
-                    failureToggles.get(i),
-                    exception));
+                    PaxosLearner.class, learner, failureToggles.get(i), exception));
 
             PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(
                     getAcceptorStorageParameters(i, sqliteDataSource), noop, Optional.empty());
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
-                    PaxosAcceptor.class,
-                    acceptor,
-                    failureToggles.get(i),
-                    exception));
+                    PaxosAcceptor.class, acceptor, failureToggles.get(i), exception));
         }
 
         PaxosAcceptorNetworkClient acceptorNetworkClient = SingleLeaderAcceptorNetworkClient.createLegacy(
-                acceptors,
-                quorumSize,
-                Maps.toMap(acceptors, $ -> executor),
-                PaxosConstants.CANCEL_REMAINING_CALLS);
+                acceptors, quorumSize, Maps.toMap(acceptors, $ -> executor), PaxosConstants.CANCEL_REMAINING_CALLS);
 
         for (int i = 0; i < numLeaders; i++) {
             UUID leaderUuid = UUID.randomUUID();
@@ -117,17 +103,10 @@ public final class PaxosConsensusTestUtils {
                     .acceptorClient(acceptorNetworkClient)
                     .learnerClient(learnerNetworkClient)
                     .leaderPinger(new SingleLeaderPinger(
-                            ImmutableMap.of(),
-                            Duration.ZERO,
-                            leaderUuid,
-                            true,
-                            Optional.empty()))
+                            ImmutableMap.of(), Duration.ZERO, leaderUuid, true, Optional.empty()))
                     .build();
             leaders.add(SimulatingFailingServerProxy.newProxyInstance(
-                    LeaderElectionService.class,
-                    leader,
-                    SERVER_DELAY_TIME_MS,
-                    failureToggles.get(i)));
+                    LeaderElectionService.class, leader, SERVER_DELAY_TIME_MS, failureToggles.get(i)));
         }
 
         return new PaxosTestState(leaders, learners, failureToggles, executor);

@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import javax.sql.DataSource;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,16 +29,15 @@ public class SqlitePaxosStateLogMigrationStateTest {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
 
-    private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE = ImmutableNamespaceAndUseCase
-            .of(Client.of("namespace"), "useCase");
+    private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE =
+            ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "useCase");
 
     private DataSource dataSource;
     private SqlitePaxosStateLogMigrationState migrationState;
 
     @Before
     public void setup() {
-        dataSource = SqliteConnections
-                .getPooledDataSource(tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, dataSource);
     }
 

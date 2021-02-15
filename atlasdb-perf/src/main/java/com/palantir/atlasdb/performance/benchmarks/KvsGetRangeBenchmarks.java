@@ -15,18 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.annotations.Warmup;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -37,6 +25,16 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
+import org.openjdk.jmh.annotations.Warmup;
 
 @State(Scope.Benchmark)
 public class KvsGetRangeBenchmarks {
@@ -46,14 +44,18 @@ public class KvsGetRangeBenchmarks {
         int startRow = Ints.fromByteArray(request.getStartInclusive());
         ClosableIterator<RowResult<Value>> result =
                 table.getKvs().getRange(table.getTableRef(), request, Long.MAX_VALUE);
-        ArrayList<RowResult<Value>> list = Lists.newArrayList(result);
+        List<RowResult<Value>> list = Lists.newArrayList(result);
         result.close();
         Preconditions.checkState(list.size() == sliceSize, "List size %s != %s", sliceSize, list.size());
         list.forEach(rowResult -> {
             byte[] rowName = rowResult.getRowName();
             int rowNumber = Ints.fromByteArray(rowName);
-            Preconditions.checkState(rowNumber - startRow < sliceSize, "Start Row %s, row number %s, sliceSize %s",
-                    startRow, rowNumber, sliceSize);
+            Preconditions.checkState(
+                    rowNumber - startRow < sliceSize,
+                    "Start Row %s, row number %s, sliceSize %s",
+                    startRow,
+                    rowNumber,
+                    sliceSize);
         });
         return result;
     }
@@ -65,24 +67,34 @@ public class KvsGetRangeBenchmarks {
 
         int numRequests = Iterables.size(requests);
 
-        Preconditions.checkState(numRequests == results.size(),
+        Preconditions.checkState(
+                numRequests == results.size(),
                 "Got %s requests and %s results, requests %s, results %s",
-                numRequests, results.size(), requests, results);
+                numRequests,
+                results.size(),
+                requests,
+                results);
 
         results.forEach((request, result) -> {
-            Preconditions.checkState(1 == result.getResults().size(), "Key %s, List size is %s",
-                    Ints.fromByteArray(request.getStartInclusive()), result.getResults().size());
-            Preconditions.checkState(!result.moreResultsAvailable(), "Key %s, result.moreResultsAvailable() %s",
-                    Ints.fromByteArray(request.getStartInclusive()), (Object) result.moreResultsAvailable());
+            Preconditions.checkState(
+                    1 == result.getResults().size(),
+                    "Key %s, List size is %s",
+                    Ints.fromByteArray(request.getStartInclusive()),
+                    result.getResults().size());
+            Preconditions.checkState(
+                    !result.moreResultsAvailable(),
+                    "Key %s, result.moreResultsAvailable() %s",
+                    Ints.fromByteArray(request.getStartInclusive()),
+                    (Object) result.moreResultsAvailable());
             RowResult<Value> row = Iterables.getOnlyElement(result.getResults());
-            Preconditions.checkState(Arrays.equals(request.getStartInclusive(), row.getRowName()),
+            Preconditions.checkState(
+                    Arrays.equals(request.getStartInclusive(), row.getRowName()),
                     "Request row is %s, result is %s",
                     Ints.fromByteArray(request.getStartInclusive()),
                     Ints.fromByteArray(row.getRowName()));
         });
         return results;
     }
-
 
     @Benchmark
     @Threads(1)
@@ -100,7 +112,6 @@ public class KvsGetRangeBenchmarks {
         return getSingleRangeInner(table, 1);
     }
 
-
     @Benchmark
     @Threads(1)
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
@@ -117,7 +128,6 @@ public class KvsGetRangeBenchmarks {
         return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
     }
 
-
     @Benchmark
     @Threads(1)
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
@@ -133,5 +143,4 @@ public class KvsGetRangeBenchmarks {
     public Object getMultiRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getMultiRangeInner(table);
     }
-
 }

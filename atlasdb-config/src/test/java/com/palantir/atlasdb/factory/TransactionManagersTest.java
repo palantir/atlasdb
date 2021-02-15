@@ -15,22 +15,6 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -39,27 +23,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import org.assertj.core.util.Files;
-import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -135,6 +107,26 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import org.assertj.core.util.Files;
+import org.awaitility.Awaitility;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
@@ -164,15 +156,15 @@ public class TransactionManagersTest {
     private static final String FEEDBACK_PATH = "/tl/feedback/reportFeedback";
     private static final MappingBuilder FEEDBACK_MAPPING = post(urlEqualTo(FEEDBACK_PATH));
 
-    private static final SslConfiguration SSL_CONFIGURATION
-            = SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    private static final SslConfiguration SSL_CONFIGURATION =
+            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
 
     private final TimeLockMigrator migrator = mock(TimeLockMigrator.class);
-    private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices = mock(
-            TransactionManagers.LockAndTimestampServices.class);
+    private final TransactionManagers.LockAndTimestampServices lockAndTimestampServices =
+            mock(TransactionManagers.LockAndTimestampServices.class);
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
-    private final DialogueClients.ReloadingFactory reloadingFactory
-            = DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build()));
+    private final DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
+            Refreshable.only(ServicesConfigBlock.builder().build()));
 
     private int availablePort;
 
@@ -191,18 +183,22 @@ public class TransactionManagersTest {
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder(Files.currentFolder());
 
     @Rule
-    public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    public WireMockRule availableServer =
+            new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
     @Before
     public void setup() throws JsonProcessingException {
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
         originalAsyncMethod = TransactionManagers.runAsync;
-        TransactionManagers.runAsync = task -> Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(task::run);
+        TransactionManagers.runAsync =
+                task -> Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(task::run);
 
-        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(200).withBody(
-                ("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
-        availableServer.stubFor(TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
-        availableServer.stubFor(LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("2")));
+        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(
+                aResponse().withStatus(200).withBody(("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
+        availableServer.stubFor(
+                TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
+        availableServer.stubFor(
+                LOCK_MAPPING.willReturn(aResponse().withStatus(200).withBody("2")));
         availableServer.stubFor(FEEDBACK_MAPPING.willReturn(aResponse().withStatus(204)));
 
         config = mock(AtlasDbConfig.class);
@@ -242,8 +238,7 @@ public class TransactionManagersTest {
         AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .build();
-        assertThatThrownBy(() ->
-                TransactionManagers.builder()
+        assertThatThrownBy(() -> TransactionManagers.builder()
                         .config(atlasDbConfig)
                         .userAgent(USER_AGENT)
                         .globalMetricsRegistry(new MetricRegistry())
@@ -298,10 +293,14 @@ public class TransactionManagersTest {
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.lock().currentTimeMillis();
 
-        availableServer.verify(0, postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
-        availableServer.verify(0, postRequestedFor(urlMatching(LOCK_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+        availableServer.verify(
+                0,
+                postRequestedFor(urlMatching(TIMESTAMP_PATH))
+                        .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
+        availableServer.verify(
+                0,
+                postRequestedFor(urlMatching(LOCK_PATH))
+                        .withHeader(USER_AGENT_HEADER, WireMock.equalTo(EXPECTED_USER_AGENT_STRING)));
     }
 
     @Test
@@ -316,7 +315,9 @@ public class TransactionManagersTest {
 
                 @Override
                 public boolean unlock(LockRefreshToken token) {
-                    assertThat(inRequest.get()).describedAs("unlock was synchronous").isFalse();
+                    assertThat(inRequest.get())
+                            .describedAs("unlock was synchronous")
+                            .isFalse();
                     return delegate().unlock(token);
                 }
 
@@ -339,12 +340,16 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT,
                         Optional.empty(),
-                        reloadingFactory);
+                        reloadingFactory,
+                        Optional.empty(),
+                        Optional.empty());
 
-        LockRequest lockRequest = LockRequest
-                .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE)).build();
-        LockResponse lockResponse = lockAndTimestamp.timelock().lock(
-                com.palantir.lock.v2.LockRequest.of(lockRequest.getLockDescriptors(), 0));
+        LockRequest lockRequest = LockRequest.builder(
+                        ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
+                .build();
+        LockResponse lockResponse = lockAndTimestamp
+                .timelock()
+                .lock(com.palantir.lock.v2.LockRequest.of(lockRequest.getLockDescriptors(), 0));
         assertThat(lockResponse.wasSuccessful()).isTrue();
 
         try {
@@ -362,7 +367,7 @@ public class TransactionManagersTest {
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds((int) expectedTimeout.getTime())
                 .build();
-        TransactionManagers.builder()
+        TransactionManager tm = TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
@@ -371,12 +376,13 @@ public class TransactionManagersTest {
                 .build()
                 .serializable();
 
-        assertEquals(expectedTimeout, LockRequest.getDefaultLockTimeout());
+        assertThat(LockRequest.getDefaultLockTimeout()).isEqualTo(expectedTimeout);
 
-        LockRequest lockRequest = LockRequest
-                .builder(ImmutableSortedMap.of(StringLockDescriptor.of("foo"),
-                        LockMode.WRITE)).build();
-        assertEquals(expectedTimeout, lockRequest.getLockTimeout());
+        LockRequest lockRequest = LockRequest.builder(
+                        ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
+                .build();
+        assertThat(lockRequest.getLockTimeout()).isEqualTo(expectedTimeout);
+        tm.close();
     }
 
     @Test
@@ -386,15 +392,16 @@ public class TransactionManagersTest {
 
     @Test
     public void canCreateInMemoryWithSetOfSchemas() {
-        TransactionManagers.createInMemory(ImmutableSet.of(
-                GenericTestSchema.getSchema()));
+        TransactionManagers.createInMemory(ImmutableSet.of(GenericTestSchema.getSchema()));
     }
 
     @Test
     public void canDropTablesWhenSweepQueueWritesAreDisabled() {
         AtlasDbConfig inMemoryNoQueueWrites = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
-                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().enableSweepQueueWrites(false).build())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder()
+                        .enableSweepQueueWrites(false)
+                        .build())
                 .build();
         KeyValueService kvs = TransactionManagers.builder()
                 .config(inMemoryNoQueueWrites)
@@ -443,7 +450,7 @@ public class TransactionManagersTest {
                 .build();
 
         MetricRegistry metrics = new MetricRegistry();
-        TransactionManagers.builder()
+        TransactionManager tm = TransactionManagers.builder()
                 .config(atlasDbConfig)
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
@@ -451,8 +458,9 @@ public class TransactionManagersTest {
                 .registrar(environment)
                 .build()
                 .serializable();
-        assertThat(metrics.getNames().stream()
-                .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
+        assertThat(metrics.getNames().stream().anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)))
+                .isFalse();
+        tm.close();
     }
 
     @Test
@@ -500,9 +508,8 @@ public class TransactionManagersTest {
         when(kvs.namespace()).thenReturn(Optional.of("namespace"));
         when(kvs.concurrentGetRangesThreadPoolSize()).thenReturn(1);
 
-        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvs)
-                .build();
+        AtlasDbConfig atlasDbConfig =
+                ImmutableAtlasDbConfig.builder().keyValueService(kvs).build();
         MetricRegistry metrics = new MetricRegistry();
         TransactionManagers transactionManagers = TransactionManagers.builder()
                 .config(atlasDbConfig)
@@ -518,9 +525,8 @@ public class TransactionManagersTest {
     @Test
     public void serviceNameFallsBackToDefaultWhenNamespaceIsNotPresent() {
         KeyValueServiceConfig kvs = new InMemoryAtlasDbConfig();
-        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvs)
-                .build();
+        AtlasDbConfig atlasDbConfig =
+                ImmutableAtlasDbConfig.builder().keyValueService(kvs).build();
         MetricRegistry metrics = new MetricRegistry();
         TransactionManagers transactionManagers = TransactionManagers.builder()
                 .config(atlasDbConfig)
@@ -548,8 +554,8 @@ public class TransactionManagersTest {
                 USER_AGENT);
         LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService lockService = LockServiceImpl.create();
-        LockService leadershipLock = AwaitingLeadershipProxy.newProxyInstance(
-                LockService.class, () -> lockService, leader);
+        LockService leadershipLock =
+                AwaitingLeadershipProxy.newProxyInstance(LockService.class, () -> lockService, leader);
         LockService localOrRemoteLock = LocalOrRemoteProxy.newProxyInstance(
                 LockService.class, leadershipLock, null, CompletableFuture.completedFuture(true));
         try {
@@ -557,7 +563,7 @@ public class TransactionManagersTest {
             assertThatCode(localOrRemoteLock::currentTimeMillis)
                     .as("proxy correctly handles interrupts")
                     .isInstanceOf(SafeIllegalStateException.class);
-            assertThat(Thread.currentThread().isInterrupted());
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {
             // clear the interrupt flag to avoid affecting future tests
             Thread.interrupted();
@@ -566,16 +572,18 @@ public class TransactionManagersTest {
 
     @Test
     public void grabImmutableTsLockIsConfiguredWithBuilderOption() {
-        TransactionConfig transactionConfig = ImmutableTransactionConfig.builder()
-                .build();
+        TransactionConfig transactionConfig =
+                ImmutableTransactionConfig.builder().build();
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(true)
-                .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
-                .lockImmutableTsOnReadOnlyTransactions(), is(true));
+                        .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
+                        .lockImmutableTsOnReadOnlyTransactions())
+                .isTrue();
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
-                .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
-                .lockImmutableTsOnReadOnlyTransactions(), is(false));
+                        .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
+                        .lockImmutableTsOnReadOnlyTransactions())
+                .isFalse();
     }
 
     @Test
@@ -589,12 +597,14 @@ public class TransactionManagersTest {
                 .build();
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
-                .withConsolidatedGrabImmutableTsLockFlag(transactionConfigLocking)
-                .lockImmutableTsOnReadOnlyTransactions(), is(true));
+                        .withConsolidatedGrabImmutableTsLockFlag(transactionConfigLocking)
+                        .lockImmutableTsOnReadOnlyTransactions())
+                .isTrue();
 
         assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
-                .withConsolidatedGrabImmutableTsLockFlag(transactionConfigNotLocking)
-                .lockImmutableTsOnReadOnlyTransactions(), is(false));
+                        .withConsolidatedGrabImmutableTsLockFlag(transactionConfigNotLocking)
+                        .lockImmutableTsOnReadOnlyTransactions())
+                .isFalse();
     }
 
     private TransactionManagers withLockImmutableTsOnReadOnlyTransaction(boolean option) {
@@ -618,8 +628,7 @@ public class TransactionManagersTest {
         setUpLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreNotRecorded(
-                TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                LOCK_SERVICE_CURRENT_TIME_METRIC);
+                TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC, LOCK_SERVICE_CURRENT_TIME_METRIC);
     }
 
     @Test
@@ -638,7 +647,8 @@ public class TransactionManagersTest {
         when(migrator.isInitialized()).thenReturn(true);
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
 
-        assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices))
+                .isTrue();
     }
 
     @Test
@@ -646,14 +656,16 @@ public class TransactionManagersTest {
         when(migrator.isInitialized()).thenReturn(false);
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
 
-        assertFalse(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices))
+                .isFalse();
     }
 
     @Test
     public void timeLockMigrationReportsReadyIfMigrationNotNeeded() {
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.empty());
 
-        assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
+        assertThat(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices))
+                .isTrue();
     }
 
     @Test
@@ -673,14 +685,14 @@ public class TransactionManagersTest {
     @Test
     public void timelockServiceStatusReturnsHealthyWithoutRequest() {
         TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
-        assertTrue(tm.getTimelockServiceStatus().isHealthy());
+        assertThat(tm.getTimelockServiceStatus().isHealthy()).isTrue();
     }
 
     @Test
     public void timelockServiceStatusReturnsHealthyAfterSuccessfulRequests() {
         TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
         tm.getUnreadableTimestamp();
-        assertTrue(tm.getTimelockServiceStatus().isHealthy());
+        assertThat(tm.getTimelockServiceStatus().isHealthy()).isTrue();
     }
 
     @Test
@@ -700,10 +712,10 @@ public class TransactionManagersTest {
                 .build()
                 .serializable();
 
-        assertFalse(manager.isInitialized());
+        assertThat(manager.isInitialized()).isFalse();
         assertThatThrownBy(() -> manager.runTaskWithRetry(unused -> null)).isInstanceOf(NotInitializedException.class);
 
-        Awaitility.await().atMost(12, TimeUnit.SECONDS).until(manager::isInitialized);
+        Awaitility.await().atMost(Duration.ofSeconds(12)).until(manager::isInitialized);
 
         performTransaction(manager);
     }
@@ -711,25 +723,25 @@ public class TransactionManagersTest {
     @Test
     public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, false);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
     public void kvsRecordsSweepStatsIfSweepQueueWritesDisabledButTargetedSweepEnabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, true);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
     public void kvsRecordsSweepStatsIfSweepQueueWritesEnabledButTargetedSweepDisabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, false);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
     public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, true);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(false));
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isFalse();
     }
 
     private KeyValueService initializeKeyValueServiceWithSweepSettings(
@@ -776,19 +788,21 @@ public class TransactionManagersTest {
         Map<RangeScanTestTable.RangeScanTestRow, Long> result = manager.runTaskWithRetry(tx ->
                 GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).getColumn1s(ImmutableSet.of(testRow)));
 
-        assertThat(Iterables.getOnlyElement(result.entrySet()).getValue(), is(12345L));
+        assertThat(Iterables.getOnlyElement(result.entrySet()).getValue()).isEqualTo(12345L);
     }
 
     private void assertThatTimeAndLockMetricsAreNotRecorded(String timestampMetric, String lockMetric) {
-        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(0L)));
-        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount())
+                .isEqualTo(0L);
+        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount()).isEqualTo(0L);
 
         TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
-        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount(), is(equalTo(0L)));
-        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount())
+                .isEqualTo(0L);
+        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount()).isEqualTo(0L);
     }
 
     private void assertThatTimeAndLockMetricsWithTagsAreRecorded(
@@ -797,31 +811,35 @@ public class TransactionManagersTest {
                 .safeName(timestampMetric)
                 .putAllSafeTags(tags)
                 .build();
-        MetricName lockMetricName = MetricName.builder()
-                .safeName(lockMetric)
-                .putAllSafeTags(tags)
-                .build();
+        MetricName lockMetricName =
+                MetricName.builder().safeName(lockMetric).putAllSafeTags(tags).build();
 
-        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount(), is(equalTo(0L)));
-        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount(), is(equalTo(0L)));
+        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount())
+                .isEqualTo(0L);
+        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount())
+                .isEqualTo(0L);
 
         TransactionManagers.LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
-        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount(), is(equalTo(1L)));
-        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount(), is(equalTo(1L)));
+        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount())
+                .isEqualTo(1L);
+        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount())
+                .isEqualTo(1L);
     }
 
     private void setUpForLocalServices() throws IOException {
         doAnswer(invocation -> {
-            // Configure our server to reply with the same server ID as the registered PingableLeader.
-            PingableLeader localPingableLeader = invocation.getArgument(0);
-            availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
-                    .withStatus(200)
-                    .withBody(("\"" + localPingableLeader.getUUID() + "\"").getBytes())));
-            return null;
-        }).when(environment).accept(isA(PingableLeader.class));
+                    // Configure our server to reply with the same server ID as the registered PingableLeader.
+                    PingableLeader localPingableLeader = invocation.getArgument(0);
+                    availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
+                            .withStatus(200)
+                            .withBody(("\"" + localPingableLeader.getUUID() + "\"").getBytes())));
+                    return null;
+                })
+                .when(environment)
+                .accept(isA(PingableLeader.class));
         setUpLeaderBlockInConfig();
     }
 
@@ -838,7 +856,6 @@ public class TransactionManagersTest {
                                 .sslConfiguration(SSL_CONFIGURATION)
                                 .build())
                         .build()));
-
     }
 
     private void setUpRemoteTimestampAndLockBlocksInConfig() {
@@ -847,14 +864,15 @@ public class TransactionManagersTest {
     }
 
     private void setUpLeaderBlockInConfig() throws IOException {
-        when(config.leader()).thenReturn(Optional.of(ImmutableLeaderConfig.builder()
-                .localServer(getUriForPort(availablePort))
-                .addLeaders(getUriForPort(availablePort))
-                .acceptorLogDir(temporaryFolder.newFolder())
-                .learnerLogDir(temporaryFolder.newFolder())
-                .quorumSize(1)
-                .sslConfiguration(SSL_CONFIGURATION)
-                .build()));
+        when(config.leader())
+                .thenReturn(Optional.of(ImmutableLeaderConfig.builder()
+                        .localServer(getUriForPort(availablePort))
+                        .addLeaders(getUriForPort(availablePort))
+                        .acceptorLogDir(temporaryFolder.newFolder())
+                        .learnerLogDir(temporaryFolder.newFolder())
+                        .quorumSize(1)
+                        .sslConfiguration(SSL_CONFIGURATION)
+                        .build()));
     }
 
     private TransactionManagers.LockAndTimestampServices getLockAndTimestampServices() {
@@ -869,7 +887,9 @@ public class TransactionManagersTest {
                 invalidator,
                 USER_AGENT,
                 Optional.empty(),
-                reloadingFactory);
+                reloadingFactory,
+                Optional.empty(),
+                Optional.empty());
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -889,7 +909,10 @@ public class TransactionManagersTest {
                         invalidator,
                         USER_AGENT,
                         Optional.empty(),
-                        reloadingFactory);
+                        reloadingFactory,
+                        Optional.empty(),
+                        Optional.empty());
+
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
@@ -908,8 +931,7 @@ public class TransactionManagersTest {
 
     private void setUpTimeLockConfig() {
         timeLockRuntimeConfig = getTimelockRuntimeConfig(ImmutableList.of(getUriForPort(availablePort)));
-        when(mockAtlasDbRuntimeConfig.timelockRuntime())
-                .thenReturn(Optional.of(timeLockRuntimeConfig));
+        when(mockAtlasDbRuntimeConfig.timelockRuntime()).thenReturn(Optional.of(timeLockRuntimeConfig));
     }
 
     private void verifyFeedbackIsReportedToService() {
@@ -921,17 +943,17 @@ public class TransactionManagersTest {
                         config,
                         refreshableRuntimeConfig,
                         USER_AGENT,
-                        DialogueClients.create(Refreshable.only(ServicesConfigBlock.builder().build())));
-        ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback
-                .builder()
+                        DialogueClients.create(
+                                Refreshable.only(ServicesConfigBlock.builder().build())));
+        ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback.builder()
                 .atlasVersion("1.0")
                 .serviceName("service")
                 .nodeId(UUID.randomUUID())
                 .build();
-        assertThat(timeLockClientFeedbackServices.current().size()).isEqualTo(1);
+        assertThat(timeLockClientFeedbackServices.current()).hasSize(1);
         timeLockClientFeedbackServices.current().get(0).reportFeedback(authHeader, feedbackReport);
         List<LoggedRequest> requests = findAll(postRequestedFor(urlMatching(FEEDBACK_PATH)));
-        assertThat(requests.size()).isEqualTo(1);
+        assertThat(requests).hasSize(1);
         availableServer.verify(postRequestedFor(urlMatching(FEEDBACK_PATH))
                 .withHeader("Authorization", WireMock.containing("Bearer omitted")));
 
@@ -940,13 +962,14 @@ public class TransactionManagersTest {
         mockAtlasDbRuntimeConfig = mock(AtlasDbRuntimeConfig.class);
         when(mockAtlasDbRuntimeConfig.timelockRuntime()).thenReturn(Optional.of(timeLockRuntimeConfig));
         refreshableRuntimeConfig.update(mockAtlasDbRuntimeConfig);
-        assertThat(timeLockClientFeedbackServices.current().size()).isEqualTo(0);
+        assertThat(timeLockClientFeedbackServices.current()).isEmpty();
     }
 
     private void assertGetLockAndTimestampServicesThrows() {
-        String expectedErrorPrefix = "Found a service configured not to use timelock, with a timelock block in"
-                + " the runtime config!";
-        assertThatThrownBy(this::getLockAndTimestampServices).isInstanceOf(IllegalStateException.class)
+        String expectedErrorPrefix =
+                "Found a service configured not to use timelock, with a timelock block in" + " the runtime config!";
+        assertThatThrownBy(this::getLockAndTimestampServices)
+                .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(expectedErrorPrefix);
     }
 

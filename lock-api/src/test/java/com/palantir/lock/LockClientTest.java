@@ -15,12 +15,10 @@
  */
 package com.palantir.lock;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Test;
 
 public final class LockClientTest {
     private final ObjectMapper mapper = new ObjectMapper();
@@ -30,8 +28,7 @@ public final class LockClientTest {
         LockClient lockClient = new LockClient("foo");
         LockClient deserializedLockClient = mapper.readValue(mapper.writeValueAsString(lockClient), LockClient.class);
 
-        assertThat(lockClient.getClientId(), is(deserializedLockClient.getClientId()));
-        assertThat(lockClient.isAnonymous(), is(deserializedLockClient.isAnonymous()));
+        assertThat(lockClient.getClientId()).isEqualTo(deserializedLockClient.getClientId());
+        assertThat(lockClient.isAnonymous()).isEqualTo(deserializedLockClient.isAnonymous());
     }
-
 }

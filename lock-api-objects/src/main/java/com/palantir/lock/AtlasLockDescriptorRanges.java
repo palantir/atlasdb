@@ -32,9 +32,7 @@ public final class AtlasLockDescriptorRanges {
 
     public static Range<LockDescriptor> rowPrefix(String qualifiedTableName, byte[] prefix) {
         LockDescriptor start = AtlasRowLockDescriptor.of(qualifiedTableName, prefix);
-        return Range.closedOpen(
-                start,
-                new LockDescriptor(createExclusiveEndNameForPrefixScan(start.getBytes())));
+        return Range.closedOpen(start, new LockDescriptor(createExclusiveEndNameForPrefixScan(start.getBytes())));
     }
 
     public static Range<LockDescriptor> rowRange(String qualifiedTableName, byte[] startInc, byte[] endExc) {

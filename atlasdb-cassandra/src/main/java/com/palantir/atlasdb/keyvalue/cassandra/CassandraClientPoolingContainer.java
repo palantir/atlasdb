@@ -15,28 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
-import java.util.NoSuchElementException;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.commons.pool2.impl.GenericObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.apache.thrift.transport.TFramedTransport;
-import org.apache.thrift.transport.TMemoryInputTransport;
-import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Gauge;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
@@ -49,6 +27,31 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.util.NoSuchElementException;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
+import org.apache.commons.pool2.impl.EvictionConfig;
+import org.apache.commons.pool2.impl.EvictionPolicy;
+import org.apache.commons.pool2.impl.ExposedEvictionTimer;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.apache.thrift.transport.TFramedTransport;
+import org.apache.thrift.transport.TMemoryInputTransport;
+import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CassandraClientPoolingContainer implements PoolingContainer<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
@@ -104,18 +107,19 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<CassandraClient, V, K> fn)
             throws K {
         final String origName = Thread.currentThread().getName();
-        Thread.currentThread().setName(origName
-                + " calling cassandra host " + host
-                + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-                + " - " + count.getAndIncrement());
+        Thread.currentThread()
+                .setName(origName
+                        + " calling cassandra host " + host
+                        + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
+                        + " - " + count.getAndIncrement());
         try {
             openRequests.getAndIncrement();
             return runWithGoodResource(fn);
         } catch (Throwable t) {
-            log.warn("Error occurred talking to host '{}': {}",
-                    SafeArg.of("host", CassandraLogHelper.host(host)), t);
+            log.warn("Error occurred talking to host '{}': {}", SafeArg.of("host", CassandraLogHelper.host(host)), t);
             if (t instanceof NoSuchElementException && t.getMessage().contains("Pool exhausted")) {
-                log.warn("Extra information about exhausted pool",
+                log.warn(
+                        "Extra information about exhausted pool",
                         SafeArg.of("numActive", clientPool.getNumActive()),
                         SafeArg.of("maxTotal", clientPool.getMaxTotal()),
                         SafeArg.of("meanActiveTimeMillis", clientPool.getMeanActiveTimeMillis()),
@@ -148,9 +152,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             return fn.apply(resource);
         } catch (Exception e) {
             if (isInvalidClientConnection(resource)) {
-                log.warn("Not reusing resource due to {} of host {}",
+                log.warn(
+                        "Not reusing resource due to {} of host {}",
                         UnsafeArg.of("exception", e.toString()),
-                        SafeArg.of("host", CassandraLogHelper.host(host)), e);
+                        SafeArg.of("host", CassandraLogHelper.host(host)),
+                        e);
                 shouldReuse = false;
             }
             if (e instanceof TTransportException
@@ -162,8 +168,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         } finally {
             if (resource != null) {
                 if (shouldReuse) {
-                    log.debug("Returning resource to pool of host {}",
-                            SafeArg.of("host", CassandraLogHelper.host(host)));
+                    log.debug(
+                            "Returning resource to pool of host {}", SafeArg.of("host", CassandraLogHelper.host(host)));
                     eagerlyCleanupReadBuffersFromIdleConnection(resource, host);
                     clientPool.returnObject(resource);
                 } else {
@@ -173,8 +179,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         }
     }
 
-    private static void eagerlyCleanupReadBuffersFromIdleConnection(CassandraClient idleClient,
-            InetSocketAddress host) {
+    private static void eagerlyCleanupReadBuffersFromIdleConnection(
+            CassandraClient idleClient, InetSocketAddress host) {
         // eagerly cleanup idle-connection read buffer to keep a smaller memory footprint
         try {
             TTransport transport = idleClient.getInputProtocol().getTransport();
@@ -184,7 +190,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 TMemoryInputTransport memoryInputTransport = (TMemoryInputTransport) readBuffer.get(transport);
                 byte[] underlyingBuffer = memoryInputTransport.getBuffer();
                 if (underlyingBuffer != null && memoryInputTransport.getBytesRemainingInBuffer() == 0) {
-                    log.debug("During {} check-in, cleaned up a read buffer of {} bytes of host {}",
+                    log.debug(
+                            "During {} check-in, cleaned up a read buffer of {} bytes of host {}",
                             UnsafeArg.of("pool", idleClient),
                             SafeArg.of("bufferLength", underlyingBuffer.length),
                             SafeArg.of("host", CassandraLogHelper.host(host)));
@@ -202,8 +209,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     private void invalidateQuietly(CassandraClient resource) {
         try {
-            log.debug("Discarding resource of host {}",
-                    SafeArg.of("host", CassandraLogHelper.host(host)));
+            log.debug("Discarding resource of host {}", SafeArg.of("host", CassandraLogHelper.host(host)));
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
             // Ignore
@@ -221,9 +227,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 .add("host", this.host)
                 .add("keyspace", config.getKeyspaceOrThrow())
                 .add("usingSsl", config.usingSsl())
-                .add("sslConfiguration", config.sslConfiguration().isPresent()
-                        ? config.sslConfiguration().get()
-                        : "unspecified")
+                .add(
+                        "sslConfiguration",
+                        config.sslConfiguration().isPresent()
+                                ? config.sslConfiguration().get()
+                                : "unspecified")
                 .add("socketTimeoutMillis", config.socketTimeoutMillis())
                 .add("socketQueryTimeoutMillis", config.socketQueryTimeoutMillis())
                 .toString();
@@ -251,7 +259,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      */
     private GenericObjectPool<CassandraClient> createClientPool() {
         CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(metricsManager, host, config);
-        GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
+        GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 
         poolConfig.setMinIdle(config.poolSize());
         poolConfig.setMaxIdle(config.maxConnectionBurstSize());
@@ -277,8 +285,14 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         poolConfig.setTestWhileIdle(true);
 
         poolConfig.setJmxNamePrefix(CassandraLogHelper.host(host));
+        poolConfig.setEvictionPolicy(new NonEvictionLoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()));
         GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
+        pool.setSwallowedExceptionListener(exception -> log.info("Swallowed exception within object pool", exception));
         registerMetrics(pool);
+        log.info(
+                "Creating a Cassandra client pool for {} with the configuration {}",
+                SafeArg.of("host", host),
+                SafeArg.of("poolConfig", poolConfig));
         return pool;
     }
 
@@ -287,14 +301,16 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         for (ThreadInfo info : threadBean.getThreadInfo(threadBean.getAllThreadIds())) {
             // we're fairly good about annotating our C* pool thread names with the current action
             if (log.isTraceEnabled()) {
-                log.trace("active thread",
+                log.trace(
+                        "active thread",
                         UnsafeArg.of("threadName", info.getThreadName()),
                         SafeArg.of("state", info.getThreadState()),
                         SafeArg.of("blockedTime", info.getBlockedTime()),
                         SafeArg.of("waitedTime", info.getWaitedTime()),
                         UnsafeArg.of("stackTrace", info.getStackTrace()));
             } else if (log.isDebugEnabled()) { // omit the rather lengthy stack traces
-                log.debug("active thread",
+                log.debug(
+                        "active thread",
                         UnsafeArg.of("threadName", info.getThreadName()),
                         SafeArg.of("state", info.getThreadState()),
                         SafeArg.of("blockedTime", info.getBlockedTime()),
@@ -309,9 +325,42 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         registerPoolMetric(CassandraClientPoolHostLevelMetric.NUM_ACTIVE, () -> (long) pool.getNumActive());
         registerPoolMetric(CassandraClientPoolHostLevelMetric.CREATED, pool::getCreatedCount);
         registerPoolMetric(CassandraClientPoolHostLevelMetric.DESTROYED_BY_EVICTOR, pool::getDestroyedByEvictorCount);
+        registerPoolMetric(CassandraClientPoolHostLevelMetric.EVICTOR_TASK_SIZE, ExposedEvictionTimer::getNumTasks);
     }
 
     private void registerPoolMetric(CassandraClientPoolHostLevelMetric metric, Gauge<Long> gauge) {
         poolMetrics.registerPoolMetric(metric, gauge, poolNumber);
+    }
+
+    private static final class NonEvictionLoggingEvictionPolicy<T> implements EvictionPolicy<T> {
+        private final EvictionPolicy<T> delegate;
+
+        private NonEvictionLoggingEvictionPolicy(EvictionPolicy<T> delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public boolean evict(EvictionConfig config, PooledObject<T> underTest, int idleCount) {
+            boolean delegateResult = delegate.evict(config, underTest, idleCount);
+            // PDS-146088: the issue manifests with failures to evict anything
+            if (log.isDebugEnabled()) {
+                if (delegateResult) {
+                    log.debug(
+                            "Attempting to evict an object from the Cassandra client pool",
+                            SafeArg.of("underTestState", underTest.getState()),
+                            SafeArg.of("idleState", underTest.getIdleTimeMillis()),
+                            SafeArg.of("idleCount", idleCount),
+                            SafeArg.of("evictionConfig", config));
+                } else {
+                    log.debug(
+                            "Considered an object to be evicted from the Cassandra client pool, but did not evict it",
+                            SafeArg.of("underTestState", underTest.getState()),
+                            SafeArg.of("idleState", underTest.getIdleTimeMillis()),
+                            SafeArg.of("idleCount", idleCount),
+                            SafeArg.of("evictionConfig", config));
+                }
+            }
+            return delegateResult;
+        }
     }
 }

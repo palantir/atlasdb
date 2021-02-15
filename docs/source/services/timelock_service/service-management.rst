@@ -33,11 +33,11 @@ less than the fresh timestamp. This may be obtained through the fresh timestamp 
 
 .. code:: bash
 
-      curl -XPOST localhost:8080/timelock/api/old_namespace/timelock/fresh-timestamp
+    curl -iXPOST <protocol>://<host>:<port>/timelock/api/tl/ts/old_namespace \
+      --data '{"numTimestamps": 1}' -H "Authorization: Bearer q" -H "Content-Type: application/json"
 
-A cluster of TimeLock servers elects a single leader, so if you contact a node that is not the leader you'll receive a
-``NotCurrentLeaderException`` and an HTTP 503. In this case, try the same request on other nodes until you find the
-leader.
+A cluster of TimeLock servers elects a single leader, so if you contact a node that is not the leader you'll receive
+either a HTTP 503 or 308. In this case, try the same request on other nodes until you find the leader.
 
 Note down the value of the timestamp returned. From here on out, we'll refer to this as ``TS``.
 
@@ -49,7 +49,7 @@ on TimeLock.
 
 .. code:: bash
 
-      curl -XPOST localhost:8080/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp=TS
+      curl -XPOST <protocol>://<host:<port>/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp=TS
 
 As before, this command needs to be run on the TimeLock leader.
 After performing the fast forward, it may be worth obtaining a fresh timestamp for the new namespace to confirm that
@@ -61,6 +61,9 @@ of the timestamp service as far as clients are concerned have been preserved.
 
 Step 4 (Optional): Cleanup on TimeLock
 --------------------------------------
+
+.. warning::
+    This section is written under the assumption you are using Paxos for timestamp bound persistence.
 
 TimeLock will continue to hold references to the old client in memory until it is next bounced, and the logs for
 previous rounds of the Paxos protocol will be preserved. Generally, these have a very small footprint and it's thus

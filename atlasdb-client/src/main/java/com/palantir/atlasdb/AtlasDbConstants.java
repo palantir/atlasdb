@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -36,24 +34,27 @@ public final class AtlasDbConstants {
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub2");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
-    public static final TableReference SWEEP_PROGRESS_TABLE = TableReference.createWithEmptyNamespace("_sweep_progress3");
-    public static final TableReference LEGACY_TIMELOCK_TIMESTAMP_TABLE
-            = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
-    public static final TableReference DB_TIMELOCK_TIMESTAMP_TABLE
-            = TableReference.createWithEmptyNamespace("pt_timelock_db_ts");
-    public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
-            "_persisted_locks");
+    public static final TableReference SWEEP_PROGRESS_TABLE =
+            TableReference.createWithEmptyNamespace("_sweep_progress3");
+    public static final TableReference LEGACY_TIMELOCK_TIMESTAMP_TABLE =
+            TableReference.createWithEmptyNamespace("pt_metropolis_ts");
+    public static final TableReference DB_TIMELOCK_TIMESTAMP_TABLE =
+            TableReference.createWithEmptyNamespace("pt_timelock_db_ts");
+    public static final TableReference PERSISTED_LOCKS_TABLE =
+            TableReference.createWithEmptyNamespace("_persisted_locks");
     public static final TableReference COORDINATION_TABLE = TableReference.createWithEmptyNamespace("_coordination");
 
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
-    public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace(
-            "atlasdb_metadata");
-    public static final TableReference DEFAULT_SCHEMA_METADATA_TABLE = TableReference.createWithEmptyNamespace(
-            "_schema_metadata");
+    public static final TableReference DEFAULT_ORACLE_METADATA_TABLE =
+            TableReference.createWithEmptyNamespace("atlasdb_metadata");
+    public static final TableReference DEFAULT_SCHEMA_METADATA_TABLE =
+            TableReference.createWithEmptyNamespace("_schema_metadata");
 
     // Deprecated tables
-    public static final TableReference SWEEP_PROGRESS_V1 = TableReference.createFromFullyQualifiedName("sweep.progress");
-    public static final TableReference SWEEP_PROGRESS_V1_5 = TableReference.createWithEmptyNamespace("_sweep_progress1_5");
+    public static final TableReference SWEEP_PROGRESS_V1 =
+            TableReference.createFromFullyQualifiedName("sweep.progress");
+    public static final TableReference SWEEP_PROGRESS_V1_5 =
+            TableReference.createWithEmptyNamespace("_sweep_progress1_5");
     public static final TableReference SWEEP_PROGRESS_V2 = TableReference.createWithEmptyNamespace("_sweep_progress2");
     public static final String LOCK_TABLE_PREFIX = "_locks";
 
@@ -66,8 +67,8 @@ public final class AtlasDbConstants {
     public static final int ATLASDB_ORACLE_TABLE_NAME_LIMIT =
             AtlasDbConstants.ORACLE_NAME_LENGTH_LIMIT - PRIMARY_KEY_CONSTRAINT_PREFIX.length();
     public static final String ORACLE_NAME_MAPPING_TABLE = "atlasdb_table_names";
-    public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = PRIMARY_KEY_CONSTRAINT_PREFIX
-            + ORACLE_NAME_MAPPING_TABLE;
+    public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT =
+            PRIMARY_KEY_CONSTRAINT_PREFIX + ORACLE_NAME_MAPPING_TABLE;
     public static final String ORACLE_OVERFLOW_SEQUENCE = "overflow_seq";
     public static final int ORACLE_OVERFLOW_THRESHOLD = 2000;
 
@@ -77,10 +78,8 @@ public final class AtlasDbConstants {
 
     public static final TableReference PARTITION_MAP_TABLE = TableReference.createWithEmptyNamespace("_partition_map");
     public static final byte[] EMPTY_TABLE_METADATA = {}; // use carefully
-    public static final byte[] GENERIC_TABLE_METADATA = TableMetadata.builder()
-            .nameLogSafety(LogSafety.SAFE)
-            .build()
-            .persistToBytes();
+    public static final byte[] GENERIC_TABLE_METADATA =
+            TableMetadata.builder().nameLogSafety(LogSafety.SAFE).build().persistToBytes();
 
     public static final int MINIMUM_COMPRESSION_BLOCK_SIZE_KB = 4;
     public static final int DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB = 4;
@@ -98,7 +97,7 @@ public final class AtlasDbConstants {
     public static final long DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS = 60_000;
     public static final int THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS = 10_000_000;
 
-    public static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
+    public static final ImmutableSet<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             TransactionConstants.TRANSACTIONS2_TABLE,
             PUNCH_TABLE,
@@ -116,15 +115,15 @@ public final class AtlasDbConstants {
     /**
      * Tables that must always be on a KVS that supports an atomic putUnlessExists operation.
      */
-    public static final Set<TableReference> ATOMIC_TABLES = ImmutableSet.of(
+    public static final ImmutableSet<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             TransactionConstants.TRANSACTIONS2_TABLE,
             NAMESPACE_TABLE,
             PERSISTED_LOCKS_TABLE,
             COORDINATION_TABLE);
 
-    public static final Set<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED = ImmutableSet.of(
-            TableReference.createWithEmptyNamespace("resync_object"));
+    public static final ImmutableSet<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED =
+            ImmutableSet.of(TableReference.createWithEmptyNamespace("resync_object"));
 
     public static final long DEFAULT_TRANSACTION_READ_TIMEOUT = 60 * 60 * 1000; // one hour
     public static final long DEFAULT_PUNCH_INTERVAL_MILLIS = 60 * 1000; // one minute
@@ -150,7 +149,8 @@ public final class AtlasDbConstants {
 
     public static final boolean DEFAULT_ENABLE_SWEEP_QUEUE_WRITES = true;
     public static final boolean DEFAULT_ENABLE_TARGETED_SWEEP = true;
-    public static final int DEFAULT_SWEEP_QUEUE_SHARDS = 1;
+    public static final int LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS = 1;
+    public static final int DEFAULT_TARGETED_SWEEP_SHARDS = 16;
     public static final int DEFAULT_TARGETED_SWEEP_THREADS = 1;
     public static final int MAX_SWEEP_QUEUE_SHARDS = TargetedSweepMetadata.MAX_SHARDS;
 

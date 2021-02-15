@@ -21,8 +21,7 @@ public final class CassandraKeyValueServiceConfigs {
     }
 
     public static CassandraKeyValueServiceConfig copyWithKeyspace(
-            CassandraKeyValueServiceConfig cassandraConfig,
-            String recommendedKeyspace) {
+            CassandraKeyValueServiceConfig cassandraConfig, String recommendedKeyspace) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .from(cassandraConfig)
                 .keyspace(recommendedKeyspace)

@@ -15,21 +15,17 @@
  */
 package com.palantir.common.proxy;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.exception.PalantirInterruptedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.junit.Test;
-
-import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.PalantirInterruptedException;
 
 public class InterruptibleProxyTest {
 
@@ -61,8 +57,8 @@ public class InterruptibleProxyTest {
 
             @Override
             public String remove(int arg0) {
-                assertNotEquals(Thread.currentThread(), callingThread);
-                while(true) {
+                assertThat(callingThread).isNotEqualTo(Thread.currentThread());
+                while (true) {
                     try {
                         Thread.sleep(100);
                         callingThread.interrupt();
@@ -84,34 +80,25 @@ public class InterruptibleProxyTest {
         strings.add("Foo");
 
         @SuppressWarnings("unchecked")
-        List<String> proxy =
-                InterruptibleProxy.newProxyInstance(List.class, strings, CancelDelegate.CANCEL);
-        assertEquals("Foo", proxy.get(0));
-        try {
-            Thread.currentThread().interrupt();
-            assertEquals("Foo", proxy.get(1));
-            fail("Should be interrupted");
-        } catch (PalantirInterruptedException e) {
-            // Should get here
-        }
+        List<String> proxy = InterruptibleProxy.newProxyInstance(List.class, strings, CancelDelegate.CANCEL);
+        assertThat(proxy.get(0)).isEqualTo("Foo");
+        assertThatThrownBy(() -> {
+                    Thread.currentThread().interrupt();
+                    assertThat(proxy.get(1)).isEqualTo("Foo");
+                })
+                .describedAs("Should be interrupted")
+                .isInstanceOf(PalantirInterruptedException.class);
 
-        try {
-            assertEquals("Foo", proxy.get(1000));
-            fail("Should throw exception");
-        } catch (IndexOutOfBoundsException e) {
-            // Should get here
-        }
+        assertThatThrownBy(() -> assertThat(proxy.get(1000)).isEqualTo("Foo"))
+                .describedAs("Should throw exception")
+                .isInstanceOf(IndexOutOfBoundsException.class);
 
-        try {
-            proxy.remove(0);
-            fail("Should be interrupted");
-        } catch (PalantirInterruptedException e) {
-            // Should get here
-        }
+        assertThatThrownBy(() -> proxy.remove(0))
+                .describedAs("Should be interrupted")
+                .isInstanceOf(PalantirInterruptedException.class);
 
         barrier.await();
 
-        assertTrue(gotInterrupted.get());
+        assertThat(gotInterrupted.get()).isTrue();
     }
-
 }

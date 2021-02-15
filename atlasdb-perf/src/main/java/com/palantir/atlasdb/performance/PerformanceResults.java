@@ -15,6 +15,11 @@
  */
 package com.palantir.atlasdb.performance;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -23,25 +28,18 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.util.Multiset;
 import org.openjdk.jmh.util.Statistics;
 import org.openjdk.jmh.util.TreeMultiset;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 
 public class PerformanceResults {
     @VisibleForTesting
@@ -63,8 +61,8 @@ public class PerformanceResults {
 
     private static List<ImmutablePerformanceResult> getPerformanceResults(Collection<RunResult> results) {
         long date = System.currentTimeMillis();
-        return results.stream().map(rs ->
-                ImmutablePerformanceResult.builder()
+        return results.stream()
+                .map(rs -> ImmutablePerformanceResult.builder()
                         .date(date)
                         .benchmark(getBenchmarkName(rs.getParams()))
                         .samples(rs.getPrimaryResult().getStatistics().getN())
@@ -75,7 +73,8 @@ public class PerformanceResults {
                         .p50(rs.getPrimaryResult().getStatistics().getPercentile(50.0))
                         .p90(rs.getPrimaryResult().getStatistics().getPercentile(90.0))
                         .p99(rs.getPrimaryResult().getStatistics().getPercentile(99.0))
-                        .build()).collect(Collectors.toList());
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @VisibleForTesting
@@ -111,10 +110,8 @@ public class PerformanceResults {
             Multiset<Double> rawResults = (Multiset<Double>) field.get(statistics);
             return downSample(rawResults);
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            String msg = new StringBuilder().append("Could not get values from statistics !")
-                    .append("\n\t statistics.class = ").append(statistics.getClass().getName())
-                    .append("\n\t statistics.size = ").append(statistics.getN())
-                    .toString();
+            String msg = "Could not get values from statistics !\n\t statistics.class = "
+                    + statistics.getClass().getName() + "\n\t statistics.size = " + statistics.getN();
             throw new RuntimeException(msg, e);
         }
     }
@@ -128,7 +125,7 @@ public class PerformanceResults {
             return convertToList(values);
         }
 
-        final List<Double> list = Lists.newArrayList();
+        final List<Double> list = new ArrayList<>();
         int current = 0;
 
         for (double d : values.keys()) {
@@ -141,7 +138,7 @@ public class PerformanceResults {
     }
 
     private static List<Double> convertToList(TreeMultiset<Double> values) {
-        final List<Double> list = Lists.newArrayList();
+        final List<Double> list = new ArrayList<>();
         for (double d : values.keys()) {
             for (int i = 0; i < values.count(d); ++i) {
                 list.add(d);
@@ -165,15 +162,23 @@ public class PerformanceResults {
     @Value.Immutable
     abstract static class PerformanceResult {
         public abstract long date();
+
         public abstract String benchmark();
+
         public abstract long samples();
+
         public abstract double std();
+
         public abstract double mean();
+
         public abstract List<Double> data();
+
         public abstract TimeUnit units();
+
         public abstract double p50();
+
         public abstract double p90();
+
         public abstract double p99();
     }
-
 }

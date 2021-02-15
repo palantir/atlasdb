@@ -15,21 +15,19 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.random.RandomBytes;
+import java.util.Map;
 
 public final class KvsPutUnlessExistsBenchmark extends AbstractBenchmark {
 
     private final KeyValueService keyValueService;
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
-            int requestsPerClient) {
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients, int requestsPerClient) {
         return new KvsPutUnlessExistsBenchmark(txnManager.getKeyValueService(), numClients, requestsPerClient)
                 .execute();
     }
@@ -43,7 +41,6 @@ public final class KvsPutUnlessExistsBenchmark extends AbstractBenchmark {
     protected void performOneCall() {
         byte[] data = RandomBytes.ofLength(16);
         keyValueService.putUnlessExists(
-                BenchmarksSchema.BLOBS_TABLE_REF,
-                ImmutableMap.of(Cell.create(data, data), data));
+                BenchmarksSchema.BLOBS_TABLE_REF, ImmutableMap.of(Cell.create(data, data), data));
     }
 }

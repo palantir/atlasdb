@@ -15,29 +15,25 @@
  */
 package com.palantir.atlasdb.containers;
 
+import com.palantir.docker.compose.connection.ContainerName;
+import com.palantir.docker.compose.execution.DockerCompose;
+import com.palantir.docker.compose.logging.LogCollector;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.docker.compose.connection.ContainerName;
-import com.palantir.docker.compose.execution.DockerCompose;
-import com.palantir.docker.compose.logging.FileLogCollector;
-import com.palantir.docker.compose.logging.LogCollector;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public class InterruptibleFileLogCollector implements LogCollector {
-    private static final Logger log = LoggerFactory.getLogger(FileLogCollector.class);
+    private static final Logger log = LoggerFactory.getLogger(InterruptibleFileLogCollector.class);
 
     private static final long STOP_TIMEOUT_IN_MILLIS = 50;
 

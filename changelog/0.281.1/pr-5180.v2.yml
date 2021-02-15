@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: We now create the NoOpLockWatchManager from an already-defined Event
+    Cache, as opposed to creating it with a fresh (and different!) cache. Previously
+    there were 2 event caches when using no-op, one which updates were read from and
+    _another one_ where responses from timelock were processed.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5180

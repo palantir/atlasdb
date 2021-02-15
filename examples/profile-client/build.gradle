@@ -11,5 +11,4 @@ dependencies {
   compile project(":examples:profile-client-protobufs")
 
   testCompile project(":atlasdb-config")
-  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 }

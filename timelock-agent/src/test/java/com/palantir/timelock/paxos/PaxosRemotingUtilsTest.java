@@ -16,20 +16,10 @@
 package com.palantir.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.paxos.PaxosAcceptor;
@@ -38,13 +28,22 @@ import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import org.junit.Test;
 
 public class PaxosRemotingUtilsTest {
-    private static final List<String> CLUSTER_URIS = ImmutableList.of("foo:1", "bar:2", "baz:3");
+    private static final ImmutableList<String> CLUSTER_URIS = ImmutableList.of("foo:1", "bar:2", "baz:3");
 
     private static final ClusterConfiguration NO_SSL_CLUSTER = ImmutableDefaultClusterConfiguration.builder()
             .localServer("foo:1")
-            .cluster(PartialServiceConfiguration.builder().addAllUris(CLUSTER_URIS).build())
+            .cluster(PartialServiceConfiguration.builder()
+                    .addAllUris(CLUSTER_URIS)
+                    .build())
             .build();
     private static final PaxosInstallConfiguration PAXOS_CONFIGURATION = createPaxosConfiguration();
     private static final TimeLockInstallConfiguration NO_SSL_TIMELOCK = ImmutableTimeLockInstallConfiguration.builder()
@@ -87,11 +86,11 @@ public class PaxosRemotingUtilsTest {
     }
 
     private static void verifyQuorumSize(int nodes, int expected) {
-        List<PaxosAcceptor> acceptorList = Lists.newArrayList();
+        List<PaxosAcceptor> acceptorList = new ArrayList<>();
         for (int i = 0; i < nodes; i++) {
             acceptorList.add(null);
         }
-        assertEquals(expected, PaxosRemotingUtils.getQuorumSize(acceptorList));
+        assertThat(PaxosRemotingUtils.getQuorumSize(acceptorList)).isEqualTo(expected);
     }
 
     @Test
@@ -123,12 +122,14 @@ public class PaxosRemotingUtilsTest {
     public void canGetSslConfiguration() {
         assertThat(PaxosRemotingUtils.getSslConfigurationOptional(SSL_TIMELOCK))
                 .isEqualTo(Optional.of(SSL_CONFIGURATION));
-        assertThat(PaxosRemotingUtils.getSslConfigurationOptional(NO_SSL_TIMELOCK)).isEqualTo(Optional.empty());
+        assertThat(PaxosRemotingUtils.getSslConfigurationOptional(NO_SSL_TIMELOCK))
+                .isNotPresent();
     }
 
     @Test
     public void addProtocolAddsHttpIfSslNotPresent() {
-        assertThat(PaxosRemotingUtils.addProtocol(NO_SSL_TIMELOCK, "atlasdb:1234")).isEqualTo("http://atlasdb:1234");
+        assertThat(PaxosRemotingUtils.addProtocol(NO_SSL_TIMELOCK, "atlasdb:1234"))
+                .isEqualTo("http://atlasdb:1234");
     }
 
     @Test

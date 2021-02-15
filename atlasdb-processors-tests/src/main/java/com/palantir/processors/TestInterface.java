@@ -18,20 +18,26 @@ package com.palantir.processors;
 @AutoDelegate
 public interface TestInterface {
     void methodWithNoParameters();
+
     void methodWithOneParameter(int p1);
+
     void methodWithTwoParameters(int p1, int p2);
 
     void methodWithVarArgs(int... parameters);
 
     int methodWithReturnType();
+
     int methodWithReturnTypeAndParameters(int p1);
+
     int methodWithReturnTypeAndVarArgs(int... parameters);
 
     @DoNotDelegate
     void methodThatMustBeImplemented();
 
     void overloadedMethod();
+
     void overloadedMethod(int p1);
+
     void overloadedMethod(Integer p1, Integer p2);
 
     @DoDelegate

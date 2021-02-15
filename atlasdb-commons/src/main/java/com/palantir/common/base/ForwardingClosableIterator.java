@@ -26,5 +26,4 @@ public abstract class ForwardingClosableIterator<T> extends ForwardingIterator<T
     public void close() {
         delegate().close();
     }
-
 }

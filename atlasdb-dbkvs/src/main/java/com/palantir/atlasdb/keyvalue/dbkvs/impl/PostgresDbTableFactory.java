@@ -29,8 +29,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
     private final PostgresDdlConfig config;
     private final PostgresPrefixedTableNames prefixedTableNames;
 
-    public PostgresDbTableFactory(PostgresDdlConfig config,
-                                  PostgresPrefixedTableNames prefixedTableNames) {
+    public PostgresDbTableFactory(PostgresDdlConfig config, PostgresPrefixedTableNames prefixedTableNames) {
         this.config = config;
         this.prefixedTableNames = prefixedTableNames;
     }
@@ -52,9 +51,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
-        return new DbReadTable(
-                conns,
-                new PostgresQueryFactory(DbKvs.internalTableName(tableRef), config));
+        return new DbReadTable(conns, new PostgresQueryFactory(DbKvs.internalTableName(tableRef), config));
     }
 
     @Override
@@ -73,6 +70,5 @@ public class PostgresDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public void close() {
-    }
+    public void close() {}
 }

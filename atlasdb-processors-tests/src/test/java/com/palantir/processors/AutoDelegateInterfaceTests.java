@@ -15,20 +15,17 @@
  */
 package com.palantir.processors;
 
+import static com.palantir.processors.TestingUtils.extractMethodsSatisfyingPredicate;
+import static com.palantir.processors.TestingUtils.extractNonStaticMethods;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import static com.palantir.processors.TestingUtils.extractMethodsSatisfyingPredicate;
-import static com.palantir.processors.TestingUtils.extractNonStaticMethods;
-
+import com.google.common.collect.Sets;
 import java.lang.reflect.Modifier;
 import java.util.Set;
-
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
 
 public class AutoDelegateInterfaceTests {
 
@@ -79,16 +76,14 @@ public class AutoDelegateInterfaceTests {
         Set<String> originalMethods = extractNonStaticMethods(TestInterface.class);
 
         generatedMethods.removeAll(originalMethods);
-        assertThat(generatedMethods)
-                .hasSize(1)
-                .allMatch(s -> s.contains("delegate"));
+        assertThat(generatedMethods).hasSize(1).allMatch(s -> s.contains("delegate"));
     }
 
     @Test
     public void generatedInterfaceDoesNotHaveStaticMethods() {
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_TestInterface.class);
-        Set<String> originalStaticMethods = extractMethodsSatisfyingPredicate(TestInterface.class,
-                method -> Modifier.isStatic(method.getModifiers()));
+        Set<String> originalStaticMethods = extractMethodsSatisfyingPredicate(
+                TestInterface.class, method -> Modifier.isStatic(method.getModifiers()));
 
         assertThat(Sets.intersection(generatedMethods, originalStaticMethods)).isEmpty();
     }
@@ -132,8 +127,6 @@ public class AutoDelegateInterfaceTests {
         }
 
         @Override
-        public void methodThatMustBeImplemented() {
-
-        }
+        public void methodThatMustBeImplemented() {}
     }
 }

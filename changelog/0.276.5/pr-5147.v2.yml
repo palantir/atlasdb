@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: AtlasDB CLI now actually calls its main class.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5147

@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.coordination;
 
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 
 /**
  * A {@link TransformingCoordinationService} is a {@link CoordinationService} for T2 objects that uses an underlying
@@ -42,27 +41,23 @@ public class TransformingCoordinationService<T1, T2> implements CoordinationServ
 
     @Override
     public Optional<ValueAndBound<T2>> getValueForTimestamp(long timestamp) {
-        return delegate.getValueForTimestamp(timestamp)
-                .map(preservingBounds(transformFromUnderlying));
+        return delegate.getValueForTimestamp(timestamp).map(preservingBounds(transformFromUnderlying));
     }
 
     @Override
     public CheckAndSetResult<ValueAndBound<T2>> tryTransformCurrentValue(Function<ValueAndBound<T2>, T2> valueUpdater) {
-        CheckAndSetResult<ValueAndBound<T1>> delegateResult
-                = delegate.tryTransformCurrentValue(
-                        preservingBounds(transformFromUnderlying).andThen(valueUpdater).andThen(transformToUnderlying));
+        CheckAndSetResult<ValueAndBound<T1>> delegateResult = delegate.tryTransformCurrentValue(
+                preservingBounds(transformFromUnderlying).andThen(valueUpdater).andThen(transformToUnderlying));
         return CheckAndSetResult.of(
                 delegateResult.successful(),
-                delegateResult.existingValues()
-                        .stream()
+                delegateResult.existingValues().stream()
                         .map(preservingBounds(transformFromUnderlying))
                         .collect(Collectors.toList()));
     }
 
     @Override
     public Optional<ValueAndBound<T2>> getLastKnownLocalValue() {
-        return delegate.getLastKnownLocalValue()
-                .map(preservingBounds(transformFromUnderlying));
+        return delegate.getLastKnownLocalValue().map(preservingBounds(transformFromUnderlying));
     }
 
     private static <F, T> Function<ValueAndBound<F>, ValueAndBound<T>> preservingBounds(Function<F, T> base) {

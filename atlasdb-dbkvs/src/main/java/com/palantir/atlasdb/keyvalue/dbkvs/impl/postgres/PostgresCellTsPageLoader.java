@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -36,6 +31,10 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
 public class PostgresCellTsPageLoader implements CellTsPairLoader {
 
@@ -44,15 +43,15 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
 
     private static final int DEFAULT_BATCH_SIZE = 1000;
 
-    public PostgresCellTsPageLoader(PostgresPrefixedTableNames prefixedTableNames,
-                                                SqlConnectionSupplier connectionPool) {
+    public PostgresCellTsPageLoader(
+            PostgresPrefixedTableNames prefixedTableNames, SqlConnectionSupplier connectionPool) {
         this.prefixedTableNames = prefixedTableNames;
         this.connectionPool = connectionPool;
     }
 
     @Override
-    public Iterator<List<CellTsPairInfo>> createPageIterator(TableReference tableRef,
-                                                             CandidateCellForSweepingRequest request) {
+    public Iterator<List<CellTsPairInfo>> createPageIterator(
+            TableReference tableRef, CandidateCellForSweepingRequest request) {
         return new PageIterator(
                 connectionPool,
                 request,
@@ -71,8 +70,13 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
 
         CellTsPairToken token;
 
-        PageIterator(SqlConnectionSupplier connectionPool, CandidateCellForSweepingRequest request, int sqlRowLimit,
-                String tableName, String prefixedTableName, byte[] startRowInclusive) {
+        PageIterator(
+                SqlConnectionSupplier connectionPool,
+                CandidateCellForSweepingRequest request,
+                int sqlRowLimit,
+                String tableName,
+                String prefixedTableName,
+                byte[] startRowInclusive) {
             this.connectionPool = connectionPool;
             this.request = request;
             this.sqlRowLimit = sqlRowLimit;
@@ -131,7 +135,9 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
         private FullQuery getFullQuery() {
             if (request.shouldCheckIfLatestValueIsEmpty()) {
                 FullQuery.Builder queryBuilder = FullQuery.builder()
-                        .append("/* GET_CANDIDATE_CELLS_FOR_SWEEPING_THOROUGH(").append(tableName).append(") */")
+                        .append("/* GET_CANDIDATE_CELLS_FOR_SWEEPING_THOROUGH(")
+                        .append(tableName)
+                        .append(") */")
                         .append("  SELECT cells.row_name, cells.col_name, cells.timestamps, ")
                         .append("         length(v.val) = 0 AS latest_val_empty")
                         .append("  FROM (")
@@ -139,21 +145,24 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                         .append("      row_name, col_name, MAX(ts) AS max_ts, ARRAY_AGG(ts) AS timestamps")
                         .append("    FROM (")
                         .append("      SELECT row_name, col_name, ts")
-                        .append("      FROM ").append(prefixedTableName)
+                        .append("      FROM ")
+                        .append(prefixedTableName)
                         .append("      WHERE ts < ? ", request.maxTimestampExclusive());
                 SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
                 RangePredicateHelper.create(false, DBType.POSTGRESQL, queryBuilder)
-                        .startCellTsInclusive(token.startRowInclusive(),
-                                token.startColInclusive(),
-                                token.startTsInclusive());
+                        .startCellTsInclusive(
+                                token.startRowInclusive(), token.startColInclusive(), token.startTsInclusive());
                 return queryBuilder
                         .append("      ORDER BY row_name, col_name, ts")
-                        .append("      LIMIT ").append(sqlRowLimit)
+                        .append("      LIMIT ")
+                        .append(sqlRowLimit)
                         .append("    ) sub")
                         .append("    GROUP BY row_name, col_name")
                         .append("    ORDER BY row_name, col_name")
                         .append("  ) cells")
-                        .append("  JOIN ").append(prefixedTableName).append(" v")
+                        .append("  JOIN ")
+                        .append(prefixedTableName)
+                        .append(" v")
                         .append("  ON cells.row_name = v.row_name")
                         .append("  AND cells.col_name = v.col_name")
                         .append("  AND cells.max_ts = v.ts")
@@ -161,18 +170,21 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                         .build();
             } else {
                 FullQuery.Builder queryBuilder = FullQuery.builder()
-                        .append("/* GET_CANDIDATE_CELLS_FOR_SWEEPING_CONSERVATIVE(").append(tableName).append(" */")
+                        .append("/* GET_CANDIDATE_CELLS_FOR_SWEEPING_CONSERVATIVE(")
+                        .append(tableName)
+                        .append(" */")
                         .append("  SELECT row_name, col_name, ts")
-                        .append("  FROM ").append(prefixedTableName)
+                        .append("  FROM ")
+                        .append(prefixedTableName)
                         .append("  WHERE ts < ? ", request.maxTimestampExclusive());
                 SweepQueryHelpers.appendIgnoredTimestampPredicate(request, queryBuilder);
                 RangePredicateHelper.create(false, DBType.POSTGRESQL, queryBuilder)
-                        .startCellTsInclusive(token.startRowInclusive(),
-                                token.startColInclusive(),
-                                token.startTsInclusive());
+                        .startCellTsInclusive(
+                                token.startRowInclusive(), token.startColInclusive(), token.startTsInclusive());
                 return queryBuilder
                         .append("  ORDER BY row_name, col_name, ts")
-                        .append("  LIMIT ").append(sqlRowLimit)
+                        .append("  LIMIT ")
+                        .append(sqlRowLimit)
                         .build();
             }
         }
@@ -196,5 +208,4 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
         Arrays.sort(sortedTimestamps);
         return sortedTimestamps;
     }
-
 }

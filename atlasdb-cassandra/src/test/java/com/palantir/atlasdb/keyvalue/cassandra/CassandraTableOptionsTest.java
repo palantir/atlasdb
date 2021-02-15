@@ -18,28 +18,32 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.table.description.TableMetadata;
 import org.junit.Test;
 
-import com.palantir.atlasdb.table.description.TableMetadata;
-
 public class CassandraTableOptionsTest {
-    private static final TableMetadata DENSELY_ACCESSED_WIDE_ROWS_METADATA
-            = TableMetadata.internal().denselyAccessedWideRows(true).build();
-    private static final TableMetadata DENSELY_ACCESSED_WIDE_ROWS_APPEND_HEAVY_READ_LIGHT_METADATA
-            = TableMetadata.internal().denselyAccessedWideRows(true).appendHeavyAndReadLight(true).build();
-    private static final TableMetadata APPEND_HEAVY_READ_LIGHT_METADATA
-            = TableMetadata.internal().appendHeavyAndReadLight(true).build();
-    private static final TableMetadata NEGATIVE_LOOKUPS_METADATA
-            = TableMetadata.internal().negativeLookups(true).build();
-    private static final TableMetadata APPEND_HEAVY_READ_LIGHT_NEGATIVE_LOOKUPS_METADATA
-            = TableMetadata.internal().appendHeavyAndReadLight(true).negativeLookups(true).build();
+    private static final TableMetadata DENSELY_ACCESSED_WIDE_ROWS_METADATA =
+            TableMetadata.internal().denselyAccessedWideRows(true).build();
+    private static final TableMetadata DENSELY_ACCESSED_WIDE_ROWS_APPEND_HEAVY_READ_LIGHT_METADATA =
+            TableMetadata.internal()
+                    .denselyAccessedWideRows(true)
+                    .appendHeavyAndReadLight(true)
+                    .build();
+    private static final TableMetadata APPEND_HEAVY_READ_LIGHT_METADATA =
+            TableMetadata.internal().appendHeavyAndReadLight(true).build();
+    private static final TableMetadata NEGATIVE_LOOKUPS_METADATA =
+            TableMetadata.internal().negativeLookups(true).build();
+    private static final TableMetadata APPEND_HEAVY_READ_LIGHT_NEGATIVE_LOOKUPS_METADATA = TableMetadata.internal()
+            .appendHeavyAndReadLight(true)
+            .negativeLookups(true)
+            .build();
 
     @Test
     public void tablesWithDenselyAccessedWideRowsAlwaysHaveLowBloomFilterFpChance() {
         assertThat(CassandraTableOptions.bloomFilterFpChance(DENSELY_ACCESSED_WIDE_ROWS_METADATA))
                 .isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE);
         assertThat(CassandraTableOptions.bloomFilterFpChance(
-                DENSELY_ACCESSED_WIDE_ROWS_APPEND_HEAVY_READ_LIGHT_METADATA))
+                        DENSELY_ACCESSED_WIDE_ROWS_APPEND_HEAVY_READ_LIGHT_METADATA))
                 .isEqualTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE);
     }
 

@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.logsafe.SafeArg;
 
 /**
  * Wrap another Puncher, optimizing the #punch() operation to operate just on a local variable; the
@@ -43,17 +41,14 @@ public final class AsyncPuncher implements Puncher {
     @VisibleForTesting
     static final long INVALID_TIMESTAMP = -1L;
 
-    public static AsyncPuncher create(
-            Puncher delegate,
-            long interval,
-            LongSupplier freshTimestampSupplier) {
+    public static AsyncPuncher create(Puncher delegate, long interval, LongSupplier freshTimestampSupplier) {
         AsyncPuncher asyncPuncher = new AsyncPuncher(delegate, interval, freshTimestampSupplier);
         asyncPuncher.start();
         return asyncPuncher;
     }
 
-    private static final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("puncher", true /* daemon */));
+    private static final ScheduledExecutorService executor =
+            PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("puncher", true /* daemon */));
 
     private final Puncher delegate;
     private final long interval;
@@ -78,8 +73,9 @@ public final class AsyncPuncher implements Puncher {
             try {
                 timestampToPunch = freshTimestampSource.getAsLong();
             } catch (Throwable th) {
-                log.warn("No timestamp was found and attempting to get a fresh timestamp to punch failed."
-                        + " Retrying in {} milliseconds.",
+                log.warn(
+                        "No timestamp was found and attempting to get a fresh timestamp to punch failed."
+                                + " Retrying in {} milliseconds.",
                         SafeArg.of("interval", interval),
                         th);
                 return;
@@ -89,8 +85,11 @@ public final class AsyncPuncher implements Puncher {
         try {
             delegate.punch(timestampToPunch);
         } catch (Throwable th) {
-            log.warn("Attempt to punch timestamp {} failed. Retrying in {} milliseconds.",
-                    SafeArg.of("timestamp", timestampToPunch), SafeArg.of("interval", interval), th);
+            log.warn(
+                    "Attempt to punch timestamp {} failed. Retrying in {} milliseconds.",
+                    SafeArg.of("timestamp", timestampToPunch),
+                    SafeArg.of("interval", interval),
+                    th);
             lastTimestamp.compareAndSet(INVALID_TIMESTAMP, timestampToPunch);
         }
     }

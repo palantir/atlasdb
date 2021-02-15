@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.List;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -30,6 +22,11 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.AssertUtils;
+import java.util.List;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BatchSizeIncreasingIterator<T> {
     private static final Logger log = LoggerFactory.getLogger(BatchSizeIncreasingIterator.class);
@@ -44,9 +41,8 @@ public class BatchSizeIncreasingIterator<T> {
     private long numNotDeleted = 0;
     private int lastBatchSize;
 
-    public BatchSizeIncreasingIterator(BatchProvider<T> batchProvider,
-                                       int originalBatchSize,
-                                       @Nullable ClosableIterator<T> currentResults) {
+    public BatchSizeIncreasingIterator(
+            BatchProvider<T> batchProvider, int originalBatchSize, @Nullable ClosableIterator<T> currentResults) {
         Preconditions.checkArgument(originalBatchSize > 0);
         this.batchProvider = batchProvider;
         this.originalBatchSize = originalBatchSize;
@@ -58,8 +54,8 @@ public class BatchSizeIncreasingIterator<T> {
 
     public void markNumResultsNotDeleted(int resultsInBatch) {
         numNotDeleted += resultsInBatch;
-        AssertUtils.assertAndLog(log, numNotDeleted <= numReturned,
-                "NotDeleted is bigger than the number of results we returned.");
+        AssertUtils.assertAndLog(
+                log, numNotDeleted <= numReturned, "NotDeleted is bigger than the number of results we returned.");
     }
 
     int getBestBatchSize() {
@@ -73,8 +69,7 @@ public class BatchSizeIncreasingIterator<T> {
             batchSize = maxNewBatchSize;
         } else {
             batchSize = Math.min(
-                    (long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)),
-                    maxNewBatchSize);
+                    (long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)), maxNewBatchSize);
         }
         return (int) Math.min(batchSize, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
     }
@@ -135,5 +130,4 @@ public class BatchSizeIncreasingIterator<T> {
             lastToken = null;
         }
     }
-
 }

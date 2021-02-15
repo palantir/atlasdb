@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
@@ -29,15 +28,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import org.junit.Test;
-import org.mockito.InOrder;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
@@ -60,9 +50,17 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.InMemoryTimestampService;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.Test;
+import org.mockito.InOrder;
 
 public class SnapshotTransactionManagerTest {
     private static final String SETUP_TASK_METRIC_NAME =
@@ -78,13 +76,13 @@ public class SnapshotTransactionManagerTest {
     private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
     private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
+    private final LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             metricsManager,
             keyValueService,
-            new LegacyTimelockService(timestampService, closeableLockService,
-                    LockClient.of("lock")),
-            NoOpLockWatchManager.INSTANCE,
-            NoOpLockWatchEventCache.INSTANCE,
+            new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")),
+            NoOpLockWatchManager.create(lockWatchEventCache),
+            lockWatchEventCache,
             timestampService,
             closeableLockService,
             mock(TransactionService.class),
@@ -105,7 +103,7 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void isAlwaysInitialized() {
-        assertTrue(snapshotTransactionManager.isInitialized());
+        assertThat(snapshotTransactionManager.isInitialized()).isTrue();
     }
 
     @Test
@@ -135,13 +133,13 @@ public class SnapshotTransactionManagerTest {
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
+        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(ts, closeableLockService,
-                        LockClient.of("lock")),
-                NoOpLockWatchManager.INSTANCE,
-                NoOpLockWatchEventCache.INSTANCE,
+                new LegacyTimelockService(ts, closeableLockService, LockClient.of("lock")),
+                NoOpLockWatchManager.create(lockWatchEventCache),
+                lockWatchEventCache,
                 ts,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
@@ -224,9 +222,7 @@ public class SnapshotTransactionManagerTest {
         when(closeableLockService.lock(any(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE));
         snapshotTransactionManager.runTaskWithRetry(tx -> 42);
         MetricRegistry registry = snapshotTransactionManager.metricsManager.getRegistry();
-        assertThat(registry.getNames())
-                .contains(SETUP_TASK_METRIC_NAME)
-                .contains(FINISH_TASK_METRIC_NAME);
+        assertThat(registry.getNames()).contains(SETUP_TASK_METRIC_NAME).contains(FINISH_TASK_METRIC_NAME);
         assertThat(registry.getTimers().get(SETUP_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
         assertThat(registry.getTimers().get(FINISH_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
     }
@@ -269,12 +265,13 @@ public class SnapshotTransactionManagerTest {
 
     private SnapshotTransactionManager createSnapshotTransactionManager(
             TimelockService timelockService, boolean grabImmutableTsLockOnReads) {
+        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
         return new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
                 timelockService,
-                NoOpLockWatchManager.INSTANCE,
-                NoOpLockWatchEventCache.INSTANCE,
+                NoOpLockWatchManager.create(lockWatchEventCache),
+                lockWatchEventCache,
                 timestampService,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),

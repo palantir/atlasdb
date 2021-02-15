@@ -26,13 +26,15 @@ public final class DynamicColumnTable {
     }
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Table/IndexDefinition syntax
-    private static final TableDefinition DYNAMIC_COLUMNS_TABLE = new TableDefinition() {{
-        rowName();
+    private static final TableDefinition DYNAMIC_COLUMNS_TABLE = new TableDefinition() {
+        {
+            rowName();
             rowComponent("id", ValueType.FIXED_LONG);
-        dynamicColumns();
+            dynamicColumns();
             columnComponent("column_id", ValueType.FIXED_LONG);
             value(ValueType.FIXED_LONG);
-    }};
+        }
+    };
 
     public static TableReference reference() {
         return TableReference.create(Namespace.DEFAULT_NAMESPACE, "dynamicColsTable");

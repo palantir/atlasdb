@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Collection;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
@@ -30,6 +22,12 @@ import com.google.common.collect.Iterables;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.Collection;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LoggingLockEvents implements LockEvents {
 
@@ -61,7 +59,8 @@ public class LoggingLockEvents implements LockEvents {
             return;
         }
 
-        log.warn("Request timed out before obtaining locks",
+        log.warn(
+                "Request timed out before obtaining locks",
                 SafeArg.of("requestId", request.id()),
                 SafeArg.of("acquisitionTimeMillis", acquisitionTimeMillis),
                 UnsafeArg.of("firstTenLockDescriptors", firstTen(request.lockDescriptors())),
@@ -76,7 +75,8 @@ public class LoggingLockEvents implements LockEvents {
             return;
         }
 
-        log.warn("Locks took a long time to acquire",
+        log.warn(
+                "Locks took a long time to acquire",
                 SafeArg.of("requestId", request.id()),
                 SafeArg.of("acquisitionTimeMillis", acquisitionTimeMillis),
                 UnsafeArg.of("firstTenLockDescriptors", firstTen(request.lockDescriptors())),
@@ -86,7 +86,8 @@ public class LoggingLockEvents implements LockEvents {
 
     @Override
     public void lockExpired(UUID requestId, Collection<LockDescriptor> lockDescriptors) {
-        log.warn("Lock expired",
+        log.warn(
+                "Lock expired",
                 SafeArg.of("requestId", requestId),
                 UnsafeArg.of("firstTenLockDescriptors", firstTen(lockDescriptors)));
         lockExpiredMeter.mark();
@@ -104,5 +105,4 @@ public class LoggingLockEvents implements LockEvents {
     private static Iterable<LockDescriptor> firstTen(Collection<LockDescriptor> lockDescriptors) {
         return Iterables.limit(lockDescriptors, 10);
     }
-
 }

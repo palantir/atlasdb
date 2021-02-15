@@ -15,20 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.cas;
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
-
+import java.util.Arrays;
+import java.util.List;
 import okio.ByteString;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
 
 final class CheckAndSetResponseDecoder {
     private static final String APPLIED_COLUMN = "[applied]";
@@ -46,8 +43,7 @@ final class CheckAndSetResponseDecoder {
     }
 
     private static boolean isResultSuccessful(CqlRow cqlRow) {
-        Column appliedColumn = cqlRow.getColumns()
-                .stream()
+        Column appliedColumn = cqlRow.getColumns().stream()
                 .filter(column -> APPLIED_COLUMN.equals(decodeCqlColumnName(column)))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("CQL row " + cqlRow + " was missing an [applied] column"));
@@ -55,8 +51,7 @@ final class CheckAndSetResponseDecoder {
     }
 
     private static List<ByteString> existingValues(CqlRow cqlRow) {
-        return cqlRow.getColumns()
-                .stream()
+        return cqlRow.getColumns().stream()
                 .filter(column -> VALUE_COLUMN.equals(decodeCqlColumnName(column)))
                 .findFirst()
                 .map(column -> ImmutableList.of(ByteString.of(column.getValue())))

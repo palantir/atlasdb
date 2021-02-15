@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
 
 public class TracingPrefsConfig implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(TracingPrefsConfig.class);
@@ -49,24 +47,24 @@ public class TracingPrefsConfig implements Runnable {
     @Override
     public void run() {
         try {
-            final File tracingPrefsFile = new File(
-                    System.getProperty("user.dir") + File.separatorChar + TRACING_PREF_FILENAME);
+            final File tracingPrefsFile =
+                    new File(System.getProperty("user.dir") + File.separatorChar + TRACING_PREF_FILENAME);
 
             if (tracingPrefsFile.exists()) {
                 try (FileInputStream fileStream = new FileInputStream(tracingPrefsFile)) {
                     tracingPrefConfig.load(fileStream);
                     tracingEnabled = Boolean.parseBoolean(tracingPrefConfig.getProperty("tracing_enabled", "false"));
                     tracingProbability = Double.parseDouble(tracingPrefConfig.getProperty("trace_probability", "1.0"));
-                    tracingMinDurationToTraceMillis = Integer.parseInt(
-                            tracingPrefConfig.getProperty("min_duration_to_log_ms", "0"));
+                    tracingMinDurationToTraceMillis =
+                            Integer.parseInt(tracingPrefConfig.getProperty("min_duration_to_log_ms", "0"));
                     String tableString = tracingPrefConfig.getProperty("tables_to_trace", "");
-                    tracedTables = ImmutableSet.copyOf(Splitter.on(",").trimResults().split(tableString));
+                    tracedTables =
+                            ImmutableSet.copyOf(Splitter.on(",").trimResults().split(tableString));
                     if (tracingEnabled && !loadedConfig) { // only log leading edge event
-                        log.warn("Successfully loaded an {} file."
-                                + " This incurs a large performance hit and"
-                                + " should only be used for short periods of debugging."
-                                + " [tracing_enabled = {}, trace_probability = {}, min_duration_to_log_ms = {}, "
-                                + "tables_to_trace = {}]",
+                        log.warn(
+                                "Successfully loaded an {} file. This incurs a large performance hit and should only"
+                                        + " be used for short periods of debugging. [tracing_enabled = {},"
+                                        + " trace_probability = {}, min_duration_to_log_ms = {}, tables_to_trace = {}]",
                                 TRACING_PREF_FILENAME,
                                 tracingEnabled,
                                 tracingProbability,

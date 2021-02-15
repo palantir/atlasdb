@@ -15,21 +15,18 @@
  */
 package com.palantir.timestamp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.Is.isA;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
-
-import com.palantir.common.remoting.ServiceNotAvailableException;
 
 public class TimestampAllocationFailuresTest {
     private static final RuntimeException FAILURE = new IllegalStateException();
@@ -38,50 +35,52 @@ public class TimestampAllocationFailuresTest {
     private static final MultipleRunningTimestampServiceError MULTIPLE_RUNNING_SERVICES_FAILURE =
             new MultipleRunningTimestampServiceError("error");
 
+    @SuppressWarnings("PreferStaticLoggers") // required for mockito
     private final Logger log = mock(Logger.class);
+
     private final TimestampAllocationFailures allocationFailures = new TimestampAllocationFailures(log);
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
-    @Test public void
-    shouldRethrowExceptions() {
+    @Test
+    public void shouldRethrowExceptions() {
         RuntimeException response = allocationFailures.responseTo(FAILURE);
 
-        assertThat(response.getCause(), is(FAILURE));
-        assertThat(response, isA(RuntimeException.class));
-        assertThat(response.getMessage(), containsString("Could not allocate more timestamps"));
+        assertThat(response.getCause()).isEqualTo(FAILURE);
+        assertThat(response).isInstanceOf(RuntimeException.class);
+        assertThat(response.getMessage()).contains("Could not allocate more timestamps");
     }
 
-    @Test public void
-    shouldRethrowMultipleRunningTimestampServiceErrorsAsServiceNotAvailableExceptions() {
+    @Test
+    public void shouldRethrowMultipleRunningTimestampServiceErrorsAsServiceNotAvailableExceptions() {
         RuntimeException response = allocationFailures.responseTo(MULTIPLE_RUNNING_SERVICES_FAILURE);
 
-        assertThat(response instanceof ServiceNotAvailableException, is(true));
-        assertThat(response.getCause(), is(MULTIPLE_RUNNING_SERVICES_FAILURE));
+        assertThat(response).isInstanceOf(ServiceNotAvailableException.class);
+        assertThat(response.getCause()).isEqualTo(MULTIPLE_RUNNING_SERVICES_FAILURE);
     }
 
-    @Test public void
-    shouldRethrowServiceNotAvailableExceptionsWithoutWrapping() {
+    @Test
+    public void shouldRethrowServiceNotAvailableExceptionsWithoutWrapping() {
         RuntimeException response = allocationFailures.responseTo(SERVICE_NOT_AVAILABLE_EXCEPTION);
-        assertThat(response instanceof ServiceNotAvailableException, is(true));
-        assertThat(response, is(SERVICE_NOT_AVAILABLE_EXCEPTION));
+        assertThat(response).isInstanceOf(ServiceNotAvailableException.class);
+        assertThat(response).isEqualTo(SERVICE_NOT_AVAILABLE_EXCEPTION);
     }
 
-    @Test public void
-    shouldAllowTryingToIssueMoreTimestampsAfterANormalRuntimeException() {
+    @Test
+    public void shouldAllowTryingToIssueMoreTimestampsAfterANormalRuntimeException() {
         ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
         allocationFailures.verifyWeShouldIssueMoreTimestamps();
     }
 
-    @Test public void
-    shouldAllowTryingToIssueMoreTimestampsAfterAServiceNotAvailableException() {
+    @Test
+    public void shouldAllowTryingToIssueMoreTimestampsAfterAServiceNotAvailableException() {
         ignoringExceptions(() -> allocationFailures.responseTo(SERVICE_NOT_AVAILABLE_EXCEPTION));
         allocationFailures.verifyWeShouldIssueMoreTimestamps();
     }
 
-    @Test public void
-    shouldDisallowTryingToIssueMoreTimestampsAfterAMultipleRunningTimestampServicesFailure() {
+    @Test
+    public void shouldDisallowTryingToIssueMoreTimestampsAfterAMultipleRunningTimestampServicesFailure() {
         ignoringExceptions(() -> allocationFailures.responseTo(MULTIPLE_RUNNING_SERVICES_FAILURE));
 
         exception.expectCause(is(MULTIPLE_RUNNING_SERVICES_FAILURE));
@@ -91,16 +90,16 @@ public class TimestampAllocationFailuresTest {
     }
 
     @SuppressWarnings("Slf4jConstantLogMessage")
-    @Test public void
-    shouldLogTheFirstOfATypeOfExceptionToError() {
+    @Test
+    public void shouldLogTheFirstOfATypeOfExceptionToError() {
         ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
 
         verify(log).error(anyString(), eq(FAILURE));
     }
 
     @SuppressWarnings("Slf4jConstantLogMessage")
-    @Test public void
-    shouldLogTheSecondOfATypeOfExceptionToInfo() {
+    @Test
+    public void shouldLogTheSecondOfATypeOfExceptionToInfo() {
         ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
         ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
 
@@ -108,8 +107,8 @@ public class TimestampAllocationFailuresTest {
     }
 
     @SuppressWarnings("Slf4jConstantLogMessage")
-    @Test public void
-    shouldLog2DifferentExceptionsToError() {
+    @Test
+    public void shouldLog2DifferentExceptionsToError() {
         ignoringExceptions(() -> allocationFailures.responseTo(FAILURE));
         ignoringExceptions(() -> allocationFailures.responseTo(MULTIPLE_RUNNING_SERVICES_FAILURE));
 

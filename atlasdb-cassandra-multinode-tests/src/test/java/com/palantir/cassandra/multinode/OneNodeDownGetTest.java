@@ -18,11 +18,6 @@ package com.palantir.cassandra.multinode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Map;
-import java.util.Set;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -41,10 +36,13 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import java.util.Map;
+import java.util.Set;
+import org.junit.Test;
 
 public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
-    private static final Set<Map.Entry<Cell, Value>> expectedRowEntries = ImmutableMap
-            .of(CELL_1_1, VALUE, CELL_1_2, VALUE).entrySet();
+    private static final Set<Map.Entry<Cell, Value>> expectedRowEntries =
+            ImmutableMap.of(CELL_1_1, VALUE, CELL_1_2, VALUE).entrySet();
 
     @Override
     void testSetup(CassandraKeyValueService kvs) {
@@ -62,8 +60,8 @@ public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
 
     @Test
     public void canGetRows() {
-        Map<Cell, Value> row = getTestKvs()
-                .getRows(TEST_TABLE, ImmutableList.of(FIRST_ROW), ColumnSelection.all(), Long.MAX_VALUE);
+        Map<Cell, Value> row =
+                getTestKvs().getRows(TEST_TABLE, ImmutableList.of(FIRST_ROW), ColumnSelection.all(), Long.MAX_VALUE);
 
         assertThat(row.entrySet()).hasSameElementsAs(expectedRowEntries);
     }
@@ -74,8 +72,8 @@ public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
         ClosableIterator<RowResult<Value>> resultIterator = getTestKvs().getRange(TEST_TABLE, range, Long.MAX_VALUE);
 
         Map<byte[], Value> expectedColumns = ImmutableMap.of(FIRST_COLUMN, VALUE, SECOND_COLUMN, VALUE);
-        RowResult<Value> expectedRowResult = RowResult.create(FIRST_ROW,
-                ImmutableSortedMap.copyOf(expectedColumns, UnsignedBytes.lexicographicalComparator()));
+        RowResult<Value> expectedRowResult = RowResult.create(
+                FIRST_ROW, ImmutableSortedMap.copyOf(expectedColumns, UnsignedBytes.lexicographicalComparator()));
 
         assertThat(resultIterator).toIterable().containsExactlyElementsOf(ImmutableList.of(expectedRowResult));
     }
@@ -97,16 +95,16 @@ public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
 
     @Test
     public void canGetLatestTimestamps() {
-        Map<Cell, Long> latestTs = getTestKvs()
-                .getLatestTimestamps(TEST_TABLE, ImmutableMap.of(CELL_1_1, Long.MAX_VALUE));
+        Map<Cell, Long> latestTs =
+                getTestKvs().getLatestTimestamps(TEST_TABLE, ImmutableMap.of(CELL_1_1, Long.MAX_VALUE));
         assertThat(latestTs.get(CELL_1_1).longValue()).isEqualTo(TIMESTAMP);
     }
 
     @Test
     public void getRangeOfTimestampsThrows() {
         RangeRequest range = RangeRequest.builder().endRowExclusive(SECOND_ROW).build();
-        try (ClosableIterator<RowResult<Set<Long>>> resultIterator = getTestKvs()
-                .getRangeOfTimestamps(TEST_TABLE, range, Long.MAX_VALUE)) {
+        try (ClosableIterator<RowResult<Set<Long>>> resultIterator =
+                getTestKvs().getRangeOfTimestamps(TEST_TABLE, range, Long.MAX_VALUE)) {
             assertThatThrownBy(resultIterator::next).isInstanceOf(AtlasDbDependencyException.class);
         }
     }
@@ -119,6 +117,6 @@ public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
 
     private void assertLatestValueInCellEquals(Cell cell, Value value) {
         Map<Cell, Value> result = getTestKvs().get(TEST_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
-        assertThat(result.get(cell)).isEqualTo(value);
+        assertThat(result).containsEntry(cell, value);
     }
 }

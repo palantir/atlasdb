@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.io.IOException;
-import java.util.UUID;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -26,6 +23,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
+import java.io.IOException;
 
 public enum ValueType {
     /**
@@ -96,20 +94,19 @@ public enum ValueType {
         @Override
         public byte[] convertFromJava(Object value) {
             com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
-            return EncodingUtils.encodeUnsignedVarLong((Long)value);
+            return EncodingUtils.encodeUnsignedVarLong((Long) value);
         }
 
         @Override
         public int sizeOf(Object value) {
             com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
-            return EncodingUtils.sizeOfUnsignedVarLong((Long)value);
+            return EncodingUtils.sizeOfUnsignedVarLong((Long) value);
         }
 
         @Override
         public String getPersistCode(String variableName) {
             return "EncodingUtils.encodeUnsignedVarLong(" + variableName + ")";
         }
-
     },
     /**
      * This value type supports range scans. Neighboring number will be written next to each other.
@@ -177,20 +174,19 @@ public enum ValueType {
         @Override
         public byte[] convertFromJava(Object value) {
             com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
-            return EncodingUtils.encodeSignedVarLong((Long)value);
+            return EncodingUtils.encodeSignedVarLong((Long) value);
         }
 
         @Override
         public int sizeOf(Object value) {
             com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
-            return EncodingUtils.sizeOfSignedVarLong((Long)value);
+            return EncodingUtils.sizeOfSignedVarLong((Long) value);
         }
 
         @Override
         public String getPersistCode(String variableName) {
             return "EncodingUtils.encodeSignedVarLong(" + variableName + ")";
         }
-
     },
     /**
      * This value type supports range scans.  Sequential numbers will be written next to each other.
@@ -205,12 +201,12 @@ public enum ValueType {
 
         @Override
         public Long convertToJava(byte[] value, int offset) {
-            return Long.MIN_VALUE^PtBytes.toLong(value, offset);
+            return Long.MIN_VALUE ^ PtBytes.toLong(value, offset);
         }
 
         @Override
         public Pair<String, Integer> convertToString(byte[] value, int offset) {
-            long val = Long.MIN_VALUE^PtBytes.toLong(value, offset);
+            long val = Long.MIN_VALUE ^ PtBytes.toLong(value, offset);
             return Pair.create(String.valueOf(val), PtBytes.SIZEOF_LONG);
         }
 
@@ -257,7 +253,7 @@ public enum ValueType {
         @Override
         public byte[] convertFromJava(Object value) {
             com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
-            return PtBytes.toBytes(Long.MIN_VALUE ^ (Long)value);
+            return PtBytes.toBytes(Long.MIN_VALUE ^ (Long) value);
         }
 
         @Override
@@ -270,7 +266,6 @@ public enum ValueType {
         public String getPersistCode(String variableName) {
             return "PtBytes.toBytes(Long.MIN_VALUE ^ " + variableName + ")";
         }
-
     },
     /**
      * This value type does NOT support range scans. This encoding is {@link PtBytes#toBytes(long)} but with
@@ -338,7 +333,7 @@ public enum ValueType {
         @Override
         public byte[] convertFromJava(Object value) {
             com.palantir.logsafe.Preconditions.checkArgument(value instanceof Long);
-            return EncodingUtils.encodeLittleEndian((Long)value);
+            return EncodingUtils.encodeLittleEndian((Long) value);
         }
 
         @Override
@@ -356,7 +351,6 @@ public enum ValueType {
         public boolean supportsRangeScans() {
             return false;
         }
-
     },
     /**
      * This value type supports range scans.  Sequential numbers will be written next to each other.
@@ -427,14 +421,14 @@ public enum ValueType {
 
         @Override
         public String getFlippedHydrateCode(String inputName, String indexName) {
-            return "new Sha256Hash(EncodingUtils.flipAllBitsInPlace(EncodingUtils.get32Bytes(" + inputName + ", " + indexName + ")))";
+            return "new Sha256Hash(EncodingUtils.flipAllBitsInPlace(EncodingUtils.get32Bytes(" + inputName + ", "
+                    + indexName + ")))";
         }
 
         @Override
         public String getHydrateSizeCode(String input) {
             return "32";
         }
-
     },
     /**
      * This value type DOES NOT support range scans.
@@ -502,14 +496,13 @@ public enum ValueType {
         @Override
         public int sizeOf(Object value) {
             com.palantir.logsafe.Preconditions.checkArgument(value instanceof String);
-            return EncodingUtils.sizeOfVarString((String)value);
+            return EncodingUtils.sizeOfVarString((String) value);
         }
 
         @Override
         public String getPersistCode(String variableName) {
             return "EncodingUtils.encodeVarString(" + variableName + ")";
         }
-
     },
     STRING {
         @Override
@@ -546,13 +539,15 @@ public enum ValueType {
 
         @Override
         public String getHydrateCode(String inputName, String indexName) {
-            return "PtBytes.toString(" + inputName + ", " + indexName + ", " + inputName + ".length" + "-" + indexName + ")";
+            return "PtBytes.toString(" + inputName + ", " + indexName + ", " + inputName + ".length" + "-" + indexName
+                    + ")";
         }
 
         @Override
         public String getFlippedHydrateCode(String inputName, String indexName) {
             // All bits after the index can be flipped because string is always the last thing
-            return "PtBytes.toString(EncodingUtils.flipAllBitsInPlace(" + inputName + ", " + indexName + "), " + indexName + ", " + inputName + ".length" + "-" + indexName + ")";
+            return "PtBytes.toString(EncodingUtils.flipAllBitsInPlace(" + inputName + ", " + indexName + "), "
+                    + indexName + ", " + inputName + ".length" + "-" + indexName + ")";
         }
 
         @Override
@@ -564,7 +559,7 @@ public enum ValueType {
         @Override
         public byte[] convertFromJava(Object value) {
             com.palantir.logsafe.Preconditions.checkArgument(value instanceof String);
-            return PtBytes.toBytes((String)value);
+            return PtBytes.toBytes((String) value);
         }
 
         @Override
@@ -578,7 +573,6 @@ public enum ValueType {
         public String getPersistCode(String variableName) {
             return "PtBytes.toBytes(" + variableName + ")";
         }
-
     },
     BLOB {
         @Override
@@ -639,7 +633,8 @@ public enum ValueType {
         @Override
         public String getFlippedHydrateCode(String inputName, String indexName) {
             // All bits after the index can be flipped because blob is always the last thing
-            return "EncodingUtils.flipAllBitsInPlace(EncodingUtils.getBytesFromOffsetToEnd(" + inputName + ", " + indexName + "))";
+            return "EncodingUtils.flipAllBitsInPlace(EncodingUtils.getBytesFromOffsetToEnd(" + inputName + ", "
+                    + indexName + "))";
         }
 
         @Override
@@ -647,7 +642,6 @@ public enum ValueType {
             // This value doesn't matter because blob is always the last thing
             return "0";
         }
-
     },
     /**
      * This value type DOES NOT support range scans.
@@ -721,7 +715,6 @@ public enum ValueType {
         public String getHydrateSizeCode(String variableName) {
             return "EncodingUtils.sizeOfSizedBytes(" + variableName + ")";
         }
-
     },
     NULLABLE_FIXED_LONG {
         @Override
@@ -736,9 +729,7 @@ public enum ValueType {
 
         @Override
         public Pair<String, Integer> convertToString(byte[] value, int offset) {
-            return Pair.create(
-                    String.valueOf(EncodingUtils.decodeNullableFixedLong(value, offset)),
-                    9);
+            return Pair.create(String.valueOf(EncodingUtils.decodeNullableFixedLong(value, offset)), 9);
         }
 
         @Override
@@ -763,18 +754,12 @@ public enum ValueType {
 
         @Override
         public String getHydrateCode(String inputName, String indexName) {
-            return String.format(
-                    "EncodingUtils.decodeNullableFixedLong(%s,%s)",
-                    inputName,
-                    indexName);
+            return String.format("EncodingUtils.decodeNullableFixedLong(%s,%s)", inputName, indexName);
         }
 
         @Override
         public String getFlippedHydrateCode(String inputName, String indexName) {
-            return String.format(
-                    "EncodingUtils.decodeFlippedNullableFixedLong(%s,%s)",
-                    inputName,
-                    indexName);
+            return String.format("EncodingUtils.decodeFlippedNullableFixedLong(%s,%s)", inputName, indexName);
         }
 
         @Override
@@ -798,19 +783,19 @@ public enum ValueType {
         public String getPersistCode(String variableName) {
             return String.format("EncodingUtils.encodeNullableFixedLong(%s)", variableName);
         }
-
     },
     UUID {
         @Override
-        public UUID convertToJava(byte[] value, int offset) {
-            com.palantir.logsafe.Preconditions.checkArgument(offset + 16 <= value.length, "Field does not contain enough remaining bytes to hold a UUID");
+        public java.util.UUID convertToJava(byte[] value, int offset) {
+            com.palantir.logsafe.Preconditions.checkArgument(
+                    offset + 16 <= value.length, "Field does not contain enough remaining bytes to hold a UUID");
             return EncodingUtils.decodeUUID(value, offset);
         }
 
         @Override
         public byte[] convertFromJava(Object value) {
-            com.palantir.logsafe.Preconditions.checkArgument(value == null || value instanceof UUID);
-            return EncodingUtils.encodeUUID((UUID) value);
+            com.palantir.logsafe.Preconditions.checkArgument(value == null || value instanceof java.util.UUID);
+            return EncodingUtils.encodeUUID((java.util.UUID) value);
         }
 
         @Override
@@ -862,18 +847,22 @@ public enum ValueType {
         public String getHydrateSizeCode(String variableName) {
             return "16";
         }
-
-    }
-    ;
+    };
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public abstract Object convertToJava(byte[] value, int offset);
+
     public abstract Pair<String, Integer> convertToJson(byte[] value, int offset);
+
     public abstract Pair<String, Integer> convertToString(byte[] value, int offset);
+
     public abstract byte[] convertFromString(String strValue);
+
     public abstract byte[] convertFromJava(Object value);
+
     public abstract byte[] convertFromJson(String jsonValue);
+
     public abstract int sizeOf(Object value);
 
     public String convertToJson(byte[] value) {
@@ -889,6 +878,7 @@ public enum ValueType {
     }
 
     public abstract Class getJavaClass();
+
     public Class getJavaObjectClass() {
         return getJavaClass();
     }
@@ -896,15 +886,18 @@ public enum ValueType {
     public String getJavaClassName() {
         return getJavaClass().getSimpleName();
     }
+
     public String getJavaObjectClassName() {
         return getJavaObjectClass().getSimpleName();
     }
 
     public abstract String getPersistCode(String variableName);
-    public abstract String getHydrateCode(String inputName, String indexName);
-    public abstract String getFlippedHydrateCode(String inputName, String indexName);
-    public abstract String getHydrateSizeCode(String variableName);
 
+    public abstract String getHydrateCode(String inputName, String indexName);
+
+    public abstract String getFlippedHydrateCode(String inputName, String indexName);
+
+    public abstract String getHydrateSizeCode(String variableName);
 
     public int getMaxValueSize() {
         return Integer.MAX_VALUE;

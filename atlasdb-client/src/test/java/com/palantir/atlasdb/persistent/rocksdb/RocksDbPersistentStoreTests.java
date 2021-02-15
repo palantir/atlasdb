@@ -19,21 +19,18 @@ package com.palantir.atlasdb.persistent.rocksdb;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.File;
-
+import okio.ByteString;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.persistent.api.PersistentStore;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-
-import okio.ByteString;
 
 public final class RocksDbPersistentStoreTests {
     @ClassRule
@@ -112,9 +109,7 @@ public final class RocksDbPersistentStoreTests {
 
     @Test
     public void testMultiPut() {
-        persistentStore.put(
-                defaultNamespace,
-                ImmutableMap.of(KEY, VALUE, KEY2, VALUE2));
+        persistentStore.put(defaultNamespace, ImmutableMap.of(KEY, VALUE, KEY2, VALUE2));
 
         assertThat(persistentStore.get(defaultNamespace, KEY)).hasValue(VALUE);
         assertThat(persistentStore.get(defaultNamespace, KEY2)).hasValue(VALUE2);
@@ -125,11 +120,9 @@ public final class RocksDbPersistentStoreTests {
         persistentStore.put(defaultNamespace, KEY, VALUE);
         persistentStore.put(defaultNamespace, KEY2, VALUE2);
 
-        assertThat(
-                persistentStore.get(defaultNamespace, ImmutableList.of(KEY, KEY2, ByteString.encodeUtf8("bla"))))
+        assertThat(persistentStore.get(defaultNamespace, ImmutableList.of(KEY, KEY2, ByteString.encodeUtf8("bla"))))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                         KEY, VALUE,
-                        KEY2, VALUE2)
-                );
+                        KEY2, VALUE2));
     }
 }

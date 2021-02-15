@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -33,6 +27,10 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.logsafe.Preconditions;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nullable;
 
 public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, Value>> {
     private final KeyValueService keyValueService;
@@ -62,13 +60,11 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
         }
         BatchColumnRangeSelection newRange =
                 BatchColumnRangeSelection.create(startCol, columnRangeSelection.getEndCol(), batchSize);
-        Map<byte[], RowColumnRangeIterator> range = keyValueService.getRowsColumnRange(
-                tableRef,
-                ImmutableList.of(row),
-                newRange,
-                timestamp);
+        Map<byte[], RowColumnRangeIterator> range =
+                keyValueService.getRowsColumnRange(tableRef, ImmutableList.of(row), newRange, timestamp);
         if (range.isEmpty()) {
-            return ClosableIterators.wrap(ImmutableList.<Map.Entry<Cell, Value>>of().iterator());
+            return ClosableIterators.wrap(
+                    ImmutableList.<Map.Entry<Cell, Value>>of().iterator());
         }
         return ClosableIterators.wrap(Iterables.getOnlyElement(range.values()));
     }

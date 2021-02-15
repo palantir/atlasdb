@@ -16,16 +16,15 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import com.palantir.atlasdb.factory.ServiceCreator;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
 import org.immutables.value.Value;
-
-import com.palantir.atlasdb.factory.ServiceCreator;
 
 @Value.Immutable
 public interface ShortAndLongTimeoutServices<T> {
     T longTimeout();
+
     T shortTimeout();
 
     static <T> ShortAndLongTimeoutServices<T> create(ServiceCreator serviceCreator, Class<T> clazz) {
@@ -42,8 +41,8 @@ public interface ShortAndLongTimeoutServices<T> {
                 .build();
     }
 
-    default <U, V> ShortAndLongTimeoutServices<V> zipWith(ShortAndLongTimeoutServices<U> otherServices,
-            BiFunction<T, U, V> combiner) {
+    default <U, V> ShortAndLongTimeoutServices<V> zipWith(
+            ShortAndLongTimeoutServices<U> otherServices, BiFunction<T, U, V> combiner) {
         return ImmutableShortAndLongTimeoutServices.<V>builder()
                 .longTimeout(combiner.apply(longTimeout(), otherServices.longTimeout()))
                 .shortTimeout(combiner.apply(shortTimeout(), otherServices.shortTimeout()))

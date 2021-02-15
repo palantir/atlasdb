@@ -15,20 +15,20 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-
 import io.airlift.airline.Command;
+import org.slf4j.LoggerFactory;
 
-@Command(name = "fast-forward", description = "Fast forward the stored upper limit of a persistent timestamp"
-        + " service to the specified timestamp."
-        + " Is used in the restore process to ensure that all future timestamps used are explicity greater than any"
-        + " that may have been used to write data to the KVS before backing up the underlying storage.")
+@Command(
+        name = "fast-forward",
+        description = "Fast forward the stored upper limit of a persistent timestamp service to the specified"
+                + " timestamp. Is used in the restore process to ensure that all future timestamps used are explicity"
+                + " greater than any that may have been used to write data to the KVS before backing up the underlying"
+                + " storage.")
 public class FastForwardTimestamp extends AbstractTimestampCommand {
     private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(FastForwardTimestamp.class));
 
@@ -49,7 +49,8 @@ public class FastForwardTimestamp extends AbstractTimestampCommand {
 
         TimestampService ts = services.getManagedTimestampService();
         if (!(ts instanceof TimestampManagementService)) {
-            printer.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",
+            printer.error(
+                    "Timestamp service must be of type {}, but yours is {}.  Exiting.",
                     SafeArg.of("expected type", TimestampManagementService.class.toString()),
                     SafeArg.of("found type", ts.getClass().toString()));
             return 1;

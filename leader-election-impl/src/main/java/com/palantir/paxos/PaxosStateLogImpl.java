@@ -15,30 +15,9 @@
  */
 package com.palantir.paxos;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
@@ -48,11 +27,31 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.util.crypto.Sha256Hash;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    private final Map<Long, Long> seqToVersionMap = Maps.newConcurrentMap();
+    private final Map<Long, Long> seqToVersionMap = new ConcurrentHashMap<>();
 
     private static final String TMP_FILE_SUFFIX = ".tmp";
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogImpl.class);
@@ -79,7 +78,10 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         };
     }
 
-    private enum Extreme { GREATEST, LEAST }
+    private enum Extreme {
+        GREATEST,
+        LEAST
+    }
 
     final String path;
 
@@ -126,8 +128,9 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         // compute checksum hash
         byte[] bytes = round.persistToBytes();
         byte[] hash = Sha256Hash.computeHash(bytes).getBytes();
-        PaxosPersistence.PaxosHeader header = PaxosPersistence.PaxosHeader.newBuilder().setChecksum(
-                ByteString.copyFrom(hash)).build();
+        PaxosPersistence.PaxosHeader header = PaxosPersistence.PaxosHeader.newBuilder()
+                .setChecksum(ByteString.copyFrom(hash))
+                .build();
 
         FileOutputStream fileOut = null;
         try {
@@ -221,9 +224,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
             for (File file : files) {
                 long fileSeq = getSeqFromFilename(file);
                 if (fileSeq <= toDeleteInclusive) {
-                    if (file.delete()) {
-                        log.warn("failed to delete log file {}", file.getAbsolutePath());
-                    }
+                    deleteLogFile(file);
                 } else {
                     break;
                 }
@@ -233,12 +234,33 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         }
     }
 
+    @Override
+    public void truncateAllRounds() {
+        lock.writeLock().lock();
+        try {
+            File dir = new File(path);
+            getLogEntries(dir).forEach(PaxosStateLogImpl::deleteLogFile);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private static void deleteLogFile(File file) {
+        if (!file.delete()) {
+            log.warn(
+                    "Failed to delete log file for sequence {}, use case {}, and client {}.",
+                    SafeArg.of("sequence", file.getName()),
+                    SafeArg.of("use case", file.getParentFile().getName()),
+                    SafeArg.of("client", file.getParentFile().getParentFile().getName()));
+        }
+    }
+
     private List<File> getLogEntries(File dir) {
         File[] files = dir.listFiles();
         if (files == null) {
-            return null;
+            return ImmutableList.of();
         }
-        return Lists.newArrayList(Collections2.filter(Arrays.asList(files), nameIsALongPredicate()));
+        return new ArrayList<>(Collections2.filter(Arrays.asList(files), nameIsALongPredicate()));
     }
 
     /**
@@ -252,8 +274,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         lock.readLock().lock();
         try {
             InputStream fileIn = null;
-            PaxosPersistence.PaxosHeader.Builder headerBuilder =
-                    PaxosPersistence.PaxosHeader.newBuilder();
+            PaxosPersistence.PaxosHeader.Builder headerBuilder = PaxosPersistence.PaxosHeader.newBuilder();
             try {
                 fileIn = new FileInputStream(file);
                 headerBuilder.mergeDelimitedFrom(fileIn);
@@ -270,7 +291,8 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 // that should be treated in the same way as IOException.
             } catch (IOException e) {
                 // Note that the file name is a Paxos log entry - so it is the round number - and thus safe.
-                log.error("Problem reading paxos state, specifically when reading file {} (file-name {})",
+                log.error(
+                        "Problem reading paxos state, specifically when reading file {} (file-name {})",
                         UnsafeArg.of("full path", file.getAbsolutePath()),
                         SafeArg.of("file name", file.getName()));
                 throw Throwables.rewrap(e);
@@ -282,5 +304,4 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         }
         return null;
     }
-
 }

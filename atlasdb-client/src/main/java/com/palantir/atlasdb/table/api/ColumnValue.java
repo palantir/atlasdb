@@ -17,6 +17,8 @@ package com.palantir.atlasdb.table.api;
 
 public interface ColumnValue<T> {
     byte[] persistColumnName();
+
     byte[] persistValue();
+
     T getValue();
 }

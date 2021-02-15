@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
+import com.palantir.lock.LockDescriptor;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-
-import com.palantir.lock.LockDescriptor;
 
 public class CombinedLockEvents implements LockEvents {
 

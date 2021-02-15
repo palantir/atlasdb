@@ -16,10 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -30,6 +26,9 @@ import com.palantir.lock.v2.ImmutableWaitForLocksResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public final class ConjureLockRequests {
     private ConjureLockRequests() {}

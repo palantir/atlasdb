@@ -18,25 +18,27 @@ package com.palantir.common.time;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Test;
 
 public final class NanoTimeTests {
 
     @Test
     public void testIsBefore_usual() {
-        assertThat(NanoTime.createForTests(1).isBefore(NanoTime.createForTests(2))).isTrue();
+        assertThat(NanoTime.createForTests(1).isBefore(NanoTime.createForTests(2)))
+                .isTrue();
     }
 
     @Test
     public void testIsBefore_not() {
-        assertThat(NanoTime.createForTests(1).isBefore(NanoTime.createForTests(0))).isFalse();
+        assertThat(NanoTime.createForTests(1).isBefore(NanoTime.createForTests(0)))
+                .isFalse();
     }
 
     @Test
     public void testIsBefore_overflow() {
-        assertThat(NanoTime.createForTests(Long.MAX_VALUE).isBefore(NanoTime.createForTests(Long.MIN_VALUE))).isTrue();
+        assertThat(NanoTime.createForTests(Long.MAX_VALUE).isBefore(NanoTime.createForTests(Long.MIN_VALUE)))
+                .isTrue();
     }
 
     @Test
@@ -50,4 +52,3 @@ public final class NanoTimeTests {
         assertThat(deserialized).isEqualTo(nanoTime);
     }
 }
-

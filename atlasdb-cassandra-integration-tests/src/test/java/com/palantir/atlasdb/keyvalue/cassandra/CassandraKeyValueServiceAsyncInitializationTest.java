@@ -17,20 +17,18 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.containers.UninitializedCassandraResource;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-
+import java.time.Duration;
 import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.palantir.atlasdb.containers.UninitializedCassandraResource;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-
 public class CassandraKeyValueServiceAsyncInitializationTest {
     @ClassRule
-    public static final UninitializedCassandraResource CASSANDRA = new UninitializedCassandraResource(
-            CassandraKeyValueServiceAsyncInitializationTest.class);
+    public static final UninitializedCassandraResource CASSANDRA =
+            new UninitializedCassandraResource(CassandraKeyValueServiceAsyncInitializationTest.class);
 
     @Test
     public void cassandraKvsInitializesAsynchronously() throws IOException, InterruptedException {
@@ -39,6 +37,6 @@ public class CassandraKeyValueServiceAsyncInitializationTest {
 
         CASSANDRA.initialize();
 
-        Awaitility.await().atMost(35, TimeUnit.SECONDS).until(asyncInitializedKvs::isInitialized);
+        Awaitility.await().atMost(Duration.ofSeconds(35)).until(asyncInitializedKvs::isInitialized);
     }
 }

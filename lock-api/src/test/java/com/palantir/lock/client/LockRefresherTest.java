@@ -22,15 +22,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Test;
 
 public class LockRefresherTest {
 
@@ -104,5 +102,4 @@ public class LockRefresherTest {
     private void tick() {
         executor.tick(REFRESH_INTERVAL_MILLIS + 1, TimeUnit.MILLISECONDS);
     }
-
 }

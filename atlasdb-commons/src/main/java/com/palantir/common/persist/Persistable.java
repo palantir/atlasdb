@@ -21,9 +21,9 @@ package com.palantir.common.persist;
  * {@link Persistable} class is a final class.
  */
 public interface Persistable {
-    public static final String HYDRATOR_NAME = "BYTES_HYDRATOR";
+    String HYDRATOR_NAME = "BYTES_HYDRATOR";
 
-    public interface Hydrator<T> {
+    interface Hydrator<T> {
         T hydrateFromBytes(byte[] input);
     }
 

@@ -17,17 +17,14 @@ package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.Test;
 
 public class CellsToSweepPartitioningIteratorTest {
     @Test(expected = IllegalArgumentException.class)
@@ -93,22 +90,14 @@ public class CellsToSweepPartitioningIteratorTest {
     @Test
     public void ignoreExaminedCellLimitUntilFinishedStartRow() {
         // Four input batches of two cells each, three timestamps per cell
-        BatchOfCellsToSweep batch1 = batch(
-                ImmutableList.of(cellWithThreeTimestamps(0, 0), cellWithThreeTimestamps(0, 1)),
-                10,
-                cell(0, 9));
+        BatchOfCellsToSweep batch1 =
+                batch(ImmutableList.of(cellWithThreeTimestamps(0, 0), cellWithThreeTimestamps(0, 1)), 10, cell(0, 9));
         BatchOfCellsToSweep batch2 = batch(
-                ImmutableList.of(cellWithThreeTimestamps(0, 10), cellWithThreeTimestamps(0, 11)),
-                20,
-                cell(0, 19));
-        BatchOfCellsToSweep batch3 = batch(
-                ImmutableList.of(cellWithThreeTimestamps(0, 20), cellWithThreeTimestamps(1, 0)),
-                30,
-                cell(1, 7));
+                ImmutableList.of(cellWithThreeTimestamps(0, 10), cellWithThreeTimestamps(0, 11)), 20, cell(0, 19));
+        BatchOfCellsToSweep batch3 =
+                batch(ImmutableList.of(cellWithThreeTimestamps(0, 20), cellWithThreeTimestamps(1, 0)), 30, cell(1, 7));
         BatchOfCellsToSweep batch4 = batch(
-                ImmutableList.of(cellWithThreeTimestamps(1, 10), cellWithThreeTimestamps(1, 11)),
-                40,
-                cell(1, 20));
+                ImmutableList.of(cellWithThreeTimestamps(1, 10), cellWithThreeTimestamps(1, 11)), 40, cell(1, 20));
         List<BatchOfCellsToSweep> batches = partition(
                 ImmutableList.of(batch1, batch2, batch3, batch4),
                 // Request 6 (cell, ts) pairs per batch: this means exactly one input batch per one output batch
@@ -121,19 +110,17 @@ public class CellsToSweepPartitioningIteratorTest {
         assertThat(batches).containsExactly(batch1, batch2, batch3);
     }
 
-    private static List<BatchOfCellsToSweep> partition(List<BatchOfCellsToSweep> input,
-                                                       int tsBatchSize,
-                                                       byte[] startRow,
-                                                       int maxCellsToExamine) {
+    private static List<BatchOfCellsToSweep> partition(
+            List<BatchOfCellsToSweep> input, int tsBatchSize, byte[] startRow, int maxCellsToExamine) {
         return ImmutableList.copyOf(new CellsToSweepPartitioningIterator(
                 input.iterator(),
                 tsBatchSize,
                 new CellsToSweepPartitioningIterator.ExaminedCellLimit(startRow, maxCellsToExamine)));
     }
 
-    private static BatchOfCellsToSweep batchWithThreeTssPerCell(int firstCell, int numCells,
-            int numCellsExaminedInBatch) {
-        List<CellToSweep> cells = Lists.newArrayList();
+    private static BatchOfCellsToSweep batchWithThreeTssPerCell(
+            int firstCell, int numCells, int numCellsExaminedInBatch) {
+        List<CellToSweep> cells = new ArrayList<>();
         for (int i = 0; i < numCells; ++i) {
             cells.add(cellWithThreeTimestamps(firstCell + i, 0));
         }
@@ -146,10 +133,10 @@ public class CellsToSweepPartitioningIteratorTest {
 
     private static BatchOfCellsToSweep batch(List<CellToSweep> cells, int numCellTsPairsExamined, Cell lastExamined) {
         return ImmutableBatchOfCellsToSweep.builder()
-                    .cells(cells)
-                    .numCellTsPairsExamined(numCellTsPairsExamined)
-                    .lastCellExamined(lastExamined)
-                    .build();
+                .cells(cells)
+                .numCellTsPairsExamined(numCellTsPairsExamined)
+                .lastCellExamined(lastExamined)
+                .build();
     }
 
     private static CellToSweep cellWithThreeTimestamps(int row, int col) {
@@ -171,5 +158,4 @@ public class CellsToSweepPartitioningIteratorTest {
     private static byte[] row(int increment) {
         return Ints.toByteArray(1000 + increment);
     }
-
 }

@@ -20,5 +20,5 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 
 public interface TxTask extends RuntimeTransactionTask<Void> {
     @Override
-    public Void execute(Transaction t);
+    Void execute(Transaction t);
 }

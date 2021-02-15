@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class SecondNginxContainer extends Container {
     @Override

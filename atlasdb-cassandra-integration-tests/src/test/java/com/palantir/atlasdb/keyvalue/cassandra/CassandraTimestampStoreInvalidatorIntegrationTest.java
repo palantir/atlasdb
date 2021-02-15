@@ -17,21 +17,19 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 @ShouldRetry
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
@@ -46,7 +44,8 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     @Before
     public void setUp() {
-        kv.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
+        kv.createTable(
+                AtlasDbConstants.TIMESTAMP_TABLE,
                 CassandraTimestampBoundStore.TIMESTAMP_TABLE_METADATA.persistToBytes());
         kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
@@ -109,8 +108,9 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     @Test
     public void multipleInvalidatorsForSameKeyValueServiceAllReturnSameResults() {
         long limit = getBoundAfterTakingOutOneMillionTimestamps();
-        CassandraTestTools.executeInParallelOnExecutorService(() ->
-                assertThat(CassandraTimestampStoreInvalidator.create(kv).backupAndInvalidate()).isEqualTo(limit));
+        CassandraTestTools.executeInParallelOnExecutorService(
+                () -> assertThat(CassandraTimestampStoreInvalidator.create(kv).backupAndInvalidate())
+                        .isEqualTo(limit));
     }
 
     /**

@@ -15,16 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import org.immutables.value.Value;
-
 import com.google.common.base.Preconditions;
 import com.palantir.common.persist.Persistable;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class TargetedSweepMetadata implements Persistable {
     public abstract boolean conservative();
+
     public abstract boolean dedicatedRow();
+
     public abstract int shard();
+
     public abstract long dedicatedRowNumber();
 
     public static final int MAX_SHARDS = 256;
@@ -36,28 +38,33 @@ public abstract class TargetedSweepMetadata implements Persistable {
 
     @Value.Check
     void checkShardSize() {
-        Preconditions.checkArgument(shard() >= 0 && shard() < MAX_SHARDS,
-                "Shard number must non-negative and strictly less than %s, but it is %s.", MAX_SHARDS, shard());
+        Preconditions.checkArgument(
+                shard() >= 0 && shard() < MAX_SHARDS,
+                "Shard number must non-negative and strictly less than %s, but it is %s.",
+                MAX_SHARDS,
+                shard());
     }
 
     @Value.Check
     void checkRowNumber() {
-        Preconditions.checkArgument(dedicatedRowNumber() >= 0 && dedicatedRowNumber() < MAX_DEDICATED_ROWS,
+        Preconditions.checkArgument(
+                dedicatedRowNumber() >= 0 && dedicatedRowNumber() < MAX_DEDICATED_ROWS,
                 "Dedicated row number must non-negative and strictly less than %s, but it is %s.",
-                MAX_DEDICATED_ROWS, dedicatedRowNumber());
+                MAX_DEDICATED_ROWS,
+                dedicatedRowNumber());
     }
-    public static final Hydrator<TargetedSweepMetadata> BYTES_HYDRATOR = input ->
-            ImmutableTargetedSweepMetadata.builder()
-                .conservative((input[0] & SWEEP_STRATEGY_MASK) != 0)
-                .dedicatedRow((input[0] & USE_DEDICATED_ROWS_MASK) != 0)
-                .shard((input[0] << 2 | (input[1] & BYTE_MASK) >> 6) & BYTE_MASK)
-                .dedicatedRowNumber(input[1] & DEDICATED_ROW_NUMBER_MASK)
-                .build();
 
+    public static final Hydrator<TargetedSweepMetadata> BYTES_HYDRATOR =
+            input -> ImmutableTargetedSweepMetadata.builder()
+                    .conservative((input[0] & SWEEP_STRATEGY_MASK) != 0)
+                    .dedicatedRow((input[0] & USE_DEDICATED_ROWS_MASK) != 0)
+                    .shard((input[0] << 2 | (input[1] & BYTE_MASK) >> 6) & BYTE_MASK)
+                    .dedicatedRowNumber(input[1] & DEDICATED_ROW_NUMBER_MASK)
+                    .build();
 
     @Override
     public byte[] persistToBytes() {
-        byte[] result = new byte[] { 0, 0, 0, 0 };
+        byte[] result = new byte[] {0, 0, 0, 0};
         result[0] |= (shard() & BYTE_MASK) >> 2;
         if (dedicatedRow()) {
             result[0] |= USE_DEDICATED_ROWS_MASK;

@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Correctly filter out commit locks from a commit update by using the
+    server token from a leased lock token.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5100

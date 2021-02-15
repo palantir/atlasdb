@@ -16,9 +16,14 @@
 
 package com.palantir.atlasdb.http;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.conjure.java.api.errors.QosException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.List;
 import java.util.Optional;
-
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -26,23 +31,16 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
-
 import org.glassfish.jersey.spi.ExceptionMappers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.conjure.java.api.config.service.UserAgents;
-import com.palantir.conjure.java.api.errors.QosException;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 abstract class ProtocolAwareExceptionMapper<E extends Exception> implements ExceptionMapper<E> {
     private static final Logger log = LoggerFactory.getLogger(ProtocolAwareExceptionMapper.class);
 
     @Context
     private HttpHeaders httpHeaders;
+
     @Inject
     private Provider<ExceptionMappers> exceptionMappersProvider;
 
@@ -57,12 +55,14 @@ abstract class ProtocolAwareExceptionMapper<E extends Exception> implements Exce
                 return Optional.ofNullable(exceptionMappersProvider.get())
                         .map(provider -> provider.findMapping(qosException))
                         .map(mapper -> mapper.toResponse(qosException))
-                        .orElseThrow(() -> new SafeIllegalStateException("Couldn't find QoS exception mapper."
-                                + " This is a product bug."));
+                        .orElseThrow(() -> new SafeIllegalStateException(
+                                "Couldn't find QoS exception mapper." + " This is a product bug."));
             default:
-                log.warn("Couldn't determine what to do with protocol version {}. This is a product bug.",
+                log.warn(
+                        "Couldn't determine what to do with protocol version {}. This is a product bug.",
                         SafeArg.of("protocolVersion", version));
-                throw new SafeIllegalStateException("Unrecognized protocol version in HttpProtocolAwareExceptionMapper",
+                throw new SafeIllegalStateException(
+                        "Unrecognized protocol version in HttpProtocolAwareExceptionMapper",
                         SafeArg.of("protocolVersion", version));
         }
     }
@@ -75,8 +75,7 @@ abstract class ProtocolAwareExceptionMapper<E extends Exception> implements Exce
 
     @VisibleForTesting
     static Optional<String> parseProtocolVersionFromUserAgentHeader(@Nonnull List<String> userAgentHeader) {
-        return userAgentHeader
-                .stream()
+        return userAgentHeader.stream()
                 .map(UserAgents::tryParse)
                 .map(UserAgent::informational)
                 .flatMap(List::stream)
@@ -86,5 +85,6 @@ abstract class ProtocolAwareExceptionMapper<E extends Exception> implements Exce
     }
 
     abstract Response handleLegacyOrUnknownVersion(E exception);
+
     abstract QosException handleConjureJavaRuntime(E exception);
 }

@@ -20,15 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 
 public class ClusterConfigurationTest {
 
@@ -41,8 +39,7 @@ public class ClusterConfigurationTest {
                 .localServer(ADDRESS_1)
                 .enableNonstandardAndPossiblyDangerousTopology(true)
                 .cluster(PartialServiceConfiguration.of(ImmutableList.of(ADDRESS_2), Optional.empty()));
-        assertThatIllegalArgumentException()
-                .isThrownBy(builder::build);
+        assertThatIllegalArgumentException().isThrownBy(builder::build);
     }
 
     @Test
@@ -109,5 +106,4 @@ public class ClusterConfigurationTest {
                 .hasMessageContaining("not a standard configuration!")
                 .hasMessageContaining("IRRECOVERABLY COMPROMISED");
     }
-
 }

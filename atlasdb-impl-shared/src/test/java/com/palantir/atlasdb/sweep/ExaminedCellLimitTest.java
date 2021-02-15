@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import org.junit.Test;
 
 public class ExaminedCellLimitTest {
     private String startingRow;
@@ -30,117 +28,117 @@ public class ExaminedCellLimitTest {
 
     @Test
     public void whenSameRowAndLessThanLimit_thenExaminedEnoughIsFalse() {
-        //Given
+        // Given
         startingOn("row1");
         maxCellsToExamineIs(10);
 
-        //When
+        // When
         examined(1);
         on("row1");
 
-        //Then
+        // Then
         examinedEnoughCellsIs(false);
     }
 
     @Test
     public void whenSameRowAndAtLimit_thenExaminedEnoughIsFalse() {
-        //Given
+        // Given
         startingOn("row1");
         maxCellsToExamineIs(10);
 
-        //When
+        // When
         examined(10);
         on("row1");
 
-        //Then
+        // Then
         examinedEnoughCellsIs(false);
     }
 
     @Test
     public void whenSameRowAndExceededLimit_thenExaminedEnoughIsFalse() {
-        //Given
+        // Given
         startingOn("row1");
         maxCellsToExamineIs(10);
 
-        //When
+        // When
         examined(11);
         on("row1");
 
-        //Then
+        // Then
         examinedEnoughCellsIs(false);
     }
 
     @Test
     public void whenSameRowAndGreatlyExceededLimit_thenExaminedEnoughIsFalse() {
-        //Given
+        // Given
         startingOn("row1");
         maxCellsToExamineIs(10);
 
-        //When
+        // When
         examined(1000);
         on("row1");
 
-        //Then
+        // Then
         examinedEnoughCellsIs(false);
     }
 
     @Test
     public void whenNextRowAndLessThanLimit_thenExaminedEnoughIsFalse() {
-        //Given
+        // Given
         startingOn("row1");
         maxCellsToExamineIs(10);
 
-        //When
+        // When
         examined(1);
         on("row2");
 
-        //Then
+        // Then
         examinedEnoughCellsIs(false);
     }
 
     @Test
     public void whenNextRowAndAtLimit_thenExaminedEnoughIsTrue() {
-        //Given
+        // Given
         startingOn("row1");
         maxCellsToExamineIs(10);
 
-        //When
+        // When
         examined(10);
         on("row2");
 
-        //Then
+        // Then
         examinedEnoughCellsIs(true);
     }
 
     @Test
     public void whenNextRowAndGreaterThanLimit_thenExaminedEnoughIsTrue() {
-        //Given
+        // Given
         startingOn("row1");
         maxCellsToExamineIs(10);
 
-        //When
+        // When
         examined(11);
         on("row2");
 
-        //Then
+        // Then
         examinedEnoughCellsIs(true);
     }
 
     @Test
     public void whenNextRowAndGreatlyExceededLimit_thenExaminedEnoughIsTrue() {
-        //Given
+        // Given
         startingOn("row1");
         maxCellsToExamineIs(10);
 
-        //When
+        // When
         examined(1000);
         on("row2");
 
-        //Then
+        // Then
         examinedEnoughCellsIs(true);
     }
 
-    //Given
+    // Given
     private void startingOn(String rowName) {
         startingRow = rowName;
     }
@@ -149,7 +147,7 @@ public class ExaminedCellLimitTest {
         maxCellsToExamine = maxCells;
     }
 
-    //When
+    // When
     private void examined(int examined) {
         cellsExamined = examined;
     }
@@ -158,13 +156,13 @@ public class ExaminedCellLimitTest {
         currentRow = curRow;
     }
 
-    //Then
+    // Then
 
     private void examinedEnoughCellsIs(boolean expected) {
-        CellsToSweepPartitioningIterator.ExaminedCellLimit limit
-                = new CellsToSweepPartitioningIterator.ExaminedCellLimit(startingRow.getBytes(), maxCellsToExamine);
+        CellsToSweepPartitioningIterator.ExaminedCellLimit limit =
+                new CellsToSweepPartitioningIterator.ExaminedCellLimit(startingRow.getBytes(), maxCellsToExamine);
 
-        assertThat(limit.examinedEnoughCells(cellsExamined, cell()), is(expected));
+        assertThat(limit.examinedEnoughCells(cellsExamined, cell())).isEqualTo(expected);
     }
 
     private Cell cell() {

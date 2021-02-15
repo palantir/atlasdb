@@ -15,17 +15,16 @@
  */
 package com.palantir.lock.impl;
 
+import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.logsafe.Preconditions;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.logsafe.Preconditions;
+final class LockTokenConverter {
 
-class LockTokenConverter {
-
-    private LockTokenConverter() { }
+    private LockTokenConverter() {}
 
     static LockRefreshToken toLegacyToken(LockToken tokenV2) {
         return new LockRefreshToken(toBigInteger(tokenV2.getRequestId()), Long.MIN_VALUE);
@@ -43,12 +42,9 @@ class LockTokenConverter {
     }
 
     private static UUID toUuid(BigInteger bigInteger) {
-        Preconditions.checkArgument(
-                bigInteger.bitLength() < 128,
-                "Value has too many bits to be converted to a UUID");
+        Preconditions.checkArgument(bigInteger.bitLength() < 128, "Value has too many bits to be converted to a UUID");
         long msb = bigInteger.shiftRight(64).longValue();
         long lsb = bigInteger.longValue();
         return new UUID(msb, lsb);
     }
-
 }

@@ -15,10 +15,9 @@
  */
 package com.palantir.lock;
 
-import java.util.concurrent.locks.ReadWriteLock;
-
 import com.google.common.base.Strings;
 import com.palantir.logsafe.Preconditions;
+import java.util.concurrent.locks.ReadWriteLock;
 
 /**
  * A descriptor for a {@link ReadWriteLock}, identified by a lock ID (a unique

@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.persister;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.persist.api.Persister;
+import java.io.IOException;
 
 /**
  * A {@link Persister} that uses an {@link ObjectMapper} to serialize and deserialize objects
@@ -58,5 +57,4 @@ public abstract class JacksonPersister<T> implements Persister<T> {
     public final Class<T> getPersistingClassType() {
         return typeRef;
     }
-
 }

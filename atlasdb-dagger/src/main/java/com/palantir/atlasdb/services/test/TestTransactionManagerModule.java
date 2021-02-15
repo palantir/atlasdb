@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.services.test;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -43,9 +40,10 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
-
 import dagger.Module;
 import dagger.Provides;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 @Module
 public class TestTransactionManagerModule {
@@ -64,22 +62,23 @@ public class TestTransactionManagerModule {
 
     @Provides
     @Singleton
-    public Cleaner provideCleaner(ServicesConfig config,
-                                  @Named("kvs") KeyValueService kvs,
-                                  LockService lock,
-                                  TimestampService tss,
-                                  LockClient lockClient,
-                                  Follower follower,
-                                  TransactionService transactionService) {
+    public Cleaner provideCleaner(
+            ServicesConfig config,
+            @Named("kvs") KeyValueService kvs,
+            LockService lock,
+            TimestampService tss,
+            LockClient lockClient,
+            Follower follower,
+            TransactionService transactionService) {
         AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
         return new DefaultCleanerBuilder(
-                kvs,
-                lock,
-                tss,
-                lockClient,
-                ImmutableList.of(follower),
-                transactionService,
-                MetricsManagers.createForTests())
+                        kvs,
+                        lock,
+                        tss,
+                        lockClient,
+                        ImmutableList.of(follower),
+                        transactionService,
+                        MetricsManagers.createForTests())
                 .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
                 .setBackgroundScrubBatchSize(atlasDbConfig.getBackgroundScrubBatchSize())
                 .setBackgroundScrubFrequencyMillis(atlasDbConfig.getBackgroundScrubFrequencyMillis())
@@ -92,15 +91,16 @@ public class TestTransactionManagerModule {
 
     @Provides
     @Singleton
-    public SerializableTransactionManager provideTransactionManager(MetricsManager metricsManager,
-                                                                    ServicesConfig config,
-                                                                    @Named("kvs") KeyValueService kvs,
-                                                                    TransactionManagers.LockAndTimestampServices lts,
-                                                                    LockClient lockClient,
-                                                                    TransactionService transactionService,
-                                                                    ConflictDetectionManager conflictManager,
-                                                                    SweepStrategyManager sweepStrategyManager,
-                                                                    Cleaner cleaner) {
+    public SerializableTransactionManager provideTransactionManager(
+            MetricsManager metricsManager,
+            ServicesConfig config,
+            @Named("kvs") KeyValueService kvs,
+            TransactionManagers.LockAndTimestampServices lts,
+            LockClient lockClient,
+            TransactionService transactionService,
+            ConflictDetectionManager conflictManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner) {
         return new SerializableTransactionManager(
                 metricsManager,
                 kvs,
@@ -114,8 +114,8 @@ public class TestTransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                new DefaultTimestampCache(
-                        metricsManager.getRegistry(), () -> config.atlasDbRuntimeConfig().getTimestampCacheSize()),
+                new DefaultTimestampCache(metricsManager.getRegistry(), () -> config.atlasDbRuntimeConfig()
+                        .getTimestampCacheSize()),
                 config.allowAccessToHiddenTables(),
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
@@ -126,5 +126,4 @@ public class TestTransactionManagerModule {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault());
     }
-
 }

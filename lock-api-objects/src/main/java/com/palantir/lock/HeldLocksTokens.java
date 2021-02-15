@@ -15,12 +15,13 @@
  */
 package com.palantir.lock;
 
+import com.google.common.base.Function;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Function;
-
 public final class HeldLocksTokens {
-    private HeldLocksTokens() {/**/}
+    private HeldLocksTokens() {
+        /**/
+    }
 
     public static Function<HeldLocksToken, LockRefreshToken> getRefreshTokenFun() {
         return new Function<HeldLocksToken, LockRefreshToken>() {
@@ -31,5 +32,4 @@ public final class HeldLocksTokens {
             }
         };
     }
-
 }

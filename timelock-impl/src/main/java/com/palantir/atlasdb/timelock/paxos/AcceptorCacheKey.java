@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.UUID;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.UUID;
+import org.immutables.value.Value;
 
 /**
  * This represents a snapshot of the {@link AcceptorCache}. That is, if you were to receive a

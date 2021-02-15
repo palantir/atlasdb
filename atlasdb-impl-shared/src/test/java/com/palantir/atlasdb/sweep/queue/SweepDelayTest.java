@@ -23,19 +23,20 @@ import static com.palantir.atlasdb.sweep.queue.SweepDelay.MIN_PAUSE_MILLIS;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.junit.Test;
 
 public class SweepDelayTest {
     private static final SweepIterationResult SUCCESS_TOO_FAST = SweepIterationResults.success(1L);
     private static final SweepIterationResult SUCCESS_TOO_SLOW = SweepIterationResults.success(SWEEP_BATCH_SIZE);
-    private static final SweepIterationResult SUCCESS = SweepIterationResults
-            .success((BATCH_CELLS_LOW_THRESHOLD + SWEEP_BATCH_SIZE) / 2);
+    private static final SweepIterationResult SUCCESS =
+            SweepIterationResults.success((BATCH_CELLS_LOW_THRESHOLD + SWEEP_BATCH_SIZE) / 2);
     private static final long INITIAL_DELAY = 250L;
 
     private final AtomicLong metrics = new AtomicLong();
-    private SweepDelay delay = new SweepDelay(INITIAL_DELAY, metrics::set);
+    private final AtomicInteger sweepBatchSize = new AtomicInteger(SWEEP_BATCH_SIZE);
+    private SweepDelay delay = new SweepDelay(INITIAL_DELAY, metrics::set, sweepBatchSize::get);
 
     @Test
     public void iterationWithNormalBatchReturnsInitialPause() {
@@ -45,7 +46,7 @@ public class SweepDelayTest {
 
     @Test
     public void configurationBelowMinimumIsSetToMinimum() {
-        SweepDelay negativeDelay = new SweepDelay(-5L, metrics::set);
+        SweepDelay negativeDelay = new SweepDelay(-5L, metrics::set, sweepBatchSize::get);
 
         assertThat(negativeDelay.getNextPause(SUCCESS)).isEqualTo(MIN_PAUSE_MILLIS);
         assertThat(metrics).hasValue(MIN_PAUSE_MILLIS);
@@ -53,7 +54,7 @@ public class SweepDelayTest {
 
     @Test
     public void configurationAboveDefaultMaximumIsRespected() {
-        SweepDelay largeDelay = new SweepDelay(2 * DEFAULT_MAX_PAUSE_MILLIS, metrics::set);
+        SweepDelay largeDelay = new SweepDelay(2 * DEFAULT_MAX_PAUSE_MILLIS, metrics::set, sweepBatchSize::get);
 
         assertThat(largeDelay.getNextPause(SUCCESS)).isEqualTo(2 * DEFAULT_MAX_PAUSE_MILLIS);
         assertThat(metrics).hasValue(2 * DEFAULT_MAX_PAUSE_MILLIS);
@@ -61,27 +62,32 @@ public class SweepDelayTest {
 
     @Test
     public void unableToAcquireShardReturnsMaxPause() {
+        delay.getNextPause(SUCCESS);
         assertThat(delay.getNextPause(SweepIterationResults.unableToAcquireShard()))
                 .isEqualTo(DEFAULT_MAX_PAUSE_MILLIS);
-        assertThat(metrics).hasValue(DEFAULT_MAX_PAUSE_MILLIS);
+        assertThat(metrics).hasValue(INITIAL_DELAY);
     }
 
     @Test
     public void insufficientConsistencyReturnsBackoff() {
-        assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency())).isEqualTo(BACKOFF);
-        assertThat(metrics).hasValue(BACKOFF);
+        delay.getNextPause(SUCCESS);
+        assertThat(delay.getNextPause(SweepIterationResults.insufficientConsistency()))
+                .isEqualTo(BACKOFF);
+        assertThat(metrics).hasValue(INITIAL_DELAY);
     }
 
     @Test
     public void otherErrorReturnsMaxPause() {
+        delay.getNextPause(SUCCESS);
         assertThat(delay.getNextPause(SweepIterationResults.otherError())).isEqualTo(DEFAULT_MAX_PAUSE_MILLIS);
-        assertThat(metrics).hasValue(DEFAULT_MAX_PAUSE_MILLIS);
+        assertThat(metrics).hasValue(INITIAL_DELAY);
     }
 
     @Test
     public void disabledReturnsBackoff() {
+        delay.getNextPause(SUCCESS);
         assertThat(delay.getNextPause(SweepIterationResults.disabled())).isEqualTo(BACKOFF);
-        assertThat(metrics).hasValue(BACKOFF);
+        assertThat(metrics).hasValue(INITIAL_DELAY);
     }
 
     @Test
@@ -118,7 +124,27 @@ public class SweepDelayTest {
         long nextPause = delay.getNextPause(SUCCESS);
         assertThat(nextPause).isGreaterThanOrEqualTo((long) (INITIAL_DELAY * 0.95));
         assertThat(nextPause).isLessThanOrEqualTo((long) (INITIAL_DELAY * 1.05));
+    }
 
+    @Test
+    public void reducingSweepBatchSizeReducesDelayOnNormalBatch() {
+        int batchSize = (BATCH_CELLS_LOW_THRESHOLD + SWEEP_BATCH_SIZE) / 4;
+        sweepBatchSize.set(batchSize);
+        assertThat(delay.getNextPause(SUCCESS)).isLessThan(INITIAL_DELAY);
+    }
+
+    @Test
+    public void reducingSweepBatchSizeReducesDelayOnSmallBatch() {
+        int batchSize = SWEEP_BATCH_SIZE / 2;
+        sweepBatchSize.set(batchSize);
+        assertThat(delay.getNextPause(SweepIterationResults.success(batchSize))).isLessThan(INITIAL_DELAY);
+    }
+
+    @Test
+    public void reducingSweepBatchIncreasesDelayOnSmallerBatch() {
+        int batchSize = SWEEP_BATCH_SIZE / 2;
+        sweepBatchSize.set(batchSize);
+        assertThat(delay.getNextPause(SUCCESS_TOO_FAST)).isGreaterThan(INITIAL_DELAY);
     }
 
     private void sweepTwentyIterationsWithResult(SweepIterationResult result) {

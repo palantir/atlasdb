@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.sweep;
 
-import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -32,6 +22,16 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
+import com.palantir.logsafe.Preconditions;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class GetCandidateRowsForSweeping {
 
@@ -81,8 +81,9 @@ public class GetCandidateRowsForSweeping {
     }
 
     private void fetchCellTimestamps() {
-        cellTimestamps = new GetCellTimestamps(cqlExecutor, rowGetter, table, request.startRowInclusive(),
-                timestampsBatchSize, config).execute();
+        cellTimestamps = new GetCellTimestamps(
+                        cqlExecutor, rowGetter, table, request.startRowInclusive(), timestampsBatchSize, config)
+                .execute();
     }
 
     public void findCellsWithEmptyValuesIfNeeded() {
@@ -91,23 +92,22 @@ public class GetCandidateRowsForSweeping {
             return;
         }
 
-        cellsWithEmptyValues = new GetEmptyLatestValues(cellTimestamps, valuesLoader, table,
-                request.maxTimestampExclusive(),
-                valuesBatchSize).execute();
+        cellsWithEmptyValues = new GetEmptyLatestValues(
+                        cellTimestamps, valuesLoader, table, request.maxTimestampExclusive(), valuesBatchSize)
+                .execute();
     }
 
     private List<CandidateRowForSweeping> convertToOrderedSweepCandidateRows() {
         Map<ByteBuffer, List<CandidateCellForSweeping>> cellsByRow = cellTimestamps.stream()
-                .map(cell -> cell.toSweepCandidate(
-                        request::shouldSweep,
-                        cellsWithEmptyValues.contains(cell.cell())))
+                .map(cell -> cell.toSweepCandidate(request::shouldSweep, cellsWithEmptyValues.contains(cell.cell())))
                 .collect(Collectors.groupingBy(
-                        cell -> ByteBuffer.wrap(cell.cell().getRowName()),
-                        LinkedHashMap::new,
-                        Collectors.toList()));
+                        cell -> ByteBuffer.wrap(cell.cell().getRowName()), LinkedHashMap::new, Collectors.toList()));
 
-        List<CandidateRowForSweeping> candidates = Lists.newArrayList();
+        List<CandidateRowForSweeping> candidates = new ArrayList<>();
         cellsByRow.forEach((row, cells) -> {
+            Preconditions.checkState(row.hasArray(), "Expected an array backed buffer");
+            Preconditions.checkState(row.arrayOffset() == 0, "Buffer array must have no offset");
+            Preconditions.checkState(row.limit() == row.array().length, "Array length must match the limit");
             candidates.add(CandidateRowForSweeping.of(
                     row.array(),
                     cells.stream()
@@ -116,5 +116,4 @@ public class GetCandidateRowsForSweeping {
         });
         return candidates;
     }
-
 }

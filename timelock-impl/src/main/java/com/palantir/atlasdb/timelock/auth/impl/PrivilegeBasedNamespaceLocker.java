@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.timelock.auth.impl;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PrivilegeBasedNamespaceLocker implements NamespaceLocker {
     private List<Privileges> nonAdminPrivileges;

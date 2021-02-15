@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -25,8 +23,10 @@ import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 
-public class TransactionConstants {
-    private TransactionConstants() {/* */}
+public final class TransactionConstants {
+    private TransactionConstants() {
+        /* */
+    }
 
     public static final TableReference TRANSACTION_TABLE = TableReference.createWithEmptyNamespace("_transactions");
     public static final TableReference TRANSACTIONS2_TABLE = TableReference.createWithEmptyNamespace("_transactions2");
@@ -44,9 +44,8 @@ public class TransactionConstants {
 
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
     public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
-    public static final Set<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS = ImmutableSet.of(
-            DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-            TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+    public static final ImmutableSet<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS =
+            ImmutableSet.of(DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION, TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
 
     public static byte[] getValueForTimestamp(long transactionTimestamp) {
         return EncodingUtils.encodeVarLong(transactionTimestamp);

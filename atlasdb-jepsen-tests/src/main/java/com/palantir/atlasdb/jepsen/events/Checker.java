@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.jepsen.events;
 
+import com.palantir.atlasdb.jepsen.CheckerResult;
 import java.util.List;
 
-import com.palantir.atlasdb.jepsen.CheckerResult;
-
-public interface Checker  {
+public interface Checker {
     CheckerResult check(List<Event> events);
 }

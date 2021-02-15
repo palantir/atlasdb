@@ -15,15 +15,8 @@
  */
 package com.palantir.lock.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -32,26 +25,31 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockRequest.Builder;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LockRefreshingLockServiceTest {
     private LockRefreshingLockService server;
     private LockDescriptor lock1;
 
-    @Before public void setUp() {
-        server = LockRefreshingLockService.create(LockServiceImpl.create(LockServerOptions.builder()
-                .isStandaloneServer(false)
-                .build()));
+    @Before
+    public void setUp() {
+        server = LockRefreshingLockService.create(LockServiceImpl.create(
+                LockServerOptions.builder().isStandaloneServer(false).build()));
         lock1 = StringLockDescriptor.of("lock1");
     }
 
-    @After public void tearDown() {
+    @After
+    public void tearDown() {
         if (server != null) {
             server.close();
         }
@@ -59,12 +57,12 @@ public class LockRefreshingLockServiceTest {
 
     @Test
     public void testSimpleRefresh() throws InterruptedException {
-        Builder builder = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE));
+        LockRequest.Builder builder = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE));
         builder.timeoutAfter(SimpleTimeDuration.of(5, TimeUnit.SECONDS));
         LockResponse lock = server.lockWithFullLockResponse(LockClient.ANONYMOUS, builder.build());
         Thread.sleep(10000);
         Set<HeldLocksToken> refreshTokens = server.refreshTokens(ImmutableList.of(lock.getToken()));
-        Assert.assertEquals(1, refreshTokens.size());
+        assertThat(refreshTokens).hasSize(1);
     }
 
     @Test

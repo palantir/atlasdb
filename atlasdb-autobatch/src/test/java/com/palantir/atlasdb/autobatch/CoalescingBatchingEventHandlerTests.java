@@ -22,19 +22,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.immutables.value.Value;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CoalescingBatchingEventHandlerTests {
@@ -60,8 +58,7 @@ public class CoalescingBatchingEventHandlerTests {
 
         Response response = ImmutableResponse.of(10);
 
-        when(function.apply(ImmutableSet.of(request1)))
-                .thenReturn(ImmutableMap.of(request1, response));
+        when(function.apply(ImmutableSet.of(request1))).thenReturn(ImmutableMap.of(request1, response));
 
         CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5);
         Future<Response> response1 = addToBatch(handler, request1);
@@ -100,8 +97,7 @@ public class CoalescingBatchingEventHandlerTests {
         Request request2 = ImmutableRequest.of(10);
         Response responseFor1 = ImmutableResponse.of(-5);
 
-        when(function.apply(ImmutableSet.of(request1, request2)))
-                .thenReturn(ImmutableMap.of(request1, responseFor1));
+        when(function.apply(ImmutableSet.of(request1, request2))).thenReturn(ImmutableMap.of(request1, responseFor1));
 
         CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5);
 
@@ -145,8 +141,7 @@ public class CoalescingBatchingEventHandlerTests {
     public void exceptionsFailUncompletedElementsInBatch() {
         RuntimeException exception = new RuntimeException("something went wrong");
 
-        when(function.apply(anySet()))
-                .thenThrow(exception);
+        when(function.apply(anySet())).thenThrow(exception);
 
         CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5);
         Future<Response> firstInvocationResponse = addToBatch(handler, ImmutableRequest.of(5));
@@ -162,21 +157,17 @@ public class CoalescingBatchingEventHandlerTests {
     }
 
     private static Future<Response> addToBatch(
-            CoalescingBatchingEventHandler<Request, Response> handler,
-            Request request) {
+            CoalescingBatchingEventHandler<Request, Response> handler, Request request) {
         return addElementToBatch(handler, request, false);
     }
 
     private static Future<Response> addAndEndBatch(
-            CoalescingBatchingEventHandler<Request, Response> handler,
-            Request request) {
+            CoalescingBatchingEventHandler<Request, Response> handler, Request request) {
         return addElementToBatch(handler, request, true);
     }
 
     private static Future<Response> addElementToBatch(
-            CoalescingBatchingEventHandler<Request, Response> handler,
-            Request request,
-            boolean endBatch) {
+            CoalescingBatchingEventHandler<Request, Response> handler, Request request, boolean endBatch) {
         TestBatchElement element = ImmutableTestBatchElement.of(request);
         handler.onEvent(element, COUNTER.getAndIncrement(), endBatch);
         return element.result();
@@ -194,6 +185,7 @@ public class CoalescingBatchingEventHandlerTests {
         int value();
     }
 
+    @SuppressWarnings("immutables:subtype")
     @Value.Immutable
     interface TestBatchElement extends BatchElement<Request, Response> {
 

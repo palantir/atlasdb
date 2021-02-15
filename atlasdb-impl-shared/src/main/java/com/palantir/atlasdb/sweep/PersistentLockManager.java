@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.List;
-
-import javax.annotation.concurrent.GuardedBy;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -32,6 +25,10 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import javax.annotation.concurrent.GuardedBy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // TODO move to persistentlock package?
 public class PersistentLockManager implements AutoCloseable {
@@ -65,8 +62,10 @@ public class PersistentLockManager implements AutoCloseable {
     @GuardedBy("this")
     private boolean isShutDown = false;
 
-    public PersistentLockManager(MetricsManager metricsManager,
-            PersistentLockService persistentLockService, long persistentLockRetryWaitMillis) {
+    public PersistentLockManager(
+            MetricsManager metricsManager,
+            PersistentLockService persistentLockService,
+            long persistentLockRetryWaitMillis) {
         this.persistentLockService = persistentLockService;
         this.persistentLockRetryWaitMillis = persistentLockRetryWaitMillis;
         this.metricsManager = metricsManager;
@@ -93,7 +92,6 @@ public class PersistentLockManager implements AutoCloseable {
         }
     }
 
-
     // We don't synchronize this method, to avoid deadlocking if {@link #shutdown} is called while attempting
     // to acquire a lock.
     public void acquirePersistentLockWithRetry() {
@@ -104,8 +102,8 @@ public class PersistentLockManager implements AutoCloseable {
 
     @VisibleForTesting
     synchronized boolean tryAcquirePersistentLock() {
-        Preconditions.checkState(!isShutDown,
-                "This PersistentLockManager is shut down, and cannot be used to acquire locks.");
+        Preconditions.checkState(
+                !isShutDown, "This PersistentLockManager is shut down, and cannot be used to acquire locks.");
 
         try {
             lockId = persistentLockService.acquireBackupLock("Sweep");
@@ -117,7 +115,8 @@ public class PersistentLockManager implements AutoCloseable {
             if (!actualValues.isEmpty()) {
                 // This should be the only element, otherwise something really odd happened.
                 LockEntry actualEntry = LockEntry.fromStoredValue(actualValues.get(0));
-                log.info("CAS failed on lock acquire. We thought the lockId was {}, and the database has {}",
+                log.info(
+                        "CAS failed on lock acquire. We thought the lockId was {}, and the database has {}",
                         SafeArg.of("lockId", lockId),
                         SafeArg.of("actualEntry", actualEntry));
                 if (lockId != null && actualEntry.instanceId().equals(lockId.value())) {
@@ -159,13 +158,16 @@ public class PersistentLockManager implements AutoCloseable {
                 persistentLockService.releaseBackupLock(lockId);
                 lockId = null;
             } catch (CheckAndSetException e) {
-                log.error("Failed to release persistent lock {}. The lock must have been released from under us. "
+                log.error(
+                        "Failed to release persistent lock {}. The lock must have been released from under us. "
                                 + "Future sweeps should correctly be able to re-acquire the lock.",
-                        SafeArg.of("lockId", lockId), e);
+                        SafeArg.of("lockId", lockId),
+                        e);
                 lockId = null;
             }
         } else {
-            log.info("Not releasing the persistent lock, because {} threads still hold it.",
+            log.info(
+                    "Not releasing the persistent lock, because {} threads still hold it.",
                     SafeArg.of("numLockHolders", referenceCount));
         }
     }
@@ -180,7 +182,8 @@ public class PersistentLockManager implements AutoCloseable {
     }
 
     private void logFailedShutdown(Exception exception) {
-        log.warn("An exception occurred while shutting down. This means that we had the backup lock out when "
+        log.warn(
+                "An exception occurred while shutting down. This means that we had the backup lock out when "
                         + "the shutdown was triggered, but failed to release it. If this is the case, sweep "
                         + "or backup may fail to take out the lock in future. If this happens consistently, "
                         + "consult the following documentation on how to release the dead lock: "

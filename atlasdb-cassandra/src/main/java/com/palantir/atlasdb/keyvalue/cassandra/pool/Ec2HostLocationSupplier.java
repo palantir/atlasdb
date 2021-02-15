@@ -12,42 +12,20 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Original Cassandra documentation license:
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * Changes made from Cassandra original Ec2Snitch:
- * - Factored out partitioning logic.
- * - Reformatted and integrated with OkHttp instead of HTTPUrlConnection
  */
 
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import java.io.IOException;
-import java.util.function.Supplier;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.logsafe.Preconditions;
-
+import java.io.IOException;
+import java.util.function.Supplier;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Returns the client's datacenter and rack derived from Cassandra's Ec2Snitch.
@@ -56,25 +34,30 @@ import okhttp3.Response;
  * The reply comes in the form "datacenter"+"rack", e.g. "us-east-1a", where datacenter is "us-east-1" and rack is "a".
  */
 public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
+    private static final Logger log = LoggerFactory.getLogger(Ec2HostLocationSupplier.class);
 
     /*
-        This is a supplier to avoid class loading races breaking downstream internal products.
-     */
+       This is a supplier to avoid class loading races breaking downstream internal products.
+    */
     private static final Supplier<OkHttpClient> client = Suppliers.memoize(() -> new OkHttpClient.Builder().build());
 
     @Override
     public HostLocation get() {
         try {
-            Response response = client.get().newCall(new Request.Builder()
-                    .get()
-                    .url("http://169.254.169.254/latest/meta-data/placement/availability-zone")
-                    .build())
+            Response response = client.get()
+                    .newCall(new Request.Builder()
+                            .get()
+                            .url("http://169.254.169.254/latest/meta-data/placement/availability-zone")
+                            .build())
                     .execute();
-            Preconditions.checkState(response.isSuccessful(),
-                    "Getting AWS host metadata was not successful");
+            Preconditions.checkState(response.isSuccessful(), "Getting AWS host metadata was not successful");
 
             return parseHostLocation(response.body().string());
         } catch (IOException e) {
+            log.warn(
+                    "Could not query AWS host metadata to retrieve the host location. "
+                            + "We are either not running on AWS or don't have access to the AWS host metadata service",
+                    e);
             throw new RuntimeException(e);
         }
     }

@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: The metric for the batch size of an autobatcher has changed from `atlasdb.autobatcherMeter`
+    to `com.palantir.atlasdb.autobatch.BatchSizeRecorder.batchSize`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5192

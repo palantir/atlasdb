@@ -15,16 +15,6 @@
  */
 package com.palantir.nexus.db.pool.config;
 
-import java.io.File;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -33,6 +23,14 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.nexus.db.DBType;
+import java.io.File;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @JsonDeserialize(as = ImmutableOracleConnectionConfig.class)
 @JsonSerialize(as = ImmutableOracleConnectionConfig.class)
@@ -44,19 +42,26 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     public static final String TYPE = "oracle";
 
     public abstract String getHost();
+
     public abstract int getPort();
 
     @Override
     @Value.Default
     public String getUrl() {
         if (getServerDn().isPresent()) {
-            return String.format("jdbc:oracle:thin:@(DESCRIPTION="
+            return String.format(
+                    "jdbc:oracle:thin:@(DESCRIPTION="
                             + "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))"
                             + "(CONNECT_DATA=(%s))"
                             + "(SECURITY=(SSL_SERVER_CERT_DN=\"%s\")))",
-                    getProtocol().getUrlString(), getHost(), getPort(), connectionDataString(), getServerDn().get());
+                    getProtocol().getUrlString(),
+                    getHost(),
+                    getPort(),
+                    connectionDataString(),
+                    getServerDn().get());
         } else {
-            return String.format("jdbc:oracle:thin:@(DESCRIPTION="
+            return String.format(
+                    "jdbc:oracle:thin:@(DESCRIPTION="
                             + "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))"
                             + "(CONNECT_DATA=(%s)))",
                     getProtocol().getUrlString(), getHost(), getPort(), connectionDataString());
@@ -116,9 +121,11 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     }
 
     public abstract Optional<String> getKeystorePassword();
+
     public abstract Optional<String> getKeystorePath();
 
     public abstract Optional<String> getTruststorePassword();
+
     public abstract Optional<String> getTruststorePath();
 
     @Override
@@ -132,11 +139,11 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         props.setProperty("password", getDbPassword().unmasked());
 
         props.setProperty("oracle.net.keepAlive", "true");
-        props.setProperty("oracle.jdbc.ReadTimeout",
-                Long.toString(TimeUnit.SECONDS.toMillis(getSocketTimeoutSeconds())));
+        props.setProperty(
+                "oracle.jdbc.ReadTimeout", Long.toString(TimeUnit.SECONDS.toMillis(getSocketTimeoutSeconds())));
 
-        props.setProperty("oracle.net.CONNECT_TIMEOUT",
-                Long.toString(TimeUnit.SECONDS.toMillis(getConnectionTimeoutSeconds())));
+        props.setProperty(
+                "oracle.net.CONNECT_TIMEOUT", Long.toString(TimeUnit.SECONDS.toMillis(getConnectionTimeoutSeconds())));
 
         props.setProperty("oracle.jdbc.maxCachedBufferSize", "100000");
 
@@ -144,7 +151,8 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
             // Create the truststore
             File clientTruststore = new File(getTruststorePath().get());
             props.setProperty("javax.net.ssl.trustStore", clientTruststore.getAbsolutePath());
-            props.setProperty("javax.net.ssl.trustStorePassword", getTruststorePassword().get());
+            props.setProperty(
+                    "javax.net.ssl.trustStorePassword", getTruststorePassword().get());
 
             // Enable server domain matching
             if (getMatchServerDn()) {
@@ -156,7 +164,8 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
                 Preconditions.checkArgument(getKeystorePath().isPresent());
                 Preconditions.checkArgument(getKeystorePassword().isPresent());
                 props.setProperty("javax.net.ssl.keyStore", getKeystorePath().get());
-                props.setProperty("javax.net.ssl.keyStorePassword", getKeystorePassword().get());
+                props.setProperty(
+                        "javax.net.ssl.keyStorePassword", getKeystorePassword().get());
             }
         }
 
@@ -176,29 +185,34 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     @Value.Check
     protected final void check() {
-        Preconditions.checkArgument(getSid().isPresent() ^ serviceNameConfiguration().isPresent(),
+        Preconditions.checkArgument(
+                getSid().isPresent() ^ serviceNameConfiguration().isPresent(),
                 "Exactly one of sid and serviceNameConfiguration should be provided.");
 
         if (getProtocol() == ConnectionProtocol.TCPS) {
-            Preconditions.checkArgument(getTruststorePath().isPresent(),
-                    "ConnectionProtocol.TCPS requires a truststore");
-            com.google.common.base.Preconditions.checkArgument(new File(getTruststorePath().get()).exists(),
-                    "truststore file not found at %s", getTruststorePath().get());
-            Preconditions.checkArgument(getTruststorePassword().isPresent(),
-                    "ConnectionProtocol.TCPS requires a truststore password");
+            Preconditions.checkArgument(
+                    getTruststorePath().isPresent(), "ConnectionProtocol.TCPS requires a truststore");
+            com.google.common.base.Preconditions.checkArgument(
+                    new File(getTruststorePath().get()).exists(),
+                    "truststore file not found at %s",
+                    getTruststorePath().get());
+            Preconditions.checkArgument(
+                    getTruststorePassword().isPresent(), "ConnectionProtocol.TCPS requires a truststore password");
             if (getTwoWaySsl()) {
                 Preconditions.checkArgument(getKeystorePath().isPresent(), "two way ssl requires a keystore");
-                com.google.common.base.Preconditions.checkArgument(new File(getKeystorePath().get()).exists(),
-                        "keystore file not found at %s", getKeystorePath().get());
-                Preconditions.checkArgument(getKeystorePassword().isPresent(),
-                        "two way ssl requires a keystore password");
+                com.google.common.base.Preconditions.checkArgument(
+                        new File(getKeystorePath().get()).exists(),
+                        "keystore file not found at %s",
+                        getKeystorePath().get());
+                Preconditions.checkArgument(
+                        getKeystorePassword().isPresent(), "two way ssl requires a keystore password");
             }
             if (!getServerDn().isPresent()) {
                 Preconditions.checkArgument(!getMatchServerDn(), "cannot force match server dn without a server dn");
             }
         } else {
-            Preconditions.checkArgument(!getTwoWaySsl(),
-                    "two way ssl cannot be enabled without enabling ConnectionProtocol.TCPS");
+            Preconditions.checkArgument(
+                    !getTwoWaySsl(), "two way ssl cannot be enabled without enabling ConnectionProtocol.TCPS");
             if (getServerDn().isPresent()
                     || getTruststorePath().isPresent()
                     || getTruststorePassword().isPresent()
@@ -220,15 +234,18 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
             return "SERVICE_NAME=" + serviceNameConfiguration().get().serviceName();
         }
 
-        throw new SafeIllegalArgumentException("Both the sid and serviceNameConfiguration are absent."
-                + " One needs to be specified.");
+        throw new SafeIllegalArgumentException(
+                "Both the sid and serviceNameConfiguration are absent." + " One needs to be specified.");
     }
 
     public static class Builder extends ImmutableOracleConnectionConfig.Builder {}
 
+    @JsonDeserialize(as = ImmutableServiceNameConfiguration.class)
+    @JsonSerialize(as = ImmutableServiceNameConfiguration.class)
     @Value.Immutable
     public interface ServiceNameConfiguration {
         String serviceName();
+
         String namespaceOverride();
 
         class Builder extends ImmutableServiceNameConfiguration.Builder {}

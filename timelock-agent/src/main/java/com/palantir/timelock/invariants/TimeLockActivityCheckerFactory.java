@@ -16,9 +16,6 @@
 
 package com.palantir.timelock.invariants;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -28,6 +25,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TimeLockActivityCheckerFactory {
     private final TimeLockInstallConfiguration installConfiguration;
@@ -42,9 +41,7 @@ public class TimeLockActivityCheckerFactory {
     }
 
     public List<TimeLockActivityChecker> getTimeLockActivityCheckers() {
-        return installConfiguration.cluster()
-                .clusterMembers()
-                .stream()
+        return installConfiguration.cluster().clusterMembers().stream()
                 .map(this::createServiceCreatorForRemote)
                 .map(creator -> creator.createService(ConjureTimelockService.class))
                 .map(TimeLockActivityChecker::new)
@@ -53,10 +50,7 @@ public class TimeLockActivityCheckerFactory {
 
     private ServiceCreator createServiceCreatorForRemote(String remoteUrl) {
         return ServiceCreator.withPayloadLimiter(
-                metricsManager,
-                () -> getServerListConfig(remoteUrl),
-                userAgent,
-                () -> RemotingClientConfigs.DEFAULT);
+                metricsManager, () -> getServerListConfig(remoteUrl), userAgent, () -> RemotingClientConfigs.DEFAULT);
     }
 
     private ServerListConfig getServerListConfig(String remoteUrl) {

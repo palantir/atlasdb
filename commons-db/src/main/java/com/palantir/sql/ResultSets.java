@@ -15,6 +15,10 @@
  */
 package com.palantir.sql;
 
+import com.google.common.collect.Maps;
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.DBType;
+import com.palantir.nexus.db.sql.BasicSQL;
 import java.io.ByteArrayInputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -25,11 +29,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Map;
-
-import com.google.common.collect.Maps;
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.sql.BasicSQL;
 
 public class ResultSets {
 
@@ -229,6 +228,4 @@ public class ResultSets {
             throw BasicSQL.handleInterruptions(0, e);
         }
     }
-
-
 }

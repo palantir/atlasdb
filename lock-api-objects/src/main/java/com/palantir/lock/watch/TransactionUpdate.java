@@ -16,9 +16,10 @@
 
 package com.palantir.lock.watch;
 
-import org.immutables.value.Value;
-
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.v2.LockToken;
+import org.immutables.value.Value;
 
 /**
  * This is a record of a transaction that successfully retrieved a commit timestamp, along with the lock token it
@@ -26,8 +27,12 @@ import com.palantir.lock.v2.LockToken;
  * have.
  */
 @Value.Immutable
+@JsonSerialize(as = ImmutableTransactionUpdate.class)
+@JsonDeserialize(as = ImmutableTransactionUpdate.class)
 public interface TransactionUpdate {
     long startTs();
+
     long commitTs();
+
     LockToken writesToken();
 }

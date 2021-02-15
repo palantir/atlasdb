@@ -16,18 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Bytes;
+import com.palantir.lock.LockDescriptor;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import org.immutables.value.Value;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.Bytes;
-import com.palantir.lock.LockDescriptor;
-
 import okio.ByteString;
+import org.immutables.value.Value;
 
 public final class AtlasLockDescriptorUtils {
     private AtlasLockDescriptorUtils() {
@@ -69,7 +66,9 @@ public final class AtlasLockDescriptorUtils {
 
     private static Cell createCellFromByteString(ByteString remainingBytes, int zeroDelimiterIndex) {
         byte[] row = remainingBytes.substring(0, zeroDelimiterIndex).toByteArray();
-        byte[] col = remainingBytes.substring(zeroDelimiterIndex + 1, remainingBytes.size()).toByteArray();
+        byte[] col = remainingBytes
+                .substring(zeroDelimiterIndex + 1, remainingBytes.size())
+                .toByteArray();
         return Cell.create(row, col);
     }
 
@@ -77,6 +76,7 @@ public final class AtlasLockDescriptorUtils {
     public interface TableRefAndRemainder {
         @Value.Parameter
         TableReference tableRef();
+
         @Value.Parameter
         ByteString remainder();
     }

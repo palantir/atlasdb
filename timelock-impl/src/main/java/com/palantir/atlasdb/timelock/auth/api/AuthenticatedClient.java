@@ -25,8 +25,6 @@ public interface AuthenticatedClient {
     ClientId id();
 
     static AuthenticatedClient create(ClientId clientName) {
-        return ImmutableAuthenticatedClient.builder()
-                .id(clientName)
-                .build();
+        return ImmutableAuthenticatedClient.builder().id(clientName).build();
     }
 }

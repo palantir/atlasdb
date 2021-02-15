@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-
-import javax.annotation.Nonnull;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
@@ -33,6 +24,12 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import javax.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents a cell in the key-value store.
@@ -64,11 +61,10 @@ public final class Cell implements Serializable, Comparable<Cell> {
 
         try {
             Preconditions.checkArgument(
-                    name.length <= MAX_NAME_LENGTH,
-                    "name must be no longer than %s.",
-                    MAX_NAME_LENGTH);
+                    name.length <= MAX_NAME_LENGTH, "name must be no longer than %s.", MAX_NAME_LENGTH);
         } catch (IllegalArgumentException e) {
-            log.error("Cell name length exceeded. Name must be no longer than {}. "
+            log.error(
+                    "Cell name length exceeded. Name must be no longer than {}. "
                             + "Cell creation that was attempted was: {}; since the vast majority of people "
                             + "encountering this problem are using unbounded Strings as components, it may aid your "
                             + "debugging to know the UTF-8 interpretation of the bad field was: [{}]",
@@ -85,8 +81,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
 
     // NOTE: This constructor doesn't copy the arrays for performance reasons.
     @JsonCreator
-    private Cell(@JsonProperty("rowName") byte[] rowName,
-                 @JsonProperty("columnName") byte[] columnName) {
+    private Cell(@JsonProperty("rowName") byte[] rowName, @JsonProperty("columnName") byte[] columnName) {
         this.rowName = rowName;
         this.columnName = columnName;
 
@@ -97,14 +92,16 @@ public final class Cell implements Serializable, Comparable<Cell> {
     /**
      * The name of the row within the table.
      */
-    @Nonnull public byte[] getRowName() {
+    @Nonnull
+    public byte[] getRowName() {
         return rowName;
     }
 
     /**
      * The name of the column within the row.
      */
-    @Nonnull public byte[] getColumnName() {
+    @Nonnull
+    public byte[] getColumnName() {
         return columnName;
     }
 
@@ -123,8 +120,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
             return false;
         }
         Cell other = (Cell) obj;
-        return Arrays.equals(rowName, other.rowName)
-                && Arrays.equals(columnName, other.columnName);
+        return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
     }
 
     @Override

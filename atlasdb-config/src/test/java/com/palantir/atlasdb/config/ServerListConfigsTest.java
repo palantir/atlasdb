@@ -17,33 +17,26 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.palantir.refreshable.Refreshable;
+import java.util.Optional;
+import org.junit.Test;
 
 public class ServerListConfigsTest {
     private static final String CLIENT = "client";
 
-    private static final ImmutableServerListConfig SERVERS_LIST_1 = ImmutableServerListConfig.builder()
-            .addServers("one")
-            .build();
-    private static final ImmutableServerListConfig SERVERS_LIST_2 = ImmutableServerListConfig.builder()
-            .addServers("one", "two")
-            .build();
-    private static final ImmutableServerListConfig SERVERS_LIST_3 = ImmutableServerListConfig.builder()
-            .addServers("three/")
-            .build();
-    private static final ImmutableServerListConfig SERVERS_LIST_EMPTY = ImmutableServerListConfig.builder()
-            .build();
+    private static final ImmutableServerListConfig SERVERS_LIST_1 =
+            ImmutableServerListConfig.builder().addServers("one").build();
+    private static final ImmutableServerListConfig SERVERS_LIST_2 =
+            ImmutableServerListConfig.builder().addServers("one", "two").build();
+    private static final ImmutableServerListConfig SERVERS_LIST_3 =
+            ImmutableServerListConfig.builder().addServers("three/").build();
+    private static final ImmutableServerListConfig SERVERS_LIST_EMPTY =
+            ImmutableServerListConfig.builder().build();
 
-    private static final TimeLockClientConfig INSTALL_CONFIG = ImmutableTimeLockClientConfig.builder()
-            .serversList(SERVERS_LIST_1)
-            .build();
-    private static final TimeLockRuntimeConfig RUNTIME_CONFIG = ImmutableTimeLockRuntimeConfig.builder()
-            .serversList(SERVERS_LIST_2)
-            .build();
+    private static final TimeLockClientConfig INSTALL_CONFIG =
+            ImmutableTimeLockClientConfig.builder().serversList(SERVERS_LIST_1).build();
+    private static final TimeLockRuntimeConfig RUNTIME_CONFIG =
+            ImmutableTimeLockRuntimeConfig.builder().serversList(SERVERS_LIST_2).build();
 
     @Test
     public void namespacingAddsClientNameCorrectly() {
@@ -77,7 +70,8 @@ public class ServerListConfigsTest {
 
     @Test
     public void prioritisesRuntimeConfigEvenIfThatHasNoClients() {
-        ServerListConfig resolvedConfig = getConfig(Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()));
+        ServerListConfig resolvedConfig =
+                getConfig(Optional.of(ImmutableTimeLockRuntimeConfig.builder().build()));
         assertThat(resolvedConfig.servers()).isEmpty();
     }
 
@@ -88,6 +82,7 @@ public class ServerListConfigsTest {
     }
 
     private ServerListConfig getConfig(Optional<TimeLockRuntimeConfig> config) {
-        return ServerListConfigs.parseInstallAndRuntimeConfigs(INSTALL_CONFIG, Refreshable.only(config)).get();
+        return ServerListConfigs.parseInstallAndRuntimeConfigs(INSTALL_CONFIG, Refreshable.only(config))
+                .get();
     }
 }

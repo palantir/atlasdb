@@ -19,14 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
+import java.util.concurrent.TimeUnit;
+import org.junit.Test;
 
 public class MetricsBasedTimelockHealthCheckTest {
     private static final long METRICS_TICK_INTERVAL = TimeUnit.SECONDS.toMillis(5);
@@ -71,7 +69,9 @@ public class MetricsBasedTimelockHealthCheckTest {
     @Test
     public void timelockIsHealthyAfterOneFailureMultipleSuccesses() {
         TimelockService instrumentedTimelockService = getFreshInstrumentedTimelockService();
-        when(timelockService.getFreshTimestamp()).thenThrow(new RuntimeException()).thenReturn(0L);
+        when(timelockService.getFreshTimestamp())
+                .thenThrow(new RuntimeException())
+                .thenReturn(0L);
 
         tryGetFreshTimestamp(instrumentedTimelockService, 10);
         waitForClockTick();
@@ -81,9 +81,8 @@ public class MetricsBasedTimelockHealthCheckTest {
 
     private TimelockService getFreshInstrumentedTimelockService() {
         timelockService = mock(TimelockService.class);
-        TimelockService instrumentedTimelockService = InstrumentedTimelockService.create(
-                timelockService,
-                metricsManager);
+        TimelockService instrumentedTimelockService =
+                InstrumentedTimelockService.create(timelockService, metricsManager);
 
         return instrumentedTimelockService;
     }

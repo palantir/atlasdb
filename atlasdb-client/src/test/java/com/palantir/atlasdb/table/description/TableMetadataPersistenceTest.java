@@ -15,19 +15,18 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.Collection;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
-
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.util.ArrayList;
+import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
@@ -42,11 +41,13 @@ public class TableMetadataPersistenceTest {
 
     @Parameters
     public static Collection<Object[]> testCases() {
-        Collection<Object[]> params = Lists.newArrayList();
+        Collection<Object[]> params = new ArrayList<>();
 
         params.add(new Object[] {getRangeScanWithoutCompression(), UNSET_BLOCK_SIZE});
         params.add(new Object[] {getDefaultExplicit(), AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB});
-        params.add(new Object[] {getDefaultRangeScanExplicit(), AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB});
+        params.add(new Object[] {
+            getDefaultRangeScanExplicit(), AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB
+        });
         params.add(new Object[] {getCustomExplicitCompression(), CUSTOM_COMPRESSION_BLOCK_SIZE});
         params.add(new Object[] {getCustomTable(), CUSTOM_COMPRESSION_BLOCK_SIZE});
         params.add(new Object[] {getStreamStoreTableWithCompressInDb(), STREAM_STORE_BLOCK_SIZE_WITH_COMPRESS_IN_DB});
@@ -65,96 +66,107 @@ public class TableMetadataPersistenceTest {
         TableMetadata metadata = tableDefinition.toTableMetadata();
         byte[] metadataAsBytes = metadata.persistToBytes();
         TableMetadata metadataFromBytes = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataAsBytes);
-        Assert.assertEquals(metadata, metadataFromBytes);
+        assertThat(metadataFromBytes).isEqualTo(metadata);
     }
 
     @Test
     public void testMetadataHasExpectedCompressionBlockSize() {
         TableMetadata metadata = tableDefinition.toTableMetadata();
-        Assert.assertEquals(compressionBlockSizeKB, metadata.getExplicitCompressionBlockSizeKB());
+        assertThat(metadata.getExplicitCompressionBlockSizeKB()).isEqualTo(compressionBlockSizeKB);
     }
 
     private static TableDefinition getRangeScanWithoutCompression() {
-        return new TableDefinition() {{
-            javaTableName("RangeScanWithoutCompression");
+        return new TableDefinition() {
+            {
+                javaTableName("RangeScanWithoutCompression");
 
-            rowName();
-            rowComponent("component1", ValueType.STRING);
+                rowName();
+                rowComponent("component1", ValueType.STRING);
 
-            columns();
-            column("column1", "c", ValueType.VAR_LONG);
+                columns();
+                column("column1", "c", ValueType.VAR_LONG);
 
-            rangeScanAllowed();
-        }};
+                rangeScanAllowed();
+            }
+        };
     }
 
     private static TableDefinition getDefaultExplicit() {
-        return new TableDefinition() {{
-            javaTableName("DefaultTableWithCompression");
+        return new TableDefinition() {
+            {
+                javaTableName("DefaultTableWithCompression");
 
-            rowName();
-            rowComponent("component1", ValueType.STRING);
+                rowName();
+                rowComponent("component1", ValueType.STRING);
 
-            columns();
-            column("column1", "c", ValueType.VAR_LONG);
+                columns();
+                column("column1", "c", ValueType.VAR_LONG);
 
-            explicitCompressionRequested();
-        }};
+                explicitCompressionRequested();
+            }
+        };
     }
 
     private static TableDefinition getDefaultRangeScanExplicit() {
-        return new TableDefinition() {{
-            javaTableName("RangeScanWithCompression");
+        return new TableDefinition() {
+            {
+                javaTableName("RangeScanWithCompression");
 
-            rowName();
-            rowComponent("component1", ValueType.STRING);
+                rowName();
+                rowComponent("component1", ValueType.STRING);
 
-            columns();
-            column("column1", "c", ValueType.VAR_LONG);
+                columns();
+                column("column1", "c", ValueType.VAR_LONG);
 
-            rangeScanAllowed();
-            explicitCompressionRequested();
-        }};
+                rangeScanAllowed();
+                explicitCompressionRequested();
+            }
+        };
     }
 
     private static TableDefinition getCustomExplicitCompression() {
-        return new TableDefinition() {{
-            javaTableName("CustomExplicitCompression");
+        return new TableDefinition() {
+            {
+                javaTableName("CustomExplicitCompression");
 
-            rowName();
-            rowComponent("component1", ValueType.STRING);
+                rowName();
+                rowComponent("component1", ValueType.STRING);
 
-            columns();
-            column("column1", "c", ValueType.VAR_LONG);
+                columns();
+                column("column1", "c", ValueType.VAR_LONG);
 
-            explicitCompressionBlockSizeKB(CUSTOM_COMPRESSION_BLOCK_SIZE);
-        }};
+                explicitCompressionBlockSizeKB(CUSTOM_COMPRESSION_BLOCK_SIZE);
+            }
+        };
     }
 
     private static TableDefinition getCustomTable() {
-        return new TableDefinition() {{
-            javaTableName("CustomTable");
+        return new TableDefinition() {
+            {
+                javaTableName("CustomTable");
 
-            rowName();
-            rowComponent("component1", ValueType.VAR_LONG, TableMetadataPersistence.ValueByteOrder.DESCENDING);
-            rowComponent("component2", ValueType.FIXED_LONG_LITTLE_ENDIAN);
+                rowName();
+                rowComponent("component1", ValueType.VAR_LONG, TableMetadataPersistence.ValueByteOrder.DESCENDING);
+                rowComponent("component2", ValueType.FIXED_LONG_LITTLE_ENDIAN);
 
-            columns();
-            column("column1", "c", ValueType.UUID);
-            column("column2", "d", ValueType.BLOB);
+                columns();
+                column("column1", "c", ValueType.UUID);
+                column("column2", "d", ValueType.BLOB);
 
-            // setting everything explicitly to test serialization
-            conflictHandler(ConflictHandler.SERIALIZABLE);
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
-            cachePriority(TableMetadataPersistence.CachePriority.COLD);
-            explicitCompressionBlockSizeKB(CUSTOM_COMPRESSION_BLOCK_SIZE);
-            negativeLookups();
-            appendHeavyAndReadLight();
-        }};
+                // setting everything explicitly to test serialization
+                conflictHandler(ConflictHandler.SERIALIZABLE);
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
+                cachePriority(TableMetadataPersistence.CachePriority.COLD);
+                explicitCompressionBlockSizeKB(CUSTOM_COMPRESSION_BLOCK_SIZE);
+                negativeLookups();
+                appendHeavyAndReadLight();
+            }
+        };
     }
 
     private static TableDefinition getStreamStoreTableWithCompressInDb() {
-        return new StreamStoreDefinitionBuilder("t", "test", ValueType.VAR_LONG).compressBlocksInDb()
+        return new StreamStoreDefinitionBuilder("t", "test", ValueType.VAR_LONG)
+                .compressBlocksInDb()
                 .build()
                 .getTables()
                 .get("t_stream_value");
@@ -166,5 +178,4 @@ public class TableMetadataPersistenceTest {
                 .getTables()
                 .get("t_stream_value");
     }
-
 }

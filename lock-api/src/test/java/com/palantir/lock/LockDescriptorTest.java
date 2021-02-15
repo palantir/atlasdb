@@ -15,14 +15,11 @@
  */
 package com.palantir.lock;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
+import org.junit.Test;
 
 public class LockDescriptorTest {
 
@@ -55,8 +52,8 @@ public class LockDescriptorTest {
         testEncodedLockDescriptors(HELLO_WORLD_LOCK_ID + "\n");
         testEncodedLockDescriptors("\t" + OPPENHEIMER_LOCK_ID);
         testEncodedLockId(new byte[0]);
-        testEncodedLockId(new byte[]{0x00});
-        testEncodedLockId(new byte[]{'h', 0x00, 0x10, 'i'});
+        testEncodedLockId(new byte[] {0x00});
+        testEncodedLockId(new byte[] {'h', 0x00, 0x10, 'i'});
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -70,27 +67,25 @@ public class LockDescriptorTest {
     }
 
     private void testAsciiLockDescriptors(String lockId) {
-        assertThat(StringLockDescriptor.of(lockId).toString(),
-                equalTo(expectedLockDescriptorToString(lockId)));
+        assertThat(StringLockDescriptor.of(lockId).toString()).isEqualTo(expectedLockDescriptorToString(lockId));
 
-        assertThat(ByteArrayLockDescriptor.of(stringToBytes(lockId)).toString(),
-                equalTo(expectedLockDescriptorToString(lockId)));
+        assertThat(ByteArrayLockDescriptor.of(stringToBytes(lockId)).toString())
+                .isEqualTo(expectedLockDescriptorToString(lockId));
     }
 
     private void testEncodedLockDescriptors(String lockId) {
-        assertThat(StringLockDescriptor.of(lockId).toString(),
-                equalTo(expectedEncodedLockDescriptorToString(lockId)));
+        assertThat(StringLockDescriptor.of(lockId).toString()).isEqualTo(expectedEncodedLockDescriptorToString(lockId));
 
         testEncodedLockId(stringToBytes(lockId));
     }
 
     private void testEncodedLockId(byte[] bytes) {
-        assertThat(ByteArrayLockDescriptor.of(bytes).toString(),
-                equalTo(expectedEncodedLockDescriptorToString(bytes)));
+        assertThat(ByteArrayLockDescriptor.of(bytes).toString())
+                .isEqualTo(expectedEncodedLockDescriptorToString(bytes));
     }
 
     private static String expectedLockDescriptorToString(String lockId) {
-        assertNotNull(lockId);
+        assertThat(lockId).isNotNull();
         return "LockDescriptor [" + lockId + "]";
     }
 
@@ -99,7 +94,7 @@ public class LockDescriptorTest {
     }
 
     private static String expectedEncodedLockDescriptorToString(byte[] lockId) {
-        assertNotNull(lockId);
+        assertThat(lockId).isNotNull();
         return "LockDescriptor [" + BaseEncoding.base16().encode(lockId) + "]";
     }
 
@@ -107,5 +102,4 @@ public class LockDescriptorTest {
     private static byte[] stringToBytes(String lockId) {
         return lockId.getBytes(Charsets.UTF_8);
     }
-
 }

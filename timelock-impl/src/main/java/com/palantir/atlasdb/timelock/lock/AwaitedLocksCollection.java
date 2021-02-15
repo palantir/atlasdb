@@ -15,26 +15,21 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
 
 // TODO(nziebart): can we combine this logic with HeldLocksCollection?
 // Or, should awaitLocks just be implemented by a lock + unlock?
 public class AwaitedLocksCollection {
 
     @VisibleForTesting
-    final ConcurrentMap<UUID, AsyncResult<Void>> requestsById = Maps.newConcurrentMap();
+    final ConcurrentMap<UUID, AsyncResult<Void>> requestsById = new ConcurrentHashMap<>();
 
-    public AsyncResult<Void> getExistingOrAwait(
-            UUID requestId,
-            Supplier<AsyncResult<Void>> lockAwaiter) {
-        AsyncResult<Void> result = requestsById.computeIfAbsent(
-                requestId,
-                ignored -> lockAwaiter.get());
+    public AsyncResult<Void> getExistingOrAwait(UUID requestId, Supplier<AsyncResult<Void>> lockAwaiter) {
+        AsyncResult<Void> result = requestsById.computeIfAbsent(requestId, ignored -> lockAwaiter.get());
 
         registerCompletionHandler(requestId, result);
         return result;
@@ -46,5 +41,4 @@ public class AwaitedLocksCollection {
         // passed to #computeIfAbsent simultaneously tries to call a method on the same AsyncLock, we will deadlock.
         result.onCompleteAsync(() -> requestsById.remove(requestId));
     }
-
 }

@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 interface BatchPaxosResources {
     @Value.Parameter
     BatchPaxosAcceptorResource batchAcceptor();
+
     @Value.Parameter
     BatchPaxosLearnerResource batchLearner();
 }

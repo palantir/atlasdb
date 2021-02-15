@@ -16,6 +16,8 @@
 
 package com.palantir.paxos;
 
+import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
+import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,20 +26,14 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import static com.palantir.paxos.PaxosStateLogTestUtils.NAMESPACE;
-import static com.palantir.paxos.PaxosStateLogTestUtils.valueForRound;
-
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.sql.DataSource;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class SplittingPaxosStateLogTest {
     @Rule
@@ -50,8 +46,10 @@ public class SplittingPaxosStateLogTest {
 
     @Before
     public void setup() throws IOException {
-        DataSource legacy = SqliteConnections.getPooledDataSource(tempFolder.newFolder("legacy").toPath());
-        DataSource current = SqliteConnections.getPooledDataSource(tempFolder.newFolder("current").toPath());
+        DataSource legacy = SqliteConnections.getPooledDataSource(
+                tempFolder.newFolder("legacy").toPath());
+        DataSource current = SqliteConnections.getPooledDataSource(
+                tempFolder.newFolder("current").toPath());
         legacyLog = spy(SqlitePaxosStateLog.create(NAMESPACE, legacy));
         currentLog = spy(SqlitePaxosStateLog.create(NAMESPACE, current));
     }

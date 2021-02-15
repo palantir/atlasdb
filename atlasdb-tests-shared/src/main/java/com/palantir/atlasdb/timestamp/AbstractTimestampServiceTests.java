@@ -15,19 +15,17 @@
  */
 package com.palantir.atlasdb.timestamp;
 
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampRange;
+import com.palantir.timestamp.TimestampService;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
-
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampRange;
-import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractTimestampServiceTests {
     private static final long ONE_MILLION = 1_000_000;
@@ -38,6 +36,7 @@ public abstract class AbstractTimestampServiceTests {
     private TimestampManagementService timestampManagementService = getTimestampManagementService();
 
     protected abstract TimestampService getTimestampService();
+
     protected abstract TimestampManagementService getTimestampManagementService();
 
     @Test
@@ -54,7 +53,8 @@ public abstract class AbstractTimestampServiceTests {
         TimestampRange range = timestampService.getFreshTimestamps(expectedNumTimestamps);
 
         Assertions.assertThat((int) range.size())
-                .withFailMessage("Expected %d timestamps, got %d timestamps. (The returned range was: %d-%d)",
+                .withFailMessage(
+                        "Expected %d timestamps, got %d timestamps. (The returned range was: %d-%d)",
                         expectedNumTimestamps, range.size(), range.getLowerBound(), range.getUpperBound())
                 .isGreaterThanOrEqualTo(1)
                 .isLessThanOrEqualTo(expectedNumTimestamps);
@@ -98,13 +98,12 @@ public abstract class AbstractTimestampServiceTests {
     }
 
     @Test
-    public void canReturnManyUniqueTimestampsInParallel()
-            throws InterruptedException, TimeoutException {
+    public void canReturnManyUniqueTimestampsInParallel() throws InterruptedException, TimeoutException {
         Set<Long> uniqueTimestamps = new ConcurrentSkipListSet<>();
 
         repeat(ONE_MILLION, () -> uniqueTimestamps.add(timestampService.getFreshTimestamp()));
 
-        Assertions.assertThat(uniqueTimestamps.size()).isEqualTo((int) ONE_MILLION);
+        Assertions.assertThat(uniqueTimestamps).hasSize((int) ONE_MILLION);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -117,8 +116,7 @@ public abstract class AbstractTimestampServiceTests {
         timestampService.getFreshTimestamps(0);
     }
 
-    private static void repeat(long count, Runnable task)
-            throws InterruptedException, TimeoutException {
+    private static void repeat(long count, Runnable task) throws InterruptedException, TimeoutException {
         ExecutorService executor = Executors.newFixedThreadPool(16);
         for (int i = 0; i < count; i++) {
             executor.execute(task);

@@ -16,16 +16,15 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.TopNMetricPublicationController;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 public class DefaultMetricsFilterEvaluationContext implements MetricsFilterEvaluationContext {
     private final Map<String, TopNMetricPublicationController<Long>> keyToPublicationController;
@@ -34,7 +33,7 @@ public class DefaultMetricsFilterEvaluationContext implements MetricsFilterEvalu
     @VisibleForTesting
     DefaultMetricsFilterEvaluationContext(Supplier<TopNMetricPublicationController<Long>> controllerFactory) {
         this.controllerFactory = controllerFactory;
-        this.keyToPublicationController = Maps.newConcurrentMap();
+        this.keyToPublicationController = new ConcurrentHashMap<>();
     }
 
     public static DefaultMetricsFilterEvaluationContext createDefault() {
@@ -52,8 +51,8 @@ public class DefaultMetricsFilterEvaluationContext implements MetricsFilterEvalu
 
     @Override
     public MetricPublicationFilter registerAndCreateTopNFilter(String key, Gauge<Long> gauge) {
-        return keyToPublicationController.computeIfAbsent(key,
-                _name -> controllerFactory.get())
+        return keyToPublicationController
+                .computeIfAbsent(key, _name -> controllerFactory.get())
                 .registerAndCreateFilter(gauge);
     }
 }

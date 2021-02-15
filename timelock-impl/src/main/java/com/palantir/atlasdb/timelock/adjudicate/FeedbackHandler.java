@@ -16,19 +16,6 @@
 
 package com.palantir.atlasdb.timelock.adjudicate;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -39,6 +26,17 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.BooleanSupplier;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FeedbackHandler {
     private static final Logger log = LoggerFactory.getLogger(FeedbackHandler.class);
@@ -53,13 +51,11 @@ public class FeedbackHandler {
     }
 
     public FeedbackHandler(MetricsManager metricsManager, BooleanSupplier useAdjudication) {
-        this.timeLockClientFeedbackSink = TimeLockClientFeedbackSink
-                .createAndInstrument(metricsManager,
-                        Caffeine.newBuilder()
-                                .expireAfterWrite(
-                                        Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES.toMinutes(),
-                                        TimeUnit.MINUTES)
-                                .build());
+        this.timeLockClientFeedbackSink = TimeLockClientFeedbackSink.createAndInstrument(
+                metricsManager,
+                Caffeine.newBuilder()
+                        .expireAfterWrite(Constants.HEALTH_FEEDBACK_REPORT_EXPIRATION_MINUTES)
+                        .build());
         this.useAdjudication = useAdjudication;
     }
 
@@ -82,7 +78,7 @@ public class FeedbackHandler {
 
     private Map<String, ServiceFeedback> organizeFeedbackReportsByService(
             List<ConjureTimeLockClientFeedback> trackedFeedbackReports) {
-        Map<String, ServiceFeedback> serviceWiseOrganizedFeedback = Maps.newHashMap();
+        Map<String, ServiceFeedback> serviceWiseOrganizedFeedback = new HashMap<>();
 
         for (ConjureTimeLockClientFeedback feedback : trackedFeedbackReports) {
             ServiceFeedback feedbackForService = serviceWiseOrganizedFeedback.computeIfAbsent(
@@ -93,61 +89,61 @@ public class FeedbackHandler {
         return serviceWiseOrganizedFeedback;
     }
 
-    private HealthStatusReport healthStateOfTimeLock(
-            Map<String, ServiceFeedback> organizedFeedbackByServiceName) {
+    private HealthStatusReport healthStateOfTimeLock(Map<String, ServiceFeedback> organizedFeedbackByServiceName) {
         int maxAllowedUnhealthyServices = getMaxAllowedUnhealthyServices(organizedFeedbackByServiceName.size());
 
         List<Client> unhealthyClients = KeyedStream.stream(organizedFeedbackByServiceName)
                 .filterEntries((serviceName, serviceFeedback) ->
                         getHealthStatusForService(serviceFeedback) == HealthStatus.UNHEALTHY)
                 .keys()
-                .map(serviceName -> Client.of(serviceName))
+                .map(Client::of)
                 .collect(Collectors.toList());
 
-        log.info("List of services on which TimeLock is unhealthy - {}",
+        log.info(
+                "List of services on which TimeLock is unhealthy - {}",
                 SafeArg.of("unhealthyClients", unhealthyClients));
 
         if (unhealthyClients.size() > maxAllowedUnhealthyServices) {
-            return ImmutableHealthStatusReport
-                    .builder()
+            return ImmutableHealthStatusReport.builder()
                     .status(HealthStatus.UNHEALTHY)
                     .unhealthyClients(unhealthyClients)
-                    .message(String.format("TimeLock is unhealthy as %d of %d clients are unhealthy"
-                            + ". The highest acceptable number of unhealthy clients is - %d",
+                    .message(String.format(
+                            "TimeLock is unhealthy as %d of %d clients are unhealthy"
+                                    + ". The highest acceptable number of unhealthy clients is - %d",
                             unhealthyClients.size(),
                             organizedFeedbackByServiceName.size(),
                             maxAllowedUnhealthyServices))
                     .build();
         }
-        return ImmutableHealthStatusReport.builder().status(HealthStatus.HEALTHY).build();
+        return ImmutableHealthStatusReport.builder()
+                .status(HealthStatus.HEALTHY)
+                .build();
     }
 
     private int getMaxAllowedUnhealthyServices(int numberOfServices) {
-        return Math.max((numberOfServices * Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT.getNumerator())
-                / Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT.getDenominator(), Constants.MIN_UNHEALTHY_SERVICES);
+        return Math.max(
+                (numberOfServices * Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT.getNumerator())
+                        / Constants.UNHEALTHY_CLIENTS_PROPORTION_LIMIT.getDenominator(),
+                Constants.MIN_UNHEALTHY_SERVICES);
     }
 
     private HealthStatus getHealthStatusForService(ServiceFeedback serviceFeedback) {
         // only the status that appears majority number of times is considered,
         // otherwise the health status for service is 'unknown'
 
-        return getHealthStatusOfMajority(serviceFeedback.values(),
-                this::getHealthStatusForNode);
+        return getHealthStatusOfMajority(serviceFeedback.values(), this::getHealthStatusForNode);
     }
 
     private HealthStatus getHealthStatusForNode(List<ConjureTimeLockClientFeedback> feedbackForNode) {
         // only the status that appears majority number of times is considered,
         // otherwise the health status for node is 'unknown'
 
-        return getHealthStatusOfMajority(feedbackForNode,
-                this::pointFeedbackHealthStatus);
+        return getHealthStatusOfMajority(feedbackForNode, this::pointFeedbackHealthStatus);
     }
 
-    private <T> HealthStatus getHealthStatusOfMajority(Collection<T> feedbacks,
-            Function<T, HealthStatus> mapper) {
+    private <T> HealthStatus getHealthStatusOfMajority(Collection<T> feedbacks, Function<T, HealthStatus> mapper) {
         int majorityThreshold = (feedbacks.size() / 2) + 1;
-        return KeyedStream.stream(Utils.getFrequencyMap(feedbacks.stream()
-                .map(mapper)))
+        return KeyedStream.stream(Utils.getFrequencyMap(feedbacks.stream().map(mapper)))
                 .filterEntries((key, val) -> val >= majorityThreshold)
                 .keys()
                 .findFirst()
@@ -162,12 +158,15 @@ public class FeedbackHandler {
 
         // considering the worst performing metric only, the health check should fail even if one end-point is unhealthy
         return KeyedStream.ofEntries(Stream.of(
-                Maps.immutableEntry(healthReport.getLeaderTime(), Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES),
-                Maps.immutableEntry(healthReport.getStartTransaction(),
-                        Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES)))
+                        Maps.immutableEntry(
+                                healthReport.getLeaderTime(), Constants.LEADER_TIME_SERVICE_LEVEL_OBJECTIVES),
+                        Maps.immutableEntry(
+                                healthReport.getStartTransaction(),
+                                Constants.START_TRANSACTION_SERVICE_LEVEL_OBJECTIVES)))
                 .filterKeys(Optional::isPresent)
                 .mapKeys(Optional::get)
-                .map((userStats, sloSpec) -> getHealthStatusForMetric(healthReport.getServiceName(),
+                .map((userStats, sloSpec) -> getHealthStatusForMetric(
+                        healthReport.getServiceName(),
                         userStats,
                         sloSpec.name(),
                         sloSpec.minimumRequestRateForConsideration(),
@@ -180,18 +179,20 @@ public class FeedbackHandler {
     }
 
     @VisibleForTesting
-    HealthStatus getHealthStatusForMetric(String serviceName,
-                    EndpointStatistics endpointStatistics,
-                    String metricName,
-                    double rateThreshold,
-                    long steadyStateP99Limit,
-                    long quietP99Limit,
-                    double errorRateProportion) {
+    HealthStatus getHealthStatusForMetric(
+            String serviceName,
+            EndpointStatistics endpointStatistics,
+            String metricName,
+            double rateThreshold,
+            long steadyStateP99Limit,
+            long quietP99Limit,
+            double errorRateProportion) {
 
         // Outliers indicate badness even with low request rates. The request rate should be greater than
         // zero to counter lingering badness from a single slow request
         if (endpointStatistics.getP99() > quietP99Limit && endpointStatistics.getOneMin() > 0) {
-            logHealthInfo(serviceName,
+            logHealthInfo(
+                    serviceName,
                     metricName,
                     HealthStatus.UNHEALTHY,
                     "higher p99 than what we allow in quiet state",
@@ -200,42 +201,32 @@ public class FeedbackHandler {
         }
 
         if (endpointStatistics.getOneMin() < rateThreshold) {
-            logHealthInfo(serviceName,
-                    metricName,
-                    HealthStatus.UNKNOWN,
-                    "low request rate",
-                    endpointStatistics);
+            logHealthInfo(serviceName, metricName, HealthStatus.UNKNOWN, "low request rate", endpointStatistics);
             return HealthStatus.UNKNOWN;
         }
 
         double errorProportion = getErrorProportion(endpointStatistics);
         if (errorProportion > errorRateProportion) {
-            logHealthInfo(serviceName,
-                    metricName,
-                    HealthStatus.UNHEALTHY,
-                    "high error proportion",
-                    endpointStatistics);
+            logHealthInfo(serviceName, metricName, HealthStatus.UNHEALTHY, "high error proportion", endpointStatistics);
             return HealthStatus.UNHEALTHY;
         }
 
         if (endpointStatistics.getP99() > steadyStateP99Limit) {
-            logHealthInfo(serviceName,
-                    metricName,
-                    HealthStatus.UNHEALTHY,
-                    "high p99",
-                    endpointStatistics);
+            logHealthInfo(serviceName, metricName, HealthStatus.UNHEALTHY, "high p99", endpointStatistics);
             return HealthStatus.UNHEALTHY;
         }
 
         return HealthStatus.HEALTHY;
     }
 
-    private void logHealthInfo(String serviceName,
+    private void logHealthInfo(
+            String serviceName,
             String metricName,
             HealthStatus status,
             String reason,
             EndpointStatistics endpointStatistics) {
-        log.info("[Service - {}] | Point health status for {} is {} due to {}.",
+        log.info(
+                "[Service - {}] | Point health status for {} is {} due to {}.",
                 SafeArg.of("service", serviceName),
                 SafeArg.of("metricName", metricName),
                 SafeArg.of("healthStatus", status.toString()),

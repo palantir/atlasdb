@@ -16,19 +16,18 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
+import com.palantir.common.streams.KeyedStream;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
-
 import org.immutables.value.Value;
-
-import com.palantir.common.concurrent.CheckedRejectionExecutorService;
-import com.palantir.common.streams.KeyedStream;
 
 @Value.Immutable
 public interface WithDedicatedExecutor<T> {
     T service();
+
     CheckedRejectionExecutorService executor();
 
     default <U> WithDedicatedExecutor<U> transformService(Function<T, U> transform) {

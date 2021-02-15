@@ -15,30 +15,31 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
-import org.joda.time.DateTime;
-import org.joda.time.format.ISODateTimeFormat;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.logsafe.SafeArg;
-
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import org.joda.time.DateTime;
+import org.joda.time.format.ISODateTimeFormat;
+import org.slf4j.LoggerFactory;
 
-@Command(name = "fetch", description = "Fetches a timestamp. By default"
-        + " this will be a fresh timestamp unless otherwise specified.")
+@Command(
+        name = "fetch",
+        description = "Fetches a timestamp. By default" + " this will be a fresh timestamp unless otherwise specified.")
 public class FetchTimestamp extends AbstractTimestampCommand {
     private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(FetchTimestamp.class));
 
-    @Option(name = {"-i", "--immutable"},
+    @Option(
+            name = {"-i", "--immutable"},
             type = OptionType.COMMAND,
             description = "Get the current immutable timestamp, instead of a fresh one.")
     private boolean immutable;
 
-    @Option(name = {"-d", "--date-time"},
+    @Option(
+            name = {"-d", "--date-time"},
             type = OptionType.COMMAND,
             description = "Return the earliest approximate wall clock datetime at which the chosen timestamp"
                     + " could have been used in a transaction.")
@@ -59,8 +60,7 @@ public class FetchTimestamp extends AbstractTimestampCommand {
 
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
-        printer.warn(
-                "This CLI has been deprecated. Please use the timestamp/fresh-timestamp endpoint instead.");
+        printer.warn("This CLI has been deprecated. Please use the timestamp/fresh-timestamp endpoint instead.");
 
         if (immutable) {
             timestamp = services.getTransactionManager().getImmutableTimestamp();
@@ -72,11 +72,12 @@ public class FetchTimestamp extends AbstractTimestampCommand {
         writeTimestampToFileIfSpecified();
 
         if (dateTime) {
-            long timeMillis = KeyValueServicePuncherStore.getMillisForTimestamp(
-                    services.getKeyValueService(), timestamp);
+            long timeMillis =
+                    KeyValueServicePuncherStore.getMillisForTimestamp(services.getKeyValueService(), timestamp);
             DateTime dt = new DateTime(timeMillis);
             String stringTime = ISODateTimeFormat.dateTime().print(dt);
-            printer.info("Wall clock datetime of {} timestamp is: {}",
+            printer.info(
+                    "Wall clock datetime of {} timestamp is: {}",
                     SafeArg.of("timestamp type", immutable ? IMMUTABLE_STRING : FRESH_STRING),
                     SafeArg.of("dateTime", stringTime));
         }

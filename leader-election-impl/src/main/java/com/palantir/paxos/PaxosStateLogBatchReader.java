@@ -16,12 +16,6 @@
 
 package com.palantir.paxos;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -29,6 +23,11 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.persist.Persistable;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 public class PaxosStateLogBatchReader<V extends Persistable & Versionable> implements AutoCloseable {
     private final PaxosStateLog<V> delegate;
@@ -38,8 +37,7 @@ public class PaxosStateLogBatchReader<V extends Persistable & Versionable> imple
     public PaxosStateLogBatchReader(PaxosStateLog<V> delegate, Persistable.Hydrator<V> hydrator, int numThreads) {
         this.delegate = delegate;
         this.hydrator = hydrator;
-        this.executor = MoreExecutors.listeningDecorator(
-                PTExecutors.newFixedThreadPool(numThreads, "psl-reader"));
+        this.executor = MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(numThreads, "psl-reader"));
     }
 
     /**
@@ -50,11 +48,9 @@ public class PaxosStateLogBatchReader<V extends Persistable & Versionable> imple
      * @return a list of paxos rounds for all the present entries in the delegate log
      */
     public List<PaxosRound<V>> readBatch(long startSequence, int numEntries) {
-        return AtlasFutures.getUnchecked(
-                Futures.allAsList(
-                        LongStream.range(startSequence, startSequence + numEntries)
-                                .mapToObj(sequence -> executor.submit(() -> singleRead(sequence)))
-                                .collect(Collectors.toList())))
+        return AtlasFutures.getUnchecked(Futures.allAsList(LongStream.range(startSequence, startSequence + numEntries)
+                        .mapToObj(sequence -> executor.submit(() -> singleRead(sequence)))
+                        .collect(Collectors.toList())))
                 .stream()
                 .filter(Optional::isPresent)
                 .map(Optional::get)

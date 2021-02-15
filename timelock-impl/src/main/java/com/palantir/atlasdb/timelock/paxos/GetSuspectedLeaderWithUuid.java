@@ -18,25 +18,10 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static java.util.stream.Collectors.toSet;
 
-import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Consumer;
-
-import javax.annotation.concurrent.NotThreadSafe;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -49,14 +34,26 @@ import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponsesWithRemote;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
+import javax.annotation.concurrent.NotThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
-    This is not thread safe, but it is okay because it is run within an autobatcher, which is configured to not process
-    multiple batches in parallel.
+   This is not thread safe, but it is okay because it is run within an autobatcher, which is configured to not process
+   multiple batches in parallel.
 
-    In addition, since this is not a `CoalescingRequestFunction` we must ensure that no internal state is mutated
-    inside a Future. The `accept` method is ready to be called again, the moment it returns.
- */
+   In addition, since this is not a `CoalescingRequestFunction` we must ensure that no internal state is mutated
+   inside a Future. The `accept` method is ready to be called again, the moment it returns.
+*/
 @NotThreadSafe
 class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Optional<ClientAwareLeaderPinger>>>> {
 
@@ -67,7 +64,7 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
     private final UUID localUuid;
     private final Duration leaderPingResponseWait;
 
-    private final Map<UUID, LeaderPingerContext<BatchPingableLeader>> cache = Maps.newHashMap();
+    private final Map<UUID, LeaderPingerContext<BatchPingableLeader>> cache = new HashMap<>();
 
     GetSuspectedLeaderWithUuid(
             Map<LeaderPingerContext<BatchPingableLeader>, CheckedRejectionExecutorService> executors,
@@ -90,8 +87,8 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
         KeyedStream.of(uuidsToRequests.keySet())
                 .filterKeys(cache::containsKey)
                 .map(cache::get)
-                .forEach((cachedUuid, pingable) ->
-                        completeRequest(uuidsToRequests.get(cachedUuid), Optional.of(clientAwareLeaders.get(pingable))));
+                .forEach((cachedUuid, pingable) -> completeRequest(
+                        uuidsToRequests.get(cachedUuid), Optional.of(clientAwareLeaders.get(pingable))));
 
         Set<UUID> uncachedUuids = uuidsToRequests.keySet().stream()
                 .filter(uuid -> !cache.containsKey(uuid))
@@ -107,11 +104,14 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
                         pingable -> PaxosContainer.of(pingable.pinger().uuid()),
                         executors,
                         leaderPingResponseWait,
-                        state -> state.responses().values().stream().map(PaxosContainer::get).collect(toSet())
+                        state -> state.responses().values().stream()
+                                .map(PaxosContainer::get)
+                                .collect(toSet())
                                 .containsAll(uncachedUuids),
                         PaxosConstants.CANCEL_REMAINING_CALLS);
 
-        for (Map.Entry<LeaderPingerContext<BatchPingableLeader>, PaxosContainer<UUID>> resultEntries : results.responses().entrySet()) {
+        for (Map.Entry<LeaderPingerContext<BatchPingableLeader>, PaxosContainer<UUID>> resultEntries :
+                results.responses().entrySet()) {
             LeaderPingerContext<BatchPingableLeader> pingable = resultEntries.getKey();
             UUID uuid = resultEntries.getValue().get();
 
@@ -141,8 +141,8 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
             return;
         }
 
-        IllegalStateException exception = new IllegalStateException(
-                "There is a fatal problem with the leadership election configuration! "
+        IllegalStateException exception =
+                new IllegalStateException("There is a fatal problem with the leadership election configuration! "
                         + "This is probably caused by invalid pref files setting up the cluster "
                         + "(e.g. for lock server look at lock.prefs, leader.prefs, and lock_client.prefs)."
                         + "If the preferences are specified with a host port pair list and localhost index "

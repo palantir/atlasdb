@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async.queries;
 
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CqlQueryContext {

@@ -15,21 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.time.Duration;
+import javax.annotation.Nullable;
 
 public class TableMetadataCache {
     private static final TableMetadata EMPTY = TableMetadata.allDefault();
 
     private final Cache<TableReference, TableMetadata> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)
-            .expireAfterWrite(1, TimeUnit.HOURS)
+            .expireAfterWrite(Duration.ofHours(1))
             .build();
     private final DbTableFactory dbTables;
 

@@ -16,19 +16,17 @@
 
 package com.palantir.atlasdb.debug;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.LongStream;
-
 import org.immutables.value.Value;
-
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -37,7 +35,9 @@ import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 @Deprecated
 public interface ClientLockDiagnosticCollector extends ConflictTracer {
     void collect(LongStream startTimestamps, long immutableTimestamp, UUID requestId);
+
     void collect(long startTimestamp, UUID requestId, Set<ConjureLockDescriptor> lockDescriptors);
+
     Map<Long, ClientLockDiagnosticDigest> getSnapshot();
 
     /**
@@ -50,8 +50,11 @@ public interface ClientLockDiagnosticCollector extends ConflictTracer {
     @JsonSerialize(as = ImmutableClientLockDiagnosticDigest.class)
     interface ClientLockDiagnosticDigest {
         long immutableTimestamp();
+
         UUID immutableTimestampRequestId();
+
         Map<UUID, Set<ConjureLockDescriptor>> lockRequests();
+
         List<ConflictTrace> writeWriteConflictTrace();
 
         static ClientLockDiagnosticDigest newTransaction(long immutableTimestamp, UUID immutableTimestampRequestId) {

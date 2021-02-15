@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: '```LeaderTimeGetter``` is an interface responsible for making ```leaderTime```
+    requests to TimeLock with the intend of adding a client side request batching
+    layer. TimeLock adaptor on AtlasDB client now accepts custom implementation of
+    the same.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5120

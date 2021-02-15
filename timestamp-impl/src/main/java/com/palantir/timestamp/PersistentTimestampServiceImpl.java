@@ -15,20 +15,19 @@
  */
 package com.palantir.timestamp;
 
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.logsafe.SafeArg;
+import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public class PersistentTimestampServiceImpl implements PersistentTimestampService {
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PersistentTimestampService {
+    private final class InitializingWrapper extends AsyncInitializer
+            implements AutoDelegate_PersistentTimestampService {
         @Override
         public PersistentTimestampService delegate() {
             checkInitialized();
@@ -65,8 +64,7 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
         return create(store, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
-    public static PersistentTimestampService create(ErrorCheckingTimestampBoundStore store,
-            boolean initializeAsync) {
+    public static PersistentTimestampService create(ErrorCheckingTimestampBoundStore store, boolean initializeAsync) {
         PersistentTimestampServiceImpl service = new PersistentTimestampServiceImpl(store);
         service.wrapper.initialize(initializeAsync);
         return service.wrapper.isInitialized() ? service : service.wrapper;
@@ -119,9 +117,11 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
     }
 
     private void checkFastForwardRequest(long newTimestamp) {
-        Preconditions.checkArgument(newTimestamp != TimestampManagementService.SENTINEL_TIMESTAMP,
+        Preconditions.checkArgument(
+                newTimestamp != TimestampManagementService.SENTINEL_TIMESTAMP,
                 "Cannot fast forward to the sentinel timestamp %s. If you accessed this timestamp service remotely"
-                        + " this is likely due to specifying an incorrect query parameter.", newTimestamp);
+                        + " this is likely due to specifying an incorrect query parameter.",
+                newTimestamp);
     }
 
     private static int cleanUpTimestampRequest(int numTimestampsRequested) {
@@ -129,7 +129,6 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
             // explicitly not using Preconditions to optimize hot success path and avoid allocations
             throw new IllegalArgumentException(String.format(
                     "Number of timestamps requested must be greater than zero, was %s", numTimestampsRequested));
-
         }
         return Math.min(numTimestampsRequested, MAX_TIMESTAMPS_PER_REQUEST);
     }

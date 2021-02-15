@@ -16,14 +16,10 @@
 
 package com.palantir.atlasdb.memory;
 
-import java.util.Optional;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-
 import com.google.auto.service.AutoService;
-import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryKvs;
 import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryTimestampService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -33,6 +29,9 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Optional;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
@@ -57,9 +56,7 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public ManagedTimestampService createManagedTimestampService(
-            KeyValueService rawKvs,
-            Optional<DbTimestampCreationSetting> unused,
-            boolean initializeAsync) {
+            KeyValueService rawKvs, Optional<TableReference> unused, boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         if (initializeAsync) {
             return AsyncInitializeableInMemoryTimestampService.initializeWhenKvsIsReady(rawKvs);
@@ -67,4 +64,3 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
         return new InMemoryTimestampService();
     }
 }
-

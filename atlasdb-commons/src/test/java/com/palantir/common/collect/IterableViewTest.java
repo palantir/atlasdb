@@ -18,27 +18,23 @@ package com.palantir.common.collect;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.Spliterator;
-import java.util.stream.StreamSupport;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import java.util.List;
+import java.util.Spliterator;
+import java.util.stream.StreamSupport;
+import org.junit.Test;
 
 public class IterableViewTest {
 
     @Test
     public void stream() {
         assertThat(IterableView.of(ImmutableList.of("a", "b")).stream()).containsExactly("a", "b");
-        assertThat(IterableView.of(
-                Iterables.limit(Iterables.cycle(ImmutableSet.of("a", "b", "c")), 4)).stream())
+        assertThat(IterableView.of(Iterables.limit(Iterables.cycle(ImmutableSet.of("a", "b", "c")), 4)).stream())
                 .containsExactly("a", "b", "c", "a");
-        assertThat(IterableView.of(ImmutableList.of("a", "b")).transform(String::toUpperCase)
-                .stream())
+        assertThat(IterableView.of(ImmutableList.of("a", "b")).transform(String::toUpperCase).stream())
                 .containsExactly("A", "B");
     }
 
@@ -62,10 +58,8 @@ public class IterableViewTest {
         assertThat(spliterator.characteristics()).isNotZero();
         assertThat(spliterator.hasCharacteristics(Spliterator.SIZED)).isTrue();
         assertThat(spliterator.hasCharacteristics(Spliterator.SUBSIZED)).isTrue();
-        assertThat(StreamSupport.stream(spliterator, false)).containsExactly(
-                ImmutableList.of("a"),
-                ImmutableList.of("b"),
-                ImmutableList.of("c"));
+        assertThat(StreamSupport.stream(spliterator, false))
+                .containsExactly(ImmutableList.of("a"), ImmutableList.of("b"), ImmutableList.of("c"));
     }
 
     @Test
@@ -82,7 +76,8 @@ public class IterableViewTest {
 
     @Test
     public void setSpliterator() {
-        Spliterator<String> spliterator = IterableView.of(ImmutableSortedSet.of("a", "b")).spliterator();
+        Spliterator<String> spliterator =
+                IterableView.of(ImmutableSortedSet.of("a", "b")).spliterator();
         assertThat(spliterator.estimateSize()).isEqualTo(2);
         assertThat(spliterator.characteristics()).isNotZero();
         assertThat(spliterator.hasCharacteristics(Spliterator.DISTINCT)).isTrue();
@@ -97,9 +92,7 @@ public class IterableViewTest {
         Spliterator<List<String>> spliterator = view.spliterator();
         assertThat(spliterator.estimateSize()).isEqualTo(Long.MAX_VALUE);
         assertThat(spliterator.characteristics()).isZero();
-        assertThat(StreamSupport.stream(spliterator, false)).containsExactly(
-                ImmutableList.of("a"),
-                ImmutableList.of("b"),
-                ImmutableList.of("c"));
+        assertThat(StreamSupport.stream(spliterator, false))
+                .containsExactly(ImmutableList.of("a"), ImmutableList.of("b"), ImmutableList.of("c"));
     }
 }

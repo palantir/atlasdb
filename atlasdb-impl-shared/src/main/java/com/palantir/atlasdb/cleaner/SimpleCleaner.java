@@ -15,17 +15,15 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The SimpleCleaner simply delegates to the various specialized objects that do the real work.
@@ -39,9 +37,7 @@ public class SimpleCleaner implements Cleaner {
     private final Puncher puncher;
     private final Supplier<Long> transactionReadTimeoutMillisSupplier;
 
-    public SimpleCleaner(Scrubber scrubber,
-                         Puncher puncher,
-                         Supplier<Long> transactionReadTimeoutMillisSupplier) {
+    public SimpleCleaner(Scrubber scrubber, Puncher puncher, Supplier<Long> transactionReadTimeoutMillisSupplier) {
         this.scrubber = scrubber;
         this.puncher = puncher;
         this.transactionReadTimeoutMillisSupplier = transactionReadTimeoutMillisSupplier;
@@ -53,16 +49,16 @@ public class SimpleCleaner implements Cleaner {
     }
 
     @Override
-    public void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs,
-                                       long scrubTimestamp) {
+    public void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp) {
         scrubber.queueCellsForScrubbing(cellToTableRefs, scrubTimestamp);
     }
 
     @Override
-    public void scrubImmediately(TransactionManager txManager,
-                                 Multimap<TableReference, Cell> tableRefToCell,
-                                 long scrubTimestamp,
-                                 long commitTimestamp) {
+    public void scrubImmediately(
+            TransactionManager txManager,
+            Multimap<TableReference, Cell> tableRefToCell,
+            long scrubTimestamp,
+            long commitTimestamp) {
         try {
             scrubber.scrubImmediately(txManager, tableRefToCell, scrubTimestamp, commitTimestamp);
         } catch (RuntimeException e) {

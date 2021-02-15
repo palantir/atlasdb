@@ -15,15 +15,15 @@
  */
 package com.palantir.util.file;
 
+import com.google.common.io.BaseEncoding;
+import com.palantir.logsafe.exceptions.SafeIoException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
-import com.google.common.io.BaseEncoding;
-import com.palantir.logsafe.exceptions.SafeIoException;
-
 public final class TempFileUtils {
-    private TempFileUtils() {/**/
+    private TempFileUtils() {
+        /**/
     }
 
     private static final Random tempFileRandom = new Random();
@@ -42,8 +42,7 @@ public final class TempFileUtils {
         return File.createTempFile(prefix + bytesToHex(bytes), suffix);
     }
 
-    public static File createTempFile(String prefix, String suffix, File directory)
-            throws IOException {
+    public static File createTempFile(String prefix, String suffix, File directory) throws IOException {
         ensureTempDirectoryExists();
         byte[] bytes = generateRandomBytes(32);
         return File.createTempFile(prefix + bytesToHex(bytes), suffix, directory);

@@ -15,14 +15,13 @@
  */
 package com.palantir.common.concurrent;
 
+import com.google.common.base.Throwables;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.google.common.base.Throwables;
 
 public class BlockingWorkerPool {
     private final CompletionService<Void> service;
@@ -43,8 +42,7 @@ public class BlockingWorkerPool {
      * @throws RuntimeException wrapping an ExecutionException if a previously
      *         submitted task threw an exception.
      */
-    public synchronized void submitTask(Runnable task)
-            throws InterruptedException {
+    public synchronized void submitTask(Runnable task) throws InterruptedException {
         waitForAvailability();
 
         assert currentTaskCount.get() < concurrentTaskLimit : "currentTaskCount must be less than currentTaskLimit";
@@ -53,7 +51,9 @@ public class BlockingWorkerPool {
     }
 
     private void waitForSingleTask() throws InterruptedException {
-        if (currentTaskCount.get() <= 0) { return; }
+        if (currentTaskCount.get() <= 0) {
+            return;
+        }
 
         Future<Void> f = service.take();
         currentTaskCount.decrementAndGet();
@@ -71,8 +71,7 @@ public class BlockingWorkerPool {
      * @throws RuntimeException wrapping an ExecutionException if a previously
      *         submitted task threw an exception.
      */
-    public synchronized void waitForSubmittedTasks()
-            throws InterruptedException {
+    public synchronized void waitForSubmittedTasks() throws InterruptedException {
         while (currentTaskCount.get() > 0) {
             waitForSingleTask();
         }

@@ -15,25 +15,22 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.io.Closeable;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.lock.watch.LockEventLogImpl;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
+import java.io.Closeable;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AsyncLockService implements Closeable {
 
@@ -60,14 +57,12 @@ public class AsyncLockService implements Closeable {
      * @return an asynchronous lock service
      */
     public static AsyncLockService createDefault(
-            LockLog lockLog,
-            ScheduledExecutorService reaperExecutor,
-            ScheduledExecutorService timeoutExecutor) {
+            LockLog lockLog, ScheduledExecutorService reaperExecutor, ScheduledExecutorService timeoutExecutor) {
 
         LeaderClock clock = LeaderClock.create();
 
         HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
-        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks);
+        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks, clock.id());
         LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
 
         return new AsyncLockService(
@@ -108,48 +103,46 @@ public class AsyncLockService implements Closeable {
     }
 
     private void scheduleExpiredLockReaper() {
-        reaperExecutor.scheduleAtFixedRate(() -> {
-            try {
-                heldLocks.removeExpired();
-            } catch (Throwable t) {
-                log.warn("Error while removing expired lock requests. Trying again on next iteration.", t);
-            }
-        }, 0, LockLeaseContract.SERVER_LEASE_TIMEOUT.toMillis() / 2, TimeUnit.MILLISECONDS);
+        reaperExecutor.scheduleAtFixedRate(
+                () -> {
+                    try {
+                        heldLocks.removeExpired();
+                    } catch (Throwable t) {
+                        log.warn("Error while removing expired lock requests. Trying again on next iteration.", t);
+                    }
+                },
+                0,
+                LockLeaseContract.SERVER_LEASE_TIMEOUT.toMillis() / 2,
+                TimeUnit.MILLISECONDS);
     }
 
     public AsyncResult<Leased<LockToken>> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
-        return heldLocks.getExistingOrAcquire(
-                requestId,
-                () -> acquireLocks(requestId, lockDescriptors, timeout));
+        return heldLocks.getExistingOrAcquire(requestId, () -> acquireLocks(requestId, lockDescriptors, timeout));
     }
 
     public AsyncResult<Leased<LockToken>> lockImmutableTimestamp(UUID requestId, long timestamp) {
-        AsyncResult<Leased<LockToken>> immutableTimestampLockResult = heldLocks.getExistingOrAcquire(
-                requestId,
-                () -> acquireImmutableTimestampLock(requestId, timestamp));
+        AsyncResult<Leased<LockToken>> immutableTimestampLockResult =
+                heldLocks.getExistingOrAcquire(requestId, () -> acquireImmutableTimestampLock(requestId, timestamp));
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         lockLog.registerLockImmutableTimestampRequest(requestId, timestamp, immutableTimestampLockResult);
         return immutableTimestampLockResult;
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
-        return awaitedLocks.getExistingOrAwait(
-                requestId,
-                () -> awaitLocks(requestId, lockDescriptors, timeout));
+        return awaitedLocks.getExistingOrAwait(requestId, () -> awaitLocks(requestId, lockDescriptors, timeout));
     }
 
     public Optional<Long> getImmutableTimestamp() {
         return immutableTsTracker.getImmutableTimestamp();
     }
 
-    private AsyncResult<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors,
-            TimeLimit timeout) {
+    private AsyncResult<HeldLocks> acquireLocks(
+            UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
         return lockAcquirer.acquireLocks(requestId, orderedLocks, timeout);
     }
 
-    private AsyncResult<Void> awaitLocks(UUID requestId, Set<LockDescriptor> lockDescriptors,
-            TimeLimit timeout) {
+    private AsyncResult<Void> awaitLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
         return lockAcquirer.waitForLocks(requestId, orderedLocks, timeout);
     }
@@ -175,9 +168,7 @@ public class AsyncLockService implements Closeable {
 
         Leased<Set<LockToken>> refreshedTokens = heldLocks.refresh(tokens);
 
-        return RefreshLockResponseV2.of(
-                refreshedTokens.value(),
-                refreshedTokens.lease());
+        return RefreshLockResponseV2.of(refreshedTokens.value(), refreshedTokens.lease());
     }
 
     public LeaderTime leaderTime() {

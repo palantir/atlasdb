@@ -15,42 +15,34 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
 
+import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
+import com.palantir.atlasdb.cleaner.PuncherStore;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.table.description.SweepStrategy;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
-import com.palantir.atlasdb.cleaner.PuncherStore;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
-import com.palantir.atlasdb.table.description.SweepStrategy;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
-
 public class TargetedSweepMetricsTest {
     private static final long RECOMPUTE_MILLIS = 10;
-    private static final TargetedSweepMetrics.MetricsConfiguration METRICS_CONFIGURATION
-            = TargetedSweepMetrics.MetricsConfiguration.builder()
-            .millisBetweenRecomputingMetrics(RECOMPUTE_MILLIS)
-            .build();
+    private static final TargetedSweepMetrics.MetricsConfiguration METRICS_CONFIGURATION =
+            TargetedSweepMetrics.MetricsConfiguration.builder()
+                    .millisBetweenRecomputingMetrics(RECOMPUTE_MILLIS)
+                    .build();
 
     private static final ShardAndStrategy CONS_ZERO = ShardAndStrategy.conservative(0);
     private static final ShardAndStrategy CONS_ONE = ShardAndStrategy.conservative(1);
     private static final ShardAndStrategy CONS_TWO = ShardAndStrategy.conservative(2);
     private static final ShardAndStrategy THOR_ZERO = ShardAndStrategy.thorough(0);
+    private static final ShardAndStrategy THOR_ONE = ShardAndStrategy.thorough(1);
 
     private MetricsManager metricsManager;
     private long clockTime;
@@ -64,7 +56,7 @@ public class TargetedSweepMetricsTest {
         kvs = Mockito.spy(new InMemoryKeyValueService(true));
         puncherStore = KeyValueServicePuncherStore.create(kvs, false);
         metricsManager = MetricsManagers.createForTests();
-        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION);
+        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION, 8);
     }
 
     @Test
@@ -83,11 +75,15 @@ public class TargetedSweepMetricsTest {
     @Test
     public void metricsAreNotRegisteredIfSweepStrategyNotTracked() {
         MetricsManager anotherManager = MetricsManagers.createForTests();
-        TargetedSweepMetrics.createWithClock(anotherManager, kvs, () -> clockTime,
+        TargetedSweepMetrics.createWithClock(
+                anotherManager,
+                kvs,
+                () -> clockTime,
                 TargetedSweepMetrics.MetricsConfiguration.builder()
                         .addTrackedSweeperStrategies(SweepStrategy.SweeperStrategy.THOROUGH)
                         .millisBetweenRecomputingMetrics(RECOMPUTE_MILLIS)
-                        .build());
+                        .build(),
+                8);
         assertThat(anotherManager).hasNotRegisteredEnqueuedWritesConservativeMetric();
         assertThat(anotherManager).hasEnqueuedWritesThoroughEqualTo(0);
     }
@@ -95,25 +91,29 @@ public class TargetedSweepMetricsTest {
     @Test
     public void untrackedSweepStrategyMetricsUpdatesAreSafelyIgnored() {
         MetricsManager anotherManager = MetricsManagers.createForTests();
-        TargetedSweepMetrics anotherMetrics = TargetedSweepMetrics.createWithClock(anotherManager, kvs, () -> clockTime,
+        TargetedSweepMetrics anotherMetrics = TargetedSweepMetrics.createWithClock(
+                anotherManager,
+                kvs,
+                () -> clockTime,
                 TargetedSweepMetrics.MetricsConfiguration.builder()
                         .addTrackedSweeperStrategies(SweepStrategy.SweeperStrategy.THOROUGH)
                         .millisBetweenRecomputingMetrics(RECOMPUTE_MILLIS)
-                        .build());
+                        .build(),
+                8);
 
         anotherMetrics.updateEnqueuedWrites(CONS_ZERO, 5);
         assertThat(anotherManager).hasNotRegisteredEnqueuedWritesConservativeMetric();
 
         anotherMetrics.registerOccurrenceOf(CONS_ZERO, SweepOutcome.SUCCESS);
-        assertThat(anotherManager).hasNotRegisteredTargetedOutcome(
-                SweepStrategy.SweeperStrategy.CONSERVATIVE, SweepOutcome.SUCCESS);
+        assertThat(anotherManager)
+                .hasNotRegisteredTargetedOutcome(SweepStrategy.SweeperStrategy.CONSERVATIVE, SweepOutcome.SUCCESS);
 
         anotherMetrics.updateEnqueuedWrites(THOR_ZERO, 5);
         assertThat(anotherManager).hasEnqueuedWritesThoroughEqualTo(5);
 
         anotherMetrics.registerOccurrenceOf(THOR_ZERO, SweepOutcome.SUCCESS);
-        assertThat(anotherManager).hasTargetedOutcomeEqualTo(
-                SweepStrategy.SweeperStrategy.THOROUGH, SweepOutcome.SUCCESS, 1L);
+        assertThat(anotherManager)
+                .hasTargetedOutcomeEqualTo(SweepStrategy.SweeperStrategy.THOROUGH, SweepOutcome.SUCCESS, 1L);
     }
 
     @Test
@@ -255,8 +255,8 @@ public class TargetedSweepMetricsTest {
         metrics.registerEntriesReadInBatch(CONS_ZERO, 20);
 
         MetricsManager anotherMetricsManager = MetricsManagers.createForTests();
-        TargetedSweepMetrics secondMetrics = TargetedSweepMetrics
-                .createWithClock(anotherMetricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION);
+        TargetedSweepMetrics secondMetrics = TargetedSweepMetrics.createWithClock(
+                anotherMetricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION, 8);
 
         secondMetrics.updateEnqueuedWrites(CONS_ZERO, 5);
         secondMetrics.updateEntriesRead(CONS_ZERO, 5);
@@ -282,8 +282,8 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void writeTimestampsAreSharedAcrossMetricsInstances() {
-        TargetedSweepMetrics secondMetrics = TargetedSweepMetrics
-                .createWithClock(metricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION);
+        TargetedSweepMetrics secondMetrics =
+                TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, METRICS_CONFIGURATION, 8);
 
         metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         secondMetrics.updateProgressForShard(CONS_ZERO, 100);
@@ -299,8 +299,14 @@ public class TargetedSweepMetricsTest {
     @Test
     public void millisSinceLastSweptDoesNotUpdateWithoutWaiting() {
         metricsManager = MetricsManagers.createForTests();
-        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime,
-                TargetedSweepMetrics.MetricsConfiguration.builder().millisBetweenRecomputingMetrics(1_000).build());
+        metrics = TargetedSweepMetrics.createWithClock(
+                metricsManager,
+                kvs,
+                () -> clockTime,
+                TargetedSweepMetrics.MetricsConfiguration.builder()
+                        .millisBetweenRecomputingMetrics(1_000)
+                        .build(),
+                8);
 
         metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 100);
@@ -330,18 +336,15 @@ public class TargetedSweepMetricsTest {
     }
 
     @Test
-    public void millisSinceLastSweptDoesNotRangeScanForGivenTimestampIfSweepTsTooFarInThePast() {
+    public void millisSinceLastSweptWorksEvenIfSweepTsIsFarInThePast() {
         metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 10);
 
-        // there was a greater timestamp than sweep progress punched more than a week ago
         clockTime = TimeUnit.DAYS.toMillis(14L);
-        puncherStore.put(15, 1);
+        puncherStore.put(5, 1);
 
         // return the time from a week ago and only range scan for looking up the timestamp for the time a week ago
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - TimeUnit.DAYS.toMillis(7L));
-        verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), eq(Long.MAX_VALUE));
-        verify(kvs, times(1)).getRange(eq(AtlasDbConstants.PUNCH_TABLE), any(RangeRequest.class), anyLong());
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 1);
     }
 
     @Test
@@ -462,7 +465,7 @@ public class TargetedSweepMetricsTest {
 
         metrics.updateProgressForShard(CONS_ZERO, 10);
         metrics.updateProgressForShard(CONS_ONE, 5);
-        metrics.updateProgressForShard(THOR_ZERO, 5);
+        metrics.updateProgressForShard(THOR_ONE, 5);
         waitForProgressToRecompute();
 
         puncherStore.put(5, 5);
@@ -493,6 +496,94 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).containsEntriesReadInBatchThorough(15L, 25L);
         assertThat(metricsManager).hasEntriesReadInBatchMeanConservativeEqualTo(7.5);
         assertThat(metricsManager).hasEntriesReadInBatchMeanThoroughEqualTo(20.0);
+    }
+
+    @Test
+    public void multiShardMillisSinceLastSweptConservativeTest() {
+        metrics = TargetedSweepMetrics.createWithClock(
+                metricsManager,
+                kvs,
+                () -> clockTime,
+                ImmutableMetricsConfiguration.builder()
+                        .from(METRICS_CONFIGURATION)
+                        .addTrackSweepLagPerShard(SweeperStrategy.CONSERVATIVE)
+                        .build(),
+                8);
+
+        metrics.updateProgressForShard(CONS_ZERO, 1);
+        metrics.updateProgressForShard(CONS_ONE, 10);
+        metrics.updateProgressForShard(CONS_TWO, 5);
+
+        metrics.updateProgressForShard(THOR_ZERO, 50);
+        metrics.updateProgressForShard(THOR_ONE, 10);
+        waitForProgressToRecompute();
+
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(1L);
+        assertThat(metricsManager).hasLastSweptTimestampThoroughEqualTo(10L);
+        puncherStore.put(1, 1);
+        puncherStore.put(5, 5);
+        puncherStore.put(10, 10);
+        puncherStore.put(50, 50);
+
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(null);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeForShardEqualTo(0, clockTime - 1);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeForShardEqualTo(1, clockTime - 10);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeForShardEqualTo(2, clockTime - 5);
+        assertThat(metricsManager).hasMillisSinceLastSweptThoroughEqualTo(clockTime - 10);
+
+        metrics.updateProgressForShard(CONS_ZERO, 10);
+        metrics.updateProgressForShard(CONS_ONE, 50);
+        metrics.updateProgressForShard(THOR_ONE, 50);
+        waitForProgressToRecompute();
+
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(null);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeForShardEqualTo(0, clockTime - 10);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeForShardEqualTo(1, clockTime - 50);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeForShardEqualTo(2, clockTime - 5);
+        assertThat(metricsManager).hasMillisSinceLastSweptThoroughEqualTo(clockTime - 50);
+    }
+
+    @Test
+    public void multiShardMillisSinceLastSweptThoroughTest() {
+        metrics = TargetedSweepMetrics.createWithClock(
+                metricsManager,
+                kvs,
+                () -> clockTime,
+                ImmutableMetricsConfiguration.builder()
+                        .from(METRICS_CONFIGURATION)
+                        .addTrackSweepLagPerShard(SweeperStrategy.THOROUGH)
+                        .build(),
+                8);
+
+        metrics.updateProgressForShard(CONS_ZERO, 1);
+        metrics.updateProgressForShard(CONS_ONE, 10);
+        metrics.updateProgressForShard(CONS_TWO, 5);
+
+        metrics.updateProgressForShard(THOR_ZERO, 50);
+        metrics.updateProgressForShard(THOR_ONE, 10);
+        waitForProgressToRecompute();
+
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(1L);
+        assertThat(metricsManager).hasLastSweptTimestampThoroughEqualTo(10L);
+        puncherStore.put(1, 1);
+        puncherStore.put(5, 5);
+        puncherStore.put(10, 10);
+        puncherStore.put(50, 50);
+
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 1);
+        assertThat(metricsManager).hasMillisSinceLastSweptThoroughEqualTo(null);
+        assertThat(metricsManager).hasMillisSinceLastSweptThoroughForShardEqualTo(0, clockTime - 50);
+        assertThat(metricsManager).hasMillisSinceLastSweptThoroughForShardEqualTo(1, clockTime - 10);
+
+        metrics.updateProgressForShard(CONS_ZERO, 50);
+        metrics.updateProgressForShard(CONS_ONE, 50);
+        metrics.updateProgressForShard(THOR_ONE, 50);
+        waitForProgressToRecompute();
+
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 5);
+        assertThat(metricsManager).hasMillisSinceLastSweptThoroughEqualTo(null);
+        assertThat(metricsManager).hasMillisSinceLastSweptThoroughForShardEqualTo(0, clockTime - 50);
+        assertThat(metricsManager).hasMillisSinceLastSweptThoroughForShardEqualTo(1, clockTime - 50);
     }
 
     private static void waitForProgressToRecompute() {

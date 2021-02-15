@@ -16,13 +16,12 @@
 
 package com.palantir.paxos;
 
+import com.palantir.common.base.Throwables;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
-import com.palantir.common.base.Throwables;
 
 public final class PaxosStateLogTestUtils {
     public static final NamespaceAndUseCase NAMESPACE = wrap(Client.of("client"), "tom");

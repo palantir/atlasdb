@@ -15,7 +15,6 @@
  */
 package com.palantir.timestamp;
 
-
 import java.util.Optional;
 
 public class InMemoryTimestampBoundStore implements TimestampBoundStore {

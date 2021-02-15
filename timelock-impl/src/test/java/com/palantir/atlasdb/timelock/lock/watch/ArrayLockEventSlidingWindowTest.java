@@ -18,14 +18,12 @@ package com.palantir.atlasdb.timelock.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.lock.watch.LockWatchEvent;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-
 import org.immutables.value.Value;
 import org.junit.Test;
-
-import com.palantir.lock.watch.LockWatchEvent;
 
 public class ArrayLockEventSlidingWindowTest {
     private static final int WINDOW_SIZE = 10;
@@ -96,8 +94,8 @@ public class ArrayLockEventSlidingWindowTest {
 
     private void assertContainsNextEventsInOrder(long version, int startInclusive, int endInclusive) {
         List<LockWatchEvent> result = slidingWindow.getNextEvents(version).get();
-        assertThat(result).containsExactlyElementsOf(
-                LongStream.rangeClosed(startInclusive, endInclusive)
+        assertThat(result)
+                .containsExactlyElementsOf(LongStream.rangeClosed(startInclusive, endInclusive)
                         .boxed()
                         .map(ArrayLockEventSlidingWindowTest::createEvent)
                         .collect(Collectors.toList()));
@@ -109,9 +107,11 @@ public class ArrayLockEventSlidingWindowTest {
 
     @Value.Immutable
     abstract static class FakeLockWatchEvent implements LockWatchEvent {
+        @Override
         @Value.Parameter
         public abstract long sequence();
 
+        @Override
         @Value.Parameter
         public abstract int size();
 

@@ -15,30 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -56,9 +35,27 @@ import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CassandraKeyValueServices {
-    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
+    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServices.class);
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;
@@ -97,9 +94,7 @@ public final class CassandraKeyValueServices {
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
     static void waitForSchemaVersions(
-            int schemaMutationTimeMillis,
-            CassandraClient client,
-            String unsafeSchemaChangeDescription)
+            int schemaMutationTimeMillis, CassandraClient client, String unsafeSchemaChangeDescription)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
@@ -115,18 +110,19 @@ public final class CassandraKeyValueServices {
         } while (System.currentTimeMillis() < start + schemaMutationTimeMillis);
 
         StringBuilder schemaVersions = new StringBuilder();
-        for (Entry<String, List<String>> version : versions.entrySet()) {
-            addNodeInformation(schemaVersions,
-                    String.format("%nAt schema version %s:", version.getKey()),
-                    version.getValue());
+        for (Map.Entry<String, List<String>> version : versions.entrySet()) {
+            addNodeInformation(
+                    schemaVersions, String.format("%nAt schema version %s:", version.getKey()), version.getValue());
         }
 
-        String clusterNodes = addNodeInformation(new StringBuilder(),
-                "Nodes believed to exist:",
-                versions.values().stream().flatMap(Collection::stream).collect(Collectors.toList()))
+        String clusterNodes = addNodeInformation(
+                        new StringBuilder(),
+                        "Nodes believed to exist:",
+                        versions.values().stream().flatMap(Collection::stream).collect(Collectors.toList()))
                 .toString();
 
-        String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions, %s. %s"
+        String errorMessage = String.format(
+                "Cassandra cluster cannot come to agreement on schema versions, %s. %s"
                         + " \nFind the nodes above that diverge from the majority schema and examine their logs to"
                         + " determine the issue. If nodes have schema 'UNKNOWN', they are likely down/unresponsive."
                         + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
@@ -134,9 +130,7 @@ public final class CassandraKeyValueServices {
                         + " \nIf nodes are specified in the config file, but do not have a schema version listed"
                         + " above, then they may have never joined the cluster. Verify your configuration is correct"
                         + " and that the nodes specified in the config are up and joined the cluster. %s",
-                unsafeSchemaChangeDescription,
-                schemaVersions.toString(),
-                clusterNodes);
+                unsafeSchemaChangeDescription, schemaVersions.toString(), clusterNodes);
         throw new IllegalStateException(errorMessage);
     }
 
@@ -194,8 +188,7 @@ public final class CassandraKeyValueServices {
      * it preferable to stop before starting the actual patch upgrade / setting APPLYING state.
      */
     static void warnUserInInitializationIfClusterAlreadyInInconsistentState(
-            CassandraClientPool clientPool,
-            CassandraKeyValueServiceConfig config) {
+            CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
         try {
             clientPool.run(client -> {
                 waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client, " during an initialization check");
@@ -213,8 +206,7 @@ public final class CassandraKeyValueServices {
     public static ByteBuffer makeCompositeBuffer(byte[] colName, long positiveTimestamp) {
         assert colName.length <= 1 << 16 : "Cannot use column names larger than 64KiB, was " + colName.length;
 
-        ByteBuffer buffer = ByteBuffer
-                .allocate(6 /* misc */ + 8 /* timestamp */ + colName.length)
+        ByteBuffer buffer = ByteBuffer.allocate(6 /* misc */ + 8 /* timestamp */ + colName.length)
                 .order(ByteOrder.BIG_ENDIAN);
 
         buffer.put((byte) ((colName.length >> 8) & 0xFF));
@@ -270,7 +262,7 @@ public final class CassandraKeyValueServices {
         // Be careful *NOT* to perform anything that will modify the buffer's position or limit
         byte[] bytes = new byte[buffer.limit() - buffer.position()];
         if (buffer.hasArray()) {
-            System.arraycopy(buffer.array(), buffer.position(), bytes, 0, bytes.length);
+            System.arraycopy(buffer.array(), buffer.arrayOffset() + buffer.position(), bytes, 0, bytes.length);
         } else {
             buffer.duplicate().get(bytes, buffer.position(), bytes.length);
         }
@@ -334,12 +326,13 @@ public final class CassandraKeyValueServices {
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     static Cell getOldMetadataCell(TableReference tableRef) {
-        return Cell.create(
-                tableRef.getQualifiedName().getBytes(Charset.defaultCharset()), METADATA_COL);
+        return Cell.create(tableRef.getQualifiedName().getBytes(Charset.defaultCharset()), METADATA_COL);
     }
 
     static RangeRequest metadataRangeRequest() {
-        return RangeRequest.builder().retainColumns(ImmutableSet.of(METADATA_COL)).build();
+        return RangeRequest.builder()
+                .retainColumns(ImmutableSet.of(METADATA_COL))
+                .build();
     }
 
     static RangeRequest metadataRangeRequestForTable(TableReference tableRef) {
@@ -381,7 +374,7 @@ public final class CassandraKeyValueServices {
     }
 
     static class StartTsResultsCollector implements ThreadSafeResultVisitor {
-        private final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
+        private final Map<Cell, Value> collectedResults = new ConcurrentHashMap<>();
         private final ValueExtractor extractor;
         private final long startTs;
 
@@ -413,9 +406,9 @@ public final class CassandraKeyValueServices {
         }
     }
 
-    private static void extractTimestampResults(@Output Multimap<Cell, Long> ret,
-                                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
-        for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
+    private static void extractTimestampResults(
+            @Output Multimap<Cell, Long> ret, Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
+        for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
             for (ColumnOrSuperColumn col : result.getValue()) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(col.column);
@@ -436,5 +429,4 @@ public final class CassandraKeyValueServices {
         }
         return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata);
     }
-
 }

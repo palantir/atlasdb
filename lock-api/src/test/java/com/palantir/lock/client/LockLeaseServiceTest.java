@@ -24,20 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.net.SocketTimeoutException;
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
@@ -60,12 +46,29 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import java.net.SocketTimeoutException;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LockLeaseServiceTest {
-    @Mock private NamespacedConjureTimelockService timelock;
-    @Mock private LockRequest lockRequest;
-    @Mock private PartitionedTimestamps partitionedTimestamps;
+    @Mock
+    private NamespacedConjureTimelockService timelock;
+
+    @Mock
+    private LockRequest lockRequest;
+
+    @Mock
+    private PartitionedTimestamps partitionedTimestamps;
 
     private static final Duration TIMEOUT_GREATER_THAN_MAX_PERMISSIBLE_TIMEOUT =
             BlockEnforcingLockService.MAX_PERMISSIBLE_LOCK_ACQUIRE_TIMEOUT.multipliedBy(5);
@@ -89,7 +92,7 @@ public class LockLeaseServiceTest {
             ConjureUnlockRequest request = inv.getArgument(0);
             return ConjureUnlockResponse.of(request.getTokens());
         });
-        lockLeaseService = new LockLeaseService(timelock, SERVICE_ID);
+        lockLeaseService = new LockLeaseService(timelock, SERVICE_ID, new LegacyLeaderTimeGetter(timelock));
     }
 
     @Test
@@ -119,20 +122,20 @@ public class LockLeaseServiceTest {
         Lease lease = getLease();
         when(timelock.startTransactions(any())).thenReturn(startTransactionsResponseWith(LOCK_TOKEN, lease));
 
-        StartTransactionResponseV4 clientResponse =
-                lockLeaseService.startTransactions(2);
+        StartTransactionResponseV4 clientResponse = lockLeaseService.startTransactions(2);
 
         verify(timelock).startTransactions(any());
 
-        LeasedLockToken leasedLock = (LeasedLockToken) clientResponse.immutableTimestamp().getLock();
+        LeasedLockToken leasedLock =
+                (LeasedLockToken) clientResponse.immutableTimestamp().getLock();
         assertThat(leasedLock.serverToken()).isEqualTo(LOCK_TOKEN);
         assertThat(leasedLock.getLease()).isEqualTo(lease);
     }
 
     @Test
     public void returnedTokenShouldHaveCorrectServerToken() {
-        when(timelock.lock(any())).thenReturn(
-                ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
+        when(timelock.lock(any()))
+                .thenReturn(ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
 
         LockResponse lockResponse = lockLeaseService.lock(lockRequest);
         LeasedLockToken leasedToken = (LeasedLockToken) lockResponse.getToken();
@@ -141,8 +144,8 @@ public class LockLeaseServiceTest {
 
     @Test
     public void leasedTokenShouldHaveValidLeaseForTheLeasePeriod() {
-        when(timelock.lock(any())).thenReturn(
-                ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
+        when(timelock.lock(any()))
+                .thenReturn(ConjureLockResponse.successful(SuccessfulLockResponse.of(LOCK_TOKEN, getLease())));
 
         LockResponse lockResponse = lockLeaseService.lock(lockRequest);
         assertValid(lockResponse.getToken());
@@ -171,8 +174,6 @@ public class LockLeaseServiceTest {
         assertValid(lockResponse.getToken());
         verify(timelock, times(2)).lock(any());
     }
-
-
 
     @Test
     public void unlockShouldCallRemoteServer_validLeases() {
@@ -217,14 +218,13 @@ public class LockLeaseServiceTest {
         assertInvalid(leasedLockToken);
 
         when(timelock.refreshLocks(ConjureRefreshLocksRequest.of(ImmutableSet.of(LOCK_TOKEN))))
-                .thenReturn(ConjureRefreshLocksResponse.of(
-                        ImmutableSet.of(LOCK_TOKEN),
-                        getLease()));
+                .thenReturn(ConjureRefreshLocksResponse.of(ImmutableSet.of(LOCK_TOKEN), getLease()));
 
         Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(ImmutableSet.of(leasedLockToken));
         verify(timelock).refreshLocks(ConjureRefreshLocksRequest.of(ImmutableSet.of(leasedLockToken.serverToken())));
 
-        LeasedLockToken refreshedLeasedLockToken = (LeasedLockToken) refreshed.iterator().next();
+        LeasedLockToken refreshedLeasedLockToken =
+                (LeasedLockToken) refreshed.iterator().next();
         assertValid(refreshedLeasedLockToken);
         assertValid(leasedLockToken);
         assertThat(refreshedLeasedLockToken).isEqualTo(leasedLockToken);
@@ -232,12 +232,11 @@ public class LockLeaseServiceTest {
 
     private ConjureStartTransactionsResponse startTransactionsResponseWith(ConjureLockToken lockToken, Lease lease) {
         return ConjureStartTransactionsResponse.builder()
-                .immutableTimestamp(LockImmutableTimestampResponse.of(1L,
-                        LockToken.of(lockToken.getRequestId())))
+                .immutableTimestamp(LockImmutableTimestampResponse.of(1L, LockToken.of(lockToken.getRequestId())))
                 .timestamps(partitionedTimestamps)
                 .lease(lease)
-                .lockWatchUpdate(LockWatchStateUpdate.snapshot(UUID.randomUUID(), -1, Collections.emptySet(),
-                        Collections.emptySet()))
+                .lockWatchUpdate(LockWatchStateUpdate.snapshot(
+                        UUID.randomUUID(), -1, Collections.emptySet(), Collections.emptySet()))
                 .build();
     }
 
@@ -272,4 +271,3 @@ public class LockLeaseServiceTest {
         return LeaderTime.of(LEADER_ID, time.get());
     }
 }
-

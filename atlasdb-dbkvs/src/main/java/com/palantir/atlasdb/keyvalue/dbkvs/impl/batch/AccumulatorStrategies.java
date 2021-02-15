@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.batch;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class AccumulatorStrategies {
 
@@ -35,8 +34,8 @@ public final class AccumulatorStrategies {
         return (ListMultimapAccumulatorStrategy<K, V>) listMultimapAccumulatorStrategy;
     }
 
-    private static class MapAccumulatorStrategy<K, V>
-                implements BatchingTaskRunner.ResultAccumulatorStrategy<Map<K, V>> {
+    private static final class MapAccumulatorStrategy<K, V>
+            implements BatchingTaskRunner.ResultAccumulatorStrategy<Map<K, V>> {
         @Override
         public Map<K, V> createEmptyResult() {
             return new HashMap<>();
@@ -50,8 +49,8 @@ public final class AccumulatorStrategies {
 
     private static final MapAccumulatorStrategy<?, ?> mapAccumulatorStrategy = new MapAccumulatorStrategy<>();
 
-    private static class ListMultimapAccumulatorStrategy<K, V>
-                implements BatchingTaskRunner.ResultAccumulatorStrategy<Multimap<K, V>> {
+    private static final class ListMultimapAccumulatorStrategy<K, V>
+            implements BatchingTaskRunner.ResultAccumulatorStrategy<Multimap<K, V>> {
         @Override
         public Multimap<K, V> createEmptyResult() {
             return ArrayListMultimap.create();
@@ -63,7 +62,6 @@ public final class AccumulatorStrategies {
         }
     }
 
-    private static final ListMultimapAccumulatorStrategy<?, ?> listMultimapAccumulatorStrategy
-            = new ListMultimapAccumulatorStrategy<>();
-
+    private static final ListMultimapAccumulatorStrategy<?, ?> listMultimapAccumulatorStrategy =
+            new ListMultimapAccumulatorStrategy<>();
 }

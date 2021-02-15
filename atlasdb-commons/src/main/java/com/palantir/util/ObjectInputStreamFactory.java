@@ -25,5 +25,5 @@ import java.io.ObjectInputStream;
  */
 public interface ObjectInputStreamFactory {
 
-    public ObjectInputStream create(InputStream is, String codebase) throws IOException;
+    ObjectInputStream create(InputStream is, String codebase) throws IOException;
 }

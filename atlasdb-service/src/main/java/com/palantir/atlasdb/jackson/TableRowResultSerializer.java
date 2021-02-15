@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.jackson;
 
-import java.io.IOException;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedMap;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -32,6 +27,10 @@ import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
 
 public class TableRowResultSerializer extends StdSerializer<TableRowResult> {
     private static final long serialVersionUID = 1L;
@@ -56,15 +55,14 @@ public class TableRowResultSerializer extends StdSerializer<TableRowResult> {
         jgen.writeEndObject();
     }
 
-    private static void serialize(JsonGenerator jgen,
-                                  TableMetadata metadata,
-                                  RowResult<byte[]> result) throws IOException {
+    private static void serialize(JsonGenerator jgen, TableMetadata metadata, RowResult<byte[]> result)
+            throws IOException {
         jgen.writeStartObject();
         AtlasSerializers.serializeRow(jgen, metadata.getRowMetadata(), result.getRowName());
         ColumnMetadataDescription columns = metadata.getColumns();
         if (columns.hasDynamicColumns()) {
             jgen.writeArrayFieldStart("cols");
-            for (Entry<byte[], byte[]> colVal : result.getColumns().entrySet()) {
+            for (Map.Entry<byte[], byte[]> colVal : result.getColumns().entrySet()) {
                 jgen.writeStartObject();
                 byte[] col = colVal.getKey();
                 byte[] val = colVal.getValue();

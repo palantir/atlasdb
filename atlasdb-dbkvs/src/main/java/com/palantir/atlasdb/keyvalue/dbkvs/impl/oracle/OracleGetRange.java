@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.AbstractIterator;
@@ -55,6 +46,14 @@ import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /*
  * 1) When in comes to implementing paging, Oracle is the exact opposite of Postgres:
@@ -137,12 +136,13 @@ public class OracleGetRange implements DbKvsGetRange {
     private final TableMetadataCache tableMetadataCache;
     private final OracleDdlConfig config;
 
-    public OracleGetRange(SqlConnectionSupplier connectionPool,
-                          OverflowValueLoader overflowValueLoader,
-                          OracleTableNameGetter tableNameGetter,
-                          TableValueStyleCache valueStyleCache,
-                          TableMetadataCache tableMetadataCache,
-                          OracleDdlConfig config) {
+    public OracleGetRange(
+            SqlConnectionSupplier connectionPool,
+            OverflowValueLoader overflowValueLoader,
+            OracleTableNameGetter tableNameGetter,
+            TableValueStyleCache valueStyleCache,
+            TableMetadataCache tableMetadataCache,
+            OracleDdlConfig config) {
         this.connectionPool = connectionPool;
         this.overflowValueLoader = overflowValueLoader;
         this.tableNameGetter = tableNameGetter;
@@ -189,9 +189,15 @@ public class OracleGetRange implements DbKvsGetRange {
         private final long timestamp;
 
         PageIterator(
-                byte[] startInclusive, byte[] endExclusive, Set<byte[]> columnSelection,
-                boolean reverse, TableReference tableRef, boolean haveOverflowValues,
-                int maxRowsPerPage, int maxCellsPerPage, long timestamp) {
+                byte[] startInclusive,
+                byte[] endExclusive,
+                Set<byte[]> columnSelection,
+                boolean reverse,
+                TableReference tableRef,
+                boolean haveOverflowValues,
+                int maxRowsPerPage,
+                int maxCellsPerPage,
+                long timestamp) {
             this.startInclusive = startInclusive;
             this.endExclusive = endExclusive;
             this.columnSelection = columnSelection;
@@ -221,7 +227,8 @@ public class OracleGetRange implements DbKvsGetRange {
                     if (rowResults.isEmpty()) {
                         endOfResults = true;
                     } else {
-                        byte[] lastRowName = rowResults.get(rowResults.size() - 1).getRowName();
+                        byte[] lastRowName =
+                                rowResults.get(rowResults.size() - 1).getRowName();
                         startInclusive = RangeRequests.getNextStartRowUnlessTerminal(reverse, lastRowName);
                         endOfResults = (rowResults.size() < maxRowsPerPage) || startInclusive == null;
                     }
@@ -248,8 +255,9 @@ public class OracleGetRange implements DbKvsGetRange {
 
         private ClosableIterator<AgnosticLightResultRow> selectNextPage(ConnectionSupplier conns) {
             FullQuery query = getRangeQuery(conns);
-            AgnosticLightResultSet resultSet = conns.get().selectLightResultSetUnregisteredQueryWithFetchSize(
-                    query.getQuery(), maxCellsPerPage, query.getArgs());
+            AgnosticLightResultSet resultSet = conns.get()
+                    .selectLightResultSetUnregisteredQueryWithFetchSize(
+                            query.getQuery(), maxCellsPerPage, query.getArgs());
             return ClosableIterators.wrap(resultSet.iterator(), resultSet);
         }
 
@@ -261,18 +269,36 @@ public class OracleGetRange implements DbKvsGetRange {
                     .append("/* GET_RANGE(" + shortTableName + ") */")
                     .append("  SELECT /*+ USE_NL(sub v)")
                     .append("             LEADING(sub) ")
-                    .append("             INDEX(v ").append(pkIndex).append(")")
-                    .append("             NO_INDEX_SS(v ").append(pkIndex).append(")")
-                    .append("             NO_INDEX_FFS(v ").append(pkIndex).append(") */")
+                    .append("             INDEX(v ")
+                    .append(pkIndex)
+                    .append(")")
+                    .append("             NO_INDEX_SS(v ")
+                    .append(pkIndex)
+                    .append(")")
+                    .append("             NO_INDEX_FFS(v ")
+                    .append(pkIndex)
+                    .append(") */")
                     .append("  sub.row_name, sub.col_name, sub.ts")
                     .append(OracleQueryHelpers.getValueSubselect(haveOverflowValues, "v", true))
                     .append("  FROM (")
-                    .append("    SELECT /*+ INDEX_").append(direction).append("(m ").append(pkIndex).append(")")
-                    .append("               NO_INDEX_SS(m ").append(pkIndex).append(")")
-                    .append("               NO_INDEX_FFS(m ").append(pkIndex).append(") */")
+                    .append("    SELECT /*+ INDEX_")
+                    .append(direction)
+                    .append("(m ")
+                    .append(pkIndex)
+                    .append(")")
+                    .append("               NO_INDEX_SS(m ")
+                    .append(pkIndex)
+                    .append(")")
+                    .append("               NO_INDEX_FFS(m ")
+                    .append(pkIndex)
+                    .append(") */")
                     .append("      m.row_name, m.col_name, MAX(m.ts) AS ts,")
-                    .append("        DENSE_RANK() OVER (ORDER BY m.row_name ").append(direction).append(") AS rn")
-                    .append("    FROM ").append(shortTableName).append(" m ")
+                    .append("        DENSE_RANK() OVER (ORDER BY m.row_name ")
+                    .append(direction)
+                    .append(") AS rn")
+                    .append("    FROM ")
+                    .append(shortTableName)
+                    .append(" m ")
                     .append("    WHERE m.ts < ? ", timestamp);
             RangePredicateHelper.create(reverse, DBType.ORACLE, queryBuilder)
                     .startRowInclusive(startInclusive)
@@ -280,12 +306,21 @@ public class OracleGetRange implements DbKvsGetRange {
                     .columnSelection(columnSelection);
             return queryBuilder
                     .append("    GROUP BY m.row_name, m.col_name")
-                    .append("    ORDER BY m.row_name ").append(direction).append(", m.col_name ").append(direction)
+                    .append("    ORDER BY m.row_name ")
+                    .append(direction)
+                    .append(", m.col_name ")
+                    .append(direction)
                     .append("  ) sub")
-                    .append("  JOIN ").append(shortTableName).append(" v ON ")
+                    .append("  JOIN ")
+                    .append(shortTableName)
+                    .append(" v ON ")
                     .append("    sub.row_name = v.row_name and sub.col_name = v.col_name and sub.ts = v.ts")
-                    .append("  WHERE sub.rn <= ").append(maxRowsPerPage)
-                    .append("  ORDER BY sub.row_name ").append(direction).append(", sub.col_name ").append(direction)
+                    .append("  WHERE sub.rn <= ")
+                    .append(maxRowsPerPage)
+                    .append("  ORDER BY sub.row_name ")
+                    .append(direction)
+                    .append(", sub.col_name ")
+                    .append(direction)
                     .build();
         }
 
@@ -298,9 +333,8 @@ public class OracleGetRange implements DbKvsGetRange {
         }
     }
 
-    private static List<RowResult<Value>> createRowResults(List<RawSqlRow> sqlRows,
-            Map<Long, byte[]> overflowValues,
-            int expectedNumRows) {
+    private static List<RowResult<Value>> createRowResults(
+            List<RawSqlRow> sqlRows, Map<Long, byte[]> overflowValues, int expectedNumRows) {
         List<RowResult<Value>> rowResults = new ArrayList<>(expectedNumRows);
         ImmutableSortedMap.Builder<byte[], Value> currentRowCells = null;
         byte[] currentRowName = null;
@@ -323,8 +357,11 @@ public class OracleGetRange implements DbKvsGetRange {
 
     private static byte[] getValue(RawSqlRow sqlRow, Map<Long, byte[]> overflowValues) {
         if (sqlRow.overflowId != null) {
-            return Preconditions.checkNotNull(overflowValues.get(sqlRow.overflowId),
-                    "Failed to load overflow data: cell=%s, overflowId=%s", sqlRow.cell, sqlRow.overflowId);
+            return Preconditions.checkNotNull(
+                    overflowValues.get(sqlRow.overflowId),
+                    "Failed to load overflow data: cell=%s, overflowId=%s",
+                    sqlRow.cell,
+                    sqlRow.overflowId);
         } else {
             return sqlRow.val;
         }

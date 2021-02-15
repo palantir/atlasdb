@@ -16,13 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.SetMultimap;
@@ -36,13 +29,20 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
 import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class TimelockLeadershipMetrics implements Dependencies.LeadershipMetrics {
     @Value.Derived
     List<SafeArg<String>> namespaceAsLoggingArgs() {
         return ImmutableList.of(
-                SafeArg.of(AtlasDbMetricNames.TAG_PAXOS_USE_CASE, metrics().paxosUseCase().toString()),
+                SafeArg.of(
+                        AtlasDbMetricNames.TAG_PAXOS_USE_CASE,
+                        metrics().paxosUseCase().toString()),
                 SafeArg.of(AtlasDbMetricNames.TAG_CLIENT, proxyClient().value()));
     }
 
@@ -62,7 +62,8 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
 
     public void registerLeaderElectionHealthCheck() {
         leaderElectionHealthCheck()
-                .registerClient(proxyClient(),
+                .registerClient(
+                        proxyClient(),
                         LeaderElectionServiceMetrics.of(
                                 metrics().clientScopedMetrics().metricRegistryForClient(proxyClient())));
     }
@@ -73,7 +74,8 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
                 clazz,
                 instance,
                 _context -> ImmutableMap.of(
-                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(localPingableLeader().ping())));
+                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER,
+                        String.valueOf(localPingableLeader().ping())));
     }
 
     public static AutobatchingLeadershipObserverFactory createFactory(TimelockPaxosMetrics metrics) {
@@ -90,7 +92,7 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
             case TIMESTAMP:
                 throw new SafeIllegalArgumentException("Timestamp paxos not supported");
             default:
-                throw new SafeIllegalArgumentException("Unexpected paxosUseCase",  SafeArg.of("useCase", paxosUseCase));
+                throw new SafeIllegalArgumentException("Unexpected paxosUseCase", SafeArg.of("useCase", paxosUseCase));
         }
     }
 
@@ -102,18 +104,16 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
 
     private static Consumer<SetMultimap<LeadershipEvent, Client>> deregisterMetricsForPartitionedLeader(
             TimelockPaxosMetrics metrics) {
-        return eventsToDeregister ->
-                eventsToDeregister.forEach((event, client) -> {
-                    metrics.clientScopedMetrics().deregisterMetric(client,
-                            withTagIsCurrentSuspectedLeader(event.isCurrentSuspectedLeader()));
-                });
+        return eventsToDeregister -> eventsToDeregister.forEach((event, client) -> {
+            metrics.clientScopedMetrics()
+                    .deregisterMetric(client, withTagIsCurrentSuspectedLeader(event.isCurrentSuspectedLeader()));
+        });
     }
 
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
-        return metricName ->
-                Optional.ofNullable(metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
-                        .filter(String.valueOf(currentLeader)::equals)
-                        .isPresent();
+        return metricName -> Optional.ofNullable(
+                        metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
+                .filter(String.valueOf(currentLeader)::equals)
+                .isPresent();
     }
-
 }

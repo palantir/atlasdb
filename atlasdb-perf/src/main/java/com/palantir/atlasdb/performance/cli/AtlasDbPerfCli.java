@@ -15,15 +15,26 @@
  */
 package com.palantir.atlasdb.performance.cli;
 
+import com.palantir.atlasdb.performance.BenchmarkParam;
+import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
+import com.palantir.atlasdb.performance.PerformanceResults;
+import com.palantir.atlasdb.performance.backend.DatabasesContainer;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
+import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import io.airlift.airline.Arguments;
+import io.airlift.airline.Command;
+import io.airlift.airline.HelpOption;
+import io.airlift.airline.Option;
+import io.airlift.airline.SingleCommand;
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import javax.inject.Inject;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
@@ -36,21 +47,6 @@ import org.reflections.scanners.MethodAnnotationsScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.performance.BenchmarkParam;
-import com.palantir.atlasdb.performance.MinimalReportFormatForTest;
-import com.palantir.atlasdb.performance.PerformanceResults;
-import com.palantir.atlasdb.performance.backend.DatabasesContainer;
-import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
-import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
-import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
-
-import io.airlift.airline.Arguments;
-import io.airlift.airline.Command;
-import io.airlift.airline.HelpOption;
-import io.airlift.airline.Option;
-import io.airlift.airline.SingleCommand;
-
 /**
  * The Atlas Perf(ormance) CLI is a tool for making and running AtlasDB performance tests.
  *
@@ -58,7 +54,6 @@ import io.airlift.airline.SingleCommand;
  *
  * @author mwakerman, bullman
  */
-
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCli {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbPerfCli.class);
@@ -69,23 +64,32 @@ public class AtlasDbPerfCli {
     @Arguments(description = "The performance benchmarks to run. Leave blank to run all performance benchmarks.")
     private Set<String> tests;
 
-    @Option(name = {"-b", "--backend"}, description = "Backing KVS stores to use. (e.g. POSTGRES or CASSANDRA)"
-            + " Defaults to all backends if not specified.")
+    @Option(
+            name = {"-b", "--backend"},
+            description = "Backing KVS stores to use. (e.g. POSTGRES or CASSANDRA)"
+                    + " Defaults to all backends if not specified.")
     private Set<String> backends;
 
-    @Option(name = {"--db-uri"}, description = "Docker uri (e.g. POSTGRES@[phost:pport] or CASSANDRA@[chost:cport])."
-            + "This is an alterative to specifying the --backend options that starts the docker containers locally.")
+    @Option(
+            name = {"--db-uri"},
+            description = "Docker uri (e.g. POSTGRES@[phost:pport] or CASSANDRA@[chost:cport]).This is an alterative to"
+                    + " specifying the --backend options that starts the docker containers locally.")
     private List<String> dbUris;
 
-    @Option(name = {"-l", "--list-tests"}, description = "Lists all available benchmarks.")
+    @Option(
+            name = {"-l", "--list-tests"},
+            description = "Lists all available benchmarks.")
     private boolean listTests;
 
-    @Option(name = {"-o", "--output"},
+    @Option(
+            name = {"-o", "--output"},
             description = "The file in which to store the test results. "
                     + "Leave blank to only write results to the console.")
     private String outputFile;
 
-    @Option(name = {"--test-run"}, description = "Run a single iteration of the benchmarks for testing purposes.")
+    @Option(
+            name = {"--test-run"},
+            description = "Run a single iteration of the benchmarks for testing purposes.")
     private boolean testRun;
 
     public static void main(String[] args) throws Exception {
@@ -111,13 +115,11 @@ public class AtlasDbPerfCli {
         if (cli.dbUris != null) {
             runJmh(cli, getDockerUris(cli));
         } else {
-            Set<String> backends = cli.backends != null
-                    ? cli.backends
-                    : KeyValueServiceInstrumentation.getBackends();
+            Set<String> backends = cli.backends != null ? cli.backends : KeyValueServiceInstrumentation.getBackends();
             try (DatabasesContainer container = startupDatabase(backends)) {
-                runJmh(cli,
-                        container.getDockerizedDatabases()
-                                .stream()
+                runJmh(
+                        cli,
+                        container.getDockerizedDatabases().stream()
                                 .map(DockerizedDatabase::getUri)
                                 .collect(Collectors.toList()));
             }
@@ -130,7 +132,8 @@ public class AtlasDbPerfCli {
                 .measurementIterations(1)
                 .timeUnit(TimeUnit.MICROSECONDS)
                 .shouldFailOnError(true)
-                .param(BenchmarkParam.URI.getKey(),
+                .param(
+                        BenchmarkParam.URI.getKey(),
                         uris.stream()
                                 .map(DockerizedDatabaseUri::toString)
                                 .collect(Collectors.toList())
@@ -150,8 +153,7 @@ public class AtlasDbPerfCli {
     }
 
     private static void runCli(AtlasDbPerfCli cli, ChainedOptionsBuilder optBuilder) throws Exception {
-        optBuilder.warmupIterations(1)
-                .mode(Mode.SampleTime);
+        optBuilder.warmupIterations(1).mode(Mode.SampleTime);
 
         Collection<RunResult> results = new Runner(optBuilder.build()).run();
 
@@ -161,8 +163,7 @@ public class AtlasDbPerfCli {
     }
 
     private static void runCliInTestMode(ChainedOptionsBuilder optBuilder) throws RunnerException {
-        optBuilder.warmupIterations(0)
-                .mode(Mode.SingleShotTime);
+        optBuilder.warmupIterations(0).mode(Mode.SingleShotTime);
         try {
             new Runner(optBuilder.build(), MinimalReportFormatForTest.get()).run();
         } catch (RunnerException e) {
@@ -172,16 +173,13 @@ public class AtlasDbPerfCli {
     }
 
     private static DatabasesContainer startupDatabase(Set<String> backends) {
-        return DatabasesContainer.startup(
-                backends.stream()
-                        .map(KeyValueServiceInstrumentation::forDatabase)
-                        .collect(Collectors.toList()));
+        return DatabasesContainer.startup(backends.stream()
+                .map(KeyValueServiceInstrumentation::forDatabase)
+                .collect(Collectors.toList()));
     }
 
     private static List<DockerizedDatabaseUri> getDockerUris(AtlasDbPerfCli cli) {
-        return cli.dbUris.stream()
-                .map(DockerizedDatabaseUri::fromUriString)
-                .collect(Collectors.toList());
+        return cli.dbUris.stream().map(DockerizedDatabaseUri::fromUriString).collect(Collectors.toList());
     }
 
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
@@ -212,9 +210,8 @@ public class AtlasDbPerfCli {
     }
 
     private static Set<String> getAllBenchmarks() {
-        Reflections reflections = new Reflections(
-                "com.palantir.atlasdb.performance.benchmarks",
-                new MethodAnnotationsScanner());
+        Reflections reflections =
+                new Reflections("com.palantir.atlasdb.performance.benchmarks", new MethodAnnotationsScanner());
         return reflections.getMethodsAnnotatedWith(Benchmark.class).stream()
                 .map(method -> method.getDeclaringClass().getSimpleName() + "." + method.getName())
                 .collect(Collectors.toSet());

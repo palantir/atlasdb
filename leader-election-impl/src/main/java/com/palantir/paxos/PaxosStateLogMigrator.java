@@ -16,33 +16,32 @@
 
 package com.palantir.paxos;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalLong;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+import org.immutables.value.Value;
+import org.immutables.value.Value.Default;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogMigrator.class);
 
     public static final int SAFETY_BUFFER = 50;
+
     @VisibleForTesting
     static final int BATCH_SIZE = 10_000;
 
@@ -64,12 +63,19 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         PaxosStateLogMigrator<V> migrator = new PaxosStateLogMigrator<>(context.sourceLog(), context.destinationLog());
         if (!context.migrationState().isInMigratedState()) {
             long cutoff = calculateCutoff(context);
-            migrator.runMigration(cutoff, context.hydrator());
+            migrator.runMigration(cutoff, context);
             context.migrationState().setCutoff(cutoff);
             context.migrationState().migrateToMigratedState();
+            if (context.skipValidationAndTruncateSourceIfMigrated()) {
+                context.sourceLog().truncateAllRounds();
+            }
             return cutoff;
         } else {
-            validateConsistency(context);
+            if (!context.skipValidationAndTruncateSourceIfMigrated()) {
+                validateConsistency(context);
+            } else {
+                context.sourceLog().truncateAllRounds();
+            }
         }
         return context.migrationState().getCutoff();
     }
@@ -81,7 +87,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         return Math.max(PaxosAcceptor.NO_LOG_ENTRY, lowerBoundWithAtLeastOneEntry);
     }
 
-    private void runMigration(long cutoff, Persistable.Hydrator<V> hydrator) {
+    private void runMigration(long cutoff, MigrationContext<V> context) {
         destinationLog.truncate(destinationLog.getGreatestLogEntry());
         long lowerBound = cutoff == PaxosAcceptor.NO_LOG_ENTRY ? 0 : cutoff;
         long upperBound = sourceLog.getGreatestLogEntry();
@@ -89,8 +95,10 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             return;
         }
 
-        LogReader<V> reader = new LogReader<>(sourceLog, hydrator);
-        log.info("Reading entries for paxos state log migration.");
+        LogReader<V> reader = new LogReader<>(sourceLog, context.hydrator());
+        log.info(
+                "Reading entries for paxos state log migration for {}.",
+                SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
         Instant start = Instant.now();
         List<PaxosRound<V>> roundsToMigrate = LongStream.rangeClosed(lowerBound, upperBound)
                 .mapToObj(reader::read)
@@ -98,14 +106,18 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                 .map(Optional::get)
                 .collect(Collectors.toList());
         Instant afterRead = Instant.now();
-        log.info("Reading {} entries from file backed paxos state log took {}.",
+        log.info(
+                "Reading {} entries from file backed paxos state log took {} for {}.",
                 SafeArg.of("numEntries", roundsToMigrate.size()),
-                SafeArg.of("duration", Duration.between(start, afterRead)));
-        Iterables.partition(roundsToMigrate, BATCH_SIZE)
+                SafeArg.of("duration", Duration.between(start, afterRead)),
+                SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
+        Lists.partition(roundsToMigrate, BATCH_SIZE)
                 .forEach(batch -> writeBatchRetryingUpToFiveTimes(destinationLog, batch));
-        log.info("Writing {} entries to sqlite backed paxos state log took {}.",
+        log.info(
+                "Writing {} entries to sqlite backed paxos state log took {} for {}.",
                 SafeArg.of("numEntries", roundsToMigrate.size()),
-                SafeArg.of("duration", Duration.between(afterRead, Instant.now())));
+                SafeArg.of("duration", Duration.between(afterRead, Instant.now())),
+                SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
     }
 
     private void writeBatchRetryingUpToFiveTimes(PaxosStateLog<V> target, List<PaxosRound<V>> batch) {
@@ -115,7 +127,7 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                 return;
             } catch (Exception e) {
                 log.info("Failed to write a migration batch. Retrying after backoff.", e);
-                Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+                Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100));
             }
         }
         target.writeBatchOfRounds(batch);
@@ -125,14 +137,16 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
         long migrationCutoff = calculateCutoff(context);
         long persistedCutoff = context.migrationState().getCutoff();
         long greatestSourceEntry = context.sourceLog().getGreatestLogEntry();
-        Preconditions.checkState(migrationCutoff <= persistedCutoff,
+        Preconditions.checkState(
+                migrationCutoff <= persistedCutoff || context.migrateFrom().isPresent(),
                 "The migration to the destination state log was already performed in the past, but the "
                         + "persisted cutoff value does not match a newly calculated one. This indicates the source "
                         + "log has advanced since the migration was performed which could lead to data corruption if "
                         + "allowed to continue.",
                 SafeArg.of("fresh cutoff", migrationCutoff),
                 SafeArg.of("persisted cutoff", persistedCutoff),
-                SafeArg.of("source greatest entry", greatestSourceEntry));
+                SafeArg.of("source greatest entry", greatestSourceEntry),
+                SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
         if (greatestSourceEntry == PaxosAcceptor.NO_LOG_ENTRY) {
             return;
         }
@@ -140,13 +154,15 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             V source = context.hydrator().hydrateFromBytes(context.sourceLog().readRound(greatestSourceEntry));
             byte[] destinationBytes = context.destinationLog().readRound(greatestSourceEntry);
             V dest = destinationBytes != null ? context.hydrator().hydrateFromBytes(destinationBytes) : null;
-            Preconditions.checkState(source.equalsIgnoringVersion(dest),
+            Preconditions.checkState(
+                    source.equalsIgnoringVersion(dest),
                     "The migration to the destination state log was already performed in the past, but the "
                             + "entry with the greatest sequence in source log does not match the entry in the "
                             + "destination log. This indicates the source log has advanced since the migration was "
                             + "performed which could lead to data corruption if allowed to continue.",
                     SafeArg.of("source entry", source),
-                    SafeArg.of("destination entry", dest));
+                    SafeArg.of("destination entry", dest),
+                    SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
         } catch (IOException e) {
             throw new SafeIllegalArgumentException("Unable to verify consistency between source and destination paxos "
                     + "logs because the source log entry could not be read.");
@@ -156,10 +172,21 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     @Value.Immutable
     interface MigrationContext<V extends Persistable & Versionable> {
         PaxosStateLog<V> sourceLog();
+
         PaxosStateLog<V> destinationLog();
+
         Persistable.Hydrator<V> hydrator();
+
         SqlitePaxosStateLogMigrationState migrationState();
+
         OptionalLong migrateFrom();
+
+        NamespaceAndUseCase namespaceAndUseCase();
+
+        @Default
+        default boolean skipValidationAndTruncateSourceIfMigrated() {
+            return false;
+        }
     }
 
     private static final class LogReader<V extends Persistable & Versionable> {

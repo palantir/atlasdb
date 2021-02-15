@@ -36,7 +36,8 @@ public final class UpdateVisitors {
         return update.accept(ASSERT_SNAPSHOT);
     }
 
-    private static class AssertSuccessVisitor implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Success> {
+    private static final class AssertSuccessVisitor
+            implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Success> {
 
         @Override
         public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Success success) {
@@ -47,7 +48,6 @@ public final class UpdateVisitors {
         public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Snapshot snapshot) {
             return fail("Unexpected snapshot");
         }
-
     }
 
     public static class AssertSnapshotVisitor implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Snapshot> {

@@ -22,9 +22,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.nio.ByteBuffer;
 import java.util.List;
-
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.Compression;
@@ -36,11 +39,6 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class ProfilingCassandraClientTest {
     private static final CqlQuery CQL_QUERY = CqlQuery.builder()
@@ -88,29 +86,32 @@ public class ProfilingCassandraClientTest {
     @Test
     public void handlesNullMultigetSliceResponseFromDelegate() throws TException {
         ByteBuffer byteBuffer = ByteBuffer.wrap(PtBytes.toBytes("foo"));
-        List<ColumnOrSuperColumn> columns = ImmutableList.of(
-                new ColumnOrSuperColumn().setColumn(new Column(byteBuffer)));
+        List<ColumnOrSuperColumn> columns =
+                ImmutableList.of(new ColumnOrSuperColumn().setColumn(new Column(byteBuffer)));
         ImmutableMap<ByteBuffer, List<ColumnOrSuperColumn>> resultMap = ImmutableMap.of(byteBuffer, columns);
 
         when(delegate.multiget_slice(any(), any(), any(), any(), any())).thenReturn(resultMap);
 
         assertThat(delegate.multiget_slice(
-                "getRows",
-                TableReference.createFromFullyQualifiedName("a.b"),
-                ImmutableList.of(byteBuffer),
-                new SlicePredicate(),
-                ConsistencyLevel.QUORUM)).isEqualTo(resultMap);
+                        "getRows",
+                        TableReference.createFromFullyQualifiedName("a.b"),
+                        ImmutableList.of(byteBuffer),
+                        new SlicePredicate(),
+                        ConsistencyLevel.QUORUM))
+                .isEqualTo(resultMap);
 
-        verify(delegate).multiget_slice(
-                "getRows",
-                TableReference.createFromFullyQualifiedName("a.b"),
-                ImmutableList.of(byteBuffer),
-                new SlicePredicate(),
-                ConsistencyLevel.QUORUM);
+        verify(delegate)
+                .multiget_slice(
+                        "getRows",
+                        TableReference.createFromFullyQualifiedName("a.b"),
+                        ImmutableList.of(byteBuffer),
+                        new SlicePredicate(),
+                        ConsistencyLevel.QUORUM);
     }
 
     private void setDelegateResponseToCqlQuery(CqlResult result) throws TException {
-        when(delegate.execute_cql3_query(CQL_QUERY, Compression.NONE, ConsistencyLevel.QUORUM)).thenReturn(result);
+        when(delegate.execute_cql3_query(CQL_QUERY, Compression.NONE, ConsistencyLevel.QUORUM))
+                .thenReturn(result);
     }
 
     private CqlResult executeCqlQuery() throws TException {

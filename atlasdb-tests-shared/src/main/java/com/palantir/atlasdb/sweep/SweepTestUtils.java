@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import java.util.function.Supplier;
-
-import org.awaitility.Awaitility;
-import org.awaitility.Duration;
-
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -51,6 +46,9 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.time.Duration;
+import java.util.function.Supplier;
+import org.awaitility.Awaitility;
 
 public final class SweepTestUtils {
     private SweepTestUtils() {}
@@ -58,14 +56,11 @@ public final class SweepTestUtils {
     public static TransactionManager setupTxManager(KeyValueService kvs) {
         InMemoryTimestampService ts = new InMemoryTimestampService();
         return setupTxManager(
-                kvs,
-                ts,
-                ts,
-                SweepStrategyManagers.createDefault(kvs),
-                TransactionServices.createRaw(kvs, ts, false));
+                kvs, ts, ts, SweepStrategyManagers.createDefault(kvs), TransactionServices.createRaw(kvs, ts, false));
     }
 
-    public static TransactionManager setupTxManager(KeyValueService kvs,
+    public static TransactionManager setupTxManager(
+            KeyValueService kvs,
             TimestampService tsService,
             TimestampManagementService tsmService,
             SweepStrategyManager ssm,
@@ -74,14 +69,23 @@ public final class SweepTestUtils {
         LockClient lockClient = LockClient.of("sweep client");
         LockService lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
-        Supplier<AtlasDbConstraintCheckingMode> constraints = () ->
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
+        Supplier<AtlasDbConstraintCheckingMode> constraints =
+                () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
         MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
         TransactionManager txManager = SerializableTransactionManager.createForTest(
-                metricsManager, kvs, tsService, tsmService, lockClient, lockService, txService,
-                constraints, cdm, ssm, cleaner,
+                metricsManager,
+                kvs,
+                tsService,
+                tsmService,
+                lockClient,
+                lockService,
+                txService,
+                constraints,
+                cdm,
+                ssm,
+                cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 writer);
@@ -107,13 +111,14 @@ public final class SweepTestUtils {
     private static void tearDownTables(KeyValueService kvs) {
         // do not truncate the targeted sweep table identifier tables
         Schemas.truncateTablesAndIndexes(TargetedSweepSchema.schemaWithoutTableIdentifierTables(), kvs);
-        Awaitility.await()
-                .timeout(Duration.FIVE_MINUTES)
-                .until(() -> {
-                    kvs.getAllTableNames().stream()
-                            .filter(ref -> !TargetedSweepSchema.INSTANCE.getLatestSchema().getAllTables().contains(ref))
-                            .forEach(kvs::truncateTable);
-                    return true;
-                });
+        Awaitility.await().timeout(Duration.ofMinutes(5)).until(() -> {
+            kvs.getAllTableNames().stream()
+                    .filter(ref -> !TargetedSweepSchema.INSTANCE
+                            .getLatestSchema()
+                            .getAllTables()
+                            .contains(ref))
+                    .forEach(kvs::truncateTable);
+            return true;
+        });
     }
 }

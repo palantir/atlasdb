@@ -19,7 +19,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-public class RecomputingSupplier<T> implements Supplier<T> {
+public final class RecomputingSupplier<T> implements Supplier<T> {
     final Supplier<? extends T> supplier;
     final AtomicReference<T> cache = new AtomicReference<>();
     final AtomicReference<CountDownLatch> latch = new AtomicReference<>();

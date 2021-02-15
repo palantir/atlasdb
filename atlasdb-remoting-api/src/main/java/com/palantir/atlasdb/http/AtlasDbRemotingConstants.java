@@ -20,16 +20,15 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 
 public final class AtlasDbRemotingConstants {
     public static final String ATLASDB_HTTP_CLIENT = "atlasdb-http-client";
-    public static final AtlasDbHttpProtocolVersion CURRENT_CLIENT_PROTOCOL_VERSION
-            = AtlasDbHttpProtocolVersion.CONJURE_JAVA_RUNTIME;
-    public static final UserAgent.Agent LEGACY_ATLASDB_HTTP_CLIENT_AGENT
-            = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT,
-            AtlasDbHttpProtocolVersion.LEGACY_OR_UNKNOWN.getProtocolVersionString());
-    public static final UserAgent.Agent ATLASDB_HTTP_CLIENT_AGENT
-            = UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, CURRENT_CLIENT_PROTOCOL_VERSION.getProtocolVersionString());
+    public static final AtlasDbHttpProtocolVersion CURRENT_CLIENT_PROTOCOL_VERSION =
+            AtlasDbHttpProtocolVersion.CONJURE_JAVA_RUNTIME;
+    public static final UserAgent.Agent LEGACY_ATLASDB_HTTP_CLIENT_AGENT = UserAgent.Agent.of(
+            ATLASDB_HTTP_CLIENT, AtlasDbHttpProtocolVersion.LEGACY_OR_UNKNOWN.getProtocolVersionString());
+    public static final UserAgent.Agent ATLASDB_HTTP_CLIENT_AGENT =
+            UserAgent.Agent.of(ATLASDB_HTTP_CLIENT, CURRENT_CLIENT_PROTOCOL_VERSION.getProtocolVersionString());
 
-    public static final UserAgent DEFAULT_USER_AGENT = UserAgent.of(
-            UserAgent.Agent.of("unknown", UserAgent.Agent.DEFAULT_VERSION));
+    public static final UserAgent DEFAULT_USER_AGENT =
+            UserAgent.of(UserAgent.Agent.of("unknown", UserAgent.Agent.DEFAULT_VERSION));
 
     private AtlasDbRemotingConstants() {
         // constants

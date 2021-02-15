@@ -16,15 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.function.LongUnaryOperator;
-import java.util.function.ToLongFunction;
-
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.Mutation;
-import org.apache.thrift.TException;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -35,6 +26,13 @@ import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.Mutations;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.function.LongUnaryOperator;
+import java.util.function.ToLongFunction;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.Mutation;
+import org.apache.thrift.TException;
 
 class CellRangeDeleter {
     private final CassandraClientPool clientPool;
@@ -42,7 +40,8 @@ class CellRangeDeleter {
     private final ConsistencyLevel deleteConsistency;
     private final LongUnaryOperator rangeTombstoneTimestampProvider;
 
-    CellRangeDeleter(CassandraClientPool clientPool,
+    CellRangeDeleter(
+            CassandraClientPool clientPool,
             WrappingQueryRunner wrappingQueryRunner,
             ConsistencyLevel deleteConsistency,
             LongUnaryOperator rangeTombstoneTimestampProvider) {
@@ -57,20 +56,18 @@ class CellRangeDeleter {
             return;
         }
 
-        Map<InetSocketAddress, Map<Cell, TimestampRangeDelete>> keysByHost = HostPartitioner.partitionMapByHost(
-                clientPool, deletes.entrySet());
+        Map<InetSocketAddress, Map<Cell, TimestampRangeDelete>> keysByHost =
+                HostPartitioner.partitionMapByHost(clientPool, deletes.entrySet());
 
         // this is required by the interface of the CassandraMutationTimestampProvider, although it exists for tests
         long maxTimestampForAllCells = deletes.values().stream()
-                .mapToLong(TimestampRangeDelete::timestamp).max().getAsLong();
-        long rangeTombstoneCassandraTimestamp =
-                rangeTombstoneTimestampProvider.applyAsLong(maxTimestampForAllCells);
+                .mapToLong(TimestampRangeDelete::timestamp)
+                .max()
+                .getAsLong();
+        long rangeTombstoneCassandraTimestamp = rangeTombstoneTimestampProvider.applyAsLong(maxTimestampForAllCells);
         for (Map.Entry<InetSocketAddress, Map<Cell, TimestampRangeDelete>> entry : keysByHost.entrySet()) {
             deleteAllTimestampsOnSingleHost(
-                    tableRef,
-                    entry.getKey(),
-                    entry.getValue(),
-                    rangeTombstoneCassandraTimestamp);
+                    tableRef, entry.getKey(), entry.getValue(), rangeTombstoneCassandraTimestamp);
         }
     }
 
@@ -113,11 +110,18 @@ class CellRangeDeleter {
      * versions before deleting the latest cell (which is an Atlas level tombstone).
      */
     private void insertRangeTombstones(
-            CassandraClient client, Map<Cell, TimestampRangeDelete> deletes,
-            TableReference tableRef, long rangeTombstoneCassandraTs) throws TException {
+            CassandraClient client,
+            Map<Cell, TimestampRangeDelete> deletes,
+            TableReference tableRef,
+            long rangeTombstoneCassandraTs)
+            throws TException {
         insertTombstones(client, deletes, tableRef, rangeTombstoneCassandraTs, TimestampRangeDelete::timestamp);
-        insertTombstones(client, Maps.filterValues(deletes, TimestampRangeDelete::endInclusive),
-                tableRef, rangeTombstoneCassandraTs, delete -> delete.maxTimestampToDelete() + 1);
+        insertTombstones(
+                client,
+                Maps.filterValues(deletes, TimestampRangeDelete::endInclusive),
+                tableRef,
+                rangeTombstoneCassandraTs,
+                delete -> delete.maxTimestampToDelete() + 1);
     }
 
     private void insertTombstones(
@@ -125,7 +129,8 @@ class CellRangeDeleter {
             Map<Cell, TimestampRangeDelete> deletes,
             TableReference tableRef,
             long rangeTombstoneCassandraTs,
-            ToLongFunction<TimestampRangeDelete> exclusiveMaxTimestampToDelete) throws TException {
+            ToLongFunction<TimestampRangeDelete> exclusiveMaxTimestampToDelete)
+            throws TException {
         MutationMap mutationMap = new MutationMap();
 
         deletes.forEach((cell, delete) -> {
@@ -133,12 +138,15 @@ class CellRangeDeleter {
             mutationMap.addMutationForCell(cell, tableRef, mutation);
         });
 
-        wrappingQueryRunner.batchMutate("deleteAllTimestamps", client, ImmutableSet.of(tableRef), mutationMap,
-                deleteConsistency);
+        wrappingQueryRunner.batchMutate(
+                "deleteAllTimestamps", client, ImmutableSet.of(tableRef), mutationMap, deleteConsistency);
     }
 
-    private Mutation getMutation(Cell cell, TimestampRangeDelete delete,
-            long rangeTombstoneCassandraTimestamp, ToLongFunction<TimestampRangeDelete> exclusiveTimestampExtractor) {
+    private Mutation getMutation(
+            Cell cell,
+            TimestampRangeDelete delete,
+            long rangeTombstoneCassandraTimestamp,
+            ToLongFunction<TimestampRangeDelete> exclusiveTimestampExtractor) {
         return Mutations.fromTimestampRangeDelete(
                 cell.getColumnName(), delete, rangeTombstoneCassandraTimestamp, exclusiveTimestampExtractor);
     }

@@ -18,19 +18,17 @@ package com.palantir.atlasdb.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
-
-import org.junit.Test;
-
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.HashMap;
+import java.util.Map;
+import org.junit.Test;
 
 public class DisjointUnionTaggedMetricSetTest {
     private static final MetricName METRIC_NAME_1 = MetricName.builder()
@@ -45,8 +43,8 @@ public class DisjointUnionTaggedMetricSetTest {
 
     private final TaggedMetricRegistry registry1 = new DefaultTaggedMetricRegistry();
     private final TaggedMetricRegistry registry2 = new DefaultTaggedMetricRegistry();
-    private final DisjointUnionTaggedMetricSet disjointUnionTaggedMetricSet
-            = new DisjointUnionTaggedMetricSet(registry1, registry2);
+    private final DisjointUnionTaggedMetricSet disjointUnionTaggedMetricSet =
+            new DisjointUnionTaggedMetricSet(registry1, registry2);
 
     @Test
     public void unionOfEmptyMetricSetsIsEmpty() {
@@ -59,8 +57,9 @@ public class DisjointUnionTaggedMetricSetTest {
         Histogram histogram = registry2.histogram(METRIC_NAME_2);
         Meter meter = registry1.meter(METRIC_NAME_3);
 
-        assertThat(disjointUnionTaggedMetricSet.getMetrics()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(METRIC_NAME_1, timer, METRIC_NAME_2, histogram, METRIC_NAME_3, meter));
+        assertThat(disjointUnionTaggedMetricSet.getMetrics())
+                .containsExactlyInAnyOrderEntriesOf(
+                        ImmutableMap.of(METRIC_NAME_1, timer, METRIC_NAME_2, histogram, METRIC_NAME_3, meter));
     }
 
     @Test
@@ -70,8 +69,8 @@ public class DisjointUnionTaggedMetricSetTest {
         Meter meter = registry1.meter(METRIC_NAME_3);
         registry1.remove(METRIC_NAME_1);
 
-        assertThat(disjointUnionTaggedMetricSet.getMetrics()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(METRIC_NAME_2, histogram, METRIC_NAME_3, meter));
+        assertThat(disjointUnionTaggedMetricSet.getMetrics())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(METRIC_NAME_2, histogram, METRIC_NAME_3, meter));
     }
 
     @Test
@@ -79,8 +78,8 @@ public class DisjointUnionTaggedMetricSetTest {
         Timer timer = registry1.timer(METRIC_NAME_1);
         registry2.timer(METRIC_NAME_1);
 
-        assertThat(disjointUnionTaggedMetricSet.getMetrics()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(METRIC_NAME_1, timer));
+        assertThat(disjointUnionTaggedMetricSet.getMetrics())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(METRIC_NAME_1, timer));
     }
 
     @Test
@@ -89,9 +88,10 @@ public class DisjointUnionTaggedMetricSetTest {
         Histogram histogram = registry2.histogram(METRIC_NAME_2);
         Meter meter = registry1.meter(METRIC_NAME_3);
 
-        Map<MetricName, Metric> stateOfTheWorld = Maps.newHashMap();
+        Map<MetricName, Metric> stateOfTheWorld = new HashMap<>();
         disjointUnionTaggedMetricSet.forEachMetric(stateOfTheWorld::put);
-        assertThat(stateOfTheWorld).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(METRIC_NAME_1, timer, METRIC_NAME_2, histogram, METRIC_NAME_3, meter));
+        assertThat(stateOfTheWorld)
+                .containsExactlyInAnyOrderEntriesOf(
+                        ImmutableMap.of(METRIC_NAME_1, timer, METRIC_NAME_2, histogram, METRIC_NAME_3, meter));
     }
 }

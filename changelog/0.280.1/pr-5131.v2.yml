@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: TimeLock now validates the expected invariant for its timestamp bounds
+    i.e. the timestamp bound must increase with increasing sequence numbers.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5131

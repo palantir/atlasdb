@@ -15,28 +15,29 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
 public class KeyValueServiceStatusTest {
     @Test
     public void allOperationsMeansHealthy() {
-        assertTrue(KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS.isHealthy());
+        assertThat(KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS.isHealthy()).isTrue();
     }
+
     @Test
     public void mostOperationsMeansNotHealthy() {
-        assertFalse(KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES.isHealthy());
+        assertThat(KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES.isHealthy())
+                .isFalse();
     }
 
     @Test
     public void unhealthyMeansNotHealthy() { // well, obviously
-        assertFalse(KeyValueServiceStatus.UNHEALTHY.isHealthy());
+        assertThat(KeyValueServiceStatus.UNHEALTHY.isHealthy()).isFalse();
     }
 
     @Test
     public void terminalMeansNotHealthy() {
-        assertFalse(KeyValueServiceStatus.TERMINAL.isHealthy());
+        assertThat(KeyValueServiceStatus.TERMINAL.isHealthy()).isFalse();
     }
 }

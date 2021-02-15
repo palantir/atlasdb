@@ -16,19 +16,18 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.List;
-
-import org.immutables.value.Value;
-
 import com.palantir.timelock.corruption.detection.CorruptionHealthCheck;
 import com.palantir.timelock.corruption.detection.RemoteCorruptionDetector;
-import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
+import com.palantir.timelock.history.LocalHistoryLoader;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TimeLockCorruptionComponents {
     CorruptionHealthCheck timeLockCorruptionHealthCheck();
+
     RemoteCorruptionDetector remoteCorruptionDetector();
-    List<TimeLockPaxosHistoryProvider> remoteHistoryProviders();
+
+    LocalHistoryLoader localHistoryLoader();
 
     static ImmutableTimeLockCorruptionComponents.Builder builder() {
         return ImmutableTimeLockCorruptionComponents.builder();

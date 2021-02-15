@@ -19,15 +19,14 @@ package com.palantir.atlasdb.internalschema;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TransactionSchemaManagerIntegrationTest {
     private static final long ONE_HUNDRED_MILLION = 100_000_000;
@@ -49,17 +48,20 @@ public class TransactionSchemaManagerIntegrationTest {
     public void newSchemaVersionsCanBeInstalledWithinOneHundredMillionTimestamps() {
         assertThat(manager.tryInstallNewTransactionsSchemaVersion(2)).isTrue();
         fastForwardTimestampByOneHundredMillion();
-        assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(2);
+        assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp()))
+                .isEqualTo(2);
     }
 
     @Test
     public void canSwitchBetweenSchemaVersions() {
         assertThat(manager.tryInstallNewTransactionsSchemaVersion(2)).isTrue();
         fastForwardTimestampByOneHundredMillion();
-        assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(2);
+        assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp()))
+                .isEqualTo(2);
         assertThat(manager.tryInstallNewTransactionsSchemaVersion(1)).isTrue();
         fastForwardTimestampByOneHundredMillion();
-        assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(1);
+        assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp()))
+                .isEqualTo(1);
     }
 
     @Test
@@ -78,14 +80,9 @@ public class TransactionSchemaManagerIntegrationTest {
     }
 
     private TransactionSchemaManager createTransactionSchemaManager(TimestampService ts) {
-        return new TransactionSchemaManager(
-                CoordinationServices.createDefault(
-                        new InMemoryKeyValueService(true),
-                        timestamps,
-                        MetricsManagers.createForTests(),
-                        false));
+        return new TransactionSchemaManager(CoordinationServices.createDefault(
+                new InMemoryKeyValueService(true), timestamps, MetricsManagers.createForTests(), false));
     }
-
 
     private void fastForwardTimestampByOneHundredMillion() {
         long currentTimestamp = timestamps.getFreshTimestamp();

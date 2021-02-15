@@ -15,17 +15,6 @@
  */
 package com.palantir.lock.client;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -39,6 +28,15 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimplifyingLockService;
 import com.palantir.logsafe.Preconditions;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class LockRefreshingLockService extends SimplifyingLockService {
     public static final int REFRESH_BATCH_SIZE = 500_000;
@@ -54,24 +52,32 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
 
     public static LockRefreshingLockService create(LockService delegate) {
         final LockRefreshingLockService ret = new LockRefreshingLockService(delegate);
-        ret.task = executor.scheduleWithFixedDelay(() -> {
-            long startTime = System.currentTimeMillis();
-            try {
-                ret.refreshLocks();
-            } catch (Throwable t) {
-                log.warn("Failed to refresh locks", t);
-            } finally {
-                long elapsed = System.currentTimeMillis() - startTime;
+        ret.task = executor.scheduleWithFixedDelay(
+                () -> {
+                    long startTime = System.currentTimeMillis();
+                    try {
+                        ret.refreshLocks();
+                    } catch (Throwable t) {
+                        log.warn("Failed to refresh locks", t);
+                    } finally {
+                        long elapsed = System.currentTimeMillis() - startTime;
 
-                if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
-                    log.warn("Refreshing locks took {} milliseconds"
-                            + " for tokens: {}", elapsed, ret.toRefresh);
-                } else if (elapsed > ret.refreshFrequencyMillis) {
-                    log.info("Refreshing locks took {} milliseconds"
-                            + " for tokens: {}", elapsed, ret.toRefresh);
-                }
-            }
-        }, 0, ret.refreshFrequencyMillis, TimeUnit.MILLISECONDS);
+                        if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
+                            log.warn(
+                                    "Refreshing locks took {} milliseconds" + " for tokens: {}",
+                                    elapsed,
+                                    ret.toRefresh);
+                        } else if (elapsed > ret.refreshFrequencyMillis) {
+                            log.info(
+                                    "Refreshing locks took {} milliseconds" + " for tokens: {}",
+                                    elapsed,
+                                    ret.toRefresh);
+                        }
+                    }
+                },
+                0,
+                ret.refreshFrequencyMillis,
+                TimeUnit.MILLISECONDS);
         return ret;
     }
 
@@ -96,8 +102,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
     }
 
     @Override
-    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
-            throws InterruptedException {
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request) throws InterruptedException {
         HeldLocksToken lock = super.lockAndGetHeldLocks(client, request);
         if (lock != null) {
             toRefresh.add(lock.getLockRefreshToken());
@@ -106,8 +111,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
     }
 
     @Override
-    public LockRefreshToken lock(String client, LockRequest request)
-            throws InterruptedException {
+    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
         LockRefreshToken ret = super.lock(client, request);
         if (ret != null) {
             toRefresh.add(ret);
@@ -138,8 +142,7 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
             refreshedTokens.addAll(delegate.refreshLockRefreshTokens(tokenBatch));
         }
         for (LockRefreshToken token : refreshCopy) {
-            if (!refreshedTokens.contains(token)
-                    && toRefresh.contains(token)) {
+            if (!refreshedTokens.contains(token) && toRefresh.contains(token)) {
                 log.warn("failed to refresh lock: {}", token);
                 toRefresh.remove(token);
             }

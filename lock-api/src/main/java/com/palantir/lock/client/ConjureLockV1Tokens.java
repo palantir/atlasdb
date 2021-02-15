@@ -16,15 +16,14 @@
 
 package com.palantir.lock.client;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.SimpleHeldLocksToken;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public final class ConjureLockV1Tokens {
     private ConjureLockV1Tokens() {

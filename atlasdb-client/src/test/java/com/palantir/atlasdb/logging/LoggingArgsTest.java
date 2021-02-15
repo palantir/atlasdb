@@ -19,14 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Map;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -42,21 +34,24 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.List;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 public class LoggingArgsTest {
     private static final String ARG_NAME = "argName";
     private static final TableReference SAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.safe");
     private static final TableReference UNSAFE_TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("foo.bar");
-    private static final List<TableReference> LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES = Lists.newArrayList(
-            SAFE_TABLE_REFERENCE,
-            UNSAFE_TABLE_REFERENCE
-    );
+    private static final ImmutableList<TableReference> LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES =
+            ImmutableList.of(SAFE_TABLE_REFERENCE, UNSAFE_TABLE_REFERENCE);
     private static final byte[] SAFE_TABLE_METADATA = AtlasDbConstants.GENERIC_TABLE_METADATA;
     private static final byte[] UNSAFE_TABLE_METADATA = TableMetadata.builder()
             .nameLogSafety(TableMetadataPersistence.LogSafety.UNSAFE)
             .build()
             .persistToBytes();
-    private static final Map<TableReference, byte[]> TABLE_REF_TO_METADATA = ImmutableMap.of(
+    private static final ImmutableMap<TableReference, byte[]> TABLE_REF_TO_METADATA = ImmutableMap.of(
             SAFE_TABLE_REFERENCE, SAFE_TABLE_METADATA,
             UNSAFE_TABLE_REFERENCE, UNSAFE_TABLE_METADATA);
 
@@ -71,16 +66,19 @@ public class LoggingArgsTest {
     private static final byte[] SAFE_COLUMN_NAME_BYTES_2 = PtBytes.toBytes(SAFE_COLUMN_NAME_2);
 
     private static final RangeRequest SAFE_RANGE_REQUEST = RangeRequest.builder()
-            .retainColumns(ImmutableList.of(SAFE_ROW_NAME_BYTES)).build();
+            .retainColumns(ImmutableList.of(SAFE_ROW_NAME_BYTES))
+            .build();
     private static final RangeRequest UNSAFE_RANGE_REQUEST = RangeRequest.builder()
-            .retainColumns(ImmutableList.of(UNSAFE_ROW_NAME_BYTES)).build();
+            .retainColumns(ImmutableList.of(UNSAFE_ROW_NAME_BYTES))
+            .build();
     private static final RangeRequest MIXED_RANGE_REQUEST = RangeRequest.builder()
-            .retainColumns(ImmutableList.of(SAFE_ROW_NAME_BYTES, UNSAFE_ROW_NAME_BYTES)).build();
+            .retainColumns(ImmutableList.of(SAFE_ROW_NAME_BYTES, UNSAFE_ROW_NAME_BYTES))
+            .build();
 
-    private static final ColumnRangeSelection SAFE_COLUMN_RANGE = new ColumnRangeSelection(
-            SAFE_COLUMN_NAME_BYTES, SAFE_COLUMN_NAME_BYTES_2);
-    private static final BatchColumnRangeSelection SAFE_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
-            SAFE_COLUMN_RANGE, 1);
+    private static final ColumnRangeSelection SAFE_COLUMN_RANGE =
+            new ColumnRangeSelection(SAFE_COLUMN_NAME_BYTES, SAFE_COLUMN_NAME_BYTES_2);
+    private static final BatchColumnRangeSelection SAFE_BATCH_COLUMN_RANGE =
+            BatchColumnRangeSelection.create(SAFE_COLUMN_RANGE, 1);
 
     public static final boolean ALL_SAFE_FOR_LOGGING = true;
     public static final boolean NOT_ALL_SAFE_FOR_LOGGING = false;
@@ -122,8 +120,8 @@ public class LoggingArgsTest {
     public void returnsSafeInternalTableNameCorrectly() {
         Arg<String> internalTableNameArg = LoggingArgs.internalTableName(SAFE_TABLE_REFERENCE);
         assertThat(internalTableNameArg.getName()).isEqualTo("tableRef");
-        assertThat(internalTableNameArg.getValue()).isEqualTo(
-                AbstractKeyValueService.internalTableName(SAFE_TABLE_REFERENCE));
+        assertThat(internalTableNameArg.getValue())
+                .isEqualTo(AbstractKeyValueService.internalTableName(SAFE_TABLE_REFERENCE));
         assertThat(internalTableNameArg).isInstanceOf(SafeArg.class);
     }
 
@@ -131,8 +129,8 @@ public class LoggingArgsTest {
     public void returnsUnsafeInternalTableNameCorrectly() {
         Arg<String> internalTableNameArg = LoggingArgs.internalTableName(UNSAFE_TABLE_REFERENCE);
         assertThat(internalTableNameArg.getName()).isEqualTo("unsafeTableRef");
-        assertThat(internalTableNameArg.getValue()).isEqualTo(
-                AbstractKeyValueService.internalTableName(UNSAFE_TABLE_REFERENCE));
+        assertThat(internalTableNameArg.getValue())
+                .isEqualTo(AbstractKeyValueService.internalTableName(UNSAFE_TABLE_REFERENCE));
         assertThat(internalTableNameArg).isInstanceOf(UnsafeArg.class);
     }
 
@@ -161,8 +159,7 @@ public class LoggingArgsTest {
 
     @Test
     public void returnsSafeRangeWhenAllSafe() {
-        assertThat(LoggingArgs.range(SAFE_TABLE_REFERENCE, SAFE_RANGE_REQUEST))
-                .isInstanceOf(SafeArg.class);
+        assertThat(LoggingArgs.range(SAFE_TABLE_REFERENCE, SAFE_RANGE_REQUEST)).isInstanceOf(SafeArg.class);
     }
 
     @Test
@@ -173,8 +170,7 @@ public class LoggingArgsTest {
 
     @Test
     public void returnsUnsafeRangeEvenWhenContainsSafeColumns() {
-        assertThat(LoggingArgs.range(SAFE_TABLE_REFERENCE, MIXED_RANGE_REQUEST))
-                .isInstanceOf(UnsafeArg.class);
+        assertThat(LoggingArgs.range(SAFE_TABLE_REFERENCE, MIXED_RANGE_REQUEST)).isInstanceOf(UnsafeArg.class);
     }
 
     @Test
@@ -184,7 +180,8 @@ public class LoggingArgsTest {
 
     @Test
     public void returnsUnsafeBatchColumnRangeEvenWhenContainsSafeColumns() {
-        assertThat(LoggingArgs.batchColumnRangeSelection(SAFE_BATCH_COLUMN_RANGE)).isInstanceOf(UnsafeArg.class);
+        assertThat(LoggingArgs.batchColumnRangeSelection(SAFE_BATCH_COLUMN_RANGE))
+                .isInstanceOf(UnsafeArg.class);
     }
 
     @Test
@@ -202,8 +199,8 @@ public class LoggingArgsTest {
     public void returnsTablesAndPlaceholderWhenTablesAreSafeAndUnsafe() {
         List<TableReference> tables = ImmutableList.of(SAFE_TABLE_REFERENCE, UNSAFE_TABLE_REFERENCE);
         List<TableReference> returnedList = Lists.newArrayList(LoggingArgs.safeTablesOrPlaceholder(tables));
-        List<TableReference> expectedList = Lists.newArrayList(SAFE_TABLE_REFERENCE,
-                LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
+        List<TableReference> expectedList =
+                Lists.newArrayList(SAFE_TABLE_REFERENCE, LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
 
         assertThat(returnedList).containsOnly(expectedList.toArray(new TableReference[expectedList.size()]));
     }

@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.schema.constraints.foreign;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.table.description.constraints.ForeignKeyConstraint;
 import com.palantir.atlasdb.table.description.constraints.tuples.TupleOf2;
+import java.util.List;
 
 public class Select2Long implements ForeignKeyConstraint {
     public static List<TupleOf2<Long, Long>> getKeys(Long param, Long param2) {

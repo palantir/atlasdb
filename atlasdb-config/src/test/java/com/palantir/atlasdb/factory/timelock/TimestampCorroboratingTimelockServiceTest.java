@@ -23,17 +23,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Future;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
@@ -42,6 +31,15 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampRange;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class TimestampCorroboratingTimelockServiceTest {
     private static final LockImmutableTimestampResponse LOCK_IMMUTABLE_TIMESTAMP_RESPONSE =
@@ -73,8 +71,7 @@ public class TimestampCorroboratingTimelockServiceTest {
 
     @Test
     public void startIdentifiedAtlasDbTransactionShouldFail() {
-        StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse =
-                makeResponse(1L);
+        StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse = makeResponse(1L);
 
         when(rawTimelockService.startIdentifiedAtlasDbTransactionBatch(1))
                 .thenReturn(ImmutableList.of(startIdentifiedAtlasDbTransactionResponse));
@@ -84,8 +81,7 @@ public class TimestampCorroboratingTimelockServiceTest {
 
     @Test
     public void failsUnderConflictingMixedOperations() {
-        StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse =
-                makeResponse(1L);
+        StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse = makeResponse(1L);
 
         when(rawTimelockService.startIdentifiedAtlasDbTransactionBatch(1))
                 .thenReturn(ImmutableList.of(startIdentifiedAtlasDbTransactionResponse));
@@ -113,8 +109,7 @@ public class TimestampCorroboratingTimelockServiceTest {
                 .thenAnswer(blockingTimestampReturning1)
                 .thenReturn(2L);
 
-        Future<Void> blockingGetFreshTimestampCall =
-                CompletableFuture.runAsync(timelockService::getFreshTimestamp);
+        Future<Void> blockingGetFreshTimestampCall = CompletableFuture.runAsync(timelockService::getFreshTimestamp);
 
         blockingTimestampReturning1.waitForFirstCallToBlock();
 
@@ -124,13 +119,12 @@ public class TimestampCorroboratingTimelockServiceTest {
 
         // we want to now resume the blocked call, which will return timestamp of 1 and not throw
         blockingTimestampReturning1.countdown();
-        assertThatCode(blockingGetFreshTimestampCall::get)
-                .doesNotThrowAnyException();
+        assertThatCode(blockingGetFreshTimestampCall::get).doesNotThrowAnyException();
     }
 
     private StartIdentifiedAtlasDbTransactionResponse makeResponse(long timestamp) {
-        return StartIdentifiedAtlasDbTransactionResponse.of(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE,
-                TimestampAndPartition.of(timestamp, 0));
+        return StartIdentifiedAtlasDbTransactionResponse.of(
+                LOCK_IMMUTABLE_TIMESTAMP_RESPONSE, TimestampAndPartition.of(timestamp, 0));
     }
 
     private static final class BlockingTimestamp implements Answer<Long> {

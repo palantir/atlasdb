@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.blob.generated;
 
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -12,6 +13,8 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -82,7 +85,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
     private final BlobSchemaTableFactory tables;
 
     private HotspottyDataStreamStore(TransactionManager txManager, BlobSchemaTableFactory tables) {
-        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        this(txManager, tables, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 
     private HotspottyDataStreamStore(TransactionManager txManager, BlobSchemaTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
@@ -139,8 +142,8 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
         HotspottyDataStreamMetadataTable mdTable = tables.getHotspottyDataStreamMetadataTable(t);
         Map<Long, StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());
 
-        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();
-        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();
+        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = new HashMap<>();
+        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = new HashMap<>();
         for (Entry<Long, StreamMetadata> e : streamIdsToMetadata.entrySet()) {
             long streamId = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -161,7 +164,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> rowsToMetadata = Maps.newHashMap();
+        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -204,7 +207,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
         }
         HotspottyDataStreamMetadataTable table = tables.getHotspottyDataStreamMetadataTable(t);
         Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = Maps.newHashMap();
+        Map<Long, StreamMetadata> ret = new HashMap<>();
         for (Map.Entry<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -220,7 +223,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
         Set<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMap();
+        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
         for (HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow r : m.keySet()) {
             for (HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -233,7 +236,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
         }
         Map<Long, StreamMetadata> metadata = getMetadata(t, hashForStreams.keySet());
 
-        Map<Sha256Hash, Long> ret = Maps.newHashMap();
+        Map<Sha256Hash, Long> ret = new HashMap<>();
         for (Map.Entry<Long, StreamMetadata> e : metadata.entrySet()) {
             if (e.getValue().getStatus() != Status.STORED) {
                 continue;
@@ -246,7 +249,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
     }
 
     private Set<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow> rows = Sets.newHashSet();
+        Set<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow> rows = new HashSet<>();
         for (Sha256Hash h : hashes) {
             rows.add(HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow.of(h));
         }
@@ -254,7 +257,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
     }
 
     private Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> getMetadataRowsForIds(final Iterable<Long> ids) {
-        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> rows = Sets.newHashSet();
+        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> rows = new HashSet<>();
         for (Long id : ids) {
             rows.add(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow.of(id));
         }
@@ -271,7 +274,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
                     "Should only index successfully stored streams.");
 
             Sha256Hash hash = Sha256Hash.EMPTY;
-            if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {
+            if (!ByteString.EMPTY.equals(metadata.getHash())) {
                 hash = new Sha256Hash(metadata.getHash().toByteArray());
             }
             HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow hashRow = HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow.of(hash);
@@ -290,14 +293,14 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
         if (streamIds.isEmpty()) {
             return;
         }
-        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> smRows = Sets.newHashSet();
+        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> smRows = new HashSet<>();
         Multimap<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumn> shToDelete = HashMultimap.create();
         for (Long streamId : streamIds) {
             smRows.add(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow.of(streamId));
         }
         HotspottyDataStreamMetadataTable table = tables.getHotspottyDataStreamMetadataTable(t);
         Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(smRows);
-        Set<HotspottyDataStreamValueTable.HotspottyDataStreamValueRow> streamValueToDelete = Sets.newHashSet();
+        Set<HotspottyDataStreamValueTable.HotspottyDataStreamValueRow> streamValueToDelete = new HashSet<>();
         for (Entry<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             Long streamId = e.getKey().getId();
             long blocks = getNumberOfBlocksFromMetadata(e.getValue());
@@ -306,7 +309,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
             }
             ByteString streamHash = e.getValue().getHash();
             Sha256Hash hash = Sha256Hash.EMPTY;
-            if (streamHash != com.google.protobuf.ByteString.EMPTY) {
+            if (!ByteString.EMPTY.equals(streamHash)) {
                 hash = new Sha256Hash(streamHash.toByteArray());
             } else {
                 log.error("Empty hash for stream {}", streamId);
@@ -356,7 +359,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
     @Override
     protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, Iterable<Long> ids) {
         HotspottyDataStreamMetadataTable metaTable = tables.getHotspottyDataStreamMetadataTable(t);
-        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> rows = Sets.newHashSet();
+        Set<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow> rows = new HashSet<>();
         for (Long id : ids) {
             rows.add(HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow.of(id));
         }
@@ -403,7 +406,9 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
      * {@link FileOutputStream}
      * {@link Functions}
      * {@link Generated}
+     * {@link HashMap}
      * {@link HashMultimap}
+     * {@link HashSet}
      * {@link IOException}
      * {@link ImmutableMap}
      * {@link ImmutableSet}

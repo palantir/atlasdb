@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class TransactionSerializableConflictException extends TransactionFailedRetriableException {
@@ -26,13 +25,12 @@ public class TransactionSerializableConflictException extends TransactionFailedR
     }
 
     public static TransactionSerializableConflictException create(
-            TableReference tableRef,
-            long timestamp,
-            long elapsedMillis) {
-        String msg = String.format("There was a read-write conflict on table %s.  This means that this table was "
-                + "marked as Serializable and another transaction wrote a different value than this transaction read.  "
-                + "startTs: %d  elapsedMillis: %d", tableRef.getQualifiedName(), timestamp, elapsedMillis);
+            TableReference tableRef, long timestamp, long elapsedMillis) {
+        String msg = String.format(
+                "There was a read-write conflict on table %s.  This means that this table was marked as Serializable"
+                        + " and another transaction wrote a different value than this transaction read.  startTs: %d "
+                        + " elapsedMillis: %d",
+                tableRef.getQualifiedName(), timestamp, elapsedMillis);
         return new TransactionSerializableConflictException(msg);
     }
-
 }

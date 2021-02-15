@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -33,6 +30,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlC
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tracing.Tracers;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 
 public final class DefaultCassandraAsyncKeyValueServiceFactory implements CassandraAsyncKeyValueServiceFactory {
     public static final CassandraAsyncKeyValueServiceFactory DEFAULT =
@@ -46,13 +45,9 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
 
     @Override
     public Optional<AsyncKeyValueService> constructAsyncKeyValueService(
-            MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            boolean initializeAsync) {
-        Optional<CqlClient> cqlClient = cqlClientFactory.constructClient(
-                metricsManager.getTaggedRegistry(),
-                config,
-                initializeAsync);
+            MetricsManager metricsManager, CassandraKeyValueServiceConfig config, boolean initializeAsync) {
+        Optional<CqlClient> cqlClient =
+                cqlClientFactory.constructClient(metricsManager.getTaggedRegistry(), config, initializeAsync);
 
         ExecutorService executorService = config.servers().accept(new Visitor<ExecutorService>() {
             @Override
@@ -65,17 +60,13 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
                 if (cqlCapableConfig.cqlHosts().isEmpty()) {
                     return MoreExecutors.newDirectExecutorService();
                 }
-                return tracingExecutorService(
-                        instrumentExecutorService(
-                                createThreadPool(cqlCapableConfig.cqlHosts().size() * config.poolSize()),
-                                metricsManager));
+                return tracingExecutorService(instrumentExecutorService(
+                        createThreadPool(cqlCapableConfig.cqlHosts().size() * config.poolSize()), metricsManager));
             }
         });
 
         return cqlClient.map(client -> CassandraAsyncKeyValueService.create(
-                config.getKeyspaceOrThrow(),
-                client,
-                AtlasFutures.futuresCombiner(executorService)));
+                config.getKeyspaceOrThrow(), client, AtlasFutures.futuresCombiner(executorService)));
     }
 
     /**
@@ -99,4 +90,3 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
                 MetricRegistry.name(AsyncKeyValueService.class, "cassandra.executorService"));
     }
 }
-

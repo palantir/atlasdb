@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.debug;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -34,6 +32,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.Optional;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -55,8 +54,8 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     }
 
     @Override
-    public ConjureStartTransactionsResponse startTransactions(AuthHeader authHeader, String namespace,
-            ConjureStartTransactionsRequest request) {
+    public ConjureStartTransactionsResponse startTransactions(
+            AuthHeader authHeader, String namespace, ConjureStartTransactionsRequest request) {
         ConjureStartTransactionsResponse response = conjureDelegate.startTransactions(authHeader, namespace, request);
         lockDiagnosticCollector.collect(
                 response.getTimestamps().stream(),
@@ -66,8 +65,8 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     }
 
     @Override
-    public ConjureGetFreshTimestampsResponse getFreshTimestamps(AuthHeader authHeader, String namespace,
-            ConjureGetFreshTimestampsRequest request) {
+    public ConjureGetFreshTimestampsResponse getFreshTimestamps(
+            AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
         return conjureDelegate.getFreshTimestamps(authHeader, namespace, request);
     }
 
@@ -88,8 +87,8 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     }
 
     @Override
-    public ConjureWaitForLocksResponse waitForLocks(AuthHeader authHeader, String namespace,
-            ConjureLockRequest request) {
+    public ConjureWaitForLocksResponse waitForLocks(
+            AuthHeader authHeader, String namespace, ConjureLockRequest request) {
         request.getClientDescription()
                 .flatMap(LockDiagnosticConjureTimelockService::tryParseStartTimestamp)
                 .ifPresent(startTimestamp -> lockDiagnosticCollector.collect(
@@ -100,8 +99,8 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     }
 
     @Override
-    public ConjureRefreshLocksResponse refreshLocks(AuthHeader authHeader, String namespace,
-            ConjureRefreshLocksRequest request) {
+    public ConjureRefreshLocksResponse refreshLocks(
+            AuthHeader authHeader, String namespace, ConjureRefreshLocksRequest request) {
         ConjureRefreshLocksResponse response = conjureDelegate.refreshLocks(authHeader, namespace, request);
         localLockTracker.logRefreshResponse(request.getTokens(), response);
         return response;
@@ -115,8 +114,8 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     }
 
     @Override
-    public GetCommitTimestampsResponse getCommitTimestamps(AuthHeader authHeader, String namespace,
-            GetCommitTimestampsRequest request) {
+    public GetCommitTimestampsResponse getCommitTimestamps(
+            AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
         return conjureDelegate.getCommitTimestamps(authHeader, namespace, request);
     }
 

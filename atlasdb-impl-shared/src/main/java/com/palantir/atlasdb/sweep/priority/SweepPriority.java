@@ -15,11 +15,9 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
-import java.util.OptionalLong;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.OptionalLong;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface SweepPriority {
@@ -35,5 +33,4 @@ public interface SweepPriority {
     long staleValuesDeleted();
 
     long cellTsPairsExamined();
-
 }

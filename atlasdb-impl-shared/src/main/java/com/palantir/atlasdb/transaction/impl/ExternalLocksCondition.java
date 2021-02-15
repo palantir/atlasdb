@@ -15,19 +15,17 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.UnsafeArg;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExternalLocksCondition implements AdvisoryLocksCondition {
 
@@ -47,20 +45,18 @@ public class ExternalLocksCondition implements AdvisoryLocksCondition {
             return;
         }
 
-        Set<LockRefreshToken> refreshTokens = lockTokens.stream()
-                .map(HeldLocksToken::getLockRefreshToken)
-                .collect(Collectors.toSet());
+        Set<LockRefreshToken> refreshTokens =
+                lockTokens.stream().map(HeldLocksToken::getLockRefreshToken).collect(Collectors.toSet());
         Set<LockRefreshToken> refreshedLocks = lockService.refreshLockRefreshTokens(refreshTokens);
         Set<LockRefreshToken> expiredLocks = Sets.difference(refreshTokens, refreshedLocks);
         if (!expiredLocks.isEmpty()) {
             List<HeldLocksToken> expiredHeldLocks = lockTokens.stream()
                     .filter(token -> expiredLocks.contains(token.getLockRefreshToken()))
                     .collect(Collectors.toList());
-            log.warn("External lock service locks were no longer valid", UnsafeArg.of("invalidLocks",
-                    expiredHeldLocks));
-            throw new TransactionLockTimeoutNonRetriableException("Provided external lock tokens expired. "
-                    + "Retry is not possible. Locks: "
-                    + expiredHeldLocks);
+            log.warn(
+                    "External lock service locks were no longer valid", UnsafeArg.of("invalidLocks", expiredHeldLocks));
+            throw new TransactionLockTimeoutNonRetriableException(
+                    "Provided external lock tokens expired. " + "Retry is not possible. Locks: " + expiredHeldLocks);
         }
     }
 

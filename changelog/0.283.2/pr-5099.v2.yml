@@ -1,0 +1,8 @@
+type: feature
+feature:
+  description: Targeted sweep now has a runtime configuration `batchCellThreshold`
+    that allows specifying a batch size lower than the previous default of 100k. This
+    may be useful to make sweep iterations faster and more uniform at the expense
+    of slightly slower progress. The new default has also been reduced to 10k.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5099

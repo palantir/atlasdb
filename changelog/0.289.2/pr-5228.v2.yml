@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Update Ojdbc driver to 21.1.0.0
+  links:
+  - https://github.com/palantir/atlasdb/pull/5228

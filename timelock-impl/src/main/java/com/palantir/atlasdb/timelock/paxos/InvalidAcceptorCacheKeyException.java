@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
+import java.util.List;
 
 public class InvalidAcceptorCacheKeyException extends Exception implements SafeLoggable {
 
@@ -47,5 +46,4 @@ public class InvalidAcceptorCacheKeyException extends Exception implements SafeL
     public AcceptorCacheKey cacheKey() {
         return cacheKey;
     }
-
 }

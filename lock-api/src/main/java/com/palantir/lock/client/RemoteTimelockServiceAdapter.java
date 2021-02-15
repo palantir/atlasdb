@@ -16,24 +16,21 @@
 
 package com.palantir.lock.client;
 
-import java.util.List;
-import java.util.Set;
-
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.timestamp.TimestampRange;
+import java.util.List;
+import java.util.Set;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private final NamespacedTimelockRpcClient rpcClient;
@@ -42,11 +39,13 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final TransactionStarter transactionStarter;
     private final CommitTimestampGetter commitTimestampGetter;
 
-    private RemoteTimelockServiceAdapter(NamespacedTimelockRpcClient rpcClient,
+    private RemoteTimelockServiceAdapter(
+            NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
-            LockWatchEventCache lockWatchEventCache) {
+            LockWatchEventCache lockWatchEventCache,
+            LeaderTimeGetter leaderTimeGetter) {
         this.rpcClient = rpcClient;
-        this.lockLeaseService = LockLeaseService.create(conjureTimelockService);
+        this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
         this.commitTimestampGetter = CommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
@@ -56,18 +55,15 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache);
+        return create(rpcClient, conjureClient, lockWatchEventCache, new LegacyLeaderTimeGetter(conjureClient));
     }
 
     public static RemoteTimelockServiceAdapter create(
-            TimelockRpcClient rpcClient,
-            ConjureTimelockService conjureClient,
-            String timelockNamespace,
-            LockWatchEventCache lockWatchEventCache) {
-        return create(
-                new NamespacedTimelockRpcClient(rpcClient, timelockNamespace),
-                new NamespacedConjureTimelockService(conjureClient, timelockNamespace),
-                lockWatchEventCache);
+            NamespacedTimelockRpcClient rpcClient,
+            NamespacedConjureTimelockService conjureClient,
+            LockWatchEventCache lockWatchEventCache,
+            LeaderTimeGetter leaderTimeGetter) {
+        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache, leaderTimeGetter);
     }
 
     @Override

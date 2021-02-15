@@ -20,23 +20,21 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.verify;
 
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosValue;
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LearnCoalescingConsumerTests {
@@ -66,9 +64,7 @@ public class LearnCoalescingConsumerTests {
                 WithDedicatedExecutor.of(local, executor),
                 ImmutableList.of(WithDedicatedExecutor.of(remote, executor)));
         consumer.apply(ImmutableSet.of(
-                entry(CLIENT_1, paxosValue1),
-                entry(CLIENT_1, paxosValue2),
-                entry(CLIENT_2, paxosValue1)));
+                entry(CLIENT_1, paxosValue1), entry(CLIENT_1, paxosValue2), entry(CLIENT_2, paxosValue1)));
 
         SetMultimap<Client, PaxosValue> remoteRequest = ImmutableSetMultimap.<Client, PaxosValue>builder()
                 .putAll(CLIENT_1, paxosValue1, paxosValue2)
@@ -79,8 +75,7 @@ public class LearnCoalescingConsumerTests {
 
         // since remote requests are fired off and we don't wait for responses, we have to verify that they're called,
         // *eventually*
-        await().atMost(5, TimeUnit.SECONDS)
-                .untilAsserted(() -> verify(remote).learn(remoteRequest));
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> verify(remote).learn(remoteRequest));
     }
 
     private static PaxosValue paxosValue(long round) {

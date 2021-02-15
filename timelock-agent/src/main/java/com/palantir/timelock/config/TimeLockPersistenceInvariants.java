@@ -23,9 +23,7 @@ public final class TimeLockPersistenceInvariants {
         // No
     }
 
-    public static void checkPersistenceConsistentWithState(
-            boolean isNewService,
-            boolean directoriesExist) {
+    public static void checkPersistenceConsistentWithState(boolean isNewService, boolean directoriesExist) {
         if (isNewService && directoriesExist) {
             throw new SafeIllegalArgumentException(
                     "This timelock server has been configured as a new stack but the Paxos data directories already "

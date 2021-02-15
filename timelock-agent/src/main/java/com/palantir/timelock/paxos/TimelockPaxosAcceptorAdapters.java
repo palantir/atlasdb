@@ -16,10 +16,6 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
@@ -29,6 +25,9 @@ import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public final class TimelockPaxosAcceptorAdapters {
     private TimelockPaxosAcceptorAdapters() {
@@ -43,10 +42,9 @@ public final class TimelockPaxosAcceptorAdapters {
         switch (paxosUseCase) {
             case LEADER_FOR_ALL_CLIENTS:
                 return Streams.zip(
-                        remoteClients.batchAcceptorsWithExecutors().stream(),
-                        remoteClients.singleLeaderAcceptorsWithExecutors().stream(),
-                        (batch, legacy) ->
-                                WithDedicatedExecutor.of(
+                                remoteClients.batchAcceptorsWithExecutors().stream(),
+                                remoteClients.singleLeaderAcceptorsWithExecutors().stream(),
+                                (batch, legacy) -> WithDedicatedExecutor.of(
                                         createSwitchingClient(
                                                 batch.service(), legacy.service(), useBatchedSingleLeader),
                                         batch.executor()))
@@ -54,8 +52,7 @@ public final class TimelockPaxosAcceptorAdapters {
             case LEADER_FOR_EACH_CLIENT:
                 throw new SafeIllegalArgumentException("This should not be possible and is semantically meaningless");
             case TIMESTAMP:
-                return remoteClients.nonBatchTimestampAcceptor()
-                        .stream()
+                return remoteClients.nonBatchTimestampAcceptor().stream()
                         .map(acceptorAndExecutor -> WithDedicatedExecutor.<PaxosAcceptor>of(
                                 new TimelockPaxosAcceptorAdapter(
                                         paxosUseCase, client.value(), acceptorAndExecutor.service()),
@@ -70,7 +67,7 @@ public final class TimelockPaxosAcceptorAdapters {
             BatchPaxosAcceptorRpcClient batched,
             PaxosRemoteClients.TimelockSingleLeaderPaxosAcceptorRpcClient legacy,
             Supplier<Boolean> useBatched) {
-        return PredicateSwitchedProxy.newProxyInstance(BatchTimelockPaxosAcceptorAdapter.singleLeader(batched),
-                legacy, useBatched, PaxosAcceptor.class);
+        return PredicateSwitchedProxy.newProxyInstance(
+                BatchTimelockPaxosAcceptorAdapter.singleLeader(batched), legacy, useBatched, PaxosAcceptor.class);
     }
 }

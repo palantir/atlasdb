@@ -16,29 +16,30 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.io.Closeable;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.TimeoutException;
+import com.lmax.disruptor.WaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.dsl.ProducerType;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.DetachedSpan;
+import java.io.Closeable;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * While this class is public, it shouldn't be used as API outside of AtlasDB because we
@@ -50,10 +51,10 @@ public final class DisruptorAutobatcher<T, R>
     private static final Logger log = LoggerFactory.getLogger(DisruptorAutobatcher.class);
 
     /*
-        By memoizing thread factories per loggable purpose, the thread names are numbered uniquely for multiple
-        instances of the same autobatcher function.
-     */
-    private static final ConcurrentMap<String, ThreadFactory> threadFactories = Maps.newConcurrentMap();
+       By memoizing thread factories per loggable purpose, the thread names are numbered uniquely for multiple
+       instances of the same autobatcher function.
+    */
+    private static final ConcurrentMap<String, ThreadFactory> threadFactories = new ConcurrentHashMap<>();
 
     private static ThreadFactory threadFactory(String safeLoggablePurpose) {
         return threadFactories.computeIfAbsent(safeLoggablePurpose, DisruptorAutobatcher::createThreadFactory);
@@ -94,8 +95,10 @@ public final class DisruptorAutobatcher<T, R>
         try {
             disruptor.shutdown(10, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
-            log.warn("Disruptor took more than 10 seconds to shutdown. "
-                    + "Ensure that handlers aren't uninterruptibly blocking and ensure that they are closed.", e);
+            log.warn(
+                    "Disruptor took more than 10 seconds to shutdown. "
+                            + "Ensure that handlers aren't uninterruptibly blocking and ensure that they are closed.",
+                    e);
         }
     }
 
@@ -126,13 +129,15 @@ public final class DisruptorAutobatcher<T, R>
         public DisruptorFuture(String safeLoggablePurpose) {
             this.parent = DetachedSpan.start(safeLoggablePurpose + " disruptor task");
             this.waitingSpan = parent.childDetachedSpan("task waiting to be run");
-            this.addListener(() -> {
-                waitingSpan.complete();
-                if (runningSpan != null) {
-                    runningSpan.complete();
-                }
-                parent.complete();
-            }, MoreExecutors.directExecutor());
+            this.addListener(
+                    () -> {
+                        waitingSpan.complete();
+                        if (runningSpan != null) {
+                            runningSpan.complete();
+                        }
+                        parent.complete();
+                    },
+                    MoreExecutors.directExecutor());
         }
 
         void running() {
@@ -159,9 +164,14 @@ public final class DisruptorAutobatcher<T, R>
     static <T, R> DisruptorAutobatcher<T, R> create(
             EventHandler<BatchElement<T, R>> eventHandler,
             int bufferSize,
-            String safeLoggablePurpose) {
-        Disruptor<DisruptorBatchElement<T, R>> disruptor =
-                new Disruptor<>(DisruptorBatchElement::new, bufferSize, threadFactory(safeLoggablePurpose));
+            String safeLoggablePurpose,
+            Optional<WaitStrategy> waitStrategy) {
+        Disruptor<DisruptorBatchElement<T, R>> disruptor = new Disruptor<>(
+                DisruptorBatchElement::new,
+                bufferSize,
+                threadFactory(safeLoggablePurpose),
+                ProducerType.MULTI,
+                waitStrategy.orElseGet(BlockingWaitStrategy::new));
         disruptor.handleEventsWith(
                 (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();

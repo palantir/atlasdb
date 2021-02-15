@@ -15,16 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import com.palantir.nexus.db.sql.PalantirSqlConnection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class UpdateExecutor {
     private final ConnectionSupplier conns;
@@ -39,14 +38,7 @@ public class UpdateExecutor {
 
     public void update(Cell cell, long ts, byte[] oldValue, byte[] newValue) {
         Object[] args = new Object[] {
-                cell.getRowName(),
-                cell.getColumnName(),
-                ts,
-                newValue,
-                cell.getRowName(),
-                cell.getColumnName(),
-                ts,
-                oldValue
+            cell.getRowName(), cell.getColumnName(), ts, newValue, cell.getRowName(), cell.getColumnName(), ts, oldValue
         };
 
         String prefixedTableName = prefixedTableNames.get(tableRef, conns);
@@ -74,21 +66,15 @@ public class UpdateExecutor {
 
     // A list, but in practice at most one value
     private List<byte[]> getCurrentValue(
-            PalantirSqlConnection connection,
-            Cell cell,
-            long ts,
-            String prefixedTableName) {
+            PalantirSqlConnection connection, Cell cell, long ts, String prefixedTableName) {
         String sqlString = "/* SELECT (" + prefixedTableName + ") */"
                 + " SELECT val FROM " + prefixedTableName
                 + " WHERE row_name = ?"
                 + " AND col_name = ?"
                 + " AND ts = ?";
         try (AgnosticLightResultSet results = connection.selectLightResultSetUnregisteredQuery(
-                sqlString,
-                cell.getRowName(),
-                cell.getColumnName(),
-                ts)) {
-            List<byte[]> actualValues = Lists.newArrayList();
+                sqlString, cell.getRowName(), cell.getColumnName(), ts)) {
+            List<byte[]> actualValues = new ArrayList<>();
             results.forEach(row -> actualValues.add(row.getBytes(DbKvs.VAL)));
             return actualValues;
         }

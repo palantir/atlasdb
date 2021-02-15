@@ -17,33 +17,26 @@ package com.palantir.atlasdb.keyvalue.cassandra.cas;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.junit.Test;
-
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
 import com.palantir.logsafe.Arg;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.Test;
 
 public class CheckAndSetQueriesTest {
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("ns.table");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("abc"), PtBytes.toBytes("123"));
-    private static final CheckAndSetRequest NEW_CELL_REQUEST = CheckAndSetRequest.newCell(
-            TABLE_REFERENCE,
-            CELL,
-            PtBytes.toBytes("ptpt"));
-    private static final CheckAndSetRequest UPDATE_REQUEST = CheckAndSetRequest.singleCell(
-            TABLE_REFERENCE,
-            CELL,
-            PtBytes.toBytes("aaa"),
-            PtBytes.toBytes("bbb"));
+    private static final CheckAndSetRequest NEW_CELL_REQUEST =
+            CheckAndSetRequest.newCell(TABLE_REFERENCE, CELL, PtBytes.toBytes("ptpt"));
+    private static final CheckAndSetRequest UPDATE_REQUEST =
+            CheckAndSetRequest.singleCell(TABLE_REFERENCE, CELL, PtBytes.toBytes("aaa"), PtBytes.toBytes("bbb"));
 
     @Test
     public void valuesCreatedAtCorrectLogSafetyLevelsForNewCells() {
@@ -52,12 +45,11 @@ public class CheckAndSetQueriesTest {
         query.logSlowResult((format, args) -> objects.set(args), Stopwatch.createStarted());
 
         Object[] loggedObjects = objects.get();
-        Map<String, Boolean> argumentSafety = Maps.newHashMap();
-        Arrays.stream(loggedObjects)
-                .forEach(object -> {
-                    Arg<?> arg = (Arg) object;
-                    argumentSafety.put(arg.getName(), arg.isSafeForLogging());
-                });
+        Map<String, Boolean> argumentSafety = new HashMap<>();
+        Arrays.stream(loggedObjects).forEach(object -> {
+            Arg<?> arg = (Arg) object;
+            argumentSafety.put(arg.getName(), arg.isSafeForLogging());
+        });
 
         assertThat(argumentSafety)
                 .containsEntry("row", false)
@@ -78,12 +70,11 @@ public class CheckAndSetQueriesTest {
         query.logSlowResult((format, args) -> objects.set(args), Stopwatch.createStarted());
 
         Object[] loggedObjects = objects.get();
-        Map<String, Boolean> argumentSafety = Maps.newHashMap();
-        Arrays.stream(loggedObjects)
-                .forEach(object -> {
-                    Arg<?> arg = (Arg) object;
-                    argumentSafety.put(arg.getName(), arg.isSafeForLogging());
-                });
+        Map<String, Boolean> argumentSafety = new HashMap<>();
+        Arrays.stream(loggedObjects).forEach(object -> {
+            Arg<?> arg = (Arg) object;
+            argumentSafety.put(arg.getName(), arg.isSafeForLogging());
+        });
 
         assertThat(argumentSafety)
                 .containsEntry("row", false)

@@ -16,15 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.Path;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -41,6 +32,12 @@ import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.ws.rs.Path;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class PaxosRemoteClients {
@@ -58,10 +55,12 @@ public abstract class PaxosRemoteClients {
 
         ImmutableMap.Builder<String, CheckedRejectionExecutorService> builder = ImmutableMap.builder();
         for (String remoteUri : remoteUris) {
-            builder.put(remoteUri, TimeLockPaxosExecutors.createBoundedExecutor(
-                    TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE,
-                    "paxos-remote-clients-paxos-executors",
-                    executorIndex));
+            builder.put(
+                    remoteUri,
+                    TimeLockPaxosExecutors.createBoundedExecutor(
+                            TimeLockPaxosExecutors.MAXIMUM_POOL_SIZE,
+                            "paxos-remote-clients-paxos-executors",
+                            executorIndex));
             executorIndex++;
         }
         return builder.build();
@@ -74,10 +73,12 @@ public abstract class PaxosRemoteClients {
 
         ImmutableMap.Builder<String, CheckedRejectionExecutorService> builder = ImmutableMap.builder();
         for (String remoteUri : remoteUris) {
-            builder.put(remoteUri, TimeLockPaxosExecutors.createBoundedExecutor(
-                    8, // 1 is probably enough, but be defensive for now.
-                    "paxos-remote-clients-ping-executors",
-                    executorIndex));
+            builder.put(
+                    remoteUri,
+                    TimeLockPaxosExecutors.createBoundedExecutor(
+                            8, // 1 is probably enough, but be defensive for now.
+                            "paxos-remote-clients-ping-executors",
+                            executorIndex));
             executorIndex++;
         }
         return builder.build();
@@ -117,8 +118,7 @@ public abstract class PaxosRemoteClients {
 
     @Value.Derived
     public List<WithDedicatedExecutor<BatchPaxosLearnerRpcClient>> batchLearner() {
-        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
-                BatchPaxosLearnerRpcClient.class, true);
+        return createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(BatchPaxosLearnerRpcClient.class, true);
     }
 
     @Value.Derived
@@ -163,23 +163,19 @@ public abstract class PaxosRemoteClients {
 
     private <T> List<WithDedicatedExecutor<LeaderPingerContext<T>>> leaderPingerContext(Class<T> clazz) {
         return createInstrumentedRemoteProxies(clazz, false)
-                .<WithDedicatedExecutor<LeaderPingerContext<T>>>map((uri, remote) ->
-                        WithDedicatedExecutor.of(ImmutableLeaderPingerContext.of(
-                                remote,
-                                PaxosRemoteClients.convertAddressToHostAndPort(uri)),
-                                pingExecutors().get(uri)))
+                .<WithDedicatedExecutor<LeaderPingerContext<T>>>map((uri, remote) -> WithDedicatedExecutor.of(
+                        ImmutableLeaderPingerContext.of(remote, PaxosRemoteClients.convertAddressToHostAndPort(uri)),
+                        pingExecutors().get(uri)))
                 .values()
                 .collect(Collectors.toList());
     }
 
     private <T> List<WithDedicatedExecutor<T>> createInstrumentedRemoteProxiesAndAssignDedicatedPaxosExecutors(
-            Class<T> clazz,
-            boolean shouldRetry) {
+            Class<T> clazz, boolean shouldRetry) {
         return assignDedicatedRemotePaxosExecutors(createInstrumentedRemoteProxies(clazz, shouldRetry));
     }
 
-    private <T> List<WithDedicatedExecutor<T>> assignDedicatedRemotePaxosExecutors(
-            KeyedStream<String, T> remotes) {
+    private <T> List<WithDedicatedExecutor<T>> assignDedicatedRemotePaxosExecutors(KeyedStream<String, T> remotes) {
         return remotes.mapKeys(uri -> paxosExecutors().get(uri))
                 .entries()
                 .map(entry -> WithDedicatedExecutor.<T>of(entry.getValue(), entry.getKey()))
@@ -188,8 +184,8 @@ public abstract class PaxosRemoteClients {
 
     private <T> KeyedStream<String, T> createInstrumentedRemoteProxies(Class<T> clazz, boolean shouldRetry) {
         return KeyedStream.of(context().remoteUris())
-                .map(uri -> context().dialogueServiceProvider()
-                        .createSingleNodeInstrumentedProxy(uri, clazz, shouldRetry))
+                .map(uri ->
+                        context().dialogueServiceProvider().createSingleNodeInstrumentedProxy(uri, clazz, shouldRetry))
                 .map((host, proxy) -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                         metrics().getTaggedRegistry(),
                         clazz,
@@ -202,15 +198,9 @@ public abstract class PaxosRemoteClients {
         return HostAndPort.fromParts(uri.getHost(), uri.getPort());
     }
 
-    @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
-            + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
-    public interface TimelockSingleLeaderPaxosLearnerRpcClient extends PaxosLearner {
+    @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
+    public interface TimelockSingleLeaderPaxosLearnerRpcClient extends PaxosLearner {}
 
-    }
-
-    @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
-            + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
-    public interface TimelockSingleLeaderPaxosAcceptorRpcClient extends PaxosAcceptor {
-
-    }
+    @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
+    public interface TimelockSingleLeaderPaxosAcceptorRpcClient extends PaxosAcceptor {}
 }

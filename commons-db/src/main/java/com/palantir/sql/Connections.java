@@ -15,17 +15,15 @@
  */
 package com.palantir.sql;
 
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.BasicSQL;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.sql.BasicSQL;
-
-
-public class Connections  {
+public class Connections {
 
     public static String getUrl(Connection c) throws PalantirSqlException {
         try {
@@ -35,8 +33,7 @@ public class Connections  {
         }
     }
 
-    public static PreparedStatement prepareStatement(Connection c, String sql)
-            throws PalantirSqlException {
+    public static PreparedStatement prepareStatement(Connection c, String sql) throws PalantirSqlException {
         try {
             return c.prepareStatement(sql);
         } catch (SQLException e) {
@@ -44,8 +41,7 @@ public class Connections  {
         }
     }
 
-    public static Statement createStatement(Connection c)
-            throws PalantirSqlException {
+    public static Statement createStatement(Connection c) throws PalantirSqlException {
         try {
             return c.createStatement();
         } catch (SQLException e) {
@@ -53,8 +49,7 @@ public class Connections  {
         }
     }
 
-    public static DatabaseMetaData getMetaData(Connection c)
-            throws PalantirSqlException {
+    public static DatabaseMetaData getMetaData(Connection c) throws PalantirSqlException {
         try {
             return c.getMetaData();
         } catch (SQLException e) {
@@ -62,8 +57,7 @@ public class Connections  {
         }
     }
 
-    public static String getUserName(Connection c)
-            throws PalantirSqlException {
+    public static String getUserName(Connection c) throws PalantirSqlException {
         try {
             return c.getMetaData().getUserName();
         } catch (SQLException e) {

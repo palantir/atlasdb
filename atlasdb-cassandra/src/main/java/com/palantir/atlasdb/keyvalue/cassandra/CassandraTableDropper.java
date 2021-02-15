@@ -15,20 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.cassandra.thrift.KsDef;
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.Throwables;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class CassandraTableDropper {
     private static final Logger log = LoggerFactory.getLogger(CassandraTableDropper.class);
@@ -37,8 +35,11 @@ class CassandraTableDropper {
     private final CassandraTableMetadata cassandraTableMetadata;
     private final CassandraTableTruncator cassandraTableTruncator;
 
-    CassandraTableDropper(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool,
-            CassandraTableMetadata cassandraTableMetadata, CassandraTableTruncator cassandraTableTruncator) {
+    CassandraTableDropper(
+            CassandraKeyValueServiceConfig config,
+            CassandraClientPool clientPool,
+            CassandraTableMetadata cassandraTableMetadata,
+            CassandraTableTruncator cassandraTableTruncator) {
         this.config = config;
         this.clientPool = clientPool;
         this.cassandraTableMetadata = cassandraTableMetadata;
@@ -49,7 +50,7 @@ class CassandraTableDropper {
         try {
             clientPool.runWithRetry(client -> {
                 KsDef ks = client.describe_keyspace(config.getKeyspaceOrThrow());
-                Set<TableReference> existingTables = Sets.newHashSet();
+                Set<TableReference> existingTables = new HashSet<>();
 
                 existingTables.addAll(ks.getCf_defs().stream()
                         .map(CassandraKeyValueServices::tableReferenceFromCfDef)
@@ -59,7 +60,9 @@ class CassandraTableDropper {
                     CassandraVerifier.sanityCheckTableName(table);
                     if (existingTables.contains(table)) {
                         CassandraKeyValueServices.runWithWaitingForSchemas(
-                                () -> truncateThenDrop(table, client), config, client,
+                                () -> truncateThenDrop(table, client),
+                                config,
+                                client,
                                 "dropping the column family for table " + table + " in a call to drop tables");
                         cassandraTableMetadata.deleteAllMetadataRowsForTable(table);
                     } else {

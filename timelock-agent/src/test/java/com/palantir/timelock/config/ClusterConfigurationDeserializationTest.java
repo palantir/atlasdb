@@ -18,25 +18,22 @@ package com.palantir.timelock.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Set;
-
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.ImmutableSet;
+import java.io.File;
+import java.io.IOException;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class ClusterConfigurationDeserializationTest {
     private static final String LOCAL_SERVER = "https://server-2:8421";
-    private static final Set<String> SERVERS = ImmutableSet.of(
-            "https://server-1:8421", LOCAL_SERVER, "https://server-3:8421");
+    private static final ImmutableSet<String> SERVERS =
+            ImmutableSet.of("https://server-1:8421", LOCAL_SERVER, "https://server-3:8421");
 
     private static final File CLUSTER_CONFIG_NO_TYPE_INFO = getClusterConfigFile("no-type-info");
     private static final File CLUSTER_CONFIG_DEFAULT_TYPE_INFO = getClusterConfigFile("default-type-info");
@@ -44,15 +41,13 @@ public class ClusterConfigurationDeserializationTest {
     private static final File CLUSTER_CONFIG_MALFORMED = getClusterConfigFile("malformed");
     private static final File CLUSTER_CONFIG_KUBERNETES = getClusterConfigFile("kubernetes");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
-            .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
-            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
+                    .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
+                    .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
             .registerModule(new GuavaModule());
 
     @BeforeClass
     public static void setUp() {
-        OBJECT_MAPPER.registerSubtypes(
-                DefaultClusterConfiguration.class,
-                KubernetesClusterConfiguration.class);
+        OBJECT_MAPPER.registerSubtypes(DefaultClusterConfiguration.class, KubernetesClusterConfiguration.class);
     }
 
     @Test
@@ -69,7 +64,7 @@ public class ClusterConfigurationDeserializationTest {
     @Ignore // TODO (jkong): Reenable if/when we find a good solution
     public void throwsWhenDeserializingClusterConfigurationWithInvalidTypeInformation() throws IOException {
         assertThatThrownBy(() -> assertDefaultClusterConfigurationCorrect(
-                deserializeClusterConfiguration(CLUSTER_CONFIG_INVALID_TYPE_INFO)))
+                        deserializeClusterConfiguration(CLUSTER_CONFIG_INVALID_TYPE_INFO)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -101,7 +96,8 @@ public class ClusterConfigurationDeserializationTest {
     }
 
     private static File getClusterConfigFile(String clusterConfigType) {
-        return new File(ClusterConfigurationDeserializationTest.class.getResource(
-                String.format("/cluster-configuration-%s.yml", clusterConfigType)).getPath());
+        return new File(ClusterConfigurationDeserializationTest.class
+                .getResource(String.format("/cluster-configuration-%s.yml", clusterConfigType))
+                .getPath());
     }
 }

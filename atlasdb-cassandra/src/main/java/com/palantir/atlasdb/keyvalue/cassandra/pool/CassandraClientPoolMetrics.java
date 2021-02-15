@@ -15,13 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
@@ -30,6 +23,12 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class CassandraClientPoolMetrics {
     private final MetricsManager metricsManager;
@@ -44,45 +43,38 @@ public class CassandraClientPoolMetrics {
     public CassandraClientPoolMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;
         this.aggregateRequestMetrics = new RequestMetrics(metricsManager, null);
-        this.poolExhaustionCounter
-                = metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
+        this.poolExhaustionCounter =
+                metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
         this.outlierControllers = createOutlierControllers(metricsManager);
     }
 
     private static Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createOutlierControllers(
             MetricsManager metricsManager) {
-        ImmutableMap.Builder<CassandraClientPoolHostLevelMetric, DistributionOutlierController> builder
-                = ImmutableMap.builder();
-        Arrays.stream(CassandraClientPoolHostLevelMetric.values())
-                .forEach(metric -> {
-                    DistributionOutlierController distributionOutlierController = DistributionOutlierController.create(
-                            metric.minimumMeanThreshold, metric.maximumMeanThreshold);
-                    registerPoolMeanMetrics(metricsManager, metric, distributionOutlierController.getMeanGauge());
-                    builder.put(metric, distributionOutlierController);
-                });
+        ImmutableMap.Builder<CassandraClientPoolHostLevelMetric, DistributionOutlierController> builder =
+                ImmutableMap.builder();
+        Arrays.stream(CassandraClientPoolHostLevelMetric.values()).forEach(metric -> {
+            DistributionOutlierController distributionOutlierController =
+                    DistributionOutlierController.create(metric.minimumMeanThreshold, metric.maximumMeanThreshold);
+            registerPoolMeanMetrics(metricsManager, metric, distributionOutlierController.getMeanGauge());
+            builder.put(metric, distributionOutlierController);
+        });
         return builder.build();
     }
 
-    private static void registerPoolMeanMetrics(MetricsManager metricsManager,
-            CassandraClientPoolHostLevelMetric metric,
-            Gauge<Double> meanGauge) {
+    private static void registerPoolMeanMetrics(
+            MetricsManager metricsManager, CassandraClientPoolHostLevelMetric metric, Gauge<Double> meanGauge) {
         metricsManager.registerOrGet(
-                CassandraClientPoolingContainer.class,
-                metric.metricName,
-                meanGauge,
-                ImmutableMap.of("pool", "mean"));
+                CassandraClientPoolingContainer.class, metric.metricName, meanGauge, ImmutableMap.of("pool", "mean"));
     }
 
     public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
         // Keep metrics registered under CassandraClientPool.class rather than move them and potentially break things.
+        metricsManager.registerMetric(CassandraClientPool.class, "numBlacklistedHosts", blacklistSize::get);
         metricsManager.registerMetric(
-                CassandraClientPool.class, "numBlacklistedHosts",
-                blacklistSize::get);
+                CassandraClientPool.class, "requestFailureProportion", aggregateRequestMetrics::getExceptionProportion);
         metricsManager.registerMetric(
-                CassandraClientPool.class, "requestFailureProportion",
-                aggregateRequestMetrics::getExceptionProportion);
-        metricsManager.registerMetric(
-                CassandraClientPool.class, "requestConnectionExceptionProportion",
+                CassandraClientPool.class,
+                "requestConnectionExceptionProportion",
                 aggregateRequestMetrics::getConnectionExceptionProportion);
     }
 
@@ -103,10 +95,7 @@ public class CassandraClientPoolMetrics {
     }
 
     @SuppressWarnings("unchecked") // Guaranteed to have the correct type
-    public void registerPoolMetric(
-            CassandraClientPoolHostLevelMetric metric,
-            Gauge<Long> gauge,
-            int poolNumber) {
+    public void registerPoolMetric(CassandraClientPoolHostLevelMetric metric, Gauge<Long> gauge, int poolNumber) {
         MetricPublicationFilter filter = outlierControllers.get(metric).registerAndCreateFilter(gauge);
         registerPoolMetricsToRegistry(metric, gauge, poolNumber, filter);
     }
@@ -117,21 +106,12 @@ public class CassandraClientPoolMetrics {
             int poolNumber,
             MetricPublicationFilter filter) {
         Map<String, String> poolTag = ImmutableMap.of("pool", "pool" + poolNumber);
-        metricsManager.addMetricFilter(
-                CassandraClientPoolingContainer.class,
-                metric.metricName,
-                poolTag,
-                filter);
-        metricsManager.registerOrGet(
-                CassandraClientPoolingContainer.class,
-                metric.metricName,
-                gauge,
-                poolTag);
+        metricsManager.addMetricFilter(CassandraClientPoolingContainer.class, metric.metricName, poolTag, filter);
+        metricsManager.registerOrGet(CassandraClientPoolingContainer.class, metric.metricName, gauge, poolTag);
     }
 
     private void updateMetricOnAggregateAndHost(
-            CassandraClientPoolingContainer hostPool,
-            Consumer<RequestMetrics> metricsConsumer) {
+            CassandraClientPoolingContainer hostPool, Consumer<RequestMetrics> metricsConsumer) {
         metricsConsumer.accept(aggregateRequestMetrics);
         RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getHost());
         if (requestMetricsForHost != null) {
@@ -145,10 +125,9 @@ public class CassandraClientPoolMetrics {
         private final Meter totalRequestConnectionExceptions;
 
         RequestMetrics(MetricsManager metricsManager, String metricPrefix) {
-            totalRequests = metricsManager.registerOrGetMeter(
-                    CassandraClientPool.class, metricPrefix, "requests");
-            totalRequestExceptions = metricsManager.registerOrGetMeter(
-                    CassandraClientPool.class, metricPrefix, "requestExceptions");
+            totalRequests = metricsManager.registerOrGetMeter(CassandraClientPool.class, metricPrefix, "requests");
+            totalRequestExceptions =
+                    metricsManager.registerOrGetMeter(CassandraClientPool.class, metricPrefix, "requestExceptions");
             totalRequestConnectionExceptions = metricsManager.registerOrGetMeter(
                     CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
         }

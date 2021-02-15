@@ -15,18 +15,12 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-
-import java.util.UUID;
-
-import org.junit.ClassRule;
-import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -52,9 +46,13 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.UUID;
+import org.junit.ClassRule;
+import org.junit.Test;
 
 public class TransactionManagerTest extends TransactionTestSetup {
     @ClassRule
@@ -89,9 +87,9 @@ public class TransactionManagerTest extends TransactionTestSetup {
         txMgr.close();
 
         assertThatThrownBy(() -> txMgr.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
-            put(txn, "row1", "col1", "v1");
-            return null;
-        }))
+                    put(txn, "row1", "col1", "v1");
+                    return null;
+                }))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Operations cannot be performed on closed TransactionManager.");
     }
@@ -100,9 +98,9 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldNotRunTaskThrowOnConflictWithClosedTransactionManager() {
         txMgr.close();
         assertThatThrownBy(() -> txMgr.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) txn -> {
-            put(txn, "row1", "col1", "v1");
-            return null;
-        }))
+                    put(txn, "row1", "col1", "v1");
+                    return null;
+                }))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Operations cannot be performed on closed TransactionManager.");
     }
@@ -112,9 +110,9 @@ public class TransactionManagerTest extends TransactionTestSetup {
         txMgr.close();
 
         assertThatThrownBy(() -> txMgr.runTaskReadOnly((TransactionTask<Void, RuntimeException>) txn -> {
-            put(txn, "row1", "col1", "v1");
-            return null;
-        }))
+                    put(txn, "row1", "col1", "v1");
+                    return null;
+                }))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Operations cannot be performed on closed TransactionManager.");
     }
@@ -127,10 +125,15 @@ public class TransactionManagerTest extends TransactionTestSetup {
         TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(
                 metricsManager,
                 getKeyValueService(),
-                mockTimestampService, mockTimestampManagementService,
-                LockClient.of("foo"), mockLockService, transactionService,
+                mockTimestampService,
+                mockTimestampManagementService,
+                LockClient.of("foo"),
+                mockLockService,
+                transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-                conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP);
@@ -153,9 +156,9 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnThoroughSweptTable() {
         TransactionManager txnManagerWithMocks = setupTransactionManager();
         assertThatThrownBy(() -> txnManagerWithMocks.runTaskThrowOnConflict(txn -> {
-            get(txn, TEST_TABLE_THOROUGH, "row1", "col1");
-            return null;
-        }))
+                    get(txn, TEST_TABLE_THOROUGH, "row1", "col1");
+                    return null;
+                }))
                 .isInstanceOf(TransactionFailedRetriableException.class);
     }
 
@@ -181,7 +184,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
             return txn.getTimestamp();
         });
 
-        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp)).isNull();
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
+                .isNull();
     }
 
     @Test
@@ -191,7 +195,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
             return txn;
         });
 
-        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp())).isNull();
+        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp()))
+                .isNull();
 
         txMgr.runTaskWithRetry(txn -> get(txn, TEST_TABLE, "row", "column"));
 
@@ -206,7 +211,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
             return txn.getTimestamp();
         });
 
-        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp)).isNull();
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
+                .isNull();
 
         txMgr.runTaskWithRetry(txn -> {
             put(txn, TEST_TABLE, "row", "column", "second");
@@ -224,12 +230,14 @@ public class TransactionManagerTest extends TransactionTestSetup {
             return txn.getTimestamp();
         });
 
-        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp)).isNull();
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
+                .isNull();
 
         assertThatThrownBy(() -> txMgr.runTaskWithRetry(txn -> {
-            get(txn, TEST_TABLE, "row", "column");
-            throw new RuntimeException("abort");
-        })).isInstanceOf(RuntimeException.class)
+                    get(txn, TEST_TABLE, "row", "column");
+                    throw new RuntimeException("abort");
+                }))
+                .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("abort");
 
         assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
@@ -240,11 +248,13 @@ public class TransactionManagerTest extends TransactionTestSetup {
         TimelockService timelock = mock(TimelockService.class);
         TimestampManagementService timeManagement = mock(TimestampManagementService.class);
         LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
+        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
+        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(
+                metricsManager,
                 keyValueService,
                 timelock,
-                NoOpLockWatchManager.INSTANCE,
-                NoOpLockWatchEventCache.INSTANCE,
+                NoOpLockWatchManager.create(lockWatchEventCache),
+                lockWatchEventCache,
                 timeManagement,
                 mockLockService,
                 transactionService,
@@ -264,13 +274,12 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 DefaultMetricsFilterEvaluationContext.createDefault());
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
-        when(timelock.lockImmutableTimestamp()).thenReturn(
-                LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
-        when(timelock.startIdentifiedAtlasDbTransactionBatch(1)).thenReturn(
-                ImmutableList.of(StartIdentifiedAtlasDbTransactionResponse.of(
+        when(timelock.lockImmutableTimestamp())
+                .thenReturn(LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
+        when(timelock.startIdentifiedAtlasDbTransactionBatch(1))
+                .thenReturn(ImmutableList.of(StartIdentifiedAtlasDbTransactionResponse.of(
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())),
-                        TimestampAndPartition.of(1L, 1)
-                )));
+                        TimestampAndPartition.of(1L, 1))));
         TRM.registerTransactionManager(txnManagerWithMocks);
         return txnManagerWithMocks;
     }

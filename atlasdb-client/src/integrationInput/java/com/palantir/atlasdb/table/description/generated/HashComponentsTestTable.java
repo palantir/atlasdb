@@ -86,7 +86,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "deprecation"})
 public final class HashComponentsTestTable implements
         AtlasDbMutablePersistentTable<HashComponentsTestTable.HashComponentsTestRow,
                                          HashComponentsTestTable.HashComponentsTestNamedColumnValue<?>,

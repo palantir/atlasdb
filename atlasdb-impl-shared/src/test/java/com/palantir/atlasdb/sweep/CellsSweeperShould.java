@@ -26,38 +26,32 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Set;
-
-import org.junit.Test;
-import org.mockito.InOrder;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.nio.charset.StandardCharsets;
+import org.junit.Test;
+import org.mockito.InOrder;
 
 public class CellsSweeperShould {
     private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.create("ns"), "testTable");
-    private static final Cell SINGLE_CELL = Cell.create(
-            "cellRow".getBytes(StandardCharsets.UTF_8),
-            "cellCol".getBytes(StandardCharsets.UTF_8));
+    private static final Cell SINGLE_CELL =
+            Cell.create("cellRow".getBytes(StandardCharsets.UTF_8), "cellCol".getBytes(StandardCharsets.UTF_8));
 
-    private static final Set<Cell> SINGLE_CELL_SET = ImmutableSet.of(SINGLE_CELL);
-    private static final Multimap<Cell, Long> SINGLE_CELL_TS_PAIR = ImmutableMultimap.<Cell, Long>builder()
+    private static final ImmutableSet<Cell> SINGLE_CELL_SET = ImmutableSet.of(SINGLE_CELL);
+    private static final ImmutableMultimap<Cell, Long> SINGLE_CELL_TS_PAIR = ImmutableMultimap.<Cell, Long>builder()
             .putAll(
                     Cell.create(
                             "cellPairRow".getBytes(StandardCharsets.UTF_8),
                             "cellPairCol".getBytes(StandardCharsets.UTF_8)),
                     ImmutableSet.of(5L, 10L, 15L, 20L))
             .build();
-
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);
     private final Follower mockFollower = mock(Follower.class);
@@ -128,7 +122,8 @@ public class CellsSweeperShould {
     @Test
     public void releaseTheBackupLockIfDeleteFails() {
         doThrow(new RuntimeException("something bad happened"))
-                .when(mockKvs).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
+                .when(mockKvs)
+                .delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
 
         assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> sweeper.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of()))

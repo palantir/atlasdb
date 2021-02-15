@@ -16,9 +16,8 @@
 
 package com.palantir.timelock.config;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableTimeLockAdjudicationConfiguration.class)
 @Value.Immutable

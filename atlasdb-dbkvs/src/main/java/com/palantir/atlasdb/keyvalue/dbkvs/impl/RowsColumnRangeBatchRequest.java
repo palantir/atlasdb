@@ -15,17 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 /**
  * Represents a batch to load in {@link com.palantir.atlasdb.keyvalue.api.KeyValueService#getRowsColumnRange(
@@ -37,16 +34,20 @@ import com.palantir.logsafe.Preconditions;
 @Value.Immutable
 public abstract class RowsColumnRangeBatchRequest {
     public abstract Optional<Map.Entry<byte[], BatchColumnRangeSelection>> getPartialFirstRow();
+
     public abstract List<byte[]> getRowsToLoadFully();
     /**
      * Can only be null if {@link #getRowsToLoadFully()} is empty.
      */
-    @Nullable public abstract ColumnRangeSelection getColumnRangeSelection();
+    @Nullable
+    public abstract ColumnRangeSelection getColumnRangeSelection();
+
     public abstract Optional<Map.Entry<byte[], BatchColumnRangeSelection>> getPartialLastRow();
 
     @Value.Check
     protected void check() {
-        Preconditions.checkState(getColumnRangeSelection() != null || getRowsToLoadFully().isEmpty(),
+        Preconditions.checkState(
+                getColumnRangeSelection() != null || getRowsToLoadFully().isEmpty(),
                 "Must specify a column range selection when loading full rows.");
     }
 }

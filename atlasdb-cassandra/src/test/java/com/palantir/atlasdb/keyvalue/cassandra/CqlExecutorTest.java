@@ -22,15 +22,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.cassandra.thrift.CqlPreparedResult;
-import org.apache.cassandra.thrift.CqlResult;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentMatcher;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -38,6 +29,13 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
+import java.nio.ByteBuffer;
+import java.time.Duration;
+import org.apache.cassandra.thrift.CqlPreparedResult;
+import org.apache.cassandra.thrift.CqlResult;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentMatcher;
 
 public class CqlExecutorTest {
 
@@ -58,7 +56,7 @@ public class CqlExecutorTest {
         CqlResult result = new CqlResult();
         result.setRows(ImmutableList.of());
         when(queryExecutor.execute(any(), any())).thenAnswer(invocation -> {
-            Uninterruptibles.sleepUninterruptibly(queryDelayMillis, TimeUnit.MILLISECONDS);
+            Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(queryDelayMillis));
             return result;
         });
 
@@ -71,12 +69,15 @@ public class CqlExecutorTest {
 
     @Test
     public void getTimestampsForGivenRows() {
-        String expected = "SELECT key, column1, column2 FROM \"foo__bar\""
-                + " WHERE key = ? LIMIT 100;";
+        String expected = "SELECT key, column1, column2 FROM \"foo__bar\"" + " WHERE key = ? LIMIT 100;";
 
         int executorThreads = AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
-        executor.getTimestamps(TABLE_REF, ImmutableList.of(ROW, END_ROW), LIMIT,
-                PTExecutors.newFixedThreadPool(executorThreads), executorThreads);
+        executor.getTimestamps(
+                TABLE_REF,
+                ImmutableList.of(ROW, END_ROW),
+                LIMIT,
+                PTExecutors.newFixedThreadPool(executorThreads),
+                executorThreads);
 
         verify(queryExecutor).prepare(argThat(byteBufferMatcher(expected)), eq(ROW), any());
         verify(queryExecutor).executePrepared(eq(1), eq(ImmutableList.of(ByteBuffer.wrap(ROW))));
@@ -99,7 +100,11 @@ public class CqlExecutorTest {
                 return false;
             }
 
-            String actualQuery = PtBytes.toString(argument.array());
+            int position = argument.position();
+            byte[] data = new byte[argument.remaining()];
+            argument.get(data);
+            argument.position(position);
+            String actualQuery = PtBytes.toString(data);
             return expected.equals(actualQuery);
         };
     }
@@ -113,5 +118,4 @@ public class CqlExecutorTest {
             return expected.equals(argument.toString());
         };
     }
-
 }

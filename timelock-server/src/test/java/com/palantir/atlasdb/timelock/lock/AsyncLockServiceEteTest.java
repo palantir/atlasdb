@@ -16,21 +16,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
@@ -42,7 +27,21 @@ import com.palantir.flake.ShouldRetry;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.LockWatchStateUpdate;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestRule;
 
 public class AsyncLockServiceEteTest {
 
@@ -64,11 +63,12 @@ public class AsyncLockServiceEteTest {
 
     private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 2L);
     private final HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
-    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks);
+    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks, clock.id());
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),
-            new LockAcquirer(new LockLog(new MetricRegistry(), () -> 2L),
+            new LockAcquirer(
+                    new LockLog(new MetricRegistry(), () -> 2L),
                     Executors.newSingleThreadScheduledExecutor(),
                     clock,
                     lockWatchingService),
@@ -87,7 +87,7 @@ public class AsyncLockServiceEteTest {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
         assertLocked(LOCK_A);
 
-        assertTrue(service.unlock(token));
+        assertThat(service.unlock(token)).isTrue();
         assertNotLocked(LOCK_A);
     }
 
@@ -95,7 +95,7 @@ public class AsyncLockServiceEteTest {
     public void canLockAndUnlockMultipleLocks() {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A, LOCK_B, LOCK_C);
 
-        assertTrue(service.unlock(token));
+        assertThat(service.unlock(token)).isTrue();
         assertNotLocked(LOCK_A);
         assertNotLocked(LOCK_B);
         assertNotLocked(LOCK_C);
@@ -177,7 +177,7 @@ public class AsyncLockServiceEteTest {
     public void locksCanBeRefreshed() {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
 
-        assertTrue(service.refresh(token));
+        assertThat(service.refresh(token)).isTrue();
     }
 
     @Test
@@ -185,7 +185,7 @@ public class AsyncLockServiceEteTest {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
         service.unlock(token);
 
-        assertFalse(service.refresh(token));
+        assertThat(service.refresh(token)).isFalse();
     }
 
     @Test
@@ -193,7 +193,7 @@ public class AsyncLockServiceEteTest {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
         service.unlock(token);
 
-        assertFalse(service.unlock(token));
+        assertThat(service.unlock(token)).isFalse();
     }
 
     @Test
@@ -201,19 +201,20 @@ public class AsyncLockServiceEteTest {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
         service.refresh(token);
 
-        assertTrue(service.unlock(token));
+        assertThat(service.unlock(token)).isTrue();
     }
 
     @Test
     public void canLockAndUnlockImmutableTimestamp() {
         long timestamp = 123L;
-        Leased<LockToken> token = service.lockImmutableTimestamp(REQUEST_1, timestamp).get();
+        Leased<LockToken> token =
+                service.lockImmutableTimestamp(REQUEST_1, timestamp).get();
 
         assertThat(service.getImmutableTimestamp().get()).isEqualTo(123L);
 
         service.unlock(token.value());
 
-        assertThat(service.getImmutableTimestamp()).isEqualTo(Optional.empty());
+        assertThat(service.getImmutableTimestamp()).isNotPresent();
     }
 
     @Test
@@ -297,8 +298,7 @@ public class AsyncLockServiceEteTest {
         Leased<LockToken> result = lock(REQUEST_1, LOCK_A).get();
         assertThat(result.lease().isValid(service.leaderTime())).isTrue();
 
-        waitForTimeout(TimeLimit.of(
-                LockLeaseContract.CLIENT_LEASE_TIMEOUT.toMillis()));
+        waitForTimeout(TimeLimit.of(LockLeaseContract.CLIENT_LEASE_TIMEOUT.toMillis()));
         assertThat(result.lease().isValid(service.leaderTime())).isFalse();
 
         assertLocked(LOCK_A);
@@ -316,11 +316,18 @@ public class AsyncLockServiceEteTest {
         assertThat(LockLeaseContract.CLIENT_LEASE_TIMEOUT).isLessThan(LockLeaseContract.SERVER_LEASE_TIMEOUT);
     }
 
+    @Test
+    public void leaderIdFromLockWatchingServiceIsSameAsLeaderClock() {
+        LeaderTime leaderTime = service.leaderTime();
+        LockWatchStateUpdate lockWatchUpdate = lockWatchingService.getWatchStateUpdate(Optional.empty());
+        assertThat(leaderTime.id().id()).isEqualTo(lockWatchUpdate.logId());
+    }
+
     private static void waitForTimeout(TimeLimit timeout) {
         Stopwatch timer = Stopwatch.createStarted();
         long buffer = 250L;
         while (timer.elapsed(TimeUnit.MILLISECONDS) < timeout.getTimeMillis() + buffer) {
-            Uninterruptibles.sleepUninterruptibly(buffer, TimeUnit.MILLISECONDS);
+            Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(buffer));
         }
     }
 
@@ -337,19 +344,17 @@ public class AsyncLockServiceEteTest {
     }
 
     private static Set<LockDescriptor> descriptors(String... locks) {
-        return Arrays.stream(locks)
-                .map(StringLockDescriptor::of)
-                .collect(Collectors.toSet());
+        return Arrays.stream(locks).map(StringLockDescriptor::of).collect(Collectors.toSet());
     }
 
     private void assertNotLocked(String lock) {
         LockToken token = lockSynchronously(UUID.randomUUID(), lock);
-        assertTrue(service.unlock(token));
+        assertThat(service.unlock(token)).isTrue();
     }
 
     private void assertLocked(String... locks) {
         AsyncResult<Leased<LockToken>> result = lock(UUID.randomUUID(), locks);
-        assertFalse(result.isComplete());
+        assertThat(result.isComplete()).isFalse();
 
         result.map(token -> service.unlock(token.value()));
     }

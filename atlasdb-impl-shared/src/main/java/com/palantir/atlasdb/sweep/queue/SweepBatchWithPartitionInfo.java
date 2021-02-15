@@ -16,16 +16,15 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.Set;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface SweepBatchWithPartitionInfo {
     SweepBatch sweepBatch();
+
     Set<Long> finePartitions();
 
     default Set<Long> partitionsForPreviousLastSweptTs(long previousLastSweptTs) {
@@ -33,7 +32,8 @@ public interface SweepBatchWithPartitionInfo {
                 ? finePartitions()
                 : Sets.union(finePartitions(), ImmutableSet.of(SweepQueueUtils.tsPartitionFine(previousLastSweptTs)));
 
-        return Sets.difference(encounteredPartitions,
+        return Sets.difference(
+                encounteredPartitions,
                 ImmutableSet.of(SweepQueueUtils.tsPartitionFine(sweepBatch().lastSweptTimestamp() + 1)));
     }
 

@@ -20,15 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.paxos.BooleanPaxosResponse;
@@ -36,6 +28,13 @@ import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AcceptCoalescingFunctionTests {
@@ -67,20 +66,32 @@ public class AcceptCoalescingFunctionTests {
                         .put(CLIENT_2, success(client2seq1Proposal))
                         .build();
 
-
         when(remote.accept(requests)).thenReturn(remoteResponse);
 
         AcceptCoalescingFunction function = new AcceptCoalescingFunction(remote);
-        Map<Map.Entry<Client, PaxosProposal>, BooleanPaxosResponse> result = function.apply(requests.entries());
+        Map<Map.Entry<Client, PaxosProposal>, BooleanPaxosResponse> result =
+                ImmutableMap.copyOf(function.apply(requests.entries()));
 
-        assertThat(result)
-                .containsEntry(entry(CLIENT_1, client1seq1Proposal), success(client1seq1Proposal).value())
-                .containsEntry(entry(CLIENT_1, client1seq2Proposal), failure(client1seq2Proposal).value())
-                .containsEntry(entry(CLIENT_2, client2seq1Proposal), success(client2seq1Proposal).value());
+        assertContains(
+                result,
+                CLIENT_1,
+                client1seq1Proposal,
+                success(client1seq1Proposal).value());
+        assertContains(
+                result,
+                CLIENT_1,
+                client1seq2Proposal,
+                failure(client1seq2Proposal).value());
+        assertContains(
+                result,
+                CLIENT_2,
+                client2seq1Proposal,
+                success(client2seq1Proposal).value());
     }
 
     private static PaxosProposal proposal(long round) {
-        PaxosProposalId proposalId = new PaxosProposalId(new Random().nextLong(), UUID.randomUUID().toString());
+        PaxosProposalId proposalId =
+                new PaxosProposalId(new Random().nextLong(), UUID.randomUUID().toString());
         PaxosValue value = new PaxosValue(UUID.randomUUID().toString(), round, null);
         return new PaxosProposal(proposalId, value);
     }
@@ -91,5 +102,17 @@ public class AcceptCoalescingFunctionTests {
 
     private static WithSeq<BooleanPaxosResponse> failure(PaxosProposal proposal) {
         return WithSeq.of(FAILURE, proposal.getValue().getRound());
+    }
+
+    private static <A, B, C> void assertContains(Map<Map.Entry<A, B>, C> map, A first, B second, C third) {
+        assertThat(contains(map, first, second, third))
+                .as("Map contains desired entry")
+                .isTrue();
+    }
+
+    private static <A, B, C> boolean contains(Map<Map.Entry<A, B>, C> map, A first, B second, C third) {
+        return map.entrySet().stream()
+                .anyMatch(entry -> entry.getKey().equals(entry(first, second))
+                        && entry.getValue().equals(third));
     }
 }

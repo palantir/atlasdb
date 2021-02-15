@@ -30,5 +30,4 @@ public interface PoolingContainer<T> {
      * are undefined unless the implementor says otherwise.
      */
     void shutdownPooling();
-
 }

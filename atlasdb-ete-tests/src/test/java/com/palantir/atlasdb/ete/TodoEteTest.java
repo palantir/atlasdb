@@ -15,16 +15,7 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertThat;
-
-import java.net.SocketTimeoutException;
-
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -32,6 +23,11 @@ import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
+import java.net.SocketTimeoutException;
+import org.junit.After;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestRule;
 
 public class TodoEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
@@ -49,11 +45,13 @@ public class TodoEteTest {
     @Test
     public void shouldBeAbleToWriteAndListTodos() {
         todoClient.addTodo(TODO);
-        assertThat(todoClient.getTodoList(), hasItem(TODO));
+        assertThat(todoClient.getTodoList()).contains(TODO);
     }
 
     @Test
-    @ShouldRetry(numAttempts = 10, retryableExceptions = {SocketTimeoutException.class})
+    @ShouldRetry(
+            numAttempts = 10,
+            retryableExceptions = {SocketTimeoutException.class})
     public void shouldSweepStreamIndices() {
         // Stores five small streams, each of which fits into a single block
         // Each time a stream is stored, the previous stream (if any) is deleted
@@ -64,15 +62,15 @@ public class TodoEteTest {
 
         // The index table contains 5 rows, 4 with two cells (a reference and a delete), and one with just the reference
         // Sweep examines these nine cells, and deletes the old references.
-        assertThat(firstSweep.getCellTsPairsExamined(), equalTo(9L));
-        assertThat(firstSweep.getStaleValuesDeleted(), equalTo(4L));
+        assertThat(firstSweep.getCellTsPairsExamined()).isEqualTo(9L);
+        assertThat(firstSweep.getStaleValuesDeleted()).isEqualTo(4L);
 
         // When sweep deletes cells from the index table, a cleanup task is run to propagate the deletes to the value
         // table. The value table thus contains 4 rows with two cells (stream data + a delete), and 1 with just the data
         // Sweep examines these nine cells, and deletes the old values.
         SweepResults valueSweep = todoClient.sweepSnapshotValues();
-        assertThat(valueSweep.getCellTsPairsExamined(), equalTo(9L));
-        assertThat(valueSweep.getStaleValuesDeleted(), equalTo(4L));
+        assertThat(valueSweep.getCellTsPairsExamined()).isEqualTo(9L);
+        assertThat(valueSweep.getStaleValuesDeleted()).isEqualTo(4L);
 
         // Stores five larger streams, which take 3 blocks each
         StreamTestUtils.storeFiveStreams(todoClient, 1254321);
@@ -83,8 +81,8 @@ public class TodoEteTest {
         // 1 row (the most recent) with just a reference - 1 examined, 0 deleted
         // So sweep examines 15 cells in total, and deletes 5
         SweepResults secondSweep = todoClient.sweepSnapshotIndices();
-        assertThat(secondSweep.getCellTsPairsExamined(), equalTo(15L));
-        assertThat(secondSweep.getStaleValuesDeleted(), equalTo(5L));
+        assertThat(secondSweep.getCellTsPairsExamined()).isEqualTo(15L);
+        assertThat(secondSweep.getStaleValuesDeleted()).isEqualTo(5L);
 
         // The deletes of the second index-sweep propagate deletes to *each* of the blocks in the value table
         // The value table now contains ten rows:
@@ -95,7 +93,7 @@ public class TodoEteTest {
         // The total cells examined is thus 4 + 2 + 4*2*3 + 3 = 33
         // And the total cells deleted is 1 + 4*3 = 13
         SweepResults secondValueSweep = todoClient.sweepSnapshotValues();
-        assertThat(secondValueSweep.getCellTsPairsExamined(), equalTo(33L));
-        assertThat(secondValueSweep.getStaleValuesDeleted(), equalTo(13L));
+        assertThat(secondValueSweep.getCellTsPairsExamined()).isEqualTo(33L);
+        assertThat(secondValueSweep.getStaleValuesDeleted()).isEqualTo(13L);
     }
 }

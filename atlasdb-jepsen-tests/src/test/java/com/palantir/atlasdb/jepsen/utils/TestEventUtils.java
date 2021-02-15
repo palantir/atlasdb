@@ -86,8 +86,7 @@ public abstract class TestEventUtils {
         return createOkEvent(time, process, value, RequestType.TIMESTAMP);
     }
 
-    public static InvokeEvent createInvokeEvent(long time, int process, String requestType,
-            String resourceName) {
+    public static InvokeEvent createInvokeEvent(long time, int process, String requestType, String resourceName) {
         return ImmutableInvokeEvent.builder()
                 .time(time)
                 .process(process)

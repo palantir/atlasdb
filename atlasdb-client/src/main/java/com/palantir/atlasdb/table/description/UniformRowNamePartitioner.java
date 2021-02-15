@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UniformRowNamePartitioner implements RowNamePartitioner {
     final ValueType valueType;
@@ -43,34 +42,35 @@ public class UniformRowNamePartitioner implements RowNamePartitioner {
         }
         int highestOne = Integer.highestOneBit(numberRanges);
         if (highestOne != numberRanges) {
-            numberRanges = highestOne*2;
+            numberRanges = highestOne * 2;
         }
         switch (valueType) {
-        case VAR_LONG:
-        case FIXED_LONG:
-        case BLOB:
-        case SHA256HASH:
-        case FIXED_LONG_LITTLE_ENDIAN:
-        case NULLABLE_FIXED_LONG:
-        case UUID:
-            return getRangesForLongs(numberRanges);
-        default:
-            throw new UnsupportedOperationException("AtlasDB does not yet support this type. (But can if you need it)");
+            case VAR_LONG:
+            case FIXED_LONG:
+            case BLOB:
+            case SHA256HASH:
+            case FIXED_LONG_LITTLE_ENDIAN:
+            case NULLABLE_FIXED_LONG:
+            case UUID:
+                return getRangesForLongs(numberRanges);
+            default:
+                throw new UnsupportedOperationException(
+                        "AtlasDB does not yet support this type. (But can if you need it)");
         }
     }
 
     public static boolean allowsUniformPartitioner(ValueType type) {
         switch (type) {
-        case VAR_LONG:
-        case FIXED_LONG:
-        case BLOB:
-        case SHA256HASH:
-        case FIXED_LONG_LITTLE_ENDIAN:
-        case NULLABLE_FIXED_LONG:
-        case UUID:
-            return true;
-        default:
-            return false;
+            case VAR_LONG:
+            case FIXED_LONG:
+            case BLOB:
+            case SHA256HASH:
+            case FIXED_LONG_LITTLE_ENDIAN:
+            case NULLABLE_FIXED_LONG:
+            case UUID:
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -83,8 +83,8 @@ public class UniformRowNamePartitioner implements RowNamePartitioner {
             shift--;
         }
         long increment = Long.MIN_VALUE >>> shift;
-        List<byte[]> ret = Lists.newArrayList();
-        for (int i = 0 ; i < numberRanges ; i++) {
+        List<byte[]> ret = new ArrayList<>();
+        for (int i = 0; i < numberRanges; i++) {
             long val = increment * i;
             if (isVarLong()) {
                 if (val == 0L) {
@@ -145,5 +145,4 @@ public class UniformRowNamePartitioner implements RowNamePartitioner {
         }
         return true;
     }
-
 }

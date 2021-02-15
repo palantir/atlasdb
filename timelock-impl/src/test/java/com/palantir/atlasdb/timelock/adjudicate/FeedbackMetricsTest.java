@@ -21,10 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mock;
-
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
@@ -33,6 +29,9 @@ import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
 
 public class FeedbackMetricsTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer test");
@@ -41,14 +40,19 @@ public class FeedbackMetricsTest {
     private ConjureTimelockServiceBlocking conjureTimelockServiceBlocking = mock(ConjureTimelockServiceBlocking.class);
     private DialogueAdaptingConjureTimelockService service;
 
-    @Mock private LeaderTime leaderTime;
-    @Mock private ConjureStartTransactionsRequest request;
-    @Mock private ConjureStartTransactionsResponse conjureStartTransactionsResponse;
+    @Mock
+    private LeaderTime leaderTime;
+
+    @Mock
+    private ConjureStartTransactionsRequest request;
+
+    @Mock
+    private ConjureStartTransactionsResponse conjureStartTransactionsResponse;
 
     @Before
     public void cleanMetrics() {
         metrics = ConjureTimelockServiceBlockingMetrics.of(
-                        MetricsManagers.createForTests().getTaggedRegistry());
+                MetricsManagers.createForTests().getTaggedRegistry());
         service = new DialogueAdaptingConjureTimelockService(conjureTimelockServiceBlocking, metrics);
     }
 
@@ -66,7 +70,8 @@ public class FeedbackMetricsTest {
         when(conjureTimelockServiceBlocking.leaderTime(AUTH_HEADER, NAMESPACE))
                 .thenThrow(new RuntimeException("Failed to get leader time."));
         assertThatThrownBy(() -> service.leaderTime(AUTH_HEADER, NAMESPACE))
-                .isInstanceOf(RuntimeException.class).hasMessage("Failed to get leader time.");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Failed to get leader time.");
 
         assertThat(metrics.leaderTime().getCount()).isEqualTo(1);
         assertThat(metrics.leaderTime().getSnapshot().get99thPercentile()).isNotZero();
@@ -79,10 +84,10 @@ public class FeedbackMetricsTest {
                 .thenReturn(conjureStartTransactionsResponse);
         service.startTransactions(AUTH_HEADER, NAMESPACE, request);
         assertThat(metrics.startTransactions().getCount()).isEqualTo(1L);
-        assertThat(metrics.startTransactions().getSnapshot().get99thPercentile()).isNotZero();
+        assertThat(metrics.startTransactions().getSnapshot().get99thPercentile())
+                .isNotZero();
         assertThat(metrics.startTransactionErrors().getCount()).isEqualTo(0);
     }
-
 
     @Test
     public void startTransactionErrorMetricsAreRecordedOnException() {
@@ -90,10 +95,12 @@ public class FeedbackMetricsTest {
                 .thenThrow(new RuntimeException("Failed to start transaction."));
 
         assertThatThrownBy(() -> service.startTransactions(AUTH_HEADER, NAMESPACE, request))
-                .isInstanceOf(RuntimeException.class).hasMessage("Failed to start transaction.");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Failed to start transaction.");
 
         assertThat(metrics.startTransactions().getCount()).isEqualTo(1);
-        assertThat(metrics.startTransactions().getSnapshot().get99thPercentile()).isNotZero();
+        assertThat(metrics.startTransactions().getSnapshot().get99thPercentile())
+                .isNotZero();
         assertThat(metrics.startTransactionErrors().getCount()).isEqualTo(1);
     }
 }

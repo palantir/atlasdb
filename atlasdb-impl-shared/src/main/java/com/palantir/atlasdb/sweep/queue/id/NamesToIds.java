@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue.id;
 
-import java.util.Collections;
-import java.util.Optional;
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -28,10 +25,13 @@ import com.palantir.atlasdb.schema.generated.SweepNameToIdTable.SweepNameToIdNam
 import com.palantir.atlasdb.schema.generated.SweepNameToIdTable.SweepNameToIdRow;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.logsafe.Preconditions;
+import java.util.Collections;
+import java.util.Optional;
 
 class NamesToIds {
     private static final TargetedSweepTableFactory tableFactory = TargetedSweepTableFactory.of();
-    private static final TableReference NAME_TO_ID = tableFactory.getSweepNameToIdTable(null).getTableRef();
+    private static final TableReference NAME_TO_ID =
+            tableFactory.getSweepNameToIdTable(null).getTableRef();
 
     private final KeyValueService kvs;
 
@@ -70,24 +70,24 @@ class NamesToIds {
         Cell cell = Cell.create(row.persistToBytes(), SweepNameToIdNamedColumn.ID.getShortName());
         SweepTableIdentifier oldValue = SweepTableIdentifier.pending(id);
         SweepTableIdentifier newValue = SweepTableIdentifier.identified(id);
-        CheckAndSetRequest request = CheckAndSetRequest.singleCell(
-                NAME_TO_ID,
-                cell,
-                oldValue.persistToBytes(),
-                newValue.persistToBytes());
+        CheckAndSetRequest request =
+                CheckAndSetRequest.singleCell(NAME_TO_ID, cell, oldValue.persistToBytes(), newValue.persistToBytes());
         try {
             kvs.checkAndSet(request);
         } catch (CheckAndSetException e) {
             SweepTableIdentifier actual = currentMapping(table).get();
-            Preconditions.checkState(newValue.equals(actual), "Unexpectedly we state changed from pending(id) to "
-                    + "not(identified(id)) after identifying id as the correct value");
+            Preconditions.checkState(
+                    newValue.equals(actual),
+                    "Unexpectedly we state changed from pending(id) to "
+                            + "not(identified(id)) after identifying id as the correct value");
         }
     }
 
     Optional<SweepTableIdentifier> currentMapping(TableReference table) {
         SweepNameToIdRow row = SweepNameToIdRow.of(table.getQualifiedName());
         Cell cell = Cell.create(row.persistToBytes(), SweepNameToIdNamedColumn.ID.getShortName());
-        return Optional.ofNullable(kvs.get(NAME_TO_ID, Collections.singletonMap(cell, Long.MAX_VALUE)).get(cell))
+        return Optional.ofNullable(kvs.get(NAME_TO_ID, Collections.singletonMap(cell, Long.MAX_VALUE))
+                        .get(cell))
                 .map(Value::getContents)
                 .map(SweepTableIdentifier.BYTES_HYDRATOR::hydrateFromBytes);
     }

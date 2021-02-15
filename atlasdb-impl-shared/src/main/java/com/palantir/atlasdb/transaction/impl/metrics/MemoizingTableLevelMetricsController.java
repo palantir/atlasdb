@@ -16,19 +16,19 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import org.immutables.value.Value;
-
 import com.codahale.metrics.Counter;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import org.immutables.value.Value;
 
 public class MemoizingTableLevelMetricsController implements TableLevelMetricsController {
     private final LoadingCache<MetricSpec, Counter> metricSpecCounterCache;
 
     public MemoizingTableLevelMetricsController(TableLevelMetricsController delegate) {
-        this.metricSpecCounterCache = Caffeine.newBuilder().build(
-                spec -> delegate.createAndRegisterCounter(spec.clazz(), spec.metricName(), spec.tableReference()));
+        this.metricSpecCounterCache = Caffeine.newBuilder()
+                .build(spec ->
+                        delegate.createAndRegisterCounter(spec.clazz(), spec.metricName(), spec.tableReference()));
     }
 
     @Override
@@ -39,7 +39,9 @@ public class MemoizingTableLevelMetricsController implements TableLevelMetricsCo
     @Value.Immutable
     interface MetricSpec {
         Class<?> clazz();
+
         String metricName();
+
         TableReference tableReference();
 
         static MetricSpec of(Class<?> clazz, String metricName, TableReference tableReference) {

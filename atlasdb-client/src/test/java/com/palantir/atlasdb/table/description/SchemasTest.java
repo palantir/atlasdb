@@ -15,27 +15,25 @@
  */
 package com.palantir.atlasdb.table.description;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
+import org.junit.Before;
+import org.junit.Test;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly", "checkstyle:WhitespaceAround"})
 public class SchemasTest {
@@ -53,33 +51,32 @@ public class SchemasTest {
 
     @Test
     public void testGetFullTableReferenceString() {
-        MatcherAssert.assertThat(
-                Schemas.getTableReferenceString(TABLE_NAME, NAMESPACE),
-                Matchers.equalTo("TableReference.createFromFullyQualifiedName(\""
-                        + NAMESPACE.getName() + "." + TABLE_NAME + "\")"));
+        assertThat(Schemas.getTableReferenceString(TABLE_NAME, NAMESPACE))
+                .isEqualTo("TableReference.createFromFullyQualifiedName(\"" + NAMESPACE.getName() + "." + TABLE_NAME
+                        + "\")");
     }
 
     @Test
     public void testGetFullTableReferenceStringLegacy() {
-        MatcherAssert.assertThat(
-                Schemas.getTableReferenceString(TABLE_NAME, Namespace.create("met")),
-                Matchers.equalTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")")
-        );
+        assertThat(Schemas.getTableReferenceString(TABLE_NAME, Namespace.create("met")))
+                .isEqualTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")");
     }
 
     @Test
     public void testGetFullTableReferenceStringEmptyNamespace() {
-        MatcherAssert.assertThat(
-                Schemas.getTableReferenceString(TABLE_NAME, Namespace.EMPTY_NAMESPACE),
-                Matchers.equalTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")")
-        );
+        assertThat(Schemas.getTableReferenceString(TABLE_NAME, Namespace.EMPTY_NAMESPACE))
+                .isEqualTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")");
     }
 
     @Test
     public void testCreateTable() {
-        mockery.checking(new Expectations(){{
-            oneOf(kvs).createTables(with(tableMapContainsEntry(TABLE_REF, getSimpleTableDefinitionAsBytes(TABLE_REF))));
-        }});
+        mockery.checking(new Expectations() {
+            {
+                oneOf(kvs)
+                        .createTables(
+                                with(tableMapContainsEntry(TABLE_REF, getSimpleTableDefinitionAsBytes(TABLE_REF))));
+            }
+        });
         Schemas.createTable(kvs, TABLE_REF, getSimpleTableDefinition(TABLE_REF));
     }
 
@@ -87,13 +84,17 @@ public class SchemasTest {
     public void testCreateTables() {
         TableReference tableName1 = TableReference.createWithEmptyNamespace(TABLE_NAME + "1");
         TableReference tableName2 = TableReference.createWithEmptyNamespace(TABLE_NAME + "2");
-        mockery.checking(new Expectations(){{
-            oneOf(kvs).createTables(with(tableMapContainsEntry(tableName1,
-                    getSimpleTableDefinitionAsBytes(tableName1))));
-            oneOf(kvs).createTables(with(tableMapContainsEntry(tableName2,
-                    getSimpleTableDefinitionAsBytes(tableName2))));
-        }});
-        Map<TableReference, TableDefinition> tables = Maps.newHashMap();
+        mockery.checking(new Expectations() {
+            {
+                oneOf(kvs)
+                        .createTables(
+                                with(tableMapContainsEntry(tableName1, getSimpleTableDefinitionAsBytes(tableName1))));
+                oneOf(kvs)
+                        .createTables(
+                                with(tableMapContainsEntry(tableName2, getSimpleTableDefinitionAsBytes(tableName2))));
+            }
+        });
+        Map<TableReference, TableDefinition> tables = new HashMap<>();
         tables.put(tableName1, getSimpleTableDefinition(tableName1));
         tables.put(tableName2, getSimpleTableDefinition(tableName2));
         Schemas.createTables(kvs, tables);
@@ -101,15 +102,17 @@ public class SchemasTest {
 
     @Test
     public void testDeleteTablesForSweepSchema() {
-        Set<TableReference> allTableNames = Sets.newHashSet();
+        Set<TableReference> allTableNames = new HashSet<>();
         allTableNames.add(TableReference.createFromFullyQualifiedName("sweep.priority"));
 
-        mockery.checking(new Expectations(){{
-            oneOf(kvs).getAllTableNames();
+        mockery.checking(new Expectations() {
+            {
+                oneOf(kvs).getAllTableNames();
                 will(returnValue(allTableNames));
-            oneOf(kvs).dropTables(allTableNames);
-            oneOf(kvs).getAllTableNames();
-        }});
+                oneOf(kvs).dropTables(allTableNames);
+                oneOf(kvs).getAllTableNames();
+            }
+        });
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 
@@ -129,19 +132,20 @@ public class SchemasTest {
     }
 
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
-        return new TableDefinition() {{
-            javaTableName(tableRef.getTablename());
-            rowName();
+        return new TableDefinition() {
+            {
+                javaTableName(tableRef.getTablename());
+                rowName();
                 rowComponent("rowName", ValueType.STRING);
-            columns();
+                columns();
                 column("col1", "1", ValueType.VAR_LONG);
                 column("col2", "2", ValueType.VAR_LONG);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-        }};
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        };
     }
 
     private byte[] getSimpleTableDefinitionAsBytes(TableReference tableRef) {
         return getSimpleTableDefinition(tableRef).toTableMetadata().persistToBytes();
     }
 }
-

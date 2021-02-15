@@ -17,12 +17,10 @@ package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
+import java.util.Optional;
+import org.junit.Test;
 
 public class DefaultClusterConfigurationTest {
     private static final String ADDRESS_1 = "localhost:1";
@@ -31,27 +29,24 @@ public class DefaultClusterConfigurationTest {
     @Test
     public void shouldThrowIfLocalServerNotSpecified() {
         assertThatThrownBy(ImmutableDefaultClusterConfiguration.builder()
-                .enableNonstandardAndPossiblyDangerousTopology(true)
-                ::build)
+                        .enableNonstandardAndPossiblyDangerousTopology(true)::build)
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void shouldThrowIfNoServersSpecified() {
         assertThatThrownBy(ImmutableDefaultClusterConfiguration.builder()
-                .enableNonstandardAndPossiblyDangerousTopology(true)
-                .localServer(ADDRESS_1)
-                ::build)
+                        .enableNonstandardAndPossiblyDangerousTopology(true)
+                        .localServer(ADDRESS_1)::build)
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void shouldThrowIfLocalServerNotInServers() {
         assertThatThrownBy(ImmutableDefaultClusterConfiguration.builder()
-                .localServer(ADDRESS_1)
-                .enableNonstandardAndPossiblyDangerousTopology(true)
-                .cluster(PartialServiceConfiguration.of(ImmutableList.of(ADDRESS_2), Optional.empty()))
-                ::build)
+                        .localServer(ADDRESS_1)
+                        .enableNonstandardAndPossiblyDangerousTopology(true)
+                        .cluster(PartialServiceConfiguration.of(ImmutableList.of(ADDRESS_2), Optional.empty()))::build)
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

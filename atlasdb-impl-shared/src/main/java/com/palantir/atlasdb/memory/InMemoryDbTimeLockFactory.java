@@ -16,12 +16,8 @@
 
 package com.palantir.atlasdb.memory;
 
-import java.util.Map;
-
 import com.google.auto.service.AutoService;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.DbTimestampCreationSettings;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -33,10 +29,12 @@ import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.HashMap;
+import java.util.Map;
 
 @AutoService(DbTimeLockFactory.class)
 public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
-    private final Map<TimestampSeries, ManagedTimestampService> services = Maps.newHashMap();
+    private final Map<TimestampSeries, ManagedTimestampService> services = new HashMap<>();
 
     @Override
     public String getType() {
@@ -44,23 +42,21 @@ public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
     }
 
     @Override
-    public KeyValueService createRawKeyValueService(MetricsManager metricsManager, KeyValueServiceConfig config,
-            LeaderConfig leaderConfig) {
+    public KeyValueService createRawKeyValueService(
+            MetricsManager metricsManager, KeyValueServiceConfig config, LeaderConfig leaderConfig) {
         return new InMemoryKeyValueService(true);
     }
 
     @Override
-    public ManagedTimestampService createManagedTimestampService(KeyValueService rawKvs,
-            DbTimestampCreationSetting dbTimestampCreationSetting, boolean initializeAsync) {
-        return DbTimestampCreationSettings.caseOf(dbTimestampCreationSetting)
-                .multipleSeries((unusedTableRef, series) ->
-                        services.computeIfAbsent(series, unused -> new InMemoryTimestampService()))
-                .singleSeries(unused -> new InMemoryTimestampService());
+    public ManagedTimestampService createManagedTimestampService(
+            KeyValueService rawKvs, DbTimestampCreationSetting dbTimestampCreationSetting, boolean initializeAsync) {
+        return services.computeIfAbsent(
+                dbTimestampCreationSetting.timestampSeries(), _series -> new InMemoryTimestampService());
     }
 
     @Override
-    public TimestampSeriesProvider createTimestampSeriesProvider(KeyValueService rawKvs, TableReference tableReference,
-            boolean initializeAsync) {
+    public TimestampSeriesProvider createTimestampSeriesProvider(
+            KeyValueService rawKvs, TableReference tableReference, boolean initializeAsync) {
         return services::keySet;
     }
 }

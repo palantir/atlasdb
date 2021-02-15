@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.stream;
 
+import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.util.crypto.Sha256Hash;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.util.crypto.Sha256Hash;
 
 /**
  * Interface for storing streams specifically for atlasdb.
@@ -34,7 +33,7 @@ public interface GenericStreamStore<ID> {
      * Implemented in the generated StreamStore implementation.
      * Use this to look up stream IDs, given a hash of the corresponding InputStream's content.
      */
-    Map<Sha256Hash, ID> lookupStreamIdsByHash(Transaction tx, final Set<Sha256Hash> hashes);
+    Map<Sha256Hash, ID> lookupStreamIdsByHash(Transaction tx, Set<Sha256Hash> hashes);
 
     /**
      * @deprecated use #loadSingleStream instead.

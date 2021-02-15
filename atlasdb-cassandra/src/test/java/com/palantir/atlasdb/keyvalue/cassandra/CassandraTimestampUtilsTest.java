@@ -20,18 +20,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Map;
-
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.util.Pair;
+import java.util.List;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
+import org.junit.Test;
 
 public class CassandraTimestampUtilsTest {
     private static final byte[] KEY_1 = {120};
@@ -49,21 +46,19 @@ public class CassandraTimestampUtilsTest {
     private static final byte[] CQL_FAILURE = {0};
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
-    private static final Map<String, Pair<byte[], byte[]>> CAS_MAP_TWO_COLUMNS
-            = ImmutableMap.<String, Pair<byte[], byte[]>>builder()
-            .put(COLUMN_NAME_1, Pair.create(EMPTY_BYTE_ARRAY, VALUE_1))
-            .put(COLUMN_NAME_2, Pair.create(EMPTY_BYTE_ARRAY, VALUE_2))
-            .build();
+    private static final ImmutableMap<String, Pair<byte[], byte[]>> CAS_MAP_TWO_COLUMNS =
+            ImmutableMap.<String, Pair<byte[], byte[]>>builder()
+                    .put(COLUMN_NAME_1, Pair.create(EMPTY_BYTE_ARRAY, VALUE_1))
+                    .put(COLUMN_NAME_2, Pair.create(EMPTY_BYTE_ARRAY, VALUE_2))
+                    .build();
 
     @Test
     public void canGetValuesFromSelectionResult() {
         List<Column> columnList1 = buildKeyValueColumnList(KEY_1, COLUMN_BYTES_1, VALUE_1);
         List<Column> columnList2 = buildKeyValueColumnList(KEY_2, COLUMN_BYTES_2, VALUE_2);
 
-        CqlResult mockResult = createMockCqlResult(
-                ImmutableList.of(
-                        createMockCqlRow(columnList1),
-                        createMockCqlRow(columnList2)));
+        CqlResult mockResult =
+                createMockCqlResult(ImmutableList.of(createMockCqlRow(columnList1), createMockCqlRow(columnList2)));
         assertThat(CassandraTimestampUtils.getValuesFromSelectionResult(mockResult))
                 .isEqualTo(ImmutableMap.of(COLUMN_NAME_1, VALUE_1, COLUMN_NAME_2, VALUE_2));
     }
@@ -76,20 +71,23 @@ public class CassandraTimestampUtilsTest {
 
     @Test
     public void longConvertedToBytesIsValidTimestampData() {
-        assertThat(CassandraTimestampUtils.isValidTimestampData(PtBytes.toBytes(1234567L))).isTrue();
-        assertThat(CassandraTimestampUtils.isValidTimestampData(new byte[Long.BYTES])).isTrue();
+        assertThat(CassandraTimestampUtils.isValidTimestampData(PtBytes.toBytes(1234567L)))
+                .isTrue();
+        assertThat(CassandraTimestampUtils.isValidTimestampData(new byte[Long.BYTES]))
+                .isTrue();
     }
 
     @Test
     public void invalidatedValueIsNotValidTimestampData() {
         assertThat(CassandraTimestampUtils.isValidTimestampData(
-                CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray()))
+                        CassandraTimestampUtils.INVALIDATED_VALUE.toByteArray()))
                 .isFalse();
     }
 
     @Test
     public void emptyByteArrayIsNotValidTimestampData() {
-        assertThat(CassandraTimestampUtils.isValidTimestampData(EMPTY_BYTE_ARRAY)).isFalse();
+        assertThat(CassandraTimestampUtils.isValidTimestampData(EMPTY_BYTE_ARRAY))
+                .isFalse();
     }
 
     @Test
@@ -99,7 +97,8 @@ public class CassandraTimestampUtilsTest {
 
     @Test
     public void largeByteArrayIsNotValidTimestampData() {
-        assertThat(CassandraTimestampUtils.isValidTimestampData(new byte[100 * Long.BYTES])).isFalse();
+        assertThat(CassandraTimestampUtils.isValidTimestampData(new byte[100 * Long.BYTES]))
+                .isFalse();
     }
 
     @Test
@@ -118,61 +117,55 @@ public class CassandraTimestampUtilsTest {
 
     @Test
     public void checkAndSetGeneratesBatchedStatements() {
-        CqlQuery query = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
-                ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, VALUE_2),
-                        COLUMN_NAME_2, Pair.create(VALUE_2, VALUE_1)));
+        CqlQuery query = CassandraTimestampUtils.constructCheckAndSetMultipleQuery(ImmutableMap.of(
+                COLUMN_NAME_1, Pair.create(VALUE_1, VALUE_2), COLUMN_NAME_2, Pair.create(VALUE_2, VALUE_1)));
         assertThat(query.toString()).contains("BEGIN UNLOGGED BATCH").contains("APPLY BATCH;");
     }
 
     @Test
     public void checkAndSetThrowsIfTryingToSetToNull() {
         assertThatThrownBy(() -> CassandraTimestampUtils.constructCheckAndSetMultipleQuery(
-                ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, null))))
+                        ImmutableMap.of(COLUMN_NAME_1, Pair.create(VALUE_1, null))))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void appliedResultIsCompatible() {
-        CqlResult mockResult = createMockCqlResult(
-                ImmutableList.of(createMockCqlRow(buildAppliedColumnList())));
+        CqlResult mockResult = createMockCqlResult(ImmutableList.of(createMockCqlRow(buildAppliedColumnList())));
         CassandraTimestampUtils.verifyCompatible(mockResult, CAS_MAP_TWO_COLUMNS);
     }
 
     @Test
     public void unappliedResultIsCompatibleIfTheStateOfTheWorldMatchesTargets() {
-        CqlResult mockResult = createMockCqlResult(
-                ImmutableList.of(
-                        createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_1, VALUE_1)),
-                        createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_2, VALUE_2))));
+        CqlResult mockResult = createMockCqlResult(ImmutableList.of(
+                createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_1, VALUE_1)),
+                createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_2, VALUE_2))));
         CassandraTimestampUtils.verifyCompatible(mockResult, CAS_MAP_TWO_COLUMNS);
     }
 
     @Test
     public void unappliedResultIsCompatibleIfWeHaveExtraRows() {
-        CqlResult mockResult = createMockCqlResult(
-                ImmutableList.of(
-                        createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_1, VALUE_1)),
-                        createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_2, VALUE_2)),
-                        createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_3, VALUE_3))));
+        CqlResult mockResult = createMockCqlResult(ImmutableList.of(
+                createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_1, VALUE_1)),
+                createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_2, VALUE_2)),
+                createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_3, VALUE_3))));
         CassandraTimestampUtils.verifyCompatible(mockResult, CAS_MAP_TWO_COLUMNS);
     }
 
     @Test
     public void unappliedResultIsIncompatibleIfTheStateOfTheWorldMatchesExpecteds() {
-        CqlResult mockResult = createMockCqlResult(
-                ImmutableList.of(
-                        createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_1, EMPTY_BYTE_ARRAY)),
-                        createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_2, EMPTY_BYTE_ARRAY))));
+        CqlResult mockResult = createMockCqlResult(ImmutableList.of(
+                createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_1, EMPTY_BYTE_ARRAY)),
+                createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_2, EMPTY_BYTE_ARRAY))));
         assertThatThrownBy(() -> CassandraTimestampUtils.verifyCompatible(mockResult, CAS_MAP_TWO_COLUMNS))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void unappliedResultIsIncompatibleIfTheStateOfTheWorldIsIncorrect() {
-        CqlResult mockResult = createMockCqlResult(
-                ImmutableList.of(
-                        createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_1, VALUE_2)),
-                        createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_2, VALUE_1))));
+        CqlResult mockResult = createMockCqlResult(ImmutableList.of(
+                createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_1, VALUE_2)),
+                createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_2, VALUE_1))));
         assertThatThrownBy(() -> CassandraTimestampUtils.verifyCompatible(mockResult, CAS_MAP_TWO_COLUMNS))
                 .isInstanceOf(IllegalStateException.class);
     }
@@ -180,8 +173,7 @@ public class CassandraTimestampUtilsTest {
     @Test
     public void unappliedResultIsIncompatibleIfWeHaveMissingRows() {
         CqlResult mockResult = createMockCqlResult(
-                ImmutableList.of(
-                        createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_1, VALUE_1))));
+                ImmutableList.of(createMockCqlRow(buildUnappliedColumnList(COLUMN_BYTES_1, VALUE_1))));
         assertThatThrownBy(() -> CassandraTimestampUtils.verifyCompatible(mockResult, CAS_MAP_TWO_COLUMNS))
                 .isInstanceOf(IllegalStateException.class);
     }

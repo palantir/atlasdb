@@ -15,13 +15,8 @@
  */
 package com.palantir.atlasdb.util;
 
-import java.net.URI;
-
-import org.junit.rules.ExternalResource;
-
 import com.codahale.metrics.health.HealthCheck;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-
 import io.dropwizard.Application;
 import io.dropwizard.Configuration;
 import io.dropwizard.jetty.HttpConnectorFactory;
@@ -29,6 +24,8 @@ import io.dropwizard.server.SimpleServerFactory;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.testing.DropwizardTestSupport;
+import java.net.URI;
+import org.junit.rules.ExternalResource;
 
 /**
  * Copied from {@link io.dropwizard.testing.junit.DropwizardClientRule} so that we can configure the ObjectMapper.
@@ -61,14 +58,14 @@ public class DropwizardClientRule extends ExternalResource {
         testSupport.after();
     }
 
-    private static class DummyHealthCheck extends HealthCheck {
+    private static final class DummyHealthCheck extends HealthCheck {
         @Override
         protected HealthCheck.Result check() {
             return Result.healthy();
         }
     }
 
-    private class FakeApplication extends Application<Configuration> {
+    private final class FakeApplication extends Application<Configuration> {
 
         @Override
         public void initialize(Bootstrap<Configuration> bootstrap) {

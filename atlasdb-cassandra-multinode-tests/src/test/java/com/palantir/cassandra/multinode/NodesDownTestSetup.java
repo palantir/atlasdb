@@ -15,14 +15,6 @@
  */
 package com.palantir.cassandra.multinode;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-import org.junit.AfterClass;
-import org.junit.ClassRule;
-
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -31,16 +23,22 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.connection.DockerPort;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.List;
+import org.awaitility.Awaitility;
+import org.junit.AfterClass;
+import org.junit.ClassRule;
 
 public abstract class NodesDownTestSetup {
     private static final int CASSANDRA_THRIFT_PORT = 9160;
-    private static final CassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig
-            .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
+    private static final CassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig.copyOf(
+                    ThreeNodeCassandraCluster.KVS_CONFIG)
             .withSchemaMutationTimeoutMillis(3_000);
 
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(NodesDownTestSetup.class)
-            .with(new ThreeNodeCassandraCluster());
+    public static final Containers CONTAINERS =
+            new Containers(NodesDownTestSetup.class).with(new ThreeNodeCassandraCluster());
 
     @AfterClass
     public static void closeKvs() {
@@ -66,20 +64,20 @@ public abstract class NodesDownTestSetup {
     }
 
     private static void degradeCassandraCluster(List<String> nodesToKill) {
-        nodesToKill.forEach((containerName) -> {
+        nodesToKill.forEach(containerName -> {
             try {
                 killCassandraContainer(containerName);
             } catch (IOException | InterruptedException e) {
                 Throwables.propagate(e);
             }
         });
-
     }
 
     private static void killCassandraContainer(String containerName) throws IOException, InterruptedException {
         CONTAINERS.getContainer(containerName).kill();
         DockerPort containerPort = new DockerPort(containerName, CASSANDRA_THRIFT_PORT, CASSANDRA_THRIFT_PORT);
-        Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(
-                () -> !containerPort.isListeningNow());
+        Awaitility.waitAtMost(Duration.ofSeconds(10))
+                .pollInterval(Duration.ofSeconds(2))
+                .until(() -> !containerPort.isListeningNow());
     }
 }

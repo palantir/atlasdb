@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-
-import javax.annotation.Nullable;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
 
 public final class TransactionConflictDetectionManager {
 
@@ -41,10 +39,10 @@ public final class TransactionConflictDetectionManager {
         conflictHandlers.compute(tableRef, (tableReference, nullableCurrentValue) -> {
             ConflictHandler conflictHandler = delegate.get(tableReference);
             Preconditions.checkNotNull(conflictHandler, "Conflict handler cannot be null when overwriting");
-            Optional<ConflictHandler> newValue = Optional.of(
-                    getDisabledReadWriteConflictHandler(conflictHandler));
+            Optional<ConflictHandler> newValue = Optional.of(getDisabledReadWriteConflictHandler(conflictHandler));
 
-            Preconditions.checkState(nullableCurrentValue == null || nullableCurrentValue.equals(newValue),
+            Preconditions.checkState(
+                    nullableCurrentValue == null || nullableCurrentValue.equals(newValue),
                     "Cannot overwrite conflict behaviour after the table has already been used");
             return newValue;
         });
@@ -63,14 +61,15 @@ public final class TransactionConflictDetectionManager {
             case SERIALIZABLE_LOCK_LEVEL_MIGRATION:
                 throw new UnsupportedOperationException();
             default:
-                throw new SafeIllegalStateException("Unknown conflict handling strategy",
-                        SafeArg.of("conflictHandler", conflictHandler));
+                throw new SafeIllegalStateException(
+                        "Unknown conflict handling strategy", SafeArg.of("conflictHandler", conflictHandler));
         }
     }
 
     @Nullable
     public ConflictHandler get(TableReference tableReference) {
-        return conflictHandlers.computeIfAbsent(tableReference,
-                tableRef -> Optional.ofNullable(delegate.get(tableRef))).orElse(null);
+        return conflictHandlers
+                .computeIfAbsent(tableReference, tableRef -> Optional.ofNullable(delegate.get(tableRef)))
+                .orElse(null);
     }
 }

@@ -16,20 +16,18 @@
 
 package com.palantir.atlasdb.metrics;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
-
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.tritium.metrics.registry.MetricName;
 
 /**
  * Indicates whether metrics should be published. If {@link #test(MetricName)} returns true, that means we think
@@ -46,7 +44,7 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
     }
 
     public static MetricPublicationArbiter create() {
-        return new MetricPublicationArbiter(Maps.newConcurrentMap());
+        return new MetricPublicationArbiter(new ConcurrentHashMap<>());
     }
 
     @Override
@@ -57,10 +55,13 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
     }
 
     public void registerMetricsFilter(MetricName metricName, MetricPublicationFilter filter) {
-        singleMetricFilters.merge(metricName,
+        singleMetricFilters.merge(
+                metricName,
                 ImmutableSet.of(ImmutableDeduplicatingFilterHolder.of(filter)),
-                (oldFilters, newFilter) ->
-                        ImmutableSet.<DeduplicatingFilterHolder>builder().addAll(oldFilters).addAll(newFilter).build());
+                (oldFilters, newFilter) -> ImmutableSet.<DeduplicatingFilterHolder>builder()
+                        .addAll(oldFilters)
+                        .addAll(newFilter)
+                        .build());
     }
 
     private static boolean allFiltersMatch(MetricName metricName, Set<DeduplicatingFilterHolder> relevantFilters) {
@@ -71,7 +72,8 @@ public class MetricPublicationArbiter implements Predicate<MetricName> {
         try {
             return filter.shouldPublish();
         } catch (RuntimeException e) {
-            log.warn("Exception thrown when attempting to determine whether a metric {} should be published."
+            log.warn(
+                    "Exception thrown when attempting to determine whether a metric {} should be published."
                             + " In this case we don't filter out the metric.",
                     SafeArg.of("metricName", metricName),
                     e);

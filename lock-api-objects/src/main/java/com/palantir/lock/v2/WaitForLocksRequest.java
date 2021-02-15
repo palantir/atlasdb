@@ -15,18 +15,15 @@
  */
 package com.palantir.lock.v2;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.annotation.Nullable;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.Preconditions;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableWaitForLocksRequest.class)
@@ -49,10 +46,10 @@ public interface WaitForLocksRequest {
         return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.empty());
     }
 
-    static WaitForLocksRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs,
-            @Nullable String clientDescription) {
-        return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs,
-                Optional.ofNullable(clientDescription));
+    static WaitForLocksRequest of(
+            Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, @Nullable String clientDescription) {
+        return ImmutableWaitForLocksRequest.of(
+                UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.ofNullable(clientDescription));
     }
 
     @Value.Check

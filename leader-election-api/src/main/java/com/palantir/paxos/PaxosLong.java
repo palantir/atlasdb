@@ -32,5 +32,4 @@ public interface PaxosLong extends PaxosResponse {
     static PaxosLong of(long value) {
         return ImmutablePaxosLong.of(value);
     }
-
 }

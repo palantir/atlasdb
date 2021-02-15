@@ -15,10 +15,9 @@
  */
 package com.palantir.nexus.db.pool;
 
+import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.SQLException;
-
-import com.palantir.nexus.db.DBType;
 
 /**
  * A SQL connection pool that can be flushed.
@@ -32,12 +31,14 @@ public interface ConnectionManager {
      * @return a {@link Connection}, possibly fresh, or possibly recycled
      */
     Connection getConnection() throws SQLException;
+
     Connection getConnectionUnchecked();
 
     /**
      * Shuts down the underlying connection pool.
      */
     void close() throws SQLException;
+
     void closeUnchecked();
 
     /**
@@ -46,6 +47,7 @@ public interface ConnectionManager {
      * case the pool cannot be initialized.
      */
     void init() throws SQLException;
+
     void initUnchecked();
 
     DBType getDbType();

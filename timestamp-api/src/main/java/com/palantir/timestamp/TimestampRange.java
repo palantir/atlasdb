@@ -15,11 +15,10 @@
  */
 package com.palantir.timestamp;
 
-import java.io.Serializable;
-import java.util.Objects;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * A TimestampRange represents an inclusive range of longs.
@@ -47,8 +46,8 @@ public class TimestampRange implements Serializable {
      * @return a new inclusive TimestampRange
      */
     @JsonCreator
-    public static TimestampRange createInclusiveRange(@JsonProperty("lowerBound") long boundOne,
-                                                      @JsonProperty("upperBound") long boundTwo) {
+    public static TimestampRange createInclusiveRange(
+            @JsonProperty("lowerBound") long boundOne, @JsonProperty("upperBound") long boundTwo) {
         if (boundTwo < boundOne) {
             return new TimestampRange(boundTwo, boundOne);
         } else {
@@ -91,10 +90,7 @@ public class TimestampRange implements Serializable {
 
     @Override
     public String toString() {
-        return "TimestampRange{"
-                + "lower=" + lower
-                + ", upper=" + upper
-                + '}';
+        return "TimestampRange{" + "lower=" + lower + ", upper=" + upper + '}';
     }
 
     @Override
@@ -106,8 +102,7 @@ public class TimestampRange implements Serializable {
             return false;
         }
         TimestampRange that = (TimestampRange) other;
-        return lower == that.lower
-                && upper == that.upper;
+        return lower == that.lower && upper == that.upper;
     }
 
     @Override

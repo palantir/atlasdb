@@ -18,18 +18,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
@@ -43,6 +31,16 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import org.junit.Test;
 
 public class TableRemappingKeyValueServiceTest {
     private static final Namespace NAMESPACE = Namespace.create("namespace");
@@ -84,8 +82,7 @@ public class TableRemappingKeyValueServiceTest {
             futures.add(executor.submit(() -> dropTablesWithPrefix(prefix)));
             futures.add(executor.submit(() -> {
                 Map<Cell, Value> read = kvs.get(DATA_TABLE_REF, ImmutableMap.of(testCell, 2L));
-                assertThat(read).containsExactly(Maps.immutableEntry(testCell,
-                        Value.create(value, testTimestamp)));
+                assertThat(read).containsExactly(Maps.immutableEntry(testCell, Value.create(value, testTimestamp)));
                 return null;
             }));
             futures.forEach(Futures::getUnchecked);
@@ -105,18 +102,22 @@ public class TableRemappingKeyValueServiceTest {
     private String generateRandomTablesPrefixed() {
         String worldName = UUID.randomUUID().toString().replace("-", "_");
         String tableName = UUID.randomUUID().toString().replace("-", "_");
-        kvs.createTable(TableReference.create(NAMESPACE, worldName + "__" + tableName), new TableDefinition() {{
-            javaTableName(tableName);
-            rowName();
-            rowComponent("row", ValueType.VAR_STRING);
-            columns();
-            column("col", "c", ValueType.FIXED_LONG);
-            conflictHandler(ConflictHandler.RETRY_ON_WRITE_WRITE);
-            rangeScanAllowed();
-            negativeLookups();
-            ignoreHotspottingChecks();
-            explicitCompressionBlockSizeKB(64);
-        }}.toTableMetadata().persistToBytes());
+        kvs.createTable(
+                TableReference.create(NAMESPACE, worldName + "__" + tableName),
+                new TableDefinition() {
+                    {
+                        javaTableName(tableName);
+                        rowName();
+                        rowComponent("row", ValueType.VAR_STRING);
+                        columns();
+                        column("col", "c", ValueType.FIXED_LONG);
+                        conflictHandler(ConflictHandler.RETRY_ON_WRITE_WRITE);
+                        rangeScanAllowed();
+                        negativeLookups();
+                        ignoreHotspottingChecks();
+                        explicitCompressionBlockSizeKB(64);
+                    }
+                }.toTableMetadata().persistToBytes());
         return worldName;
     }
 }

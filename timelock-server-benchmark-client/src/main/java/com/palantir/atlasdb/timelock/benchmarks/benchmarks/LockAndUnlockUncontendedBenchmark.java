@@ -15,21 +15,18 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import java.util.Map;
-
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.v2.TimelockService;
+import java.util.Map;
 
 public final class LockAndUnlockUncontendedBenchmark extends LockAndUnlockContendedBenchmark {
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
-            int requestsPerClient) {
-        return new LockAndUnlockUncontendedBenchmark(txnManager.getTimelockService(), numClients,
-                requestsPerClient).execute();
+    public static Map<String, Object> execute(TransactionManager txnManager, int numClients, int requestsPerClient) {
+        return new LockAndUnlockUncontendedBenchmark(txnManager.getTimelockService(), numClients, requestsPerClient)
+                .execute();
     }
 
     private LockAndUnlockUncontendedBenchmark(TimelockService timelock, int numClients, int numRequestsPerClient) {
         super(timelock, numClients, numRequestsPerClient, numClients * numRequestsPerClient);
     }
-
 }

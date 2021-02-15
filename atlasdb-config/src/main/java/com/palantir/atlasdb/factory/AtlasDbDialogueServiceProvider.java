@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.factory;
 
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -34,6 +32,7 @@ import com.palantir.atlasdb.http.v2.ImmutableRemoteServiceConfiguration;
 import com.palantir.atlasdb.http.v2.RemoteServiceConfiguration;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingServiceBlocking;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -50,6 +49,7 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Map;
 
 /**
  * Provides a mechanism for accessing services that use Dialogue for communication. A service is defined as a cluster of
@@ -69,8 +69,8 @@ public final class AtlasDbDialogueServiceProvider {
     private final DialogueClients.ReloadingFactory dialogueClientFactory;
     private final TaggedMetricRegistry taggedMetricRegistry;
 
-    private AtlasDbDialogueServiceProvider(DialogueClients.ReloadingFactory dialogueClientFactory,
-            TaggedMetricRegistry taggedMetricRegistry) {
+    private AtlasDbDialogueServiceProvider(
+            DialogueClients.ReloadingFactory dialogueClientFactory, TaggedMetricRegistry taggedMetricRegistry) {
         this.dialogueClientFactory = dialogueClientFactory;
         this.taggedMetricRegistry = taggedMetricRegistry;
     }
@@ -81,36 +81,47 @@ public final class AtlasDbDialogueServiceProvider {
             UserAgent userAgent,
             TaggedMetricRegistry taggedMetricRegistry) {
         UserAgent versionedAgent = userAgent.addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT);
-        Refreshable<Map<String, RemoteServiceConfiguration>> timeLockRemoteConfigurations = timeLockServerListConfig
-                .map(serverListConfig -> getServiceConfigurations(versionedAgent, serverListConfig));
-        DialogueClients.ReloadingFactory reloadingFactory
-                = decorateForFailoverServices(baseFactory, timeLockRemoteConfigurations).withUserAgent(versionedAgent);
+        Refreshable<Map<String, RemoteServiceConfiguration>> timeLockRemoteConfigurations =
+                timeLockServerListConfig.map(
+                        serverListConfig -> getServiceConfigurations(versionedAgent, serverListConfig));
+        DialogueClients.ReloadingFactory reloadingFactory = decorateForFailoverServices(
+                        baseFactory, timeLockRemoteConfigurations)
+                .withUserAgent(versionedAgent);
 
         return new AtlasDbDialogueServiceProvider(reloadingFactory, taggedMetricRegistry);
     }
 
     ConjureTimelockService getConjureTimelockService() {
-        ConjureTimelockServiceBlocking longTimeoutService
-                = dialogueClientFactory.get(ConjureTimelockServiceBlocking.class, TIMELOCK_LONG_TIMEOUT);
-        ConjureTimelockServiceBlocking shortTimeoutService
-                = dialogueClientFactory.get(ConjureTimelockServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
+        ConjureTimelockServiceBlocking longTimeoutService =
+                dialogueClientFactory.get(ConjureTimelockServiceBlocking.class, TIMELOCK_LONG_TIMEOUT);
+        ConjureTimelockServiceBlocking shortTimeoutService =
+                dialogueClientFactory.get(ConjureTimelockServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
         ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics =
                 ConjureTimelockServiceBlockingMetrics.of(taggedMetricRegistry);
 
-        ShortAndLongTimeoutServices<ConjureTimelockService> shortAndLongTimeoutServices
-                = ImmutableShortAndLongTimeoutServices.<ConjureTimelockServiceBlocking>builder()
-                .longTimeout(longTimeoutService)
-                .shortTimeout(shortTimeoutService)
-                .build()
-                .map(proxy -> FastFailoverProxy.newProxyInstance(ConjureTimelockServiceBlocking.class, () -> proxy))
-                .map(service -> AtlasDbMetrics.instrumentWithTaggedMetrics(
-                        taggedMetricRegistry,
-                        ConjureTimelockServiceBlocking.class,
-                        service))
-                .map(instrumentedService -> new DialogueAdaptingConjureTimelockService(instrumentedService,
-                        conjureTimelockServiceBlockingMetrics));
+        ShortAndLongTimeoutServices<ConjureTimelockService> shortAndLongTimeoutServices =
+                ImmutableShortAndLongTimeoutServices.<ConjureTimelockServiceBlocking>builder()
+                        .longTimeout(longTimeoutService)
+                        .shortTimeout(shortTimeoutService)
+                        .build()
+                        .map(proxy ->
+                                FastFailoverProxy.newProxyInstance(ConjureTimelockServiceBlocking.class, () -> proxy))
+                        .map(service -> AtlasDbMetrics.instrumentWithTaggedMetrics(
+                                taggedMetricRegistry, ConjureTimelockServiceBlocking.class, service))
+                        .map(instrumentedService -> new DialogueAdaptingConjureTimelockService(
+                                instrumentedService, conjureTimelockServiceBlockingMetrics));
 
         return new TimeoutSensitiveConjureTimelockService(shortAndLongTimeoutServices);
+    }
+
+    MultiClientConjureTimelockServiceBlocking getMultiClientConjureTimelockService() {
+        MultiClientConjureTimelockServiceBlocking blockingService =
+                dialogueClientFactory.get(MultiClientConjureTimelockServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                taggedMetricRegistry,
+                MultiClientConjureTimelockServiceBlocking.class,
+                FastFailoverProxy.newProxyInstance(
+                        MultiClientConjureTimelockServiceBlocking.class, () -> blockingService));
     }
 
     TimestampManagementRpcClient getTimestampManagementRpcClient() {
@@ -119,28 +130,26 @@ public final class AtlasDbDialogueServiceProvider {
     }
 
     LockRpcClient getLockRpcClient() {
-        ConjureLockV1ServiceBlocking shortTimeoutDialogueService
-                = dialogueClientFactory.get(ConjureLockV1ServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
-        ConjureLockV1ServiceBlocking longTimeoutDialogueService
-                = dialogueClientFactory.get(ConjureLockV1ServiceBlocking.class, TIMELOCK_LONG_TIMEOUT);
+        ConjureLockV1ServiceBlocking shortTimeoutDialogueService =
+                dialogueClientFactory.get(ConjureLockV1ServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
+        ConjureLockV1ServiceBlocking longTimeoutDialogueService =
+                dialogueClientFactory.get(ConjureLockV1ServiceBlocking.class, TIMELOCK_LONG_TIMEOUT);
 
-        ShortAndLongTimeoutServices<LockRpcClient> legacyRpcClients
-                = ImmutableShortAndLongTimeoutServices.<LockRpcClient>builder()
-                .shortTimeout(createDialogueProxyWithShortTimeout(LockRpcClient.class))
-                .longTimeout(createDialogueProxyWithLongTimeout(LockRpcClient.class))
-                .build();
+        ShortAndLongTimeoutServices<LockRpcClient> legacyRpcClients =
+                ImmutableShortAndLongTimeoutServices.<LockRpcClient>builder()
+                        .shortTimeout(createDialogueProxyWithShortTimeout(LockRpcClient.class))
+                        .longTimeout(createDialogueProxyWithLongTimeout(LockRpcClient.class))
+                        .build();
 
         return new TimeoutSensitiveLockRpcClient(
                 ImmutableShortAndLongTimeoutServices.<ConjureLockV1ServiceBlocking>builder()
                         .shortTimeout(shortTimeoutDialogueService)
                         .longTimeout(longTimeoutDialogueService)
                         .build()
-                        .map(proxy -> FastFailoverProxy.newProxyInstance(
-                                ConjureLockV1ServiceBlocking.class, () -> proxy))
+                        .map(proxy ->
+                                FastFailoverProxy.newProxyInstance(ConjureLockV1ServiceBlocking.class, () -> proxy))
                         .map(service -> AtlasDbMetrics.instrumentWithTaggedMetrics(
-                                taggedMetricRegistry,
-                                ConjureLockV1ServiceBlocking.class,
-                                service))
+                                taggedMetricRegistry, ConjureLockV1ServiceBlocking.class, service))
                         .zipWith(legacyRpcClients, DialogueComposingLockRpcClient::new));
     }
 
@@ -149,8 +158,8 @@ public final class AtlasDbDialogueServiceProvider {
     }
 
     ConjureLockWatchingServiceBlocking getConjureLockWatchingService() {
-        ConjureLockWatchingServiceBlocking blockingService
-                = dialogueClientFactory.get(ConjureLockWatchingServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
+        ConjureLockWatchingServiceBlocking blockingService =
+                dialogueClientFactory.get(ConjureLockWatchingServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 taggedMetricRegistry,
                 ConjureLockWatchingServiceBlocking.class,
@@ -170,8 +179,7 @@ public final class AtlasDbDialogueServiceProvider {
     }
 
     private static ImmutableMap<String, RemoteServiceConfiguration> getServiceConfigurations(
-            UserAgent versionedAgent,
-            ServerListConfig serverListConfig) {
+            UserAgent versionedAgent, ServerListConfig serverListConfig) {
         return ImmutableMap.of(
                 TIMELOCK_SHORT_TIMEOUT,
                 createRemoteServiceConfiguration(versionedAgent, serverListConfig, false),
@@ -200,8 +208,8 @@ public final class AtlasDbDialogueServiceProvider {
     private static DialogueClients.ReloadingFactory decorateForFailoverServices(
             DialogueClients.ReloadingFactory baseFactory,
             Refreshable<Map<String, RemoteServiceConfiguration>> serviceToRemoteConfiguration) {
-        return baseFactory.reloading(serviceToRemoteConfiguration.map(
-                DialogueClientOptions::toServicesConfigBlock))
+        return baseFactory
+                .reloading(serviceToRemoteConfiguration.map(DialogueClientOptions::toServicesConfigBlock))
                 .withNodeSelectionStrategy(NodeSelectionStrategy.PIN_UNTIL_ERROR_WITHOUT_RESHUFFLE)
                 .withClientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS);
     }

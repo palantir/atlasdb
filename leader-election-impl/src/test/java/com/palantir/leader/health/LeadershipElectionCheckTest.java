@@ -21,44 +21,41 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.IntStream;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.leader.LeaderElectionServiceMetrics;
 import com.palantir.paxos.Client;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.IntStream;
+import org.junit.Before;
+import org.junit.Test;
 
 public class LeadershipElectionCheckTest {
     private final FakeTimeClock fakeTimeClock = new FakeTimeClock();
     private final TaggedMetricRegistry registry = mock(TaggedMetricRegistry.class);
     private final TaggedMetricRegistry registry2 = mock(TaggedMetricRegistry.class);
 
-    private final LeaderElectionServiceMetrics leaderElectionServiceMetrics =
-            LeaderElectionServiceMetrics.of(registry);
+    private final LeaderElectionServiceMetrics leaderElectionServiceMetrics = LeaderElectionServiceMetrics.of(registry);
     private final LeaderElectionServiceMetrics leaderElectionServiceMetrics2 =
             LeaderElectionServiceMetrics.of(registry2);
 
     private final LeaderElectionHealthCheck leaderElectionHealthCheck = new LeaderElectionHealthCheck(Instant::now);
-    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient1
-            = new LeaderElectionHealthCheck(Instant::now);
-    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient2
-            = new LeaderElectionHealthCheck(Instant::now);
+    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient1 =
+            new LeaderElectionHealthCheck(Instant::now);
+    private final LeaderElectionHealthCheck leaderElectionHealthCheckForOnlyClient2 =
+            new LeaderElectionHealthCheck(Instant::now);
 
     private static final Client CLIENT_1 = Client.of("abc");
     private static final Client CLIENT_2 = Client.of("abc_2");
 
-    private Map<Client, LeaderElectionServiceMetrics> clientLeaderElectionServiceMetricsMap
-            = ImmutableMap.of(CLIENT_1, leaderElectionServiceMetrics, CLIENT_2, leaderElectionServiceMetrics2);
+    private Map<Client, LeaderElectionServiceMetrics> clientLeaderElectionServiceMetricsMap =
+            ImmutableMap.of(CLIENT_1, leaderElectionServiceMetrics, CLIENT_2, leaderElectionServiceMetrics2);
 
     @Before
     public void setup() {
@@ -79,14 +76,14 @@ public class LeadershipElectionCheckTest {
         long healthCheckDeactivationPeriod = LeaderElectionHealthCheck.HEALTH_CHECK_DEACTIVATION_PERIOD.getSeconds();
 
         now.addAndGet(healthCheckDeactivationPeriod + 1);
-        assertThat(check.isWithinDeactivationWindow()).isEqualTo(true);
+        assertThat(check.isWithinDeactivationWindow()).isTrue();
 
         check.registerClient(CLIENT_1, leaderElectionServiceMetrics);
         now.addAndGet(healthCheckDeactivationPeriod / 2);
-        assertThat(check.isWithinDeactivationWindow()).isEqualTo(true);
+        assertThat(check.isWithinDeactivationWindow()).isTrue();
 
         now.addAndGet(healthCheckDeactivationPeriod / 2 + 1);
-        assertThat(check.isWithinDeactivationWindow()).isEqualTo(false);
+        assertThat(check.isWithinDeactivationWindow()).isFalse();
     }
 
     @Test
@@ -107,20 +104,24 @@ public class LeadershipElectionCheckTest {
 
     @Test
     public void shouldBeUnhealthyForMoreThanOneLeaderElectionPerMinute() {
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5,  Duration.ofSeconds(10), true);
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5, Duration.ofSeconds(10), true);
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().leaderElectionRate())
                 .isGreaterThan(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
     }
 
     @Test
     public void shouldBeHealthyForOneLeaderElectionPerMinuteAcrossClients() {
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5,  Duration.ofSeconds(60), true);
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 5,  Duration.ofSeconds(60), false);
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 5, Duration.ofSeconds(60), true);
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 5, Duration.ofSeconds(60), false);
 
-        assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthReport().leaderElectionRate())
+        assertThat(leaderElectionHealthCheckForOnlyClient1
+                        .leaderElectionRateHealthReport()
+                        .leaderElectionRate())
                 .isLessThanOrEqualTo(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
 
-        assertThat(leaderElectionHealthCheckForOnlyClient2.leaderElectionRateHealthReport().leaderElectionRate())
+        assertThat(leaderElectionHealthCheckForOnlyClient2
+                        .leaderElectionRateHealthReport()
+                        .leaderElectionRate())
                 .isLessThanOrEqualTo(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
 
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().leaderElectionRate())
@@ -129,23 +130,25 @@ public class LeadershipElectionCheckTest {
 
     @Test
     public void shouldBeUnhealthyOverallEvenIfIndividualClientsAreHealthy() {
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 2,  Duration.ofSeconds(10), true);
-        markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 3,  Duration.ofSeconds(10), false);
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_1, 2, Duration.ofSeconds(10), true);
+        markLeaderElectionsAtSpecifiedInterval(CLIENT_2, 3, Duration.ofSeconds(10), false);
 
-        assertThat(leaderElectionHealthCheckForOnlyClient1.leaderElectionRateHealthReport().leaderElectionRate())
+        assertThat(leaderElectionHealthCheckForOnlyClient1
+                        .leaderElectionRateHealthReport()
+                        .leaderElectionRate())
                 .isLessThanOrEqualTo(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
 
-        assertThat(leaderElectionHealthCheckForOnlyClient2.leaderElectionRateHealthReport().leaderElectionRate())
+        assertThat(leaderElectionHealthCheckForOnlyClient2
+                        .leaderElectionRateHealthReport()
+                        .leaderElectionRate())
                 .isLessThanOrEqualTo(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
 
         assertThat(leaderElectionHealthCheck.leaderElectionRateHealthReport().leaderElectionRate())
                 .isGreaterThan(LeaderElectionHealthCheck.MAX_ALLOWED_LAST_5_MINUTE_RATE);
     }
 
-    private void markLeaderElectionsAtSpecifiedInterval(Client client,
-            int leaderElectionCount,
-            Duration timeIntervalInSeconds,
-            boolean afterDeactivationPeriod) {
+    private void markLeaderElectionsAtSpecifiedInterval(
+            Client client, int leaderElectionCount, Duration timeIntervalInSeconds, boolean afterDeactivationPeriod) {
         // The rate is initialized after first tick (5 second interval) of meter with number of marks / interval.
         // Marking before the first interval has passed sets the rate very high, which should not happen in practice.
         if (afterDeactivationPeriod) {
@@ -172,4 +175,3 @@ public class LeadershipElectionCheckTest {
         }
     }
 }
-

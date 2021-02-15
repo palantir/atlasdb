@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 
 public final class AtlasDbMetricNames {
@@ -25,7 +23,7 @@ public final class AtlasDbMetricNames {
         // Utility
     }
 
-    public final class CellFilterMetrics {
+    public static final class CellFilterMetrics {
         private CellFilterMetrics() {
             // Utility
         }
@@ -57,6 +55,8 @@ public final class AtlasDbMetricNames {
     public static final String TAG_STRATEGY = "strategy";
     public static final String TAG_CONSERVATIVE = "conservative";
     public static final String TAG_THOROUGH = "thorough";
+    public static final String TAG_SHARD = "shard";
+    public static final String TAG_CUMULATIVE = "cumulative";
     public static final String ENQUEUED_WRITES = "enqueuedWrites";
     public static final String ENTRIES_READ = "entriesRead";
     public static final String TOMBSTONES_PUT = "tombstonesPut";
@@ -66,7 +66,7 @@ public final class AtlasDbMetricNames {
     public static final String LAG_MILLIS = "millisSinceLastSweptTs";
     public static final String BATCH_SIZE_MEAN = "batchSizeMean";
     public static final String SWEEP_DELAY = "sweepDelay";
-    public static final Set<String> TARGETED_SWEEP_PROGRESS_METRIC_NAMES = ImmutableSet.of(
+    public static final ImmutableSet<String> TARGETED_SWEEP_PROGRESS_METRIC_NAMES = ImmutableSet.of(
             ENQUEUED_WRITES,
             ENTRIES_READ,
             TOMBSTONES_PUT,

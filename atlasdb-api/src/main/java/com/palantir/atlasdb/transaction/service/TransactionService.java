@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
-import java.util.Map;
-
-import javax.annotation.CheckForNull;
-
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.metrics.Timed;
+import java.util.Map;
+import javax.annotation.CheckForNull;
 
 /**
  * Transaction service is used by the atlas protocol to determine is a given transaction has been
@@ -62,8 +60,7 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      * not have ran.
      */
     @Timed
-    void putUnlessExists(long startTimestamp, long commitTimestamp)
-            throws KeyAlreadyExistsException;
+    void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException;
 
     /**
      * This operation seeks to commit multiple transactions; implementations may override it if this can be
@@ -86,5 +83,6 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
     /**
      * Frees up resources associated with the transaction service.
      */
-    @Override void close();
+    @Override
+    void close();
 }

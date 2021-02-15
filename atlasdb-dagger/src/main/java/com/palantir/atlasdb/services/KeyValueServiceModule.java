@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.services;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
@@ -44,9 +41,10 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.TimestampService;
-
 import dagger.Module;
 import dagger.Provides;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 @Module
 public class KeyValueServiceModule {
@@ -54,10 +52,11 @@ public class KeyValueServiceModule {
     @Provides
     @Singleton
     @Named("kvs")
-    public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs,
-                                                         TimestampService tss,
-                                                         ServicesConfig config,
-                                                         MetricsManager metricsManager) {
+    public KeyValueService provideWrappedKeyValueService(
+            @Named("rawKvs") KeyValueService rawKvs,
+            TimestampService tss,
+            ServicesConfig config,
+            MetricsManager metricsManager) {
         config.adapter().setTimestampService(tss);
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.atlasDbConfig().getKvsSlowLogThresholdMillis());
@@ -69,18 +68,14 @@ public class KeyValueServiceModule {
 
         SweepConfig sweepConfig = config.atlasDbRuntimeConfig().sweep();
         kvs = SweepStatsKeyValueService.create(
-                kvs,
-                tss,
-                sweepConfig::writeThreshold,
-                sweepConfig::writeSizeThreshold,
-                () -> true);
+                kvs, tss, sweepConfig::writeThreshold, sweepConfig::writeSizeThreshold, () -> true);
 
         TransactionTables.createTables(kvs);
-        ImmutableSet<Schema> schemas =
-                ImmutableSet.<Schema>builder()
-                        .add(SweepSchema.INSTANCE.getLatestSchema())
-                        .add(CompactSchema.INSTANCE.getLatestSchema())
-                        .addAll(config.schemas()).build();
+        ImmutableSet<Schema> schemas = ImmutableSet.<Schema>builder()
+                .add(SweepSchema.INSTANCE.getLatestSchema())
+                .add(CompactSchema.INSTANCE.getLatestSchema())
+                .addAll(config.schemas())
+                .build();
         for (Schema schema : schemas) {
             Schemas.createTablesAndIndexes(schema, kvs);
         }
@@ -90,10 +85,8 @@ public class KeyValueServiceModule {
     @Provides
     @Singleton
     public TransactionService provideTransactionService(
-            @Named("kvs") KeyValueService kvs,
-            CoordinationService<InternalSchemaMetadata> coordinationService) {
-        return TransactionServices.createTransactionService(kvs,
-                new TransactionSchemaManager(coordinationService));
+            @Named("kvs") KeyValueService kvs, CoordinationService<InternalSchemaMetadata> coordinationService) {
+        return TransactionServices.createTransactionService(kvs, new TransactionSchemaManager(coordinationService));
     }
 
     @Provides
@@ -115,7 +108,7 @@ public class KeyValueServiceModule {
             TimestampService ts,
             ServicesConfig config,
             MetricsManager metricsManager) {
-        return CoordinationServices.createDefault(kvs, ts, metricsManager, config.atlasDbConfig().initializeAsync());
+        return CoordinationServices.createDefault(
+                kvs, ts, metricsManager, config.atlasDbConfig().initializeAsync());
     }
-
 }

@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.util;
 
+import com.palantir.atlasdb.metrics.Timed;
+import com.palantir.tritium.api.event.InstrumentationFilter;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import javax.annotation.Nonnull;
-
-import com.palantir.atlasdb.metrics.Timed;
-import com.palantir.tritium.api.event.InstrumentationFilter;
 
 final class TimedOnlyInstrumentationFilter implements InstrumentationFilter {
 

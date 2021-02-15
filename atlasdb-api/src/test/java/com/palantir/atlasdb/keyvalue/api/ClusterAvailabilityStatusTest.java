@@ -15,29 +15,28 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
 public class ClusterAvailabilityStatusTest {
     @Test
     public void allAvailableMeansHealthy() {
-        assertTrue(ClusterAvailabilityStatus.ALL_AVAILABLE.isHealthy());
+        assertThat(ClusterAvailabilityStatus.ALL_AVAILABLE.isHealthy()).isTrue();
     }
 
     @Test
     public void quorumAvailableMeansNotHealthy() {
-        assertFalse(ClusterAvailabilityStatus.QUORUM_AVAILABLE.isHealthy());
+        assertThat(ClusterAvailabilityStatus.QUORUM_AVAILABLE.isHealthy()).isFalse();
     }
 
     @Test
     public void noQuorumMeansNotHealthy() {
-        assertFalse(ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE.isHealthy());
+        assertThat(ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE.isHealthy()).isFalse();
     }
 
     @Test
     public void terminalMeansNotHealthy() {
-        assertFalse(ClusterAvailabilityStatus.TERMINAL.isHealthy());
+        assertThat(ClusterAvailabilityStatus.TERMINAL.isHealthy()).isFalse();
     }
 }

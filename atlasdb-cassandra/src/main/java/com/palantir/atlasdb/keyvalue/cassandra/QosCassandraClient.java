@@ -16,12 +16,20 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Ticker;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.Query;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.QueryWeight;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers.QueryWeigher;
+import com.palantir.atlasdb.qos.metrics.QosMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -39,19 +47,9 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Ticker;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.Query;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.QueryWeight;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers.QueryWeigher;
-import com.palantir.atlasdb.qos.metrics.QosMetrics;
-import com.palantir.atlasdb.util.MetricsManager;
-
 @SuppressWarnings({"all"}) // thrift variable names.
 public class QosCassandraClient implements AutoDelegate_CassandraClient {
-    private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);
+    private static final Logger log = LoggerFactory.getLogger(QosCassandraClient.class);
 
     private final CassandraClient client;
     private final QosMetrics metrics;
@@ -73,8 +71,12 @@ public class QosCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(String kvsMethodName, TableReference tableRef,
-            List<ByteBuffer> keys, SlicePredicate predicate, ConsistencyLevel consistency_level)
+    public Map<ByteBuffer, List<ColumnOrSuperColumn>> multiget_slice(
+            String kvsMethodName,
+            TableReference tableRef,
+            List<ByteBuffer> keys,
+            SlicePredicate predicate,
+            ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         return executeRead(
                 () -> client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level),
@@ -82,8 +84,12 @@ public class QosCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public List<KeySlice> get_range_slices(String kvsMethodName, TableReference tableRef, SlicePredicate predicate,
-            KeyRange range, ConsistencyLevel consistency_level)
+    public List<KeySlice> get_range_slices(
+            String kvsMethodName,
+            TableReference tableRef,
+            SlicePredicate predicate,
+            KeyRange range,
+            ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         return executeRead(
                 () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
@@ -91,7 +97,11 @@ public class QosCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public void remove(String kvsMethodName, TableReference tableRef, byte[] row, long timestamp,
+    public void remove(
+            String kvsMethodName,
+            TableReference tableRef,
+            byte[] row,
+            long timestamp,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         executeWrite(
@@ -103,7 +113,9 @@ public class QosCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public void batch_mutate(String kvsMethodName, Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
+    public void batch_mutate(
+            String kvsMethodName,
+            Map<ByteBuffer, Map<String, List<Mutation>>> mutation_map,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         executeWrite(
@@ -115,22 +127,20 @@ public class QosCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
-    public ColumnOrSuperColumn get(TableReference tableReference, ByteBuffer key, byte[] column,
-            ConsistencyLevel consistency_level)
+    public ColumnOrSuperColumn get(
+            TableReference tableReference, ByteBuffer key, byte[] column, ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
-        return executeRead(
-                () -> client.get(tableReference, key, column, consistency_level), ThriftQueryWeighers.GET);
+        return executeRead(() -> client.get(tableReference, key, column, consistency_level), ThriftQueryWeighers.GET);
     }
 
     @Override
     public CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
-            TException {
+                    TException {
         return executeRead(
                 () -> client.execute_cql3_query(cqlQuery, compression, consistency),
                 ThriftQueryWeighers.EXECUTE_CQL3_QUERY);
     }
-
 
     private <T, E extends Exception> T executeRead(Query<T, E> query, QueryWeigher<T> weigher) throws E {
         return execute(query, weigher, metrics::recordRead);
@@ -141,9 +151,7 @@ public class QosCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     private <T, E extends Exception> T execute(
-            Query<T, E> query,
-            QueryWeigher<T> weigher,
-            Consumer<QueryWeight> weightMetric) throws E {
+            Query<T, E> query, QueryWeigher<T> weigher, Consumer<QueryWeight> weightMetric) throws E {
         Stopwatch timer = Stopwatch.createStarted(ticker);
 
         QueryWeight actualWeight = null;

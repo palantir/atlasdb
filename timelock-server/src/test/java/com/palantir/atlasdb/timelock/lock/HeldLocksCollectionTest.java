@@ -21,15 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
@@ -40,6 +31,13 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
+import java.time.Duration;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class HeldLocksCollectionTest {
 
@@ -77,7 +75,7 @@ public class HeldLocksCollectionTest {
         AsyncResult<HeldLocks> result = new AsyncResult<>();
         heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
 
-        assertThat(heldLocksCollection.heldLocksById.get(REQUEST_ID)).isEqualTo(result);
+        assertThat(heldLocksCollection.heldLocksById).containsEntry(REQUEST_ID, result);
     }
 
     @Test
@@ -86,22 +84,22 @@ public class HeldLocksCollectionTest {
         mockExpiredRequest();
         mockFailedRequest();
 
-        assertThat(heldLocksCollection.heldLocksById.size()).isEqualTo(3);
+        assertThat(heldLocksCollection.heldLocksById).hasSize(3);
 
         heldLocksCollection.removeExpired();
 
-        assertThat(heldLocksCollection.heldLocksById.size()).isEqualTo(1);
+        assertThat(heldLocksCollection.heldLocksById).hasSize(1);
         assertThat(heldLocksCollection.heldLocksById.keySet().iterator().next()).isEqualTo(nonExpiredRequest);
     }
 
     @Test
     public void removesTimedOutRequests() {
         mockTimedOutRequest();
-        assertThat(heldLocksCollection.heldLocksById.size()).isEqualTo(1);
+        assertThat(heldLocksCollection.heldLocksById).hasSize(1);
 
         heldLocksCollection.removeExpired();
 
-        assertThat(heldLocksCollection.heldLocksById.size()).isEqualTo(0);
+        assertThat(heldLocksCollection.heldLocksById).isEmpty();
     }
 
     @Test
@@ -110,8 +108,9 @@ public class HeldLocksCollectionTest {
         LockToken nonUnlockableRequest = mockNonRefreshableRequest();
 
         Set<LockToken> expected = ImmutableSet.of(unlockableRequest);
-        Set<LockToken> actual =
-                heldLocksCollection.refresh(ImmutableSet.of(unlockableRequest, nonUnlockableRequest)).value();
+        Set<LockToken> actual = heldLocksCollection
+                .refresh(ImmutableSet.of(unlockableRequest, nonUnlockableRequest))
+                .value();
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -122,8 +121,7 @@ public class HeldLocksCollectionTest {
         LockToken nonRefreshableRequest = mockNonRefreshableRequest();
 
         Set<LockToken> expected = ImmutableSet.of(refreshableRequest);
-        Set<LockToken> actual = heldLocksCollection.unlock(
-                ImmutableSet.of(refreshableRequest, nonRefreshableRequest));
+        Set<LockToken> actual = heldLocksCollection.unlock(ImmutableSet.of(refreshableRequest, nonRefreshableRequest));
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -132,8 +130,7 @@ public class HeldLocksCollectionTest {
     public void lockLeasesAreValidUntilExpiry() {
         setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
-        AsyncResult<Leased<LockToken>> asyncResult =
-                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        AsyncResult<Leased<LockToken>> asyncResult = heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
 
         Lease lease = asyncResult.get().lease();
@@ -147,8 +144,7 @@ public class HeldLocksCollectionTest {
     public void lockLeasesAreInvalidAfterExpiry() {
         setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
-        AsyncResult<Leased<LockToken>> asyncResult =
-                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        AsyncResult<Leased<LockToken>> asyncResult = heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
 
         Lease lease = asyncResult.get().lease();
@@ -161,8 +157,7 @@ public class HeldLocksCollectionTest {
     public void lockLeasesShouldBeInvalidatedBeforeLocksAreReaped() {
         setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
-        AsyncResult<Leased<LockToken>> asyncResult =
-                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        AsyncResult<Leased<LockToken>> asyncResult = heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
 
         Lease lease = asyncResult.get().lease();
@@ -176,8 +171,7 @@ public class HeldLocksCollectionTest {
     public void locksShouldBeReapedAndLeaseShouldBeInvalidatedAfterReapPeriod() {
         setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
-        AsyncResult<Leased<LockToken>> asyncResult =
-                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        AsyncResult<Leased<LockToken>> asyncResult = heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
 
         Lease lease = asyncResult.get().lease();
@@ -191,10 +185,10 @@ public class HeldLocksCollectionTest {
     public void lockWatchingServiceIsUpdatedAfterLockIsCreatedAndReaped() {
         setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
-        AsyncResult<Leased<LockToken>> asyncResult =
-                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        AsyncResult<Leased<LockToken>> asyncResult = heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
-        verify(lockWatcher).registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken());
+        verify(lockWatcher)
+                .registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken());
 
         Lease lease = asyncResult.get().lease();
 
@@ -209,10 +203,10 @@ public class HeldLocksCollectionTest {
     public void lockWatchingServiceIsUpdatedAfterLockIsCreatedAndUnlocked() {
         setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
-        AsyncResult<Leased<LockToken>> asyncResult =
-                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        AsyncResult<Leased<LockToken>> asyncResult = heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
-        verify(lockWatcher).registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken());
+        verify(lockWatcher)
+                .registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken());
 
         heldLocksCollection.unlock(ImmutableSet.of(LockToken.of(REQUEST_ID)));
         verify(lockWatcher).registerUnlock(ImmutableSet.of(LOCK_DESCRIPTOR));
@@ -228,13 +222,14 @@ public class HeldLocksCollectionTest {
 
         Leased<Set<LockToken>> refreshResult = heldLocksCollection.refresh(tokens);
 
-        NanoTime t1RefreshTime = heldLocksCollection.heldLocksById.get(t1.getRequestId()).get().lastRefreshTime();
-        NanoTime t2RefreshTime = heldLocksCollection.heldLocksById.get(t2.getRequestId()).get().lastRefreshTime();
+        NanoTime t1RefreshTime =
+                heldLocksCollection.heldLocksById.get(t1.getRequestId()).get().lastRefreshTime();
+        NanoTime t2RefreshTime =
+                heldLocksCollection.heldLocksById.get(t2.getRequestId()).get().lastRefreshTime();
 
         NanoTime minRefreshTime = t1RefreshTime.isBefore(t2RefreshTime) ? t1RefreshTime : t2RefreshTime;
 
         assertThat(refreshResult.lease().leaderTime().currentTime()).isLessThan(minRefreshTime);
-
     }
 
     @Test
@@ -253,7 +248,7 @@ public class HeldLocksCollectionTest {
 
         heldLocksCollection.unlock(ImmutableSet.of(token));
 
-        assertThat(heldLocksCollection.heldLocksById.isEmpty()).isTrue();
+        assertThat(heldLocksCollection.heldLocksById).isEmpty();
     }
 
     private LockToken lockSync(UUID requestId) {
@@ -266,16 +261,17 @@ public class HeldLocksCollectionTest {
 
     private void assertLocked(UUID requestId) {
         heldLocksCollection.removeExpired();
-        assertThat(heldLocksCollection.heldLocksById.containsKey(requestId)).isTrue();
+        assertThat(heldLocksCollection.heldLocksById).containsKey(requestId);
     }
 
     private void assertUnlocked(UUID requestId) {
         heldLocksCollection.removeExpired();
-        assertThat(heldLocksCollection.heldLocksById.containsKey(requestId)).isFalse();
+        assertThat(heldLocksCollection.heldLocksById).doesNotContainKey(requestId);
     }
 
     private HeldLocks heldLocksForId(UUID id) {
-        return HeldLocks.create(new LockLog(new MetricRegistry(), () -> 2L),
+        return HeldLocks.create(
+                new LockLog(new MetricRegistry(), () -> 2L),
                 ImmutableSet.of(new ExclusiveLock(LOCK_DESCRIPTOR)),
                 id,
                 leaderClock,
@@ -302,19 +298,17 @@ public class HeldLocksCollectionTest {
     }
 
     private LockToken mockRefreshableRequest() {
-        return mockHeldLocksForNewRequest(
-                heldLocks -> {
-                    when(heldLocks.unlockExplicitly()).thenReturn(true);
-                    when(heldLocks.refresh()).thenReturn(true);
-                });
+        return mockHeldLocksForNewRequest(heldLocks -> {
+            when(heldLocks.unlockExplicitly()).thenReturn(true);
+            when(heldLocks.refresh()).thenReturn(true);
+        });
     }
 
     private LockToken mockNonRefreshableRequest() {
-        return mockHeldLocksForNewRequest(
-                heldLocks -> {
-                    when(heldLocks.unlockExplicitly()).thenReturn(false);
-                    when(heldLocks.refresh()).thenReturn(false);
-                });
+        return mockHeldLocksForNewRequest(heldLocks -> {
+            when(heldLocks.unlockExplicitly()).thenReturn(false);
+            when(heldLocks.refresh()).thenReturn(false);
+        });
     }
 
     private LockToken mockFailedRequest() {
@@ -345,8 +339,7 @@ public class HeldLocksCollectionTest {
 
         AsyncResult<HeldLocks> completedResult = new AsyncResult<>();
         completedResult.complete(heldLocks);
-        heldLocksCollection.getExistingOrAcquire(request.getRequestId(),
-                () -> completedResult);
+        heldLocksCollection.getExistingOrAcquire(request.getRequestId(), () -> completedResult);
 
         return request;
     }

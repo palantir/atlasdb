@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Arrays;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -26,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
+import java.util.Arrays;
 
 final class TimestampsByCellResultWithToken {
     private byte[] currentRow = null;
@@ -35,7 +34,7 @@ final class TimestampsByCellResultWithToken {
     final SetMultimap<Cell, Long> entries;
     private SetMultimap<Cell, Long> rowBuffer;
     private boolean moreResults = false;
-    private Token token = Token.INITIAL;
+    private Token token = Tokens.INITIAL;
     private final boolean reverse;
 
     private TimestampsByCellResultWithToken(ClosableIterator<AgnosticLightResultRow> iterator, boolean reverse) {
@@ -45,10 +44,8 @@ final class TimestampsByCellResultWithToken {
         this.reverse = reverse;
     }
 
-    static TimestampsByCellResultWithToken create(ClosableIterator<AgnosticLightResultRow> iterator,
-            Token oldToken,
-            long batchSize,
-            boolean reverse) {
+    static TimestampsByCellResultWithToken create(
+            ClosableIterator<AgnosticLightResultRow> iterator, Token oldToken, long batchSize, boolean reverse) {
         return new TimestampsByCellResultWithToken(iterator, reverse)
                 .moveForward(oldToken)
                 .getBatchOfTimestamps(batchSize)
@@ -77,8 +74,7 @@ final class TimestampsByCellResultWithToken {
     }
 
     private boolean finishedSkipping(Token oldToken, AgnosticLightResultRow next) {
-        return !Arrays.equals(next.getBytes(DbKvs.ROW), oldToken.row())
-                || compareColumns(oldToken, next) > 0;
+        return !Arrays.equals(next.getBytes(DbKvs.ROW), oldToken.row()) || compareColumns(oldToken, next) > 0;
     }
 
     private static int compareColumns(Token oldToken, AgnosticLightResultRow nextResult) {
@@ -123,7 +119,10 @@ final class TimestampsByCellResultWithToken {
                         .build();
             } else {
                 flushRowBuffer();
-                token = ImmutableToken.builder().row(nextEntry.getBytes(DbKvs.ROW)).shouldSkip(false).build();
+                token = ImmutableToken.builder()
+                        .row(nextEntry.getBytes(DbKvs.ROW))
+                        .shouldSkip(false)
+                        .build();
             }
         } else {
             flushRowBuffer();
@@ -131,7 +130,10 @@ final class TimestampsByCellResultWithToken {
                 byte[] nextRow = RangeRequests.getNextStartRowUnlessTerminal(reverse, currentRow);
                 if (nextRow != null) {
                     moreResults = true;
-                    token = ImmutableToken.builder().row(nextRow).shouldSkip(false).build();
+                    token = ImmutableToken.builder()
+                            .row(nextRow)
+                            .shouldSkip(false)
+                            .build();
                 }
             }
         }

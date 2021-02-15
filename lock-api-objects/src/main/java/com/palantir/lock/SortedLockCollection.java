@@ -15,12 +15,11 @@
  */
 package com.palantir.lock;
 
+import com.google.common.collect.Iterables;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Replacement for when you would normally use SortedMap&lt;T, LockMode&gt;,

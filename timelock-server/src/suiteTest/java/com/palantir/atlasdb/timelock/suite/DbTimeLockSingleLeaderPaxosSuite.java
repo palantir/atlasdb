@@ -18,16 +18,6 @@ package com.palantir.atlasdb.timelock.suite;
 
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import org.junit.Rule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Suite;
-
 import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
@@ -35,25 +25,30 @@ import com.palantir.atlasdb.timelock.TemplateVariables;
 import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 import com.palantir.atlasdb.timelock.TestableTimelockServerConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import org.junit.Rule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Suite;
 
 @RunWith(ParameterizedSuite.class)
 @Suite.SuiteClasses(MultiNodePaxosTimeLockServerIntegrationTest.class)
 public class DbTimeLockSingleLeaderPaxosSuite {
-    private static final Iterable<TemplateVariables> TEMPLATE_VARIABLES = generateThreeNodeTimelockCluster(
-            9086,
-            builder -> builder.clientPaxosBuilder(builder.clientPaxosBuilder()
-                    .isUseBatchPaxosTimestamp(false)
-                    .isBatchSingleLeader(true))
+    private static final Iterable<TemplateVariables> TEMPLATE_VARIABLES =
+            generateThreeNodeTimelockCluster(9086, builder -> builder.clientPaxosBuilder(builder.clientPaxosBuilder()
+                            .isUseBatchPaxosTimestamp(false)
+                            .isBatchSingleLeader(true))
                     .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER));
     private static final List<TestableTimelockServerConfiguration> TESTABLE_CONFIGURATIONS = StreamSupport.stream(
-            TEMPLATE_VARIABLES.spliterator(), false)
+                    TEMPLATE_VARIABLES.spliterator(), false)
             .map(variables -> TestableTimelockServerConfiguration.of(variables, true))
             .collect(Collectors.toList());
 
     public static final TestableTimelockCluster DB_TIMELOCK_CLUSTER = new TestableTimelockCluster(
-            "db-timelock; batched single leader",
-            "dbTimeLockPaxosMultiServer.ftl",
-            TESTABLE_CONFIGURATIONS);
+            "db-timelock; batched single leader", "dbTimeLockPaxosMultiServer.ftl", TESTABLE_CONFIGURATIONS);
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestableTimelockCluster> params() {

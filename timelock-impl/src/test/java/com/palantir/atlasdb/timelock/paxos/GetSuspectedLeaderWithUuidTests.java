@@ -24,6 +24,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.common.concurrent.CheckedRejectionExecutorService;
+import com.palantir.paxos.LeaderPingerContext;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -35,19 +42,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.Answers;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.palantir.atlasdb.autobatch.BatchElement;
-import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.common.concurrent.CheckedRejectionExecutorService;
-import com.palantir.paxos.LeaderPingerContext;
 
 public class GetSuspectedLeaderWithUuidTests {
 
@@ -68,13 +66,13 @@ public class GetSuspectedLeaderWithUuidTests {
 
         GetSuspectedLeaderWithUuid function = functionForRemotes(remote1, remote2);
 
-        TestBatchElement element1 = TestBatchElement.of(remote1.underlyingRpcClient().pinger().uuid());
+        TestBatchElement element1 =
+                TestBatchElement.of(remote1.underlyingRpcClient().pinger().uuid());
         TestBatchElement element2 = TestBatchElement.random();
 
         function.accept(ImmutableList.of(element1, element2));
 
-        assertThat(element1.get())
-                .contains(remote1);
+        assertThat(element1.get()).contains(remote1);
 
         assertThat(element2.get())
                 .as("requesting a random uuid returns empty optional")
@@ -90,11 +88,9 @@ public class GetSuspectedLeaderWithUuidTests {
         TestBatchElement element = TestBatchElement.of(uuid);
         TestBatchElement elementWithSameUuid = TestBatchElement.of(uuid);
 
-        assertThat(element.result())
-                .isNotEqualTo(elementWithSameUuid.result());
+        assertThat(element.result()).isNotEqualTo(elementWithSameUuid.result());
 
-        assertThat(element.argument())
-                .isEqualTo(elementWithSameUuid.argument());
+        assertThat(element.argument()).isEqualTo(elementWithSameUuid.argument());
 
         function.accept(ImmutableList.of(element, elementWithSameUuid));
 
@@ -148,6 +144,7 @@ public class GetSuspectedLeaderWithUuidTests {
         return new GetSuspectedLeaderWithUuid(executors, clientAwareLeaders, LOCAL_UUID, Duration.ofSeconds(1));
     }
 
+    @SuppressWarnings("immutables:subtype")
     @Value.Immutable
     interface TestBatchElement extends BatchElement<UUID, Optional<ClientAwareLeaderPinger>> {
 
@@ -173,6 +170,5 @@ public class GetSuspectedLeaderWithUuidTests {
                 throws InterruptedException, ExecutionException, TimeoutException {
             return result().get(1, TimeUnit.SECONDS);
         }
-
     }
 }

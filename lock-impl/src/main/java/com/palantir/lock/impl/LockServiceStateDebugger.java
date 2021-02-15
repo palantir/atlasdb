@@ -16,22 +16,20 @@
 
 package com.palantir.lock.impl;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import org.immutables.value.Value;
 
 /**
  * Note: This class does NOT strictly guarantee that state returned is up to date across all requests.
@@ -48,9 +46,8 @@ public class LockServiceStateDebugger {
     }
 
     public Multimap<LockClient, LockRequestProgress> getSuspectedLockProgress() {
-        Multimap<LockClient, LockRequestProgress> result = Multimaps.newListMultimap(
-                Maps.newHashMap(),
-                Lists::newArrayList);
+        Multimap<LockClient, LockRequestProgress> result =
+                Multimaps.newListMultimap(new HashMap<>(), Lists::newArrayList);
         for (Map.Entry<LockClient, Set<LockRequest>> entry : outstandingLockRequests.entrySet()) {
             for (LockRequest lockRequest : entry.getValue()) {
                 result.put(entry.getKey(), getSuspectedLockProgress(entry.getKey(), lockRequest));
@@ -59,11 +56,10 @@ public class LockServiceStateDebugger {
         return result;
     }
 
-    private LockRequestProgress getSuspectedLockProgress(
-            LockClient client,
-            LockRequest request) {
+    private LockRequestProgress getSuspectedLockProgress(LockClient client, LockRequest request) {
         int locksHeld = 0;
-        for (Map.Entry<LockDescriptor, LockMode> entry : request.getLockDescriptors().entries()) {
+        for (Map.Entry<LockDescriptor, LockMode> entry :
+                request.getLockDescriptors().entries()) {
             ClientAwareReadWriteLock clientAwareLock = descriptorToLockMap.get(entry.getKey());
             KnownClientLock knownClientLock = clientAwareLock.get(client, entry.getValue());
             if (!knownClientLock.isHeld()) {
@@ -89,8 +85,11 @@ public class LockServiceStateDebugger {
     @JsonDeserialize(as = ImmutableLockRequestProgress.class)
     public interface LockRequestProgress {
         LockRequest getRequest();
+
         Optional<LockDescriptor> getNextLock();
+
         int getNumLocksAcquired();
+
         int getTotalNumLocks();
     }
 }

@@ -15,23 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-
-import static org.junit.Assert.assertEquals;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
-
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -45,6 +29,19 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class CachingTransactionTest {
@@ -57,8 +54,8 @@ public class CachingTransactionTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, UnaryOperator.identity()},
-                {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
+            {SYNC, UnaryOperator.identity()},
+            {ASYNC, (UnaryOperator<Transaction>) GetAsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -81,12 +78,16 @@ public class CachingTransactionTest {
 
     @Test
     public void testCacheEmptyGets() {
-        final Set<byte[]> oneRow = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).add(ROW_BYTES).build();
+        final Set<byte[]> oneRow = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR)
+                .add(ROW_BYTES)
+                .build();
         final ColumnSelection oneColumn = ColumnSelection.create(ImmutableList.of(COL_BYTES));
         final SortedMap<byte[], RowResult<byte[]>> emptyResults =
-                ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR).build();
+                ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR)
+                        .build();
 
-        final Set<byte[]> noRows = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).build();
+        final Set<byte[]> noRows =
+                ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).build();
 
         mockery.checking(new Expectations() {
             {
@@ -98,24 +99,28 @@ public class CachingTransactionTest {
             }
         });
 
-        assertEquals(emptyResults, cachingTransaction.getRows(table, oneRow, oneColumn));
-        assertEquals(emptyResults, cachingTransaction.getRows(table, oneRow, oneColumn));
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(emptyResults);
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(emptyResults);
 
         mockery.assertIsSatisfied();
     }
 
     @Test
     public void testGetRows() {
-        final Set<byte[]> oneRow = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).add(ROW_BYTES).build();
+        final Set<byte[]> oneRow = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR)
+                .add(ROW_BYTES)
+                .build();
         final ColumnSelection oneColumn = ColumnSelection.create(ImmutableList.of(COL_BYTES));
 
-        final Set<byte[]> noRows = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).build();
+        final Set<byte[]> noRows =
+                ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).build();
         final SortedMap<byte[], RowResult<byte[]>> emptyResults =
-                ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR).build();
+                ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR)
+                        .build();
 
         final RowResult<byte[]> rowResult = RowResult.of(Cell.create(ROW_BYTES, COL_BYTES), VALUE_BYTES);
-        final SortedMap<byte[], RowResult<byte[]>> oneResult
-                = ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR)
+        final SortedMap<byte[], RowResult<byte[]>> oneResult = ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(
+                        PtBytes.BYTES_COMPARATOR)
                 .put(ROW_BYTES, rowResult)
                 .build();
 
@@ -130,8 +135,8 @@ public class CachingTransactionTest {
             }
         });
 
-        assertEquals(oneResult, cachingTransaction.getRows(table, oneRow, oneColumn));
-        assertEquals(oneResult, cachingTransaction.getRows(table, oneRow, oneColumn));
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(oneResult);
+        assertThat(cachingTransaction.getRows(table, oneRow, oneColumn)).isEqualTo(oneResult);
 
         mockery.assertIsSatisfied();
     }
@@ -139,9 +144,8 @@ public class CachingTransactionTest {
     @Test
     public void testGetCell() {
         final Cell cell = Cell.create(ROW_BYTES, COL_BYTES);
-        final Map<Cell, byte[]> cellValueMap = ImmutableMap.<Cell, byte[]>builder()
-                .put(cell, VALUE_BYTES)
-                .build();
+        final Map<Cell, byte[]> cellValueMap =
+                ImmutableMap.<Cell, byte[]>builder().put(cell, VALUE_BYTES).build();
 
         // cell is cached after first call, so second call requests no cells
         testGetCellResults(cell, cellValueMap);
@@ -160,8 +164,8 @@ public class CachingTransactionTest {
         final Set<Cell> cellSet = ImmutableSet.of(cell);
         mockery.checking(expectationsMapping.get(name).apply(cellSet, cellValueMap));
 
-        assertEquals(cellValueMap, cachingTransaction.get(table, cellSet));
-        assertEquals(cellValueMap, cachingTransaction.get(table, cellSet));
+        assertThat(cachingTransaction.get(table, cellSet)).isEqualTo(cellValueMap);
+        assertThat(cachingTransaction.get(table, cellSet)).isEqualTo(cellValueMap);
 
         mockery.assertIsSatisfied();
     }
@@ -189,5 +193,4 @@ public class CachingTransactionTest {
             }
         };
     }
-
 }

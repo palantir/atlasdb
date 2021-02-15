@@ -16,9 +16,10 @@
 
 package com.palantir.lock.watch;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 import java.util.Map;
-
 import org.immutables.value.Value;
 
 /**
@@ -26,8 +27,12 @@ import org.immutables.value.Value;
  * calls.
  */
 @Value.Immutable
+@JsonSerialize(as = ImmutableTransactionsLockWatchUpdate.class)
+@JsonDeserialize(as = ImmutableTransactionsLockWatchUpdate.class)
 public interface TransactionsLockWatchUpdate {
     List<LockWatchEvent> events();
+
     Map<Long, LockWatchVersion> startTsToSequence();
+
     boolean clearCache();
 }

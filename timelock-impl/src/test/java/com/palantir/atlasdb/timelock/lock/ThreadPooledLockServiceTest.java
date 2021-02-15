@@ -18,13 +18,11 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import java.io.IOException;
-import java.util.concurrent.Semaphore;
-
-import org.junit.Test;
-
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.impl.ThreadPooledLockService;
+import java.io.IOException;
+import java.util.concurrent.Semaphore;
+import org.junit.Test;
 
 public class ThreadPooledLockServiceTest {
 
@@ -37,5 +35,4 @@ public class ThreadPooledLockServiceTest {
 
         verify(delegate).close();
     }
-
 }

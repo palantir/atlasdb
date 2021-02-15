@@ -15,16 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -45,6 +35,13 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This wrapper KVS should ensure that we're consistent across KVSs with:
@@ -55,7 +52,8 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  */
 public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(ValidatingQueryRewritingKeyValueService.class);
-    private static final String TRANSACTION_ERROR = "shouldn't be putting into the transaction table at this level of KVS abstraction";
+    private static final String TRANSACTION_ERROR =
+            "shouldn't be putting into the transaction table at this level of KVS abstraction";
 
     public static ValidatingQueryRewritingKeyValueService create(KeyValueService delegate) {
         return new ValidatingQueryRewritingKeyValueService(delegate);
@@ -85,7 +83,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         if (tableRefToTableMetadata.size() == 1) {
-            Entry<TableReference, byte[]> element = Iterables.getOnlyElement(tableRefToTableMetadata.entrySet());
+            Map.Entry<TableReference, byte[]> element = Iterables.getOnlyElement(tableRefToTableMetadata.entrySet());
             createTable(element.getKey(), element.getValue());
             return;
         }
@@ -101,17 +99,17 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
                 (!tableName.startsWith("_") && tableName.contains("."))
                         || AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)
                         || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
-                "invalid tableName: %s", tableName);
+                "invalid tableName: %s",
+                tableName);
     }
 
     protected static void sanityCheckTableMetadata(TableReference tableRef, byte[] tableMetadata) {
         if (tableMetadata == null || Arrays.equals(tableMetadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
-            throw new IllegalArgumentException(
-                    String.format(
-                            "Passing in empty table metadata for table '%s' is disallowed,"
-                                    + " as reasoning about such tables is hard. Consider using"
-                                    + " AtlasDbConstants.GENERIC_TABLE_METADATA instead.",
-                            tableRef));
+            throw new IllegalArgumentException(String.format(
+                    "Passing in empty table metadata for table '%s' is disallowed,"
+                            + " as reasoning about such tables is hard. Consider using"
+                            + " AtlasDbConstants.GENERIC_TABLE_METADATA instead.",
+                    tableRef));
         }
     }
 
@@ -160,7 +158,8 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         if (Iterables.isEmpty(rangeRequests)) {
             return ImmutableMap.of();
         }
@@ -176,7 +175,8 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+    public Map<Cell, Value> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         if (Iterables.isEmpty(rows) || columnSelection.noColumnsSelected()) {
             return ImmutableMap.of();
         }
@@ -184,12 +184,14 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) throws KeyAlreadyExistsException {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
+            throws KeyAlreadyExistsException {
         if (valuesByTable.isEmpty()) {
             return;
         }
         if (valuesByTable.size() == 1) {
-            Entry<TableReference, ? extends Map<Cell, byte[]>> entry = Iterables.getOnlyElement(valuesByTable.entrySet());
+            Map.Entry<TableReference, ? extends Map<Cell, byte[]>> entry =
+                    Iterables.getOnlyElement(valuesByTable.entrySet());
             put(entry.getKey(), entry.getValue(), timestamp);
             return;
         }
@@ -197,7 +199,8 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) throws KeyAlreadyExistsException {
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp)
+            throws KeyAlreadyExistsException {
         Preconditions.checkArgument(timestamp != Long.MAX_VALUE);
         Preconditions.checkArgument(timestamp >= 0);
         Preconditions.checkArgument(!tableRef.equals(TransactionConstants.TRANSACTION_TABLE), TRANSACTION_ERROR);
@@ -219,11 +222,11 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         if (tableRefToMetadata.size() == 1) {
-            Entry<TableReference, byte[]> entry = Iterables.getOnlyElement(tableRefToMetadata.entrySet());
+            Map.Entry<TableReference, byte[]> entry = Iterables.getOnlyElement(tableRefToMetadata.entrySet());
             putMetadataForTable(entry.getKey(), entry.getValue());
             return;
         }
-        tableRefToMetadata.forEach((key, value) -> sanityCheckTableMetadata(key, value));
+        tableRefToMetadata.forEach(ValidatingQueryRewritingKeyValueService::sanityCheckTableMetadata);
         delegate.putMetadataForTables(tableRefToMetadata);
     }
 
@@ -236,7 +239,8 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException {
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues)
+            throws KeyAlreadyExistsException {
         if (cellValues.isEmpty()) {
             return;
         }
@@ -255,13 +259,15 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
         }
 
         if (allAtSameTimestamp) {
-            Multimap<Cell, byte[]> cellValuesWithStrippedTimestamp = Multimaps.transformValues(cellValues, Value.GET_VALUE);
+            Multimap<Cell, byte[]> cellValuesWithStrippedTimestamp =
+                    Multimaps.transformValues(cellValues, Value.GET_VALUE);
 
             Map<Cell, byte[]> putMap = Maps.transformValues(cellValuesWithStrippedTimestamp.asMap(), input -> {
                 try {
                     return Iterables.getOnlyElement(input);
                 } catch (IllegalArgumentException e) {
-                    log.error("Application tried to put multiple same-cell values in at same timestamp; attempting to perform last-write-wins, but ordering is not guaranteed.");
+                    log.error("Application tried to put multiple same-cell values in at same timestamp; attempting to"
+                            + " perform last-write-wins, but ordering is not guaranteed.");
                     return Iterables.getLast(input);
                 }
             });

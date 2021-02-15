@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.blob.generated;
 
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -12,6 +13,8 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -82,7 +85,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
     private final BlobSchemaTableFactory tables;
 
     private DataStreamStore(TransactionManager txManager, BlobSchemaTableFactory tables) {
-        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+        this(txManager, tables, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
     }
 
     private DataStreamStore(TransactionManager txManager, BlobSchemaTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
@@ -139,8 +142,8 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
         DataStreamMetadataTable mdTable = tables.getDataStreamMetadataTable(t);
         Map<Long, StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());
 
-        Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();
-        Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();
+        Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = new HashMap<>();
+        Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = new HashMap<>();
         for (Entry<Long, StreamMetadata> e : streamIdsToMetadata.entrySet()) {
             long streamId = e.getKey();
             StreamMetadata metadata = e.getValue();
@@ -161,7 +164,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> rowsToMetadata = Maps.newHashMap();
+        Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -204,7 +207,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
         }
         DataStreamMetadataTable table = tables.getDataStreamMetadataTable(t);
         Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = Maps.newHashMap();
+        Map<Long, StreamMetadata> ret = new HashMap<>();
         for (Map.Entry<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -220,7 +223,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
         Set<DataStreamHashAidxTable.DataStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<DataStreamHashAidxTable.DataStreamHashAidxRow, DataStreamHashAidxTable.DataStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMap();
+        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
         for (DataStreamHashAidxTable.DataStreamHashAidxRow r : m.keySet()) {
             for (DataStreamHashAidxTable.DataStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -233,7 +236,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
         }
         Map<Long, StreamMetadata> metadata = getMetadata(t, hashForStreams.keySet());
 
-        Map<Sha256Hash, Long> ret = Maps.newHashMap();
+        Map<Sha256Hash, Long> ret = new HashMap<>();
         for (Map.Entry<Long, StreamMetadata> e : metadata.entrySet()) {
             if (e.getValue().getStatus() != Status.STORED) {
                 continue;
@@ -246,7 +249,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
     }
 
     private Set<DataStreamHashAidxTable.DataStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<DataStreamHashAidxTable.DataStreamHashAidxRow> rows = Sets.newHashSet();
+        Set<DataStreamHashAidxTable.DataStreamHashAidxRow> rows = new HashSet<>();
         for (Sha256Hash h : hashes) {
             rows.add(DataStreamHashAidxTable.DataStreamHashAidxRow.of(h));
         }
@@ -254,7 +257,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
     }
 
     private Set<DataStreamMetadataTable.DataStreamMetadataRow> getMetadataRowsForIds(final Iterable<Long> ids) {
-        Set<DataStreamMetadataTable.DataStreamMetadataRow> rows = Sets.newHashSet();
+        Set<DataStreamMetadataTable.DataStreamMetadataRow> rows = new HashSet<>();
         for (Long id : ids) {
             rows.add(DataStreamMetadataTable.DataStreamMetadataRow.of(id));
         }
@@ -271,7 +274,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
                     "Should only index successfully stored streams.");
 
             Sha256Hash hash = Sha256Hash.EMPTY;
-            if (metadata.getHash() != com.google.protobuf.ByteString.EMPTY) {
+            if (!ByteString.EMPTY.equals(metadata.getHash())) {
                 hash = new Sha256Hash(metadata.getHash().toByteArray());
             }
             DataStreamHashAidxTable.DataStreamHashAidxRow hashRow = DataStreamHashAidxTable.DataStreamHashAidxRow.of(hash);
@@ -290,14 +293,14 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
         if (streamIds.isEmpty()) {
             return;
         }
-        Set<DataStreamMetadataTable.DataStreamMetadataRow> smRows = Sets.newHashSet();
+        Set<DataStreamMetadataTable.DataStreamMetadataRow> smRows = new HashSet<>();
         Multimap<DataStreamHashAidxTable.DataStreamHashAidxRow, DataStreamHashAidxTable.DataStreamHashAidxColumn> shToDelete = HashMultimap.create();
         for (Long streamId : streamIds) {
             smRows.add(DataStreamMetadataTable.DataStreamMetadataRow.of(streamId));
         }
         DataStreamMetadataTable table = tables.getDataStreamMetadataTable(t);
         Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(smRows);
-        Set<DataStreamValueTable.DataStreamValueRow> streamValueToDelete = Sets.newHashSet();
+        Set<DataStreamValueTable.DataStreamValueRow> streamValueToDelete = new HashSet<>();
         for (Entry<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             Long streamId = e.getKey().getId();
             long blocks = getNumberOfBlocksFromMetadata(e.getValue());
@@ -306,7 +309,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
             }
             ByteString streamHash = e.getValue().getHash();
             Sha256Hash hash = Sha256Hash.EMPTY;
-            if (streamHash != com.google.protobuf.ByteString.EMPTY) {
+            if (!ByteString.EMPTY.equals(streamHash)) {
                 hash = new Sha256Hash(streamHash.toByteArray());
             } else {
                 log.error("Empty hash for stream {}", streamId);
@@ -356,7 +359,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
     @Override
     protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, Iterable<Long> ids) {
         DataStreamMetadataTable metaTable = tables.getDataStreamMetadataTable(t);
-        Set<DataStreamMetadataTable.DataStreamMetadataRow> rows = Sets.newHashSet();
+        Set<DataStreamMetadataTable.DataStreamMetadataRow> rows = new HashSet<>();
         for (Long id : ids) {
             rows.add(DataStreamMetadataTable.DataStreamMetadataRow.of(id));
         }
@@ -403,7 +406,9 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
      * {@link FileOutputStream}
      * {@link Functions}
      * {@link Generated}
+     * {@link HashMap}
      * {@link HashMultimap}
+     * {@link HashSet}
      * {@link IOException}
      * {@link ImmutableMap}
      * {@link ImmutableSet}

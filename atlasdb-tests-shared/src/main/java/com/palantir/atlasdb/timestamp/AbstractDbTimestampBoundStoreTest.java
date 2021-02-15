@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.timestamp;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.timestamp.TimestampBoundStore;
+import org.junit.Before;
+import org.junit.Test;
 
 public abstract class AbstractDbTimestampBoundStoreTest {
     protected TimestampBoundStore store;
@@ -35,9 +35,9 @@ public abstract class AbstractDbTimestampBoundStoreTest {
     public void testTimestampBoundStore() {
         long upperLimit1 = store.getUpperLimit();
         long upperLimit2 = store.getUpperLimit();
-        Assert.assertEquals(upperLimit1, upperLimit2);
+        assertThat(upperLimit2).isEqualTo(upperLimit1);
         store.storeUpperLimit(upperLimit2 + 1);
         long upperLimit3 = store.getUpperLimit();
-        Assert.assertEquals(upperLimit3, upperLimit2 + 1);
+        assertThat(upperLimit2 + 1).isEqualTo(upperLimit3);
     }
 }

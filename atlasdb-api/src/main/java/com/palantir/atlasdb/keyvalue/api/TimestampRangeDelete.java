@@ -22,7 +22,9 @@ import org.immutables.value.Value.Lazy;
 @Immutable
 public interface TimestampRangeDelete {
     long timestamp();
+
     boolean endInclusive();
+
     boolean deleteSentinels();
 
     @Lazy

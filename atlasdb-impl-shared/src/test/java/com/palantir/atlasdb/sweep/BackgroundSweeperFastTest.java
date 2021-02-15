@@ -18,20 +18,18 @@ package com.palantir.atlasdb.sweep;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
-import java.util.Optional;
-
-import org.assertj.core.api.Assertions;
-import org.assertj.core.data.Percentage;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.sweep.priority.ImmutableSweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
 import com.palantir.atlasdb.sweep.progress.ImmutableSweepProgress;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
+import java.util.Optional;
+import org.assertj.core.api.Assertions;
+import org.assertj.core.data.Percentage;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
@@ -47,16 +45,17 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .timeSweepStarted(20L)
                 .build());
         backgroundSweeper.runOnce();
-        Mockito.verify(priorityStore).update(
-                any(),
-                eq(TABLE_REF),
-                eq(ImmutableUpdateSweepPriority.builder()
-                        .newStaleValuesDeleted(2)
-                        .newCellTsPairsExamined(10)
-                        .newMinimumSweptTimestamp(12345L)
-                        .newLastSweepTimeMillis(currentTimeMillis)
-                        .newWriteCount(0L)
-                        .build()));
+        Mockito.verify(priorityStore)
+                .update(
+                        any(),
+                        eq(TABLE_REF),
+                        eq(ImmutableUpdateSweepPriority.builder()
+                                .newStaleValuesDeleted(2)
+                                .newCellTsPairsExamined(10)
+                                .newMinimumSweptTimestamp(12345L)
+                                .newLastSweepTimeMillis(currentTimeMillis)
+                                .newWriteCount(0L)
+                                .build()));
     }
 
     @Test
@@ -81,15 +80,16 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .timeSweepStarted(0L)
                 .build());
         backgroundSweeper.runOnce();
-        Mockito.verify(priorityStore).update(
-                any(),
-                eq(TABLE_REF),
-                eq(ImmutableUpdateSweepPriority.builder()
-                        .newStaleValuesDeleted(5)
-                        .newCellTsPairsExamined(21)
-                        .newMinimumSweptTimestamp(4567L)
-                        .newLastSweepTimeMillis(currentTimeMillis)
-                        .build()));
+        Mockito.verify(priorityStore)
+                .update(
+                        any(),
+                        eq(TABLE_REF),
+                        eq(ImmutableUpdateSweepPriority.builder()
+                                .newStaleValuesDeleted(5)
+                                .newCellTsPairsExamined(21)
+                                .newMinimumSweptTimestamp(4567L)
+                                .newLastSweepTimeMillis(currentTimeMillis)
+                                .build()));
     }
 
     @Test
@@ -117,8 +117,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .timeInMillis(10L)
                 .startTimeInMillis(50L)
                 .build();
-        Mockito.verify(progressStore).saveProgress(
-                eq(progressAfterFirstIteration));
+        Mockito.verify(progressStore).saveProgress(eq(progressAfterFirstIteration));
         setProgress(progressAfterFirstIteration);
 
         setupTaskRunner(SweepResults.builder()
@@ -131,8 +130,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .build());
         backgroundSweeper.runOnce();
 
-        Mockito.verify(progressStore).saveProgress(
-                eq(ImmutableSweepProgress.builder()
+        Mockito.verify(progressStore)
+                .saveProgress(eq(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
                         .staleValuesDeleted(5)
                         .cellTsPairsExamined(21)
@@ -169,20 +168,21 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .timeInMillis(10L)
                 .startTimeInMillis(50L)
                 .build();
-        Mockito.verify(progressStore).saveProgress(
-                eq(progressAfterFirstIteration));
+        Mockito.verify(progressStore).saveProgress(eq(progressAfterFirstIteration));
         setProgress(progressAfterFirstIteration);
 
         // Between iterations 1 and 2, OTHER_TABLE gets added to the priority list.
         setNoProgress(OTHER_TABLE);
-        setupTaskRunner(OTHER_TABLE, SweepResults.builder()
-                .staleValuesDeleted(3)
-                .cellTsPairsExamined(11)
-                .minSweptTimestamp(4567L)
-                .nextStartRow(Optional.of(new byte[] {4, 5, 6}))
-                .timeInMillis(20L)
-                .timeSweepStarted(50L)
-                .build());
+        setupTaskRunner(
+                OTHER_TABLE,
+                SweepResults.builder()
+                        .staleValuesDeleted(3)
+                        .cellTsPairsExamined(11)
+                        .minSweptTimestamp(4567L)
+                        .nextStartRow(Optional.of(new byte[] {4, 5, 6}))
+                        .timeInMillis(20L)
+                        .timeSweepStarted(50L)
+                        .build());
         overrideConfig = ImmutableSweepPriorityOverrideConfig.builder()
                 .addPriorityTables(OTHER_TABLE.getQualifiedName())
                 .build();
@@ -199,8 +199,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .timeInMillis(20L)
                 .startTimeInMillis(50L)
                 .build();
-        Mockito.verify(progressStore).saveProgress(
-                eq(progressAfterSecondIteration));
+        Mockito.verify(progressStore).saveProgress(eq(progressAfterSecondIteration));
     }
 
     @Test
@@ -262,8 +261,8 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .build());
         backgroundSweeper.runOnce();
 
-        Mockito.verify(progressStore).saveProgress(
-                eq(ImmutableSweepProgress.builder()
+        Mockito.verify(progressStore)
+                .saveProgress(eq(ImmutableSweepProgress.builder()
                         .tableRef(TABLE_REF)
                         .staleValuesDeleted(5)
                         .cellTsPairsExamined(21)
@@ -289,21 +288,23 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .startTimeInMillis(20L)
                 .build());
         setNoProgress(OTHER_TABLE);
-        setupTaskRunner(OTHER_TABLE, SweepResults.builder()
-                .staleValuesDeleted(2)
-                .cellTsPairsExamined(10)
-                .minSweptTimestamp(12345L)
-                .nextStartRow(Optional.of(new byte[] {4, 5, 6}))
-                .timeInMillis(20L)
-                .timeSweepStarted(50L)
-                .build());
+        setupTaskRunner(
+                OTHER_TABLE,
+                SweepResults.builder()
+                        .staleValuesDeleted(2)
+                        .cellTsPairsExamined(10)
+                        .minSweptTimestamp(12345L)
+                        .nextStartRow(Optional.of(new byte[] {4, 5, 6}))
+                        .timeInMillis(20L)
+                        .timeSweepStarted(50L)
+                        .build());
         setNextTableToSweep(OTHER_TABLE);
 
         BackgroundSweepThread otherThread = getBackgroundSweepThread(otherThreadIndex);
         otherThread.runOnce();
 
-        Mockito.verify(progressStore).saveProgress(
-                eq(ImmutableSweepProgress.builder()
+        Mockito.verify(progressStore)
+                .saveProgress(eq(ImmutableSweepProgress.builder()
                         .tableRef(OTHER_TABLE)
                         .staleValuesDeleted(2)
                         .cellTsPairsExamined(10)
@@ -328,12 +329,13 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .timeSweepStarted(20L)
                 .build());
         backgroundSweeper.runOnce();
-        Mockito.verify(priorityStore).update(
-                any(),
-                eq(TABLE_REF),
-                eq(ImmutableUpdateSweepPriority.builder()
-                        .newWriteCount(0L)
-                        .build()));
+        Mockito.verify(priorityStore)
+                .update(
+                        any(),
+                        eq(TABLE_REF),
+                        eq(ImmutableUpdateSweepPriority.builder()
+                                .newWriteCount(0L)
+                                .build()));
     }
 
     @Test
@@ -355,9 +357,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         ArgumentCaptor<Long> sweepTime = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<Long> totalTimeElapsed = ArgumentCaptor.forClass(Long.class);
-        Mockito.verify(sweepMetrics).updateSweepTime(
-                sweepTime.capture(),
-                totalTimeElapsed.capture());
+        Mockito.verify(sweepMetrics).updateSweepTime(sweepTime.capture(), totalTimeElapsed.capture());
 
         Assertions.assertThat(intermediateResults.getTimeInMillis()).isEqualTo(sweepTime.getValue());
         Assertions.assertThat(intermediateResults.getTimeElapsedSinceStartedSweeping())
@@ -368,15 +368,15 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     public void testMetricsUseIntermediateResultsPerIteration() {
         setNextTableToSweep(TABLE_REF);
         setProgress(ImmutableSweepProgress.builder()
-                        .tableRef(TABLE_REF)
-                        .staleValuesDeleted(3)
-                        .cellTsPairsExamined(11)
-                        .minimumSweptTimestamp(4567L)
-                        .startRow(new byte[] {1, 2, 3})
-                        .startColumn(PtBytes.toBytes("unused"))
-                        .timeInMillis(10L)
-                        .startTimeInMillis(20L)
-                        .build());
+                .tableRef(TABLE_REF)
+                .staleValuesDeleted(3)
+                .cellTsPairsExamined(11)
+                .minimumSweptTimestamp(4567L)
+                .startRow(new byte[] {1, 2, 3})
+                .startColumn(PtBytes.toBytes("unused"))
+                .timeInMillis(10L)
+                .startTimeInMillis(20L)
+                .build());
 
         SweepResults intermediateResults = SweepResults.builder()
                 .staleValuesDeleted(2)
@@ -391,9 +391,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         ArgumentCaptor<Long> sweepTime = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<Long> totalTimeElapsed = ArgumentCaptor.forClass(Long.class);
-        Mockito.verify(sweepMetrics).updateSweepTime(
-                sweepTime.capture(),
-                totalTimeElapsed.capture());
+        Mockito.verify(sweepMetrics).updateSweepTime(sweepTime.capture(), totalTimeElapsed.capture());
 
         Assertions.assertThat(intermediateResults.getTimeInMillis()).isEqualTo(sweepTime.getValue());
         Assertions.assertThat(intermediateResults.getTimeElapsedSinceStartedSweeping())

@@ -15,13 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Collection;
 import java.util.Map;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-
 public interface OverflowValueLoader {
-    Map<Long, byte[]> loadOverflowValues(ConnectionSupplier conns,
-                                         TableReference tableRef,
-                                         Collection<Long> overflowIds);
+    Map<Long, byte[]> loadOverflowValues(
+            ConnectionSupplier conns, TableReference tableRef, Collection<Long> overflowIds);
 }

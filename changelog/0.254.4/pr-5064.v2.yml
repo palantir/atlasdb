@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Implement a new gauge to aggregate metrics from Timelock clients for
+    the purpose of leader election metric reporting.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5064

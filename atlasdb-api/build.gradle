@@ -21,6 +21,7 @@ dependencies {
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
+  testCompileOnly 'org.immutables:value::annotations'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
   annotationProcessor 'org.derive4j:derive4j'
@@ -30,5 +31,4 @@ dependencies {
   testCompile group: 'org.assertj', name: 'assertj-core'
 
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
-  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 }

@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FullQuery {
     private final String query;
@@ -137,5 +136,4 @@ public class FullQuery {
     public Object[] getArgs() {
         return args.toArray();
     }
-
 }

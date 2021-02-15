@@ -19,10 +19,11 @@ import java.util.function.Function;
 
 public class ImmediateSingleBatchTaskRunner implements BatchingTaskRunner {
     @Override
-    public <InT, OutT> OutT runTask(InT input,
-                                    BatchingStrategy<InT> batchingStrategy,
-                                    ResultAccumulatorStrategy<OutT> resultAccumulatingStrategy,
-                                    Function<InT, OutT> task) {
+    public <InT, OutT> OutT runTask(
+            InT input,
+            BatchingStrategy<InT> batchingStrategy,
+            ResultAccumulatorStrategy<OutT> resultAccumulatingStrategy,
+            Function<InT, OutT> task) {
         return task.apply(input);
     }
 

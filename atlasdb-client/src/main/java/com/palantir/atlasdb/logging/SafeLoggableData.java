@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.logging;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.immutables.value.Value;
-
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 
 @Value.Immutable
 public abstract class SafeLoggableData implements KeyValueServiceLogArbitrator {

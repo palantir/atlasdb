@@ -33,8 +33,8 @@ public final class LockWatchReferenceUtils {
         return LockWatchReferences.rowPrefix(tableRef.getQualifiedName(), rowPrefix);
     }
 
-    public static LockWatchReferences.LockWatchReference rowRange(TableReference tableRef, byte[] startInclusive,
-            byte[] endExclusive) {
+    public static LockWatchReferences.LockWatchReference rowRange(
+            TableReference tableRef, byte[] startInclusive, byte[] endExclusive) {
         return LockWatchReferences.rowRange(tableRef.getQualifiedName(), startInclusive, endExclusive);
     }
 

@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 /**
  * Indicates whether a {@link KeyValueService} supports check and set (CAS) and put unless exists (PUE) operations, and

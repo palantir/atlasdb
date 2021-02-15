@@ -16,12 +16,11 @@
 
 package com.palantir.paxos;
 
+import com.palantir.common.persist.Persistable;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
-
 import javax.sql.DataSource;
-
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
 import org.jdbi.v3.sqlobject.SingleValue;
@@ -31,8 +30,6 @@ import org.jdbi.v3.sqlobject.customizer.BindPojo;
 import org.jdbi.v3.sqlobject.statement.SqlBatch;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
-
-import com.palantir.common.persist.Persistable;
 
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
@@ -47,8 +44,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
     }
 
     public static <V extends Persistable & Versionable> PaxosStateLog<V> create(
-            NamespaceAndUseCase namespaceAndUseCase,
-            DataSource dataSource) {
+            NamespaceAndUseCase namespaceAndUseCase, DataSource dataSource) {
         Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
         jdbi.getConfig(JdbiImmutables.class).registerImmutable(Client.class, PaxosRound.class);
         SqlitePaxosStateLog<V> log = new SqlitePaxosStateLog<>(namespaceAndUseCase, jdbi);
@@ -90,6 +86,15 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
         execute(dao -> dao.truncate(namespace, useCase, toDeleteInclusive));
     }
 
+    @Override
+    public void truncateAllRounds() {
+        execute(dao -> {
+            OptionalLong greatestLogEntry = dao.getGreatestLogEntry(namespace, useCase);
+            greatestLogEntry.ifPresent(toDeleteInclusive -> dao.truncate(namespace, useCase, toDeleteInclusive));
+            return null;
+        });
+    }
+
     private <T> T execute(Function<Queries, T> call) {
         return jdbi.withExtension(Queries.class, call::apply);
     }
@@ -114,9 +119,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
         @SqlQuery("SELECT val FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq = :seq")
         @SingleValue
         byte[] readRound(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("seq") long seq);
+                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase, @Bind("seq") long seq);
 
         @SqlQuery("SELECT MIN(seq) FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase")
         OptionalLong getLeastLogEntry(@BindPojo("namespace") Client namespace, @Bind("useCase") String useCase);
@@ -126,9 +129,7 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
 
         @SqlUpdate("DELETE FROM paxosLog WHERE namespace = :namespace.value AND useCase = :useCase AND seq <= :seq")
         boolean truncate(
-                @BindPojo("namespace") Client namespace,
-                @Bind("useCase") String useCase,
-                @Bind("seq") long seq);
+                @BindPojo("namespace") Client namespace, @Bind("useCase") String useCase, @Bind("seq") long seq);
 
         @SqlBatch("INSERT OR REPLACE INTO paxosLog (namespace, useCase, seq, val) VALUES ("
                 + ":namespace.value, :useCase, :round.sequence, :round.valueBytes)")

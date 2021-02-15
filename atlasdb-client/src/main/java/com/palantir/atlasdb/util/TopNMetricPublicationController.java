@@ -16,23 +16,22 @@
 
 package com.palantir.atlasdb.util;
 
+import com.codahale.metrics.Gauge;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.metrics.MetricPublicationFilter;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import com.codahale.metrics.Gauge;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.metrics.MetricPublicationFilter;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 /**
  * Given a provided number of metrics, ensures that only the top {@code maxPermittedRank} are published in the steady
@@ -49,22 +48,19 @@ public final class TopNMetricPublicationController<T> {
     private final Supplier<Set<Gauge<T>>> publishableGauges;
 
     @VisibleForTesting
-    TopNMetricPublicationController(
-            Comparator<T> comparator,
-            int maxPermittedRank,
-            Duration refreshInterval) {
+    TopNMetricPublicationController(Comparator<T> comparator, int maxPermittedRank, Duration refreshInterval) {
         this.comparator = comparator;
         this.maxPermittedRank = maxPermittedRank;
-        this.gauges = Sets.newConcurrentHashSet();
+        this.gauges = ConcurrentHashMap.newKeySet();
         this.publishableGauges = Suppliers.memoizeWithExpiration(
-                this::getEligibleGauges,
-                refreshInterval.toNanos(),
-                TimeUnit.NANOSECONDS);
+                this::getEligibleGauges, refreshInterval.toNanos(), TimeUnit.NANOSECONDS);
     }
 
     @SuppressWarnings("unchecked") // Guaranteed correct
     public static <T extends Comparable> TopNMetricPublicationController<T> create(int maxPermittedRank) {
-        Preconditions.checkState(maxPermittedRank > 0, "maxPermittedRank must be positive",
+        Preconditions.checkState(
+                maxPermittedRank > 0,
+                "maxPermittedRank must be positive",
                 SafeArg.of("maxPermittedRank", maxPermittedRank));
         return new TopNMetricPublicationController<T>(Comparator.naturalOrder(), maxPermittedRank, REFRESH_INTERVAL);
     }

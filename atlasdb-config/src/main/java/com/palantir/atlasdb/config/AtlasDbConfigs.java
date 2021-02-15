@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.config;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Optional;
-import java.util.function.Function;
-
-import javax.annotation.Nullable;
-
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,6 +27,12 @@ import com.palantir.config.crypto.DecryptingVariableSubstitutor;
 import com.palantir.config.crypto.jackson.JsonNodeStringReplacer;
 import com.palantir.config.crypto.jackson.JsonNodeVisitors;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Optional;
+import java.util.function.Function;
+import javax.annotation.Nullable;
 
 public final class AtlasDbConfigs {
     public static final String ATLASDB_CONFIG_OBJECT_PATH = "/atlasdb";
@@ -42,8 +40,8 @@ public final class AtlasDbConfigs {
     static final String DISCOVERED_SUBTYPE_MARKER = "io.dropwizard.jackson.Discoverable";
 
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
-            .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
-            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
+                    .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
+                    .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
             .setSubtypeResolver(new DiscoverableSubtypeResolver(DISCOVERED_SUBTYPE_MARKER))
             .registerModule(new GuavaModule())
             .registerModule(new Jdk8Module());
@@ -89,8 +87,7 @@ public final class AtlasDbConfigs {
 
     private static JsonNode decryptConfigValues(JsonNode configNode) {
         return JsonNodeVisitors.dispatch(
-                OBJECT_MAPPER.valueToTree(configNode),
-                new JsonNodeStringReplacer(new DecryptingVariableSubstitutor()));
+                OBJECT_MAPPER.valueToTree(configNode), new JsonNodeStringReplacer(new DecryptingVariableSubstitutor()));
     }
 
     private static JsonNode findRoot(JsonNode node, @Nullable String configRoot) {
@@ -106,8 +103,7 @@ public final class AtlasDbConfigs {
     }
 
     public static AtlasDbConfig addFallbackSslConfigurationToAtlasDbConfig(
-            AtlasDbConfig config,
-            Optional<SslConfiguration> sslConfiguration) {
+            AtlasDbConfig config, Optional<SslConfiguration> sslConfiguration) {
         return ImmutableAtlasDbConfig.builder()
                 .from(config)
                 .leader(addFallbackSslConfigurationToLeader(config.leader(), sslConfiguration))
@@ -118,8 +114,7 @@ public final class AtlasDbConfigs {
     }
 
     private static Optional<LeaderConfig> addFallbackSslConfigurationToLeader(
-            Optional<LeaderConfig> config,
-            Optional<SslConfiguration> sslConfiguration) {
+            Optional<LeaderConfig> config, Optional<SslConfiguration> sslConfiguration) {
         return config.map(leader -> ImmutableLeaderConfig.builder()
                 .from(leader)
                 .sslConfiguration(getFirstPresentOptional(leader.sslConfiguration(), sslConfiguration))
@@ -127,14 +122,12 @@ public final class AtlasDbConfigs {
     }
 
     private static Optional<ServerListConfig> addFallbackSslConfigurationToServerList(
-            Optional<ServerListConfig> config,
-            Optional<SslConfiguration> sslConfiguration) {
+            Optional<ServerListConfig> config, Optional<SslConfiguration> sslConfiguration) {
         return config.map(addSslConfigurationToServerListFunction(sslConfiguration));
     }
 
     private static Optional<TimeLockClientConfig> addFallbackSslConfigurationToTimeLockClientConfig(
-            Optional<TimeLockClientConfig> config,
-            Optional<SslConfiguration> sslConfiguration) {
+            Optional<TimeLockClientConfig> config, Optional<SslConfiguration> sslConfiguration) {
         //noinspection ConstantConditions - function returns an existing ServerListConfig, maybe with different SSL.
         return config.map(clientConfig -> ImmutableTimeLockClientConfig.builder()
                 .from(clientConfig)

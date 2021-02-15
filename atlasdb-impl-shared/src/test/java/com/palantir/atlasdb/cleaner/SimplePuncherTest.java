@@ -15,14 +15,12 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Test;
-
 import com.palantir.common.time.Clock;
+import org.junit.Test;
 
 public class SimplePuncherTest {
     @Test
@@ -30,11 +28,9 @@ public class SimplePuncherTest {
         PuncherStore delegate = mock(PuncherStore.class);
         Puncher puncher = SimplePuncher.create(delegate, mock(Clock.class), () -> 1L);
 
-        when(delegate.isInitialized())
-                .thenReturn(false)
-                .thenReturn(true);
+        when(delegate.isInitialized()).thenReturn(false).thenReturn(true);
 
-        assertFalse(puncher.isInitialized());
-        assertTrue(puncher.isInitialized());
+        assertThat(puncher.isInitialized()).isFalse();
+        assertThat(puncher.isInitialized()).isTrue();
     }
 }

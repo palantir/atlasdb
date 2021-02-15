@@ -15,23 +15,20 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges;
 
-import java.util.Collection;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.nexus.db.DBType;
+import java.util.Collection;
+import javax.annotation.Nullable;
 
 public final class RangePredicateHelper {
     private final boolean reverse;
     private final TupleComparisonStrategy tupleComparisonStrategy;
     private final FullQuery.Builder queryBuilder;
 
-    private RangePredicateHelper(boolean reverse,
-                                 TupleComparisonStrategy tupleComparisonStrategy,
-                                 FullQuery.Builder queryBuilder) {
+    private RangePredicateHelper(
+            boolean reverse, TupleComparisonStrategy tupleComparisonStrategy, FullQuery.Builder queryBuilder) {
         this.reverse = reverse;
         this.tupleComparisonStrategy = tupleComparisonStrategy;
         this.queryBuilder = queryBuilder;
@@ -107,14 +104,17 @@ public final class RangePredicateHelper {
             void cellGreaterOrEqualTo(byte[] rhsRow, byte[] rhsCol, FullQuery.Builder builder) {
                 builder.append("(row_name, col_name) >= (?, ?)", rhsRow, rhsCol);
             }
+
             @Override
             void cellLessOrEqualTo(byte[] rhsRow, byte[] rhsCol, FullQuery.Builder builder) {
                 builder.append("(row_name, col_name) <= (?, ?)", rhsRow, rhsCol);
             }
+
             @Override
             void cellTsGreaterOrEqualTo(byte[] rhsRow, byte[] rhsCol, long ts, FullQuery.Builder builder) {
                 builder.append("(row_name, col_name, ts) >= (?, ?, ?)", rhsRow, rhsCol, ts);
             }
+
             @Override
             void cellTsLessOrEqualTo(byte[] rhsRow, byte[] rhsCol, long ts, FullQuery.Builder builder) {
                 builder.append("(row_name, col_name, ts) <= (?, ?, ?)", rhsRow, rhsCol, ts);
@@ -125,24 +125,39 @@ public final class RangePredicateHelper {
             void cellGreaterOrEqualTo(byte[] rhsRow, byte[] rhsCol, FullQuery.Builder builder) {
                 builder.append("(row_name >= ? AND (row_name > ? OR col_name >= ?))", rhsRow, rhsRow, rhsCol);
             }
+
             @Override
             void cellLessOrEqualTo(byte[] rhsRow, byte[] rhsCol, FullQuery.Builder builder) {
                 builder.append("(row_name <= ? AND (row_name < ? OR col_name <= ?))", rhsRow, rhsRow, rhsCol);
             }
+
             @Override
             void cellTsGreaterOrEqualTo(byte[] rhsRow, byte[] rhsCol, long ts, FullQuery.Builder builder) {
                 builder.append("(row_name >= ? AND (row_name > ? OR col_name > ? OR (col_name = ? AND ts >= ?)))")
-                        .addArg(rhsRow).addArg(rhsRow).addArg(rhsCol).addArg(rhsCol).addArg(ts);
+                        .addArg(rhsRow)
+                        .addArg(rhsRow)
+                        .addArg(rhsCol)
+                        .addArg(rhsCol)
+                        .addArg(ts);
             }
+
             @Override
             void cellTsLessOrEqualTo(byte[] rhsRow, byte[] rhsCol, long ts, FullQuery.Builder builder) {
                 builder.append("(row_name <= ? AND (row_name < ? OR col_name < ? OR (col_name = ? AND ts <= ?)))")
-                        .addArg(rhsRow).addArg(rhsRow).addArg(rhsCol).addArg(rhsCol).addArg(ts);
+                        .addArg(rhsRow)
+                        .addArg(rhsRow)
+                        .addArg(rhsCol)
+                        .addArg(rhsCol)
+                        .addArg(ts);
             }
         };
+
         abstract void cellGreaterOrEqualTo(byte[] rhsRow, byte[] rhsCol, FullQuery.Builder builder);
+
         abstract void cellLessOrEqualTo(byte[] rhsRow, byte[] rhsCol, FullQuery.Builder builder);
+
         abstract void cellTsGreaterOrEqualTo(byte[] rhsRow, byte[] rhsCol, long rhsTs, FullQuery.Builder builder);
+
         abstract void cellTsLessOrEqualTo(byte[] rhsRow, byte[] rhsCol, long rhsTs, FullQuery.Builder builder);
     }
 }

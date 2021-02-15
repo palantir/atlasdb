@@ -15,6 +15,14 @@
  */
 package com.palantir.nexus.db.sql;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
+import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.nexus.db.DBType;
+import com.palantir.nexus.db.SqlClause;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,24 +33,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
-
 import javax.annotation.concurrent.GuardedBy;
-
 import org.apache.commons.lang3.Validate;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import com.palantir.common.exception.PalantirRuntimeException;
-import com.palantir.exception.PalantirSqlException;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.SqlClause;
 
 // class extended by other projects
 @SuppressWarnings("WeakerAccess")
 public class SQLString extends BasicSQLString {
-    private static final Pattern ALL_WORD_CHARS_REGEX = Pattern.compile("^[a-zA-Z_0-9\\.\\-]*$"); //$NON-NLS-1$
+    private static final Pattern ALL_WORD_CHARS_REGEX = Pattern.compile("^[a-zA-Z_0-9\\.\\-]*$"); // $NON-NLS-1$
     private static final String UNREGISTERED_SQL_COMMENT = "/* UnregisteredSQLString */";
 
     /**
@@ -52,7 +49,7 @@ public class SQLString extends BasicSQLString {
      * to be in sync with each other.
      */
     private static final Object cacheLock = new Object();
-    //TODO (DCohen): Combine cachedKeyed and cachedUnregistered maps into one.
+    // TODO (DCohen): Combine cachedKeyed and cachedUnregistered maps into one.
     /**
      * Rewritten unregistered queries.
      * Key: String with all whitespace removed
@@ -64,7 +61,8 @@ public class SQLString extends BasicSQLString {
     @GuardedBy("cacheLock")
     private static volatile ImmutableMap<String, FinalSQLString> cachedKeyed = ImmutableMap.of();
     /** All registered queries. */
-    protected static final ConcurrentMap<String, FinalSQLString> registeredValues = new ConcurrentHashMap<String, FinalSQLString>();
+    protected static final ConcurrentMap<String, FinalSQLString> registeredValues =
+            new ConcurrentHashMap<String, FinalSQLString>();
     /** DB-specific registered queries. */
     protected static final ConcurrentMap<String, ConcurrentMap<DBType, FinalSQLString>> registeredValuesOverride =
             new ConcurrentHashMap<>();
@@ -73,9 +71,9 @@ public class SQLString extends BasicSQLString {
         void noteUse(SQLString used);
     }
 
-    //by default, no callback. This is set in OverridableSQLString
+    // by default, no callback. This is set in OverridableSQLString
     protected static OnUseCallback callbackOnUse = used -> {
-        //do nothing
+        // do nothing
     };
 
     protected interface CallableCheckedException<T, E extends Exception> {
@@ -102,7 +100,7 @@ public class SQLString extends BasicSQLString {
         FinalSQLString newVal = new FinalSQLString(sqlString);
         FinalSQLString oldVal = registeredValues.put(key, newVal);
         assert null == oldVal || oldVal.delegate.equals(newVal.delegate)
-                : "newVal: " + newVal + " oldVal: " + oldVal; //$NON-NLS-1$ //$NON-NLS-2$
+                : "newVal: " + newVal + " oldVal: " + oldVal; // $NON-NLS-1$ //$NON-NLS-2$
         return new RegisteredSQLString(sqlString);
     }
 
@@ -113,9 +111,9 @@ public class SQLString extends BasicSQLString {
      * @param dbTypes Override the query for this list of DBTypes.  These are not allowed to be null.
      */
     public static void registerQuery(String key, String sql, DBType... dbTypes) {
-        Validate.notEmpty(dbTypes, "DbType list may not be empty"); //$NON-NLS-1$
+        Validate.notEmpty(dbTypes, "DbType list may not be empty"); // $NON-NLS-1$
         for (DBType type : dbTypes) {
-            Preconditions.checkNotNull(type, "dbType must not be null"); //$NON-NLS-1$
+            Preconditions.checkNotNull(type, "dbType must not be null"); // $NON-NLS-1$
             registerQuery(key, sql, type);
         }
     }
@@ -142,8 +140,8 @@ public class SQLString extends BasicSQLString {
         FinalSQLString newVal = new FinalSQLString(sqlString);
         FinalSQLString oldVal = dbTypeHash.put(dbType, newVal);
 
-        assert null == oldVal || newVal.delegate.equals(oldVal.delegate) :
-                "newVal: " + newVal + " oldVal: " + oldVal; //$NON-NLS-1$ //$NON-NLS-2$
+        assert null == oldVal || newVal.delegate.equals(oldVal.delegate)
+                : "newVal: " + newVal + " oldVal: " + oldVal; // $NON-NLS-1$ //$NON-NLS-2$
         return new RegisteredSQLString(sqlString);
     }
 
@@ -164,9 +162,9 @@ public class SQLString extends BasicSQLString {
      */
     @SuppressWarnings("GuardedByChecker")
     static FinalSQLString getByKey(final String key, DBType dbType) {
-        assert isValidKey(key) : "Keys only consist of word characters"; //$NON-NLS-1$
-        assert registeredValues.containsKey(key) || registeredValuesOverride.containsKey(key) :
-                "Couldn't find SQLString key: " + key + ", dbtype " + dbType; //$NON-NLS-1$ //$NON-NLS-2$
+        assert isValidKey(key) : "Keys only consist of word characters"; // $NON-NLS-1$
+        assert registeredValues.containsKey(key) || registeredValuesOverride.containsKey(key)
+                : "Couldn't find SQLString key: " + key + ", dbtype " + dbType; // $NON-NLS-1$ //$NON-NLS-2$
 
         FinalSQLString cached = cachedKeyed.get(key);
         if (null != cached) {
@@ -208,7 +206,7 @@ public class SQLString extends BasicSQLString {
      */
     @SuppressWarnings("GuardedByChecker")
     static FinalSQLString getUnregisteredQuery(String sql) {
-        assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; //$NON-NLS-1$
+        assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; // $NON-NLS-1$
         FinalSQLString cached = cachedUnregistered.get(canonicalizeStringAndRemoveWhitespaceEntirely(sql));
         if (null != cached) {
             callbackOnUse.noteUse((SQLString) cached.delegate);
@@ -244,15 +242,15 @@ public class SQLString extends BasicSQLString {
     private static String makeCommentString(String keyString, DBType dbType) {
         String registrationState;
         if (keyString != null) {
-            registrationState = "SQLString Identifier: " + keyString; //$NON-NLS-1$
+            registrationState = "SQLString Identifier: " + keyString; // $NON-NLS-1$
         } else {
-            registrationState = "UnregisteredSQLString"; //$NON-NLS-1$
+            registrationState = "UnregisteredSQLString"; // $NON-NLS-1$
         }
-        String dbTypeString = ""; //$NON-NLS-1$
+        String dbTypeString = ""; // $NON-NLS-1$
         if (dbType != null) {
-            dbTypeString = " dbType: " + dbType; //$NON-NLS-1$
+            dbTypeString = " dbType: " + dbType; // $NON-NLS-1$
         }
-        return "/* " + registrationState + dbTypeString + " */ "; //$NON-NLS-1$ //$NON-NLS-2$
+        return "/* " + registrationState + dbTypeString + " */ "; // $NON-NLS-1$ //$NON-NLS-2$
     }
 
     @VisibleForTesting
@@ -314,14 +312,15 @@ public class SQLString extends BasicSQLString {
         final String key;
 
         NullSQLString(String key) {
-            super(""); //$NON-NLS-1$
+            super(""); // $NON-NLS-1$
             this.key = key;
         }
 
         @Override
         public String getQuery() {
-            throw new PalantirRuntimeException("Could not find any registered query value for key: " + //$NON-NLS-1$
-                    key +  "\nThe key is potentially an unregistered query."); //$NON-NLS-1$
+            throw new PalantirRuntimeException(
+                    "Could not find any registered query value for key: " //$NON-NLS-1$
+                            + key + "\nThe key is potentially an unregistered query."); //$NON-NLS-1$
         }
     }
 
@@ -341,9 +340,8 @@ public class SQLString extends BasicSQLString {
      * @param clauses clauses (in the same order as their keys) which can narrow
      * the search
      */
-    public static void registerQueryVariants(String baseKey,
-                                             Map<Set<String>, String> map, String sqlFormat,
-                                             DBType type, List<SqlClause> clauses) {
+    public static void registerQueryVariants(
+            String baseKey, Map<Set<String>, String> map, String sqlFormat, DBType type, List<SqlClause> clauses) {
         Validate.noNullElements(clauses);
         Set<Integer> indexes = new HashSet<Integer>();
         for (int i = 0; i < clauses.size(); i++) {
@@ -360,8 +358,8 @@ public class SQLString extends BasicSQLString {
             for (int i : variant) {
                 SqlClause clause = clauses.get(i);
                 keySet.add(clause.getKey());
-                key.append("_").append(clause.getKey()); //$NON-NLS-1$
-                whereClause.append(" AND ").append(clause.getClause()); //$NON-NLS-1$
+                key.append("_").append(clause.getKey()); // $NON-NLS-1$
+                whereClause.append(" AND ").append(clause.getClause()); // $NON-NLS-1$
             }
             keySet.add(baseKey);
             String sql = String.format(sqlFormat, whereClause);
@@ -378,7 +376,7 @@ public class SQLString extends BasicSQLString {
      * @author dcohen
      *
      */
-    public static class RegisteredSQLString {
+    public static final class RegisteredSQLString {
 
         private final BasicSQLString delegate;
 
@@ -390,16 +388,14 @@ public class SQLString extends BasicSQLString {
             this.delegate = sqlstring;
         }
 
-
         @Override
         public String toString() {
-            return "RegisteredSQLString [delegate=" + delegate + "]"; //$NON-NLS-1$ //$NON-NLS-2$
+            return "RegisteredSQLString [delegate=" + delegate + "]"; // $NON-NLS-1$ //$NON-NLS-2$
         }
 
         public String getKey() {
             return delegate.getKey();
         }
-
     }
 
     public static RegisteredSQLString getRegisteredQueryByKey(FinalSQLString key) {

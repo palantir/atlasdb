@@ -16,11 +16,10 @@
 
 package com.codahale.metrics.jvm;
 
-import java.util.Collections;
-import java.util.Map;
-
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricSet;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * We need to use Dropwizard metrics 3.x internally - this is the class that's needed to get

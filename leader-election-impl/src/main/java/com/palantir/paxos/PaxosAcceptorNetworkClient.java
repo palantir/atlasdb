@@ -56,5 +56,4 @@ public interface PaxosAcceptorNetworkClient {
     default ListenableFuture<PaxosResponses<PaxosLong>> getLatestSequencePreparedOrAcceptedAsync() {
         return Futures.immediateFuture(getLatestSequencePreparedOrAccepted());
     }
-
 }

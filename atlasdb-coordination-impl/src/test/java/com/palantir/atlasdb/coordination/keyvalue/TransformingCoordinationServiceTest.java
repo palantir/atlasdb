@@ -23,17 +23,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-import java.util.function.Function;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.TransformingCoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import java.util.Optional;
+import java.util.function.Function;
+import org.junit.Before;
+import org.junit.Test;
 
 @SuppressWarnings("unchecked") // This test uses mocks liberally
 public class TransformingCoordinationServiceTest {
@@ -47,8 +45,8 @@ public class TransformingCoordinationServiceTest {
     private CoordinationService<Integer> delegate = mock(CoordinationService.class);
     private Function<String, Integer> stringToIntTransform = mock(Function.class);
     private Function<Integer, String> intToStringTransform = mock(Function.class);
-    private CoordinationService<String> coordinationService
-            = new TransformingCoordinationService<>(delegate, intToStringTransform, stringToIntTransform);
+    private CoordinationService<String> coordinationService =
+            new TransformingCoordinationService<>(delegate, intToStringTransform, stringToIntTransform);
 
     @Before
     public void setUp() {
@@ -75,8 +73,8 @@ public class TransformingCoordinationServiceTest {
 
     @Test
     public void checkAndSetSuccessfulCase() {
-        when(delegate.tryTransformCurrentValue(any())).thenReturn(
-                CheckAndSetResult.of(true, ImmutableList.of(ValueAndBound.of(INTEGER_1, BOUND))));
+        when(delegate.tryTransformCurrentValue(any()))
+                .thenReturn(CheckAndSetResult.of(true, ImmutableList.of(ValueAndBound.of(INTEGER_1, BOUND))));
 
         CheckAndSetResult<ValueAndBound<String>> casResult =
                 coordinationService.tryTransformCurrentValue(DUMMY_TRANSFORMATION);
@@ -87,8 +85,8 @@ public class TransformingCoordinationServiceTest {
 
     @Test
     public void checkAndSetFailureCase() {
-        when(delegate.tryTransformCurrentValue(any())).thenReturn(
-                CheckAndSetResult.of(false, ImmutableList.of(ValueAndBound.of(INTEGER_1, BOUND))));
+        when(delegate.tryTransformCurrentValue(any()))
+                .thenReturn(CheckAndSetResult.of(false, ImmutableList.of(ValueAndBound.of(INTEGER_1, BOUND))));
 
         CheckAndSetResult<ValueAndBound<String>> casResult =
                 coordinationService.tryTransformCurrentValue(DUMMY_TRANSFORMATION);

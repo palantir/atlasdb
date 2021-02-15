@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Allows overriding of LeaderConfig#learnerLogDir and LeaderConfig#acceptorLogDir while setting up external TL service.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5240

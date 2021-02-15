@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    The protocol (TCP/TCPS) is now case insensitive in oracle configs.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5038

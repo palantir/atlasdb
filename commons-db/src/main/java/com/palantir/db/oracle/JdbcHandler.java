@@ -38,9 +38,7 @@ public interface JdbcHandler {
         Object toOracleArray(Connection c) throws SQLException;
     }
 
-    ArrayHandler createStructArray(String structType,
-            String arrayType,
-            List<Object[]> elements);
+    ArrayHandler createStructArray(String structType, String arrayType, List<Object[]> elements);
 
     BlobHandler createBlob(Connection c) throws SQLException;
 }

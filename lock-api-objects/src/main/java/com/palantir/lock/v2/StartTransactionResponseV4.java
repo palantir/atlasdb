@@ -16,10 +16,9 @@
 
 package com.palantir.lock.v2;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableStartTransactionResponseV4.class)
@@ -35,9 +34,7 @@ public interface StartTransactionResponseV4 {
     Lease lease();
 
     static StartTransactionResponseV4 of(
-            LockImmutableTimestampResponse immutableTimestamp,
-            PartitionedTimestamps startTimestamp,
-            Lease lease) {
+            LockImmutableTimestampResponse immutableTimestamp, PartitionedTimestamps startTimestamp, Lease lease) {
         return ImmutableStartTransactionResponseV4.of(immutableTimestamp, startTimestamp, lease);
     }
 }

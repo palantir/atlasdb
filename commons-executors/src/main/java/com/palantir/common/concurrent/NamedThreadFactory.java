@@ -15,12 +15,11 @@
  */
 package com.palantir.common.concurrent;
 
+import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.palantir.tritium.metrics.MetricRegistries;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 /**
  * A {@link ThreadFactory} that lets you specify threads with a default name
@@ -58,9 +57,7 @@ public class NamedThreadFactory implements ThreadFactory {
         this.prefix = prefix;
         this.isDaemon = isDaemon;
         this.threadFactory = MetricRegistries.instrument(
-                SharedTaggedMetricRegistries.getSingleton(),
-                Executors.defaultThreadFactory(),
-                prefix);
+                SharedTaggedMetricRegistries.getSingleton(), Executors.defaultThreadFactory(), prefix);
     }
 
     /** {@inheritDoc} */

@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.console;
 
-import java.io.IOException;
-
 import com.palantir.atlasdb.api.TransactionToken;
+import java.io.IOException;
 
 public class DisconnectedAtlasConsoleService implements AtlasConsoleService {
 
@@ -64,6 +63,7 @@ public class DisconnectedAtlasConsoleService implements AtlasConsoleService {
     public void truncate(String tableName) throws IOException {
         fail();
     }
+
     @Override
     public TransactionToken startTransaction() {
         return fail();

@@ -24,14 +24,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.awaitility.Awaitility;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -50,15 +42,18 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.time.Duration;
+import java.util.Map;
+import org.awaitility.Awaitility;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public class TransactionServicesTest {
     private final KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
     private final TimestampService timestampService = new InMemoryTimestampService();
     private final CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
-            keyValueService,
-            timestampService,
-            MetricsManagers.createForTests(),
-            false);
+            keyValueService, timestampService, MetricsManagers.createForTests(), false);
     private final TransactionService transactionService = TransactionServices.createTransactionService(
             keyValueService, new TransactionSchemaManager(coordinationService));
 
@@ -136,14 +131,12 @@ public class TransactionServicesTest {
 
     private void forceInstallV2() {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        Awaitility.await().atMost(1, TimeUnit.SECONDS)
-                .until(() -> {
-                    transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(2);
-                    ((TimestampManagementService) timestampService).fastForwardTimestamp(
-                            timestampService.getFreshTimestamp() + 1_000_000);
-                    return transactionSchemaManager
-                            .getTransactionsSchemaVersion(timestampService.getFreshTimestamp()) == 2;
-                });
+        Awaitility.await().atMost(Duration.ofSeconds(1)).until(() -> {
+            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(2);
+            ((TimestampManagementService) timestampService)
+                    .fastForwardTimestamp(timestampService.getFreshTimestamp() + 1_000_000);
+            return transactionSchemaManager.getTransactionsSchemaVersion(timestampService.getFreshTimestamp()) == 2;
+        });
     }
 
     private Map<Cell, byte[]> verifyPueInTableAndReturnArgument(TableReference tableReference) {

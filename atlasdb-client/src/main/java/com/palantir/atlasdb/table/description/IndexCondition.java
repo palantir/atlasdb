@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.table.description;
 
-
 public class IndexCondition {
 
     private final String sourceColumn;
@@ -33,5 +32,4 @@ public class IndexCondition {
     public String getValueCode(String columnCode) {
         return booleanExpression.replaceAll("_value", columnCode);
     }
-
 }

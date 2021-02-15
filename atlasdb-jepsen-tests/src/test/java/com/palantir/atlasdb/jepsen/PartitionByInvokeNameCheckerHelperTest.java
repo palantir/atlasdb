@@ -17,14 +17,6 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
-
-import org.junit.Test;
-import org.mockito.Matchers;
-import org.mockito.Mockito;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
@@ -34,6 +26,12 @@ import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
+import org.junit.Test;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
 
 public class PartitionByInvokeNameCheckerHelperTest {
 
@@ -75,12 +73,11 @@ public class PartitionByInvokeNameCheckerHelperTest {
     private static final Checker identityChecker = Mockito.mock(Checker.class);
 
     static {
-        Mockito.when(identityChecker.check(Matchers.anyListOf(Event.class))).then(
-                list -> ImmutableCheckerResult.builder()
+        Mockito.when(identityChecker.check(Matchers.anyListOf(Event.class)))
+                .then(list -> ImmutableCheckerResult.builder()
                         .valid(false)
                         .errors((List) list.getArguments()[0])
-                        .build()
-        );
+                        .build());
     }
 
     @Test
@@ -103,8 +100,7 @@ public class PartitionByInvokeNameCheckerHelperTest {
     public void infoEventsAreNotLost() {
         InfoEvent infoEvent = TestEventUtils.createInfoEvent(0, PROCESS_1, RequestType.LOCK);
 
-        CheckerResult checkerResult = runPartitionChecker(() -> identityChecker,
-                ImmutableList.<Event>of(infoEvent));
+        CheckerResult checkerResult = runPartitionChecker(() -> identityChecker, ImmutableList.<Event>of(infoEvent));
 
         assertThat(checkerResult.valid()).isFalse();
         assertThat(checkerResult.errors()).containsExactly(infoEvent);
@@ -115,8 +111,8 @@ public class PartitionByInvokeNameCheckerHelperTest {
         InvokeEvent invokeEvent = TestEventUtils.invokeLock(0, PROCESS_1, LOCK_1);
         OkEvent okEvent = TestEventUtils.lockSuccess(1, PROCESS_1);
 
-        CheckerResult checkerResult = runPartitionChecker(() -> identityChecker,
-                ImmutableList.of(invokeEvent, okEvent));
+        CheckerResult checkerResult =
+                runPartitionChecker(() -> identityChecker, ImmutableList.of(invokeEvent, okEvent));
 
         assertThat(checkerResult.valid()).isFalse();
         assertThat(checkerResult.errors()).containsExactly(invokeEvent, okEvent);
@@ -127,7 +123,7 @@ public class PartitionByInvokeNameCheckerHelperTest {
         CheckerResult checkerResult = runPartitionChecker(() -> identityChecker, eventList);
 
         assertThat(checkerResult.valid()).isFalse();
-        assertThat(checkerResult.errors().size()).isEqualTo(eventList.size());
+        assertThat(checkerResult.errors()).hasSameSizeAs(eventList);
         assertThat(checkerResult.errors()).containsOnlyElementsOf(eventList);
     }
 
@@ -165,11 +161,10 @@ public class PartitionByInvokeNameCheckerHelperTest {
      */
     private Checker filterChecker(String lockName) {
         Checker mockChecker = Mockito.mock(Checker.class);
-        Mockito.when(mockChecker.check(Matchers.anyListOf(Event.class))).then(
-                args -> {
-                    List<Event> events = (List) args.getArguments()[0];
-                    return checkLockName(lockName, events);
-                });
+        Mockito.when(mockChecker.check(Matchers.anyListOf(Event.class))).then(args -> {
+            List<Event> events = (List) args.getArguments()[0];
+            return checkLockName(lockName, events);
+        });
         return mockChecker;
     }
 
@@ -186,10 +181,7 @@ public class PartitionByInvokeNameCheckerHelperTest {
             }
         }
         if (noOtherLock && atLeastOneInvoke) {
-            return ImmutableCheckerResult.builder()
-                    .valid(false)
-                    .errors(events)
-                    .build();
+            return ImmutableCheckerResult.builder().valid(false).errors(events).build();
         } else {
             return ImmutableCheckerResult.builder()
                     .valid(true)

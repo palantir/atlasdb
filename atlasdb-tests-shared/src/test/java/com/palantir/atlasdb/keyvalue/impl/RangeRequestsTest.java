@@ -17,14 +17,10 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-import java.util.Random;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import java.util.Random;
+import org.junit.Test;
 
 public class RangeRequestsTest {
 
@@ -45,10 +41,10 @@ public class RangeRequestsTest {
 
     @Test
     public void unboundedRangeBothEndsIsContiguous() {
-        assertThat(RangeRequests.isContiguousRange(
-                true, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY)).isTrue();
-        assertThat(RangeRequests.isContiguousRange(
-                false, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY)).isTrue();
+        assertThat(RangeRequests.isContiguousRange(true, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY))
+                .isTrue();
+        assertThat(RangeRequests.isContiguousRange(false, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY))
+                .isTrue();
     }
 
     @Test
@@ -71,21 +67,28 @@ public class RangeRequestsTest {
 
     @Test
     public void rangesUnboundedOnOneEndAreContiguous() {
-        assertThat(RangeRequests.isContiguousRange(false, BYTES_1, PtBytes.EMPTY_BYTE_ARRAY)).isTrue();
-        assertThat(RangeRequests.isContiguousRange(true, BYTES_1, PtBytes.EMPTY_BYTE_ARRAY)).isTrue();
-        assertThat(RangeRequests.isContiguousRange(false, PtBytes.EMPTY_BYTE_ARRAY, BYTES_1)).isTrue();
-        assertThat(RangeRequests.isContiguousRange(true, PtBytes.EMPTY_BYTE_ARRAY, BYTES_1)).isTrue();
+        assertThat(RangeRequests.isContiguousRange(false, BYTES_1, PtBytes.EMPTY_BYTE_ARRAY))
+                .isTrue();
+        assertThat(RangeRequests.isContiguousRange(true, BYTES_1, PtBytes.EMPTY_BYTE_ARRAY))
+                .isTrue();
+        assertThat(RangeRequests.isContiguousRange(false, PtBytes.EMPTY_BYTE_ARRAY, BYTES_1))
+                .isTrue();
+        assertThat(RangeRequests.isContiguousRange(true, PtBytes.EMPTY_BYTE_ARRAY, BYTES_1))
+                .isTrue();
     }
 
     @Test
     public void unboundedRangeBothEndsIsNotEmpty() {
-        assertThat(RangeRequests.isExactlyEmptyRange(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY)).isFalse();
+        assertThat(RangeRequests.isExactlyEmptyRange(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY))
+                .isFalse();
     }
 
     @Test
     public void unboundedRangeOneEndIsNotEmpty() {
-        assertThat(RangeRequests.isExactlyEmptyRange(PtBytes.EMPTY_BYTE_ARRAY, BYTES_1)).isFalse();
-        assertThat(RangeRequests.isExactlyEmptyRange(BYTES_2, PtBytes.EMPTY_BYTE_ARRAY)).isFalse();
+        assertThat(RangeRequests.isExactlyEmptyRange(PtBytes.EMPTY_BYTE_ARRAY, BYTES_1))
+                .isFalse();
+        assertThat(RangeRequests.isExactlyEmptyRange(BYTES_2, PtBytes.EMPTY_BYTE_ARRAY))
+                .isFalse();
     }
 
     @Test
@@ -110,9 +113,9 @@ public class RangeRequestsTest {
     }
 
     private void assertNextPrevEqualsOrig(byte[] value) {
-        Assert.assertTrue(Arrays.equals(value,
-                RangeRequests.nextLexicographicName(RangeRequests.previousLexicographicName(value))));
-        Assert.assertTrue(Arrays.equals(value,
-                RangeRequests.previousLexicographicName(RangeRequests.nextLexicographicName(value))));
+        assertThat(value)
+                .isEqualTo(RangeRequests.nextLexicographicName(RangeRequests.previousLexicographicName(value)));
+        assertThat(value)
+                .isEqualTo(RangeRequests.previousLexicographicName(RangeRequests.nextLexicographicName(value)));
     }
 }

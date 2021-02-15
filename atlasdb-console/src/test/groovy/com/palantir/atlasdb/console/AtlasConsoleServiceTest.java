@@ -17,16 +17,6 @@ package com.palantir.atlasdb.console;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.lib.legacy.ClassImposteriser;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -41,6 +31,14 @@ import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
+import org.jmock.lib.legacy.ClassImposteriser;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AtlasConsoleServiceTest {
     private final Mockery context = new Mockery();
@@ -63,28 +61,40 @@ public class AtlasConsoleServiceTest {
 
     private <T> Expectations toJson(final T output, final Class<T> clazz) throws JsonProcessingException {
         final ObjectWriter writer = context.mock(ObjectWriter.class);
-        return new Expectations() {{
-            oneOf(mapper).writerWithType(clazz); will(returnValue(writer));
-            oneOf(writer).writeValueAsString(output); will(returnValue(RESULT));
-        }};
+        return new Expectations() {
+            {
+                oneOf(mapper).writerWithType(clazz);
+                will(returnValue(writer));
+                oneOf(writer).writeValueAsString(output);
+                will(returnValue(RESULT));
+            }
+        };
     }
 
     private <T> Expectations fromJson(final T input, final Class<T> clazz) throws IOException {
         final JsonFactory factory = context.mock(JsonFactory.class);
         final JsonParser parser = context.mock(JsonParser.class);
-        return new Expectations() {{
-            oneOf(mapper).getFactory(); will(returnValue(factory));
-            oneOf(factory).createParser(QUERY); will(returnValue(parser));
-            oneOf(parser).readValueAs(clazz); will(returnValue(input));
-        }};
+        return new Expectations() {
+            {
+                oneOf(mapper).getFactory();
+                will(returnValue(factory));
+                oneOf(factory).createParser(QUERY);
+                will(returnValue(parser));
+                oneOf(parser).readValueAs(clazz);
+                will(returnValue(input));
+            }
+        };
     }
 
     @Test
     public void testTables() throws IOException {
         final Set<String> output = new HashSet<String>();
-        context.checking(new Expectations() {{
-            oneOf(delegate).getAllTableNames(); will(returnValue(output));
-        }});
+        context.checking(new Expectations() {
+            {
+                oneOf(delegate).getAllTableNames();
+                will(returnValue(output));
+            }
+        });
         context.checking(toJson(output, Set.class));
         assertEquals(service.tables(), RESULT);
         context.assertIsSatisfied();
@@ -94,9 +104,12 @@ public class AtlasConsoleServiceTest {
     public void testGetMetadata() throws IOException {
         final TableMetadata output = context.mock(TableMetadata.class);
         final String table = "t";
-        context.checking(new Expectations() {{
-            oneOf(delegate).getTableMetadata(table); will(returnValue(output));
-        }});
+        context.checking(new Expectations() {
+            {
+                oneOf(delegate).getTableMetadata(table);
+                will(returnValue(output));
+            }
+        });
         context.checking(toJson(output, TableMetadata.class));
         assertEquals(service.getMetadata(table), RESULT);
         context.assertIsSatisfied();
@@ -107,9 +120,12 @@ public class AtlasConsoleServiceTest {
         final TableRowSelection input = context.mock(TableRowSelection.class);
         final TableRowResult output = context.mock(TableRowResult.class);
         context.checking(fromJson(input, TableRowSelection.class));
-        context.checking(new Expectations() {{
-            oneOf(delegate).getRows(token, input); will(returnValue(output));
-        }});
+        context.checking(new Expectations() {
+            {
+                oneOf(delegate).getRows(token, input);
+                will(returnValue(output));
+            }
+        });
         context.checking(toJson(output, TableRowResult.class));
         assertEquals(service.getRows(token, QUERY), RESULT);
         context.assertIsSatisfied();
@@ -120,10 +136,12 @@ public class AtlasConsoleServiceTest {
         final TableCell input = context.mock(TableCell.class);
         final TableCellVal output = context.mock(TableCellVal.class);
         context.checking(fromJson(input, TableCell.class));
-        context.checking(new Expectations() {{
-            oneOf(delegate).getCells(token, input); will(returnValue(output));
-
-        }});
+        context.checking(new Expectations() {
+            {
+                oneOf(delegate).getCells(token, input);
+                will(returnValue(output));
+            }
+        });
         context.checking(toJson(output, TableCellVal.class));
         assertEquals(service.getCells(token, QUERY), RESULT);
         context.assertIsSatisfied();
@@ -134,9 +152,12 @@ public class AtlasConsoleServiceTest {
         final TableRange input = context.mock(TableRange.class);
         final RangeToken output = context.mock(RangeToken.class);
         context.checking(fromJson(input, TableRange.class));
-        context.checking(new Expectations() {{
-            oneOf(delegate).getRange(token, input); will(returnValue(output));
-        }});
+        context.checking(new Expectations() {
+            {
+                oneOf(delegate).getRange(token, input);
+                will(returnValue(output));
+            }
+        });
         context.checking(toJson(output, RangeToken.class));
         assertEquals(service.getRange(token, QUERY), RESULT);
         context.assertIsSatisfied();
@@ -146,9 +167,11 @@ public class AtlasConsoleServiceTest {
     public void testPut() throws IOException {
         final TableCellVal input = context.mock(TableCellVal.class);
         context.checking(fromJson(input, TableCellVal.class));
-        context.checking(new Expectations() {{
-            oneOf(delegate).put(token, input);
-        }});
+        context.checking(new Expectations() {
+            {
+                oneOf(delegate).put(token, input);
+            }
+        });
         service.put(token, QUERY);
         context.assertIsSatisfied();
     }
@@ -157,27 +180,33 @@ public class AtlasConsoleServiceTest {
     public void testDelete() throws IOException {
         final TableCell input = context.mock(TableCell.class);
         context.checking(fromJson(input, TableCell.class));
-        context.checking(new Expectations() {{
-            oneOf(delegate).delete(token, input);
-        }});
+        context.checking(new Expectations() {
+            {
+                oneOf(delegate).delete(token, input);
+            }
+        });
         service.delete(token, QUERY);
         context.assertIsSatisfied();
     }
 
     @Test
     public void testCommit() throws IOException {
-        context.checking(new Expectations() {{
-            oneOf(delegate).commit(token);
-        }});
+        context.checking(new Expectations() {
+            {
+                oneOf(delegate).commit(token);
+            }
+        });
         service.commit(token);
         context.assertIsSatisfied();
     }
 
     @Test
     public void testAbort() throws IOException {
-        context.checking(new Expectations() {{
-            oneOf(delegate).abort(token);
-        }});
+        context.checking(new Expectations() {
+            {
+                oneOf(delegate).abort(token);
+            }
+        });
         service.abort(token);
         context.assertIsSatisfied();
     }

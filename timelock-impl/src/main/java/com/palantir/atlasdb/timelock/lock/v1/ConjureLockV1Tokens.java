@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.timelock.lock.v1;
 
+import com.palantir.lock.ConjureLockRefreshToken;
+import com.palantir.lock.LockRefreshToken;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.palantir.lock.ConjureLockRefreshToken;
-import com.palantir.lock.LockRefreshToken;
 
 final class ConjureLockV1Tokens {
     private ConjureLockV1Tokens() {

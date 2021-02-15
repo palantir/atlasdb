@@ -15,13 +15,11 @@
  */
 package com.palantir.nexus.db;
 
-import java.sql.Connection;
-
-import javax.annotation.Nullable;
-
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.sql.Connections;
+import java.sql.Connection;
+import javax.annotation.Nullable;
 
 /**
  * Extensibility point for adding more type of databases.
@@ -42,7 +40,7 @@ public enum DBType {
         return hasGIS;
     }
 
-    private DBType(String driver, String testQuery, boolean hasGIS) {
+    DBType(String driver, String testQuery, boolean hasGIS) {
         this.driver = driver;
         this.testQuery = testQuery;
         this.hasGIS = hasGIS;
@@ -71,17 +69,20 @@ public enum DBType {
         return DBType.valueOf(strName.toUpperCase());
     }
 
-    public static DBType getTypeFromConnection(Connection c)
-            throws PalantirSqlException {
+    public static DBType getTypeFromConnection(Connection c) throws PalantirSqlException {
         String url = Connections.getUrl(c);
-        if (url.startsWith("jdbc:oracle:thin"))
+        if (url.startsWith("jdbc:oracle:thin")) {
             return ORACLE;
-        if (url.startsWith("jdbc:pgsql"))
+        }
+        if (url.startsWith("jdbc:pgsql")) {
             return POSTGRESQL;
-        if (url.startsWith("jdbc:postgresql"))
+        }
+        if (url.startsWith("jdbc:postgresql")) {
             return POSTGRESQL;
-        if (url.startsWith("jdbc:h2:mem:"))
+        }
+        if (url.startsWith("jdbc:h2:mem:")) {
             return H2_MEMORY;
+        }
         throw new SafeRuntimeException("Unable to parse JDBC URL");
     }
 }

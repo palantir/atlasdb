@@ -16,6 +16,11 @@
 
 package com.palantir.atlasdb.futures;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.tracing.DeferredTracer;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -23,16 +28,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.tracing.DeferredTracer;
-
 public final class AtlasFutures {
-    private AtlasFutures() {
-
-    }
+    private AtlasFutures() {}
 
     /**
      * Constructs a {@link FuturesCombiner} implementation which takes ownership of the {@code executorService} and
@@ -67,12 +64,12 @@ public final class AtlasFutures {
      * @return {@link ListenableFuture} of the combined map
      */
     public static <T, R> ListenableFuture<Map<T, R>> allAsMap(
-            Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap,
-            Executor executor) {
+            Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap, Executor executor) {
         Executor tracingExecutor = traceRestoringExecutor(executor, "AtlasFutures: allAsMap");
 
         return Futures.whenAllSucceed(inputToListenableFutureMap.values())
-                .call(() -> KeyedStream.stream(inputToListenableFutureMap)
+                .call(
+                        () -> KeyedStream.stream(inputToListenableFutureMap)
                                 .map(AtlasFutures::getDone)
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)

@@ -15,21 +15,19 @@
  */
 package com.palantir.lock.impl;
 
-import java.util.Map;
-
-import javax.annotation.concurrent.ThreadSafe;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.palantir.lock.LockClient;
 import com.palantir.logsafe.Preconditions;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 @VisibleForTesting
 public class LockClientIndices {
-    private final Map<LockClient, Integer> indexByClient = Maps.newConcurrentMap();
-    private final Map<Integer, LockClient> clientByIndex = Maps.newConcurrentMap();
+    private final Map<LockClient, Integer> indexByClient = new ConcurrentHashMap<>();
+    private final Map<Integer, LockClient> clientByIndex = new ConcurrentHashMap<>();
 
     public LockClientIndices() {
         indexByClient.put(LockClient.ANONYMOUS, -1);
@@ -58,6 +56,6 @@ public class LockClientIndices {
     }
 
     Iterable<LockClient> fromIndices(Iterable<Integer> indices) {
-        return Iterables.transform(indices, index -> fromIndex(index));
+        return Iterables.transform(indices, this::fromIndex);
     }
 }

@@ -15,16 +15,13 @@
  */
 package com.palantir.paxos;
 
-import java.io.Serializable;
-
-import javax.annotation.Nonnull;
-
-import org.apache.commons.lang3.builder.CompareToBuilder;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
+import java.io.Serializable;
+import javax.annotation.Nonnull;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 
 /**
  * Proposal identifiers that establish a strict ordering.
@@ -36,11 +33,11 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
     private static final long serialVersionUID = 1L;
 
     final long number;
+
     @Nonnull
     private final String proposerUuid;
 
-    public PaxosProposalId(@JsonProperty("number") long number,
-                           @JsonProperty("proposerUUID") String proposerUuid) {
+    public PaxosProposalId(@JsonProperty("number") long number, @JsonProperty("proposerUUID") String proposerUuid) {
         this.number = number;
         this.proposerUuid = Preconditions.checkNotNull(proposerUuid, "proposerUUID cannot be null");
     }
@@ -48,9 +45,9 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
     @Override
     public int compareTo(PaxosProposalId paxosProposalId) {
         return new CompareToBuilder()
-            .append(getNumber(), paxosProposalId.getNumber())
-            .append(getProposerUUID(), paxosProposalId.getProposerUUID())
-            .toComparison();
+                .append(getNumber(), paxosProposalId.getNumber())
+                .append(getProposerUUID(), paxosProposalId.getProposerUUID())
+                .toComparison();
     }
 
     public PaxosPersistence.PaxosProposalId persistToProto() {
@@ -83,8 +80,7 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
         final int prime = 31;
         int result = 1;
         result = prime * result + (int) (number ^ (number >>> 32));
-        result = prime * result
-                + ((proposerUuid == null) ? 0 : proposerUuid.hashCode());
+        result = prime * result + ((proposerUuid == null) ? 0 : proposerUuid.hashCode());
         return result;
     }
 
@@ -115,7 +111,6 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
 
     @Override
     public String toString() {
-        return "PaxosProposalId [number=" + number + ", proposerUUID="
-                + proposerUuid + "]";
+        return "PaxosProposalId [number=" + number + ", proposerUUID=" + proposerUuid + "]";
     }
 }

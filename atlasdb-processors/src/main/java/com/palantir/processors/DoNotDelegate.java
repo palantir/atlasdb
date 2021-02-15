@@ -16,5 +16,4 @@
 
 package com.palantir.processors;
 
-public @interface DoNotDelegate {
-}
+public @interface DoNotDelegate {}

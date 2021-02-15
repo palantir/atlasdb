@@ -16,11 +16,10 @@
 
 package com.palantir.lock.v2;
 
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableStartAtlasDbTransactionResponseV3.class)
@@ -38,8 +37,7 @@ public abstract class StartAtlasDbTransactionResponseV3 {
     @JsonIgnore
     public StartIdentifiedAtlasDbTransactionResponse toStartTransactionResponse() {
         return ImmutableStartIdentifiedAtlasDbTransactionResponse.of(
-                immutableTimestamp(),
-                startTimestampAndPartition());
+                immutableTimestamp(), startTimestampAndPartition());
     }
 
     public static StartAtlasDbTransactionResponseV3 of(

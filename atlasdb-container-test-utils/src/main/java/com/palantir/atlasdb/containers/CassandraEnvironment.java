@@ -15,24 +15,26 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.util.Map;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 
 public final class CassandraEnvironment {
     public static final String CASSANDRA_VERSION = "CASSANDRA_VERSION";
 
     @VisibleForTesting
     static final String CASSANDRA_MAX_HEAP_SIZE = "CASSANDRA_MAX_HEAP_SIZE";
+
     @VisibleForTesting
     static final String CASSANDRA_HEAP_NEWSIZE = "CASSANDRA_HEAP_NEWSIZE";
 
     @VisibleForTesting
     static final String DEFAULT_VERSION = "atlasdb-testing-palantir-cassandra";
+
     @VisibleForTesting
     static final String DEFAULT_MAX_HEAP_SIZE = "512m";
+
     @VisibleForTesting
     static final String DEFAULT_HEAP_NEWSIZE = "64m";
 

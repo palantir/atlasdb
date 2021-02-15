@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Counter;
@@ -29,6 +25,9 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
 import com.palantir.atlasdb.util.MetricsManager;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This controller makes decisions based on deltas (in an attempt to be able to detect load spikes) measured over the
@@ -46,20 +45,16 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
 
     @VisibleForTesting
     ToplistDeltaFilteringTableLevelMetricsController(
-            MetricsFilterEvaluationContext metricsFilterEvaluationContext,
-            MetricsManager metricsManager,
-            Clock clock) {
+            MetricsFilterEvaluationContext metricsFilterEvaluationContext, MetricsManager metricsManager, Clock clock) {
         this.metricsFilterEvaluationContext = metricsFilterEvaluationContext;
         this.metricsManager = metricsManager;
         this.clock = clock;
     }
 
-    public static TableLevelMetricsController create(MetricsManager metricsManager,
-            MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
+    public static TableLevelMetricsController create(
+            MetricsManager metricsManager, MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
         return new ToplistDeltaFilteringTableLevelMetricsController(
-                metricsFilterEvaluationContext,
-                metricsManager,
-                Clock.defaultClock());
+                metricsFilterEvaluationContext, metricsManager, Clock.defaultClock());
     }
 
     /**
@@ -69,14 +64,9 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
     @Override
     public <T> Counter createAndRegisterCounter(Class<T> clazz, String metricName, TableReference tableReference) {
         metricsManager.addMetricFilter(
-                clazz,
-                metricName,
-                getTagsForTableReference(tableReference),
-                MetricPublicationFilter.NEVER_PUBLISH);
-        Counter counter = metricsManager.registerOrGetTaggedCounter(
-                clazz,
-                metricName,
-                getTagsForTableReference(tableReference));
+                clazz, metricName, getTagsForTableReference(tableReference), MetricPublicationFilter.NEVER_PUBLISH);
+        Counter counter =
+                metricsManager.registerOrGetTaggedCounter(clazz, metricName, getTagsForTableReference(tableReference));
 
         Gauge<Long> gauge = new ZeroBasedDeltaGauge(counter::getCount);
         Gauge<Long> memoizedGauge = new CachedGauge<Long>(clock, REFRESH_INTERVAL.toNanos(), TimeUnit.NANOSECONDS) {
@@ -86,18 +76,10 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
             }
         };
 
-        MetricPublicationFilter filter = metricsFilterEvaluationContext.registerAndCreateTopNFilter(
-                metricName, memoizedGauge);
-        metricsManager.addMetricFilter(
-                clazz,
-                metricName,
-                metricsManager.getTableNameTagFor(tableReference),
-                filter);
-        metricsManager.registerOrGet(
-                clazz,
-                metricName,
-                gauge,
-                metricsManager.getTableNameTagFor(tableReference));
+        MetricPublicationFilter filter =
+                metricsFilterEvaluationContext.registerAndCreateTopNFilter(metricName, memoizedGauge);
+        metricsManager.addMetricFilter(clazz, metricName, metricsManager.getTableNameTagFor(tableReference), filter);
+        metricsManager.registerOrGet(clazz, metricName, gauge, metricsManager.getTableNameTagFor(tableReference));
 
         return counter;
     }

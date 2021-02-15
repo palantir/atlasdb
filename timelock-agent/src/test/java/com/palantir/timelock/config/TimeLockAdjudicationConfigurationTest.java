@@ -18,18 +18,17 @@ package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import org.junit.Test;
 
 public class TimeLockAdjudicationConfigurationTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
-            .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
-            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
+                    .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
+                    .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
             .registerModule(new GuavaModule());
 
     @Test

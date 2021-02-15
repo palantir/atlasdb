@@ -15,6 +15,7 @@
  */
 package com.palantir.util;
 
+import com.google.common.base.Suppliers;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,8 +23,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import com.google.common.base.Suppliers;
 
 public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T>> {
     public static final long UNINITIALIZED_VERSION = 0L;
@@ -45,8 +44,8 @@ public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T
      */
     public AggregatingVersionedSupplier(Function<Collection<T>, T> aggregator, long expirationMillis) {
         this.aggregator = aggregator;
-        this.memoizedValue = Suppliers
-                .memoizeWithExpiration(this::recalculate, expirationMillis, TimeUnit.MILLISECONDS);
+        this.memoizedValue =
+                Suppliers.memoizeWithExpiration(this::recalculate, expirationMillis, TimeUnit.MILLISECONDS);
     }
 
     public static <C extends Comparable<C>> AggregatingVersionedSupplier<C> min(long expirationMillis) {
@@ -72,5 +71,9 @@ public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T
     @Override
     public VersionedType<T> get() {
         return memoizedValue.get();
+    }
+
+    public T getLastValueForKey(Integer key) {
+        return latestValues.get(key);
     }
 }

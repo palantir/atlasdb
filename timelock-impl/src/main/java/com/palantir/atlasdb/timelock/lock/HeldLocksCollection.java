@@ -15,25 +15,24 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.common.time.NanoTime;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class HeldLocksCollection {
     @VisibleForTesting
-    final ConcurrentMap<UUID, AsyncResult<HeldLocks>> heldLocksById = Maps.newConcurrentMap();
+    final ConcurrentMap<UUID, AsyncResult<HeldLocks>> heldLocksById = new ConcurrentHashMap<>();
 
     private final LeaderClock leaderClock;
 
@@ -47,10 +46,9 @@ public class HeldLocksCollection {
     }
 
     public AsyncResult<Leased<LockToken>> getExistingOrAcquire(
-            UUID requestId,
-            Supplier<AsyncResult<HeldLocks>> lockAcquirer) {
-        return heldLocksById.computeIfAbsent(
-                requestId, ignored -> lockAcquirer.get())
+            UUID requestId, Supplier<AsyncResult<HeldLocks>> lockAcquirer) {
+        return heldLocksById
+                .computeIfAbsent(requestId, ignored -> lockAcquirer.get())
                 .map(this::createLeasableLockToken);
     }
 
@@ -96,9 +94,7 @@ public class HeldLocksCollection {
     }
 
     private boolean shouldRemove(AsyncResult<HeldLocks> lockResult) {
-        return lockResult.isFailed()
-                || lockResult.isTimedOut()
-                || lockResult.test(HeldLocks::unlockIfExpired);
+        return lockResult.isFailed() || lockResult.isTimedOut() || lockResult.test(HeldLocks::unlockIfExpired);
     }
 
     private Set<LockToken> filter(Set<LockToken> tokens, Predicate<HeldLocks> predicate) {

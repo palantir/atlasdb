@@ -25,10 +25,14 @@ types:
           lastAcceptedId: optional<PaxosProposalId>
           lastAcceptedValue: optional<PaxosValue>
           version: Long
+      HistoryQuerySequenceBounds:
+        fields:
+          lowerBoundInclusive: Long
+          upperBoundInclusive: Long
       HistoryQuery:
         fields:
           namespaceAndUseCase: NamespaceAndUseCase
-          seq: Long
+          sequenceBounds: HistoryQuerySequenceBounds
       PaxosLogWithAcceptedAndLearnedValues:
         fields:
           acceptedState: optional<PaxosAcceptorData>

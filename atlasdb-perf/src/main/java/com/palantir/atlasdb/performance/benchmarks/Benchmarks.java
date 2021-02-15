@@ -40,14 +40,13 @@ public final class Benchmarks {
      * @param rowComponent the name of the row being created.
      * @param columnName the name of the column being created.
      */
-    public static void createTable(KeyValueService kvs,
-            TableReference tableRef,
-            String rowComponent,
-            String columnName) {
+    public static void createTable(
+            KeyValueService kvs, TableReference tableRef, String rowComponent, String columnName) {
         createTable(kvs, tableRef, rowComponent, columnName, TableMetadataPersistence.SweepStrategy.NOTHING);
     }
 
-    public static void createTable(KeyValueService kvs,
+    public static void createTable(
+            KeyValueService kvs,
             TableReference tableRef,
             String rowComponent,
             String columnName,
@@ -65,10 +64,8 @@ public final class Benchmarks {
         kvs.createTable(tableRef, tableDef.toTableMetadata().persistToBytes());
     }
 
-    public static void createTableWithStreaming(KeyValueService kvs,
-            TableReference tableRef,
-            String rowComponent,
-            String columnName) {
+    public static void createTableWithStreaming(
+            KeyValueService kvs, TableReference tableRef, String rowComponent, String columnName) {
         createTable(kvs, tableRef, rowComponent, columnName);
         createStreamingTable(kvs, tableRef, columnName);
     }
@@ -84,10 +81,8 @@ public final class Benchmarks {
         });
     }
 
-    public static TableReference createTableWithDynamicColumns(KeyValueService kvs,
-            TableReference tableRef,
-            String rowComponent,
-            String columnComponent) {
+    public static TableReference createTableWithDynamicColumns(
+            KeyValueService kvs, TableReference tableRef, String rowComponent, String columnComponent) {
         TableDefinition tableDef = new TableDefinition() {
             {
                 rowName();
@@ -102,5 +97,4 @@ public final class Benchmarks {
         kvs.createTable(tableRef, tableDef.toTableMetadata().persistToBytes());
         return tableRef;
     }
-
 }

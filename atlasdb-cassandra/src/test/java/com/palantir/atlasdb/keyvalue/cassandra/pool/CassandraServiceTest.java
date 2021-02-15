@@ -17,12 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.util.Optional;
-
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
@@ -32,6 +26,10 @@ import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.Optional;
+import org.junit.Test;
 
 public class CassandraServiceTest {
     private static final int DEFAULT_PORT = 5000;
@@ -108,7 +106,6 @@ public class CassandraServiceTest {
         assertThat(resolvedHost).isEqualTo(new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT));
     }
 
-
     @Test(expected = UnknownHostException.class)
     public void shouldThrowIfPortsAreNotTheSameAddressDoesNotMatch() throws UnknownHostException {
         InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, OTHER_PORT);
@@ -122,8 +119,7 @@ public class CassandraServiceTest {
     public void shouldReturnAbsentIfPredicateMatchesNoServers() {
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1));
 
-        Optional<CassandraClientPoolingContainer> container
-                = cassandra.getRandomGoodHostForPredicate(address -> false);
+        Optional<CassandraClientPoolingContainer> container = cassandra.getRandomGoodHostForPredicate(address -> false);
         assertThat(container).isNotPresent();
     }
 
@@ -133,8 +129,8 @@ public class CassandraServiceTest {
 
         int numTrials = 50;
         for (int i = 0; i < numTrials; i++) {
-            Optional<CassandraClientPoolingContainer> container
-                    = cassandra.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
+            Optional<CassandraClientPoolingContainer> container =
+                    cassandra.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
             assertContainerHasHostOne(container);
         }
     }
@@ -143,8 +139,8 @@ public class CassandraServiceTest {
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
         blacklist.add(HOST_1);
-        Optional<CassandraClientPoolingContainer> container
-                = cassandra.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
+        Optional<CassandraClientPoolingContainer> container =
+                cassandra.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertContainerHasHostOne(container);
     }
 
@@ -163,30 +159,29 @@ public class CassandraServiceTest {
     }
 
     private CassandraService clientPoolWith(
-            ImmutableSet<InetSocketAddress> servers,
-            ImmutableSet<InetSocketAddress> serversInPool) {
+            ImmutableSet<InetSocketAddress> servers, ImmutableSet<InetSocketAddress> serversInPool) {
         return clientPoolWithParams(servers, serversInPool, 0.0);
     }
 
-    private CassandraService clientPoolWithParams(ImmutableSet<InetSocketAddress> servers,
-            ImmutableSet<InetSocketAddress> serversInPool, double weighting) {
+    private CassandraService clientPoolWithParams(
+            ImmutableSet<InetSocketAddress> servers, ImmutableSet<InetSocketAddress> serversInPool, double weighting) {
         config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .replicationFactor(3)
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
                         .username("username")
                         .password("password")
                         .build())
-                .servers(
-                        ImmutableDefaultConfig
-                                .builder().addAllThriftHosts(servers).build())
+                .servers(ImmutableDefaultConfig.builder()
+                        .addAllThriftHosts(servers)
+                        .build())
                 .localHostWeighting(weighting)
                 .build();
 
         blacklist = new Blacklist(config);
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        CassandraService service = new CassandraService(
-                metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
+        CassandraService service =
+                new CassandraService(metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);

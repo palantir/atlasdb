@@ -16,19 +16,6 @@
 
 package com.palantir.atlasdb.cache;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
-
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
@@ -45,8 +32,18 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 import okio.ByteString;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
     private static final Logger log = LoggerFactory.getLogger(DefaultOffHeapCache.class);
@@ -67,8 +64,11 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
 
     public interface EntryMapper<K, V> {
         ByteString serializeKey(K key);
+
         K deserializeKey(ByteString key);
+
         ByteString serializeValue(K key, V value);
+
         V deserializeValue(ByteString key, ByteString value);
     }
 
@@ -84,12 +84,7 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
                 .handle(handle)
                 .build();
 
-        return new DefaultOffHeapCache(
-                persistentStore,
-                entryMapper,
-                cacheDescriptor,
-                maxSize,
-                taggedMetricRegistry);
+        return new DefaultOffHeapCache(persistentStore, entryMapper, cacheDescriptor, maxSize, taggedMetricRegistry);
     }
 
     private DefaultOffHeapCache(
@@ -108,8 +103,9 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
         this.valuePutter = Autobatchers.coalescing(new WriteBatcher<>(this))
                 .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
-        Gauge<Integer> cacheSizeGauge = () -> this.cacheDescriptor.get().currentSize().intValue();
-        taggedMetricRegistry.gauge(CACHE_SIZE, cacheSizeGauge);
+        Gauge<Integer> cacheSizeGauge =
+                () -> this.cacheDescriptor.get().currentSize().intValue();
+        taggedMetricRegistry.registerWithReplacement(CACHE_SIZE, cacheSizeGauge);
     }
 
     @Override
@@ -168,21 +164,17 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
                 offHeapCache.clear();
             }
             cacheDescriptor = offHeapCache.cacheDescriptor.get();
-            Set<Map.Entry<ByteString, ByteString>> serializedRequest = request.stream()
-                    .map(this::serializeEntry)
-                    .collect(Collectors.toSet());
+            Set<Map.Entry<ByteString, ByteString>> serializedRequest =
+                    request.stream().map(this::serializeEntry).collect(Collectors.toSet());
             try {
-                List<ByteString> toWrite = serializedRequest.stream()
-                        .map(Map.Entry::getKey)
-                        .collect(Collectors.toList());
+                List<ByteString> toWrite =
+                        serializedRequest.stream().map(Map.Entry::getKey).collect(Collectors.toList());
                 Map<ByteString, ByteString> response =
                         offHeapCache.persistentStore.get(cacheDescriptor.handle(), toWrite);
 
                 int sizeIncrease = Sets.difference(request, response.entrySet()).size();
                 cacheDescriptor.currentSize().addAndGet(sizeIncrease);
-                offHeapCache.persistentStore.put(
-                        cacheDescriptor.handle(),
-                        ImmutableMap.copyOf(serializedRequest));
+                offHeapCache.persistentStore.put(cacheDescriptor.handle(), ImmutableMap.copyOf(serializedRequest));
             } catch (SafeIllegalArgumentException exception) {
                 // happens when a store is dropped by a concurrent call to clear
                 log.warn("Clear called concurrently, writing failed", exception);
@@ -201,6 +193,7 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
     @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
     interface CacheDescriptor {
         AtomicInteger currentSize();
+
         PersistentStore.Handle handle();
     }
 }

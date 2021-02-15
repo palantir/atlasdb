@@ -23,17 +23,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.math.LongMath;
 import java.util.Map;
 import java.util.function.Function;
-
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.math.LongMath;
 
 @SuppressWarnings("unchecked") // Mocking
 public class SplitKeyDelegatingTransactionServiceTest {
@@ -43,12 +41,12 @@ public class SplitKeyDelegatingTransactionServiceTest {
     private final TransactionService delegate2 = mock(TransactionService.class);
     private final TransactionService delegate3 = mock(TransactionService.class);
 
-    private final Map<Long, TransactionService> transactionServiceMap = ImmutableMap.of(
-            1L, delegate1, 2L, delegate2, 3L, delegate3);
-    private final TransactionService delegatingTransactionService
-            = new SplitKeyDelegatingTransactionService<>(EXTRACT_LAST_DIGIT, transactionServiceMap);
-    private final TransactionService lastDigitFiveImpliesUnknownTransactionService
-            = new SplitKeyDelegatingTransactionService<>(num -> num % 10 == 5 ? null : num % 10, transactionServiceMap);
+    private final Map<Long, TransactionService> transactionServiceMap =
+            ImmutableMap.of(1L, delegate1, 2L, delegate2, 3L, delegate3);
+    private final TransactionService delegatingTransactionService =
+            new SplitKeyDelegatingTransactionService<>(EXTRACT_LAST_DIGIT, transactionServiceMap);
+    private final TransactionService lastDigitFiveImpliesUnknownTransactionService =
+            new SplitKeyDelegatingTransactionService<>(num -> num % 10 == 5 ? null : num % 10, transactionServiceMap);
 
     @After
     public void verifyNoMoreInteractions() {
@@ -107,8 +105,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
     @Test
     public void getMultipleDelegatesRequestsToGetMultipleOnDelegates() {
         when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 2L));
-        assertThat(delegatingTransactionService.get(ImmutableList.of(1L)))
-                .isEqualTo(ImmutableMap.of(1L, 2L));
+        assertThat(delegatingTransactionService.get(ImmutableList.of(1L))).isEqualTo(ImmutableMap.of(1L, 2L));
         verifyDelegateHadMultigetCalledWith(delegate1, 1L);
     }
 
@@ -127,8 +124,8 @@ public class SplitKeyDelegatingTransactionServiceTest {
         when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
         assertThatThrownBy(() -> delegatingTransactionService.get(ImmutableList.of(1L, 7L, 41L)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("A batch of timestamps {} produced some transaction service keys which are"
-                        + " unknown");
+                .hasMessageContaining(
+                        "A batch of timestamps {} produced some transaction service keys which are" + " unknown");
 
         Mockito.verifyNoMoreInteractions(delegate1);
     }
@@ -159,8 +156,8 @@ public class SplitKeyDelegatingTransactionServiceTest {
         when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
         assertThatThrownBy(() -> lastDigitFiveImpliesUnknownTransactionService.get(ImmutableList.of(1L, 5L, 7L, 41L)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("A batch of timestamps {} produced some transaction service keys which are"
-                        + " unknown");
+                .hasMessageContaining(
+                        "A batch of timestamps {} produced some transaction service keys which are" + " unknown");
 
         Mockito.verifyNoMoreInteractions(delegate1);
     }

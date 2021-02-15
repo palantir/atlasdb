@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix a potential class initialization deadlock in SweepQueueReader
+  links:
+  - https://github.com/palantir/atlasdb/pull/5225

@@ -15,19 +15,18 @@
  */
 package com.palantir.lock;
 
-import java.io.Serializable;
-import java.math.BigInteger;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.logsafe.Preconditions;
+import java.io.Serializable;
+import java.math.BigInteger;
 
 public class SimpleHeldLocksToken implements Serializable {
     private static final long serialVersionUID = 1L;
     private final BigInteger tokenId;
     private final long creationDateMs;
 
-    public SimpleHeldLocksToken(@JsonProperty("tokenId") BigInteger tokenId,
-                                @JsonProperty("creationDateMs") long creationDateMs) {
+    public SimpleHeldLocksToken(
+            @JsonProperty("tokenId") BigInteger tokenId, @JsonProperty("creationDateMs") long creationDateMs) {
         this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
         this.creationDateMs = creationDateMs;
     }
@@ -54,8 +53,7 @@ public class SimpleHeldLocksToken implements Serializable {
 
     @Override
     public String toString() {
-        return "SimpleHeldLocksToken [tokenId=" + tokenId + ", creationDateMs=" + creationDateMs
-                + "]";
+        return "SimpleHeldLocksToken [tokenId=" + tokenId + ", creationDateMs=" + creationDateMs + "]";
     }
 
     @Override

@@ -15,11 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -42,6 +37,10 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * An implementation of KeyValueService which delegates reads to the first KeyValueService and
@@ -70,10 +69,8 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef,
-            Iterable<byte[]> rows,
-            ColumnSelection columnSelection,
-            long timestamp) {
+    public Map<Cell, Value> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         return delegate1.getRows(tableRef, rows, columnSelection, timestamp);
     }
 
@@ -106,8 +103,7 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
-            throws KeyAlreadyExistsException {
+    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         delegate1.putUnlessExists(tableRef, values);
     }
 
@@ -158,16 +154,14 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest,
-            long timestamp) {
+    public ClosableIterator<RowResult<Value>> getRange(
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         return delegate1.getRange(tableRef, rangeRequest, timestamp);
     }
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            long timestamp) {
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         return delegate1.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
@@ -224,16 +218,14 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) {
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         return delegate1.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
-            TableReference tableRef,
-            CandidateCellForSweepingRequest request) {
+            TableReference tableRef, CandidateCellForSweepingRequest request) {
         return delegate1.getCandidateCellsForSweeping(tableRef, request);
     }
 
@@ -272,7 +264,8 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
@@ -280,7 +273,8 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+    public RowColumnRangeIterator getRowsColumnRange(
+            TableReference tableRef,
             Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
@@ -297,6 +291,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     @Override
     public boolean shouldTriggerCompactions() {
         return delegate1.shouldTriggerCompactions() || delegate2.shouldTriggerCompactions();
+    }
+
+    @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+        return delegate1.getRowKeysInRange(tableRef, startRow, endRow, maxResults);
     }
 
     @Override

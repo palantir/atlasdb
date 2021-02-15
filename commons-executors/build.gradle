@@ -12,4 +12,5 @@ dependencies {
     implementation "org.jboss.threads:jboss-threads"
 
     testCompile group: 'com.google.guava', name: 'guava'
+    testCompileOnly 'org.immutables:value::annotations'
 }

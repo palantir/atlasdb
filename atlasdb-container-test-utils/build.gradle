@@ -10,7 +10,8 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
-    compile group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule'
+    compile group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule-core'
+    compile group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule-junit4'
     compile group: 'org.awaitility', name: 'awaitility'
     compile group: 'io.netty', name: 'netty-handler-proxy'
 

@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.timelock;
 
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 
 public interface TestableLeaderPinger {
     default Set<String> ping(String... namespaces) {

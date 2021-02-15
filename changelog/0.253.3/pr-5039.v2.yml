@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Fix comparison bug when comparing versions in the lock watch event
+    cache.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5039

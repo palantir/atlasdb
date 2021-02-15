@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -33,6 +25,10 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class DbReadTable {
     private static final int MAX_ROW_COLUMN_RANGES_FETCH_SIZE = 1000;
@@ -105,47 +101,43 @@ public class DbReadTable {
 
     public ClosableIterator<AgnosticLightResultRow> getRange(RangeRequest range, long ts, int maxRows) {
         FullQuery query = queryFactory.getRangeQuery(range, ts, maxRows);
-        AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(
-                query.getQuery(), query.getArgs());
+        AgnosticLightResultSet results =
+                conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
         results.setFetchSize(maxRows);
         return ClosableIterators.wrap(results.iterator(), results);
     }
 
     public ClosableIterator<AgnosticLightResultRow> getRowsColumnRangeCounts(
-            List<byte[]> rows,
-            long ts,
-            ColumnRangeSelection columnRangeSelection) {
+            List<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection) {
         if (rows.isEmpty()) {
             return ClosableIterators.emptyImmutableClosableIterator();
         } else {
             FullQuery query = queryFactory.getRowsColumnRangeCountsQuery(rows, ts, columnRangeSelection);
-            AgnosticLightResultSet results = conns.get()
-                    .selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
+            AgnosticLightResultSet results =
+                    conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
             results.setFetchSize(Math.min(rows.size(), MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
             return ClosableIterators.wrap(results.iterator(), results);
         }
     }
 
     public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
-            Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow,
-            long ts) {
+            Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow, long ts) {
         if (columnRangeSelectionsByRow.isEmpty()) {
             return ClosableIterators.emptyImmutableClosableIterator();
         } else {
             FullQuery query = queryFactory.getRowsColumnRangeQuery(columnRangeSelectionsByRow, ts);
             AgnosticLightResultSet results =
                     conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
-            int totalSize =
-                    columnRangeSelectionsByRow.values().stream().mapToInt(
-                            BatchColumnRangeSelection::getBatchHint).sum();
+            int totalSize = columnRangeSelectionsByRow.values().stream()
+                    .mapToInt(BatchColumnRangeSelection::getBatchHint)
+                    .sum();
             results.setFetchSize(Math.min(totalSize, MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
             return ClosableIterators.wrap(results.iterator(), results);
         }
     }
 
     public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
-            RowsColumnRangeBatchRequest rowsColumnRangeBatch,
-            long ts) {
+            RowsColumnRangeBatchRequest rowsColumnRangeBatch, long ts) {
         FullQuery query = queryFactory.getRowsColumnRangeQuery(rowsColumnRangeBatch, ts);
         AgnosticLightResultSet results =
                 conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
@@ -155,31 +147,6 @@ public class DbReadTable {
 
     public boolean hasOverflowValues() {
         return queryFactory.hasOverflowValues();
-    }
-
-    private static <T> Future<T> getSupplierFuture(Supplier<T> supplier) {
-        return new Future<T>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return false;
-            }
-            @Override
-            public boolean isCancelled() {
-                return false;
-            }
-            @Override
-            public boolean isDone() {
-                return true;
-            }
-            @Override
-            public T get() {
-                return supplier.get();
-            }
-            @Override
-            public T get(long timeout, TimeUnit unit) {
-                return get();
-            }
-        };
     }
 
     private boolean isSingleton(Iterable<?> iterable) {
@@ -192,8 +159,8 @@ public class DbReadTable {
     }
 
     private ClosableIterator<AgnosticLightResultRow> run(FullQuery query) {
-        AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(
-                query.getQuery(), query.getArgs());
+        AgnosticLightResultSet results =
+                conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
         return ClosableIterators.wrap(results.iterator(), results);
     }
 

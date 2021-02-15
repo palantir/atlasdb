@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
+@SuppressWarnings("CheckReturnValue")
 public class TimeLockRuntimeConfigurationTest {
     @Test
     public void canCreateWithZeroClients() {
@@ -35,8 +36,8 @@ public class TimeLockRuntimeConfigurationTest {
     @Test
     public void throwOnNegativeLeaderPingResponseWait() {
         assertThatThrownBy(() -> ImmutableTimeLockRuntimeConfiguration.builder()
-                .slowLockLogTriggerMillis(-1L)
-                .build()).isInstanceOf(IllegalStateException.class);
+                        .slowLockLogTriggerMillis(-1L)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
-
 }

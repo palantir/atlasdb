@@ -25,16 +25,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BooleanSupplier;
-
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.slf4j.Logger;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableSet;
@@ -43,13 +33,24 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.logsafe.Arg;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
 
 public class ProfilingTimelockServiceTest {
     private static final Duration SHORT_DURATION = ProfilingTimelockService.SLOW_THRESHOLD.dividedBy(5);
     private static final Duration LONG_DURATION = ProfilingTimelockService.SLOW_THRESHOLD.multipliedBy(5);
-    private static final Duration TWO_CENTURIES = ChronoUnit.CENTURIES.getDuration().multipliedBy(2);
+    private static final Duration TWO_CENTURIES =
+            ChronoUnit.CENTURIES.getDuration().multipliedBy(2);
 
+    @SuppressWarnings("PreferStaticLoggers")
     private final Logger logger = mock(Logger.class);
+
     private final TimelockService delegate = mock(TimelockService.class);
 
     private long clock = 0;
@@ -70,9 +71,7 @@ public class ProfilingTimelockServiceTest {
 
     @Test
     public void delegatesInitializationCheck() {
-        when(delegate.isInitialized())
-                .thenReturn(false)
-                .thenReturn(true);
+        when(delegate.isInitialized()).thenReturn(false).thenReturn(true);
 
         assertThat(profilingTimelockService.isInitialized()).isFalse();
         assertThat(profilingTimelockService.isInitialized()).isTrue();
@@ -126,16 +125,20 @@ public class ProfilingTimelockServiceTest {
 
     @Test
     public void doesNotLogIfLockIsSlow() {
-        flushLogsWithCall(LONG_DURATION, () -> profilingTimelockService.lock(
-                LockRequest.of(ImmutableSet.of(StringLockDescriptor.of("exclusive")), 1234)));
+        flushLogsWithCall(
+                LONG_DURATION,
+                () -> profilingTimelockService.lock(
+                        LockRequest.of(ImmutableSet.of(StringLockDescriptor.of("exclusive")), 1234)));
 
         verifyLoggerNeverInvoked();
     }
 
     @Test
     public void doesNotLogIfWaitForLocksIsSlow() {
-        flushLogsWithCall(LONG_DURATION, () -> profilingTimelockService.waitForLocks(WaitForLocksRequest.of(
-                ImmutableSet.of(StringLockDescriptor.of("combination")), 123)));
+        flushLogsWithCall(
+                LONG_DURATION,
+                () -> profilingTimelockService.waitForLocks(
+                        WaitForLocksRequest.of(ImmutableSet.of(StringLockDescriptor.of("combination")), 123)));
 
         verifyLoggerNeverInvoked();
     }
@@ -160,9 +163,10 @@ public class ProfilingTimelockServiceTest {
     public void logsTheSlowestNonBannedOperationAboveThreshold() {
         accumulateLogsWithCall(LONG_DURATION, profilingTimelockService::getFreshTimestamp);
 
-        flushLogsWithCall(TWO_CENTURIES,
-                () -> profilingTimelockService.lock(LockRequest.of(ImmutableSet.of(StringLockDescriptor.of("mortice")),
-                        2366)));
+        flushLogsWithCall(
+                TWO_CENTURIES,
+                () -> profilingTimelockService.lock(
+                        LockRequest.of(ImmutableSet.of(StringLockDescriptor.of("mortice")), 2366)));
 
         verifyLoggerInvokedOnceWithSpecificProfile("getFreshTimestamp", LONG_DURATION);
     }
@@ -193,25 +197,27 @@ public class ProfilingTimelockServiceTest {
         verifyNoMoreInteractions(logger);
     }
 
-    @SuppressWarnings({ "unchecked", // Captors of generics
-                        "Slf4jConstantLogMessage" }) // Logger verify
+    @SuppressWarnings({
+        "unchecked", // Captors of generics
+        "Slf4jConstantLogMessage"
+    }) // Logger verify
     private void verifyLoggerInvokedOnceWithSpecificProfile(String operation, Duration duration) {
         // XXX Maybe there's a better way? The approaches I tried didn't work because of conflict with other methods
         ArgumentCaptor<Arg<String>> messageCaptor = ArgumentCaptor.forClass(Arg.class);
         ArgumentCaptor<Arg<Duration>> durationCaptor = ArgumentCaptor.forClass(Arg.class);
-        verify(logger).info(
-                any(String.class), messageCaptor.capture(), durationCaptor.capture(), any(), any(), any());
+        verify(logger).info(any(String.class), messageCaptor.capture(), durationCaptor.capture(), any(), any(), any());
 
         assertThat(messageCaptor.getValue().getValue()).isEqualTo(operation);
         assertThat(durationCaptor.getValue().getValue()).isEqualTo(duration);
     }
 
-    @SuppressWarnings({ "unchecked", // Captors of generics
-                        "Slf4jConstantLogMessage" }) // Logger verify
+    @SuppressWarnings({
+        "unchecked", // Captors of generics
+        "Slf4jConstantLogMessage"
+    }) // Logger verify
     private void verifyLoggerInvokedOnceWithException(Exception exception) {
         ArgumentCaptor<Arg<Optional<Exception>>> exceptionCaptor = ArgumentCaptor.forClass(Arg.class);
-        verify(logger).info(
-                any(String.class), any(), any(), any(), any(), exceptionCaptor.capture());
+        verify(logger).info(any(String.class), any(), any(), any(), any(), exceptionCaptor.capture());
         assertThat(exceptionCaptor.getValue().getValue()).contains(exception);
     }
 
@@ -238,5 +244,4 @@ public class ProfilingTimelockServiceTest {
         makeOperationsTakeSpecifiedDuration(duration);
         operation.run();
     }
-
 }

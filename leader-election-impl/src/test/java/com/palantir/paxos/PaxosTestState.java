@@ -17,16 +17,14 @@ package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.assertj.core.api.Assertions;
-
 import com.google.common.util.concurrent.Futures;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.assertj.core.api.Assertions;
 
 public class PaxosTestState {
     private final List<LeaderElectionService> leaders;

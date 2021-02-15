@@ -15,12 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Set;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
@@ -29,6 +23,10 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Preconditions;
+import java.util.Set;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AdvisoryLockConditionSuppliers {
 
@@ -38,13 +36,12 @@ public final class AdvisoryLockConditionSuppliers {
 
     private AdvisoryLockConditionSuppliers() {}
 
-    public static Supplier<AdvisoryLocksCondition> get(LockService lockService, Iterable<HeldLocksToken> lockTokens,
-            Supplier<LockRequest> lockSupplier) {
+    public static Supplier<AdvisoryLocksCondition> get(
+            LockService lockService, Iterable<HeldLocksToken> lockTokens, Supplier<LockRequest> lockSupplier) {
         return () -> {
             Set<HeldLocksToken> externalLocks = ImmutableSet.copyOf(lockTokens);
-            ExternalLocksCondition externalCondition = externalLocks.isEmpty()
-                    ? null
-                    : new ExternalLocksCondition(lockService, externalLocks);
+            ExternalLocksCondition externalCondition =
+                    externalLocks.isEmpty() ? null : new ExternalLocksCondition(lockService, externalLocks);
 
             LockRequest lockRequest = lockSupplier.get();
             if (lockRequest != null) {
@@ -57,9 +54,7 @@ public final class AdvisoryLockConditionSuppliers {
                         : new CombinedLocksCondition(externalCondition, transactionCondition);
             }
 
-            return externalCondition == null
-                    ? NO_LOCKS_CONDITION
-                    : externalCondition;
+            return externalCondition == null ? NO_LOCKS_CONDITION : externalCondition;
         };
     }
 
@@ -74,8 +69,8 @@ public final class AdvisoryLockConditionSuppliers {
                 throw new RuntimeException(e);
             }
             if (response == null) {
-                RuntimeException ex = new LockAcquisitionException(
-                        "Failed to lock using the provided lock request: " + lockRequest);
+                RuntimeException ex =
+                        new LockAcquisitionException("Failed to lock using the provided lock request: " + lockRequest);
                 switch (lockRequest.getBlockingMode()) {
                     case DO_NOT_BLOCK:
                         log.debug("Could not lock successfully", ex);

@@ -16,10 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.math.BigInteger;
-import java.util.Optional;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureLockV1ServiceBlocking;
@@ -33,6 +29,9 @@ import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.tokens.auth.AuthHeader;
+import java.math.BigInteger;
+import java.util.Optional;
+import java.util.Set;
 
 public class DialogueComposingLockRpcClient implements LockRpcClient {
     private static final AuthHeader UNUSED_AUTH_HEADER = AuthHeader.valueOf("Bearer unused");
@@ -40,8 +39,8 @@ public class DialogueComposingLockRpcClient implements LockRpcClient {
     private final ConjureLockV1ServiceBlocking pureDialogueDelegate;
     private final LockRpcClient dialogueShimDelegate;
 
-    public DialogueComposingLockRpcClient(ConjureLockV1ServiceBlocking pureDialogueDelegate,
-            LockRpcClient dialogueShimDelegate) {
+    public DialogueComposingLockRpcClient(
+            ConjureLockV1ServiceBlocking pureDialogueDelegate, LockRpcClient dialogueShimDelegate) {
         this.pureDialogueDelegate = pureDialogueDelegate;
         this.dialogueShimDelegate = dialogueShimDelegate;
     }
@@ -136,7 +135,8 @@ public class DialogueComposingLockRpcClient implements LockRpcClient {
 
     @Override
     public Optional<HeldLocksToken> lockAndGetHeldLocks(String namespace, String client, LockRequest request) {
-        return pureDialogueDelegate.lockAndGetHeldLocks(UNUSED_AUTH_HEADER,
+        return pureDialogueDelegate.lockAndGetHeldLocks(
+                UNUSED_AUTH_HEADER,
                 namespace,
                 ConjureLockV1Request.builder()
                         .lockClient(client)
@@ -146,9 +146,8 @@ public class DialogueComposingLockRpcClient implements LockRpcClient {
 
     @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(String namespace, Iterable<LockRefreshToken> tokens) {
-        return ImmutableSet.copyOf(ConjureLockV1Tokens.getLegacyTokens(
-                pureDialogueDelegate.refreshLockRefreshTokens(
-                        UNUSED_AUTH_HEADER, namespace, ConjureLockV1Tokens.getConjureTokens(tokens))));
+        return ImmutableSet.copyOf(ConjureLockV1Tokens.getLegacyTokens(pureDialogueDelegate.refreshLockRefreshTokens(
+                UNUSED_AUTH_HEADER, namespace, ConjureLockV1Tokens.getConjureTokens(tokens))));
     }
 
     @Override

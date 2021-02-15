@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 
 final class DefaultTaskExecutors {
     private static final Duration DEFAULT_IDLE_TIMEOUT = Duration.ofSeconds(5);

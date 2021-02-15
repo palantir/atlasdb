@@ -21,7 +21,6 @@ import com.palantir.atlasdb.timelock.benchmarks.config.TimelockBenchmarkClientCo
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
-
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;

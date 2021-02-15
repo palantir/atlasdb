@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.ORIGINAL_METADATA;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.clearOutMetadataTable;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.insertGenericMetadataIntoLegacyCell;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -24,36 +27,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.ORIGINAL_METADATA;
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.clearOutMetadataTable;
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.insertGenericMetadataIntoLegacyCell;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.Compression;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.thrift.TException;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.slf4j.Logger;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -90,6 +63,30 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.thrift.TException;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
 
 @RunWith(Parameterized.class)
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
@@ -114,8 +111,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, UnaryOperator.identity()},
-                {ASYNC, (UnaryOperator<CassandraKeyValueService>) AsyncDelegate::new}
+            {SYNC, UnaryOperator.identity()},
+            {ASYNC, (UnaryOperator<CassandraKeyValueService>) AsyncDelegate::new}
         };
         return Arrays.asList(data);
     }
@@ -131,9 +128,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private final String name;
 
-    public CassandraKeyValueServiceIntegrationTest(
-            String name,
-            UnaryOperator<KeyValueService> keyValueServiceWrapper) {
+    public CassandraKeyValueServiceIntegrationTest(String name, UnaryOperator<KeyValueService> keyValueServiceWrapper) {
         super(CASSANDRA, keyValueServiceWrapper);
         this.name = name;
     }
@@ -170,7 +165,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.createTable(ATLAS_DEFAULT_TABLE_REFERENCE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        List<CfDef> cfDefs = ((CassandraKeyValueService) keyValueService).getClientPool()
+        List<CfDef> cfDefs = ((CassandraKeyValueService) keyValueService)
+                .getClientPool()
                 .run(client -> client.describe_keyspace(keyspace).getCf_defs());
         List<CfDef> matches = cfDefs.stream()
                 .filter(cfDef -> cfDef.name.equals(CASSANDRA_DEFAULT_TABLE_NAME))
@@ -183,7 +179,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @SuppressWarnings("Slf4jConstantLogMessage")
     public void testGcGraceSecondsUpgradeIsApplied() throws TException {
         Logger testLogger = mock(Logger.class);
-        //nth startup
+        // nth startup
         CassandraKeyValueService kvs = createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), testLogger);
         kvs.createTable(NEVER_SEEN, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertThatGcGraceSecondsIs(kvs, FOUR_DAYS_IN_SECONDS);
@@ -192,21 +188,21 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         CassandraKeyValueService kvs2 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
         assertThatGcGraceSecondsIs(kvs2, ONE_HOUR_IN_SECONDS);
         kvs2.close();
-        //n+1th startup with different GC grace seconds - should upgrade
-        verify(testLogger, times(1))
-                .info(startsWith("New table-related settings were applied on startup!!"));
+        // n+1th startup with different GC grace seconds - should upgrade
+        verify(testLogger, times(1)).info(startsWith("New table-related settings were applied on startup!!"));
 
         CassandraKeyValueService kvs3 = createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), testLogger);
         assertThatGcGraceSecondsIs(kvs3, ONE_HOUR_IN_SECONDS);
-        //startup with same gc grace seconds as previous one - no upgrade
+        // startup with same gc grace seconds as previous one - no upgrade
         verify(testLogger, times(2))
                 .info(startsWith("No tables are being upgraded on startup. No updated table-related settings found."));
         kvs3.close();
     }
 
     private static void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
-        List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow()).getCf_defs());
+        List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client -> client.describe_keyspace(
+                        CASSANDRA.getConfig().getKeyspaceOrThrow())
+                .getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
@@ -232,23 +228,21 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         kvs.createTable(NEVER_SEEN, getMetadata());
 
-        List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow()).getCf_defs());
+        List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client -> client.describe_keyspace(
+                        CASSANDRA.getConfig().getKeyspaceOrThrow())
+                .getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
 
-        assertThat(
-                ColumnFamilyDefinitions.isMatchingCf(
-                        kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS),
-                        clusterSideCf))
+        assertThat(ColumnFamilyDefinitions.isMatchingCf(
+                        kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS), clusterSideCf))
                 .as("After serialization and deserialization to database, Cf metadata did not match.")
                 .isTrue();
     }
 
     private static ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
-        return ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CASSANDRA.getConfig())
+        return ImmutableCassandraKeyValueServiceConfig.copyOf(CASSANDRA.getConfig())
                 .withGcGraceSeconds(gcGraceSeconds);
     }
 
@@ -285,10 +279,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         keyValueService.addGarbageCollectionSentinelValues(tableReference, ImmutableList.of(CELL));
 
         putDummyValueAtCellAndTimestamp(
-                tableReference,
-                CELL,
-                Value.INVALID_VALUE_TIMESTAMP,
-                STARTING_ATLAS_TIMESTAMP - 1);
+                tableReference, CELL, Value.INVALID_VALUE_TIMESTAMP, STARTING_ATLAS_TIMESTAMP - 1);
 
         Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 1L));
         byte[] contents = results.get(CELL).getContents();
@@ -338,9 +329,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 ColumnSelection.all(),
                 STARTING_ATLAS_TIMESTAMP - 1);
 
-        assertThat(result).containsOnly(
-                entry(cellWithVersions, Value.create(data, 250L)),
-                entry(cellWithSameRow, Value.create(data, 200L)));
+        assertThat(result)
+                .containsOnly(
+                        entry(cellWithVersions, Value.create(data, 250L)),
+                        entry(cellWithSameRow, Value.create(data, 200L)));
     }
 
     @Test
@@ -355,22 +347,17 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         byte[] row1 = row(1);
 
-        Map<Cell, Value> tableValues = stream.mapToObj(
-                col -> Cell.create(row1, column(col)))
-                .collect(Collectors.toMap(
-                        cell -> cell, cell -> Value.create(data, 1L)));
+        Map<Cell, Value> tableValues = stream.mapToObj(col -> Cell.create(row1, column(col)))
+                .collect(Collectors.toMap(cell -> cell, cell -> Value.create(data, 1L)));
 
-        keyValueService.putWithTimestamps(tableReference, KeyedStream.stream(tableValues).collectToSetMultimap());
+        keyValueService.putWithTimestamps(
+                tableReference, KeyedStream.stream(tableValues).collectToSetMultimap());
 
         Map<Cell, Value> result = keyValueService.getRows(
-                tableReference,
-                ImmutableList.of(row1),
-                ColumnSelection.all(),
-                STARTING_ATLAS_TIMESTAMP - 1);
+                tableReference, ImmutableList.of(row1), ColumnSelection.all(), STARTING_ATLAS_TIMESTAMP - 1);
 
         assertThat(result).isEqualTo(tableValues);
     }
-
 
     @Test
     public void rangeTombstonesWrittenAtFreshTimestamp() throws Exception {
@@ -380,11 +367,13 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.deleteAllTimestamps(
                 tableReference,
-                ImmutableMap.of(CELL, new TimestampRangeDelete.Builder()
-                        .deleteSentinels(true)
-                        .endInclusive(false)
-                        .timestamp(1_234_567L)
-                        .build()));
+                ImmutableMap.of(
+                        CELL,
+                        new TimestampRangeDelete.Builder()
+                                .deleteSentinels(true)
+                                .endInclusive(false)
+                                .timestamp(1_234_567L)
+                                .build()));
 
         putDummyValueAtCellAndTimestamp(tableReference, CELL, 1337L, STARTING_ATLAS_TIMESTAMP - 1);
         Map<Cell, Value> resultExpectedCoveredByRangeTombstone =
@@ -401,11 +390,13 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.deleteAllTimestamps(
                 tableReference,
-                ImmutableMap.of(CELL, new TimestampRangeDelete.Builder()
-                        .deleteSentinels(true)
-                        .endInclusive(false)
-                        .timestamp(1_234_567L)
-                        .build()));
+                ImmutableMap.of(
+                        CELL,
+                        new TimestampRangeDelete.Builder()
+                                .deleteSentinels(true)
+                                .endInclusive(false)
+                                .timestamp(1_234_567L)
+                                .build()));
 
         // A value written outside of the range tombstone should not be covered by the range tombstone, even if
         // the Cassandra timestamp of the value is much lower than that of the range tombstone.
@@ -497,8 +488,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     private void putDummyValueAtCellAndTimestamp(
-            TableReference tableReference, Cell cell, long atlasTimestamp, long cassandraTimestamp)
-            throws TException {
+            TableReference tableReference, Cell cell, long atlasTimestamp, long cassandraTimestamp) throws TException {
         CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
         ckvs.getClientPool().runWithRetry(input -> {
             CqlQuery cqlQuery = CqlQuery.builder()
@@ -513,10 +503,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                             UnsafeArg.of("value", convertBytesToHexString(PtBytes.toBytes("testtesttest"))),
                             SafeArg.of("cassandraTimestamp", cassandraTimestamp))
                     .build();
-            return input.execute_cql3_query(
-                    cqlQuery,
-                    Compression.NONE,
-                    ConsistencyLevel.QUORUM);
+            return input.execute_cql3_query(cqlQuery, Compression.NONE, ConsistencyLevel.QUORUM);
         });
     }
 
@@ -525,12 +512,14 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     private static int getAmountOfGarbageInMetadataTable(KeyValueService keyValueService, TableReference tableRef) {
-        return keyValueService.getAllTimestamps(
-                AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableSet.of(Cell.create(
-                        tableRef.getQualifiedName().getBytes(StandardCharsets.UTF_8),
-                        "m".getBytes(StandardCharsets.UTF_8))),
-                AtlasDbConstants.MAX_TS).size();
+        return keyValueService
+                .getAllTimestamps(
+                        AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                        ImmutableSet.of(Cell.create(
+                                tableRef.getQualifiedName().getBytes(StandardCharsets.UTF_8),
+                                "m".getBytes(StandardCharsets.UTF_8))),
+                        AtlasDbConstants.MAX_TS)
+                .size();
     }
 
     private static byte[] getMetadata() {
@@ -585,14 +574,13 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .setMax_compaction_threshold(32)
                 .setKey_validation_class("org.apache.cassandra.db.marshal.BytesType")
                 .setCompaction_strategy("org.apache.cassandra.db.compaction.LeveledCompactionStrategy")
-                .setCompression_options(
-                        ImmutableMap.<String, String>builder()
-                                .put("sstable_compression", "org.apache.cassandra.io.compress.LZ4Compressor")
-                                .put("chunk_length_kb", "4")
-                                .build())
+                .setCompression_options(ImmutableMap.<String, String>builder()
+                        .put("sstable_compression", "org.apache.cassandra.io.compress.LZ4Compressor")
+                        .put("chunk_length_kb", "4")
+                        .build())
                 .setBloom_filter_fp_chance(0.1)
                 .setCaching("KEYS_ONLY")
-                .setDclocal_read_repair_chance(0.1)
+                .setDclocal_read_repair_chance(0.0)
                 .setMemtable_flush_period_in_ms(0)
                 .setDefault_time_to_live(0)
                 .setSpeculative_retry("NONE")

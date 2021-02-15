@@ -20,28 +20,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.function.Supplier;
-
-import org.junit.Test;
-
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
+import java.util.function.Supplier;
+import org.junit.Test;
 
 public class ShouldRunBackgroundSweepSupplierTest {
-    private static final TargetedSweepInstallConfig SWEEP_QUEUE_WRITES_ENABLED
-            = ImmutableTargetedSweepInstallConfig.builder().enableSweepQueueWrites(true).build();
-    private static final TargetedSweepInstallConfig SWEEP_QUEUE_WRITES_DISABLED
-            = ImmutableTargetedSweepInstallConfig.builder().enableSweepQueueWrites(false).build();
+    private static final TargetedSweepInstallConfig SWEEP_QUEUE_WRITES_ENABLED =
+            ImmutableTargetedSweepInstallConfig.builder()
+                    .enableSweepQueueWrites(true)
+                    .build();
+    private static final TargetedSweepInstallConfig SWEEP_QUEUE_WRITES_DISABLED =
+            ImmutableTargetedSweepInstallConfig.builder()
+                    .enableSweepQueueWrites(false)
+                    .build();
 
-    private static final TargetedSweepRuntimeConfig TARGETED_SWEEP_ENABLED
-            = ImmutableTargetedSweepRuntimeConfig.builder().enabled(true).build();
-    private static final TargetedSweepRuntimeConfig TARGETED_SWEEP_DISABLED
-            = ImmutableTargetedSweepRuntimeConfig.builder().enabled(false).build();
+    private static final TargetedSweepRuntimeConfig TARGETED_SWEEP_ENABLED =
+            ImmutableTargetedSweepRuntimeConfig.builder().enabled(true).build();
+    private static final TargetedSweepRuntimeConfig TARGETED_SWEEP_DISABLED =
+            ImmutableTargetedSweepRuntimeConfig.builder().enabled(false).build();
 
-    private static final SweepConfig BACKGROUND_SWEEP_ENABLED
-            = ImmutableSweepConfig.builder().enabled(true).build();
+    private static final SweepConfig BACKGROUND_SWEEP_ENABLED =
+            ImmutableSweepConfig.builder().enabled(true).build();
     private static final SweepConfig BACKGROUND_SWEEP_UNSET = SweepConfig.defaultSweepConfig();
     private static final SweepConfig BACKGROUND_SWEEP_DISABLED = SweepConfig.disabled();
 
@@ -73,7 +75,6 @@ public class ShouldRunBackgroundSweepSupplierTest {
                 .isTrue();
     }
 
-
     @Test
     public void disableBackgroundSweepIfNotSetAndTargetedSweepFullyEnabled() {
         assertThat(runBackgroundSweep(SWEEP_QUEUE_WRITES_ENABLED, TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET))
@@ -92,20 +93,26 @@ public class ShouldRunBackgroundSweepSupplierTest {
         ShouldRunBackgroundSweepSupplier supplier = new ShouldRunBackgroundSweepSupplier(
                 () -> runtimeConfigSupplier.get().sweep(), SWEEP_QUEUE_WRITES_ENABLED.enableSweepQueueWrites());
 
-        assertThat(supplier.getAsBoolean()).as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET").isFalse();
-        assertThat(supplier.getAsBoolean()).as("TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_UNSET").isFalse();
-        assertThat(supplier.getAsBoolean()).as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_ENABLED").isTrue();
+        assertThat(supplier.getAsBoolean())
+                .as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET")
+                .isFalse();
+        assertThat(supplier.getAsBoolean())
+                .as("TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_UNSET")
+                .isFalse();
+        assertThat(supplier.getAsBoolean())
+                .as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_ENABLED")
+                .isTrue();
     }
 
     private static boolean runBackgroundSweep(
             TargetedSweepInstallConfig tsInstall, TargetedSweepRuntimeConfig tsRuntime, SweepConfig bgSweepConfig) {
         return new ShouldRunBackgroundSweepSupplier(
-                () -> createRuntimeConfig(tsRuntime, bgSweepConfig).sweep(),
-                tsInstall.enableSweepQueueWrites()).getAsBoolean();
+                        () -> createRuntimeConfig(tsRuntime, bgSweepConfig).sweep(), tsInstall.enableSweepQueueWrites())
+                .getAsBoolean();
     }
 
-    private static AtlasDbRuntimeConfig createRuntimeConfig(TargetedSweepRuntimeConfig targetedSweepRuntimeConfig,
-            SweepConfig backgroundSweepConfig) {
+    private static AtlasDbRuntimeConfig createRuntimeConfig(
+            TargetedSweepRuntimeConfig targetedSweepRuntimeConfig, SweepConfig backgroundSweepConfig) {
         return ImmutableAtlasDbRuntimeConfig.builder()
                 .targetedSweep(targetedSweepRuntimeConfig)
                 .sweep(backgroundSweepConfig)

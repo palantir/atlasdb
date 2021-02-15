@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.jepsen.lock;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
@@ -37,6 +29,12 @@ import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.Pair;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Checker verifying that whenever a lock is granted, there was a time point between the request and the
@@ -81,7 +79,7 @@ public class LockCorrectnessChecker implements Checker {
                 .build();
     }
 
-    private static class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor {
         private final Map<Integer, InvokeEvent> pendingForProcess = new HashMap<>();
         private final Map<Integer, OkEvent> lastHeldLock = new HashMap<>();
 
@@ -109,21 +107,21 @@ public class LockCorrectnessChecker implements Checker {
             InvokeEvent invokeEvent = pendingForProcess.get(process);
 
             switch (event.function()) {
-                /*
-                 * Successful LOCK:
-                 * 1) Add a new uncertain interval to verify at the end,
-                 * 2) Remember the new value for the most recent successful lock
-                 */
+                    /*
+                     * Successful LOCK:
+                     * 1) Add a new uncertain interval to verify at the end,
+                     * 2) Remember the new value for the most recent successful lock
+                     */
                 case RequestType.LOCK:
                     locksAtSomePoint.add(new Pair(invokeEvent, event));
                     lastHeldLock.put(process, event);
                     break;
-                /*
-                 * Successful REFRESH/UNLOCK:
-                 * Add the new interval (a, b) to the set of known locks, possibly absorbing a previously
-                 * existing interval (a, b'). In this checker, we are assuming correctness of refreshes and unlocks
-                 * which allows for somewhat simpler logic, and makes it unnecessary to verify the failed instances.
-                 */
+                    /*
+                     * Successful REFRESH/UNLOCK:
+                     * Add the new interval (a, b) to the set of known locks, possibly absorbing a previously
+                     * existing interval (a, b'). In this checker, we are assuming correctness of refreshes and unlocks
+                     * which allows for somewhat simpler logic, and makes it unnecessary to verify the failed instances.
+                     */
                 case RequestType.REFRESH:
                 case RequestType.UNLOCK:
                     if (lastHeldLock.containsKey(process)) {
@@ -133,7 +131,8 @@ public class LockCorrectnessChecker implements Checker {
                         }
                     }
                     break;
-                default: throw new SafeIllegalStateException("Not an OkEvent type supported by this checker!");
+                default:
+                    throw new SafeIllegalStateException("Not an OkEvent type supported by this checker!");
             }
         }
 
@@ -142,9 +141,13 @@ public class LockCorrectnessChecker implements Checker {
                 InvokeEvent invokeEvent = eventPair.getLhSide();
                 OkEvent okEvent = eventPair.getRhSide();
                 if (intervalCovered(invokeEvent, okEvent)) {
-                    log.error("Lock {} granted to process {} between {} and {}, but lock was already held by "
+                    log.error(
+                            "Lock {} granted to process {} between {} and {}, but lock was already held by "
                                     + "another process.",
-                            lockName, invokeEvent.process(), invokeEvent.time(), okEvent.time());
+                            lockName,
+                            invokeEvent.process(),
+                            invokeEvent.time(),
+                            okEvent.time());
                     errors.add(invokeEvent);
                     errors.add(okEvent);
                 }
@@ -163,6 +166,5 @@ public class LockCorrectnessChecker implements Checker {
         public List<Event> errors() {
             return ImmutableList.copyOf(errors);
         }
-
     }
 }

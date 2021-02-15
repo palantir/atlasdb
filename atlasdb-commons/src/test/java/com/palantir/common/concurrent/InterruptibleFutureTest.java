@@ -15,9 +15,8 @@
  */
 package com.palantir.common.concurrent;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
@@ -26,7 +25,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -50,14 +48,14 @@ public class InterruptibleFutureTest {
     @After
     public void after() throws InterruptedException {
         executor.shutdownNow();
-        assertThat(executor.awaitTermination(1, TimeUnit.MINUTES), is(true));
+        assertThat(executor.awaitTermination(1, TimeUnit.MINUTES)).isTrue();
     }
 
     @Test
     public void testSimple() throws Exception {
         RunnableFuture<Integer> interruptible = getInterruptible();
         executor.execute(interruptible);
-        assertThat(interruptible.get(), is(1));
+        assertThat(interruptible.get()).isEqualTo(1);
     }
 
     @Test
@@ -112,7 +110,7 @@ public class InterruptibleFutureTest {
         RunnableFuture<Integer> interruptible = getInterruptible();
         interruptible.run();
         interruptible.cancel(true);
-        assertThat(interruptible.get(), is(1));
+        assertThat(interruptible.get()).isEqualTo(1);
     }
 
     @Test
@@ -134,7 +132,7 @@ public class InterruptibleFutureTest {
         executor.execute(interruptible);
         started.await();
         interruptible.cancel(true);
-        assertThat(interruptible.get(), is(1));
+        assertThat(interruptible.get()).isEqualTo(1);
     }
 
     @Test
@@ -149,9 +147,9 @@ public class InterruptibleFutureTest {
             }
         };
         executor.execute(interruptible);
-        assertThat(interruptible.get(), is(1));
+        assertThat(interruptible.get()).isEqualTo(1);
         interruptible.cancel(true);
-        assertThat(interruptible.get(), is(1));
+        assertThat(interruptible.get()).isEqualTo(1);
     }
 
     @Test
@@ -185,7 +183,7 @@ public class InterruptibleFutureTest {
         @Override
         protected Integer call() throws Exception {
             started.countDown();
-            Thread.sleep(10 * 1000);  // 10 seconds
+            Thread.sleep(10 * 1000); // 10 seconds
             return 1;
         }
     }

@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -27,6 +23,8 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableDbKeyValueServiceConfig.class)
@@ -58,8 +56,10 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
     @Value.Check
     protected final void check() {
-        Preconditions.checkArgument(ddl().type().equals(connection().type()),
+        Preconditions.checkArgument(
+                ddl().type().equals(connection().type()),
                 "ddl config (%s) and connection config (%s) must be for the same physical store",
-                ddl().type(), connection().type());
+                ddl().type(),
+                connection().type());
     }
 }

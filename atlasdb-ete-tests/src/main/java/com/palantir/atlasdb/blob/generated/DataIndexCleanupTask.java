@@ -1,6 +1,7 @@
 package com.palantir.atlasdb.blob.generated;
 
 import java.util.Map;
+import java.util.HashSet;
 import java.util.Set;
 
 import com.google.common.collect.Sets;

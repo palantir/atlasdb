@@ -17,14 +17,11 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
-
-import java.util.UUID;
-
-import org.junit.Test;
 
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import java.util.UUID;
+import org.junit.Test;
 
 public class ExclusiveLockTests {
 
@@ -110,13 +107,13 @@ public class ExclusiveLockTests {
     @Test
     public void lockIsAcquiredSynchronouslyIfAvailable() {
         AsyncResult<Void> result = lock.lock(REQUEST_1);
-        assertTrue(result.isComplete());
+        assertThat(result.isComplete()).isTrue();
     }
 
     @Test
     public void waitUntilAvailableCompletesSynchronouslyIfAvailable() {
         AsyncResult<Void> result = lock.waitUntilAvailable(REQUEST_1);
-        assertTrue(result.isComplete());
+        assertThat(result.isComplete()).isTrue();
     }
 
     @Test
@@ -241,5 +238,4 @@ public class ExclusiveLockTests {
     private void unlock(UUID requestId) {
         lock.unlock(requestId);
     }
-
 }

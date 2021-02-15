@@ -16,15 +16,13 @@
 
 package com.palantir.timelock.history.mappers;
 
+import com.google.common.collect.Maps;
+import com.palantir.paxos.PaxosValue;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
-
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
-
-import com.google.common.collect.Maps;
-import com.palantir.paxos.PaxosValue;
 
 public class LearnerPaxosRoundMapper implements RowMapper<Map.Entry<Long, PaxosValue>> {
     @Override

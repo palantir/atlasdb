@@ -15,23 +15,20 @@
  */
 package com.palantir.nexus.db;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.concurrent.Callable;
-
-import javax.annotation.concurrent.GuardedBy;
-
-import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Throwables;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.proxy.DelegatingInvocationHandler;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.AssertUtils;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.concurrent.Callable;
+import javax.annotation.concurrent.GuardedBy;
+import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *  Dynamic Proxy for confining an object to a particular thread, but allowing explicit handoff.
@@ -40,11 +37,12 @@ import com.palantir.util.AssertUtils;
  *  can lead to race conditions.  Wrapping a Connection in a ThreadConfinedProxy will enforce that we do not accidentally access the
  *  Connection from multiple threads, provided we never expose the Connection outside of the proxy.
  */
-public class ThreadConfinedProxy extends AbstractInvocationHandler implements DelegatingInvocationHandler {
+public final class ThreadConfinedProxy extends AbstractInvocationHandler implements DelegatingInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ThreadConfinedProxy.class);
 
     public enum Strictness {
-        ASSERT_AND_LOG, VALIDATE
+        ASSERT_AND_LOG,
+        VALIDATE
     }
 
     private final Object delegate;
@@ -52,9 +50,9 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
 
     @GuardedBy("this")
     private String threadName;
+
     @GuardedBy("this")
     private long threadId;
-
 
     private ThreadConfinedProxy(Object delegate, Strictness strictness, String threadName, long threadId) {
         this.delegate = delegate;
@@ -121,10 +119,11 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
      */
     @SuppressWarnings("unchecked")
     public static <T> T newProxyInstance(Class<T> interfaceClass, T delegate, Strictness strictness, Thread current) {
-        return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(),
-                new Class<?>[] {interfaceClass}, new ThreadConfinedProxy(delegate, strictness, current.getName(), current.getId()));
+        return (T) Proxy.newProxyInstance(
+                interfaceClass.getClassLoader(),
+                new Class<?>[] {interfaceClass},
+                new ThreadConfinedProxy(delegate, strictness, current.getName(), current.getId()));
     }
-
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
@@ -149,7 +148,8 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
         Thread current = Thread.currentThread();
         if (threadId != current.getId()) {
             String message = String.format(
-                    "Thread confinement violation: method %s#%s was called from thread %s (ID %s) instead of thread %s (ID %s)",
+                    "Thread confinement violation: method %s#%s was called from thread %s (ID %s) instead of thread %s"
+                            + " (ID %s)",
                     method.getDeclaringClass().getCanonicalName(),
                     method.getName(),
                     current.getName(),
@@ -182,7 +182,8 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
     private synchronized void checkThreadChange(Thread oldThread, Thread newThread) {
         if (oldThread.getId() != threadId) {
             String message = String.format(
-                    "Thread confinement violation: tried to change threads from thread %s (ID %s) to thread %s (ID %s), but we expected thread %s (ID %s)",
+                    "Thread confinement violation: tried to change threads from thread %s (ID %s) to thread %s (ID"
+                            + " %s), but we expected thread %s (ID %s)",
                     oldThread.getId(),
                     oldThread.getName(),
                     newThread.getId(),
@@ -191,7 +192,6 @@ public class ThreadConfinedProxy extends AbstractInvocationHandler implements De
                     threadId);
 
             fail(message);
-
         }
     }
 

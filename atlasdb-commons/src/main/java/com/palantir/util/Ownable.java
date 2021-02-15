@@ -21,13 +21,20 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface Ownable<R> {
     R resource();
+
     boolean isOwned();
 
     static <R> Ownable<R> owned(R ownedResource) {
-        return ImmutableOwnable.<R>builder().resource(ownedResource).isOwned(true).build();
+        return ImmutableOwnable.<R>builder()
+                .resource(ownedResource)
+                .isOwned(true)
+                .build();
     }
 
     static <R> Ownable<R> notOwned(R injectedResource) {
-        return ImmutableOwnable.<R>builder().resource(injectedResource).isOwned(false).build();
+        return ImmutableOwnable.<R>builder()
+                .resource(injectedResource)
+                .isOwned(false)
+                .build();
     }
 }

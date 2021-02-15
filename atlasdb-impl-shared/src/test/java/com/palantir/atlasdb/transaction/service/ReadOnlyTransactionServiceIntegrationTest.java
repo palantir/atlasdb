@@ -18,23 +18,22 @@ package com.palantir.atlasdb.transaction.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
+import org.junit.Test;
 
 public class ReadOnlyTransactionServiceIntegrationTest {
     private static final long COORDINATION_QUANTUM = 100_000_000L;
 
     private final InMemoryKeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
-    private final TransactionService writeTransactionService
-            = TransactionServices.createRaw(keyValueService, timestampService, false);
-    private final TransactionService readOnlyTransactionService
-            = TransactionServices.createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
+    private final TransactionService writeTransactionService =
+            TransactionServices.createRaw(keyValueService, timestampService, false);
+    private final TransactionService readOnlyTransactionService =
+            TransactionServices.createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
                     keyValueService, MetricsManagers.createForTests());
 
     @Test
@@ -59,7 +58,7 @@ public class ReadOnlyTransactionServiceIntegrationTest {
         writeTransactionService.putUnlessExists(COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L);
 
         assertThat(readOnlyTransactionService.get(
-                ImmutableList.of(1L, COORDINATION_QUANTUM + 1L, 2 * COORDINATION_QUANTUM + 1L)))
+                        ImmutableList.of(1L, COORDINATION_QUANTUM + 1L, 2 * COORDINATION_QUANTUM + 1L)))
                 .isEqualTo(ImmutableMap.of(1L, 8L, COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L));
     }
 }

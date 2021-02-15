@@ -19,6 +19,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressWarnings("CheckReturnValue")
 public class SweepBatchConfigTest {
     @Rule
     public ExpectedException exception = ExpectedException.none();

@@ -15,23 +15,21 @@
  */
 package com.palantir.atlasdb.ete;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-
-import org.junit.Test;
 
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import org.assertj.core.api.HamcrestCondition;
+import org.junit.Test;
 
 public class ServiceExposureEteTest {
     @Test
     public void shouldExposeATimestampServer() {
         TimestampService timestampClient = EteSetup.createClientToAllNodes(TimestampService.class);
 
-        assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
+        assertThat(timestampClient.getFreshTimestamp()).isNotNull();
     }
 
     @Test
@@ -40,11 +38,11 @@ public class ServiceExposureEteTest {
         TimestampManagementService timestampManagementClient =
                 EteSetup.createClientToAllNodes(TimestampManagementService.class);
 
-        assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
+        assertThat(timestampClient.getFreshTimestamp()).isNotNull();
 
         long newts = timestampClient.getFreshTimestamp() + 10000000;
         timestampManagementClient.fastForwardTimestamp(newts);
 
-        assertThat(timestampClient.getFreshTimestamp(), is(greaterThan(newts)));
+        assertThat(timestampClient.getFreshTimestamp()).is(new HamcrestCondition<>(is(greaterThan(newts))));
     }
 }

@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.timelock.auth.impl;
 
-import java.util.Map;
-
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
+import java.util.Map;
 
 interface NamespaceLocker {
     NamespaceLocker ALL_LOCKED = ignored -> true;

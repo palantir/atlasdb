@@ -26,12 +26,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -42,6 +36,10 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.Before;
+import org.junit.Test;
 
 public class KvTableMappingServiceTest {
     private static final TableReference FQ_TABLE = TableReference.createFromFullyQualifiedName("test.test");
@@ -158,11 +156,16 @@ public class KvTableMappingServiceTest {
                 TABLE_EMPTY_NAMESPACE));
 
         Map<TableReference, TableReference> expected = ImmutableMap.of(
-                shortTableRefForNumber(1), FQ_TABLE,
-                shortTableRefForNumber(2), shortTableRefForNumber(2),
-                shortTableRefForNumber(3), shortTableRefForNumber(3),
-                FQ_TABLE2, FQ_TABLE2,
-                TABLE_EMPTY_NAMESPACE, TABLE_EMPTY_NAMESPACE);
+                shortTableRefForNumber(1),
+                FQ_TABLE,
+                shortTableRefForNumber(2),
+                shortTableRefForNumber(2),
+                shortTableRefForNumber(3),
+                shortTableRefForNumber(3),
+                FQ_TABLE2,
+                FQ_TABLE2,
+                TABLE_EMPTY_NAMESPACE,
+                TABLE_EMPTY_NAMESPACE);
 
         assertThat(result).containsAllEntriesOf(expected);
         assertThat(expected).containsAllEntriesOf(result);
@@ -177,9 +180,7 @@ public class KvTableMappingServiceTest {
                 TABLE_EMPTY_NAMESPACE, 33L));
 
         Map<TableReference, Long> expected = ImmutableMap.of(
-                shortTableRefForNumber(1), 11L,
-                shortTableRefForNumber(2), 22L,
-                TABLE_EMPTY_NAMESPACE, 33L);
+                shortTableRefForNumber(1), 11L, shortTableRefForNumber(2), 22L, TABLE_EMPTY_NAMESPACE, 33L);
 
         assertThat(result).containsAllEntriesOf(expected);
         assertThat(expected).containsAllEntriesOf(result);

@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.table.api;
 
-
 /*
  * All named atlasdb tables should implement this interface.
  */
-public interface AtlasDbNamedMutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends
-        AtlasDbNamedImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
+public interface AtlasDbNamedMutableTable<ROW, COLUMN_VALUE, ROW_RESULT>
+        extends AtlasDbNamedImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> {
     void delete(ROW rows);
+
     void delete(Iterable<ROW> rows);
 }

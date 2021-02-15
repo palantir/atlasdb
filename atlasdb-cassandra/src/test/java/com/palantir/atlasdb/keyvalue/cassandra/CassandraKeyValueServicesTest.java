@@ -18,11 +18,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import org.junit.Test;
 
 public class CassandraKeyValueServicesTest {
     private static final byte[] DATA = PtBytes.toBytes("data");
@@ -31,19 +30,19 @@ public class CassandraKeyValueServicesTest {
 
     @Test
     public void createColumnWithGivenValueCreatesItWithAssociatedCassandraTimestamp() {
-        assertThat(CassandraKeyValueServices.createColumn(CELL, Value.create(DATA, 1000)).getTimestamp())
+        assertThat(CassandraKeyValueServices.createColumn(CELL, Value.create(DATA, 1000))
+                        .getTimestamp())
                 .isEqualTo(1000);
-        assertThat(CassandraKeyValueServices.createColumn(CELL, Value.create(DATA, 5000)).getTimestamp())
+        assertThat(CassandraKeyValueServices.createColumn(CELL, Value.create(DATA, 5000))
+                        .getTimestamp())
                 .isEqualTo(5000);
     }
 
     @Test
     public void createColumnForDeleteCreatesItWithSpecifiedCassandraTimestamp() {
         assertThat(CassandraKeyValueServices.createColumnForDelete(
-                CELL,
-                Value.create(PtBytes.EMPTY_BYTE_ARRAY, 1000),
-                2000)
-                .getTimestamp())
+                                CELL, Value.create(PtBytes.EMPTY_BYTE_ARRAY, 1000), 2000)
+                        .getTimestamp())
                 .isEqualTo(2000);
     }
 

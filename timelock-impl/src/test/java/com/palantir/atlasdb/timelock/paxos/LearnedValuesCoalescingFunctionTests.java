@@ -20,22 +20,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosValue;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LearnedValuesCoalescingFunctionTests {
@@ -64,18 +62,18 @@ public class LearnedValuesCoalescingFunctionTests {
                 .put(CLIENT_2, paxosValue1)
                 .build();
 
-        when(remote.getLearnedValues(remoteRequest))
-                .thenReturn(remoteResponse);
+        when(remote.getLearnedValues(remoteRequest)).thenReturn(remoteResponse);
 
         LearnedValuesCoalescingFunction function = new LearnedValuesCoalescingFunction(remote);
         Map<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> results = function.apply(remoteRequest);
 
-        assertThat(results).containsOnly(
-                entry(WithSeq.of(CLIENT_2, 10), asResult(paxosValue1)),
-                entry(WithSeq.of(CLIENT_1, 12), asResult(paxosValue2)),
-                entry(WithSeq.of(CLIENT_1, 10), asResult(paxosValue1)),
-                entry(WithSeq.of(CLIENT_1, 15), EMPTY_RESULT),
-                entry(WithSeq.of(CLIENT_2, 15), EMPTY_RESULT));
+        assertThat(results)
+                .containsOnly(
+                        entry(WithSeq.of(CLIENT_2, 10), asResult(paxosValue1)),
+                        entry(WithSeq.of(CLIENT_1, 12), asResult(paxosValue2)),
+                        entry(WithSeq.of(CLIENT_1, 10), asResult(paxosValue1)),
+                        entry(WithSeq.of(CLIENT_1, 15), EMPTY_RESULT),
+                        entry(WithSeq.of(CLIENT_2, 15), EMPTY_RESULT));
     }
 
     private static PaxosValue paxosValue(long round) {
