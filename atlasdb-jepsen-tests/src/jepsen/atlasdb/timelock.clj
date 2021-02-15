@@ -12,6 +12,20 @@
     (info node "Starting timelock server")
     (c/exec :env "JAVA_HOME=/usr/lib/jvm/zulu8-ca-amd64/" "/timelock-server/service/bin/init.sh" "start")))
 
+(defn install-zulu!
+  "Installs the zulu8 headless JDK."
+  []
+  (c/su
+    (c/exec :sudo :apt-key :adv :--keyserver "hkp://keyserver.ubuntu.com:80" :--recv-keys "0xB1998361219BD9C9")
+    (c/exec :wget "https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-2_all.deb")
+    (c/exec :sudo :apt-get :-y :--force-yes :install :apt-transport-https)
+    (c/exec :sudo :dpkg :-i "./zulu-repo_1.0.0-2_all.deb")
+    (c/exec :sudo :apt-get :-y :--force-yes :install :-f)
+    (c/exec :sudo :apt-get :-y :--force-yes :remove :libgnutls-deb0-28)
+    (c/exec :sudo :apt-get :update)
+    (c/exec :sudo :apt-get :-y :--force-yes :install :zulu8-jre-headless)
+  ))
+
 (defn create-db
   "Creates an object that implements the db/DB protocol.
    This object defines how to setup and teardown a timelock server on a given node, and specifies where the log files
@@ -22,8 +36,7 @@
     (setup! [_ _ node]
       (c/su
         (debian/add-repo! "stretch" "deb http://deb.debian.org/debian stretch main")
-        (c/exec :sudo :chmod :+x "scripts/install_zulu.sh")
-        (c/exec "scripts/install_zulu.sh")
+        (install-zulu!)
         (info node "Uploading and unpacking timelock server")
         (c/upload "resources/atlasdb/timelock-server.tgz" "/")
         (c/exec :mkdir "/timelock-server")
