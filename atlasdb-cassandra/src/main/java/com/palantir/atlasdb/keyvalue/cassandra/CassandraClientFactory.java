@@ -26,9 +26,11 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.util.SafeShutdownRunner;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import javax.net.ssl.SSLSocket;
@@ -58,6 +60,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private final InetSocketAddress addr;
     private final CassandraKeyValueServiceConfig config;
     private final SSLSocketFactory sslSocketFactory;
+    private final SafeShutdownRunner safeShutdownRunner;
 
     public CassandraClientFactory(
             MetricsManager metricsManager, InetSocketAddress addr, CassandraKeyValueServiceConfig config) {
@@ -65,6 +68,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.addr = addr;
         this.config = config;
         this.sslSocketFactory = createSslSocketFactory(config);
+        this.safeShutdownRunner = new SafeShutdownRunner(Duration.ofSeconds(30));
     }
 
     @Override
@@ -193,7 +197,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
         }
         try {
-            client.getObject().close();
+            safeShutdownRunner.shutdownSingleton(() -> client.getObject().close());
         } catch (Throwable t) {
             if (log.isDebugEnabled()) {
                 log.debug(

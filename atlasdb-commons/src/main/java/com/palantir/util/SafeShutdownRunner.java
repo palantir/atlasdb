@@ -37,6 +37,21 @@ public class SafeShutdownRunner implements AutoCloseable {
     }
 
     public void shutdownSafely(Runnable shutdownCallback) {
+        shutdownInternal(shutdownCallback);
+    }
+
+    public void shutdownSingleton(Runnable shutdownCallback) {
+        shutdownInternal(shutdownCallback);
+        throwIfFailures();
+    }
+
+    @Override
+    public void close() {
+        executor.shutdown();
+        throwIfFailures();
+    }
+
+    private void shutdownInternal(Runnable shutdownCallback) {
         Future<?> future = executor.submit(shutdownCallback);
         try {
             future.get(timeoutDuration.toMillis(), TimeUnit.MILLISECONDS);
@@ -51,9 +66,7 @@ public class SafeShutdownRunner implements AutoCloseable {
         }
     }
 
-    @Override
-    public void close() {
-        executor.shutdown();
+    private void throwIfFailures() {
         if (!failures.isEmpty()) {
             RuntimeException closeFailed =
                     new SafeRuntimeException("Close failed. Please inspect the code and fix the failures");
