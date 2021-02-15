@@ -8,8 +8,9 @@ wget "https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-2_all.deb"
 sudo apt-get -y --force-yes install apt-transport-https
 sudo dpkg -i ./zulu-repo_1.0.0-2_all.deb
 sudo apt-get -y --force-yes install -f
+sudo rm ./zulu-repo_1.0.0-2_all.deb
 
 # See Signal-Desktop#2483
-sudo apt-get -y --force-yes remove :libgnutls-deb0-28
+sudo apt-get -y --force-yes remove libgnutls-deb0-28
 sudo apt-get update
 sudo apt-get -y --force-yes install zulu8-jre-headless
