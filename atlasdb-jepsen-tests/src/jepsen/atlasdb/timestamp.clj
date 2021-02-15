@@ -43,7 +43,7 @@
           (try
             (assoc op :type :ok :value (.getFreshTimestamp timestamp-client))
             (catch Exception e
-              (assoc op :type :fail :error e))))))
+              (assoc op :type :fail :error (.toString e)))))))
 
     (teardown! [_ test])))
 
@@ -67,9 +67,9 @@
     :generator (->> read-operation
                  (gen/stagger 0.05)
                  (gen/nemesis
-                   (gen/seq (cycle [(gen/sleep 500)
+                   (gen/seq (cycle [(gen/sleep 5)
                                     {:type :info, :f :start}
-                                    (gen/sleep 1)
+                                    (gen/sleep 85)
                                     {:type :info, :f :stop}])))
                  (gen/time-limit 360))
     :db (timelock/create-db)
