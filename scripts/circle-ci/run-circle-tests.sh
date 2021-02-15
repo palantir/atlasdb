@@ -13,17 +13,17 @@ function checkDocsBuild {
     make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
+CONTAINER_1=(':atlasdb-jepsen-tests:jepsenTest')
 
-CONTAINER_2=(':atlasdb-ete-tests:check')
+CONTAINER_2=(':atlasdb-jepsen-tests:jepsenTest')
 
-CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server:integTest')
+CONTAINER_3=(':atlasdb-jepsen-tests:jepsenTest')
 
-CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
+CONTAINER_4=(':atlasdb-jepsen-tests:jepsenTest')
 
-CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
+CONTAINER_5=(':atlasdb-jepsen-tests:jepsenTest')
 
-CONTAINER_6=(':timelock-server:suiteTest')
+CONTAINER_6=(':atlasdb-jepsen-tests:jepsenTest')
 
 CONTAINER_7=('compileJava' 'compileTestJava')
 
