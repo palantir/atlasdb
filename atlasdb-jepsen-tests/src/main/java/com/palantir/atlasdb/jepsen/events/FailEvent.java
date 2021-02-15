@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @JsonSerialize(as = ImmutableFailEvent.class)
 @JsonDeserialize(as = ImmutableFailEvent.class)
@@ -28,6 +30,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public abstract class FailEvent implements Event {
     public static final String TYPE = "fail";
+    private static final Logger log = LoggerFactory.getLogger(FailEvent.class);
 
     @Override
     public abstract long time();
@@ -35,10 +38,13 @@ public abstract class FailEvent implements Event {
     @Override
     public abstract int process();
 
-    public abstract String error();
+    public abstract Exception error();
 
     @Override
     public void accept(EventVisitor visitor) {
         visitor.visit(this);
     }
+
+    @Value.Check
+    void check() {}
 }

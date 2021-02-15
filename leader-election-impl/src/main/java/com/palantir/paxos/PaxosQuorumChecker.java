@@ -246,6 +246,7 @@ public final class PaxosQuorumChecker {
             }
 
             if (!receivedResponses.hasQuorum()) {
+
                 RuntimeException exceptionForSuppression = new RuntimeException("exception for suppresion");
                 encounteredErrors.forEach(throwable -> {
                     throwable.addSuppressed(exceptionForSuppression);

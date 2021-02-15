@@ -10,7 +10,7 @@
   [node]
   (c/su
     (info node "Starting timelock server")
-    (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" "/timelock-server/service/bin/init.sh" "start")))
+    (c/exec :env "JAVA_HOME=/usr/lib/jvm/zulu8" "/timelock-server/service/bin/init.sh" "start")))
 
 (defn create-db
   "Creates an object that implements the db/DB protocol.
@@ -21,8 +21,18 @@
   (reify db/DB
     (setup! [_ _ node]
       (c/su
-        (debian/add-repo! "stretch" "deb http://deb.debian.org/debian stretch main")
-        (c/exec :apt-get :install :-y :--force-yes :openjdk-8-jre :openjdk-8-jre-headless :libjna-java)
+;         (debian/add-repo! "stretch" "deb http://deb.debian.org/debian stretch main")
+;         (c/exec :apt-get :install :-y :--force-yes :openjdk-8-jre :openjdk-8-jre-headless :libjna-java)
+        (debian/add-key! "hkp://keyserver.ubuntu.com:80" "0xB1998361219BD9C9")
+;         (c/exec :apt-key :adv :--keyserver "hkp://keyserver.ubuntu.com:80" :--recv-keys :0xB1998361219BD9C9)
+        (c/exec :apt-get :update)
+        (c/exec :apt-get :install :-y "apt-transport-https")
+        (c/exec :wget "https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-2_all.deb")
+        (c/exec :dpkg :-i "zulu-repo_1.0.0-2_all.deb")
+;         (c/exec :apt-get :install "./zulu-repo_1.0.0-2_all.deb")
+        (c/exec :apt-get :update)
+        (c/exec :apt-get :install :-y :zulu8-jre-headless)
+        (c/exec :export "JAVA_HOME=/usr/lib/jvm/zulu8")
         (info node "Uploading and unpacking timelock server")
         (c/upload "resources/atlasdb/timelock-server.tgz" "/")
         (c/exec :mkdir "/timelock-server")
