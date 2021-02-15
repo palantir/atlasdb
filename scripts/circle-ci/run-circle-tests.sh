@@ -13,19 +13,19 @@ function checkDocsBuild {
     make html
 }
 
-CONTAINER_1=(':atlasdb-jepsen-tests:jepsenTest')
+CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
-CONTAINER_2=(':atlasdb-jepsen-tests:jepsenTest')
+CONTAINER_2=(':atlasdb-ete-tests:check')
 
-CONTAINER_3=(':atlasdb-jepsen-tests:jepsenTest')
+CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server:integTest')
 
-CONTAINER_4=(':atlasdb-jepsen-tests:jepsenTest')
+CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
 
-CONTAINER_5=(':atlasdb-jepsen-tests:jepsenTest')
+CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
-CONTAINER_6=(':atlasdb-jepsen-tests:jepsenTest')
+CONTAINER_6=(':timelock-server:suiteTest')
 
-CONTAINER_7=(':atlasdb-jepsen-tests:jepsenTest')
+CONTAINER_7=('compileJava' 'compileTestJava')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}")
