@@ -21,7 +21,7 @@
     (c/exec :wget "https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-2_all.deb")
     (c/exec :dpkg :-i "./zulu-repo_1.0.0-2_all.deb")
     (c/exec :apt-get :-y :--force-yes :install :-f)
-    (c/exec :sudo :apt-get :-y :--force-yes :remove :libgnutls-deb0-28)
+    (c/exec :apt-get :-y :--force-yes :remove :libgnutls-deb0-28)
     (debian/update!)
     (c/exec :apt-get :-y :--force-yes :install :zulu8-jre-headless)
     (c/exec :rm "./zulu-repo_1.0.0-2_all.deb")
