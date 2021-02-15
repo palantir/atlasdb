@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import java.util.Collection;
-import java.util.Optional;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -28,6 +25,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.Collection;
 import java.util.Optional;
 
 final class LockWatchEventLog {
@@ -69,8 +67,8 @@ final class LockWatchEventLog {
             if (snapshotVersion > versionBounds.endVersion().version()) {
                 afterSnapshotEvents = ImmutableList.of();
             } else {
-                afterSnapshotEvents = eventStore.getEventsBetweenVersionsInclusive(Optional.of(snapshotVersion),
-                        versionBounds.endVersion().version());
+                afterSnapshotEvents = eventStore.getEventsBetweenVersionsInclusive(
+                        Optional.of(snapshotVersion), versionBounds.endVersion().version());
             }
             return new ClientLogEvents.Builder()
                     .clearCache(true)
@@ -80,15 +78,18 @@ final class LockWatchEventLog {
                             .build())
                     .build();
         } else {
-            versionBounds.startVersion().ifPresent(version -> Preconditions.checkState(
-                    version.version() <= versionBounds.endVersion().version(),
-                    "Cannot get update for transactions when the last known version is more recent than the "
-                            + "transactions"));
+            versionBounds
+                    .startVersion()
+                    .ifPresent(version -> Preconditions.checkState(
+                            version.version() <= versionBounds.endVersion().version(),
+                            "Cannot get update for transactions when the last known version is more recent than the "
+                                    + "transactions"));
             return new ClientLogEvents.Builder()
                     .clearCache(false)
                     .events(new LockWatchEvents.Builder()
                             .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(
-                                    Optional.of(startVersion.get().version()), versionBounds.endVersion().version()))
+                                    Optional.of(startVersion.get().version()),
+                                    versionBounds.endVersion().version()))
                             .build())
                     .build();
         }
@@ -118,10 +119,10 @@ final class LockWatchEventLog {
         long snapshotVersion = versionBounds.snapshotVersion();
         Collection<LockWatchEvent> collapsibleEvents =
                 eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), snapshotVersion);
-        LockWatchEvents events = new LockWatchEvents.Builder().addAllEvents(collapsibleEvents).build();
+        LockWatchEvents events =
+                new LockWatchEvents.Builder().addAllEvents(collapsibleEvents).build();
 
-        return LockWatchCreatedEvent.fromSnapshot(
-                snapshot.getSnapshotWithEvents(events, versionBounds.leader()));
+        return LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshotWithEvents(events, versionBounds.leader()));
     }
 
     private boolean differentLeaderOrTooFarBehind(

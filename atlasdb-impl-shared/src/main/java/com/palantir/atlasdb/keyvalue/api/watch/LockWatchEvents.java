@@ -18,17 +18,13 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.Optional;
 import org.immutables.value.Value;
-
-import com.google.common.collect.Range;
-import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 
 @Value.Immutable
 public interface LockWatchEvents {
@@ -74,10 +70,10 @@ public interface LockWatchEvents {
         }
 
         if (latestVersion.isPresent()) {
-            Preconditions.checkArgument(versionRange().isPresent(),
-                    "First element not preset in list of events");
+            Preconditions.checkArgument(versionRange().isPresent(), "First element not preset in list of events");
             long firstVersion = versionRange().get().lowerEndpoint();
-            Preconditions.checkArgument(firstVersion <= latestVersion.get().version()
+            Preconditions.checkArgument(
+                    firstVersion <= latestVersion.get().version()
                             || latestVersion.get().version() + 1 == firstVersion,
                     "Events missing between last snapshot and this batch of events",
                     SafeArg.of("latestVersionSequence", latestVersion.get().version()),

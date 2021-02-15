@@ -304,17 +304,17 @@ public class LockWatchEventCacheIntegrationTest {
 
         // Client is behind and needs a snapshot, but no compression can be done as the first transaction is at the
         // first version
-        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(
-                Sets.union(TIMESTAMPS, TIMESTAMPS_2),
-                Optional.empty());
+        TransactionsLockWatchUpdate results =
+                eventCache.getUpdateForTransactions(Sets.union(TIMESTAMPS, TIMESTAMPS_2), Optional.empty());
         assertThat(results.clearCache()).isTrue();
         assertThat(results.startTsToSequence())
-                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(START_TS, LockWatchVersion.of(LEADER, 3L), 16L, LockWatchVersion.of(LEADER, 7L)));
-        assertThat(results.events()).containsExactly(
-                LockWatchCreatedEvent.builder(
-                ImmutableSet.of(),
-                ImmutableSet.of(DESCRIPTOR_2)).build(3L),
-                WATCH_EVENT,
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
+                        START_TS, LockWatchVersion.of(LEADER, 3L), 16L, LockWatchVersion.of(LEADER, 7L)));
+        assertThat(results.events())
+                .containsExactly(
+                        LockWatchCreatedEvent.builder(ImmutableSet.of(), ImmutableSet.of(DESCRIPTOR_2))
+                                .build(3L),
+                        WATCH_EVENT,
                         UNLOCK_EVENT,
                         LOCK_EVENT,
                         LOCK_EVENT_2);
@@ -330,15 +330,18 @@ public class LockWatchEventCacheIntegrationTest {
         verifyStage();
 
         // Client is behind and needs a snapshot, and some but not all events will be condensed
-        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(ImmutableSet.of(16L, 25L),
-                Optional.empty());
+        TransactionsLockWatchUpdate results =
+                eventCache.getUpdateForTransactions(ImmutableSet.of(16L, 25L), Optional.empty());
         assertThat(results.clearCache()).isTrue();
-        assertThat(results.startTsToSequence()).containsExactlyInAnyOrderEntriesOf(
-                ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 6L), 25L, LockWatchVersion.of(LEADER, 7L)));
-        assertThat(results.events()).containsExactly(LockWatchCreatedEvent.builder(
-                ImmutableSet.of(REFERENCE),
-                ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(6L),
-                LOCK_EVENT_2);
+        assertThat(results.startTsToSequence())
+                .containsExactlyInAnyOrderEntriesOf(
+                        ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 6L), 25L, LockWatchVersion.of(LEADER, 7L)));
+        assertThat(results.events())
+                .containsExactly(
+                        LockWatchCreatedEvent.builder(
+                                        ImmutableSet.of(REFERENCE), ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3))
+                                .build(6L),
+                        LOCK_EVENT_2);
     }
 
     @Test
@@ -349,15 +352,14 @@ public class LockWatchEventCacheIntegrationTest {
         verifyStage();
 
         // Client is behind, and all events will be condensed into a single snapshot and no other events
-        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(
-                TIMESTAMPS_2,
-                Optional.empty());
+        TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(TIMESTAMPS_2, Optional.empty());
         assertThat(results.clearCache()).isTrue();
         assertThat(results.startTsToSequence())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(16L, LockWatchVersion.of(LEADER, 7L)));
-        assertThat(results.events()).containsExactly(LockWatchCreatedEvent.builder(
-                ImmutableSet.of(REFERENCE),
-                ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3)).build(7L));
+        assertThat(results.events())
+                .containsExactly(LockWatchCreatedEvent.builder(
+                                ImmutableSet.of(REFERENCE), ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3))
+                        .build(7L));
     }
 
     @Test

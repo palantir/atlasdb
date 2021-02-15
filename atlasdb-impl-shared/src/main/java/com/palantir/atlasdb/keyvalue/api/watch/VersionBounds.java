@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import com.palantir.lock.watch.LockWatchVersion;
 import java.util.Optional;
 import java.util.UUID;
-
 import org.immutables.value.Value;
-
-import com.palantir.lock.watch.LockWatchVersion;
 
 @Value.Immutable
 interface VersionBounds {
@@ -30,8 +28,8 @@ interface VersionBounds {
     LockWatchVersion endVersion();
 
     /**
-     * This field encodes the fact that, if startVersion is too far behind, we need to know how far we can fast-forward
-     * the snapshot.
+     * If the start version is too far behind and we need to take a snapshot, this field communicates how much we can
+     * condense the events in that snapshot.
      */
     Optional<Long> earliestSnapshotVersion();
 
