@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Targeted sweep lag metrics are no longer capped at 7 days. Furthermore, `MetricsConfiguration` can now be used to track TS lag per shard for desired strategies. Note that this is potentially expensive, and is therefore disabled by default.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5243

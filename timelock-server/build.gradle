@@ -14,8 +14,18 @@ testSets {
         imports 'testCommon'
     }
 
+    stressTest {
+        imports 'testCommon'
+    }
+
     suiteTest {
         imports 'testCommon'
+    }
+}
+
+stressTest {
+    filter {
+        includeTestsMatching "com.palantir.atlasdb.timelock.stress.*"
     }
 }
 
@@ -27,6 +37,7 @@ suiteTest {
 
 check.dependsOn integTest
 check.dependsOn suiteTest
+check.dependsOn stressTest
 
 dependencies {
     compile project(":dropwizard-metrics-hack")

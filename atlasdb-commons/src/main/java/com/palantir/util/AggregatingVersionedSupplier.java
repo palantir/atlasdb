@@ -72,4 +72,8 @@ public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T
     public VersionedType<T> get() {
         return memoizedValue.get();
     }
+
+    public T getLastValueForKey(Integer key) {
+        return latestValues.get(key);
+    }
 }

@@ -40,4 +40,8 @@ public class AggregatingVersionedMetric<T> implements Gauge<T> {
     public VersionedType<T> getVersionedValue() {
         return delegate.get();
     }
+
+    public T getLastValueForKey(Integer key) {
+        return delegate.getLastValueForKey(key);
+    }
 }
