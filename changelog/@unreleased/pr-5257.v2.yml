@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Jepsen tests now work, and are more fairly balanced in between nemesis and non-nemesis time.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5257
