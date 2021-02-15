@@ -66,7 +66,7 @@
           (let [token (@token-store (str client-name lock-name))
                 response (.refreshSingle lock-client token)]
             (assoc result :value response :query-params token))))
-      (catch Exception e {:outcome :fail :error e}))))
+      (catch Exception e {:outcome :fail :error (.toString e)}))))
 
 (defn create-client
   "Creates an object that implements the client/Client protocol.
