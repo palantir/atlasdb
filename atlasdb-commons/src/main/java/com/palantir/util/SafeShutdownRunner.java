@@ -21,6 +21,7 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -30,9 +31,13 @@ import java.util.concurrent.TimeoutException;
 public class SafeShutdownRunner implements AutoCloseable {
     private final ExecutorService executor = PTExecutors.newCachedThreadPool("safe-shutdown-runner");
     private final List<Throwable> failures = new ArrayList<>();
-    private final Duration timeoutDuration;
+    private final Optional<Duration> timeoutDuration;
 
     public SafeShutdownRunner(Duration timeoutDuration) {
+        this.timeoutDuration = Optional.of(timeoutDuration);
+    }
+
+    public SafeShutdownRunner(Optional<Duration> timeoutDuration) {
         this.timeoutDuration = timeoutDuration;
     }
 
@@ -54,7 +59,11 @@ public class SafeShutdownRunner implements AutoCloseable {
     private void shutdownInternal(Runnable shutdownCallback) {
         Future<?> future = executor.submit(shutdownCallback);
         try {
-            future.get(timeoutDuration.toMillis(), TimeUnit.MILLISECONDS);
+            if (timeoutDuration.isPresent()) {
+                future.get(timeoutDuration.get().toMillis(), TimeUnit.MILLISECONDS);
+            } else {
+                future.get();
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             failures.add(e);
@@ -71,6 +80,7 @@ public class SafeShutdownRunner implements AutoCloseable {
             RuntimeException closeFailed =
                     new SafeRuntimeException("Close failed. Please inspect the code and fix the failures");
             failures.forEach(closeFailed::addSuppressed);
+            failures.clear();
             throw closeFailed;
         }
     }

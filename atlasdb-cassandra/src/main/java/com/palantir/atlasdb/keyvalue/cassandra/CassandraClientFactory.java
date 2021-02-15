@@ -30,7 +30,6 @@ import com.palantir.util.SafeShutdownRunner;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import javax.net.ssl.SSLSocket;
@@ -68,7 +67,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.addr = addr;
         this.config = config;
         this.sslSocketFactory = createSslSocketFactory(config);
-        this.safeShutdownRunner = new SafeShutdownRunner(Duration.ofSeconds(30));
+        this.safeShutdownRunner = new SafeShutdownRunner(config.enableTimeoutOnConnectionClose());
     }
 
     @Override
