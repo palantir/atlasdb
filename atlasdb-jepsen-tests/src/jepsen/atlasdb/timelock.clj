@@ -16,14 +16,15 @@
   "Installs the zulu8 headless JDK."
   []
   (c/su
-    (c/exec :sudo :apt-key :adv :--keyserver "hkp://keyserver.ubuntu.com:80" :--recv-keys "0xB1998361219BD9C9")
+    (debian/add-key! "hkp://keyserver.ubuntu.com:80" "0xB1998361219BD9C9")
+    (debian/install [:apt-transport-https] [:--force-yes])
     (c/exec :wget "https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-2_all.deb")
-    (c/exec :sudo :apt-get :-y :--force-yes :install :apt-transport-https)
-    (c/exec :sudo :dpkg :-i "./zulu-repo_1.0.0-2_all.deb")
-    (c/exec :sudo :apt-get :-y :--force-yes :install :-f)
-    (c/exec :sudo :apt-get :-y :--force-yes :remove :libgnutls-deb0-28)
-    (c/exec :sudo :apt-get :update)
-    (c/exec :sudo :apt-get :-y :--force-yes :install :zulu8-jre-headless)
+    (c/exec :dpkg :-i "./zulu-repo_1.0.0-2_all.deb")
+    (c/exec :apt-get :-y :--force-yes :install :-f)
+    (c/uninstall! [:libgnutls-deb0-28] [:--force-yes])
+    (debian/update!)
+    (debian/install [:zulu8-jre-headless] [:--force-yes])
+    (c/exec :rm "./zulu-repo_1.0.0-2_all.deb")
   ))
 
 (defn create-db

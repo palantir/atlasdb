@@ -38,12 +38,6 @@ public final class TimelockUtils {
 
     private TimelockUtils() {}
 
-    private static List<String> hostnamesToEndpointUris(List<String> hosts) {
-        return hosts.stream()
-                .map(host -> String.format("https://%s:%d", host, PORT))
-                .collect(Collectors.toList());
-    }
-
     public static AtlasDbDialogueServiceProvider createServiceProvider(
             MetricsManager metricsManager, List<String> hosts) {
         return AtlasDbDialogueServiceProvider.create(
@@ -60,5 +54,11 @@ public final class TimelockUtils {
         return DialogueClients.create(
                         Refreshable.only(ServicesConfigBlock.builder().build()))
                 .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking"));
+    }
+
+    private static List<String> hostnamesToEndpointUris(List<String> hosts) {
+        return hosts.stream()
+                .map(host -> String.format("https://%s:%d", host, PORT))
+                .collect(Collectors.toList());
     }
 }
