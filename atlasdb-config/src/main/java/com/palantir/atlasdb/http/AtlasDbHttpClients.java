@@ -87,20 +87,6 @@ public final class AtlasDbHttpClients {
         return FastFailoverProxy.newProxyInstance(type, () -> proxy);
     }
 
-    @VisibleForTesting
-    static <T> T createProxyWithQuickFailoverForTesting(
-            MetricsManager metricsManager,
-            ServerListConfig serverListConfig,
-            Class<T> type,
-            AuxiliaryRemotingParameters parameters) {
-        Supplier<T> clientFactory = () -> instrument(
-                metricsManager.getTaggedRegistry(),
-                ConjureJavaRuntimeTargetFactory.DEFAULT.createProxyWithQuickFailoverForTesting(
-                        serverListConfig, type, parameters),
-                type);
-        return wrapWithOkHttpBugHandling(type, clientFactory);
-    }
-
     private static <T> T instrument(
             TaggedMetricRegistry taggedMetricRegistry, TargetFactory.InstanceAndVersion<T> client, Class<T> clazz) {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(taggedMetricRegistry, clazz, client.instance());
