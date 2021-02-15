@@ -91,7 +91,7 @@ public final class AtlasDbDialogueServiceProvider {
         return new AtlasDbDialogueServiceProvider(reloadingFactory, taggedMetricRegistry);
     }
 
-    ConjureTimelockService getConjureTimelockService() {
+    public ConjureTimelockService getConjureTimelockService() {
         ConjureTimelockServiceBlocking longTimeoutService =
                 dialogueClientFactory.get(ConjureTimelockServiceBlocking.class, TIMELOCK_LONG_TIMEOUT);
         ConjureTimelockServiceBlocking shortTimeoutService =
@@ -129,7 +129,7 @@ public final class AtlasDbDialogueServiceProvider {
                 TimestampManagementRpcClient.class, dialogueClientFactory.getChannel(TIMELOCK_SHORT_TIMEOUT));
     }
 
-    LockRpcClient getLockRpcClient() {
+    public LockRpcClient getLockRpcClient() {
         ConjureLockV1ServiceBlocking shortTimeoutDialogueService =
                 dialogueClientFactory.get(ConjureLockV1ServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
         ConjureLockV1ServiceBlocking longTimeoutDialogueService =
@@ -153,7 +153,7 @@ public final class AtlasDbDialogueServiceProvider {
                         .zipWith(legacyRpcClients, DialogueComposingLockRpcClient::new));
     }
 
-    TimelockRpcClient getTimelockRpcClient() {
+    public TimelockRpcClient getTimelockRpcClient() {
         return createDialogueProxyWithShortTimeout(TimelockRpcClient.class);
     }
 
