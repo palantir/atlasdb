@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.metrics;
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
 import static com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy.CONSERVATIVE;
 import static com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy.THOROUGH;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
@@ -47,7 +48,8 @@ public class SweepOutcomeMetricsTest {
                 new InMemoryKeyValueService(true),
                 TargetedSweepMetrics.MetricsConfiguration.builder()
                         .millisBetweenRecomputingMetrics(Long.MAX_VALUE)
-                        .build());
+                        .build(),
+                8);
     }
 
     @Test
@@ -122,14 +124,13 @@ public class SweepOutcomeMetricsTest {
                 new InMemoryKeyValueService(true),
                 TargetedSweepMetrics.MetricsConfiguration.builder()
                         .millisBetweenRecomputingMetrics(Long.MAX_VALUE)
-                        .build());
+                        .build(),
+                8);
 
         SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(outcome -> {
             targetedMetrics.registerOccurrenceOf(ShardAndStrategy.thorough(1), outcome);
         });
 
-        org.assertj.core.api.Assertions.assertThat(
-                        metricsManager.getPublishableMetrics().getMetrics())
-                .isEmpty();
+        assertThat(metricsManager.getPublishableMetrics().getMetrics()).isEmpty();
     }
 }

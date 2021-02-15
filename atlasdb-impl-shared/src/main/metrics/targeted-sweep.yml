@@ -41,6 +41,7 @@ namespaces:
         type: gauge
         tags:
           - strategy
+          - shard
         docs: >-
           Estimate in milliseconds of how old the last swept timestamp is. This gives an estimate of when the oldest
           entries in the sweep queue were written.

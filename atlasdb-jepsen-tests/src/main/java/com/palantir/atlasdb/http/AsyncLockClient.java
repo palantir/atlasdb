@@ -56,7 +56,7 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
         LockResponse lockResponse = timelockService.lock(lockRequest);
         Preconditions.checkState(
                 lockResponse.wasSuccessful(),
-                "Jepsen failed to lock a lock, but it would wait for max-int, so this is unexpected.");
+                "Jepsen failed to lock a lock, but it would wait for Integer.MAX_VALUE, so this is unexpected.");
         return lockResponse.getToken();
     }
 

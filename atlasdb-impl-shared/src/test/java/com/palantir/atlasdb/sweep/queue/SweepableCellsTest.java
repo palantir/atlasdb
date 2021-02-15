@@ -69,7 +69,8 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
                 spiedKvs,
                 TargetedSweepMetrics.MetricsConfiguration.builder()
                         .millisBetweenRecomputingMetrics(1)
-                        .build());
+                        .build(),
+                numShards);
         sweepableCells = new SweepableCells(spiedKvs, partitioner, metrics, txnService);
 
         shardCons = writeToDefaultCellCommitted(sweepableCells, TS, TABLE_CONS);
