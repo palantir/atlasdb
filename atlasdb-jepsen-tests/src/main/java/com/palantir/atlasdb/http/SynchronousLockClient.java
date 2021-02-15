@@ -22,7 +22,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.StringLockDescriptor;
@@ -42,7 +41,8 @@ public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken>
 
     public static JepsenLockClient<LockRefreshToken> create(MetricsManager metricsManager, List<String> hosts) {
         NamespaceAgnosticLockRpcClient namespaceAgnosticLockRpcClient = new NamespaceAgnosticLockClientAdaptor(
-                TimelockUtils.NAMESPACE, TimelockUtils.createClient(metricsManager, hosts, LockRpcClient.class));
+                TimelockUtils.NAMESPACE,
+                TimelockUtils.createServiceProvider(metricsManager, hosts).getLockRpcClient());
         return new SynchronousLockClient(new RemoteLockServiceAdapter(namespaceAgnosticLockRpcClient));
     }
 
