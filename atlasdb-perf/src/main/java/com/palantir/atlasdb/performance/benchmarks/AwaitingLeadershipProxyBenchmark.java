@@ -25,6 +25,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.leader.proxy.LeadershipCoordinator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -50,7 +51,9 @@ import org.openjdk.jmh.annotations.Warmup;
 @OutputTimeUnit(TimeUnit.SECONDS)
 public class AwaitingLeadershipProxyBenchmark {
     private final LeaderAwareService service = AwaitingLeadershipProxy.newProxyInstance(
-            LeaderAwareService.class, () -> LeaderAwareImpl.INSTANCE, FakeLeaderElectionService.INSTANCE);
+            LeaderAwareService.class,
+            () -> LeaderAwareImpl.INSTANCE,
+            LeadershipCoordinator.create(FakeLeaderElectionService.INSTANCE));
     private static final int ASYNC_ITERATIONS = 1000;
 
     @Benchmark

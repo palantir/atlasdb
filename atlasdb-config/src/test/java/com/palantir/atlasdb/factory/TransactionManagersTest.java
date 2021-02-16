@@ -83,7 +83,6 @@ import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.exception.NotInitializedException;
-import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.AutoDelegate_LockService;
@@ -552,10 +551,9 @@ public class TransactionManagersTest {
                         .learnerLogDir(temporaryFolder.newFolder())
                         .build(),
                 USER_AGENT);
-        LeaderElectionService leader = localPaxosServices.leaderElectionService();
         LockService lockService = LockServiceImpl.create();
-        LockService leadershipLock =
-                AwaitingLeadershipProxy.newProxyInstance(LockService.class, () -> lockService, leader);
+        LockService leadershipLock = AwaitingLeadershipProxy.newProxyInstance(
+                LockService.class, () -> lockService, localPaxosServices.leadershipCoordinator());
         LockService localOrRemoteLock = LocalOrRemoteProxy.newProxyInstance(
                 LockService.class, leadershipLock, null, CompletableFuture.completedFuture(true));
         try {

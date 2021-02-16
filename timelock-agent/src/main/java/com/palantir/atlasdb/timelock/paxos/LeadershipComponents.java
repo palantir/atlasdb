@@ -21,6 +21,7 @@ import com.google.common.io.Closer;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.leader.proxy.LeadershipCoordinator;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
@@ -55,7 +56,7 @@ public class LeadershipComponents {
 
     public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
         LeadershipContext context = getOrCreateNewLeadershipContext(client);
-        T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, context.leaderElectionService());
+        T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, context.leadershipCoordinator());
 
         // this is acceptable since the proxy returned implements Closeable and needs to be closed
         Closeable closeableInstance = (Closeable) instance;
@@ -148,6 +149,8 @@ public class LeadershipComponents {
     @Value.Immutable
     abstract static class LeadershipContext {
         abstract LeaderElectionService leaderElectionService();
+
+        abstract LeadershipCoordinator leadershipCoordinator();
 
         abstract TimelockLeadershipMetrics leadershipMetrics();
 
