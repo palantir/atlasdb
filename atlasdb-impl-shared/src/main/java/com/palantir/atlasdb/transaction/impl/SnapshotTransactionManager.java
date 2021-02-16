@@ -373,7 +373,8 @@ import org.slf4j.LoggerFactory;
             return;
         }
 
-        try (SafeShutdownRunner shutdownRunner = new SafeShutdownRunner(Duration.ofSeconds(20))) {
+        try (SafeShutdownRunner shutdownRunner =
+                SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(20))) {
             shutdownRunner.shutdownSafely(super::close);
             shutdownRunner.shutdownSafely(cleaner::close);
             shutdownRunner.shutdownSafely(keyValueService::close);

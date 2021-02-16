@@ -29,16 +29,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class SafeShutdownRunner implements AutoCloseable {
-    private final ExecutorService executor = PTExecutors.newCachedThreadPoolWithMaxThreads(10, "safe-shutdown-runner");
     private final List<Throwable> failures = new ArrayList<>();
+    private final ExecutorService executor;
     private final Optional<Duration> timeoutDuration;
 
-    public SafeShutdownRunner(Duration timeoutDuration) {
-        this.timeoutDuration = Optional.of(timeoutDuration);
+    private SafeShutdownRunner(Optional<Duration> timeoutDuration, ExecutorService executorService) {
+        this.timeoutDuration = timeoutDuration;
+        this.executor = executorService;
     }
 
-    public SafeShutdownRunner(Optional<Duration> timeoutDuration) {
-        this.timeoutDuration = timeoutDuration;
+    public static SafeShutdownRunner createWithCachedThreadpool(Duration timeoutDuration) {
+        return new SafeShutdownRunner(
+                Optional.of(timeoutDuration), PTExecutors.newCachedThreadPool("safe-shutdown-runner"));
+    }
+
+    public static SafeShutdownRunner createWithSingleThreadpool(Optional<Duration> timeoutDuration) {
+        return new SafeShutdownRunner(timeoutDuration, PTExecutors.newSingleThreadExecutor());
     }
 
     public void shutdownSafely(Runnable shutdownCallback) {
