@@ -58,7 +58,7 @@ public class SafeShutdownRunnerTest {
 
     @Test
     public void runnerRunsOneTask() {
-        SafeShutdownRunner runner = new SafeShutdownRunner(Duration.ofSeconds(1));
+        SafeShutdownRunner runner = SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(1));
 
         runner.shutdownSafely(mockRunnable);
 
@@ -68,7 +68,7 @@ public class SafeShutdownRunnerTest {
 
     @Test
     public void exceptionsAreSuppressedAndReportedWhenClosing() {
-        SafeShutdownRunner runner = new SafeShutdownRunner(Duration.ofSeconds(1));
+        SafeShutdownRunner runner = SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(1));
 
         assertThatCode(() -> runner.shutdownSafely(throwingRunnable)).doesNotThrowAnyException();
         assertThatThrownBy(runner::close)
@@ -78,7 +78,7 @@ public class SafeShutdownRunnerTest {
 
     @Test
     public void exceptionsAreThrownWhenRunningSingleton() {
-        SafeShutdownRunner runner = new SafeShutdownRunner(Duration.ofSeconds(1));
+        SafeShutdownRunner runner = SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(1));
 
         assertThatThrownBy(() -> runner.shutdownSingleton(throwingRunnable))
                 .isInstanceOf(SafeRuntimeException.class)
@@ -89,7 +89,7 @@ public class SafeShutdownRunnerTest {
 
     @Test
     public void slowTasksTimeOutWithoutThrowing() {
-        SafeShutdownRunner runner = new SafeShutdownRunner(Duration.ofMillis(50));
+        SafeShutdownRunner runner = SafeShutdownRunner.createWithCachedThreadpool(Duration.ofMillis(50));
 
         runner.shutdownSafely(blockingUninterruptibleRunnable);
         runner.shutdownSafely(blockingUninterruptibleRunnable);
@@ -101,7 +101,7 @@ public class SafeShutdownRunnerTest {
 
     @Test
     public void otherTasksStillRunInPresenceOfSlowTasksThatTimeOut() {
-        SafeShutdownRunner runner = new SafeShutdownRunner(Duration.ofMillis(50));
+        SafeShutdownRunner runner = SafeShutdownRunner.createWithCachedThreadpool(Duration.ofMillis(50));
 
         runner.shutdownSafely(blockingUninterruptibleRunnable);
         runner.shutdownSafely(blockingUninterruptibleRunnable);
@@ -118,7 +118,7 @@ public class SafeShutdownRunnerTest {
 
     @Test
     public void noDurationSetCausesTasksToBlockForever() {
-        SafeShutdownRunner runner = new SafeShutdownRunner(Optional.empty());
+        SafeShutdownRunner runner = SafeShutdownRunner.createWithSingleThreadpool(Optional.empty());
 
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         executorService.execute(() -> {
