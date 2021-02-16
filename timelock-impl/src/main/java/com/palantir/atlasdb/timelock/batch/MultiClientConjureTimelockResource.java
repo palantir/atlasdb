@@ -39,7 +39,6 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -81,18 +80,16 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     @Override
     public ListenableFuture<Map<Namespace, ConjureStartTransactionsResponse>> startTransactions(
             AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
-        List<ListenableFuture<Entry<Namespace, ConjureStartTransactionsResponse>>> futures = KeyedStream.stream(
+        List<ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>> futures = KeyedStream.stream(
                         requests)
                 .map(this::getStartTransactionsResponseListenableFutures)
                 .values()
                 .collect(Collectors.toList());
-        return handleExceptions(() -> Futures.transform(
-                Futures.allAsList(futures),
-                entryList -> ImmutableMap.copyOf(entryList),
-                MoreExecutors.directExecutor()));
+        return handleExceptions(() ->
+                Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor()));
     }
 
-    private ListenableFuture<Entry<Namespace, ConjureStartTransactionsResponse>>
+    private ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>
             getStartTransactionsResponseListenableFutures(
                     Namespace namespace, ConjureStartTransactionsRequest request) {
         ListenableFuture<ConjureStartTransactionsResponse> conjureStartTransactionsResponseListenableFuture =
