@@ -29,6 +29,8 @@ import com.palantir.atlasdb.http.v2.ClientOptionsConstants;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
@@ -38,6 +40,7 @@ import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.suite.DbTimeLockSingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
@@ -56,9 +59,12 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tokens.auth.AuthHeader;
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -469,6 +475,70 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                     .leaderTime();
             assertThat(conjureTimelockServiceLeaderTime.id()).isEqualTo(leaderTime.id());
         });
+    }
+
+    @Test
+    public void sanityCheckMultiClientStartTransactions() {
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        List<String> expectedNamespaces = ImmutableList.of("alpha", "beta");
+
+        Map<Namespace, ConjureStartTransactionsResponse> startTransactions =
+                assertSanityAndStartTransactions(leader, expectedNamespaces);
+
+        Set<UUID> leadershipIds = startTransactions.values().stream()
+                .map(ConjureStartTransactionsResponse::getLockWatchUpdate)
+                .map(LockWatchStateUpdate::logId)
+                .collect(Collectors.toSet());
+        assertThat(leadershipIds).hasSameSizeAs(expectedNamespaces);
+    }
+
+    @Test
+    public void sanityCheckMultiClientStartTransactionsAgainstConjureTimelockService() {
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        List<String> expectedNamespaces = ImmutableList.of("alpha", "beta");
+
+        Map<Namespace, ConjureStartTransactionsRequest> namespaceToRequestMap =
+                defaultNamespacedStartTransactionsRequests(expectedNamespaces);
+
+        Map<Namespace, ConjureStartTransactionsResponse> startTransactions =
+                assertSanityAndStartTransactions(leader, expectedNamespaces);
+
+        // Whether we hit the multi client endpoint or conjureTimelockService endpoint, for a namespace, the underlying
+        // service to process the request is the same
+        startTransactions.forEach((namespace, responseFromBatchedEndpoint) -> {
+            ConjureStartTransactionsResponse startTransactionsResponse = leader.client(namespace.get())
+                    .namespacedConjureTimelockService()
+                    .startTransactions(namespaceToRequestMap.get(namespace));
+            assertThat(startTransactionsResponse.getLockWatchUpdate().logId())
+                    .isEqualTo(responseFromBatchedEndpoint.getLockWatchUpdate().logId());
+        });
+    }
+
+    private Map<Namespace, ConjureStartTransactionsRequest> defaultNamespacedStartTransactionsRequests(
+            List<String> namespaces) {
+        return KeyedStream.of(namespaces)
+                .map(namespace -> ConjureStartTransactionsRequest.builder()
+                        .numTransactions(5)
+                        .requestId(UUID.randomUUID())
+                        .requestorId(UUID.randomUUID())
+                        .build())
+                .mapKeys(Namespace::of)
+                .collectToMap();
+    }
+
+    private Map<Namespace, ConjureStartTransactionsResponse> assertSanityAndStartTransactions(
+            TestableTimelockServer leader, List<String> expectedNamespaces) {
+        MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
+        Map<Namespace, ConjureStartTransactionsRequest> namespaceToRequestMap =
+                defaultNamespacedStartTransactionsRequests(expectedNamespaces);
+
+        Map<Namespace, ConjureStartTransactionsResponse> startTransactions =
+                multiClientConjureTimelockService.startTransactions(AUTH_HEADER, namespaceToRequestMap);
+
+        Set<String> namespaces =
+                startTransactions.keySet().stream().map(Namespace::get).collect(Collectors.toSet());
+        assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
+        return startTransactions;
     }
 
     private LeaderTimes assertSanityAndGetLeaderTimes(Set<Namespace> expectedNamespaces) {
