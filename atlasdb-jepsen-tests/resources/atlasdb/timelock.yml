@@ -19,7 +19,7 @@ runtime: {}
 
 server:
   applicationConnectors:
-    - type: h2
+    - type: https
       port: 8080
       selectorThreads: 8
       acceptorThreads: 4

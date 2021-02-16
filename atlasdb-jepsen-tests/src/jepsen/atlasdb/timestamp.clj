@@ -67,9 +67,9 @@
     :generator (->> read-operation
                  (gen/stagger 0.05)
                  (gen/nemesis
-                   (gen/seq (cycle [(gen/sleep 5)
+                   (gen/seq (cycle [(gen/sleep 60)
                                     {:type :info, :f :start}
-                                    (gen/sleep 85)
+                                    (gen/sleep 60)
                                     {:type :info, :f :stop}])))
                  (gen/time-limit 360))
     :db (timelock/create-db)
