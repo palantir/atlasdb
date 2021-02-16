@@ -16,10 +16,12 @@
 package com.palantir.atlasdb.cassandra;
 
 import com.google.common.base.MoreObjects;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.logsafe.Preconditions;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
@@ -256,8 +258,9 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public void check() {
-        //         The config instance passed here gets checked at the time its of construction
-        //         (default implementation in the parent class). Hence, it is okay to do no operation here.
+        Preconditions.checkState(
+                !servers().accept(new ThriftHostsExtractingVisitor()).isEmpty(),
+                "'servers' must have at least one defined host");
     }
 
     private <T> T chooseConfig(Function<CassandraKeyValueServiceRuntimeConfig, T> runtimeConfig, T installConfig) {

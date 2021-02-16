@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
@@ -352,10 +351,6 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(
-                !servers().accept(new ThriftHostsExtractingVisitor()).isEmpty(),
-                "'servers' must have at least one defined host");
-
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(
                 evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,

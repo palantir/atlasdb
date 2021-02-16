@@ -16,10 +16,12 @@
 package com.palantir.atlasdb.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import org.junit.Before;
@@ -97,9 +99,18 @@ public class CassandraReloadableKvsConfigTest {
     public void serversInOnlyRuntime_prefersRuntime() {
         CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
 
-        when(config.servers()).thenReturn(ImmutableDefaultConfig.builder().build());
+        when(config.servers()).thenReturn(ImmutableDefaultConfig.of());
         when(runtimeConfig.servers()).thenReturn(SERVERS_CONFIG2);
         assertThat(reloadableConfig.servers()).isEqualTo(SERVERS_CONFIG2);
+    }
+
+    @Test
+    public void requireAtLeastOneServer() {
+        when(config.servers()).thenReturn(ImmutableDefaultConfig.of());
+        when(runtimeConfig.servers()).thenReturn(ImmutableDefaultConfig.of());
+        assertThatThrownBy(() -> getReloadableConfigWithRuntimeConfig().check())
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessage("'servers' must have at least one defined host");
     }
 
     private CassandraReloadableKvsConfig getReloadableConfigWithEmptyRuntimeConfig() {

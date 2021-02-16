@@ -73,4 +73,13 @@ public class CassandraKeyValueServiceConfigTest {
     public void notUsingSslIfSslParamNotPresentAndSslConfigurationNotPresent() {
         assertThat(CASSANDRA_CONFIG.usingSsl()).isFalse();
     }
+
+    @Test
+    public void checkMinimalConfig() {
+        ImmutableCassandraKeyValueServiceConfig.builder()
+                .replicationFactor(1)
+                .credentials(CREDENTIALS)
+                .build()
+                .check();
+    }
 }
