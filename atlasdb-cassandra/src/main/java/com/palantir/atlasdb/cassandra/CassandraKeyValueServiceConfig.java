@@ -153,10 +153,10 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     /**
      * Times out after the provided duration when attempting to close evicted connections from the Cassandra
-     * threadpool. Note that this potentially unsafe in the general case, as unclosed connections can eventually leak
+     * threadpool. Note that this is potentially unsafe in the general case, as unclosed connections can eventually leak
      * memory.
      */
-    Optional<Duration> enableTimeoutOnConnectionClose();
+    Optional<Duration> timeoutOnConnectionClose();
 
     @JsonIgnore
     @Value.Lazy

@@ -106,8 +106,8 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
     }
 
     @Override
-    public Optional<Duration> enableTimeoutOnConnectionClose() {
-        return config.enableTimeoutOnConnectionClose();
+    public Optional<Duration> timeoutOnConnectionClose() {
+        return config.timeoutOnConnectionClose();
     }
 
     @Override

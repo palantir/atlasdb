@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class SafeShutdownRunner implements AutoCloseable {
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool("safe-shutdown-runner");
+    private final ExecutorService executor = PTExecutors.newCachedThreadPoolWithMaxThreads(10, "safe-shutdown-runner");
     private final List<Throwable> failures = new ArrayList<>();
     private final Optional<Duration> timeoutDuration;
 
@@ -57,13 +57,17 @@ public class SafeShutdownRunner implements AutoCloseable {
     }
 
     private void shutdownInternal(Runnable shutdownCallback) {
+        if (timeoutDuration.isPresent()) {
+            shutdownTimed(shutdownCallback, timeoutDuration.get());
+        } else {
+            shutdownUntimed(shutdownCallback);
+        }
+    }
+
+    private void shutdownTimed(Runnable shutdownCallback, Duration duration) {
         Future<?> future = executor.submit(shutdownCallback);
         try {
-            if (timeoutDuration.isPresent()) {
-                future.get(timeoutDuration.get().toMillis(), TimeUnit.MILLISECONDS);
-            } else {
-                future.get();
-            }
+            future.get(duration.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             failures.add(e);
@@ -72,6 +76,14 @@ public class SafeShutdownRunner implements AutoCloseable {
         } catch (TimeoutException e) {
             future.cancel(true);
             failures.add(e);
+        }
+    }
+
+    private void shutdownUntimed(Runnable shutdownCallback) {
+        try {
+            shutdownCallback.run();
+        } catch (Throwable t) {
+            failures.add(t);
         }
     }
 
