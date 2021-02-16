@@ -1,5 +1,5 @@
 type: fix
 fix:
-  description: The Cassandra client pool evictor will now give up trying to close a connection after 30 seconds.
+  description: The Cassandra client pool factory can now be configured to give up closing a connection after a provided duration. This should not be set in the general case, as it can potentially leak resources.
   links:
   - https://github.com/palantir/atlasdb/pull/5255
