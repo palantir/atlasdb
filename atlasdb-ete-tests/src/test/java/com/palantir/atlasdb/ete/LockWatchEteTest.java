@@ -80,7 +80,7 @@ public final class LockWatchEteTest {
     }
 
     @Test
-    public void multipleTransactionVersionsReturnsSnapshotAndAllRecentEvents() {
+    public void multipleTransactionVersionsReturnsSnapshotAndOnlyRelevantRecentEvents() {
         LockWatchVersion baseVersion = seedCacheAndGetVersion();
 
         writeValues(ROW_1, ROW_2);
@@ -97,10 +97,8 @@ public final class LockWatchEteTest {
                 .isEqualTo(baseVersion.version() + 2);
         assertThat(update.startTsToSequence().get(fourthTxn.startTs()).version())
                 .isEqualTo(baseVersion.version() + 4);
-        assertThat(lockedDescriptors(update.events()))
-                .containsExactlyInAnyOrderElementsOf(getDescriptors(SEED, ROW_1, ROW_2, row(3)));
-        assertThat(unlockedDescriptors(update.events()))
-                .containsExactlyInAnyOrderElementsOf(getDescriptors(SEED, ROW_1, ROW_2, row(3)));
+        assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
+        assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
         assertThat(watchDescriptors(update.events())).isEmpty();
 
         lockWatcher.endTransaction(secondTxn);
