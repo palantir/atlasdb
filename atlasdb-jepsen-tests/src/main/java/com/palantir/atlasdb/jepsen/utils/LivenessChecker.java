@@ -27,10 +27,16 @@ import com.palantir.atlasdb.jepsen.events.ImmutableInfoEvent;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
+import org.immutables.value.Value;
 
 public class LivenessChecker implements Checker {
+    private static final int DUMMY_PROCESS_VALUE = 0;
+    private static final String FUNCTION = "liveness-check";
+
     private final Predicate<OkEvent> livenessJudgmentHandler;
 
     public LivenessChecker(Predicate<OkEvent> livenessJudgmentHandler) {
@@ -40,68 +46,70 @@ public class LivenessChecker implements Checker {
     @Override
     public CheckerResult check(List<Event> events) {
         Visitor visitor = new Visitor(livenessJudgmentHandler);
-        events.forEach(event -> event.accept(visitor));
+
+        Optional<Event> firstEvidenceOfLiveness =
+                events.stream().filter(event -> event.accept(visitor).live()).findFirst();
+
+        if (firstEvidenceOfLiveness.isPresent()) {
+            return ImmutableCheckerResult.builder()
+                    .valid(true)
+                    .errors(ImmutableList.of())
+                    .build();
+        }
+
         return ImmutableCheckerResult.builder()
-                .valid(visitor.valid())
-                .errors(visitor.errors())
+                .valid(false)
+                .errors(createErrorFromEvents(events))
                 .build();
     }
 
-    private static final class Visitor implements EventVisitor {
-        private static final int DUMMY_PROCESS_VALUE = 0;
-        private static final String FUNCTION = "liveness-check";
+    private static List<Event> createErrorFromEvents(List<Event> events) {
+        return ImmutableList.of(ImmutableInfoEvent.builder()
+                .time(events.stream()
+                        .map(Event::time)
+                        .max(Comparator.naturalOrder())
+                        .orElse(Long.MIN_VALUE))
+                .value("No live requests were actually observed up to this time, which is worrying as to "
+                        + "the validity of this test.")
+                .function(FUNCTION)
+                .process(DUMMY_PROCESS_VALUE)
+                .build());
+    }
 
+    private static final class Visitor implements EventVisitor<LivenessCheckResult> {
         private final Predicate<OkEvent> livenessJudgmentHandler;
-
-        private boolean seenLivenessEvidence = false;
-        private long lastSeenEventTimestamp = Long.MIN_VALUE;
 
         private Visitor(Predicate<OkEvent> livenessJudgmentHandler) {
             this.livenessJudgmentHandler = livenessJudgmentHandler;
         }
 
         @Override
-        public void visit(InfoEvent event) {
-            logEventTimestamp(event.time());
+        public LivenessCheckResult visit(InfoEvent event) {
+            return ImmutableLivenessCheckResult.of(false, event);
         }
 
         @Override
-        public void visit(InvokeEvent event) {
-            logEventTimestamp(event.time());
+        public LivenessCheckResult visit(InvokeEvent event) {
+            return ImmutableLivenessCheckResult.of(false, event);
         }
 
         @Override
-        public void visit(OkEvent event) {
-            if (livenessJudgmentHandler.test(event)) {
-                seenLivenessEvidence = true;
-            }
-            logEventTimestamp(event.time());
+        public LivenessCheckResult visit(OkEvent event) {
+            return ImmutableLivenessCheckResult.of(livenessJudgmentHandler.test(event), event);
         }
 
         @Override
-        public void visit(FailEvent event) {
-            logEventTimestamp(event.time());
+        public LivenessCheckResult visit(FailEvent event) {
+            return ImmutableLivenessCheckResult.of(false, event);
         }
+    }
 
-        public boolean valid() {
-            return seenLivenessEvidence;
-        }
+    @Value.Immutable
+    interface LivenessCheckResult {
+        @Value.Parameter
+        boolean live();
 
-        public List<Event> errors() {
-            return valid()
-                    ? ImmutableList.of()
-                    : ImmutableList.of(ImmutableInfoEvent.builder()
-                            .time(lastSeenEventTimestamp)
-                            .value("No live requests were actually observed up to this time, which is worrying as to "
-                                    + "the "
-                                    + "validity of this test.")
-                            .function(FUNCTION)
-                            .process(DUMMY_PROCESS_VALUE)
-                            .build());
-        }
-
-        private void logEventTimestamp(long time) {
-            lastSeenEventTimestamp = Math.max(lastSeenEventTimestamp, time);
-        }
+        @Value.Parameter
+        Event event();
     }
 }

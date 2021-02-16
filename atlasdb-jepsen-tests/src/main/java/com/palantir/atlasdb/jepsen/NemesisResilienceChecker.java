@@ -39,7 +39,7 @@ public class NemesisResilienceChecker implements Checker {
                 .build();
     }
 
-    private static final class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor<Void> {
         private final List<Event> unsurvivedEvents = new ArrayList<>();
         private final Set<Integer> processesPendingReads = new HashSet<>();
 
@@ -47,7 +47,7 @@ public class NemesisResilienceChecker implements Checker {
         private boolean awaitingInvokeOkCycle;
 
         @Override
-        public void visit(InfoEvent event) {
+        public Void visit(InfoEvent event) {
             if (isNemesisEvent(event)) {
                 if (isStartEvent(event)) {
                     startAwaitingInvokeOkCycles(event);
@@ -55,20 +55,23 @@ public class NemesisResilienceChecker implements Checker {
                     addUnsurvivedEvents(event);
                 }
             }
+            return null;
         }
 
         @Override
-        public void visit(InvokeEvent event) {
+        public Void visit(InvokeEvent event) {
             if (awaitingInvokeOkCycle) {
                 processesPendingReads.add(event.process());
             }
+            return null;
         }
 
         @Override
-        public void visit(OkEvent event) {
+        public Void visit(OkEvent event) {
             if (awaitingInvokeOkCycle && processesPendingReads.contains(event.process())) {
                 awaitingInvokeOkCycle = false;
             }
+            return null;
         }
 
         public boolean valid() {

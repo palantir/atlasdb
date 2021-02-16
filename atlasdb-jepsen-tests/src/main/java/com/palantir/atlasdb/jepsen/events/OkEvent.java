@@ -37,7 +37,6 @@ public abstract class OkEvent implements Event {
     public static final String LOCK_FAILURE = "";
     public static final String REFRESH_SUCCESS = "Some Token";
     public static final String REFRESH_FAILURE = "";
-    public static final String TIMESTAMP_SUCCESS = "1337";
     public static final String TIMESTAMP_FAILURE = "";
 
     @Override
@@ -53,7 +52,7 @@ public abstract class OkEvent implements Event {
     public abstract String function();
 
     @Override
-    public void accept(EventVisitor visitor) {
-        visitor.visit(this);
+    public <T> T accept(EventVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

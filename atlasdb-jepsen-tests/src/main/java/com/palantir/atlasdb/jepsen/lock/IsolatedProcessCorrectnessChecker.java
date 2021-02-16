@@ -48,7 +48,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
                 .build();
     }
 
-    private static final class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor<Void> {
         private final Map<Integer, InvokeEvent> pendingForProcess = new HashMap<>();
         private final Map<Integer, OkEvent> lastOkEvent = new HashMap<>();
         private final Set<Integer> refreshAllowed = new HashSet<>();
@@ -56,8 +56,9 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         private final List<Event> errors = new ArrayList<>();
 
         @Override
-        public void visit(InvokeEvent event) {
+        public Void visit(InvokeEvent event) {
             pendingForProcess.put(event.process(), event);
+            return null;
         }
 
         /**
@@ -74,7 +75,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
          *  - FAILURE: was not holding the lock.
          */
         @Override
-        public void visit(OkEvent event) {
+        public Void visit(OkEvent event) {
             int currentProcess = event.process();
 
             switch (event.function()) {
@@ -99,6 +100,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
                     throw new SafeIllegalStateException("Not an OkEvent type supported by this checker!");
             }
             lastOkEvent.put(currentProcess, event);
+            return null;
         }
 
         private void verifyRefreshAllowed(OkEvent event, Integer process) {

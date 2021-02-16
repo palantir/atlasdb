@@ -53,7 +53,7 @@ public class RefreshCorrectnessChecker implements Checker {
                 .build();
     }
 
-    private static final class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor<Void> {
         private final Map<Integer, InvokeEvent> pendingForProcess = new HashMap<>();
         private final Map<Integer, Event> lastHeldLock = new HashMap<>();
 
@@ -62,15 +62,16 @@ public class RefreshCorrectnessChecker implements Checker {
         private final List<Event> errors = new ArrayList<>();
 
         @Override
-        public void visit(InvokeEvent event) {
+        public Void visit(InvokeEvent event) {
             int process = event.process();
             pendingForProcess.put(process, event);
+            return null;
         }
 
         @Override
-        public void visit(OkEvent event) {
+        public Void visit(OkEvent event) {
             if (EventUtils.isFailure(event)) {
-                return;
+                return null;
             }
 
             int process = event.process();
@@ -131,6 +132,7 @@ public class RefreshCorrectnessChecker implements Checker {
                 default:
                     throw new SafeIllegalStateException("Not an OkEvent type supported by this checker!");
             }
+            return null;
         }
 
         public boolean valid() {

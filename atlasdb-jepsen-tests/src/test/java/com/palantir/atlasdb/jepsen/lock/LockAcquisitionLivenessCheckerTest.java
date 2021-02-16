@@ -35,21 +35,21 @@ public class LockAcquisitionLivenessCheckerTest {
     }
 
     @Test
-    public void shouldNotSucceedIfLockWasUnsuccessful() {
+    public void shouldFailIfLockWasUnsuccessful() {
         CheckerResult result = runLockAcquisitionLivenessChecker(TestEventUtils.lockFailure(TIME, 0));
 
         assertResultNotValidAndHasOneErrorAtTimestamp(result, TIME);
     }
 
     @Test
-    public void shouldNotSucceedIfWeOnlyInvokedLock() {
+    public void shouldFailIfWeOnlyInvokedLock() {
         CheckerResult result = runLockAcquisitionLivenessChecker(TestEventUtils.invokeLock(TIME, 0, "lock"));
 
         assertResultNotValidAndHasOneErrorAtTimestamp(result, TIME);
     }
 
     @Test
-    public void shouldNotSucceedIfRefreshOrUnlockWereSuccessful() {
+    public void shouldFailIfRefreshOrUnlockWereSuccessful() {
         CheckerResult result = runLockAcquisitionLivenessChecker(
                 TestEventUtils.refreshSuccess(TIME, 0), TestEventUtils.unlockSuccess(TIME + 1, 0));
 
@@ -57,7 +57,7 @@ public class LockAcquisitionLivenessCheckerTest {
     }
 
     @Test
-    public void shouldNotSucceedOnErrorEvent() {
+    public void shouldFailOnErrorEvent() {
         CheckerResult result =
                 runLockAcquisitionLivenessChecker(TestEventUtils.createFailEvent(TIME, 0, "403 403 403 403 403"));
 

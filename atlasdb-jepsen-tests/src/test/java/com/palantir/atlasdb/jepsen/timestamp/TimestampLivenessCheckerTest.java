@@ -82,7 +82,7 @@ public class TimestampLivenessCheckerTest {
                     assertThat(result.valid()).isFalse();
 
                     Event errorEvent = Iterables.getOnlyElement(result.errors());
-                    assertThat(errorEvent.time()).isEqualTo(TIME + 2);
+                    assertThat(errorEvent.time()).isEqualTo(TIME + 4);
                 });
     }
 
