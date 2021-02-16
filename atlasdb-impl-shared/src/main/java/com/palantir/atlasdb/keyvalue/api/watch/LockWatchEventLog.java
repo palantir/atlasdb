@@ -24,7 +24,6 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 import java.util.Collection;
 import java.util.Optional;
 
@@ -167,24 +166,6 @@ final class LockWatchEventLog {
                     new LockWatchEvents.Builder().addAllEvents(success.events()).build();
             events.assertNoEventsAreMissing(latestVersion);
             latestVersion = Optional.of(LockWatchVersion.of(success.logId(), eventStore.putAll(events)));
-        }
-    }
-
-    private void assertNoEventsAreMissing(LockWatchEvents events) {
-        if (events.events().isEmpty()) {
-            return;
-        }
-
-        if (latestVersion.isPresent()) {
-            Preconditions.checkArgument(
-                    events.versionRange().isPresent(), "First element not preset in list of events");
-            long firstVersion = events.versionRange().get().lowerEndpoint();
-            Preconditions.checkArgument(
-                    firstVersion <= latestVersion.get().version()
-                            || latestVersion.get().version() + 1 == firstVersion,
-                    "Events missing between last snapshot and this batch of events",
-                    SafeArg.of("latestVersionSequence", latestVersion.get().version()),
-                    SafeArg.of("firstNewVersionSequence", firstVersion));
         }
     }
 
