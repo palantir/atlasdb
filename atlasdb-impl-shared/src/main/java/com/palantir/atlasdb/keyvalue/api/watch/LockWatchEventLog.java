@@ -61,7 +61,8 @@ final class LockWatchEventLog {
         LockWatchVersion currentVersion = getLatestVersionAndVerify(versionBounds.endVersion());
 
         if (!startVersion.isPresent()
-                || differentLeaderOrTooFarBehind(currentVersion, lastKnownVersion.get(), startVersion.get())) {
+                || differentLeaderOrTooFarBehind(
+                        currentVersion, versionBounds.startVersion().get(), startVersion.get())) {
             long snapshotVersion = versionBounds.snapshotVersion() + 1;
             Collection<LockWatchEvent> afterSnapshotEvents;
             if (snapshotVersion > versionBounds.endVersion().version()) {
