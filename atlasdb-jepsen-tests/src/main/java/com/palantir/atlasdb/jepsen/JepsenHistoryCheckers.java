@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.lock.IsolatedProcessCorrectnessChecker;
+import com.palantir.atlasdb.jepsen.lock.LockAcquisitionLivenessChecker;
 import com.palantir.atlasdb.jepsen.lock.LockCorrectnessChecker;
 import com.palantir.atlasdb.jepsen.lock.RefreshCorrectnessChecker;
 import com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker;
@@ -43,7 +44,8 @@ public final class JepsenHistoryCheckers {
     static final ImmutableList<Supplier<Checker>> LOCK_CHECKERS = ImmutableList.of(
             () -> new PartitionByInvokeNameCheckerHelper(IsolatedProcessCorrectnessChecker::new),
             () -> new PartitionByInvokeNameCheckerHelper(LockCorrectnessChecker::new),
-            () -> new PartitionByInvokeNameCheckerHelper(RefreshCorrectnessChecker::new));
+            () -> new PartitionByInvokeNameCheckerHelper(RefreshCorrectnessChecker::new),
+            LockAcquisitionLivenessChecker::new);
 
     public static JepsenHistoryChecker createWithTimestampCheckers() {
         return createWithCheckers(TIMESTAMP_CHECKERS);

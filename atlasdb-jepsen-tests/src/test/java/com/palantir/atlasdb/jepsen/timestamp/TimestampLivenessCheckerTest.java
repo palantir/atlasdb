@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 import org.junit.Test;
 
@@ -67,6 +68,22 @@ public class TimestampLivenessCheckerTest {
 
                     Event errorEvent = Iterables.getOnlyElement(result.errors());
                     assertThat(errorEvent.time()).isEqualTo(TIME + 5);
+                });
+    }
+
+    @Test
+    public void shouldFailIfOkEventsAreNotTimestamps() {
+        assertThat(runTimestampLivenessChecker(
+                TestEventUtils.createOkEvent(TIME, 0, "token3141592", RequestType.LOCK),
+                TestEventUtils.createOkEvent(TIME + 1, 0, "token3141592", RequestType.REFRESH),
+                TestEventUtils.createOkEvent(TIME + 2, 0, "true", RequestType.UNLOCK),
+                TestEventUtils.createOkEvent(TIME + 3, 0, "Unserializable?", "curry"),
+                TestEventUtils.createOkEvent(TIME + 4, 0, "42", "foldl1")))
+                .satisfies(result -> {
+                    assertThat(result.valid()).isFalse();
+
+                    Event errorEvent = Iterables.getOnlyElement(result.errors());
+                    assertThat(errorEvent.time()).isEqualTo(TIME + 2);
                 });
     }
 

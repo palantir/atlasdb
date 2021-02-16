@@ -16,7 +16,9 @@
 package com.palantir.atlasdb.jepsen.events;
 
 public abstract class RequestType {
-    public static final String TIMESTAMP = "timestamp";
+    // This is the actual type used in Jepsen for timestamp requests.
+    public static final String TIMESTAMP = "read-operation";
+
     public static final String LOCK = "lock";
     public static final String REFRESH = "refresh";
     public static final String UNLOCK = "unlock";
