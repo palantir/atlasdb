@@ -1,6 +1,5 @@
 type: improvement
 improvement:
-  description: Lock watch snapshots returned to the user are now condensed as far
-    as possible.
+  description: Lock watch snapshots returned to the user are now condensed as much as possible.
   links:
   - https://github.com/palantir/atlasdb/pull/5021
