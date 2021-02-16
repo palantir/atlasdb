@@ -182,7 +182,7 @@ public class TargetedSweepMetrics {
         private final SweepOutcomeMetrics outcomeMetrics;
         private final SlidingWindowMeanGauge batchSizeMean;
         private final CurrentValueMetric<Long> sweepDelayMetric;
-        private final Map<String, MillisAndMaybeTimestamp> lastMillisAndTsPerShard = new ConcurrentHashMap<>();
+        private final Map<Integer, MillisAndMaybeTimestamp> lastMillisAndTsPerShard = new ConcurrentHashMap<>();
 
         private MetricsForStrategy(
                 MetricsManager manager,
@@ -299,15 +299,26 @@ public class TargetedSweepMetrics {
                 Clock clock,
                 BiFunction<Long, MillisAndMaybeTimestamp, MillisAndMaybeTimestamp> tsToMillis) {
             if (shardAndTs == null) {
+                log.info(
+                        "Encountered null value for shard and last swept timestamp when recomputing sweep lag metric"
+                            + " for strategy {}. This is only expected before the first iteration of sweep completes.",
+                        SafeArg.of("sweepStrategy", tag.get(AtlasDbMetricNames.TAG_STRATEGY)));
                 return null;
             }
             long timeBeforeRecomputing = System.currentTimeMillis();
-            MillisAndMaybeTimestamp millisAndMaybeTs = tsToMillis.apply(
-                    shardAndTs.timestamp(), lastMillisAndTsPerShard.get(Integer.toString(shardAndTs.shard())));
+            MillisAndMaybeTimestamp lastKnown = lastMillisAndTsPerShard.get(shardAndTs.shard());
+            MillisAndMaybeTimestamp millisAndMaybeTs = tsToMillis.apply(shardAndTs.timestamp(), lastKnown);
             if (millisAndMaybeTs == null) {
+                log.warn(
+                        "Could not calculate the sweep lag metric for strategy {}, shard {}, last swept timestamp {}."
+                                + " Last known punch entry for this shard was {}.",
+                        SafeArg.of("sweepStrategy", tag.get(AtlasDbMetricNames.TAG_STRATEGY)),
+                        SafeArg.of("shard", shardAndTs.shard()),
+                        SafeArg.of("timestamp", shardAndTs.timestamp()),
+                        SafeArg.of("lastKnownPunchEntry", lastKnown));
                 return null;
             }
-            lastMillisAndTsPerShard.put(Integer.toString(shardAndTs.shard()), millisAndMaybeTs);
+            lastMillisAndTsPerShard.put(shardAndTs.shard(), millisAndMaybeTs);
             long result = clock.getTimeMillis() - millisAndMaybeTs.millis();
 
             long timeTaken = System.currentTimeMillis() - timeBeforeRecomputing;
