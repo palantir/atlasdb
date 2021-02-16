@@ -21,25 +21,59 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class SafeShutdownRunner implements AutoCloseable {
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool("safe-shutdown-runner");
+public final class SafeShutdownRunner implements AutoCloseable {
     private final List<Throwable> failures = new ArrayList<>();
-    private final Duration timeoutDuration;
+    private final ExecutorService executor;
+    private final Optional<Duration> timeoutDuration;
 
-    public SafeShutdownRunner(Duration timeoutDuration) {
+    private SafeShutdownRunner(Optional<Duration> timeoutDuration, ExecutorService executorService) {
         this.timeoutDuration = timeoutDuration;
+        this.executor = executorService;
+    }
+
+    public static SafeShutdownRunner createWithCachedThreadpool(Duration timeoutDuration) {
+        return new SafeShutdownRunner(
+                Optional.of(timeoutDuration), PTExecutors.newCachedThreadPool("safe-shutdown-runner"));
+    }
+
+    public static SafeShutdownRunner createWithSingleThreadpool(Optional<Duration> timeoutDuration) {
+        return new SafeShutdownRunner(timeoutDuration, PTExecutors.newSingleThreadExecutor());
     }
 
     public void shutdownSafely(Runnable shutdownCallback) {
+        shutdownInternal(shutdownCallback);
+    }
+
+    public void shutdownSingleton(Runnable shutdownCallback) {
+        shutdownInternal(shutdownCallback);
+        throwIfFailures();
+    }
+
+    @Override
+    public void close() {
+        executor.shutdown();
+        throwIfFailures();
+    }
+
+    private void shutdownInternal(Runnable shutdownCallback) {
+        if (timeoutDuration.isPresent()) {
+            shutdownTimed(shutdownCallback, timeoutDuration.get());
+        } else {
+            shutdownUntimed(shutdownCallback);
+        }
+    }
+
+    private void shutdownTimed(Runnable shutdownCallback, Duration duration) {
         Future<?> future = executor.submit(shutdownCallback);
         try {
-            future.get(timeoutDuration.toMillis(), TimeUnit.MILLISECONDS);
+            future.get(duration.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             failures.add(e);
@@ -51,13 +85,20 @@ public class SafeShutdownRunner implements AutoCloseable {
         }
     }
 
-    @Override
-    public void close() {
-        executor.shutdown();
+    private void shutdownUntimed(Runnable shutdownCallback) {
+        try {
+            shutdownCallback.run();
+        } catch (Throwable t) {
+            failures.add(t);
+        }
+    }
+
+    private void throwIfFailures() {
         if (!failures.isEmpty()) {
             RuntimeException closeFailed =
                     new SafeRuntimeException("Close failed. Please inspect the code and fix the failures");
             failures.forEach(closeFailed::addSuppressed);
+            failures.clear();
             throw closeFailed;
         }
     }

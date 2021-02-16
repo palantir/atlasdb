@@ -33,6 +33,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -149,6 +150,13 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * Overrides the behaviour of the host location supplier.
      */
     Optional<HostLocation> overrideHostLocation();
+
+    /**
+     * Times out after the provided duration when attempting to close evicted connections from the Cassandra
+     * threadpool. Note that this is potentially unsafe in the general case, as unclosed connections can eventually leak
+     * memory.
+     */
+    Optional<Duration> timeoutOnConnectionClose();
 
     @JsonIgnore
     @Value.Lazy

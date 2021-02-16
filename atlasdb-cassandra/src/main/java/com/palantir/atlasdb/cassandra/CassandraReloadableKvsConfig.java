@@ -21,6 +21,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -102,6 +103,11 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
     @Override
     public Optional<HostLocation> overrideHostLocation() {
         return config.overrideHostLocation();
+    }
+
+    @Override
+    public Optional<Duration> timeoutOnConnectionClose() {
+        return config.timeoutOnConnectionClose();
     }
 
     @Override
