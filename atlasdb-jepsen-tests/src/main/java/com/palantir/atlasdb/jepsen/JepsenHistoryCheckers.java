@@ -23,6 +23,7 @@ import com.palantir.atlasdb.jepsen.lock.LockCorrectnessChecker;
 import com.palantir.atlasdb.jepsen.lock.RefreshCorrectnessChecker;
 import com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker;
 import com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker;
+import com.palantir.atlasdb.jepsen.timestamp.TimestampLivenessChecker;
 import com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker;
 import java.util.List;
 import java.util.function.Supplier;
@@ -35,7 +36,8 @@ public final class JepsenHistoryCheckers {
 
     @VisibleForTesting
     static final ImmutableList<Supplier<Checker>> TIMESTAMP_CHECKERS =
-            ImmutableList.of(MonotonicChecker::new, NonOverlappingReadsMonotonicChecker::new, UniquenessChecker::new);
+            ImmutableList.of(MonotonicChecker::new, NonOverlappingReadsMonotonicChecker::new, UniquenessChecker::new,
+                    TimestampLivenessChecker::new);
 
     @VisibleForTesting
     static final ImmutableList<Supplier<Checker>> LOCK_CHECKERS = ImmutableList.of(
