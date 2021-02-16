@@ -197,3 +197,10 @@ services:
         returns: LeaderTimes
         docs: |
           Version of ConjureTimelockService#leaderTime endpoint for acquiring leaderTimes for a set of namespaces.
+      startTransactions:
+        http: POST /sts
+        args:
+          requests: map<Namespace, ConjureStartTransactionsRequest>
+        returns: map<Namespace, ConjureStartTransactionsResponse>
+        docs: |
+          Version of ConjureTimelockService#startTransactions that starts transactions for multiple namespaces.

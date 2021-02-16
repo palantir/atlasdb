@@ -26,16 +26,20 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -74,6 +78,31 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                 MoreExecutors.directExecutor()));
     }
 
+    @Override
+    public ListenableFuture<Map<Namespace, ConjureStartTransactionsResponse>> startTransactions(
+            AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
+        List<ListenableFuture<Entry<Namespace, ConjureStartTransactionsResponse>>> futures = KeyedStream.stream(
+                        requests)
+                .map(this::getStartTransactionsResponseListenableFutures)
+                .values()
+                .collect(Collectors.toList());
+        return handleExceptions(() -> Futures.transform(
+                Futures.allAsList(futures),
+                entryList -> ImmutableMap.copyOf(entryList),
+                MoreExecutors.directExecutor()));
+    }
+
+    private ListenableFuture<Entry<Namespace, ConjureStartTransactionsResponse>>
+            getStartTransactionsResponseListenableFutures(
+                    Namespace namespace, ConjureStartTransactionsRequest request) {
+        ListenableFuture<ConjureStartTransactionsResponse> conjureStartTransactionsResponseListenableFuture =
+                getServiceForNamespace(namespace).startTransactionsWithWatches(request);
+        return Futures.transform(
+                conjureStartTransactionsResponseListenableFuture,
+                startTransactionsResponse -> Maps.immutableEntry(namespace, startTransactionsResponse),
+                MoreExecutors.directExecutor());
+    }
+
     private ListenableFuture<Map.Entry<Namespace, LeaderTime>> getNamespacedLeaderTimes(Namespace namespace) {
         ListenableFuture<LeaderTime> leaderTimeListenableFuture =
                 getServiceForNamespace(namespace).leaderTime();
@@ -101,6 +130,12 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         @Override
         public LeaderTimes leaderTimes(AuthHeader authHeader, Set<Namespace> namespaces) {
             return unwrap(resource.leaderTimes(authHeader, namespaces));
+        }
+
+        @Override
+        public Map<Namespace, ConjureStartTransactionsResponse> startTransactions(
+                AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
+            return unwrap(resource.startTransactions(authHeader, requests));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
