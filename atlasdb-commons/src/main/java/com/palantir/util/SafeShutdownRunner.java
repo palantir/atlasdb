@@ -28,7 +28,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class SafeShutdownRunner implements AutoCloseable {
+public final class SafeShutdownRunner implements AutoCloseable {
     private final List<Throwable> failures = new ArrayList<>();
     private final ExecutorService executor;
     private final Optional<Duration> timeoutDuration;
