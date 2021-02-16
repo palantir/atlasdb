@@ -88,16 +88,16 @@ public class LivenessChecker implements Checker {
         }
 
         public List<Event> errors() {
-            return valid() ? ImmutableList.of() : ImmutableList.of(
-                    ImmutableInfoEvent.builder()
+            return valid()
+                    ? ImmutableList.of()
+                    : ImmutableList.of(ImmutableInfoEvent.builder()
                             .time(lastSeenEventTimestamp)
                             .value("No live requests were actually observed up to this time, which is worrying as to "
                                     + "the "
                                     + "validity of this test.")
                             .function(FUNCTION)
                             .process(DUMMY_PROCESS_VALUE)
-                            .build()
-            );
+                            .build());
         }
 
         private void logEventTimestamp(long time) {

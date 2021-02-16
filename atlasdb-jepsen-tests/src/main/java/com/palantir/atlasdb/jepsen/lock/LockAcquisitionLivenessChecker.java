@@ -27,9 +27,8 @@ public class LockAcquisitionLivenessChecker implements Checker {
     private final LivenessChecker delegate;
 
     public LockAcquisitionLivenessChecker() {
-        delegate =
-                new LivenessChecker(okEvent -> okEvent.function().equals("lock") && !Objects.requireNonNull(
-                        okEvent.value()).isEmpty());
+        delegate = new LivenessChecker(okEvent -> okEvent.function().equals("lock")
+                && !Objects.requireNonNull(okEvent.value()).isEmpty());
     }
 
     @Override

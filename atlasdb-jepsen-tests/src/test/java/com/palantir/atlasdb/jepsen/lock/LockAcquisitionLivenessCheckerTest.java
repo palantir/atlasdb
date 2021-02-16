@@ -43,8 +43,7 @@ public class LockAcquisitionLivenessCheckerTest {
 
     @Test
     public void shouldNotSucceedIfWeOnlyInvokedLock() {
-        CheckerResult result = runLockAcquisitionLivenessChecker(
-                TestEventUtils.invokeLock(TIME, 0, "lock"));
+        CheckerResult result = runLockAcquisitionLivenessChecker(TestEventUtils.invokeLock(TIME, 0, "lock"));
 
         assertResultNotValidAndHasOneErrorAtTimestamp(result, TIME);
     }
@@ -52,16 +51,15 @@ public class LockAcquisitionLivenessCheckerTest {
     @Test
     public void shouldNotSucceedIfRefreshOrUnlockWereSuccessful() {
         CheckerResult result = runLockAcquisitionLivenessChecker(
-                TestEventUtils.refreshSuccess(TIME, 0),
-                TestEventUtils.unlockSuccess(TIME + 1, 0));
+                TestEventUtils.refreshSuccess(TIME, 0), TestEventUtils.unlockSuccess(TIME + 1, 0));
 
         assertResultNotValidAndHasOneErrorAtTimestamp(result, TIME + 1);
     }
 
     @Test
     public void shouldNotSucceedOnErrorEvent() {
-        CheckerResult result = runLockAcquisitionLivenessChecker(
-                TestEventUtils.createFailEvent(TIME, 0, "403 403 403 403 403"));
+        CheckerResult result =
+                runLockAcquisitionLivenessChecker(TestEventUtils.createFailEvent(TIME, 0, "403 403 403 403 403"));
 
         assertResultNotValidAndHasOneErrorAtTimestamp(result, TIME);
     }
@@ -69,20 +67,19 @@ public class LockAcquisitionLivenessCheckerTest {
     @Test
     public void shouldSucceedIfLocksWereAcquiredAmongOtherEvents() {
         assertThat(runLockAcquisitionLivenessChecker(
-                TestEventUtils.createFailEvent(TIME, 0, "null"),
-                TestEventUtils.invokeLock(TIME + 1, 0, "lock"),
-                TestEventUtils.createInfoEvent(TIME + 2, 0, "theData"),
-                TestEventUtils.lockSuccess(TIME + 3, 0)))
+                        TestEventUtils.createFailEvent(TIME, 0, "null"),
+                        TestEventUtils.invokeLock(TIME + 1, 0, "lock"),
+                        TestEventUtils.createInfoEvent(TIME + 2, 0, "theData"),
+                        TestEventUtils.lockSuccess(TIME + 3, 0)))
                 .satisfies(LockAcquisitionLivenessCheckerTest::assertResultValidAndErrorFree);
     }
 
     @Test
     public void shouldFailIfNoEventsProvided() {
-        assertThat(runLockAcquisitionLivenessChecker())
-                .satisfies(result -> {
-                    assertThat(result.valid()).isFalse();
-                    assertThat(result.errors()).hasSize(1);
-                });
+        assertThat(runLockAcquisitionLivenessChecker()).satisfies(result -> {
+            assertThat(result.valid()).isFalse();
+            assertThat(result.errors()).hasSize(1);
+        });
     }
 
     @Test

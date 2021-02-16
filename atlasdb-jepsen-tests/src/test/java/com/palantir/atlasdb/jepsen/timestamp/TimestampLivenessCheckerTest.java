@@ -38,31 +38,30 @@ public class TimestampLivenessCheckerTest {
     @Test
     public void shouldSucceedIfTimestampsWereReturnedAmongOtherEvents() {
         assertThat(runTimestampLivenessChecker(
-                TestEventUtils.createFailEvent(TIME, 0),
-                TestEventUtils.invokeTimestamp(TIME + 1, 0),
-                TestEventUtils.createInfoEvent(TIME + 2, 0, "I come bearing information"),
-                TestEventUtils.timestampOk(TIME + 3, 0, "4242424")))
+                        TestEventUtils.createFailEvent(TIME, 0),
+                        TestEventUtils.invokeTimestamp(TIME + 1, 0),
+                        TestEventUtils.createInfoEvent(TIME + 2, 0, "I come bearing information"),
+                        TestEventUtils.timestampOk(TIME + 3, 0, "4242424")))
                 .satisfies(TimestampLivenessCheckerTest::assertResultValidAndErrorFree);
     }
 
     @Test
     public void shouldFailIfNoEventsProvided() {
-        assertThat(runTimestampLivenessChecker())
-                .satisfies(result -> {
-                    assertThat(result.valid()).isFalse();
-                    assertThat(result.errors()).hasSize(1);
-                });
+        assertThat(runTimestampLivenessChecker()).satisfies(result -> {
+            assertThat(result.valid()).isFalse();
+            assertThat(result.errors()).hasSize(1);
+        });
     }
 
     @Test
     public void shouldFailIfNoOkEventsProvided() {
         assertThat(runTimestampLivenessChecker(
-                TestEventUtils.createFailEvent(TIME, 0, "fail"),
-                TestEventUtils.invokeTimestamp(TIME + 1, 0),
-                TestEventUtils.createInfoEvent(TIME + 2, 0, "abyss"),
-                TestEventUtils.createFailEvent(TIME + 3, 0, "crash"),
-                TestEventUtils.invokeTimestamp(TIME + 4, 0),
-                TestEventUtils.createInfoEvent(TIME + 5, 0, "nadir")))
+                        TestEventUtils.createFailEvent(TIME, 0, "fail"),
+                        TestEventUtils.invokeTimestamp(TIME + 1, 0),
+                        TestEventUtils.createInfoEvent(TIME + 2, 0, "abyss"),
+                        TestEventUtils.createFailEvent(TIME + 3, 0, "crash"),
+                        TestEventUtils.invokeTimestamp(TIME + 4, 0),
+                        TestEventUtils.createInfoEvent(TIME + 5, 0, "nadir")))
                 .satisfies(result -> {
                     assertThat(result.valid()).isFalse();
 
@@ -74,11 +73,11 @@ public class TimestampLivenessCheckerTest {
     @Test
     public void shouldFailIfOkEventsAreNotTimestamps() {
         assertThat(runTimestampLivenessChecker(
-                TestEventUtils.createOkEvent(TIME, 0, "token3141592", RequestType.LOCK),
-                TestEventUtils.createOkEvent(TIME + 1, 0, "token3141592", RequestType.REFRESH),
-                TestEventUtils.createOkEvent(TIME + 2, 0, "true", RequestType.UNLOCK),
-                TestEventUtils.createOkEvent(TIME + 3, 0, "Unserializable?", "curry"),
-                TestEventUtils.createOkEvent(TIME + 4, 0, "42", "foldl1")))
+                        TestEventUtils.createOkEvent(TIME, 0, "token3141592", RequestType.LOCK),
+                        TestEventUtils.createOkEvent(TIME + 1, 0, "token3141592", RequestType.REFRESH),
+                        TestEventUtils.createOkEvent(TIME + 2, 0, "true", RequestType.UNLOCK),
+                        TestEventUtils.createOkEvent(TIME + 3, 0, "Unserializable?", "curry"),
+                        TestEventUtils.createOkEvent(TIME + 4, 0, "42", "foldl1")))
                 .satisfies(result -> {
                     assertThat(result.valid()).isFalse();
 
