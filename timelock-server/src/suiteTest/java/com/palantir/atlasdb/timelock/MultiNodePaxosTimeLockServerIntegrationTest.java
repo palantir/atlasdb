@@ -495,13 +495,15 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void sanityCheckMultiClientStartTransactionsAgainstConjureTimelockService() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
+
         List<String> expectedNamespaces = ImmutableList.of("alpha", "beta");
 
         Map<Namespace, ConjureStartTransactionsRequest> namespaceToRequestMap =
-                defaultNamespacedStartTransactionsRequests(expectedNamespaces);
+                defaultNamespacedStartTransactionsRequests(expectedNamespaces, 7);
 
         Map<Namespace, ConjureStartTransactionsResponse> startTransactions =
-                assertSanityAndStartTransactions(leader, expectedNamespaces);
+                multiClientConjureTimelockService.startTransactions(AUTH_HEADER, namespaceToRequestMap);
 
         // Whether we hit the multi client endpoint or conjureTimelockService endpoint, for a namespace, the underlying
         // service to process the request is the same
@@ -515,7 +517,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     private Map<Namespace, ConjureStartTransactionsRequest> defaultNamespacedStartTransactionsRequests(
-            List<String> namespaces) {
+            List<String> namespaces, int numTransactions) {
         return KeyedStream.of(namespaces)
                 .map(namespace -> ConjureStartTransactionsRequest.builder()
                         .numTransactions(5)
@@ -529,8 +531,10 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     private Map<Namespace, ConjureStartTransactionsResponse> assertSanityAndStartTransactions(
             TestableTimelockServer leader, List<String> expectedNamespaces) {
         MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
+        int numTransactions = 5;
+
         Map<Namespace, ConjureStartTransactionsRequest> namespaceToRequestMap =
-                defaultNamespacedStartTransactionsRequests(expectedNamespaces);
+                defaultNamespacedStartTransactionsRequests(expectedNamespaces, numTransactions);
 
         Map<Namespace, ConjureStartTransactionsResponse> startTransactions =
                 multiClientConjureTimelockService.startTransactions(AUTH_HEADER, namespaceToRequestMap);
@@ -538,6 +542,13 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         Set<String> namespaces =
                 startTransactions.keySet().stream().map(Namespace::get).collect(Collectors.toSet());
         assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
+
+        assertThat(startTransactions.values().stream()
+                        .map(ConjureStartTransactionsResponse::getTimestamps)
+                        .mapToLong(partitionedTimestamps ->
+                                partitionedTimestamps.stream().count())
+                        .sum())
+                .isEqualTo(namespaces.size() * numTransactions);
         return startTransactions;
     }
 
