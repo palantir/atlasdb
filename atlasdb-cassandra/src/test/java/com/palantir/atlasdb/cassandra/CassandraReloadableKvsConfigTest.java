@@ -111,7 +111,7 @@ public class CassandraReloadableKvsConfigTest {
 
         when(config.servers()).thenReturn(ImmutableDefaultConfig.of());
         when(runtimeConfig.servers()).thenReturn(ImmutableDefaultConfig.of());
-        assertThatThrownBy(() -> reloadableConfig.servers())
+        assertThatThrownBy(reloadableConfig::servers)
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessage("'servers' must have at least one defined host");
     }
