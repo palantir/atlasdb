@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Requests to Cassandra may previously have thrown a `NoSuchElementException` from `WeightedHosts` when attempting to perform a request, if this was concurrent with our view of the Cassandra cluster being refreshed and changing. This has been fixed.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5266

@@ -18,12 +18,12 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetAddress;
@@ -313,8 +314,10 @@ public class CassandraService implements AutoCloseable {
 
         Set<InetSocketAddress> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
 
-        Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools =
-                Maps.filterKeys(currentPools, localFilteredHosts::contains);
+        Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools = KeyedStream.stream(
+                        ImmutableMap.copyOf(currentPools))
+                .filterKeys(localFilteredHosts::contains)
+                .collectToMap();
         if (matchingPools.isEmpty()) {
             return Optional.empty();
         }
