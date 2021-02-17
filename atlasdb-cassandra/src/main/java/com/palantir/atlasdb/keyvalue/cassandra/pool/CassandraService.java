@@ -314,8 +314,8 @@ public class CassandraService implements AutoCloseable {
 
         Set<InetSocketAddress> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
 
-        Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools =
-                KeyedStream.stream(ImmutableMap.copyOf(currentPools))
+        Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools = KeyedStream.stream(
+                        ImmutableMap.copyOf(currentPools))
                 .filterKeys(localFilteredHosts::contains)
                 .collectToMap();
         if (matchingPools.isEmpty()) {
