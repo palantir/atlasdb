@@ -106,9 +106,17 @@ public class CassandraReloadableKvsConfigTest {
 
     @Test
     public void requireAtLeastOneServer() {
-        when(config.servers()).thenReturn(ImmutableDefaultConfig.of());
-        when(runtimeConfig.servers()).thenReturn(ImmutableDefaultConfig.of());
-        assertThatThrownBy(() -> getReloadableConfigWithRuntimeConfig().check())
+        CassandraKeyValueServiceConfig keyValueServiceConfig =
+                ImmutableCassandraKeyValueServiceConfig.builder()
+                        .credentials(mock(CassandraCredentialsConfig.class))
+                        .replicationFactor(1)
+                        .build();
+        CassandraKeyValueServiceRuntimeConfig keyValueServiceRuntimeConfig =
+                CassandraKeyValueServiceRuntimeConfig.getDefault();
+        assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
+                        keyValueServiceConfig,
+                        () -> Optional.of(keyValueServiceRuntimeConfig),
+                        Optional.of("namespace")))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessage("'servers' must have at least one defined host");
     }
