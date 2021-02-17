@@ -117,15 +117,37 @@ public class CassandraReloadableKvsConfigTest {
     }
 
     @Test
-    public void poolSize_resolvesToRuntimeConfig() {
+    public void poolSize_prefersRuntimeConfig() {
         CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
 
+        when(config.poolSize()).thenReturn(88);
         when(runtimeConfig.poolSize()).thenReturn(99);
         assertThat(reloadableConfig.poolSize()).isEqualTo(99);
+    }
 
-        when(config.servers()).thenReturn(ImmutableDefaultConfig.of());
-        when(runtimeConfig.servers()).thenReturn(SERVERS_CONFIG2);
-        assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(99 * 2);
+    @Test
+    public void poolSize_withoutRuntimeConfig() {
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithEmptyRuntimeConfig();
+
+        when(config.poolSize()).thenReturn(99);
+        assertThat(reloadableConfig.poolSize()).isEqualTo(99);
+    }
+
+    @Test
+    public void concurrentGetRangesThreadPoolSize_prefersRuntimeConfig() {
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
+
+        when(config.concurrentGetRangesThreadPoolSize()).thenReturn(88);
+        when(runtimeConfig.concurrentGetRangesThreadPoolSize()).thenReturn(99);
+        assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(99);
+    }
+
+    @Test
+    public void concurrentGetRangesThreadPoolSize_withoutRuntimeConfig() {
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithEmptyRuntimeConfig();
+
+        when(config.concurrentGetRangesThreadPoolSize()).thenReturn(99);
+        assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(99);
     }
 
     private CassandraReloadableKvsConfig getReloadableConfigWithEmptyRuntimeConfig() {

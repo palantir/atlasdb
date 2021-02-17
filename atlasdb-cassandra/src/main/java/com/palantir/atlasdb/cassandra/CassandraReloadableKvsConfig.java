@@ -65,11 +65,6 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
     }
 
     @Override
-    public int poolSize() {
-        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::poolSize, config.poolSize());
-    }
-
-    @Override
     public int maxConnectionBurstSize() {
         return config.maxConnectionBurstSize();
     }
@@ -249,7 +244,14 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public int concurrentGetRangesThreadPoolSize() {
-        return poolSize() * servers().numberOfThriftHosts();
+        return chooseConfig(
+                CassandraKeyValueServiceRuntimeConfig::concurrentGetRangesThreadPoolSize,
+                config.concurrentGetRangesThreadPoolSize());
+    }
+
+    @Override
+    public int poolSize() {
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::poolSize, config.poolSize());
     }
 
     @Override

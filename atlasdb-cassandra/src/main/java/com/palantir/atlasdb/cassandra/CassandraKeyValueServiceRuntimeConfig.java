@@ -100,6 +100,11 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
     }
 
     @Value.Default
+    public int concurrentGetRangesThreadPoolSize() {
+        return poolSize() * servers().numberOfThriftHosts();
+    }
+
+    @Value.Default
     public int poolSize() {
         return CassandraConstants.DEFAULT_POOL_SIZE;
     }
