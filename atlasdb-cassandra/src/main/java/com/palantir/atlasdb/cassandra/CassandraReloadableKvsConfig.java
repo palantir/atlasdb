@@ -42,7 +42,7 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public CassandraServersConfigs.CassandraServersConfig servers() {
-        // get servers from install config (for backcompat), otherwise get servers from runtime config
+        // get from install config (for backcompat), otherwise get from runtime config
         if (config.servers().numberOfThriftHosts() > 0) {
             return config.servers();
         }
@@ -244,6 +244,12 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public int concurrentGetRangesThreadPoolSize() {
+        // get from install config (to allow overriding in install when runtime is left as default),
+        // otherwise get from runtime config
+        if (config.concurrentGetRangesThreadPoolSize() > 0) {
+            return config.concurrentGetRangesThreadPoolSize();
+        }
+
         return chooseConfig(
                 CassandraKeyValueServiceRuntimeConfig::concurrentGetRangesThreadPoolSize,
                 config.concurrentGetRangesThreadPoolSize());

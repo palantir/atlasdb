@@ -134,12 +134,20 @@ public class CassandraReloadableKvsConfigTest {
     }
 
     @Test
-    public void concurrentGetRangesThreadPoolSize_prefersRuntimeConfig() {
+    public void concurrentGetRangesThreadPoolSize_prefersInstallConfigIfBothSet() {
         CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
 
         when(config.concurrentGetRangesThreadPoolSize()).thenReturn(88);
         when(runtimeConfig.concurrentGetRangesThreadPoolSize()).thenReturn(99);
-        assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(99);
+        assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(88);
+    }
+
+    @Test
+    public void concurrentGetRangesThreadPoolSize_prefersInstallConfigIfRuntimeIsDefault() {
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
+
+        when(config.concurrentGetRangesThreadPoolSize()).thenReturn(88);
+        assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(88);
     }
 
     @Test
