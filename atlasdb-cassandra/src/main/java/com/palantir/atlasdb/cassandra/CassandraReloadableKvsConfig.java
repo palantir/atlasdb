@@ -42,13 +42,12 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public CassandraServersConfigs.CassandraServersConfig servers() {
-        CassandraServersConfig servers;
         // get servers from install config (for backcompat), otherwise get servers from runtime config
         if (config.servers().numberOfThriftHosts() > 0) {
-            servers = config.servers();
-        } else {
-            servers = chooseConfig(CassandraKeyValueServiceRuntimeConfig::servers, config.servers());
+            return config.servers();
         }
+
+        CassandraServersConfig servers = chooseConfig(CassandraKeyValueServiceRuntimeConfig::servers, config.servers());
         Preconditions.checkState(
                 !servers.accept(new ThriftHostsExtractingVisitor()).isEmpty(),
                 "'servers' must have at least one defined host");
