@@ -32,12 +32,16 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import org.immutables.value.Value.Check;
 import org.immutables.value.Value.Immutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A PuncherStore implemented as a table in the KeyValueService.
@@ -45,6 +49,7 @@ import org.immutables.value.Value.Immutable;
  * @author jweel
  */
 public final class KeyValueServicePuncherStore implements PuncherStore {
+    private static final Logger log = LoggerFactory.getLogger(KeyValueServicePuncherStore.class);
     static final long MAX_RANGE_SCAN_SIZE = TimeUnit.HOURS.toMillis(4);
 
     private final class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PuncherStore {
@@ -204,6 +209,15 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         if (rangeScanResult.isPresent()) {
             return rangeScanResult;
         }
+        if (!boundsOrMillis.millis().isPresent()) {
+            log.info(
+                    "Did not find a match for timestamp {} with initial bounds {} and {}. Bounds for range scan were "
+                            + "{}.",
+                    SafeArg.of("timestamp", timestamp),
+                    SafeArg.of("initialLower", lowerBound),
+                    SafeArg.of("initialUpper", upperBound),
+                    SafeArg.of("rangeScanBounds", boundsOrMillis.bounds()));
+        }
         return boundsOrMillis.millis();
     }
 
@@ -286,9 +300,10 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
      *   then betweenBounds.millis() is the best approximation for the real time in milliseconds corresponding to
      *   timestamp.
      *
-     * Once both the upper bound and the lower bound have an associated timestamp, we determine the next test value
-     * by assuming a linear correlation between time in milliseconds and timestamps, and interpolate the next
-     * candidate in the standard way: y = d(x)/d(y) (x - x_1) + y_1. Otherwise, we simply take the midpoint.
+     * Once both the upper bound and the lower bound have an associated timestamp, with a probability of 0.5 we
+     * determine the next test value by assuming a linear correlation between time in milliseconds and timestamps, and
+     * interpolate the next candidate in the standard way: y = d(x)/d(y) (x - x_1) + y_1. Otherwise, we simply take the
+     * midpoint.
      *
      * Note  that, as an optimisation, the initial test value is expected to be equal to lower bound in this
      * implementation, but in cases lower bound is extremely low, the test value will be relatively close to the upper
@@ -323,7 +338,9 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
                         .build();
             }
 
-            if (lowerBound.timestamp().isPresent() && upperBound.timestamp().isPresent()) {
+            if (lowerBound.timestamp().isPresent()
+                    && upperBound.timestamp().isPresent()
+                    && ThreadLocalRandom.current().nextBoolean()) {
                 long tsDelta =
                         upperBound.timestamp().get() - lowerBound.timestamp().get();
                 long millisDelta = upperBound.millis() - lowerBound.millis();
@@ -331,6 +348,9 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
                     return noRangeScan(lowerBound);
                 }
                 testValue = millisDelta * (timestamp - lowerBound.timestamp().get()) / tsDelta + lowerBound.millis();
+                if (testValue < lowerBound.millis() || testValue > upperBound.millis()) {
+                    testValue = (lowerBound.millis() + upperBound.millis()) / 2;
+                }
             } else {
                 testValue = (lowerBound.millis() + upperBound.millis()) / 2;
             }
