@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cassandra;
 
 import com.google.common.base.MoreObjects;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
@@ -41,6 +42,14 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public CassandraServersConfigs.CassandraServersConfig servers() {
+        CassandraServersConfig servers = chooseServers();
+        Preconditions.checkState(
+                !servers.accept(new ThriftHostsExtractingVisitor()).isEmpty(),
+                "'servers' must have at least one defined host");
+        return servers;
+    }
+
+    private CassandraServersConfig chooseServers() {
         // get servers from install config (for backcompat), otherwise get servers from runtime config
         if (config.servers().numberOfThriftHosts() > 0) {
             return config.servers();
@@ -60,7 +69,7 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public int poolSize() {
-        return config.poolSize();
+        return chooseConfig(CassandraKeyValueServiceRuntimeConfig::poolSize, config.poolSize());
     }
 
     @Override
@@ -243,7 +252,7 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public int concurrentGetRangesThreadPoolSize() {
-        return config.concurrentGetRangesThreadPoolSize();
+        return poolSize() * servers().numberOfThriftHosts();
     }
 
     @Override
@@ -258,9 +267,7 @@ public class CassandraReloadableKvsConfig implements CassandraKeyValueServiceCon
 
     @Override
     public void check() {
-        Preconditions.checkState(
-                !servers().accept(new ThriftHostsExtractingVisitor()).isEmpty(),
-                "'servers' must have at least one defined host");
+        // this class is not an immutables so this method is never called
     }
 
     private <T> T chooseConfig(Function<CassandraKeyValueServiceRuntimeConfig, T> runtimeConfig, T installConfig) {

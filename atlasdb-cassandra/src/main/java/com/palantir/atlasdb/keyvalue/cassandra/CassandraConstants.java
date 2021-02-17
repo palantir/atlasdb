@@ -57,6 +57,7 @@ public final class CassandraConstants {
     public static final int DEFAULT_MUTATION_BATCH_SIZE_BYTES = 4 * 1024 * 1024;
     public static final int DEFAULT_MUTATION_BATCH_COUNT = 5000;
     public static final int DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS = 30;
+    public static final int DEFAULT_POOL_SIZE = 30;
 
     public static final int DEFAULT_CROSS_COLUMN_LOAD_BATCH_LIMIT = 200;
     // TODO (jkong): Review this limit, it seems like we are making very big requests to Cassandra even at this value

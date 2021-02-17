@@ -84,10 +84,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         CassandraKeyValueServiceConfig configWithNamespace =
                 CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
 
-        CassandraReloadableKvsConfig reloadableKvsConfig =
-                new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
-        reloadableKvsConfig.check();
-        return reloadableKvsConfig;
+        return new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
     }
 
     @VisibleForTesting

@@ -99,6 +99,11 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
 
+    @Value.Default
+    public int poolSize() {
+        return CassandraConstants.DEFAULT_POOL_SIZE;
+    }
+
     /**
      * The number of times a call to Cassandra retries a single host.
      */

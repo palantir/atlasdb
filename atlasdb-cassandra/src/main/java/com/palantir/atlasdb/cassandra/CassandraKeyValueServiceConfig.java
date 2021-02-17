@@ -73,7 +73,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Default
     default int poolSize() {
-        return 30;
+        return CassandraConstants.DEFAULT_POOL_SIZE;
     }
 
     /**

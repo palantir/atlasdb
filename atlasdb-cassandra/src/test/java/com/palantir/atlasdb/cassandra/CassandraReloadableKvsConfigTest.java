@@ -34,6 +34,7 @@ public class CassandraReloadableKvsConfigTest {
             .build();
     private static final DefaultConfig SERVERS_CONFIG2 = ImmutableDefaultConfig.builder()
             .addThriftHosts(new InetSocketAddress("foo2", 43))
+            .addThriftHosts(new InetSocketAddress("foo3", 44))
             .build();
 
     private CassandraKeyValueServiceConfig config;
@@ -106,18 +107,25 @@ public class CassandraReloadableKvsConfigTest {
 
     @Test
     public void requireAtLeastOneServer() {
-        CassandraKeyValueServiceConfig keyValueServiceConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .credentials(mock(CassandraCredentialsConfig.class))
-                .replicationFactor(1)
-                .build();
-        CassandraKeyValueServiceRuntimeConfig keyValueServiceRuntimeConfig =
-                CassandraKeyValueServiceRuntimeConfig.getDefault();
-        assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
-                        keyValueServiceConfig,
-                        () -> Optional.of(keyValueServiceRuntimeConfig),
-                        Optional.of("namespace")))
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
+
+        when(config.servers()).thenReturn(ImmutableDefaultConfig.of());
+        when(runtimeConfig.servers()).thenReturn(ImmutableDefaultConfig.of());
+        assertThatThrownBy(() -> reloadableConfig.servers())
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessage("'servers' must have at least one defined host");
+    }
+
+    @Test
+    public void poolSize_resolvesToRuntimeConfig() {
+        CassandraReloadableKvsConfig reloadableConfig = getReloadableConfigWithRuntimeConfig();
+
+        when(runtimeConfig.poolSize()).thenReturn(99);
+        assertThat(reloadableConfig.poolSize()).isEqualTo(99);
+
+        when(config.servers()).thenReturn(ImmutableDefaultConfig.of());
+        when(runtimeConfig.servers()).thenReturn(SERVERS_CONFIG2);
+        assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(99 * 2);
     }
 
     private CassandraReloadableKvsConfig getReloadableConfigWithEmptyRuntimeConfig() {
