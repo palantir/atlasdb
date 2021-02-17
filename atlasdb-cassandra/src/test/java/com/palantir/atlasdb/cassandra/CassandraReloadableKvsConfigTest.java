@@ -106,11 +106,10 @@ public class CassandraReloadableKvsConfigTest {
 
     @Test
     public void requireAtLeastOneServer() {
-        CassandraKeyValueServiceConfig keyValueServiceConfig =
-                ImmutableCassandraKeyValueServiceConfig.builder()
-                        .credentials(mock(CassandraCredentialsConfig.class))
-                        .replicationFactor(1)
-                        .build();
+        CassandraKeyValueServiceConfig keyValueServiceConfig = ImmutableCassandraKeyValueServiceConfig.builder()
+                .credentials(mock(CassandraCredentialsConfig.class))
+                .replicationFactor(1)
+                .build();
         CassandraKeyValueServiceRuntimeConfig keyValueServiceRuntimeConfig =
                 CassandraKeyValueServiceRuntimeConfig.getDefault();
         assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
