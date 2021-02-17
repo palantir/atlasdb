@@ -66,16 +66,8 @@ public class MultiClientConjureTimelockResourceTest {
     private MultiClientConjureTimelockResource resource;
 
     private PartitionedTimestamps partitionedTimestamps = mock(PartitionedTimestamps.class);
-    private Lease lease = mock(Lease.class);
     private LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
     private LockImmutableTimestampResponse lockImmutableTimestampResponse = mock(LockImmutableTimestampResponse.class);
-    private final ConjureStartTransactionsResponse startTransactionsResponse =
-            ConjureStartTransactionsResponse.builder()
-                    .immutableTimestamp(lockImmutableTimestampResponse)
-                    .lease(lease)
-                    .timestamps(partitionedTimestamps)
-                    .lockWatchUpdate(lockWatchStateUpdate)
-                    .build();
 
     @Before
     public void before() {
@@ -129,13 +121,6 @@ public class MultiClientConjureTimelockResourceTest {
                 .map(LeaderTime::id)
                 .collect(Collectors.toSet());
         assertThat(leadershipIds).hasSameSizeAs(namespaces);
-    }
-
-    private Map<Namespace, ConjureStartTransactionsResponse> getStartTransactionsResponseList(List<String> namespaces) {
-        return KeyedStream.of(namespaces)
-                .map(namespace -> startTransactionsResponse)
-                .mapKeys(Namespace::of)
-                .collectToMap();
     }
 
     private Map<Namespace, ConjureStartTransactionsRequest> getStartTransactionsRequests(List<String> namespaces) {
