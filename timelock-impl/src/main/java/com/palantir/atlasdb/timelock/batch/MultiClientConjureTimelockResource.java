@@ -82,7 +82,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
             AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
         List<ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>> futures = KeyedStream.stream(
                         requests)
-                .map(this::getStartTransactionsResponseListenableFutures)
+                .map(this::startTransactionsForSingleNamespace)
                 .values()
                 .collect(Collectors.toList());
         return handleExceptions(() ->
@@ -90,8 +90,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     }
 
     private ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>
-            getStartTransactionsResponseListenableFutures(
-                    Namespace namespace, ConjureStartTransactionsRequest request) {
+            startTransactionsForSingleNamespace(Namespace namespace, ConjureStartTransactionsRequest request) {
         ListenableFuture<ConjureStartTransactionsResponse> conjureStartTransactionsResponseListenableFuture =
                 getServiceForNamespace(namespace).startTransactionsWithWatches(request);
         return Futures.transform(

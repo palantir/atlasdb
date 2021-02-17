@@ -68,6 +68,13 @@ public class MultiClientConjureTimelockResourceTest {
     private Lease lease = mock(Lease.class);
     private LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
     private LockImmutableTimestampResponse lockImmutableTimestampResponse = mock(LockImmutableTimestampResponse.class);
+    private final ConjureStartTransactionsResponse startTransactionsResponse =
+            ConjureStartTransactionsResponse.builder()
+                    .immutableTimestamp(lockImmutableTimestampResponse)
+                    .lease(lease)
+                    .timestamps(partitionedTimestamps)
+                    .lockWatchUpdate(lockWatchStateUpdate)
+                    .build();
 
     @Before
     public void before() {
@@ -115,7 +122,7 @@ public class MultiClientConjureTimelockResourceTest {
 
     private Map<Namespace, ConjureStartTransactionsResponse> getStartTransactionsResponseList(List<String> namespaces) {
         return KeyedStream.of(namespaces)
-                .map(namespace -> mockedStartTxnResponse())
+                .map(namespace -> startTransactionsResponse)
                 .mapKeys(Namespace::of)
                 .collectToMap();
     }
@@ -131,15 +138,6 @@ public class MultiClientConjureTimelockResourceTest {
                 .collectToMap();
     }
 
-    private ConjureStartTransactionsResponse mockedStartTxnResponse() {
-        return ConjureStartTransactionsResponse.builder()
-                .immutableTimestamp(lockImmutableTimestampResponse)
-                .lease(lease)
-                .timestamps(partitionedTimestamps)
-                .lockWatchUpdate(lockWatchStateUpdate)
-                .build();
-    }
-
     private AsyncTimelockService getServiceForClient(String client) {
         return namespaces.computeIfAbsent(client, this::createAsyncTimeLockServiceForClient);
     }
@@ -151,7 +149,7 @@ public class MultiClientConjureTimelockResourceTest {
         when(timelockService.leaderTime())
                 .thenReturn(Futures.immediateFuture(LeaderTime.of(leadershipId, NanoTime.createForTests(1L))));
         when(timelockService.startTransactionsWithWatches(any()))
-                .thenReturn(Futures.immediateFuture(mockedStartTxnResponse()));
+                .thenReturn(Futures.immediateFuture(startTransactionsResponse));
         return timelockService;
     }
 
