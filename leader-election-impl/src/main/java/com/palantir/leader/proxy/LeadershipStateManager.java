@@ -160,6 +160,9 @@ public class LeadershipStateManager<T> {
     interface LeadershipState<T> {
         LeadershipToken leadershipToken();
 
+        // It is legal to have delegate set to null while the leadershipTokenRef has not been cleared i.e. when the
+        // proxy is closed.
+        //
         // Making this nullable instead of optional as this object will be called by 1000s of threads and we want to
         // avoid the cost of setting an getting the optional.
         @Nullable
