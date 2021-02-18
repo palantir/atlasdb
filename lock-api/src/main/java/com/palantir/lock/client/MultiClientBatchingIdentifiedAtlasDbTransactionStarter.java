@@ -30,6 +30,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockWatchVersion;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,8 +79,26 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                                     Map.Entry<Namespace, StartTransactionsRequestParams>,
                                     List<StartIdentifiedAtlasDbTransactionResponse>>>>
             consumer(InternalMultiClientConjureTimelockService delegate, UUID requestorId) {
-        return batch -> {
-            Map<Namespace, StartTransactionsRequestParams> namespaceWiseRequestParams = batch.stream()
+        return batch -> serviceAllRequests(delegate, requestorId, batch);
+    }
+
+    private static void serviceAllRequests(
+            InternalMultiClientConjureTimelockService delegate,
+            UUID requestorId,
+            List<
+                            BatchElement<
+                                    Entry<Namespace, StartTransactionsRequestParams>,
+                                    List<StartIdentifiedAtlasDbTransactionResponse>>>
+                    batch) {
+
+        List<
+                        BatchElement<
+                                Entry<Namespace, StartTransactionsRequestParams>,
+                                List<StartIdentifiedAtlasDbTransactionResponse>>>
+                pendingRequests = new ArrayList<>(batch);
+
+        while (!pendingRequests.isEmpty()) {
+            Map<Namespace, StartTransactionsRequestParams> namespaceWiseRequestParams = pendingRequests.stream()
                     .map(batchElement -> batchElement.argument())
                     .collect(
                             Collectors.toMap(Entry::getKey, Entry::getValue, StartTransactionsRequestParams::coalesce));
@@ -89,20 +108,27 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
 
             Map<Namespace, Integer> responseTracker = new HashMap<>();
             for (BatchElement<
-                            Map.Entry<Namespace, StartTransactionsRequestParams>,
+                            Entry<Namespace, StartTransactionsRequestParams>,
                             List<StartIdentifiedAtlasDbTransactionResponse>>
-                    batchElement : batch) {
-                Map.Entry<Namespace, StartTransactionsRequestParams> argument = batchElement.argument();
+                    batchElement : pendingRequests) {
+                Entry<Namespace, StartTransactionsRequestParams> argument = batchElement.argument();
                 Namespace namespace = argument.getKey();
                 int start = responseTracker.putIfAbsent(namespace, 0);
+
+                if (start > result.get(namespace).size()) {
+                    continue;
+                }
+
                 int end = start + argument.getValue().numTransactions();
                 batchElement
                         .result()
-                        // todo snanda this would throw
                         .set(ImmutableList.copyOf(result.get(namespace).subList(start, end)));
                 responseTracker.put(namespace, end);
             }
-        };
+
+            pendingRequests =
+                    pendingRequests.stream().filter(x -> !x.result().isDone()).collect(Collectors.toList());
+        }
     }
 
     private static Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> getStartTransactionResponses(
