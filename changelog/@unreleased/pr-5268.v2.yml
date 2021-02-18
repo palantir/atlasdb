@@ -1,15 +1,5 @@
 type: fix
 fix:
-  description: |-
-    ALP Hotfix
-
-    **Goals (and why)**:
-    `LeadershipStateManager#getLeadershipState` will not throw NullPointerExceptions when the delegateRef has been cleared.
-
-    <!---
-    Please remember to:
-    - Add any necessary release notes (including breaking changes)
-    - Make sure the documentation is up to date for your change
-    --->
+  description: '`LeadershipStateManager#getLeadershipState` will not throw NullPointerExceptions when the delegateRef has been cleared.'
   links:
   - https://github.com/palantir/atlasdb/pull/5268
