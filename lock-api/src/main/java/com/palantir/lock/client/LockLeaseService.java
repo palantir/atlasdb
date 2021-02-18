@@ -94,7 +94,11 @@ class LockLeaseService {
                 .numTransactions(batchSize)
                 .lastKnownVersion(toConjure(maybeVersion))
                 .build();
-        ConjureStartTransactionsResponse response = delegate.startTransactions(request);
+        return getMassagedConjureStartTransactionsResponse(delegate.startTransactions(request));
+    }
+
+    public static ConjureStartTransactionsResponse getMassagedConjureStartTransactionsResponse(
+            ConjureStartTransactionsResponse response) {
         Lease lease = response.getLease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(
                 ConjureLockToken.of(response.getImmutableTimestamp().getLock().getRequestId()), lease);
@@ -184,7 +188,7 @@ class LockLeaseService {
         return leasedTokens.stream().map(LeasedLockToken::serverToken).collect(Collectors.toSet());
     }
 
-    private Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {
+    public static Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {
         return maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
                 .id(identifiedVersion.id())
                 .version(identifiedVersion.version())
