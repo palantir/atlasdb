@@ -160,6 +160,9 @@ public class LeadershipStateManager<T> {
     interface LeadershipState<T> {
         LeadershipToken leadershipToken();
 
+        // Making this nullable instead of optional as this object will be called by 1000s of threads and we want to
+        // avoid the cost of setting an getting the optional.
+        @Nullable
         T delegate();
     }
 }
