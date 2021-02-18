@@ -80,16 +80,12 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
             consumer(InternalMultiClientConjureTimelockService delegate, UUID requestorId) {
         return batch -> {
             Map<Namespace, StartTransactionsRequestParams> namespaceWiseRequestParams = batch.stream()
-                    .map(x -> x.argument())
-                    .collect(Collectors.toMap(
-                            Entry::getKey,
-                            Entry::getValue,
-                            (params1, params2) -> StartTransactionsRequestParams.of(
-                                    params1.numTransactions() + params2.numTransactions(),
-                                    params1.lockWatchVersionSupplier())));
+                    .map(batchElement -> batchElement.argument())
+                    .collect(
+                            Collectors.toMap(Entry::getKey, Entry::getValue, StartTransactionsRequestParams::coalesce));
 
             Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> result =
-                    getResponses(namespaceWiseRequestParams, delegate, requestorId);
+                    getStartTransactionResponses(namespaceWiseRequestParams, delegate, requestorId);
 
             Map<Namespace, Integer> responseTracker = new HashMap<>();
             for (BatchElement<
@@ -102,13 +98,14 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                 int end = start + argument.getValue().numTransactions();
                 batchElement
                         .result()
+                        // todo snanda this would throw
                         .set(ImmutableList.copyOf(result.get(namespace).subList(start, end)));
                 responseTracker.put(namespace, end);
             }
         };
     }
 
-    private static Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> getResponses(
+    private static Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> getStartTransactionResponses(
             Map<Namespace, StartTransactionsRequestParams> originalRequestMap,
             InternalMultiClientConjureTimelockService delegate,
             UUID requestorId) {
@@ -160,6 +157,12 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
         static StartTransactionsRequestParams of(
                 int numTransactions, Supplier<Optional<LockWatchVersion>> lockWatchVersion) {
             return ImmutableStartTransactionsRequestParams.of(numTransactions, lockWatchVersion);
+        }
+
+        static StartTransactionsRequestParams coalesce(
+                StartTransactionsRequestParams params1, StartTransactionsRequestParams params2) {
+            return StartTransactionsRequestParams.of(
+                    params1.numTransactions() + params2.numTransactions(), params1.lockWatchVersionSupplier());
         }
     }
 }
