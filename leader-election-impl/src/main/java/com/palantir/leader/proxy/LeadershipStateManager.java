@@ -164,7 +164,7 @@ public class LeadershipStateManager<T> {
         // proxy is closed.
         //
         // Making this nullable instead of optional as this object will be called by 1000s of threads and we want to
-        // avoid the cost of setting an getting the optional.
+        // avoid the cost of setting and getting the optional.
         @Nullable
         T delegate();
     }
