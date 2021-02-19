@@ -66,14 +66,7 @@ public class TimeLockInstallConfigurationTest {
     public void newServiceIfNewServiceFlagSetToTrue() {
         assertThat(ImmutableTimeLockInstallConfiguration.builder()
                         .cluster(CLUSTER_CONFIG)
-                        .paxos(ImmutablePaxosInstallConfiguration.builder()
-                                .dataDirectory(newPaxosLogDirectory)
-                                .isNewService(true)
-                                .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
-                                .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
-                                        .dataDirectory(newSqliteLogDirectory)
-                                        .build())
-                                .build())
+                        .paxos(createPaxosInstall(true, false))
                         .build()
                         .isNewServiceNode())
                 .isTrue();
@@ -83,14 +76,7 @@ public class TimeLockInstallConfigurationTest {
     public void existingServiceIfNewServiceFlagSetToFalse() {
         assertThat(ImmutableTimeLockInstallConfiguration.builder()
                         .cluster(CLUSTER_CONFIG)
-                        .paxos(ImmutablePaxosInstallConfiguration.builder()
-                                .dataDirectory(extantPaxosLogDirectory)
-                                .isNewService(false)
-                                .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
-                                .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
-                                        .dataDirectory(extantSqliteLogDirectory)
-                                        .build())
-                                .build())
+                        .paxos(createPaxosInstall(false, true))
                         .build()
                         .isNewServiceNode())
                 .isFalse();
@@ -106,16 +92,20 @@ public class TimeLockInstallConfigurationTest {
                                         Optional.empty()))
                                 .addKnownNewServers(SERVER_A)
                                 .build())
-                        .paxos(ImmutablePaxosInstallConfiguration.builder()
-                                .dataDirectory(newPaxosLogDirectory)
-                                .isNewService(false)
-                                .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
-                                .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
-                                        .dataDirectory(newSqliteLogDirectory)
-                                        .build())
-                                .build())
+                        .paxos(createPaxosInstall(false, false))
                         .build()
                         .isNewServiceNode())
                 .isTrue();
+    }
+
+    private PaxosInstallConfiguration createPaxosInstall(boolean isNewService, boolean shouldDirectoriesExist) {
+        return ImmutablePaxosInstallConfiguration.builder()
+                .dataDirectory(shouldDirectoriesExist ? extantPaxosLogDirectory : newPaxosLogDirectory)
+                .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
+                        .dataDirectory(shouldDirectoriesExist ? extantSqliteLogDirectory : extantPaxosLogDirectory)
+                        .build())
+                .isNewService(isNewService)
+                .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
+                .build();
     }
 }
