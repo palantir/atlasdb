@@ -35,6 +35,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
@@ -193,14 +194,15 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 tableReferenceOverride
                         .map(AtlasDbConstants.TIMESTAMP_TABLE::equals)
                         .orElse(true),
-                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table override found: "
-                        + tableReferenceOverride
+                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table "
+                        + "override found"
                         + "\nThis can happen if you configure the timelock server to use Cassandra KVS for timestamp"
                         + " persistence, which is unsupported.\nWe recommend using the default paxos timestamp"
                         + " persistence. However, if you are need to persist the timestamp service state in the"
                         + " database, please specify a valid DbKvs config in the timestampBoundPersister block."
                         + "\nNote that if the service has already been running, you will have to migrate the timestamp"
-                        + " table to Postgres/Oracle: please contact support. DO NOT TRY TO FIX THIS YOURSELF.");
+                        + " table to Postgres/Oracle: please contact support. DO NOT TRY TO FIX THIS YOURSELF.",
+                UnsafeArg.of("tableReferenceOverride", tableReferenceOverride));
 
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(
