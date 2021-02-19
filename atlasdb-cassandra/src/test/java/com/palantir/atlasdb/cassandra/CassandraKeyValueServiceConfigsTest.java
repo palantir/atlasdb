@@ -30,30 +30,11 @@ import java.net.URL;
 import org.junit.Test;
 
 public class CassandraKeyValueServiceConfigsTest {
-    private static final String KEYSPACE = "ks";
-    private static final String KEYSPACE_2 = "ks2";
     private static final ImmutableSet<InetSocketAddress> SERVERS = ImmutableSet.of(new InetSocketAddress("foo", 42));
     private static final CassandraCredentialsConfig CREDENTIALS = ImmutableCassandraCredentialsConfig.builder()
             .username("username")
             .password("password")
             .build();
-    private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
-            ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
-                    .replicationFactor(1)
-                    .credentials(CREDENTIALS)
-                    .build();
-    private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
-            ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
-                    .keyspace(KEYSPACE)
-                    .replicationFactor(1)
-                    .credentials(CREDENTIALS)
-                    .build();
 
     @Test
     public void canDeserialize() throws IOException, URISyntaxException {
@@ -73,31 +54,6 @@ public class CassandraKeyValueServiceConfigsTest {
 
         assertThat(deserializedTestConfig).isEqualTo(testConfig);
     }
-
-    // @Test
-    // public void canAddKeyspace() {
-    //     CassandraKeyValueServiceConfig newConfig =
-    //             CassandraKeyValueServiceConfigs.copyWithKeyspace(CONFIG_WITHOUT_KEYSPACE, KEYSPACE);
-    //     assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
-    // }
-    //
-    // @Test
-    // public void otherPropertiesConservedWhenAddingKeyspace() {
-    //     CassandraKeyValueServiceConfig newConfig =
-    //             CassandraKeyValueServiceConfigs.copyWithKeyspace(CONFIG_WITHOUT_KEYSPACE, KEYSPACE);
-    //     assertThat(newConfig.replicationFactor()).isEqualTo(1);
-    //     assertThat(newConfig.servers())
-    //             .isEqualTo(ImmutableDefaultConfig.builder()
-    //                     .addAllThriftHosts(SERVERS)
-    //                     .build());
-    // }
-    //
-    // @Test
-    // public void canReplaceKeyspace() {
-    //     CassandraKeyValueServiceConfig newConfig =
-    //             CassandraKeyValueServiceConfigs.copyWithKeyspace(CONFIG_WITH_KEYSPACE, KEYSPACE_2);
-    //     assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE_2);
-    // }
 
     @Test
     public void canDeserializeRuntimeConfig() throws IOException {
