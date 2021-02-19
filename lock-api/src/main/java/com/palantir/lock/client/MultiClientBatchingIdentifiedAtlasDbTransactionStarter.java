@@ -19,6 +19,7 @@ package com.palantir.lock.client;
 import static com.palantir.lock.client.LockLeaseService.toConjure;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockWatchVersion;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -88,27 +90,29 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                                     NamespacedStartTransactionsRequestParams,
                                     List<StartIdentifiedAtlasDbTransactionResponse>>>
                     batch) {
-        // todo - do the following two in one iteration on the batch
-        Map<Namespace, PendingRequestsManager> namespaceWisePendingRequests = getNamespaceWisePendingRequests(batch);
-        RequestManager requestManager = new RequestManager(getNamespaceWiseRequestParams(batch));
-        Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> startTransactionResponses;
 
-        while (requestManager.requestsPending()) {
-            startTransactionResponses = getStartTransactionResponses(requestManager.requestMap, delegate, requestorId);
+        Map<Namespace, ResponseHandler> namespaceWiseResponseHandler = getNamespaceWisePendingRequests(batch);
+        MultiClientRequestManager multiClientRequestManager =
+                new MultiClientRequestManager(getNamespaceWiseRequestParams(batch));
+
+        Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> startTransactionResponses;
+        while (multiClientRequestManager.requestsPending()) {
+            startTransactionResponses =
+                    getStartTransactionResponses(multiClientRequestManager.requestMap, delegate, requestorId);
 
             for (Map.Entry<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> namespacedResponses :
                     startTransactionResponses.entrySet()) {
                 Namespace namespace = namespacedResponses.getKey();
                 List<StartIdentifiedAtlasDbTransactionResponse> responseList = namespacedResponses.getValue();
-                // update the params situation
-                requestManager.updatePendingStartTransactionsCount(namespace, responseList.size());
-                // update responseList and serve serve requests
-                namespaceWisePendingRequests.get(namespace).acceptResponsesAndServeRequestsGreedily(responseList);
+
+                multiClientRequestManager.updatePendingStartTransactionsCount(namespace, responseList.size());
+
+                namespaceWiseResponseHandler.get(namespace).acceptResponsesAndServeRequestsGreedily(responseList);
             }
         }
     }
 
-    private static Map<Namespace, PendingRequestsManager> getNamespaceWisePendingRequests(
+    private static Map<Namespace, ResponseHandler> getNamespaceWisePendingRequests(
             List<
                             BatchElement<
                                     NamespacedStartTransactionsRequestParams,
@@ -125,7 +129,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
         }
 
         return KeyedStream.stream(namespaceWisePendingFutures)
-                .map(PendingRequestsManager::new)
+                .map(ResponseHandler::new)
                 .collectToMap();
     }
 
@@ -185,50 +189,6 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
     }
 
     @Value.Immutable
-    interface SettableResponse {
-        @Value.Parameter
-        Integer numTransactions();
-
-        @Value.Parameter
-        DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> future();
-
-        static SettableResponse of(
-                int numTransactions, DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> future) {
-            return ImmutableSettableResponse.of(numTransactions, future);
-        }
-    }
-
-    static class RequestManager {
-        private final Map<Namespace, StartTransactionsRequestParams> requestMap;
-
-        public RequestManager(Map<Namespace, StartTransactionsRequestParams> requestMap) {
-            this.requestMap = requestMap;
-        }
-
-        public boolean requestsPending() {
-            return !requestMap.isEmpty();
-        }
-
-        public void updatePendingStartTransactionsCount(Namespace namespace, int startedTransactionsCount) {
-            StartTransactionsRequestParams updatedParams = paramsAfterResponse(namespace, startedTransactionsCount);
-            if (updatedParams == null) {
-                requestMap.remove(namespace);
-            } else {
-                requestMap.put(namespace, updatedParams);
-            }
-        }
-
-        private StartTransactionsRequestParams paramsAfterResponse(Namespace namespace, int startedTransactionsCount) {
-            StartTransactionsRequestParams params = requestMap.get(namespace);
-            int numTransactions = params.numTransactions();
-            return startedTransactionsCount < numTransactions
-                    ? StartTransactionsRequestParams.of(
-                            numTransactions - startedTransactionsCount, params.lockWatchVersionSupplier())
-                    : null;
-        }
-    }
-
-    @Value.Immutable
     interface NamespacedStartTransactionsRequestParams {
         @Value.Parameter
         Namespace namespace();
@@ -258,6 +218,95 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                 StartTransactionsRequestParams params1, StartTransactionsRequestParams params2) {
             return StartTransactionsRequestParams.of(
                     params1.numTransactions() + params2.numTransactions(), params1.lockWatchVersionSupplier());
+        }
+    }
+
+    @Value.Immutable
+    interface SettableResponse {
+        @Value.Parameter
+        Integer numTransactions();
+
+        @Value.Parameter
+        DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> future();
+
+        static SettableResponse of(
+                int numTransactions, DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> future) {
+            return ImmutableSettableResponse.of(numTransactions, future);
+        }
+    }
+
+    private static class MultiClientRequestManager {
+        private final Map<Namespace, StartTransactionsRequestParams> requestMap;
+
+        public MultiClientRequestManager(Map<Namespace, StartTransactionsRequestParams> requestMap) {
+            this.requestMap = requestMap;
+        }
+
+        public boolean requestsPending() {
+            return !requestMap.isEmpty();
+        }
+
+        public void updatePendingStartTransactionsCount(Namespace namespace, int startedTransactionsCount) {
+            StartTransactionsRequestParams updatedParams = paramsAfterResponse(namespace, startedTransactionsCount);
+            if (updatedParams == null) {
+                requestMap.remove(namespace);
+            } else {
+                requestMap.put(namespace, updatedParams);
+            }
+        }
+
+        private StartTransactionsRequestParams paramsAfterResponse(Namespace namespace, int startedTransactionsCount) {
+            StartTransactionsRequestParams params = requestMap.get(namespace);
+            int numTransactions = params.numTransactions();
+            return startedTransactionsCount < numTransactions
+                    ? StartTransactionsRequestParams.of(
+                            numTransactions - startedTransactionsCount, params.lockWatchVersionSupplier())
+                    : null;
+        }
+    }
+
+    private static class ResponseHandler {
+        private final Queue<SettableResponse> pendingRequestQueue;
+        private List<StartIdentifiedAtlasDbTransactionResponse> responseList;
+        private int start;
+
+        ResponseHandler(Queue<SettableResponse> pendingRequestQueue) {
+            this.pendingRequestQueue = pendingRequestQueue;
+            this.responseList = new ArrayList<>();
+            this.start = 0;
+        }
+
+        public void acceptResponsesAndServeRequestsGreedily(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
+            acceptResponses(responses);
+            serveRequests();
+        }
+
+        private void acceptResponses(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
+            if (responses.size() < responseList.size()) {
+                responseList.addAll(responses);
+            } else {
+                responses.addAll(responseList);
+                responseList = responses;
+            }
+        }
+
+        private void serveRequests() {
+            int end;
+            while (!pendingRequestQueue.isEmpty()) {
+                int numRequired = pendingRequestQueue.peek().numTransactions();
+                if (start + numRequired > responseList.size()) {
+                    break;
+                }
+                end = start + numRequired;
+                pendingRequestQueue.poll().future().set(ImmutableList.copyOf(responseList.subList(start, end)));
+                start = end;
+            }
+            reset();
+        }
+
+        private void reset() {
+            responseList = responseList.subList(start, responseList.size());
+            start = 0;
         }
     }
 }
