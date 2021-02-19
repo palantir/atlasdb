@@ -21,26 +21,33 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CassandraAtlasDbFactoryTest {
     private static final String KEYSPACE = "ks";
     private static final String KEYSPACE_2 = "ks2";
     private static final ImmutableSet<InetSocketAddress> SERVERS = ImmutableSet.of(new InetSocketAddress("foo", 42));
+    private static final ImmutableSet<InetSocketAddress> SERVERS2 =
+            ImmutableSet.of(new InetSocketAddress("foo", 42), new InetSocketAddress("foo2", 43));
     private static final CassandraCredentialsConfig CREDENTIALS = ImmutableCassandraCredentialsConfig.builder()
             .username("username")
             .password("password")
             .build();
 
+    private static final ImmutableDefaultConfig SERVERS_CONFIG =
+            ImmutableDefaultConfig.builder().addAllThriftHosts(SERVERS).build();
+    private static final ImmutableDefaultConfig SERVERS_CONFIG2 =
+            ImmutableDefaultConfig.builder().addAllThriftHosts(SERVERS2).build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
-                    .servers(ImmutableDefaultConfig.builder()
-                            .addAllThriftHosts(SERVERS)
-                            .build())
+                    .servers(SERVERS_CONFIG)
                     .replicationFactor(1)
                     .credentials(CREDENTIALS)
                     .build();
@@ -63,7 +70,7 @@ public class CassandraAtlasDbFactoryTest {
         assertThatThrownBy(() -> {
                     KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
                     CassandraAtlasDbFactory.preprocessKvsConfig(
-                            keyValueServiceConfig, Optional::empty, Optional.empty());
+                            keyValueServiceConfig, Refreshable.only(Optional.empty()), Optional.empty());
                 })
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -71,35 +78,35 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void throwsWhenPreprocessingConfigWithNoKeyspaceAndNoNamespace() {
         assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
-                        CONFIG_WITHOUT_KEYSPACE, Optional::empty, Optional.empty()))
+                        CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
         assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
-                        CONFIG_WITH_KEYSPACE, Optional::empty, Optional.of(KEYSPACE_2)))
+                        CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE_2)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void resolvesConfigWithOriginalKeyspaceIfNoNamespaceProvided() {
-        CassandraKeyValueServiceConfig newConfig =
-                CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITH_KEYSPACE, Optional::empty, Optional.empty());
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty());
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(CONFIG_WITH_KEYSPACE.getKeyspaceOrThrow());
     }
 
     @Test
     public void resolvesConfigWithNamespaceIfNoKeyspaceProvided() {
         CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
-                CONFIG_WITHOUT_KEYSPACE, Optional::empty, Optional.of(KEYSPACE));
+                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
     public void preservesOtherPropertiesOnResolvedConfigWithNamespace() {
         CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
-                CONFIG_WITHOUT_KEYSPACE, Optional::empty, Optional.of(KEYSPACE));
+                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
         assertThat(newConfig.servers())
                 .isEqualTo(ImmutableDefaultConfig.builder()
                         .addAllThriftHosts(SERVERS)
@@ -110,7 +117,7 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void resolvesConfigIfKeyspaceAndNamespaceProvidedAndMatch() {
         CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
-                CONFIG_WITH_KEYSPACE, Optional::empty, Optional.of(KEYSPACE));
+                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
@@ -157,5 +164,128 @@ public class CassandraAtlasDbFactoryTest {
         assertThat(returnedConfig)
                 .describedAs("First invalid config should resolve to default")
                 .isEqualTo(DEFAULT_CKVS_RUNTIME_CONFIG);
+    }
+
+    @Test
+    public void serversInBothInstallAndRuntime_prefersInstall() {
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                CONFIG_WITH_KEYSPACE,
+                Refreshable.only(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .servers(SERVERS_CONFIG2)
+                        .build())),
+                Optional.empty());
+
+        assertThat(newConfig.servers()).isEqualTo(SERVERS_CONFIG);
+    }
+
+    @Test
+    public void serversInOnlyInstall_prefersInstall() {
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                CONFIG_WITH_KEYSPACE,
+                Refreshable.only(Optional.of(
+                        ImmutableCassandraKeyValueServiceRuntimeConfig.builder().build())),
+                Optional.empty());
+
+        assertThat(newConfig.servers()).isEqualTo(SERVERS_CONFIG);
+    }
+
+    @Test
+    public void serversInOnlyRuntime_prefersRuntime() {
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                ImmutableCassandraKeyValueServiceConfig.builder()
+                        .from(CONFIG_WITH_KEYSPACE)
+                        .servers(ImmutableDefaultConfig.of())
+                        .build(),
+                Refreshable.only(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .servers(SERVERS_CONFIG2)
+                        .build())),
+                Optional.empty());
+
+        assertThat(newConfig.servers()).isEqualTo(SERVERS_CONFIG2);
+    }
+
+    @Test
+    public void requireAtLeastOneServer() {
+        assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
+                        ImmutableCassandraKeyValueServiceConfig.builder()
+                                .from(CONFIG_WITH_KEYSPACE)
+                                .servers(ImmutableDefaultConfig.of())
+                                .build(),
+                        Refreshable.only(Optional.of(CassandraKeyValueServiceRuntimeConfig.getDefault())),
+                        Optional.empty()))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessage("'servers' must have at least one defined host");
+    }
+
+    @Test
+    public void poolSize_prefersRuntimeConfig() {
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                ImmutableCassandraKeyValueServiceConfig.builder()
+                        .from(CONFIG_WITH_KEYSPACE)
+                        .poolSize(88)
+                        .build(),
+                Refreshable.only(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .poolSize(99)
+                        .build())),
+                Optional.empty());
+
+        assertThat(newConfig.poolSize()).isEqualTo(99);
+    }
+
+    @Ignore
+    @Test
+    public void poolSize_withoutRuntimeConfig() {
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                ImmutableCassandraKeyValueServiceConfig.builder()
+                        .from(CONFIG_WITH_KEYSPACE)
+                        .poolSize(88)
+                        .build(),
+                Refreshable.only(Optional.of(
+                        ImmutableCassandraKeyValueServiceRuntimeConfig.builder().build())),
+                Optional.empty());
+
+        assertThat(newConfig.poolSize()).isEqualTo(88);
+    }
+
+    @Test
+    public void concurrentGetRangesThreadPoolSize_prefersInstallConfigIfBothSet() {
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                ImmutableCassandraKeyValueServiceConfig.builder()
+                        .from(CONFIG_WITH_KEYSPACE)
+                        .concurrentGetRangesThreadPoolSize(88)
+                        .build(),
+                Refreshable.only(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .concurrentGetRangesThreadPoolSize(99)
+                        .build())),
+                Optional.empty());
+
+        assertThat(newConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(88);
+    }
+
+    @Test
+    public void concurrentGetRangesThreadPoolSize_prefersInstallConfigIfRuntimeIsDefault() {
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                ImmutableCassandraKeyValueServiceConfig.builder()
+                        .from(CONFIG_WITH_KEYSPACE)
+                        .concurrentGetRangesThreadPoolSize(88)
+                        .build(),
+                Refreshable.only(Optional.of(
+                        ImmutableCassandraKeyValueServiceRuntimeConfig.builder().build())),
+                Optional.empty());
+
+        assertThat(newConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(88);
+    }
+
+    @Test
+    public void concurrentGetRangesThreadPoolSize_withoutRuntimeConfig() {
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                ImmutableCassandraKeyValueServiceConfig.builder()
+                        .from(CONFIG_WITH_KEYSPACE)
+                        .concurrentGetRangesThreadPoolSize(88)
+                        .build(),
+                Refreshable.only(Optional.empty()),
+                Optional.empty());
+
+        assertThat(newConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(88);
     }
 }

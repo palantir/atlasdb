@@ -17,8 +17,11 @@ package com.palantir.atlasdb.cassandra;
 
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig.Builder;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -31,11 +34,15 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -51,7 +58,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     public KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> unused,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
@@ -71,20 +78,88 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @VisibleForTesting
     static CassandraKeyValueServiceConfig preprocessKvsConfig(
             KeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigRefreshable,
             Optional<String> namespace) {
         Preconditions.checkArgument(
                 config instanceof CassandraKeyValueServiceConfig,
                 "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
-                        + " CassandraKeyValueServiceConfig, found %s.",
-                config.getClass());
+                        + " CassandraKeyValueServiceConfig",
+                SafeArg.of("foundClass", config.getClass()));
         CassandraKeyValueServiceConfig cassandraConfig = (CassandraKeyValueServiceConfig) config;
 
-        String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
-        CassandraKeyValueServiceConfig configWithNamespace =
-                CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
+        Refreshable<CassandraKeyValueServiceConfig> mergedConfig = runtimeConfigRefreshable.map(runtimeConfig -> {
+            Builder builder = ImmutableCassandraKeyValueServiceConfig.builder().from(cassandraConfig);
 
-        return new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
+            builder.keyspace(OptionalResolver.resolve(namespace, cassandraConfig.keyspace()));
+
+            // only get from runtime config if install config wasn't defined (for backcompat)
+            if (cassandraConfig.servers().numberOfThriftHosts() <= 0) {
+                CassandraServersConfig servers = chooseConfig(
+                        runtimeConfig, CassandraKeyValueServiceRuntimeConfig::servers, cassandraConfig.servers());
+                Preconditions.checkState(
+                        !servers.accept(new ThriftHostsExtractingVisitor()).isEmpty(),
+                        "'servers' must have at least one defined host");
+                builder.servers(servers);
+            }
+
+            // only get from runtime config if install config wasn't defined (for backcompat)
+            if (config.concurrentGetRangesThreadPoolSize() <= 0) {
+                builder.concurrentGetRangesThreadPoolSize(chooseConfig(
+                        runtimeConfig,
+                        CassandraKeyValueServiceRuntimeConfig::concurrentGetRangesThreadPoolSize,
+                        cassandraConfig.concurrentGetRangesThreadPoolSize()));
+            }
+
+            builder.poolSize(chooseConfig(
+                    runtimeConfig, CassandraKeyValueServiceRuntimeConfig::poolSize, cassandraConfig.poolSize()));
+
+            builder.unresponsiveHostBackoffTimeSeconds(chooseConfig(
+                    runtimeConfig,
+                    CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds,
+                    cassandraConfig.unresponsiveHostBackoffTimeSeconds()));
+
+            builder.mutationBatchCount(chooseConfig(
+                    runtimeConfig,
+                    CassandraKeyValueServiceRuntimeConfig::mutationBatchCount,
+                    cassandraConfig.mutationBatchCount()));
+
+            builder.mutationBatchSizeBytes(chooseConfig(
+                    runtimeConfig,
+                    CassandraKeyValueServiceRuntimeConfig::mutationBatchSizeBytes,
+                    cassandraConfig.mutationBatchSizeBytes()));
+
+            builder.fetchBatchCount(chooseConfig(
+                    runtimeConfig,
+                    CassandraKeyValueServiceRuntimeConfig::fetchBatchCount,
+                    cassandraConfig.fetchBatchCount()));
+
+            builder.sweepReadThreads(chooseConfig(
+                    runtimeConfig,
+                    CassandraKeyValueServiceRuntimeConfig::sweepReadThreads,
+                    cassandraConfig.sweepReadThreads()));
+
+            return builder.build();
+        });
+        return new DelegatingCassandraKeyValueServiceConfig(mergedConfig);
+    }
+
+    private static <T> T chooseConfig(
+            Optional<KeyValueServiceRuntimeConfig> runtimeConfigOptional,
+            Function<CassandraKeyValueServiceRuntimeConfig, T> runtimeConfig,
+            T installConfig) {
+        return MoreObjects.firstNonNull(unwrapRuntimeConfig(runtimeConfigOptional, runtimeConfig), installConfig);
+    }
+
+    private static <T> T unwrapRuntimeConfig(
+            Optional<KeyValueServiceRuntimeConfig> runtimeConfigOptional,
+            Function<CassandraKeyValueServiceRuntimeConfig, T> function) {
+        if (!runtimeConfigOptional.isPresent()) {
+            return null;
+        }
+        CassandraKeyValueServiceRuntimeConfig ckvsRuntimeConfig =
+                (CassandraKeyValueServiceRuntimeConfig) runtimeConfigOptional.get();
+
+        return function.apply(ckvsRuntimeConfig);
     }
 
     @VisibleForTesting
@@ -98,8 +173,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                         if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
                             log.error(
                                     "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
-                                        + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
-                                        + " CassandraKeyValueServiceRuntimeConfig.",
+                                            + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
+                                            + " CassandraKeyValueServiceRuntimeConfig.",
                                     config.getClass());
                             return latestValidRuntimeConfig;
                         }
@@ -130,8 +205,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(
                 rawKvs instanceof CassandraKeyValueService,
-                "TimestampService must be created from an instance of" + " CassandraKeyValueService, found %s",
-                rawKvs.getClass());
+                "TimestampService must be created from an instance of" + " CassandraKeyValueService",
+                SafeArg.of("foundClass", rawKvs.getClass()));
         return PersistentTimestampServiceImpl.create(
                 CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs, initializeAsync),
                 initializeAsync);

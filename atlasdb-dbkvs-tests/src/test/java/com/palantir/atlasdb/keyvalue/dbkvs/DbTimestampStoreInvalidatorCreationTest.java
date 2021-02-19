@@ -35,6 +35,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import java.time.Duration;
@@ -121,7 +122,7 @@ public class DbTimestampStoreInvalidatorCreationTest {
         return new ServiceDiscoveringAtlasSupplier(
                 metrics,
                 providedKvsConfig,
-                Optional::empty,
+                Refreshable.only(Optional.empty()),
                 leaderConfig,
                 Optional.empty(),
                 tableReference,

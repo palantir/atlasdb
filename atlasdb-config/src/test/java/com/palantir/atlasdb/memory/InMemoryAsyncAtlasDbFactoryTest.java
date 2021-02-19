@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.Optional;
@@ -77,6 +78,6 @@ public class InMemoryAsyncAtlasDbFactoryTest {
 
     private KeyValueService createRawKeyValueService(boolean initializeAsync) {
         return factory.createRawKeyValueService(
-                null, null, Optional::empty, null, Optional.empty(), null, initializeAsync);
+                null, null, Refreshable.only(Optional.empty()), null, Optional.empty(), null, initializeAsync);
     }
 }
