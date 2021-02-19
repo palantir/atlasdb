@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: 'We now expose a proper mechanism for internal services to query TimeLock''s health as opposed to probing deeply into its config. User healthchecks should use `isNewServiceNode()` and not directly e.g. `paxos().isNewService()` which was broken because we added specific exclusion in the CentOS migration CLI last year. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/5269
