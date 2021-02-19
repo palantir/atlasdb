@@ -55,11 +55,15 @@ public interface TimeLockInstallConfiguration {
         return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
     }
 
+    @Value.Derived
+    default boolean isNewServiceNode() {
+        return paxos().isNewService()
+                || cluster().knownNewServers().contains(cluster().localServer());
+    }
+
     @Value.Check
     default void check() {
         TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
-                paxos().isNewService()
-                        || cluster().knownNewServers().contains(cluster().localServer()),
-                paxos().doDataDirectoriesExist());
+                isNewServiceNode(), paxos().doDataDirectoriesExist());
     }
 }
