@@ -21,7 +21,6 @@ import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig.Builder;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -88,7 +87,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
         CassandraKeyValueServiceConfig cassandraConfig = (CassandraKeyValueServiceConfig) config;
 
         Refreshable<CassandraKeyValueServiceConfig> mergedConfig = runtimeConfigRefreshable.map(runtimeConfig -> {
-            Builder builder = ImmutableCassandraKeyValueServiceConfig.builder().from(cassandraConfig);
+            ImmutableCassandraKeyValueServiceConfig.Builder builder =
+                    ImmutableCassandraKeyValueServiceConfig.builder().from(cassandraConfig);
 
             builder.keyspace(OptionalResolver.resolve(namespace, cassandraConfig.keyspace()));
 
