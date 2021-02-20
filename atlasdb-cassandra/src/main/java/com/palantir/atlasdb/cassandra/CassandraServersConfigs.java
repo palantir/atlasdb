@@ -80,7 +80,7 @@ public final class CassandraServersConfigs {
         int numberOfThriftHosts();
     }
 
-    @Value.Immutable
+    @Value.Immutable(singleton = true)
     @JsonDeserialize(as = ImmutableDefaultConfig.class)
     @JsonSerialize(as = ImmutableDefaultConfig.class)
     @JsonTypeName(DefaultConfig.TYPE)

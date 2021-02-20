@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,10 +68,10 @@ public class CassandraReloadableKvsConfigTest {
     }
 
     private CassandraReloadableKvsConfig getReloadableConfigWithEmptyRuntimeConfig() {
-        return new CassandraReloadableKvsConfig(config, Optional::empty);
+        return new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.empty()));
     }
 
     private CassandraReloadableKvsConfig getReloadableConfigWithRuntimeConfig() {
-        return new CassandraReloadableKvsConfig(config, () -> Optional.of(runtimeConfig));
+        return new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
     }
 }

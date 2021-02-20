@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampService;
 import java.util.Optional;
 import org.junit.Test;
@@ -58,6 +59,6 @@ public class InMemoryAtlasDbFactoryTest {
 
     private KeyValueService createRawKeyValueService(boolean initializeAsync) {
         return factory.createRawKeyValueService(
-                null, null, Optional::empty, null, Optional.empty(), null, initializeAsync);
+                null, null, Refreshable.only(Optional.empty()), null, Optional.empty(), null, initializeAsync);
     }
 }
