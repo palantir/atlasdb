@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CassandraApiVersion {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CassandraApiVersion.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraApiVersion.class);
 
     private final String versionString;
     private final int majorVersion;
@@ -45,11 +45,11 @@ public class CassandraApiVersion {
         boolean supportsCheckAndSet = majorVersion > 19 || (majorVersion == 19 && minorVersion >= 37);
 
         if (supportsCheckAndSet) {
-            LOGGER.info(
+            log.info(
                     "Your cassandra api version ({}) supports check and set.",
                     SafeArg.of("cassandraVersion", versionString));
         } else {
-            LOGGER.info(
+            log.info(
                     "Your cassandra api version ({}) does not support check and set.",
                     SafeArg.of("cassandraVersion", versionString));
         }

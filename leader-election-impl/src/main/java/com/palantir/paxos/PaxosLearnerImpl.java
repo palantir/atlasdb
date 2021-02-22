@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public final class PaxosLearnerImpl implements PaxosLearner {
 
-    private static final Logger logger = LoggerFactory.getLogger(PaxosLearnerImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosLearnerImpl.class);
 
     public static PaxosLearner newLearner(String logDir, PaxosKnowledgeEventRecorder eventRecorder) {
         return newLearner(new PaxosStateLogImpl<>(logDir), eventRecorder);
@@ -90,7 +90,7 @@ public final class PaxosLearnerImpl implements PaxosLearner {
             }
             return Optional.ofNullable(state.get(seq));
         } catch (IOException e) {
-            logger.error("Unable to get corrupt learned value for sequence {}", SafeArg.of("sequence", seq), e);
+            log.error("Unable to get corrupt learned value for sequence {}", SafeArg.of("sequence", seq), e);
             return Optional.empty();
         }
     }

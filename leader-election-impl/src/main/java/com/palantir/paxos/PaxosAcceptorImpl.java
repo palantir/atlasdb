@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class PaxosAcceptorImpl implements PaxosAcceptor {
-    private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
 
     public static PaxosAcceptor newAcceptor(String logDir) {
         PaxosStateLog<PaxosAcceptorState> log = new PaxosStateLogImpl<>(logDir);
@@ -61,7 +61,7 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
-            logger.error("log read failed for request: {}", seq, e);
+            log.error("log read failed for request: {}", seq, e);
             return PaxosPromise.reject(pid);
         }
 
@@ -94,7 +94,7 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
-            logger.error("Log read failed for request at sequence {}", SafeArg.of("sequence", seq), e);
+            log.error("Log read failed for request at sequence {}", SafeArg.of("sequence", seq), e);
             return new BooleanPaxosResponse(false); // nack
         }
 
