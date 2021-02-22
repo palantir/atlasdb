@@ -18,9 +18,11 @@ package com.palantir.lock.client;
 
 import static com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.processBatch;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
@@ -44,6 +46,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,15 +57,14 @@ import java.util.stream.IntStream;
 import org.junit.Test;
 
 public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
-
     private static final int NUM_PARTITIONS = 16;
     private static final int PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL = 5;
 
+    private final LockLeaseService  lockLeaseService = mock(LockLeaseService.class);
+
     private static final LockImmutableTimestampResponse IMMUTABLE_TS_RESPONSE =
             LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
-
-    private static final Lease LEASE =
-            Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(1L)), Duration.ofSeconds(1L));
+    private static final Map<Namespace, LeadershipId> NAMESPACE_LEADERSHIP_ID_MAP = new HashMap();
     private static final LockWatchStateUpdate UPDATE = LockWatchStateUpdate.success(
             UUID.randomUUID(),
             1,
@@ -104,7 +106,8 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
                                 List<StartIdentifiedAtlasDbTransactionResponse>>>
                 batch = ImmutableList.of(BatchElement.of(
                 NamespacedStartTransactionsRequestParams.of(
-                        Namespace.of("Test_0"), StartTransactionsRequestParams.of(127, Optional::empty)),
+                        Namespace.of("Test_0"), StartTransactionsRequestParams.of(127, Optional::empty,
+                                lockLeaseService)),
                 new DisruptorFuture<>("test")));
         assertSanityOfResponse(batch);
     }
@@ -121,8 +124,10 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
             NamespacedStartTransactionsRequestParams requestParams = batchElement.argument();
 
             assertThat(resultFuture.isDone()).isTrue();
-            assertThat(Futures.getUnchecked(resultFuture).size())
-                    .isEqualTo(requestParams.params().numTransactions());
+
+            List<StartIdentifiedAtlasDbTransactionResponse> responseList = Futures.getUnchecked(resultFuture);
+            assertThat(responseList.size()).isEqualTo(requestParams.params().numTransactions());
+            // assertThat(responseList.get(0).).isEqualTo(requestParams.params().numTransactions());
         });
     }
 
@@ -134,18 +139,28 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
                 .mapToObj(ind -> BatchElement.of(
                         NamespacedStartTransactionsRequestParams.of(
                                 Namespace.of("Test_" + (ind % clientCount)),
-                                StartTransactionsRequestParams.of(1, Optional::empty)),
+                                StartTransactionsRequestParams.of(1, Optional::empty, lockLeaseService)),
                         new DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>>("test")))
                 .collect(Collectors.toList());
     }
 
-    private static ConjureStartTransactionsResponse getStartTransactionResponse(long lowestStartTs, int count) {
+    private static ConjureStartTransactionsResponse getStartTransactionResponse(
+            Namespace client, long lowestStartTs, int count) {
         return ConjureStartTransactionsResponse.builder()
                 .immutableTimestamp(IMMUTABLE_TS_RESPONSE)
                 .timestamps(getPartitionedTimestamps(lowestStartTs, count))
-                .lease(LEASE)
+                .lease(getLease(client))
                 .lockWatchUpdate(UPDATE)
                 .build();
+    }
+
+    private static Lease getLease(Namespace client) {
+        return Lease.of(
+                LeaderTime.of(getLeaderIdForClient(client), NanoTime.createForTests(1L)), Duration.ofSeconds(1L));
+    }
+
+    private static LeadershipId getLeaderIdForClient(Namespace client) {
+        return NAMESPACE_LEADERSHIP_ID_MAP.computeIfAbsent(client, _unused -> LeadershipId.random());
     }
 
     private static PartitionedTimestamps getPartitionedTimestamps(long startTs, int count) {
@@ -167,8 +182,14 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
         public Map<Namespace, ConjureStartTransactionsResponse> startTransactions(
                 Map<Namespace, ConjureStartTransactionsRequest> requests) {
             return KeyedStream.stream(requests)
-                    .map(request -> getStartTransactionResponse(
-                            1, Math.min(PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL, request.getNumTransactions())))
+                    .mapEntries((namespace, request) -> Maps.immutableEntry(
+                            namespace,
+                            getStartTransactionResponse(
+                                    namespace,
+                                    1,
+                                    Math.min(
+                                            PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL,
+                                            request.getNumTransactions()))))
                     .collectToMap();
         }
     }

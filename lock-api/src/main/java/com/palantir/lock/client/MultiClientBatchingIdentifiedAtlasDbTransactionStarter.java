@@ -29,6 +29,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -67,9 +68,12 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
     }
 
     public List<StartIdentifiedAtlasDbTransactionResponse> startTransactions(
-            Namespace namespace, int request, Supplier<Optional<LockWatchVersion>> lockWatchVersionSuppplier) {
+            Namespace namespace,
+            int request,
+            Supplier<Optional<LockWatchVersion>> lockWatchVersionSuppplier,
+            LockLeaseService lockLeaseService) {
         return AtlasFutures.getUnchecked(autobatcher.apply(NamespacedStartTransactionsRequestParams.of(
-                namespace, StartTransactionsRequestParams.of(request, lockWatchVersionSuppplier))));
+                namespace, StartTransactionsRequestParams.of(request, lockWatchVersionSuppplier, lockLeaseService))));
     }
 
     private static Consumer<
@@ -95,23 +99,33 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
         MultiClientRequestManager multiClientRequestManager =
                 new MultiClientRequestManager(getNamespaceWiseRequestParams(batch));
 
-        Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> startTransactionResponses;
+        Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> startTransactionResponses = new HashMap<>();
 
-        // todo - Exception handling (requires knowledge of LockLeaseService to refresh/ unlock served requests)
         while (multiClientRequestManager.requestsPending()) {
-            startTransactionResponses =
-                    getStartTransactionResponses(multiClientRequestManager.requestMap, delegate, requestorId);
-
-            for (Map.Entry<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> namespacedResponses :
-                    startTransactionResponses.entrySet()) {
-                Namespace namespace = namespacedResponses.getKey();
-                List<StartIdentifiedAtlasDbTransactionResponse> responseList = namespacedResponses.getValue();
-
-                multiClientRequestManager.updatePendingStartTransactionsCount(namespace, responseList.size());
-
-                namespaceWiseResponseHandler.get(namespace).acceptResponsesAndServeRequests(responseList);
+            try {
+                startTransactionResponses =
+                        getStartTransactionResponses(multiClientRequestManager.requestMap, delegate, requestorId);
+                KeyedStream.stream(startTransactionResponses).forEach((namespace, responseList) -> {
+                    multiClientRequestManager.updatePendingStartTransactionsCount(namespace, responseList.size());
+                    namespaceWiseResponseHandler.get(namespace).acceptResponsesAndServeRequests(responseList);
+                });
+            } catch (Throwable t) {
+                clearResources(multiClientRequestManager, startTransactionResponses);
+                throw Throwables.throwUncheckedException(t);
             }
         }
+    }
+
+    private static void clearResources(
+            MultiClientRequestManager multiClientRequestManager,
+            Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> startTransactionResponses) {
+        KeyedStream.stream(startTransactionResponses).forEach((namespace, responseList) -> {
+            TransactionStarterHelper.unlock(
+                    responseList.stream()
+                            .map(response -> response.immutableTimestamp().getLock())
+                            .collect(Collectors.toSet()),
+                    multiClientRequestManager.getLockLeaseService(namespace));
+        });
     }
 
     private static Map<Namespace, ResponseHandler> getNamespaceWisePendingRequests(
@@ -211,15 +225,22 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
         @Value.Parameter
         Supplier<Optional<LockWatchVersion>> lockWatchVersionSupplier();
 
+        @Value.Parameter
+        LockLeaseService lockLeaseService();
+
         static StartTransactionsRequestParams of(
-                int numTransactions, Supplier<Optional<LockWatchVersion>> lockWatchVersion) {
-            return ImmutableStartTransactionsRequestParams.of(numTransactions, lockWatchVersion);
+                int numTransactions,
+                Supplier<Optional<LockWatchVersion>> lockWatchVersion,
+                LockLeaseService lockLeaseService) {
+            return ImmutableStartTransactionsRequestParams.of(numTransactions, lockWatchVersion, lockLeaseService);
         }
 
         static StartTransactionsRequestParams coalesce(
                 StartTransactionsRequestParams params1, StartTransactionsRequestParams params2) {
             return StartTransactionsRequestParams.of(
-                    params1.numTransactions() + params2.numTransactions(), params1.lockWatchVersionSupplier());
+                    params1.numTransactions() + params2.numTransactions(),
+                    params1.lockWatchVersionSupplier(),
+                    params1.lockLeaseService());
         }
     }
 
@@ -229,7 +250,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
         Integer numTransactions();
 
         @Value.Parameter
-        DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> future();
+        DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> startTransactionsFuture();
 
         static SettableResponse of(
                 int numTransactions, DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> future) {
@@ -262,8 +283,14 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
             int numTransactions = params.numTransactions();
             return startedTransactionsCount < numTransactions
                     ? StartTransactionsRequestParams.of(
-                            numTransactions - startedTransactionsCount, params.lockWatchVersionSupplier())
+                            numTransactions - startedTransactionsCount,
+                            params.lockWatchVersionSupplier(),
+                            params.lockLeaseService())
                     : null;
+        }
+
+        public LockLeaseService getLockLeaseService(Namespace namespace) {
+            return requestMap.get(namespace).lockLeaseService();
         }
     }
 
@@ -292,7 +319,6 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
             }
         }
 
-        // Todo Serve small request first?
         private void serveRequests() {
             int end;
             while (!pendingRequestQueue.isEmpty()) {
@@ -301,7 +327,10 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                     break;
                 }
                 end = start + numRequired;
-                pendingRequestQueue.poll().future().set(ImmutableList.copyOf(responseList.subList(start, end)));
+                pendingRequestQueue
+                        .poll()
+                        .startTransactionsFuture()
+                        .set(ImmutableList.copyOf(responseList.subList(start, end)));
                 start = end;
             }
             reset();

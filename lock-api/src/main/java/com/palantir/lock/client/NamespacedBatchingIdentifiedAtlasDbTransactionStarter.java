@@ -25,19 +25,22 @@ public class NamespacedBatchingIdentifiedAtlasDbTransactionStarter implements Id
     private final Namespace namespace;
     private final MultiClientBatchingIdentifiedAtlasDbTransactionStarter batcher;
     private final LockWatchEventCache lockWatchEventCache;
+    private final LockLeaseService lockLeaseService;
 
     public NamespacedBatchingIdentifiedAtlasDbTransactionStarter(
             Namespace namespace,
             MultiClientBatchingIdentifiedAtlasDbTransactionStarter batcher,
-            LockWatchEventCache lockWatchEventCache) {
+            LockWatchEventCache lockWatchEventCache,
+            LockLeaseService lockLeaseService) {
         this.namespace = namespace;
         this.batcher = batcher;
         this.lockWatchEventCache = lockWatchEventCache;
+        this.lockLeaseService = lockLeaseService;
     }
 
     @Override
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return batcher.startTransactions(namespace, count, lockWatchEventCache::lastKnownVersion);
+        return batcher.startTransactions(namespace, count, lockWatchEventCache::lastKnownVersion, lockLeaseService);
     }
 
     @Override
