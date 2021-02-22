@@ -158,6 +158,10 @@ class LockLeaseService {
                 .collect(Collectors.toSet());
     }
 
+    LockCleanupService lockCleanupService() {
+        return new LockCleanupService(this);
+    }
+
     private Set<LeasedLockToken> refreshTokens(Set<LeasedLockToken> leasedTokens) {
         if (leasedTokens.isEmpty()) {
             return leasedTokens;
@@ -193,5 +197,21 @@ class LockLeaseService {
                 .id(identifiedVersion.id())
                 .version(identifiedVersion.version())
                 .build());
+    }
+
+    public static final class LockCleanupService {
+        private final LockLeaseService delegate;
+
+        public LockCleanupService(LockLeaseService delegate) {
+            this.delegate = delegate;
+        }
+
+        Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
+            return delegate.refreshLockLeases(uncastedTokens);
+        }
+
+        Set<LockToken> unlock(Set<LockToken> tokens) {
+            return delegate.unlock(tokens);
+        }
     }
 }

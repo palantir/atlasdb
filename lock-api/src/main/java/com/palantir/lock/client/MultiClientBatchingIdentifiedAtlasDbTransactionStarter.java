@@ -71,9 +71,9 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
             Namespace namespace,
             int request,
             Supplier<Optional<LockWatchVersion>> lockWatchVersionSuppplier,
-            LockLeaseService lockLeaseService) {
+            LockLeaseService.LockCleanupService lockCleanupService) {
         return AtlasFutures.getUnchecked(autobatcher.apply(NamespacedStartTransactionsRequestParams.of(
-                namespace, StartTransactionsRequestParams.of(request, lockWatchVersionSuppplier, lockLeaseService))));
+                namespace, StartTransactionsRequestParams.of(request, lockWatchVersionSuppplier, lockCleanupService))));
     }
 
     private static Consumer<
@@ -124,7 +124,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                     responseList.stream()
                             .map(response -> response.immutableTimestamp().getLock())
                             .collect(Collectors.toSet()),
-                    multiClientRequestManager.getLockLeaseService(namespace));
+                    multiClientRequestManager.getLockCleanupService(namespace));
         });
     }
 
@@ -226,13 +226,13 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
         Supplier<Optional<LockWatchVersion>> lockWatchVersionSupplier();
 
         @Value.Parameter
-        LockLeaseService lockLeaseService();
+        LockLeaseService.LockCleanupService lockCleanupService();
 
         static StartTransactionsRequestParams of(
                 int numTransactions,
                 Supplier<Optional<LockWatchVersion>> lockWatchVersion,
-                LockLeaseService lockLeaseService) {
-            return ImmutableStartTransactionsRequestParams.of(numTransactions, lockWatchVersion, lockLeaseService);
+                LockLeaseService.LockCleanupService lockCleanupService) {
+            return ImmutableStartTransactionsRequestParams.of(numTransactions, lockWatchVersion, lockCleanupService);
         }
 
         static StartTransactionsRequestParams coalesce(
@@ -240,7 +240,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
             return StartTransactionsRequestParams.of(
                     params1.numTransactions() + params2.numTransactions(),
                     params1.lockWatchVersionSupplier(),
-                    params1.lockLeaseService());
+                    params1.lockCleanupService());
         }
     }
 
@@ -285,12 +285,12 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                     ? StartTransactionsRequestParams.of(
                             numTransactions - startedTransactionsCount,
                             params.lockWatchVersionSupplier(),
-                            params.lockLeaseService())
+                            params.lockCleanupService())
                     : null;
         }
 
-        public LockLeaseService getLockLeaseService(Namespace namespace) {
-            return requestMap.get(namespace).lockLeaseService();
+        public LockLeaseService.LockCleanupService getLockCleanupService(Namespace namespace) {
+            return requestMap.get(namespace).lockCleanupService();
         }
     }
 

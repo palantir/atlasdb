@@ -67,7 +67,7 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     Set<LockToken> unlock(Set<LockToken> tokens) {
-        return TransactionStarterHelper.unlock(tokens, lockLeaseService);
+        return TransactionStarterHelper.unlock(tokens, lockLeaseService.lockCleanupService());
     }
 
     private static Set<LockToken> reduceForRefresh(Set<LockTokenShare> lockTokenShares) {

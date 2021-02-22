@@ -94,7 +94,7 @@ public class BatchingIdentifiedAtlasDbTransactionStarter implements IdentifiedAt
                         result.stream()
                                 .map(response -> response.immutableTimestamp().getLock())
                                 .collect(Collectors.toSet()),
-                        lockLeaseService);
+                        lockLeaseService.lockCleanupService());
                 throw Throwables.throwUncheckedException(t);
             }
         }
