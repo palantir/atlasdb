@@ -96,6 +96,8 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                 new MultiClientRequestManager(getNamespaceWiseRequestParams(batch));
 
         Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> startTransactionResponses;
+
+        // todo - Exception handling (requires knowledge of LockLeaseService to refresh/ unlock served requests)
         while (multiClientRequestManager.requestsPending()) {
             startTransactionResponses =
                     getStartTransactionResponses(multiClientRequestManager.requestMap, delegate, requestorId);
@@ -107,7 +109,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
 
                 multiClientRequestManager.updatePendingStartTransactionsCount(namespace, responseList.size());
 
-                namespaceWiseResponseHandler.get(namespace).acceptResponsesAndServeRequestsGreedily(responseList);
+                namespaceWiseResponseHandler.get(namespace).acceptResponsesAndServeRequests(responseList);
             }
         }
     }
@@ -276,7 +278,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
             this.start = 0;
         }
 
-        public void acceptResponsesAndServeRequestsGreedily(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
+        public void acceptResponsesAndServeRequests(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
             acceptResponses(responses);
             serveRequests();
         }
@@ -290,6 +292,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
             }
         }
 
+        // Todo Serve small request first?
         private void serveRequests() {
             int end;
             while (!pendingRequestQueue.isEmpty()) {
