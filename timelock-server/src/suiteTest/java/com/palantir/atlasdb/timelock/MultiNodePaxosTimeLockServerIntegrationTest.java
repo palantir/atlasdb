@@ -57,6 +57,7 @@ import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -498,34 +499,27 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
 
         List<String> expectedNamespaces = ImmutableList.of("alpha", "beta");
-
+        int numTransactions = 7;
         Map<Namespace, ConjureStartTransactionsRequest> namespaceToRequestMap =
-                defaultNamespacedStartTransactionsRequests(expectedNamespaces, 7);
+                defaultNamespacedStartTransactionsRequests(expectedNamespaces, numTransactions);
 
-        Map<Namespace, ConjureStartTransactionsResponse> startTransactions =
+        Map<Namespace, ConjureStartTransactionsResponse> startedTransactions =
                 multiClientConjureTimelockService.startTransactions(AUTH_HEADER, namespaceToRequestMap);
 
         // Whether we hit the multi client endpoint or conjureTimelockService endpoint, for a namespace, the underlying
         // service to process the request is the same
-        startTransactions.forEach((namespace, responseFromBatchedEndpoint) -> {
-            ConjureStartTransactionsResponse startTransactionsResponse = leader.client(namespace.get())
+        startedTransactions.forEach((namespace, responseFromBatchedEndpoint) -> {
+            ConjureStartTransactionsResponse responseFromLegacyEndpoint = leader.client(namespace.get())
                     .namespacedConjureTimelockService()
                     .startTransactions(namespaceToRequestMap.get(namespace));
-            assertThat(startTransactionsResponse.getLockWatchUpdate().logId())
+            assertThat(responseFromLegacyEndpoint.getLockWatchUpdate().logId())
                     .isEqualTo(responseFromBatchedEndpoint.getLockWatchUpdate().logId());
-        });
-    }
 
-    private Map<Namespace, ConjureStartTransactionsRequest> defaultNamespacedStartTransactionsRequests(
-            List<String> namespaces, int numTransactions) {
-        return KeyedStream.of(namespaces)
-                .map(namespace -> ConjureStartTransactionsRequest.builder()
-                        .numTransactions(5)
-                        .requestId(UUID.randomUUID())
-                        .requestorId(UUID.randomUUID())
-                        .build())
-                .mapKeys(Namespace::of)
-                .collectToMap();
+            PartitionedTimestamps batchedEndpointTimestamps = responseFromBatchedEndpoint.getTimestamps();
+            assertThat(responseFromLegacyEndpoint.getTimestamps().start())
+                    .isEqualTo(
+                            batchedEndpointTimestamps.start() + numTransactions * batchedEndpointTimestamps.interval());
+        });
     }
 
     private Map<Namespace, ConjureStartTransactionsResponse> assertSanityAndStartTransactions(
@@ -536,20 +530,32 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         Map<Namespace, ConjureStartTransactionsRequest> namespaceToRequestMap =
                 defaultNamespacedStartTransactionsRequests(expectedNamespaces, numTransactions);
 
-        Map<Namespace, ConjureStartTransactionsResponse> startTransactions =
+        Map<Namespace, ConjureStartTransactionsResponse> startedTransactions =
                 multiClientConjureTimelockService.startTransactions(AUTH_HEADER, namespaceToRequestMap);
 
         Set<String> namespaces =
-                startTransactions.keySet().stream().map(Namespace::get).collect(Collectors.toSet());
+                startedTransactions.keySet().stream().map(Namespace::get).collect(Collectors.toSet());
         assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
 
-        assertThat(startTransactions.values().stream()
+        assertThat(startedTransactions.values().stream()
                         .map(ConjureStartTransactionsResponse::getTimestamps)
                         .mapToLong(partitionedTimestamps ->
                                 partitionedTimestamps.stream().count())
                         .sum())
                 .isEqualTo(namespaces.size() * numTransactions);
-        return startTransactions;
+        return startedTransactions;
+    }
+
+    private Map<Namespace, ConjureStartTransactionsRequest> defaultNamespacedStartTransactionsRequests(
+            List<String> namespaces, int numTransactions) {
+        return KeyedStream.of(namespaces)
+                .map(namespace -> ConjureStartTransactionsRequest.builder()
+                        .numTransactions(numTransactions)
+                        .requestId(UUID.randomUUID())
+                        .requestorId(UUID.randomUUID())
+                        .build())
+                .mapKeys(Namespace::of)
+                .collectToMap();
     }
 
     private LeaderTimes assertSanityAndGetLeaderTimes(Set<Namespace> expectedNamespaces) {
