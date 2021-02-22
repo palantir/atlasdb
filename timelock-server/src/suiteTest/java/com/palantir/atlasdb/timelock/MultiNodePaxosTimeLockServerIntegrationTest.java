@@ -61,6 +61,7 @@ import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tokens.auth.AuthHeader;
 import java.time.Duration;
 import java.util.HashSet;
@@ -516,9 +517,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                     .isEqualTo(responseFromBatchedEndpoint.getLockWatchUpdate().logId());
 
             PartitionedTimestamps batchedEndpointTimestamps = responseFromBatchedEndpoint.getTimestamps();
-            assertThat(responseFromLegacyEndpoint.getTimestamps().start())
-                    .isEqualTo(
-                            batchedEndpointTimestamps.start() + numTransactions * batchedEndpointTimestamps.interval());
+            long lastTimestamp = batchedEndpointTimestamps.stream().max().orElseThrow(SafeIllegalStateException::new);
+            assertThat(responseFromLegacyEndpoint.getTimestamps().start()).isGreaterThanOrEqualTo(lastTimestamp);
         });
     }
 
