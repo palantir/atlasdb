@@ -18,18 +18,13 @@ package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.common.base.Throwables;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
@@ -38,7 +33,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class BatchingIdentifiedAtlasDbTransactionStarter implements IdentifiedAtlasDbTransactionStarter {
     private final DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher;
@@ -93,7 +87,7 @@ public class BatchingIdentifiedAtlasDbTransactionStarter implements IdentifiedAt
                 lockWatchEventCache.processStartTransactionsUpdate(
                         response.getTimestamps().stream().boxed().collect(Collectors.toSet()),
                         response.getLockWatchUpdate());
-                result.addAll(split(response));
+                result.addAll(TransactionStarterHelper.split(response));
                 LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
             } catch (Throwable t) {
                 TransactionStarterHelper.unlock(
@@ -105,24 +99,6 @@ public class BatchingIdentifiedAtlasDbTransactionStarter implements IdentifiedAt
             }
         }
         return result;
-    }
-
-    private static List<StartIdentifiedAtlasDbTransactionResponse> split(ConjureStartTransactionsResponse response) {
-        PartitionedTimestamps partitionedTimestamps = response.getTimestamps();
-        int partition = partitionedTimestamps.partition();
-
-        LockToken immutableTsLock = response.getImmutableTimestamp().getLock();
-        long immutableTs = response.getImmutableTimestamp().getImmutableTimestamp();
-
-        Stream<LockImmutableTimestampResponse> immutableTsAndLocks = LockTokenShare.share(
-                        immutableTsLock, partitionedTimestamps.count())
-                .map(tokenShare -> LockImmutableTimestampResponse.of(immutableTs, tokenShare));
-
-        Stream<TimestampAndPartition> timestampAndPartitions =
-                partitionedTimestamps.stream().mapToObj(timestamp -> TimestampAndPartition.of(timestamp, partition));
-
-        return Streams.zip(immutableTsAndLocks, timestampAndPartitions, StartIdentifiedAtlasDbTransactionResponse::of)
-                .collect(Collectors.toList());
     }
 
     @Override
