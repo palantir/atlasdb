@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.batch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -26,16 +27,25 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
+import com.palantir.lock.v2.Lease;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.PartitionedTimestamps;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -54,6 +64,10 @@ public class MultiClientConjureTimelockResourceTest {
     private Map<String, AsyncTimelockService> namespaces = new HashMap();
     private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap();
     private MultiClientConjureTimelockResource resource;
+
+    private PartitionedTimestamps partitionedTimestamps = mock(PartitionedTimestamps.class);
+    private LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
+    private LockImmutableTimestampResponse lockImmutableTimestampResponse = mock(LockImmutableTimestampResponse.class);
 
     @Before
     public void before() {
@@ -91,16 +105,51 @@ public class MultiClientConjureTimelockResourceTest {
                 .isInstanceOf(BlockingTimeoutException.class);
     }
 
+    @Test
+    public void canStartTransactionsForMultipleClients() {
+        List<String> namespaces = ImmutableList.of("client1", "client2");
+        Map<Namespace, ConjureStartTransactionsResponse> startTransactionsResponseMap =
+                Futures.getUnchecked(resource.startTransactions(AUTH_HEADER, getStartTransactionsRequests(namespaces)));
+
+        startTransactionsResponseMap.forEach((namespace, response) -> {
+            assertThat(response.getLease().leaderTime().id()).isEqualTo(namespaceToLeaderMap.get(namespace.get()));
+        });
+
+        Set<LeadershipId> leadershipIds = startTransactionsResponseMap.values().stream()
+                .map(ConjureStartTransactionsResponse::getLease)
+                .map(Lease::leaderTime)
+                .map(LeaderTime::id)
+                .collect(Collectors.toSet());
+        assertThat(leadershipIds).hasSameSizeAs(namespaces);
+    }
+
+    private Map<Namespace, ConjureStartTransactionsRequest> getStartTransactionsRequests(List<String> namespaces) {
+        return KeyedStream.of(namespaces)
+                .map(namespace -> ConjureStartTransactionsRequest.builder()
+                        .numTransactions(5)
+                        .requestId(UUID.randomUUID())
+                        .requestorId(UUID.randomUUID())
+                        .build())
+                .mapKeys(Namespace::of)
+                .collectToMap();
+    }
+
     private AsyncTimelockService getServiceForClient(String client) {
         return namespaces.computeIfAbsent(client, this::createAsyncTimeLockServiceForClient);
     }
 
     private AsyncTimelockService createAsyncTimeLockServiceForClient(String client) {
         AsyncTimelockService timelockService = mock(AsyncTimelockService.class);
-        LeadershipId leadershipId = LeadershipId.random();
-        namespaceToLeaderMap.put(client, leadershipId);
-        when(timelockService.leaderTime())
-                .thenReturn(Futures.immediateFuture(LeaderTime.of(leadershipId, NanoTime.createForTests(1L))));
+        LeadershipId leadershipId = namespaceToLeaderMap.computeIfAbsent(client, _u -> LeadershipId.random());
+        LeaderTime leaderTime = LeaderTime.of(leadershipId, NanoTime.createForTests(1L));
+        when(timelockService.leaderTime()).thenReturn(Futures.immediateFuture(leaderTime));
+        when(timelockService.startTransactionsWithWatches(any()))
+                .thenReturn(Futures.immediateFuture(ConjureStartTransactionsResponse.builder()
+                        .immutableTimestamp(lockImmutableTimestampResponse)
+                        .lease(Lease.of(leaderTime, Duration.ofSeconds(977)))
+                        .timestamps(partitionedTimestamps)
+                        .lockWatchUpdate(lockWatchStateUpdate)
+                        .build()));
         return timelockService;
     }
 
