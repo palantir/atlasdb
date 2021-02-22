@@ -518,7 +518,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
             PartitionedTimestamps batchedEndpointTimestamps = responseFromBatchedEndpoint.getTimestamps();
             long lastTimestamp = batchedEndpointTimestamps.stream().max().orElseThrow(SafeIllegalStateException::new);
-            assertThat(responseFromLegacyEndpoint.getTimestamps().start()).isGreaterThanOrEqualTo(lastTimestamp);
+            assertThat(responseFromLegacyEndpoint.getTimestamps().start()).isGreaterThan(lastTimestamp);
         });
     }
 
