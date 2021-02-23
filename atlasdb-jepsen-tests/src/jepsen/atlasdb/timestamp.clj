@@ -16,7 +16,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Defining the set of of operations that you can do with a client
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn read-operation [_ _] {:type :invoke, :f :read-operation, :value nil})
+(defn get-timestamp-operation [_ _] {:type :invoke, :f :timestamp, :value nil})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Client creation and invocations (i.e. reading a timestamp)
@@ -37,7 +37,7 @@
       [this test op]
       "Run an operation on our client"
       (case (:f op)
-        :read-operation
+        :timestamp
         (timeout (* 30 1000)
           (assoc op :type :fail :error :timeout)
           (try
@@ -64,7 +64,7 @@
     :os debian/os
     :client (create-client nil)
     :nemesis nem
-    :generator (->> read-operation
+    :generator (->> get-timestamp-operation
                  (gen/stagger 0.05)
                  (gen/nemesis
                    (gen/seq (cycle [(gen/sleep 60)

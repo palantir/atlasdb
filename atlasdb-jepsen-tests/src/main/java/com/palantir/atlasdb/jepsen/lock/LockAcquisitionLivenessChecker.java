@@ -19,6 +19,7 @@ package com.palantir.atlasdb.jepsen.lock;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.LivenessChecker;
 import java.util.List;
 import java.util.Objects;
@@ -27,7 +28,7 @@ public class LockAcquisitionLivenessChecker implements Checker {
     private final LivenessChecker delegate;
 
     public LockAcquisitionLivenessChecker() {
-        delegate = new LivenessChecker(okEvent -> okEvent.function().equals("lock")
+        delegate = new LivenessChecker(okEvent -> okEvent.function().equals(RequestType.LOCK)
                 && !Objects.requireNonNull(okEvent.value()).isEmpty());
     }
 

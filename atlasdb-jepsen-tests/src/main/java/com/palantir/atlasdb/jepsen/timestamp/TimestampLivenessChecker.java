@@ -19,6 +19,7 @@ package com.palantir.atlasdb.jepsen.timestamp;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.LivenessChecker;
 import java.util.List;
 
@@ -26,12 +27,10 @@ import java.util.List;
  * Verifies that the number of timestamp requests that succeeded was at least 1.
  */
 public class TimestampLivenessChecker implements Checker {
-    private static final String READ_OPERATION = "read-operation";
-
     private final LivenessChecker delegate;
 
     public TimestampLivenessChecker() {
-        this.delegate = new LivenessChecker(okEvent -> okEvent.function().equals(READ_OPERATION));
+        this.delegate = new LivenessChecker(okEvent -> okEvent.function().equals(RequestType.TIMESTAMP));
     }
 
     @Override
