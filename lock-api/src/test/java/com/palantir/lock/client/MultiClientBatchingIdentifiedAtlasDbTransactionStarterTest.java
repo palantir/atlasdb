@@ -18,7 +18,9 @@ package com.palantir.lock.client;
 
 import static com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.processBatch;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -33,6 +35,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.LockLeaseService.LockCleanupService;
 import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.NamespacedStartTransactionsRequestParams;
 import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.StartTransactionsRequestParams;
 import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
@@ -45,22 +48,24 @@ import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.junit.Before;
 import org.junit.Test;
 
 public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
     private static final int NUM_PARTITIONS = 16;
     private static final int PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL = 5;
 
-    private final LockLeaseService  lockLeaseService = mock(LockLeaseService.class);
+    private final LockCleanupService lockCleanupService = mock(LockCleanupService.class);
+    private static final Map<Namespace, StartTransactionsLockWatchEventCache> NAMESPACE_CACHE_MAP = new HashMap();
 
     private static final LockImmutableTimestampResponse IMMUTABLE_TS_RESPONSE =
             LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
@@ -71,6 +76,11 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
             ImmutableList.of(
                     LockEvent.builder(ImmutableSet.of(StringLockDescriptor.of("lock")), LockToken.of(UUID.randomUUID()))
                             .build(0)));
+
+    @Before
+    public void before() {
+        // doThrow(new SafeIllegalArgumentException()).when(cache).processStartTransactionsUpdate(any(), any());
+    }
 
     @Test
     public void canServiceOneClient() {
@@ -100,16 +110,25 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
 
     @Test
     public void canServiceOneRequestWithMultipleServerRequests() {
-        ImmutableList<
-                        BatchElement<
-                                NamespacedStartTransactionsRequestParams,
-                                List<StartIdentifiedAtlasDbTransactionResponse>>>
-                batch = ImmutableList.of(BatchElement.of(
+        Namespace namespace = Namespace.of("Test_0");
+        assertSanityOfResponse(ImmutableList.of(BatchElement.of(
                 NamespacedStartTransactionsRequestParams.of(
-                        Namespace.of("Test_0"), StartTransactionsRequestParams.of(127, Optional::empty,
-                                lockLeaseService)),
-                new DisruptorFuture<>("test")));
-        assertSanityOfResponse(batch);
+                        namespace, StartTransactionsRequestParams.of(127, getCache(namespace), lockCleanupService)),
+                new DisruptorFuture<>("test"))));
+    }
+
+    @Test
+    public void updatesCacheWhileProcessingResponse() {
+        Namespace namespace = Namespace.of("Test" + UUID.randomUUID());
+        assertSanityOfResponse(ImmutableList.of(BatchElement.of(
+                NamespacedStartTransactionsRequestParams.of(
+                        namespace,
+                        StartTransactionsRequestParams.of(
+                                PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1,
+                                getCache(namespace),
+                                lockCleanupService)),
+                new DisruptorFuture<>("test"))));
+        verify(getCache(namespace)).processStartTransactionsUpdate(any(), any());
     }
 
     private void assertSanityOfResponse(
@@ -127,7 +146,6 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
 
             List<StartIdentifiedAtlasDbTransactionResponse> responseList = Futures.getUnchecked(resultFuture);
             assertThat(responseList.size()).isEqualTo(requestParams.params().numTransactions());
-            // assertThat(responseList.get(0).).isEqualTo(requestParams.params().numTransactions());
         });
     }
 
@@ -136,11 +154,14 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
                             NamespacedStartTransactionsRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>>
             getStartTransactionRequestsForClients(int clientCount, int requestCount) {
         return IntStream.rangeClosed(1, requestCount)
-                .mapToObj(ind -> BatchElement.of(
-                        NamespacedStartTransactionsRequestParams.of(
-                                Namespace.of("Test_" + (ind % clientCount)),
-                                StartTransactionsRequestParams.of(1, Optional::empty, lockLeaseService)),
-                        new DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>>("test")))
+                .mapToObj(ind -> {
+                    Namespace namespace = Namespace.of("Test_" + (ind % clientCount));
+                    return BatchElement.of(
+                            NamespacedStartTransactionsRequestParams.of(
+                                    namespace,
+                                    StartTransactionsRequestParams.of(1, getCache(namespace), lockCleanupService)),
+                            new DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>>("test"));
+                })
                 .collect(Collectors.toList());
     }
 
@@ -169,6 +190,10 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
                 .count(count)
                 .interval(NUM_PARTITIONS)
                 .build();
+    }
+
+    private StartTransactionsLockWatchEventCache getCache(Namespace namespace) {
+        return NAMESPACE_CACHE_MAP.computeIfAbsent(namespace, _u -> mock(StartTransactionsLockWatchEventCache.class));
     }
 
     class MockMultiClientTimeLockService implements InternalMultiClientConjureTimelockService {

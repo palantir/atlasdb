@@ -50,7 +50,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                     NamespacedStartTransactionsRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>
             autobatcher;
 
-    public MultiClientBatchingIdentifiedAtlasDbTransactionStarter(
+    private MultiClientBatchingIdentifiedAtlasDbTransactionStarter(
             DisruptorAutobatcher<
                             NamespacedStartTransactionsRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>
                     autobatcher) {
