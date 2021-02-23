@@ -39,7 +39,7 @@ public abstract class CellReference {
         return hash;
     }
 
-    static CellReference of(TableReference tableRef, Cell cell) {
+    public static CellReference of(TableReference tableRef, Cell cell) {
         return ImmutableCellReference.builder().tableRef(tableRef).cell(cell).build();
     }
 }
