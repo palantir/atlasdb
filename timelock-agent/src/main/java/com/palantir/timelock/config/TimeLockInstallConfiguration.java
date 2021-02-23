@@ -63,7 +63,9 @@ public interface TimeLockInstallConfiguration {
 
     @Value.Check
     default void check() {
-        TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
-                isNewServiceNode(), paxos().doDataDirectoriesExist());
+        if (!paxos().ignoreNewServiceCheck()) {
+            TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
+                    isNewServiceNode(), paxos().doDataDirectoriesExist());
+        }
     }
 }

@@ -54,6 +54,12 @@ public interface PaxosInstallConfiguration {
     @JsonProperty("is-new-service")
     boolean isNewService();
 
+    @JsonProperty("i-am-on-the-persistence-team-and-know-what-i-am-doing-ignore-new-service-check")
+    @Value.Default
+    default boolean ignoreNewServiceCheck() {
+        return false;
+    }
+
     /**
      * If true, TimeLock is allowed to create clients that it has never seen before.
      * If false, then TimeLock will continue to serve requests for clients that it already knows about (across the
