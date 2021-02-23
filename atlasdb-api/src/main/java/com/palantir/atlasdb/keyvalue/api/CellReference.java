@@ -29,13 +29,14 @@ public abstract class CellReference {
      * the column name match. We did not want to change it to keep backwards compatibility, but we need a uniform
      * distribution here for all reasonable patterns.
      */
+    @SuppressWarnings("EqualsHashCode") // this replaces the immutable generated code, which has equality defined
     @Override
     public int hashCode() {
-        int h = 5381;
-        h += (h << 5) + tableRef().hashCode();
-        h += (h << 5) + Arrays.hashCode(cell().getRowName());
-        h += (h << 5) + Arrays.hashCode(cell().getColumnName());
-        return h;
+        int hash = 5381;
+        hash += (hash << 5) + tableRef().hashCode();
+        hash += (hash << 5) + Arrays.hashCode(cell().getRowName());
+        hash += (hash << 5) + Arrays.hashCode(cell().getColumnName());
+        return hash;
     }
 
     static CellReference of(TableReference tableRef, Cell cell) {

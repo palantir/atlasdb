@@ -114,10 +114,10 @@ public class WriteInfoPartitionerTest {
 
         assertThat(partitioner.filterOutUnsweepableTables(writes))
                 .containsExactly(
-                        getWriteInfoWithFixedShard(CONSERVATIVE, 0, numShards), getWriteInfoWithFixedShard(CONSERVATIVE, 0,
-                                numShards),
-                        getWriteInfoWithFixedShard(CONSERVATIVE2, 1, numShards), getWriteInfoWithFixedShard(THOROUGH, 2,
-                                numShards));
+                        getWriteInfoWithFixedShard(CONSERVATIVE, 0, numShards),
+                                getWriteInfoWithFixedShard(CONSERVATIVE, 0, numShards),
+                        getWriteInfoWithFixedShard(CONSERVATIVE2, 1, numShards),
+                                getWriteInfoWithFixedShard(THOROUGH, 2, numShards));
     }
 
     @Test
