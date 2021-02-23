@@ -199,6 +199,11 @@ class LockLeaseService {
                 .build());
     }
 
+    public static Optional<LockWatchVersion> fromConjure(Optional<ConjureIdentifiedVersion> maybeVersion) {
+        return maybeVersion.map(
+                identifiedVersion -> LockWatchVersion.of(identifiedVersion.getId(), identifiedVersion.getVersion()));
+    }
+
     public static final class LockCleanupService {
         private final LockLeaseService delegate;
 

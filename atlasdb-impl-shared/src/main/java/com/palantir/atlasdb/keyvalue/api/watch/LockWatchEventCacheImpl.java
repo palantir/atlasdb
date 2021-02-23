@@ -25,6 +25,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.Preconditions;
@@ -114,6 +115,10 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .timestampStoreState(timestampStateStore.getStateForTesting())
                 .logState(eventLog.getStateForTesting())
                 .build();
+    }
+
+    public StartTransactionsLockWatchEventCache getStartTransactionsLockWatchEventCache() {
+        return new StartTransactionsLockWatchEventCache(this);
     }
 
     private TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
