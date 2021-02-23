@@ -39,6 +39,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.IntStream;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -165,14 +166,12 @@ public abstract class AbstractSweepQueueTest {
 
     static CellReference getCellRefWithFixedShard(long seed, TableReference tableRef, int shards) {
         byte[] rowName = PtBytes.toBytes(seed);
-        int counter = 0;
-        CellReference cellReference;
-        do {
-            byte[] colName = PtBytes.toBytes(counter);
-            cellReference = CellReference.of(tableRef, Cell.create(rowName, colName));
-            counter++;
-        } while (IntMath.mod(cellReference.hashCode(), shards) != 0);
-        return cellReference;
+
+        return IntStream.iterate(0, i -> i + 1)
+                .mapToObj(index -> CellReference.of(tableRef, Cell.create(rowName, PtBytes.toBytes(index))))
+                .filter(cellReference -> IntMath.mod(cellReference.hashCode(), shards) == 0)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Infinite stream had no cell possibilities :("));
     }
 
     boolean isTransactionAborted(long txnTimestamp) {

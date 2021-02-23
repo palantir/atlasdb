@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Arrays;
+import java.util.Objects;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -32,11 +32,7 @@ public abstract class CellReference {
     @SuppressWarnings("EqualsHashCode") // this replaces the immutable generated code, which has equality defined
     @Override
     public int hashCode() {
-        int hash = 5381;
-        hash += (hash << 5) + tableRef().hashCode();
-        hash += (hash << 5) + Arrays.hashCode(cell().getRowName());
-        hash += (hash << 5) + Arrays.hashCode(cell().getColumnName());
-        return hash;
+        return Objects.hash(tableRef(), cell().getRowName(), cell().getColumnName());
     }
 
     public static CellReference of(TableReference tableRef, Cell cell) {
