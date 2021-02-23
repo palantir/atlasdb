@@ -183,7 +183,7 @@ public class PaxosConsensusFastTest {
         }
         PaxosLearnerImpl learner = (PaxosLearnerImpl)
                 ((DelegatingInvocationHandler) Proxy.getInvocationHandler(state.learner(0))).getDelegate();
-        PaxosStateLog<PaxosValue> log = learner.log;
+        PaxosStateLog<PaxosValue> log = learner.learnerStateLog;
         SortedMap<Long, PaxosValue> cache = learner.state;
         log.truncate(log.getGreatestLogEntry());
         cache.clear();
