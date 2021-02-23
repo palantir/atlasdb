@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
@@ -41,6 +42,7 @@ import com.palantir.logsafe.Preconditions;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 class LockLeaseService {
@@ -48,6 +50,7 @@ class LockLeaseService {
     private final UUID clientId;
     private final LeaderTimeGetter leaderTimeGetter;
     private final BlockEnforcingLockService lockService;
+    private final Supplier<LockCleanupService> lockCleanupServiceSupplier;
 
     @VisibleForTesting
     LockLeaseService(NamespacedConjureTimelockService delegate, UUID clientId, LeaderTimeGetter leaderTimeGetter) {
@@ -55,6 +58,7 @@ class LockLeaseService {
         this.clientId = clientId;
         this.leaderTimeGetter = leaderTimeGetter;
         this.lockService = BlockEnforcingLockService.create(delegate);
+        this.lockCleanupServiceSupplier = Suppliers.memoize(() -> new LockCleanupService(this));
     }
 
     static LockLeaseService create(
@@ -159,7 +163,7 @@ class LockLeaseService {
     }
 
     LockCleanupService lockCleanupService() {
-        return new LockCleanupService(this);
+        return lockCleanupServiceSupplier.get();
     }
 
     private Set<LeasedLockToken> refreshTokens(Set<LeasedLockToken> leasedTokens) {
@@ -192,7 +196,6 @@ class LockLeaseService {
         return leasedTokens.stream().map(LeasedLockToken::serverToken).collect(Collectors.toSet());
     }
 
-    // Todo snanda
     public static Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {
         return maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
                 .id(identifiedVersion.id())
@@ -205,7 +208,6 @@ class LockLeaseService {
                 identifiedVersion -> LockWatchVersion.of(identifiedVersion.getId(), identifiedVersion.getVersion()));
     }
 
-    // Todo snanda
     public static final class LockCleanupService {
         private final LockLeaseService delegate;
 
