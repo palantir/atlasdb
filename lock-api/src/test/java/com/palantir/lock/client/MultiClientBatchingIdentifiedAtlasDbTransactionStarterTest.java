@@ -155,7 +155,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
         when(timelockService.startTransactions(any())).thenReturn(responseMap);
 
         processBatch(timelockService, requestorId, requestsForClients);
-        requestsForClients.stream().forEach(batchElement -> {
+        requestsForClients.forEach(batchElement -> {
             DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> resultFuture = batchElement.result();
             NamespacedStartTransactionsRequestParams requestParams = batchElement.argument();
 
