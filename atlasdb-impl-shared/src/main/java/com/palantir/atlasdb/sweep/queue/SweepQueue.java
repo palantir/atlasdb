@@ -174,6 +174,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             progress.resetProgressForShard(ShardAndStrategy.conservative(shard));
             progress.resetProgressForShard(ShardAndStrategy.thorough(shard));
         }
+        log.info("Sweep progress was reset for shards for both strategies.", SafeArg.of("numShards", numShards));
     }
 
     /**
