@@ -211,7 +211,7 @@ class LockLeaseService {
     public static final class LockCleanupService {
         private final LockLeaseService delegate;
 
-        public LockCleanupService(LockLeaseService delegate) {
+        private LockCleanupService(LockLeaseService delegate) {
             this.delegate = delegate;
         }
 
