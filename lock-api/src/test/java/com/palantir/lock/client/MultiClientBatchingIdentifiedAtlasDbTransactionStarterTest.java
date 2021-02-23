@@ -18,6 +18,7 @@ package com.palantir.lock.client;
 
 import static com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.processBatch;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -37,13 +38,13 @@ import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionS
 import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.StartTransactionsRequestParams;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Before;
 import org.junit.Test;
 
 public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
@@ -53,58 +54,91 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
     private final LockCleanupService lockCleanupService = mock(LockCleanupService.class);
     private static final Map<Namespace, StartTransactionsLockWatchEventCache> NAMESPACE_CACHE_MAP = new HashMap();
 
-    @Before
-    public void before() {
-        // doThrow(new SafeIllegalArgumentException()).when(cache).processStartTransactionsUpdate(any(), any());
-    }
-
     @Test
     public void canServiceOneClient() {
         assertSanityOfResponse(
-                getStartTransactionRequestsForClients(1, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1));
+                getStartTransactionRequestsForClients(1, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1), true);
     }
 
     @Test
     public void canServiceOneClientWithMultipleServerCalls() {
         assertSanityOfResponse(
-                getStartTransactionRequestsForClients(1, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL * 27));
+                getStartTransactionRequestsForClients(1, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL * 27), true);
     }
 
     @Test
     public void canServiceMultipleClients() {
         int clientCount = 50;
-        assertSanityOfResponse(getStartTransactionRequestsForClients(
-                clientCount, (PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1) * clientCount));
+        assertSanityOfResponse(
+                getStartTransactionRequestsForClients(
+                        clientCount, (PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1) * clientCount),
+                true);
     }
 
     @Test
     public void canServiceMultipleClientsWithMultipleServerCalls() {
         int clientCount = 5;
-        assertSanityOfResponse(getStartTransactionRequestsForClients(
-                clientCount, (PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL + 1) * clientCount));
+        assertSanityOfResponse(
+                getStartTransactionRequestsForClients(
+                        clientCount, (PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL + 1) * clientCount),
+                true);
     }
 
     @Test
     public void canServiceOneRequestWithMultipleServerRequests() {
         Namespace namespace = Namespace.of("Test_0");
-        assertSanityOfResponse(ImmutableList.of(BatchElement.of(
-                NamespacedStartTransactionsRequestParams.of(
-                        namespace, StartTransactionsRequestParams.of(127, getCache(namespace), lockCleanupService)),
-                new DisruptorFuture<>("test"))));
+        assertSanityOfResponse(
+                ImmutableList.of(BatchElement.of(
+                        NamespacedStartTransactionsRequestParams.of(
+                                namespace,
+                                StartTransactionsRequestParams.of(127, getCache(namespace), lockCleanupService)),
+                        new DisruptorFuture<>("test"))),
+                false);
     }
 
     @Test
     public void updatesCacheWhileProcessingResponse() {
         Namespace namespace = Namespace.of("Test" + UUID.randomUUID());
-        assertSanityOfResponse(ImmutableList.of(BatchElement.of(
+        assertSanityOfResponse(
+                ImmutableList.of(BatchElement.of(
+                        NamespacedStartTransactionsRequestParams.of(
+                                namespace,
+                                StartTransactionsRequestParams.of(
+                                        PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1,
+                                        getCache(namespace),
+                                        lockCleanupService)),
+                        new DisruptorFuture<>("test"))),
+                true);
+        verify(getCache(namespace)).processStartTransactionsUpdate(any(), any());
+    }
+
+    @Test
+    public void shouldFreeResourcesIfServerThrows() {
+        Namespace namespace = Namespace.of("Test" + UUID.randomUUID());
+
+        UUID requestorId = UUID.randomUUID();
+        ImmutableList<
+                        BatchElement<
+                                NamespacedStartTransactionsRequestParams,
+                                List<StartIdentifiedAtlasDbTransactionResponse>>>
+                requests = ImmutableList.of(BatchElement.of(
                 NamespacedStartTransactionsRequestParams.of(
                         namespace,
                         StartTransactionsRequestParams.of(
-                                PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1,
+                                PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL * 5,
                                 getCache(namespace),
                                 lockCleanupService)),
-                new DisruptorFuture<>("test"))));
-        verify(getCache(namespace)).processStartTransactionsUpdate(any(), any());
+                new DisruptorFuture<>("test")));
+        Map<Namespace, ConjureStartTransactionsResponse> responseMap =
+                getMultiClientStartTransactionsResponse(requests, requestorId);
+
+        SafeIllegalStateException exception = new SafeIllegalStateException("Something went wrong!");
+        when(timelockService.startTransactions(any())).thenReturn(responseMap).thenThrow(exception);
+
+        assertThatThrownBy(() -> processBatch(timelockService, requestorId, requests))
+                .isEqualTo(exception);
+        verify(lockCleanupService).refreshLockLeases(any());
+        verify(lockCleanupService).unlock(any());
     }
 
     private void assertSanityOfResponse(
@@ -112,7 +146,8 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
                             BatchElement<
                                     NamespacedStartTransactionsRequestParams,
                                     List<StartIdentifiedAtlasDbTransactionResponse>>>
-                    requestsForClients) {
+                    requestsForClients,
+            boolean assertValues) {
 
         UUID requestorId = UUID.randomUUID();
         Map<Namespace, ConjureStartTransactionsResponse> responseMap =
@@ -128,20 +163,27 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
 
             List<StartIdentifiedAtlasDbTransactionResponse> responseList = Futures.getUnchecked(resultFuture);
             ConjureStartTransactionsResponse batchedStartTransactionResponse =
-                    LockLeaseService.getMassagedConjureStartTransactionsResponse(responseMap.get(requestParams.namespace()));
+                    LockLeaseService.getMassagedConjureStartTransactionsResponse(
+                            responseMap.get(requestParams.namespace()));
 
-            assertThat(responseList)
-                    .satisfies(StartTransactionsUtils::assertThatStartTransactionResponsesAreUnique)
-                    .hasSize(requestParams.params().numTransactions())
-                    .allSatisfy(startTxnResponse -> {
-                        StartTransactionsUtils.assertDerivableFromBatchedResponse(
-                                startTxnResponse, batchedStartTransactionResponse);
-                    });
+            if (assertValues) {
+                assertThat(responseList)
+                        .satisfies(StartTransactionsUtils::assertThatStartTransactionResponsesAreUnique)
+                        .hasSize(requestParams.params().numTransactions())
+                        .allSatisfy(startTxnResponse -> {
+                            StartTransactionsUtils.assertDerivableFromBatchedResponse(
+                                    startTxnResponse, batchedStartTransactionResponse);
+                        });
+            }
         });
     }
 
     private Map<Namespace, ConjureStartTransactionsResponse> getMultiClientStartTransactionsResponse(
-            List<BatchElement<NamespacedStartTransactionsRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>> requestsForClients,
+            List<
+                            BatchElement<
+                                    NamespacedStartTransactionsRequestParams,
+                                    List<StartIdentifiedAtlasDbTransactionResponse>>>
+                    requestsForClients,
             UUID requestorId) {
         Map<Namespace, StartTransactionsRequestParams> namespaceWiseRequestParams =
                 MultiClientBatchingIdentifiedAtlasDbTransactionStarter.getNamespaceWiseRequestParams(
@@ -179,9 +221,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
                         namespace,
                         StartTransactionsUtils.getStartTransactionResponse(
                                 1,
-                                Math.min(
-                                        PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL,
-                                        request.getNumTransactions()))))
+                                Math.min(PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL, request.getNumTransactions()))))
                 .collectToMap();
     }
 }
