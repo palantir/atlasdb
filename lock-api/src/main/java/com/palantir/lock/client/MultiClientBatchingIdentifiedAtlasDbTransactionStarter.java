@@ -148,7 +148,8 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                 .collectToMap();
     }
 
-    private static Map<Namespace, StartTransactionsRequestParams> getNamespaceWiseRequestParams(
+    @VisibleForTesting
+    static Map<Namespace, StartTransactionsRequestParams> getNamespaceWiseRequestParams(
             List<
                             BatchElement<
                                     NamespacedStartTransactionsRequestParams,
@@ -167,10 +168,8 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
             InternalMultiClientConjureTimelockService delegate,
             UUID requestorId) {
 
-        Map<Namespace, ConjureStartTransactionsRequest> namespaceWiseRequests = KeyedStream.stream(originalRequestMap)
-                .mapEntries((namespace, requestParams) ->
-                        Maps.immutableEntry(namespace, getConjureRequest(requestParams, requestorId)))
-                .collectToMap();
+        Map<Namespace, ConjureStartTransactionsRequest> namespaceWiseRequests =
+                getNamespaceWiseRequests(originalRequestMap, requestorId);
 
         Map<Namespace, ConjureStartTransactionsResponse> responseMap = getResponseMap(delegate, namespaceWiseRequests);
 
@@ -187,6 +186,15 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                             response.getLockWatchUpdate());
                     return Maps.immutableEntry(namespace, TransactionStarterHelper.split(response));
                 })
+                .collectToMap();
+    }
+
+    @VisibleForTesting
+    static Map<Namespace, ConjureStartTransactionsRequest> getNamespaceWiseRequests(
+            Map<Namespace, StartTransactionsRequestParams> originalRequestMap, UUID requestorId) {
+        return KeyedStream.stream(originalRequestMap)
+                .mapEntries((namespace, requestParams) ->
+                        Maps.immutableEntry(namespace, getConjureRequest(requestParams, requestorId)))
                 .collectToMap();
     }
 
