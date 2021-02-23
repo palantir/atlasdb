@@ -15,15 +15,31 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import java.util.Arrays;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface CellReference {
-    TableReference tableRef();
+public abstract class CellReference {
+    public abstract TableReference tableRef();
 
-    Cell cell();
+    public abstract Cell cell();
 
-    static CellReference of(TableReference tableRef, Cell cell) {
+    /**
+     * {@link Cell#hashCode()} implementation has a rather unfortunate case where it is always 0 if the row name and
+     * the column name match. We did not want to change it to keep backwards compatibility, but we need a uniform
+     * distribution here for all reasonable patterns.
+     */
+    @SuppressWarnings("EqualsHashCode") // this replaces the immutable generated code, which has equality defined
+    @Override
+    public int hashCode() {
+        int hash = 5381;
+        hash += (hash << 5) + tableRef().hashCode();
+        hash += (hash << 5) + Arrays.hashCode(cell().getRowName());
+        hash += (hash << 5) + Arrays.hashCode(cell().getColumnName());
+        return hash;
+    }
+
+    public static CellReference of(TableReference tableRef, Cell cell) {
         return ImmutableCellReference.builder().tableRef(tableRef).cell(cell).build();
     }
 }

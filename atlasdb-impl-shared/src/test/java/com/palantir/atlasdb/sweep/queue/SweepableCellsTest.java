@@ -209,13 +209,17 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
 
     @Test
     public void canReadMultipleEntriesInSingleShardDifferentTransactions() {
-        writeToCellCommitted(sweepableCells, TS, getCellWithFixedHash(1), TABLE_CONS);
-        writeToCellCommitted(sweepableCells, TS + 1, getCellWithFixedHash(2), TABLE_CONS);
+        Cell cellInFirstShard =
+                getCellRefWithFixedShard(1, TABLE_CONS, numShards).cell();
+        writeToCellCommitted(sweepableCells, TS, cellInFirstShard, TABLE_CONS);
+        Cell cellInSecondShard =
+                getCellRefWithFixedShard(2, TABLE_CONS, numShards).cell();
+        writeToCellCommitted(sweepableCells, TS + 1, cellInSecondShard, TABLE_CONS);
         SweepBatch conservativeBatch = readConservative(FIXED_SHARD, TS_FINE_PARTITION, TS - 1, TS + 2);
         assertThat(conservativeBatch.writes())
                 .containsExactlyInAnyOrder(
-                        WriteInfo.write(TABLE_CONS, getCellWithFixedHash(1), TS),
-                        WriteInfo.write(TABLE_CONS, getCellWithFixedHash(2), TS + 1));
+                        WriteInfo.write(TABLE_CONS, cellInFirstShard, TS),
+                        WriteInfo.write(TABLE_CONS, cellInSecondShard, TS + 1));
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(TS + 1);
     }
 
