@@ -167,6 +167,16 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         return sweepBatch.entriesRead();
     }
 
+    public void resetSweepProgress() {
+        int numShards = getNumShards();
+        log.info("Now attempting to reset sweep progress for both strategies...",
+                SafeArg.of("numShards", numShards));
+        for (int shard = 0; shard < numShards; shard++) {
+            progress.resetProgressForShard(ShardAndStrategy.conservative(shard));
+            progress.resetProgressForShard(ShardAndStrategy.thorough(shard));
+        }
+    }
+
     /**
      * Returns the most recently known number of shards.
      */

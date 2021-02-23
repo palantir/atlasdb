@@ -135,6 +135,31 @@ public class ShardProgress {
         return currentValue;
     }
 
+    public void resetProgressForShard(ShardAndStrategy shardAndStrategy) {
+        // TODO (jkong): This is a bit crappy. Really we want this to be INITIAL_TIMESTAMP, but that doesn't
+        //  serialise because we require an unsigned integer.
+        byte[] colValZero = createColumnValue(SweepQueueUtils.RESET_TIMESTAMP);
+
+        long currentValue = getLastSweptTimestamp(shardAndStrategy);
+        while (currentValue > SweepQueueUtils.RESET_TIMESTAMP) {
+            CheckAndSetRequest casRequest = createRequest(shardAndStrategy, currentValue, colValZero);
+            try {
+                log.info("Attempting to reset targeted sweep progress for a shard.",
+                        SafeArg.of("shardAndStrategy", shardAndStrategy));
+                kvs.checkAndSet(casRequest);
+                log.info("Reset targeted sweep progress for a shard.",
+                        SafeArg.of("shardAndStrategy", shardAndStrategy));
+            } catch (CheckAndSetException e) {
+                log.info(
+                        "Failed to reset targeted sweep progress for a shard; trying again if someone changed it "
+                                + "(unless they also reset it).",
+                        SafeArg.of("shardAndStrategy", shardAndStrategy),
+                        e);
+                currentValue = rethrowIfUnchanged(shardAndStrategy, currentValue, e);
+            }
+        }
+    }
+
     static byte[] createColumnValue(long newVal) {
         return SweepShardProgressTable.Value.of(newVal).persistValue();
     }

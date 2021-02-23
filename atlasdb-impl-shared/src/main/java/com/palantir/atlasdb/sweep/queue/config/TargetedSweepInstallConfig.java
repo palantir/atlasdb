@@ -83,6 +83,21 @@ public class TargetedSweepInstallConfig {
         return TargetedSweepMetricsConfigurations.DEFAULT;
     }
 
+    /**
+     * Specifies whether on startup we should reset progress in the targeted sweep queue. This may be useful to deal
+     * with circumstances where entries are written to the targeted sweep queue after the sweep timestamp has
+     * progressed past it - while the transaction in question will necessarily fail, there may still be cruft in the
+     * targeted sweep queue.
+     *
+     * If set to true, resets progress to zero for each shard and strategy on startup. This configuration can also only
+     * be safely used if nodes are not actively sweeping, and so if configured to be true will prevent targeted sweep
+     * from running.
+     */
+    @Value.Default
+    public boolean resetTargetedSweepQueueProgressAndStopSweep() {
+        return false;
+    }
+
     public static TargetedSweepInstallConfig defaultTargetedSweepConfig() {
         return ImmutableTargetedSweepInstallConfig.builder().build();
     }
