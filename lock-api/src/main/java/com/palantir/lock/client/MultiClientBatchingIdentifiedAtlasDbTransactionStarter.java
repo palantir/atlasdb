@@ -45,7 +45,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
-public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements AutoCloseable {
+public final class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements AutoCloseable {
     private final DisruptorAutobatcher<
                     NamespacedStartTransactionsRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>
             autobatcher;
@@ -156,7 +156,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarter implements A
                                     List<StartIdentifiedAtlasDbTransactionResponse>>>
                     batch) {
         return batch.stream()
-                .map(batchElement -> batchElement.argument())
+                .map(BatchElement::argument)
                 .collect(Collectors.toMap(
                         NamespacedStartTransactionsRequestParams::namespace,
                         NamespacedStartTransactionsRequestParams::params,
