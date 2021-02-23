@@ -34,10 +34,10 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class BatchingIdentifiedAtlasDbTransactionStarter implements IdentifiedAtlasDbTransactionStarter {
+public final class BatchingIdentifiedAtlasDbTransactionStarter implements IdentifiedAtlasDbTransactionStarter {
     private final DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher;
 
-    public BatchingIdentifiedAtlasDbTransactionStarter(
+    private BatchingIdentifiedAtlasDbTransactionStarter(
             DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher) {
         this.autobatcher = autobatcher;
     }
@@ -62,7 +62,7 @@ public class BatchingIdentifiedAtlasDbTransactionStarter implements IdentifiedAt
             LockLeaseService lockLeaseService, LockWatchEventCache lockWatchEventCache) {
         return batch -> {
             int numTransactions =
-                    batch.stream().mapToInt(BatchElement::argument).reduce(0, Integer::sum);
+                    batch.stream().mapToInt(BatchElement::argument).sum();
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
                     getStartTransactionResponses(lockLeaseService, lockWatchEventCache, numTransactions);
