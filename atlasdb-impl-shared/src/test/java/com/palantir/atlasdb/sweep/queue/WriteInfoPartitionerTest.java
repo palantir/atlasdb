@@ -68,7 +68,7 @@ public class WriteInfoPartitionerTest {
     @Test
     public void getStrategyThrowsForIllegalMetadata() {
         when(mockKvs.getMetadataForTable(any())).thenReturn(AtlasDbConstants.EMPTY_TABLE_METADATA);
-        assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedCellHash(getTableRef("a"), 0)))
+        assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedShard(getTableRef("a"), 0, numShards)))
                 .isInstanceOf(UncheckedExecutionException.class);
     }
 
@@ -76,26 +76,26 @@ public class WriteInfoPartitionerTest {
     public void getStrategyThrowsOnUncheckedException() {
         RuntimeException cause = new RuntimeException("cause");
         when(mockKvs.getMetadataForTable(any())).thenThrow(cause);
-        assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedCellHash(getTableRef("a"), 0)))
+        assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedShard(getTableRef("a"), 0, numShards)))
                 .isInstanceOf(UncheckedExecutionException.class)
                 .hasCause(cause);
     }
 
     @Test
     public void getStrategyReturnsCorrectStrategy() {
-        assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(NOTHING, 0)))
+        assertThat(partitioner.getStrategy(getWriteInfoWithFixedShard(NOTHING, 0, numShards)))
                 .isEmpty();
-        assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(CONSERVATIVE, 10)))
+        assertThat(partitioner.getStrategy(getWriteInfoWithFixedShard(CONSERVATIVE, 10, numShards)))
                 .contains(SweeperStrategy.CONSERVATIVE);
-        assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(THOROUGH, 100)))
+        assertThat(partitioner.getStrategy(getWriteInfoWithFixedShard(THOROUGH, 100, numShards)))
                 .contains(SweeperStrategy.THOROUGH);
     }
 
     @Test
     public void getStrategyQueriesKvsOnlyOnceForEachTable() {
         for (int i = 0; i < 5; i++) {
-            partitioner.getStrategy(getWriteInfoWithFixedCellHash(NOTHING, i));
-            partitioner.getStrategy(getWriteInfoWithFixedCellHash(CONSERVATIVE, i));
+            partitioner.getStrategy(getWriteInfoWithFixedShard(NOTHING, i, numShards));
+            partitioner.getStrategy(getWriteInfoWithFixedShard(CONSERVATIVE, i, numShards));
         }
         verify(mockKvs, times(1)).getMetadataForTable(NOTHING);
         verify(mockKvs, times(1)).getMetadataForTable(CONSERVATIVE);
@@ -105,17 +105,19 @@ public class WriteInfoPartitionerTest {
     @Test
     public void filterOutUnsweepableRemovesWritesWithStrategyNothing() {
         List<WriteInfo> writes = ImmutableList.of(
-                getWriteInfoWithFixedCellHash(CONSERVATIVE, 0),
-                getWriteInfoWithFixedCellHash(NOTHING, 1),
-                getWriteInfoWithFixedCellHash(CONSERVATIVE, 0),
-                getWriteInfoWithFixedCellHash(CONSERVATIVE2, 1),
-                getWriteInfoWithFixedCellHash(THOROUGH, 2),
-                getWriteInfoWithFixedCellHash(NOTHING, 0));
+                getWriteInfoWithFixedShard(CONSERVATIVE, 0, numShards),
+                getWriteInfoWithFixedShard(NOTHING, 1, numShards),
+                getWriteInfoWithFixedShard(CONSERVATIVE, 0, numShards),
+                getWriteInfoWithFixedShard(CONSERVATIVE2, 1, numShards),
+                getWriteInfoWithFixedShard(THOROUGH, 2, numShards),
+                getWriteInfoWithFixedShard(NOTHING, 0, numShards));
 
         assertThat(partitioner.filterOutUnsweepableTables(writes))
                 .containsExactly(
-                        getWriteInfoWithFixedCellHash(CONSERVATIVE, 0), getWriteInfoWithFixedCellHash(CONSERVATIVE, 0),
-                        getWriteInfoWithFixedCellHash(CONSERVATIVE2, 1), getWriteInfoWithFixedCellHash(THOROUGH, 2));
+                        getWriteInfoWithFixedShard(CONSERVATIVE, 0, numShards), getWriteInfoWithFixedShard(CONSERVATIVE, 0,
+                                numShards),
+                        getWriteInfoWithFixedShard(CONSERVATIVE2, 1, numShards), getWriteInfoWithFixedShard(THOROUGH, 2,
+                                numShards));
     }
 
     @Test
@@ -136,7 +138,7 @@ public class WriteInfoPartitionerTest {
     public void partitionWritesByShardStrategyTimestampGroupsOnShardClash() {
         List<WriteInfo> writes = new ArrayList<>();
         for (int i = 0; i <= numShards; i++) {
-            writes.add(getWriteInfoWithFixedCellHash(CONSERVATIVE, i));
+            writes.add(getWriteInfoWithFixedShard(CONSERVATIVE, i, numShards));
         }
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
         assertThat(partitions.keySet())
@@ -164,9 +166,15 @@ public class WriteInfoPartitionerTest {
         return TableReference.createFromFullyQualifiedName("test." + tableName);
     }
 
-    private WriteInfo getWriteInfoWithFixedCellHash(TableReference tableRef, int cellIndex) {
-        // cell hash is rowname ^ colname, so equals 0 when they are equal
-        return getWriteInfo(tableRef, cellIndex, cellIndex, 1L);
+    private WriteInfo getWriteInfoWithFixedShard(TableReference tableRef, int cellIndex, int numShards) {
+        WriteInfo result = getWriteInfo(tableRef, cellIndex, 0, 1L);
+        int counter = 1;
+        while (result.writeRef().cellReference().hashCode() % numShards != 0) {
+            System.out.println(result);
+            System.out.println(result.writeRef().cellReference().hashCode() % numShards);
+            result = getWriteInfo(tableRef, cellIndex, counter++, 1L);
+        }
+        return result;
     }
 
     private WriteInfo getWriteInfo(TableReference tableRef, int rowIndex, int colIndex, long timestamp) {
