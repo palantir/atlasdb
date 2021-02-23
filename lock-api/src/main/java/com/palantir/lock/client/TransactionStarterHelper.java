@@ -37,6 +37,10 @@ public final class TransactionStarterHelper {
     }
 
     static Set<LockToken> unlock(Set<LockToken> tokens, LockLeaseService lockLeaseService) {
+        return unlock(tokens, lockLeaseService.lockCleanupService());
+    }
+
+    static Set<LockToken> unlock(Set<LockToken> tokens, LockLeaseService.LockCleanupService lockCleanupService) {
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);
@@ -44,8 +48,8 @@ public final class TransactionStarterHelper {
         Set<LockToken> toUnlock = reduceForUnlock(lockTokenShares);
         Set<LockToken> toRefresh = getLockTokensToRefresh(lockTokenShares, toUnlock);
 
-        Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(toRefresh);
-        Set<LockToken> unlocked = lockLeaseService.unlock(Sets.union(toUnlock, lockTokens));
+        Set<LockToken> refreshed = lockCleanupService.refreshLockLeases(toRefresh);
+        Set<LockToken> unlocked = lockCleanupService.unlock(Sets.union(toUnlock, lockTokens));
 
         Set<LockTokenShare> resultLockTokenShares = Sets.filter(
                 lockTokenShares,

@@ -94,7 +94,11 @@ class LockLeaseService {
                 .numTransactions(batchSize)
                 .lastKnownVersion(toConjure(maybeVersion))
                 .build();
-        ConjureStartTransactionsResponse response = delegate.startTransactions(request);
+        return getMassagedConjureStartTransactionsResponse(delegate.startTransactions(request));
+    }
+
+    public static ConjureStartTransactionsResponse getMassagedConjureStartTransactionsResponse(
+            ConjureStartTransactionsResponse response) {
         Lease lease = response.getLease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(
                 ConjureLockToken.of(response.getImmutableTimestamp().getLock().getRequestId()), lease);
@@ -154,6 +158,10 @@ class LockLeaseService {
                 .collect(Collectors.toSet());
     }
 
+    LockCleanupService lockCleanupService() {
+        return new LockCleanupService(this);
+    }
+
     private Set<LeasedLockToken> refreshTokens(Set<LeasedLockToken> leasedTokens) {
         if (leasedTokens.isEmpty()) {
             return leasedTokens;
@@ -184,10 +192,33 @@ class LockLeaseService {
         return leasedTokens.stream().map(LeasedLockToken::serverToken).collect(Collectors.toSet());
     }
 
-    private Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {
+    // Todo snanda
+    public static Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {
         return maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
                 .id(identifiedVersion.id())
                 .version(identifiedVersion.version())
                 .build());
+    }
+
+    public static Optional<LockWatchVersion> fromConjure(Optional<ConjureIdentifiedVersion> maybeVersion) {
+        return maybeVersion.map(
+                identifiedVersion -> LockWatchVersion.of(identifiedVersion.getId(), identifiedVersion.getVersion()));
+    }
+
+    // Todo snanda
+    public static final class LockCleanupService {
+        private final LockLeaseService delegate;
+
+        public LockCleanupService(LockLeaseService delegate) {
+            this.delegate = delegate;
+        }
+
+        Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
+            return delegate.refreshLockLeases(uncastedTokens);
+        }
+
+        Set<LockToken> unlock(Set<LockToken> tokens) {
+            return delegate.unlock(tokens);
+        }
     }
 }

@@ -522,6 +522,27 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         });
     }
 
+    @Test
+    public void multiClientStartTransactionsReturnsCorrectStartTimestamps() {
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        String alpha = "alpha";
+        String beta = "beta";
+        List<String> expectedNamespaces = ImmutableList.of(alpha, beta);
+
+        int alphaFastForwardedTimestamp = 155_200_000;
+        int betaFastForwardedTimestamp = 988_000_000;
+
+        leader.client(alpha).timestampManagementService().fastForwardTimestamp(alphaFastForwardedTimestamp);
+        leader.client(beta).timestampManagementService().fastForwardTimestamp(betaFastForwardedTimestamp);
+
+        Map<Namespace, ConjureStartTransactionsResponse> startedTransactions =
+                assertSanityAndStartTransactions(leader, expectedNamespaces);
+        assertThat(startedTransactions.get(Namespace.of(alpha)).getTimestamps().start())
+                .isGreaterThanOrEqualTo(alphaFastForwardedTimestamp);
+        assertThat(startedTransactions.get(Namespace.of(beta)).getTimestamps().start())
+                .isGreaterThanOrEqualTo(betaFastForwardedTimestamp);
+    }
+
     private Map<Namespace, ConjureStartTransactionsResponse> assertSanityAndStartTransactions(
             TestableTimelockServer leader, List<String> expectedNamespaces) {
         MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
