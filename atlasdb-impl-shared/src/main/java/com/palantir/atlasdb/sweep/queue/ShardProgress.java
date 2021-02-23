@@ -144,11 +144,12 @@ public class ShardProgress {
         while (currentValue > SweepQueueUtils.RESET_TIMESTAMP) {
             CheckAndSetRequest casRequest = createRequest(shardAndStrategy, currentValue, colValZero);
             try {
-                log.info("Attempting to reset targeted sweep progress for a shard.",
+                log.info(
+                        "Attempting to reset targeted sweep progress for a shard.",
                         SafeArg.of("shardAndStrategy", shardAndStrategy));
                 kvs.checkAndSet(casRequest);
-                log.info("Reset targeted sweep progress for a shard.",
-                        SafeArg.of("shardAndStrategy", shardAndStrategy));
+                log.info(
+                        "Reset targeted sweep progress for a shard.", SafeArg.of("shardAndStrategy", shardAndStrategy));
             } catch (CheckAndSetException e) {
                 log.info(
                         "Failed to reset targeted sweep progress for a shard; trying again if someone changed it "
