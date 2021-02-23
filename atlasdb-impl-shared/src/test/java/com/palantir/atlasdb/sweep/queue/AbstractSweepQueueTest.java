@@ -169,7 +169,7 @@ public abstract class AbstractSweepQueueTest {
 
         return IntStream.iterate(0, i -> i + 1)
                 .mapToObj(index -> CellReference.of(tableRef, Cell.create(rowName, PtBytes.toBytes(index))))
-                .filter(cellReference -> IntMath.mod(cellReference.hashCode(), shards) == 0)
+                .filter(cellReference -> IntMath.mod(cellReference.goodHash(), shards) == 0)
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Infinite stream had no cell possibilities :("));
     }

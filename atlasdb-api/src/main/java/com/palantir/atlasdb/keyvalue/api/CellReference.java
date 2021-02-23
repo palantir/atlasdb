@@ -15,27 +15,35 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Objects;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class CellReference {
+    private static final HashFunction rowHash = Hashing.murmur3_32(0);
+    private static final HashFunction colHash = Hashing.murmur3_32(1);
+
     public abstract TableReference tableRef();
 
     public abstract Cell cell();
 
-    /**
-     * {@link Cell#hashCode()} implementation has a rather unfortunate case where it is always 0 if the row name and
-     * the column name match. We did not want to change it to keep backwards compatibility, but we need a uniform
-     * distribution here for all reasonable patterns.
-     */
-    @SuppressWarnings("EqualsHashCode") // this replaces the immutable generated code, which has equality defined
-    @Override
-    public int hashCode() {
-        return Objects.hash(tableRef(), cell().getRowName(), cell().getColumnName());
+    public int goodHash() {
+        int hash = 5381;
+        hash = hash * 31 + tableRef().hashCode();
+        hash = hash * 31 + rowHash.hashBytes(cell().getRowName()).asInt();
+        hash = hash * 31 + colHash.hashBytes(cell().getColumnName()).asInt();
+        return hash;
     }
 
     public static CellReference of(TableReference tableRef, Cell cell) {
         return ImmutableCellReference.builder().tableRef(tableRef).cell(cell).build();
+    }
+
+    static CellReference of(TableReference tableRef, byte[] row, byte[] col) {
+        return ImmutableCellReference.builder()
+                .tableRef(tableRef)
+                .cell(Cell.create(row, col))
+                .build();
     }
 }
