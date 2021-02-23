@@ -590,22 +590,27 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     public void multiClientStartTransactionsReturnsCorrectStartTimestamps() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        String alpha = "alpha";
-        String beta = "beta";
-        List<String> expectedNamespaces = ImmutableList.of(alpha, beta);
+        Namespace delta = Namespace.of("delta");
+        Namespace gamma = Namespace.of("gamma");
 
-        int alphaFastForwardedTimestamp = 155_200_000;
-        int betaFastForwardedTimestamp = 988_000_000;
+        NamespacedClients deltaClient = leader.client(delta.get()).throughWireMockProxy();
+        NamespacedClients gammaClient = leader.client(gamma.get()).throughWireMockProxy();
+        List<String> expectedNamespaces = ImmutableList.of(delta.get(), gamma.get());
 
-        leader.client(alpha).timestampManagementService().fastForwardTimestamp(alphaFastForwardedTimestamp);
-        leader.client(beta).timestampManagementService().fastForwardTimestamp(betaFastForwardedTimestamp);
+        int deltaFastForwardedTimestamp = 155_200_000;
+        int gammaFastForwardedTimestamp = 988_000_000;
+
+        deltaClient.timestampManagementService().fastForwardTimestamp(deltaFastForwardedTimestamp);
+        gammaClient.timestampManagementService().fastForwardTimestamp(gammaFastForwardedTimestamp);
 
         Map<Namespace, ConjureStartTransactionsResponse> startedTransactions =
                 assertSanityAndStartTransactions(leader, expectedNamespaces);
-        assertThat(startedTransactions.get(Namespace.of(alpha)).getTimestamps().start())
-                .isGreaterThanOrEqualTo(alphaFastForwardedTimestamp);
-        assertThat(startedTransactions.get(Namespace.of(beta)).getTimestamps().start())
-                .isGreaterThanOrEqualTo(betaFastForwardedTimestamp);
+
+        assertThat(startedTransactions.get(delta).getTimestamps().start())
+                .isGreaterThanOrEqualTo(deltaFastForwardedTimestamp)
+                .isLessThan(gammaFastForwardedTimestamp);
+        assertThat(startedTransactions.get(gamma).getTimestamps().start())
+                .isGreaterThanOrEqualTo(gammaFastForwardedTimestamp);
     }
 
     private Map<Namespace, ConjureStartTransactionsResponse> assertSanityAndStartTransactions(
