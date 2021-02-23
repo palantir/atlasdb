@@ -51,6 +51,7 @@ dependencies {
 
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile project(":atlasdb-config")
+  testCompile group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.awaitility', name: 'awaitility'
