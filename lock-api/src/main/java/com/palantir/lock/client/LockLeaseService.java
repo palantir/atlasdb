@@ -19,7 +19,6 @@ package com.palantir.lock.client;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
@@ -96,7 +95,7 @@ class LockLeaseService {
                 .requestorId(clientId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(batchSize)
-                .lastKnownVersion(toConjure(maybeVersion))
+                .lastKnownVersion(ConjureLockRequests.toConjure(maybeVersion))
                 .build();
         return getMassagedConjureStartTransactionsResponse(delegate.startTransactions(request));
     }
@@ -118,7 +117,7 @@ class LockLeaseService {
     GetCommitTimestampsResponse getCommitTimestamps(Optional<LockWatchVersion> maybeVersion, int batchSize) {
         GetCommitTimestampsRequest request = GetCommitTimestampsRequest.builder()
                 .numTimestamps(batchSize)
-                .lastKnownVersion(toConjure(maybeVersion))
+                .lastKnownVersion(ConjureLockRequests.toConjure(maybeVersion))
                 .build();
         return delegate.getCommitTimestamps(request);
     }
@@ -194,18 +193,6 @@ class LockLeaseService {
 
     private static Set<ConjureLockToken> serverTokens(Set<LeasedLockToken> leasedTokens) {
         return leasedTokens.stream().map(LeasedLockToken::serverToken).collect(Collectors.toSet());
-    }
-
-    public static Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {
-        return maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
-                .id(identifiedVersion.id())
-                .version(identifiedVersion.version())
-                .build());
-    }
-
-    public static Optional<LockWatchVersion> fromConjure(Optional<ConjureIdentifiedVersion> maybeVersion) {
-        return maybeVersion.map(
-                identifiedVersion -> LockWatchVersion.of(identifiedVersion.getId(), identifiedVersion.getVersion()));
     }
 
     public static final class LockCleanupService {

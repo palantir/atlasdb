@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
@@ -26,6 +27,8 @@ import com.palantir.lock.v2.ImmutableWaitForLocksResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.LockWatchVersion;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -61,5 +64,17 @@ public final class ConjureLockRequests {
 
     public static WaitForLocksResponse fromConjure(ConjureWaitForLocksResponse response) {
         return ImmutableWaitForLocksResponse.of(response.getWasSuccessful());
+    }
+
+    public static Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {
+        return maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
+                .id(identifiedVersion.id())
+                .version(identifiedVersion.version())
+                .build());
+    }
+
+    public static Optional<LockWatchVersion> fromConjure(Optional<ConjureIdentifiedVersion> maybeVersion) {
+        return maybeVersion.map(
+                identifiedVersion -> LockWatchVersion.of(identifiedVersion.getId(), identifiedVersion.getVersion()));
     }
 }
