@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Jepsen tests now validate liveness of the cluster to a minimal extent. Previously, they would pass even with 0 successful requests.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5261

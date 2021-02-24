@@ -38,7 +38,7 @@ public abstract class FailEvent implements Event {
     public abstract String error();
 
     @Override
-    public void accept(EventVisitor visitor) {
-        visitor.visit(this);
+    public <T> T accept(EventVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }
