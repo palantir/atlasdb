@@ -62,15 +62,15 @@ public final class ConjureLockRequests {
                 .collect(Collectors.toSet());
     }
 
-    public static WaitForLocksResponse fromConjure(ConjureWaitForLocksResponse response) {
-        return ImmutableWaitForLocksResponse.of(response.getWasSuccessful());
-    }
-
     public static Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {
         return maybeVersion.map(identifiedVersion -> ConjureIdentifiedVersion.builder()
                 .id(identifiedVersion.id())
                 .version(identifiedVersion.version())
                 .build());
+    }
+
+    public static WaitForLocksResponse fromConjure(ConjureWaitForLocksResponse response) {
+        return ImmutableWaitForLocksResponse.of(response.getWasSuccessful());
     }
 
     public static Optional<LockWatchVersion> fromConjure(Optional<ConjureIdentifiedVersion> maybeVersion) {
