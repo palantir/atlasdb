@@ -28,7 +28,6 @@ public abstract class CellReference {
 
     public abstract Cell cell();
 
-
     /**
      * {@link Cell#hashCode()} implementation has a rather unfortunate case where it is always 0 if the row name and
      * the column name match. We did not want to change it to keep backwards compatibility, but we need a uniform
