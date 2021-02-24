@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * {@link SlidingTimeWindowArrayReservoir} for the timer's reservoir.
  */
 public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocationEventHandler<InvocationContext> {
-    private static final Logger logger = LoggerFactory.getLogger(SlidingWindowMetricsInvocationHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(SlidingWindowMetricsInvocationHandler.class);
 
     private final MetricRegistry metricRegistry;
     private final Map<Method, Timer> timers = new ConcurrentHashMap<>();
@@ -58,7 +58,7 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
     @Override
     public void onSuccess(@Nullable InvocationContext context, @Nullable Object result) {
         if (context == null) {
-            logger.debug("Encountered null metric context likely due to exception in preInvocation");
+            log.debug("Encountered null metric context likely due to exception in preInvocation");
             return;
         }
 
@@ -72,7 +72,7 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
     public void onFailure(@Nullable InvocationContext context, @Nonnull Throwable cause) {
         markGlobalFailure();
         if (context == null) {
-            logger.debug(
+            log.debug(
                     "Encountered null metric context likely due to exception in preInvocation: {}",
                     UnsafeArg.of("cause", cause),
                     cause);
