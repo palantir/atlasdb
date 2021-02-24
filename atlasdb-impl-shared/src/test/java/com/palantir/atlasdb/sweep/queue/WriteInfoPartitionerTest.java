@@ -15,9 +15,11 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTest.TABLE_CONS;
 import static com.palantir.atlasdb.sweep.queue.AbstractSweepQueueTest.metadataBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.withinPercentage;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -39,6 +41,8 @@ import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -162,19 +166,29 @@ public class WriteInfoPartitionerTest {
         assertThat(partition1.shard()).isNotEqualTo(partition2.shard());
     }
 
+    @Test
+    public void cellsWithSameRowAndColumnNamesGetAssignedToShardsUniformly() {
+        int writes = 100_000;
+        Map<Integer, Long> result = IntStream.range(0, writes)
+                .mapToObj(index -> getWriteInfo(TABLE_CONS, index, index, 1L))
+                .map(writeInfo -> writeInfo.toShard(numShards))
+                .collect(Collectors.groupingBy(shard -> shard, Collectors.counting()));
+
+        assertThat(result.size()).isEqualTo(numShards);
+        result.values().forEach(count -> assertThat((double) count)
+                .isCloseTo(writes / (double) numShards, withinPercentage(10)));
+    }
+
     private static TableReference getTableRef(String tableName) {
         return TableReference.createFromFullyQualifiedName("test." + tableName);
     }
 
     private WriteInfo getWriteInfoWithFixedShard(TableReference tableRef, int cellIndex, int numShards) {
-        WriteInfo result = getWriteInfo(tableRef, cellIndex, 0, 1L);
-        int counter = 1;
-        while (result.writeRef().cellReference().hashCode() % numShards != 0) {
-            System.out.println(result);
-            System.out.println(result.writeRef().cellReference().hashCode() % numShards);
-            result = getWriteInfo(tableRef, cellIndex, counter++, 1L);
-        }
-        return result;
+        return IntStream.iterate(0, i -> i + 1)
+                .mapToObj(index -> getWriteInfo(tableRef, cellIndex, index, 1L))
+                .filter(writeInfo -> writeInfo.toShard(numShards) == 0)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Infinite stream had no cell possibilities :("));
     }
 
     private WriteInfo getWriteInfo(TableReference tableRef, int rowIndex, int colIndex, long timestamp) {
