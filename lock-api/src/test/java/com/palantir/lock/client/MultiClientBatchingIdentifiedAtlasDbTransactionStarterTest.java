@@ -162,14 +162,14 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
             assertThat(resultFuture.isDone()).isTrue();
 
             List<StartIdentifiedAtlasDbTransactionResponse> responseList = Futures.getUnchecked(resultFuture);
-            ConjureStartTransactionsResponse batchedStartTransactionResponse =
-                    LockLeaseService.getMassagedConjureStartTransactionsResponse(
-                            responseMap.get(requestParams.namespace()));
+            assertThat(responseList).hasSize(requestParams.params().numTransactions());
 
             if (assertValues) {
+                ConjureStartTransactionsResponse batchedStartTransactionResponse =
+                        LockLeaseService.getMassagedConjureStartTransactionsResponse(
+                                responseMap.get(requestParams.namespace()));
                 assertThat(responseList)
                         .satisfies(StartTransactionsTestUtils::assertThatStartTransactionResponsesAreUnique)
-                        .hasSize(requestParams.params().numTransactions())
                         .allSatisfy(startTxnResponse -> {
                             StartTransactionsTestUtils.assertDerivableFromBatchedResponse(
                                     startTxnResponse, batchedStartTransactionResponse);
