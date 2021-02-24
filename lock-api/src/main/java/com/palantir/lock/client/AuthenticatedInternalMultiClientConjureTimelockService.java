@@ -16,10 +16,13 @@
 
 package com.palantir.lock.client;
 
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.Map;
 import java.util.Set;
 
 public class AuthenticatedInternalMultiClientConjureTimelockService
@@ -35,5 +38,11 @@ public class AuthenticatedInternalMultiClientConjureTimelockService
     @Override
     public LeaderTimes leaderTimes(Set<Namespace> namespaces) {
         return delegate.leaderTimes(AUTH_HEADER, namespaces);
+    }
+
+    @Override
+    public Map<Namespace, GetCommitTimestampsResponse> getCommitTimestamps(
+            Map<Namespace, GetCommitTimestampsRequest> requests) {
+        return delegate.getCommitTimestamps(AUTH_HEADER, requests);
     }
 }
