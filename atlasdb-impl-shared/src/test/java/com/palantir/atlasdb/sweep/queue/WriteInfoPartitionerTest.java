@@ -174,7 +174,7 @@ public class WriteInfoPartitionerTest {
                 .map(writeInfo -> writeInfo.toShard(numShards))
                 .collect(Collectors.groupingBy(shard -> shard, Collectors.counting()));
 
-        assertThat(result.size()).isEqualTo(numShards);
+        assertThat(result).hasSize(numShards);
         result.values().forEach(count -> assertThat((double) count)
                 .isCloseTo(writes / (double) numShards, withinPercentage(10)));
     }

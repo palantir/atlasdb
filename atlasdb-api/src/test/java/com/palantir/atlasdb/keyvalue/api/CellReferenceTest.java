@@ -107,7 +107,7 @@ public class CellReferenceTest {
     private void assertDistributionUniformForBuckets(List<Integer> hashes, int buckets, int totalEntries) {
         Map<Integer, Long> distribution = hashes.stream()
                 .collect(Collectors.groupingBy(hash -> IntMath.mod(hash, buckets), Collectors.counting()));
-        assertThat(distribution.size()).isEqualTo(buckets);
+        assertThat(distribution).hasSize(buckets);
         distribution.values().forEach(count -> assertThat((double) count)
                 .isCloseTo(totalEntries / (double) buckets, Percentage.withPercentage(15)));
     }
