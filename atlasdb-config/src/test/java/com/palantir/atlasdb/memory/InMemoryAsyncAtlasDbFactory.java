@@ -27,11 +27,11 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Optional;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
@@ -45,7 +45,7 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
     public KeyValueService createRawKeyValueService(
             MetricsManager unusedMetricsManager,
             KeyValueServiceConfig unusedConfig,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> unusedRuntimeConfig,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> unusedRuntimeConfig,
             Optional<LeaderConfig> unusedLeaderConfig,
             Optional<String> unused,
             LongSupplier unusedLongSupplier,
