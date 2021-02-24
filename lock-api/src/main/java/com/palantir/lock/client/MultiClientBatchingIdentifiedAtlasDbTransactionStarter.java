@@ -16,8 +16,8 @@
 
 package com.palantir.lock.client;
 
-import static com.palantir.lock.client.LockLeaseService.fromConjure;
-import static com.palantir.lock.client.LockLeaseService.toConjure;
+import static com.palantir.lock.client.ConjureLockRequests.fromConjure;
+import static com.palantir.lock.client.ConjureLockRequests.toConjure;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
