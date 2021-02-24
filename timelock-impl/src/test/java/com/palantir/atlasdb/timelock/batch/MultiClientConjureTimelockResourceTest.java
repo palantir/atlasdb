@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.batch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +30,8 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
@@ -63,11 +66,15 @@ public class MultiClientConjureTimelockResourceTest {
 
     private Map<String, AsyncTimelockService> namespaces = new HashMap();
     private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap();
+    private Map<String, Integer> namespaceToCommitTsLowerBound = new HashMap();
+
     private MultiClientConjureTimelockResource resource;
 
     private PartitionedTimestamps partitionedTimestamps = mock(PartitionedTimestamps.class);
     private LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
     private LockImmutableTimestampResponse lockImmutableTimestampResponse = mock(LockImmutableTimestampResponse.class);
+
+    private int commitTsLowerInclusive = 1;
 
     @Before
     public void before() {
@@ -123,6 +130,29 @@ public class MultiClientConjureTimelockResourceTest {
         assertThat(leadershipIds).hasSameSizeAs(namespaces);
     }
 
+    @Test
+    public void canGetCommitTimestampsForMultipleClients() {
+        Set<String> namespaces = ImmutableSet.of("client1", "client2");
+        assertThat(Futures.getUnchecked(
+                        resource.getCommitTimestamps(AUTH_HEADER, getGetCommitTimestampsRequests(namespaces))))
+                .isEqualTo(getGetCommitTimestampsResponseList(namespaces));
+    }
+
+    private Map<Namespace, GetCommitTimestampsResponse> getGetCommitTimestampsResponseList(Set<String> namespaces) {
+        return KeyedStream.of(namespaces)
+                .mapKeys(Namespace::of)
+                .map(this::getCommitTimestampResponse)
+                .collectToMap();
+    }
+
+    private Map<Namespace, GetCommitTimestampsRequest> getGetCommitTimestampsRequests(Set<String> namespaces) {
+        return KeyedStream.of(namespaces)
+                .mapKeys(Namespace::of)
+                .map(namespace ->
+                        GetCommitTimestampsRequest.builder().numTimestamps(4).build())
+                .collectToMap();
+    }
+
     private Map<Namespace, ConjureStartTransactionsRequest> getStartTransactionsRequests(List<String> namespaces) {
         return KeyedStream.of(namespaces)
                 .map(namespace -> ConjureStartTransactionsRequest.builder()
@@ -150,7 +180,18 @@ public class MultiClientConjureTimelockResourceTest {
                         .timestamps(partitionedTimestamps)
                         .lockWatchUpdate(lockWatchStateUpdate)
                         .build()));
+        when(timelockService.getCommitTimestamps(anyInt(), any()))
+                .thenReturn(Futures.immediateFuture(getCommitTimestampResponse(client)));
         return timelockService;
+    }
+
+    private GetCommitTimestampsResponse getCommitTimestampResponse(String namespace) {
+        int inclusiveLower = getInclusiveLowerCommitTs(namespace);
+        return GetCommitTimestampsResponse.of(inclusiveLower, inclusiveLower + 5, lockWatchStateUpdate);
+    }
+
+    private Integer getInclusiveLowerCommitTs(String namespace) {
+        return namespaceToCommitTsLowerBound.computeIfAbsent(namespace, _u -> commitTsLowerInclusive++);
     }
 
     private static URL url(String url) {
