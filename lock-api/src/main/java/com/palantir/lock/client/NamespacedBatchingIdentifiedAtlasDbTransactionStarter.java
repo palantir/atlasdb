@@ -44,5 +44,7 @@ public class NamespacedBatchingIdentifiedAtlasDbTransactionStarter implements Id
     }
 
     @Override
-    public void close() {}
+    public void close() {
+        batcher.close();
+    }
 }
