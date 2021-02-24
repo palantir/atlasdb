@@ -47,7 +47,7 @@ public class CellReferenceTest {
     @Test
     public void dynamicRandomColumns() {
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        int totalCount = 20_000;
+        int totalCount = 50_000;
         List<byte[]> cols = IntStream.range(0, totalCount)
                 .mapToObj(_ignore -> new byte[random.nextInt(1, 20)])
                 .collect(Collectors.toList());
@@ -72,7 +72,7 @@ public class CellReferenceTest {
     @Test
     public void randomRowFixedColumn() {
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        int totalCount = 20_000;
+        int totalCount = 50_000;
         List<byte[]> rows = IntStream.range(0, totalCount)
                 .mapToObj(_ignore -> new byte[random.nextInt(1, 20)])
                 .collect(Collectors.toList());
@@ -109,6 +109,6 @@ public class CellReferenceTest {
                 .collect(Collectors.groupingBy(hash -> IntMath.mod(hash, buckets), Collectors.counting()));
         assertThat(distribution.size()).isEqualTo(buckets);
         distribution.values().forEach(count -> assertThat((double) count)
-                .isCloseTo(totalEntries / (double) buckets, Percentage.withPercentage(12)));
+                .isCloseTo(totalEntries / (double) buckets, Percentage.withPercentage(15)));
     }
 }
