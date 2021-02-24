@@ -152,12 +152,17 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
+import com.palantir.lock.client.BatchingIdentifiedAtlasDbTransactionStarter;
+import com.palantir.lock.client.IdentifiedAtlasDbTransactionStarter;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
+import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter;
+import com.palantir.lock.client.NamespacedBatchingIdentifiedAtlasDbTransactionStarter;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.ProfilingTimelockService;
@@ -172,6 +177,7 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -1206,11 +1212,24 @@ public abstract class TransactionManagers {
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
 
-        LeaderTimeGetter leaderTimeGetter = getLeaderTimeGetter(
-                timelockNamespace, timelockRequestBatcherProviders, serviceProvider, namespacedConjureTimelockService);
+        Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier =
+                getMultiClientTimelockServiceSupplier(serviceProvider);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
-                namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, leaderTimeGetter);
+                namespacedTimelockRpcClient,
+                namespacedConjureTimelockService,
+                lockWatchEventCache,
+                getLeaderTimeGetter(
+                        timelockNamespace,
+                        timelockRequestBatcherProviders,
+                        serviceProvider,
+                        namespacedConjureTimelockService,
+                        multiClientTimelockServiceSupplier),
+                getTransactionStarterFactory(
+                        timelockNamespace,
+                        timelockRequestBatcherProviders,
+                        lockWatchEventCache,
+                        multiClientTimelockServiceSupplier));
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
@@ -1226,11 +1245,32 @@ public abstract class TransactionManagers {
                 .build();
     }
 
+    private static Function<LockLeaseService, IdentifiedAtlasDbTransactionStarter> getTransactionStarterFactory(
+            String namespace,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            LockWatchEventCache lockWatchEventCache,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        if (!timelockRequestBatcherProviders.isPresent()) {
+            return lockLeaseService ->
+                    BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, lockWatchEventCache);
+        }
+        MultiClientBatchingIdentifiedAtlasDbTransactionStarter batcher = timelockRequestBatcherProviders
+                .get()
+                .startTransactionsBatcherProvider()
+                .getBatcher(multiClientTimelockServiceSupplier);
+        return lockLeaseService -> new NamespacedBatchingIdentifiedAtlasDbTransactionStarter(
+                namespace,
+                batcher,
+                new StartTransactionsLockWatchEventCache(lockWatchEventCache),
+                lockLeaseService.lockCleanupService());
+    }
+
     private static LeaderTimeGetter getLeaderTimeGetter(
             String timelockNamespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             AtlasDbDialogueServiceProvider serviceProvider,
-            LeaderElectionReportingTimelockService namespacedConjureTimelockService) {
+            LeaderElectionReportingTimelockService namespacedConjureTimelockService,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
 
         if (!timelockRequestBatcherProviders.isPresent()) {
             return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
@@ -1239,7 +1279,7 @@ public abstract class TransactionManagers {
         LeaderTimeCoalescingBatcher batcher = timelockRequestBatcherProviders
                 .get()
                 .leaderTimeBatcherProvider()
-                .getBatcher(getMultiClientTimelockServiceSupplier(serviceProvider));
+                .getBatcher(multiClientTimelockServiceSupplier);
         return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, batcher);
     }
 

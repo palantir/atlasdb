@@ -32,6 +32,7 @@ import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private final NamespacedTimelockRpcClient rpcClient;
@@ -44,11 +45,12 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LockWatchEventCache lockWatchEventCache,
-            LeaderTimeGetter leaderTimeGetter) {
+            LeaderTimeGetter leaderTimeGetter,
+            Function<LockLeaseService, IdentifiedAtlasDbTransactionStarter> batchingTransactionStarterFactory) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
-        this.transactionStarter = TransactionStarter.create(
-                lockLeaseService, StartTransactionsLockWatchEventCache.create(lockWatchEventCache));
+        this.transactionStarter =
+                TransactionStarter.create(lockLeaseService, batchingTransactionStarterFactory.apply(lockLeaseService));
         this.commitTimestampGetter = CommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
     }
@@ -57,15 +59,24 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache) {
-        return create(rpcClient, conjureClient, lockWatchEventCache, new LegacyLeaderTimeGetter(conjureClient));
+        return create(
+                rpcClient,
+                conjureClient,
+                lockWatchEventCache,
+                new LegacyLeaderTimeGetter(conjureClient),
+                lockLeaseService ->
+                        BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService,
+                                StartTransactionsLockWatchEventCache.create(lockWatchEventCache)));
     }
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache,
-            LeaderTimeGetter leaderTimeGetter) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache, leaderTimeGetter);
+            LeaderTimeGetter leaderTimeGetter,
+            Function<LockLeaseService, IdentifiedAtlasDbTransactionStarter> batchingTransactionStarterFactory) {
+        return new RemoteTimelockServiceAdapter(
+                rpcClient, conjureClient, lockWatchEventCache, leaderTimeGetter, batchingTransactionStarterFactory);
     }
 
     @Override

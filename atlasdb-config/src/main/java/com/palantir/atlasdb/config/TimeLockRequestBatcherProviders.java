@@ -17,9 +17,13 @@
 package com.palantir.atlasdb.config;
 
 import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
+import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TimeLockRequestBatcherProviders {
     TimeLockRequestBatcherProvider<LeaderTimeCoalescingBatcher> leaderTimeBatcherProvider();
+
+    TimeLockRequestBatcherProvider<MultiClientBatchingIdentifiedAtlasDbTransactionStarter>
+            startTransactionsBatcherProvider();
 }

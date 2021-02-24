@@ -28,11 +28,11 @@ public class NamespacedBatchingIdentifiedAtlasDbTransactionStarter implements Id
     private final LockCleanupService lockCleanupService;
 
     public NamespacedBatchingIdentifiedAtlasDbTransactionStarter(
-            Namespace namespace,
+            String namespace,
             MultiClientTransactionStarter batcher,
             StartTransactionsLockWatchEventCache lockWatchEventCache,
             LockCleanupService lockCleanupService) {
-        this.namespace = namespace;
+        this.namespace = Namespace.of(namespace);
         this.batcher = batcher;
         this.lockWatchEventCache = lockWatchEventCache;
         this.lockCleanupService = lockCleanupService;
