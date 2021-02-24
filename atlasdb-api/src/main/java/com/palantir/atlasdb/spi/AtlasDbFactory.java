@@ -19,11 +19,11 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import java.util.Optional;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +55,7 @@ public interface AtlasDbFactory {
     KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,

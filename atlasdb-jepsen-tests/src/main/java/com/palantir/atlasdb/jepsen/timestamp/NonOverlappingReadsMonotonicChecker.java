@@ -45,7 +45,7 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
                 .build();
     }
 
-    private static final class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor<Void> {
         private static final String DUMMY_VALUE = "-1";
         private static final int DUMMY_PROCESS = -1;
 
@@ -56,13 +56,14 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
         private final List<Event> errors = new ArrayList<>();
 
         @Override
-        public void visit(InvokeEvent event) {
+        public Void visit(InvokeEvent event) {
             Integer process = event.process();
             pendingReadForProcess.put(process, event);
+            return null;
         }
 
         @Override
-        public void visit(OkEvent event) {
+        public Void visit(OkEvent event) {
             int process = event.process();
 
             InvokeEvent invoke = pendingReadForProcess.get(process);
@@ -72,12 +73,14 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
 
             pendingReadForProcess.remove(process);
             acknowledgedReadsOverTime.add(event);
+            return null;
         }
 
         @Override
-        public void visit(FailEvent event) {
+        public Void visit(FailEvent event) {
             Integer process = event.process();
             pendingReadForProcess.remove(process);
+            return null;
         }
 
         public boolean valid() {

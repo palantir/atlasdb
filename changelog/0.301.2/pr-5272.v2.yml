@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    Cassandra host servers can be specified in either runtime or normal config. If specified in both, the normal config will be used.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5272

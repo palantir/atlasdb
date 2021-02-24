@@ -30,51 +30,51 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class PaxosLearnerImpl implements PaxosLearner {
-
-    private static final Logger logger = LoggerFactory.getLogger(PaxosLearnerImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosLearnerImpl.class);
 
     public static PaxosLearner newLearner(String logDir, PaxosKnowledgeEventRecorder eventRecorder) {
         return newLearner(new PaxosStateLogImpl<>(logDir), eventRecorder);
     }
 
-    private static PaxosLearner newLearner(PaxosStateLog<PaxosValue> log, PaxosKnowledgeEventRecorder eventRecorder) {
+    private static PaxosLearner newLearner(
+            PaxosStateLog<PaxosValue> stateLog, PaxosKnowledgeEventRecorder eventRecorder) {
         ConcurrentSkipListMap<Long, PaxosValue> state = new ConcurrentSkipListMap<>();
 
-        byte[] greatestValidValue = PaxosStateLogs.getGreatestValidLogEntry(log);
+        byte[] greatestValidValue = PaxosStateLogs.getGreatestValidLogEntry(stateLog);
         if (greatestValidValue != null) {
             PaxosValue value = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(greatestValidValue);
             state.put(value.getRound(), value);
         }
 
-        return new PaxosLearnerImpl(state, log, eventRecorder);
+        return new PaxosLearnerImpl(state, stateLog, eventRecorder);
     }
 
     public static PaxosLearner newSplittingLearner(
             PaxosStorageParameters params,
             SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
             PaxosKnowledgeEventRecorder event) {
-        PaxosStateLog<PaxosValue> log = SplittingPaxosStateLog.createWithMigration(
+        PaxosStateLog<PaxosValue> stateLog = SplittingPaxosStateLog.createWithMigration(
                 params, PaxosValue.BYTES_HYDRATOR, legacyOperationMarkers, OptionalLong.empty());
-        return newLearner(log, event);
+        return newLearner(stateLog, event);
     }
 
     final SortedMap<Long, PaxosValue> state;
-    final PaxosStateLog<PaxosValue> log;
+    final PaxosStateLog<PaxosValue> learnerStateLog;
     final PaxosKnowledgeEventRecorder eventRecorder;
 
     private PaxosLearnerImpl(
             SortedMap<Long, PaxosValue> stateWithGreatestValueFromLog,
-            PaxosStateLog<PaxosValue> log,
+            PaxosStateLog<PaxosValue> learnerStateLog,
             PaxosKnowledgeEventRecorder eventRecorder) {
         this.state = stateWithGreatestValueFromLog;
-        this.log = log;
+        this.learnerStateLog = learnerStateLog;
         this.eventRecorder = eventRecorder;
     }
 
     @Override
     public void learn(long seq, PaxosValue val) {
         state.put(seq, val);
-        log.writeRound(seq, val);
+        learnerStateLog.writeRound(seq, val);
         eventRecorder.recordRound(val);
     }
 
@@ -82,15 +82,15 @@ public final class PaxosLearnerImpl implements PaxosLearner {
     public Optional<PaxosValue> getLearnedValue(long seq) {
         try {
             if (!state.containsKey(seq)) {
-                byte[] bytes = log.readRound(seq);
+                byte[] bytes = learnerStateLog.readRound(seq);
                 if (bytes != null) {
-                    PaxosValue value = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(log.readRound(seq));
+                    PaxosValue value = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(learnerStateLog.readRound(seq));
                     state.put(seq, value);
                 }
             }
             return Optional.ofNullable(state.get(seq));
         } catch (IOException e) {
-            logger.error("Unable to get corrupt learned value for sequence {}", SafeArg.of("sequence", seq), e);
+            log.error("Unable to get corrupt learned value for sequence {}", SafeArg.of("sequence", seq), e);
             return Optional.empty();
         }
     }

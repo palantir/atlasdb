@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import org.immutables.value.Value;
@@ -43,6 +44,11 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
     @Override
     public String type() {
         return TYPE;
+    }
+
+    @Value.Default
+    public CassandraServersConfig servers() {
+        return ImmutableDefaultConfig.of();
     }
 
     /**

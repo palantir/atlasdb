@@ -31,6 +31,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -51,7 +52,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     public KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> unused,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
@@ -71,7 +72,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @VisibleForTesting
     static CassandraKeyValueServiceConfig preprocessKvsConfig(
             KeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
         Preconditions.checkArgument(
                 config instanceof CassandraKeyValueServiceConfig,

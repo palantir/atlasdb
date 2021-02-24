@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -63,7 +64,7 @@ public class CassandraAtlasDbFactoryTest {
         assertThatThrownBy(() -> {
                     KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
                     CassandraAtlasDbFactory.preprocessKvsConfig(
-                            keyValueServiceConfig, Optional::empty, Optional.empty());
+                            keyValueServiceConfig, Refreshable.only(Optional.empty()), Optional.empty());
                 })
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -71,35 +72,35 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void throwsWhenPreprocessingConfigWithNoKeyspaceAndNoNamespace() {
         assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
-                        CONFIG_WITHOUT_KEYSPACE, Optional::empty, Optional.empty()))
+                        CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
         assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
-                        CONFIG_WITH_KEYSPACE, Optional::empty, Optional.of(KEYSPACE_2)))
+                        CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE_2)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void resolvesConfigWithOriginalKeyspaceIfNoNamespaceProvided() {
-        CassandraKeyValueServiceConfig newConfig =
-                CassandraAtlasDbFactory.preprocessKvsConfig(CONFIG_WITH_KEYSPACE, Optional::empty, Optional.empty());
+        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
+                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty());
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(CONFIG_WITH_KEYSPACE.getKeyspaceOrThrow());
     }
 
     @Test
     public void resolvesConfigWithNamespaceIfNoKeyspaceProvided() {
         CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
-                CONFIG_WITHOUT_KEYSPACE, Optional::empty, Optional.of(KEYSPACE));
+                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
     public void preservesOtherPropertiesOnResolvedConfigWithNamespace() {
         CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
-                CONFIG_WITHOUT_KEYSPACE, Optional::empty, Optional.of(KEYSPACE));
+                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
         assertThat(newConfig.servers())
                 .isEqualTo(ImmutableDefaultConfig.builder()
                         .addAllThriftHosts(SERVERS)
@@ -110,7 +111,7 @@ public class CassandraAtlasDbFactoryTest {
     @Test
     public void resolvesConfigIfKeyspaceAndNamespaceProvidedAndMatch() {
         CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
-                CONFIG_WITH_KEYSPACE, Optional::empty, Optional.of(KEYSPACE));
+                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 

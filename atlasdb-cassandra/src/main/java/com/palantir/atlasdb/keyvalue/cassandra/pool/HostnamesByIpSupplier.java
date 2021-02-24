@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class HostnamesByIpSupplier implements Supplier<Map<String, String>> {
-    private static final Logger logger = LoggerFactory.getLogger(HostnamesByIpSupplier.class);
+    private static final Logger log = LoggerFactory.getLogger(HostnamesByIpSupplier.class);
 
     private static final String SYSTEM_PALANTIR_KEYSPACE = "system_palantir";
     private static final String HOSTNAMES_BY_IP_TABLE = "hostnames_by_ip";
@@ -54,7 +54,7 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
         try {
             return randomGoodHostSupplier.get().runWithPooledResource(getHostnamesByIp());
         } catch (Exception e) {
-            logger.warn("Could not get hostnames by ip from Cassandra", e);
+            log.warn("Could not get hostnames by ip from Cassandra", e);
             return ImmutableMap.of();
         }
     }
@@ -65,11 +65,11 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
             try {
                 systemPalantir = client.describe_keyspace(SYSTEM_PALANTIR_KEYSPACE);
             } catch (NotFoundException e) {
-                logger.debug("Did not find keyspace with hostnames by ip, moving on without them");
+                log.debug("Did not find keyspace with hostnames by ip, moving on without them");
                 return ImmutableMap.of();
             }
             if (isCfNotPresent(systemPalantir, HOSTNAMES_BY_IP_TABLE)) {
-                logger.debug("Did not find table with hostnames by ip, moving on without them");
+                log.debug("Did not find table with hostnames by ip, moving on without them");
                 return ImmutableMap.of();
             }
 

@@ -26,6 +26,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.io.IOException;
 import java.util.Optional;
@@ -52,7 +53,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
                 .isEqualTo(delegate.createRawKeyValueService(
                         metrics,
                         kvsConfig,
-                        Optional::empty,
+                        Refreshable.only(Optional.empty()),
                         leaderConfig,
                         Optional.empty(),
                         AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE,
@@ -99,7 +100,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
         return new ServiceDiscoveringAtlasSupplier(
                 metrics,
                 providedKvsConfig,
-                Optional::empty,
+                Refreshable.only(Optional.empty()),
                 leaderConfig,
                 Optional.empty(),
                 Optional.empty(),

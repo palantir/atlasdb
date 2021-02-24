@@ -44,7 +44,7 @@ public abstract class InvokeEvent implements Event {
     public abstract String value();
 
     @Override
-    public void accept(EventVisitor visitor) {
-        visitor.visit(this);
+    public <T> T accept(EventVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }
