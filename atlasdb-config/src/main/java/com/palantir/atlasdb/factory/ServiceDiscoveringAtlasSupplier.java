@@ -64,9 +64,15 @@ public class ServiceDiscoveringAtlasSupplier {
         this.leaderConfig = leaderConfig;
 
         AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
-        keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
-                metricsManager, config, runtimeConfig, leaderConfig, namespace, timestampSupplier, initializeAsync));
         mergedKeyValueServiceConfig = atlasFactory.createMergedKeyValueServiceConfig(config, runtimeConfig, namespace);
+        keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
+                metricsManager,
+                mergedKeyValueServiceConfig,
+                runtimeConfig,
+                leaderConfig,
+                namespace,
+                timestampSupplier,
+                initializeAsync));
         timestampService = () -> atlasFactory.createManagedTimestampService(
                 getKeyValueService(), tableReferenceOverride, initializeAsync);
         timestampStoreInvalidator =

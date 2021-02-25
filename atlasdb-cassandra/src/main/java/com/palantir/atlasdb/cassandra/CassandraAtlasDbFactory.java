@@ -58,12 +58,11 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             LongSupplier freshTimestampSource,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
-        CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, runtimeConfig, namespace);
         Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig =
                 preprocessKvsRuntimeConfig(runtimeConfig);
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
-                preprocessedConfig,
+                toCassandraConfig(config),
                 cassandraRuntimeConfig,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource),
                 initializeAsync);
@@ -74,26 +73,22 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
-        return preprocessKvsConfig(config, runtimeConfig, namespace);
-    }
-
-    @VisibleForTesting
-    static CassandraKeyValueServiceConfig preprocessKvsConfig(
-            KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<String> namespace) {
-        Preconditions.checkArgument(
-                config instanceof CassandraKeyValueServiceConfig,
-                "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
-                        + " CassandraKeyValueServiceConfig, found %s.",
-                config.getClass());
-        CassandraKeyValueServiceConfig cassandraConfig = (CassandraKeyValueServiceConfig) config;
+        CassandraKeyValueServiceConfig cassandraConfig = toCassandraConfig(config);
 
         String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
         CassandraKeyValueServiceConfig configWithNamespace =
                 CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
 
         return new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
+    }
+
+    private static CassandraKeyValueServiceConfig toCassandraConfig(KeyValueServiceConfig config) {
+        Preconditions.checkArgument(
+                config instanceof CassandraKeyValueServiceConfig,
+                "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
+                        + " CassandraKeyValueServiceConfig, found %s.",
+                config.getClass());
+        return (CassandraKeyValueServiceConfig) config;
     }
 
     @VisibleForTesting
@@ -107,8 +102,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                         if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
                             log.error(
                                     "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
-                                        + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
-                                        + " CassandraKeyValueServiceRuntimeConfig.",
+                                            + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
+                                            + " CassandraKeyValueServiceRuntimeConfig.",
                                     config.getClass());
                             return latestValidRuntimeConfig;
                         }
