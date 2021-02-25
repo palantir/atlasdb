@@ -97,10 +97,10 @@ class LockLeaseService {
                 .numTransactions(batchSize)
                 .lastKnownVersion(ConjureLockRequests.toConjure(maybeVersion))
                 .build();
-        return getMassagedConjureStartTransactionsResponse(delegate.startTransactions(request));
+        return assignLeasedLockTokenToImmutableTimestampLock(delegate.startTransactions(request));
     }
 
-    public static ConjureStartTransactionsResponse getMassagedConjureStartTransactionsResponse(
+    public static ConjureStartTransactionsResponse assignLeasedLockTokenToImmutableTimestampLock(
             ConjureStartTransactionsResponse response) {
         Lease lease = response.getLease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(
