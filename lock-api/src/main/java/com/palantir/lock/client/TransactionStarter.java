@@ -36,13 +36,15 @@ final class TransactionStarter implements AutoCloseable {
     private final LockLeaseService lockLeaseService;
     private final IdentifiedAtlasDbTransactionStarter batchingTransactionStarter;
 
-    private TransactionStarter(LockLeaseService lockLeaseService, StartTransactionsLockWatchEventCache lockWatchEventCache) {
+    private TransactionStarter(
+            LockLeaseService lockLeaseService, StartTransactionsLockWatchEventCache lockWatchEventCache) {
         this.lockLeaseService = lockLeaseService;
         this.batchingTransactionStarter =
                 BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, lockWatchEventCache);
     }
 
-    static TransactionStarter create(LockLeaseService lockLeaseService, StartTransactionsLockWatchEventCache lockWatchEventCache) {
+    static TransactionStarter create(
+            LockLeaseService lockLeaseService, StartTransactionsLockWatchEventCache lockWatchEventCache) {
         return new TransactionStarter(lockLeaseService, lockWatchEventCache);
     }
 

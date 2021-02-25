@@ -77,15 +77,17 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
     }
 
     private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
-            LockLeaseService lockLeaseService, StartTransactionsLockWatchEventCache lockWatchEventCache, int numberOfTransactions) {
+            LockLeaseService lockLeaseService,
+            StartTransactionsLockWatchEventCache lockWatchEventCache,
+            int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
             try {
                 Optional<LockWatchVersion> requestedVersion = lockWatchEventCache.lastKnownVersion();
                 ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
                         requestedVersion, numberOfTransactions - result.size());
-                TransactionStarterHelper.updateCacheWithStartTransactionResponse(lockWatchEventCache,
-                        requestedVersion, response);
+                TransactionStarterHelper.updateCacheWithStartTransactionResponse(
+                        lockWatchEventCache, requestedVersion, response);
                 result.addAll(TransactionStarterHelper.split(response));
             } catch (Throwable t) {
                 TransactionStarterHelper.unlock(

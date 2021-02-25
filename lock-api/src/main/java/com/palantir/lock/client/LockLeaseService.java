@@ -17,7 +17,6 @@
 package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
@@ -41,7 +40,6 @@ import com.palantir.logsafe.Preconditions;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 class LockLeaseService {
@@ -49,7 +47,6 @@ class LockLeaseService {
     private final UUID clientId;
     private final LeaderTimeGetter leaderTimeGetter;
     private final BlockEnforcingLockService lockService;
-    private final Supplier<LockCleanupService> lockCleanupServiceSupplier;
 
     @VisibleForTesting
     LockLeaseService(NamespacedConjureTimelockService delegate, UUID clientId, LeaderTimeGetter leaderTimeGetter) {
@@ -57,7 +54,6 @@ class LockLeaseService {
         this.clientId = clientId;
         this.leaderTimeGetter = leaderTimeGetter;
         this.lockService = BlockEnforcingLockService.create(delegate);
-        this.lockCleanupServiceSupplier = Suppliers.memoize(() -> new LockCleanupService(this));
     }
 
     static LockLeaseService create(
@@ -162,7 +158,7 @@ class LockLeaseService {
     }
 
     LockCleanupService lockCleanupService() {
-        return lockCleanupServiceSupplier.get();
+        return new LockCleanupService(this);
     }
 
     private Set<LeasedLockToken> refreshTokens(Set<LeasedLockToken> leasedTokens) {
