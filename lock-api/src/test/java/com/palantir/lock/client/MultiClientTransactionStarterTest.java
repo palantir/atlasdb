@@ -16,7 +16,7 @@
 
 package com.palantir.lock.client;
 
-import static com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.processBatch;
+import static com.palantir.lock.client.MultiClientTransactionStarter.processBatch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,9 +33,8 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.lock.client.LockLeaseService.LockCleanupService;
-import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.NamespaceAndRequestParams;
-import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.RequestParams;
+import com.palantir.lock.client.MultiClientTransactionStarter.NamespaceAndRequestParams;
+import com.palantir.lock.client.MultiClientTransactionStarter.RequestParams;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -47,7 +46,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
 
-public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
+public class MultiClientTransactionStarterTest {
     private static final int PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL = 5;
     private final InternalMultiClientConjureTimelockService timelockService =
             mock(InternalMultiClientConjureTimelockService.class);
@@ -176,11 +175,9 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
                     requestsForClients,
             UUID requestorId) {
         Map<Namespace, RequestParams> namespaceWiseRequestParams =
-                MultiClientBatchingIdentifiedAtlasDbTransactionStarter.getNamespaceWiseRequestParams(
-                        requestsForClients);
+                MultiClientTransactionStarter.getNamespaceWiseRequestParams(requestsForClients);
         Map<Namespace, ConjureStartTransactionsRequest> namespaceWiseRequests =
-                MultiClientBatchingIdentifiedAtlasDbTransactionStarter.getNamespaceWiseRequests(
-                        namespaceWiseRequestParams, requestorId);
+                MultiClientTransactionStarter.getNamespaceWiseRequests(namespaceWiseRequestParams, requestorId);
         return startTransactions(namespaceWiseRequests);
     }
 

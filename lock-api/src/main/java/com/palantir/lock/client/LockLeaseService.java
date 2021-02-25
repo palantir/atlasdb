@@ -194,20 +194,4 @@ class LockLeaseService {
     private static Set<ConjureLockToken> serverTokens(Set<LeasedLockToken> leasedTokens) {
         return leasedTokens.stream().map(LeasedLockToken::serverToken).collect(Collectors.toSet());
     }
-
-    public static final class LockCleanupService {
-        private final LockLeaseService delegate;
-
-        private LockCleanupService(LockLeaseService delegate) {
-            this.delegate = delegate;
-        }
-
-        Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
-            return delegate.refreshLockLeases(uncastedTokens);
-        }
-
-        Set<LockToken> unlock(Set<LockToken> tokens) {
-            return delegate.unlock(tokens);
-        }
-    }
 }
