@@ -34,8 +34,8 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.client.LockLeaseService.LockCleanupService;
-import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.NamespacedStartTransactionsRequestParams;
-import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.StartTransactionsRequestParams;
+import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.NamespaceAndRequestParams;
+import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter.RequestParams;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -89,9 +89,8 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
         Namespace namespace = Namespace.of("Test_0");
         assertSanityOfResponse(
                 ImmutableList.of(BatchElement.of(
-                        NamespacedStartTransactionsRequestParams.of(
-                                namespace,
-                                StartTransactionsRequestParams.of(127, getCache(namespace), lockCleanupService)),
+                        NamespaceAndRequestParams.of(
+                                namespace, RequestParams.of(127, getCache(namespace), lockCleanupService)),
                         new DisruptorFuture<>("test"))),
                 false);
     }
@@ -101,9 +100,9 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
         Namespace namespace = Namespace.of("Test" + UUID.randomUUID());
         assertSanityOfResponse(
                 ImmutableList.of(BatchElement.of(
-                        NamespacedStartTransactionsRequestParams.of(
+                        NamespaceAndRequestParams.of(
                                 namespace,
-                                StartTransactionsRequestParams.of(
+                                RequestParams.of(
                                         PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1,
                                         getCache(namespace),
                                         lockCleanupService)),
@@ -117,14 +116,11 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
         Namespace namespace = Namespace.of("Test" + UUID.randomUUID());
 
         UUID requestorId = UUID.randomUUID();
-        ImmutableList<
-                        BatchElement<
-                                NamespacedStartTransactionsRequestParams,
-                                List<StartIdentifiedAtlasDbTransactionResponse>>>
+        ImmutableList<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>>
                 requests = ImmutableList.of(BatchElement.of(
-                NamespacedStartTransactionsRequestParams.of(
+                NamespaceAndRequestParams.of(
                         namespace,
-                        StartTransactionsRequestParams.of(
+                        RequestParams.of(
                                 PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL * 5,
                                 getCache(namespace),
                                 lockCleanupService)),
@@ -142,10 +138,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
     }
 
     private void assertSanityOfResponse(
-            List<
-                            BatchElement<
-                                    NamespacedStartTransactionsRequestParams,
-                                    List<StartIdentifiedAtlasDbTransactionResponse>>>
+            List<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>>
                     requestsForClients,
             boolean assertValues) {
 
@@ -157,7 +150,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
         processBatch(timelockService, requestorId, requestsForClients);
         requestsForClients.forEach(batchElement -> {
             DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> resultFuture = batchElement.result();
-            NamespacedStartTransactionsRequestParams requestParams = batchElement.argument();
+            NamespaceAndRequestParams requestParams = batchElement.argument();
 
             assertThat(resultFuture.isDone()).isTrue();
 
@@ -166,7 +159,7 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
 
             if (assertValues) {
                 ConjureStartTransactionsResponse batchedStartTransactionResponse =
-                        LockLeaseService.getMassagedConjureStartTransactionsResponse(
+                        LockLeaseService.assignLeasedLockTokenToImmutableTimestampLock(
                                 responseMap.get(requestParams.namespace()));
                 assertThat(responseList)
                         .satisfies(StartTransactionsTestUtils::assertThatStartTransactionResponsesAreUnique)
@@ -179,13 +172,10 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
     }
 
     private Map<Namespace, ConjureStartTransactionsResponse> getMultiClientStartTransactionsResponse(
-            List<
-                            BatchElement<
-                                    NamespacedStartTransactionsRequestParams,
-                                    List<StartIdentifiedAtlasDbTransactionResponse>>>
+            List<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>>
                     requestsForClients,
             UUID requestorId) {
-        Map<Namespace, StartTransactionsRequestParams> namespaceWiseRequestParams =
+        Map<Namespace, RequestParams> namespaceWiseRequestParams =
                 MultiClientBatchingIdentifiedAtlasDbTransactionStarter.getNamespaceWiseRequestParams(
                         requestsForClients);
         Map<Namespace, ConjureStartTransactionsRequest> namespaceWiseRequests =
@@ -194,17 +184,14 @@ public class MultiClientBatchingIdentifiedAtlasDbTransactionStarterTest {
         return startTransactions(namespaceWiseRequests);
     }
 
-    private List<
-                    BatchElement<
-                            NamespacedStartTransactionsRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>>
+    private List<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>>
             getStartTransactionRequestsForClients(int clientCount, int requestCount) {
         return IntStream.rangeClosed(1, requestCount)
                 .mapToObj(ind -> {
                     Namespace namespace = Namespace.of("Test_" + (ind % clientCount));
                     return BatchElement.of(
-                            NamespacedStartTransactionsRequestParams.of(
-                                    namespace,
-                                    StartTransactionsRequestParams.of(1, getCache(namespace), lockCleanupService)),
+                            NamespaceAndRequestParams.of(
+                                    namespace, RequestParams.of(1, getCache(namespace), lockCleanupService)),
                             new DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>>("test"));
                 })
                 .collect(Collectors.toList());
