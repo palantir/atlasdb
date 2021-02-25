@@ -63,44 +63,50 @@ public class CassandraAtlasDbFactoryTest {
     public void throwsWhenPreprocessingNonCassandraKvsConfig() {
         assertThatThrownBy(() -> {
                     KeyValueServiceConfigHelper keyValueServiceConfig = () -> "Fake KVS";
-                    CassandraAtlasDbFactory.preprocessKvsConfig(
-                            keyValueServiceConfig, Refreshable.only(Optional.empty()), Optional.empty());
+                    new CassandraAtlasDbFactory()
+                            .createMergedKeyValueServiceConfig(
+                                    keyValueServiceConfig, Refreshable.only(Optional.empty()), Optional.empty());
                 })
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithNoKeyspaceAndNoNamespace() {
-        assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
-                        CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty()))
+        assertThatThrownBy(() -> new CassandraAtlasDbFactory()
+                        .createMergedKeyValueServiceConfig(
+                                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwsWhenPreprocessingConfigWithKeyspaceAndDifferentNamespace() {
-        assertThatThrownBy(() -> CassandraAtlasDbFactory.preprocessKvsConfig(
-                        CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE_2)))
+        assertThatThrownBy(() -> new CassandraAtlasDbFactory()
+                        .createMergedKeyValueServiceConfig(
+                                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE_2)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void resolvesConfigWithOriginalKeyspaceIfNoNamespaceProvided() {
-        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
-                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty());
+        CassandraKeyValueServiceConfig newConfig = new CassandraAtlasDbFactory()
+                .createMergedKeyValueServiceConfig(
+                        CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.empty());
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(CONFIG_WITH_KEYSPACE.getKeyspaceOrThrow());
     }
 
     @Test
     public void resolvesConfigWithNamespaceIfNoKeyspaceProvided() {
-        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
-                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
+        CassandraKeyValueServiceConfig newConfig = new CassandraAtlasDbFactory()
+                .createMergedKeyValueServiceConfig(
+                        CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 
     @Test
     public void preservesOtherPropertiesOnResolvedConfigWithNamespace() {
-        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
-                CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
+        CassandraKeyValueServiceConfig newConfig = new CassandraAtlasDbFactory()
+                .createMergedKeyValueServiceConfig(
+                        CONFIG_WITHOUT_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
         assertThat(newConfig.servers())
                 .isEqualTo(ImmutableDefaultConfig.builder()
                         .addAllThriftHosts(SERVERS)
@@ -110,8 +116,9 @@ public class CassandraAtlasDbFactoryTest {
 
     @Test
     public void resolvesConfigIfKeyspaceAndNamespaceProvidedAndMatch() {
-        CassandraKeyValueServiceConfig newConfig = CassandraAtlasDbFactory.preprocessKvsConfig(
-                CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
+        CassandraKeyValueServiceConfig newConfig = new CassandraAtlasDbFactory()
+                .createMergedKeyValueServiceConfig(
+                        CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()), Optional.of(KEYSPACE));
         assertThat(newConfig.getKeyspaceOrThrow()).isEqualTo(KEYSPACE);
     }
 

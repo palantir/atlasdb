@@ -69,7 +69,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public KeyValueServiceConfig createMergedKeyValueServiceConfig(
+    public CassandraReloadableKvsConfig createMergedKeyValueServiceConfig(
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
