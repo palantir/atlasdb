@@ -1,5 +1,5 @@
 type: feature
 feature:
-  description: AtlasDb client can now batch StartTransactions requests across namespaces.
+  description: AtlasDb client can now batch startTransactions requests across namespaces.
   links:
   - https://github.com/palantir/atlasdb/pull/5275
