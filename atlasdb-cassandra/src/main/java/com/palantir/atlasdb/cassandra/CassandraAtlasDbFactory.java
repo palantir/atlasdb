@@ -69,6 +69,14 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 initializeAsync);
     }
 
+    @Override
+    public KeyValueServiceConfig createMergedKeyValueServiceConfig(
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        return preprocessKvsConfig(config, runtimeConfig, namespace);
+    }
+
     @VisibleForTesting
     static CassandraKeyValueServiceConfig preprocessKvsConfig(
             KeyValueServiceConfig config,

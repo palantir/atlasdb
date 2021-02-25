@@ -88,6 +88,7 @@ import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
@@ -405,6 +406,7 @@ public abstract class TransactionManagers {
                 Optional.empty(),
                 config().initializeAsync(),
                 adapter);
+        KeyValueServiceConfig mergedKeyValueServiceConfig = atlasFactory.getMergedKeyValueServiceConfig();
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config().getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
@@ -533,8 +535,8 @@ public abstract class TransactionManagers {
                         () -> areTransactionManagerInitializationPrerequisitesSatisfied(
                                 initializer, lockAndTimestampServices),
                         allowHiddenTableAccess(),
-                        config().keyValueService().concurrentGetRangesThreadPoolSize(),
-                        config().keyValueService().defaultGetRangesConcurrency(),
+                        mergedKeyValueServiceConfig.concurrentGetRangesThreadPoolSize(),
+                        mergedKeyValueServiceConfig.defaultGetRangesConcurrency(),
                         config().initializeAsync(),
                         timestampCache,
                         targetedSweep,

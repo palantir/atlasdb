@@ -38,6 +38,13 @@ public interface AtlasDbFactory {
 
     String getType();
 
+    default KeyValueServiceConfig createMergedKeyValueServiceConfig(
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        return config;
+    }
+
     /**
      * Creates a KeyValueService instance of type according to the config parameter.
      *
