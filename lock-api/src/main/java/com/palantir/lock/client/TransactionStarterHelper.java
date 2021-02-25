@@ -30,6 +30,7 @@ import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,10 +40,17 @@ public final class TransactionStarterHelper {
     }
 
     static Set<LockToken> unlock(Set<LockToken> tokens, LockLeaseService lockLeaseService) {
-        return unlock(tokens, lockLeaseService.lockCleanupService());
+        return unlock(tokens, lockLeaseService::refreshLockLeases, lockLeaseService::unlock);
     }
 
     static Set<LockToken> unlock(Set<LockToken> tokens, LockCleanupService lockCleanupService) {
+        return unlock(tokens, lockCleanupService::refreshLockLeases, lockCleanupService::unlock);
+    }
+
+    private static Set<LockToken> unlock(
+            Set<LockToken> tokens,
+            Function<Set<LockToken>, Set<LockToken>> refreshLockLeases,
+            Function<Set<LockToken>, Set<LockToken>> unlock) {
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);
@@ -50,8 +58,8 @@ public final class TransactionStarterHelper {
         Set<LockToken> toUnlock = reduceForUnlock(lockTokenShares);
         Set<LockToken> toRefresh = getLockTokensToRefresh(lockTokenShares, toUnlock);
 
-        Set<LockToken> refreshed = lockCleanupService.refreshLockLeases(toRefresh);
-        Set<LockToken> unlocked = lockCleanupService.unlock(Sets.union(toUnlock, lockTokens));
+        Set<LockToken> refreshed = refreshLockLeases.apply(toRefresh);
+        Set<LockToken> unlocked = unlock.apply(Sets.union(toUnlock, lockTokens));
 
         Set<LockTokenShare> resultLockTokenShares = Sets.filter(
                 lockTokenShares,

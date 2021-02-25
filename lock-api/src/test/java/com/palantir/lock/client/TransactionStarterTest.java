@@ -53,7 +53,8 @@ public class TransactionStarterTest {
     @Mock
     private LockLeaseService lockLeaseService;
 
-    private final StartTransactionsLockWatchEventCache lockWatchEventCache = spy(StartTransactionsLockWatchEventCache.createForTests());
+    private final StartTransactionsLockWatchEventCache lockWatchEventCache =
+            spy(StartTransactionsLockWatchEventCache.createForTests());
     private final Optional<LockWatchVersion> version = lockWatchEventCache.lastKnownVersion();
     private TransactionStarter transactionStarter;
 
