@@ -25,6 +25,8 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -40,7 +42,7 @@ public final class TransactionStarterHelper {
         return unlock(tokens, lockLeaseService.lockCleanupService());
     }
 
-    static Set<LockToken> unlock(Set<LockToken> tokens, LockLeaseService.LockCleanupService lockCleanupService) {
+    static Set<LockToken> unlock(Set<LockToken> tokens, LockCleanupService lockCleanupService) {
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);
@@ -114,5 +116,14 @@ public final class TransactionStarterHelper {
 
         return Streams.zip(immutableTsAndLocks, timestampAndPartitions, StartIdentifiedAtlasDbTransactionResponse::of)
                 .collect(Collectors.toList());
+    }
+
+    static void updateCacheWithStartTransactionResponse(
+            StartTransactionsLockWatchEventCache lockWatchEventCache,
+            Optional<LockWatchVersion> requestedVersion,
+            ConjureStartTransactionsResponse response) {
+        lockWatchEventCache.processStartTransactionsUpdate(
+                response.getTimestamps().stream().boxed().collect(Collectors.toSet()), response.getLockWatchUpdate());
+        LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
     }
 }

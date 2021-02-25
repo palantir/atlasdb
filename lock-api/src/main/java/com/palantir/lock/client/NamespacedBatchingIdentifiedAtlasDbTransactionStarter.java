@@ -23,15 +23,15 @@ import java.util.List;
 
 public class NamespacedBatchingIdentifiedAtlasDbTransactionStarter implements IdentifiedAtlasDbTransactionStarter {
     private final Namespace namespace;
-    private final MultiClientBatchingIdentifiedAtlasDbTransactionStarter batcher;
+    private final MultiClientTransactionStarter batcher;
     private final StartTransactionsLockWatchEventCache lockWatchEventCache;
-    private final LockLeaseService.LockCleanupService lockCleanupService;
+    private final LockCleanupService lockCleanupService;
 
     public NamespacedBatchingIdentifiedAtlasDbTransactionStarter(
             Namespace namespace,
-            MultiClientBatchingIdentifiedAtlasDbTransactionStarter batcher,
+            MultiClientTransactionStarter batcher,
             StartTransactionsLockWatchEventCache lockWatchEventCache,
-            LockLeaseService.LockCleanupService lockCleanupService) {
+            LockCleanupService lockCleanupService) {
         this.namespace = namespace;
         this.batcher = batcher;
         this.lockWatchEventCache = lockWatchEventCache;

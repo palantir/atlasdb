@@ -22,8 +22,16 @@ import java.util.Set;
 public final class StartTransactionsLockWatchEventCache {
     private final LockWatchEventCache delegate;
 
-    public StartTransactionsLockWatchEventCache(LockWatchEventCache delegate) {
+    private StartTransactionsLockWatchEventCache(LockWatchEventCache delegate) {
         this.delegate = delegate;
+    }
+
+    public static StartTransactionsLockWatchEventCache create(LockWatchEventCache delegate) {
+        return new StartTransactionsLockWatchEventCache(delegate);
+    }
+
+    public static StartTransactionsLockWatchEventCache createForTests() {
+        return new StartTransactionsLockWatchEventCache(NoOpLockWatchEventCache.create());
     }
 
     public Optional<LockWatchVersion> lastKnownVersion() {
