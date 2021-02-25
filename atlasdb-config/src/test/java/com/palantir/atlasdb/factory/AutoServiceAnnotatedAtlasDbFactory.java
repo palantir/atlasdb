@@ -35,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @AutoService(AtlasDbFactory.class)
-public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
+public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
     public static final String TYPE = "not-a-real-db";
 
     private static final Mockery context = new Mockery();

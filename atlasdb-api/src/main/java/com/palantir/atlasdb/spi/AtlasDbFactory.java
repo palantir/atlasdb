@@ -27,7 +27,7 @@ import java.util.function.LongSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public interface AtlasDbFactory {
+public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
     Logger log = LoggerFactory.getLogger(AtlasDbFactory.class);
 
     long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
@@ -38,11 +38,11 @@ public interface AtlasDbFactory {
 
     String getType();
 
-    default KeyValueServiceConfig createMergedKeyValueServiceConfig(
+    default MERGED_CONFIG createMergedKeyValueServiceConfig(
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
-        return config;
+        return (MERGED_CONFIG) config;
     }
 
     /**
@@ -61,7 +61,7 @@ public interface AtlasDbFactory {
      */
     KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
-            KeyValueServiceConfig config,
+            MERGED_CONFIG config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,

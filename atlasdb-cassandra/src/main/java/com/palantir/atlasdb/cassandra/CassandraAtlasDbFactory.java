@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @AutoService(AtlasDbFactory.class)
-public class CassandraAtlasDbFactory implements AtlasDbFactory {
+public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadableKvsConfig> {
     private static Logger log = LoggerFactory.getLogger(CassandraAtlasDbFactory.class);
     private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
@@ -51,7 +51,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @Override
     public KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
-            KeyValueServiceConfig config,
+            CassandraReloadableKvsConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> unused,
             Optional<String> namespace,

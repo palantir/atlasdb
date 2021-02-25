@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * (SI) on all of the transactions it creates.
  */
 @AutoService(AtlasDbFactory.class)
-public class InMemoryAtlasDbFactory implements AtlasDbFactory {
+public class InMemoryAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
     private static final Logger log = LoggerFactory.getLogger(InMemoryAtlasDbFactory.class);
 
     @Override
