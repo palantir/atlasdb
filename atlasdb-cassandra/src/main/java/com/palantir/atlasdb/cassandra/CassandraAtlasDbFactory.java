@@ -102,8 +102,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
                         if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
                             log.error(
                                     "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
-                                            + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
-                                            + " CassandraKeyValueServiceRuntimeConfig.",
+                                        + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
+                                        + " CassandraKeyValueServiceRuntimeConfig.",
                                     config.getClass());
                             return latestValidRuntimeConfig;
                         }
