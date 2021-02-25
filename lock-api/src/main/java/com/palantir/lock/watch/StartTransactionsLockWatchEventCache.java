@@ -16,9 +16,14 @@
 
 package com.palantir.lock.watch;
 
+import com.palantir.lock.client.MultiClientTransactionStarter;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * This is a facade of {@link LockWatchEventCache} meant to expose only the functionality required for starting a
+ * batch of transactions, see {@link MultiClientTransactionStarter}.
+ * */
 public final class StartTransactionsLockWatchEventCache {
     private final LockWatchEventCache delegate;
 
