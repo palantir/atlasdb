@@ -100,12 +100,11 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
                 });
             }
         } finally {
-            clearResources(startTransactionResponses, multiClientRequestManager, namespaceWiseResponseHandler);
+            clearResources(multiClientRequestManager, namespaceWiseResponseHandler);
         }
     }
 
     private static void clearResources(
-            Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> startTransactionResponses,
             MultiClientRequestManager multiClientRequestManager,
             Map<Namespace, ResponseHandler> namespaceWiseResponseHandler) {
         multiClientRequestManager.close();
@@ -136,9 +135,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         return batch.stream()
                 .map(BatchElement::argument)
                 .collect(Collectors.toMap(
-                        NamespaceAndRequestParams::namespace,
-                        NamespaceAndRequestParams::params,
-                        RequestParams::coalesce));
+                        NamespaceAndRequestParams::namespace, NamespaceAndRequestParams::params, RequestParams::merge));
     }
 
     private static Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> getStartTransactionResponses(
@@ -148,15 +145,11 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
 
         Map<Namespace, ConjureStartTransactionsRequest> namespaceWiseRequests =
                 getNamespaceWiseRequests(originalRequestMap, requestorId);
-
         Map<Namespace, ConjureStartTransactionsResponse> responseMap = getResponseMap(delegate, namespaceWiseRequests);
-
         return KeyedStream.stream(responseMap)
                 .mapEntries((namespace, response) -> {
-                    StartTransactionsLockWatchEventCache cache =
-                            originalRequestMap.get(namespace).cache();
                     TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                            cache,
+                            originalRequestMap.get(namespace).cache(),
                             fromConjure(namespaceWiseRequests.get(namespace).getLastKnownVersion()),
                             response);
                     return Maps.immutableEntry(namespace, TransactionStarterHelper.split(response));
@@ -226,7 +219,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
             return ImmutableRequestParams.of(numTransactions, cache, lockCleanupService);
         }
 
-        static RequestParams coalesce(RequestParams params1, RequestParams params2) {
+        static RequestParams merge(RequestParams params1, RequestParams params2) {
             return ImmutableRequestParams.copyOf(params1)
                     .withNumTransactions(params1.numTransactions() + params2.numTransactions());
         }
@@ -259,10 +252,10 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
 
         public void updatePendingStartTransactionsCount(Namespace namespace, int startedTransactionsCount) {
             Optional<RequestParams> updatedParams = paramsAfterResponse(namespace, startedTransactionsCount);
-            if (!updatedParams.isPresent()) {
-                requestMap.remove(namespace);
-            } else {
+            if (updatedParams.isPresent()) {
                 requestMap.put(namespace, updatedParams.get());
+            } else {
+                requestMap.remove(namespace);
             }
         }
 
