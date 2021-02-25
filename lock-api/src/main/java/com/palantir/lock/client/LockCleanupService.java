@@ -19,6 +19,10 @@ package com.palantir.lock.client;
 import com.palantir.lock.v2.LockToken;
 import java.util.Set;
 
+/**
+ * This is a facade of {@link LockLeaseService} meant to expose only the functionality required for starting a
+ * batch of transactions, see {@link MultiClientTransactionStarter}.
+ * */
 public final class LockCleanupService {
     private final LockLeaseService delegate;
 
