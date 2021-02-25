@@ -2,7 +2,5 @@ type: fix
 fix:
   description: |-
     install and runtime keyValueService config must be merged
-
-    followup fix to https://github.com/palantir/atlasdb/pull/5272
   links:
   - https://github.com/palantir/atlasdb/pull/5282
