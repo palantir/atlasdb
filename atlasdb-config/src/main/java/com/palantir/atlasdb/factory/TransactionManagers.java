@@ -1253,18 +1253,14 @@ public abstract class TransactionManagers {
         StartTransactionsLockWatchEventCache cache = StartTransactionsLockWatchEventCache.create(lockWatchEventCache);
 
         if (!timelockRequestBatcherProviders.isPresent()) {
-            return lockLeaseService ->
-                    BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, cache);
+            return lockLeaseService -> BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, cache);
         }
         MultiClientTransactionStarter batcher = timelockRequestBatcherProviders
                 .get()
                 .startTransactionsBatcherProvider()
                 .getBatcher(multiClientTimelockServiceSupplier);
         return lockLeaseService -> new NamespacedBatchingIdentifiedAtlasDbTransactionStarter(
-                namespace,
-                batcher,
-                cache,
-                lockLeaseService.lockCleanupService());
+                namespace, batcher, cache, lockLeaseService.lockCleanupService());
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(

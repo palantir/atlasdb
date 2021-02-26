@@ -64,9 +64,8 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
                 conjureClient,
                 lockWatchEventCache,
                 new LegacyLeaderTimeGetter(conjureClient),
-                lockLeaseService ->
-                        BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService,
-                                StartTransactionsLockWatchEventCache.create(lockWatchEventCache)));
+                lockLeaseService -> BatchingIdentifiedAtlasDbTransactionStarter.create(
+                        lockLeaseService, StartTransactionsLockWatchEventCache.create(lockWatchEventCache)));
     }
 
     public static RemoteTimelockServiceAdapter create(
