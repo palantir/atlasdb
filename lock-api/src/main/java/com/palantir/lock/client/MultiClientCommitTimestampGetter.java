@@ -18,6 +18,7 @@ package com.palantir.lock.client;
 
 import static com.palantir.lock.client.ConjureLockRequests.toConjure;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -51,7 +52,7 @@ public class MultiClientCommitTimestampGetter implements AutoCloseable {
 
     static MultiClientCommitTimestampGetter create(InternalMultiClientConjureTimelockService delegate) {
         DisruptorAutobatcher<NamespacedRequest, Long> autobatcher = Autobatchers.independent(consumer(delegate))
-                .safeLoggablePurpose("multi-client-transaction-starter")
+                .safeLoggablePurpose("multi-client-get-commit-timestamp")
                 .build();
         return new MultiClientCommitTimestampGetter(autobatcher);
     }
@@ -64,49 +65,50 @@ public class MultiClientCommitTimestampGetter implements AutoCloseable {
                 .build()));
     }
 
-    private static Consumer<List<BatchElement<NamespacedRequest, Long>>> consumer(
+    @VisibleForTesting
+    static Consumer<List<BatchElement<NamespacedRequest, Long>>> consumer(
             InternalMultiClientConjureTimelockService delegate) {
         return batch -> processBatch(delegate, batch);
     }
 
     private static void processBatch(
             InternalMultiClientConjureTimelockService delegate, List<BatchElement<NamespacedRequest, Long>> batch) {
-        BatchStateManager batchStateManager = new BatchStateManager(getNamespaceWiseRequestHandler(batch));
+        BatchStateManager batchStateManager = new BatchStateManager(getNamespaceWiseBatchStateManager(batch));
         while (batchStateManager.hasPendingRequests()) {
             batchStateManager.processResponse(delegate.getCommitTimestamps(batchStateManager.getRequests()));
         }
     }
 
-    private static Map<Namespace, RequestAndResponseHandler> getNamespaceWiseRequestHandler(
+    private static Map<Namespace, NamespacedBatchStateManager> getNamespaceWiseBatchStateManager(
             List<BatchElement<NamespacedRequest, Long>> batch) {
-        Map<Namespace, RequestAndResponseHandler> requestMap = new HashMap<>();
+        Map<Namespace, NamespacedBatchStateManager> requestMap = new HashMap<>();
 
         for (BatchElement<NamespacedRequest, Long> elem : batch) {
             NamespacedRequest argument = elem.argument();
             Namespace namespace = argument.namespace();
-            RequestAndResponseHandler requestAndResponseHandler =
-                    requestMap.computeIfAbsent(namespace, _n -> new RequestAndResponseHandler(argument.cache()));
-            requestAndResponseHandler.addRequest(elem);
+            NamespacedBatchStateManager namespacedBatchStateManager =
+                    requestMap.computeIfAbsent(namespace, _n -> new NamespacedBatchStateManager(argument.cache()));
+            namespacedBatchStateManager.addRequest(elem);
         }
 
         return requestMap;
     }
 
     private static class BatchStateManager {
-        private final Map<Namespace, RequestAndResponseHandler> requestMap;
+        private final Map<Namespace, NamespacedBatchStateManager> requestMap;
 
-        private BatchStateManager(Map<Namespace, RequestAndResponseHandler> requestMap) {
+        private BatchStateManager(Map<Namespace, NamespacedBatchStateManager> requestMap) {
             this.requestMap = requestMap;
         }
 
         boolean hasPendingRequests() {
-            return requestMap.values().stream().anyMatch(RequestAndResponseHandler::hasPendingRequests);
+            return requestMap.values().stream().anyMatch(NamespacedBatchStateManager::hasPendingRequests);
         }
 
         Map<Namespace, GetCommitTimestampsRequest> getRequests() {
             return KeyedStream.stream(requestMap)
-                    .filter(RequestAndResponseHandler::hasPendingRequests)
-                    .map(RequestAndResponseHandler::getPendingRequest)
+                    .filter(NamespacedBatchStateManager::hasPendingRequests)
+                    .map(NamespacedBatchStateManager::getPendingRequest)
                     .collectToMap();
         }
 
@@ -117,11 +119,11 @@ public class MultiClientCommitTimestampGetter implements AutoCloseable {
         }
     }
 
-    private static class RequestAndResponseHandler {
+    private static class NamespacedBatchStateManager {
         private final Queue<BatchElement<NamespacedRequest, Long>> pendingRequestQueue;
         private final LockWatchEventCache cache;
 
-        private RequestAndResponseHandler(LockWatchEventCache cache) {
+        private NamespacedBatchStateManager(LockWatchEventCache cache) {
             this.pendingRequestQueue = new LinkedList();
             this.cache = cache;
         }
