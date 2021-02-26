@@ -61,7 +61,7 @@ public interface LockWatchEvents {
         }
     }
 
-    default void assertNoEventsAreMissing(Optional<LockWatchVersion> latestVersion) {
+    default void assertNoEventsAreMissingAfterLatestVersion(Optional<LockWatchVersion> latestVersion) {
         if (events().isEmpty()) {
             return;
         }

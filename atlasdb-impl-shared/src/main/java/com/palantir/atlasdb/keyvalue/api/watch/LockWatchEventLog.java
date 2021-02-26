@@ -164,7 +164,7 @@ final class LockWatchEventLog {
         if (success.lastKnownVersion() > latestVersion.get().version()) {
             LockWatchEvents events =
                     LockWatchEvents.builder().addAllEvents(success.events()).build();
-            events.assertNoEventsAreMissing(latestVersion);
+            events.assertNoEventsAreMissingAfterLatestVersion(latestVersion);
             latestVersion = Optional.of(LockWatchVersion.of(success.logId(), eventStore.putAll(events)));
         }
     }
