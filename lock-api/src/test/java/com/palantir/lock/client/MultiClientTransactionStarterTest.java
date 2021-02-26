@@ -98,7 +98,7 @@ public class MultiClientTransactionStarterTest {
     }
 
     @Test
-    public void shouldFreeResourcesIfServerThrows() {
+    public void servesRequestsAsSoonAsResponseIsReceived() {
         Namespace namespace = Namespace.of("Test" + UUID.randomUUID());
         UUID requestorId = UUID.randomUUID();
 
@@ -108,9 +108,7 @@ public class MultiClientTransactionStarterTest {
                 batchElementForNamespace(namespace, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL * 5);
 
         ImmutableList<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>>
-                requests = ImmutableList.of(
-                requestToBeServed,
-                requestNotToBeServed);
+                requests = ImmutableList.of(requestToBeServed, requestNotToBeServed);
         Map<Namespace, ConjureStartTransactionsResponse> responseMap = startTransactionsResponse(requests, requestorId);
 
         SafeIllegalStateException exception = new SafeIllegalStateException("Something went wrong!");
@@ -119,6 +117,7 @@ public class MultiClientTransactionStarterTest {
         assertThatThrownBy(() -> processBatch(timelockService, requestorId, requests))
                 .isEqualTo(exception);
 
+        // assert first request is served even if server throws on next request
         assertSanityOfRequestBatch(
                 ImmutableList.of(requestToBeServed),
                 ImmutableMap.of(namespace, ImmutableList.of(responseMap.get(namespace))));
