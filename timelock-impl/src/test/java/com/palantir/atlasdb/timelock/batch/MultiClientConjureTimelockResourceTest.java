@@ -63,6 +63,7 @@ public class MultiClientConjureTimelockResourceTest {
     private static final URL REMOTE = url("https://localhost:" + REMOTE_PORT);
     private static final RedirectRetryTargeter TARGETER =
             RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
+    private static final int DUMMY_COMMIT_TS_COUNT = 5;
 
     private Map<String, AsyncTimelockService> namespaces = new HashMap();
     private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap();
@@ -148,8 +149,9 @@ public class MultiClientConjureTimelockResourceTest {
     private Map<Namespace, GetCommitTimestampsRequest> getGetCommitTimestampsRequests(Set<String> namespaces) {
         return KeyedStream.of(namespaces)
                 .mapKeys(Namespace::of)
-                .map(namespace ->
-                        GetCommitTimestampsRequest.builder().numTimestamps(4).build())
+                .map(namespace -> GetCommitTimestampsRequest.builder()
+                        .numTimestamps(DUMMY_COMMIT_TS_COUNT)
+                        .build())
                 .collectToMap();
     }
 
@@ -187,7 +189,8 @@ public class MultiClientConjureTimelockResourceTest {
 
     private GetCommitTimestampsResponse getCommitTimestampResponse(String namespace) {
         int inclusiveLower = getInclusiveLowerCommitTs(namespace);
-        return GetCommitTimestampsResponse.of(inclusiveLower, inclusiveLower + 5, lockWatchStateUpdate);
+        return GetCommitTimestampsResponse.of(
+                inclusiveLower, inclusiveLower + DUMMY_COMMIT_TS_COUNT, lockWatchStateUpdate);
     }
 
     private Integer getInclusiveLowerCommitTs(String namespace) {
