@@ -1266,7 +1266,6 @@ public abstract class TransactionManagers {
     private static LeaderTimeGetter getLeaderTimeGetter(
             String timelockNamespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
-            AtlasDbDialogueServiceProvider serviceProvider,
             LeaderElectionReportingTimelockService namespacedConjureTimelockService,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
 
