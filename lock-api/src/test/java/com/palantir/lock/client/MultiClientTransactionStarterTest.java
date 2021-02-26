@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -101,11 +100,17 @@ public class MultiClientTransactionStarterTest {
     @Test
     public void shouldFreeResourcesIfServerThrows() {
         Namespace namespace = Namespace.of("Test" + UUID.randomUUID());
-
         UUID requestorId = UUID.randomUUID();
+
+        BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>> requestToBeServed =
+                batchElementForNamespace(namespace, 1);
+        BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>> requestNotToBeServed =
+                batchElementForNamespace(namespace, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL * 5);
+
         ImmutableList<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>>
                 requests = ImmutableList.of(
-                        batchElementForNamespace(namespace, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL * 5));
+                requestToBeServed,
+                requestNotToBeServed);
         Map<Namespace, ConjureStartTransactionsResponse> responseMap = startTransactionsResponse(requests, requestorId);
 
         SafeIllegalStateException exception = new SafeIllegalStateException("Something went wrong!");
@@ -113,14 +118,20 @@ public class MultiClientTransactionStarterTest {
 
         assertThatThrownBy(() -> processBatch(timelockService, requestorId, requests))
                 .isEqualTo(exception);
+
+        assertSanityOfRequestBatch(
+                ImmutableList.of(requestToBeServed),
+                ImmutableMap.of(namespace, ImmutableList.of(responseMap.get(namespace))));
+        assertThat(requestNotToBeServed.result().isDone()).isFalse();
+
         verify(lockCleanupService).refreshLockLeases(any());
         verify(lockCleanupService).unlock(any());
     }
 
     @Test
     public void shouldNotFreeResourcesIfRequestIsServed() {
-        Namespace alpha = Namespace.of("Test" + UUID.randomUUID());
-        Namespace beta = Namespace.of("Test_2" + UUID.randomUUID());
+        Namespace alpha = Namespace.of("alpha" + UUID.randomUUID());
+        Namespace beta = Namespace.of("beta" + UUID.randomUUID());
 
         BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>> requestForAlpha =
                 batchElementForNamespace(alpha, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1);
@@ -140,11 +151,13 @@ public class MultiClientTransactionStarterTest {
         assertThatThrownBy(() -> processBatch(timelockService, requestorId, requests))
                 .isEqualTo(exception);
 
+        // assert requests made by client alpha are served
         assertSanityOfRequestBatch(
                 ImmutableList.of(requestForAlpha), ImmutableMap.of(alpha, ImmutableList.of(responseMap.get(alpha))));
 
-        verify(lockCleanupService, times(2)).refreshLockLeases(any());
-        verify(lockCleanupService, times(2)).unlock(any());
+        // assert clean up was done by exactly one service - beta
+        verify(lockCleanupService).refreshLockLeases(any());
+        verify(lockCleanupService).unlock(any());
     }
 
     private BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>

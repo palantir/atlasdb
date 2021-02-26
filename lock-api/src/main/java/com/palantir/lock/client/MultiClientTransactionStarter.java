@@ -242,15 +242,15 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
     private static class MultiClientRequestManager implements AutoCloseable {
         private final Map<Namespace, RequestParams> requestMap;
 
-        public MultiClientRequestManager(Map<Namespace, RequestParams> requestMap) {
+        private MultiClientRequestManager(Map<Namespace, RequestParams> requestMap) {
             this.requestMap = requestMap;
         }
 
-        public boolean requestsPending() {
+        private boolean requestsPending() {
             return !requestMap.isEmpty();
         }
 
-        public void updatePendingStartTransactionsCount(Namespace namespace, int startedTransactionsCount) {
+        private void updatePendingStartTransactionsCount(Namespace namespace, int startedTransactionsCount) {
             requestMap.compute(
                     namespace, (_unused, params) -> remainingRequestsForNamespace(params, startedTransactionsCount));
         }
@@ -283,11 +283,11 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
             this.lockCleanupService = lockCleanupService;
         }
 
-        public void addPendingFuture(SettableResponse future) {
+        private void addPendingFuture(SettableResponse future) {
             pendingFutures.add(future);
         }
 
-        public void processResponse(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
+        private void processResponse(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
             transientResponseList.addAll(responses);
             serveRequests();
         }
@@ -309,11 +309,13 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
 
         @Override
         public void close() {
-            TransactionStarterHelper.unlock(
-                    transientResponseList.stream()
-                            .map(response -> response.immutableTimestamp().getLock())
-                            .collect(Collectors.toSet()),
-                    lockCleanupService);
+            if (!transientResponseList.isEmpty()) {
+                TransactionStarterHelper.unlock(
+                        transientResponseList.stream()
+                                .map(response -> response.immutableTimestamp().getLock())
+                                .collect(Collectors.toSet()),
+                        lockCleanupService);
+            }
             pendingFutures.clear();
             transientResponseList.clear();
         }
