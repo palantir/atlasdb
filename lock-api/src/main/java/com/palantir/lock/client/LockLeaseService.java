@@ -157,10 +157,6 @@ class LockLeaseService {
                 .collect(Collectors.toSet());
     }
 
-    LockCleanupService lockCleanupService() {
-        return new LockCleanupService(this);
-    }
-
     private Set<LeasedLockToken> refreshTokens(Set<LeasedLockToken> leasedTokens) {
         if (leasedTokens.isEmpty()) {
             return leasedTokens;

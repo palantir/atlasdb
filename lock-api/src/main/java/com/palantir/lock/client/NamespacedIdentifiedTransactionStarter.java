@@ -21,13 +21,13 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.List;
 
-public class NamespacedBatchingIdentifiedAtlasDbTransactionStarter implements IdentifiedAtlasDbTransactionStarter {
+public class NamespacedIdentifiedTransactionStarter implements IdentifiedAtlasDbTransactionStarter {
     private final Namespace namespace;
     private final MultiClientTransactionStarter batcher;
     private final StartTransactionsLockWatchEventCache lockWatchEventCache;
     private final LockCleanupService lockCleanupService;
 
-    public NamespacedBatchingIdentifiedAtlasDbTransactionStarter(
+    public NamespacedIdentifiedTransactionStarter(
             Namespace namespace,
             MultiClientTransactionStarter batcher,
             StartTransactionsLockWatchEventCache lockWatchEventCache,
