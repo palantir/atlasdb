@@ -50,7 +50,7 @@ final class VersionedEventStore {
 
     LockWatchEvents retentionEvents() {
         int numToRetention = Math.max(0, eventMap.size() - maxEvents);
-        LockWatchEvents.Builder builder = new LockWatchEvents.Builder();
+        ImmutableLockWatchEvents.Builder builder = LockWatchEvents.builder();
         Iterators.consumingIterator(Iterators.limit(eventMap.entrySet().iterator(), numToRetention))
                 .forEachRemaining(entry -> builder.addEvents(entry.getValue()));
         return builder.build();
@@ -74,7 +74,7 @@ final class VersionedEventStore {
         return ImmutableVersionedEventStoreState.builder().eventMap(eventMap).build();
     }
 
-    private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, Long startVersion) {
+    private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, long startVersion) {
         return eventMap.subMap(startVersion, INCLUSIVE, endVersion, INCLUSIVE).values();
     }
 

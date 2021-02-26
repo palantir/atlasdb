@@ -27,7 +27,6 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -89,17 +88,27 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 "start or commit info not processed for start timestamp");
 
         CommitInfo commitInfo = maybeCommitInfo.get();
-        return eventLog.getEventsBetweenVersions(startVersion, commitInfo.commitVersion())
-                .toCommitUpdate(startVersion.get(), commitInfo);
+
+        VersionBounds versionBounds = VersionBounds.builder()
+                .startVersion(startVersion)
+                .endVersion(commitInfo.commitVersion())
+                .build();
+
+        return eventLog.getEventsBetweenVersions(versionBounds).toCommitUpdate(startVersion.get(), commitInfo);
     }
 
     @Override
     public TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
-        Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get events for empty set of transactions");
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
 
-        return eventLog.getEventsBetweenVersions(lastKnownVersion, timestampMapping.lastVersion())
+        VersionBounds versionBounds = VersionBounds.builder()
+                .startVersion(lastKnownVersion)
+                .endVersion(timestampMapping.lastVersion())
+                .earliestSnapshotVersion(timestampMapping.versionRange().lowerEndpoint())
+                .build();
+
+        return eventLog.getEventsBetweenVersions(versionBounds)
                 .toTransactionsLockWatchUpdate(timestampMapping, lastKnownVersion);
     }
 

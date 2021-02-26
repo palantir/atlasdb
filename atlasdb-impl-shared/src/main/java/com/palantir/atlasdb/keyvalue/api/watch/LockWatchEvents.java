@@ -18,9 +18,10 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.List;
-import java.util.LongSummaryStatistics;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -30,13 +31,11 @@ public interface LockWatchEvents {
 
     @Value.Derived
     default Optional<Range<Long>> versionRange() {
-        LongSummaryStatistics summary =
-                events().stream().mapToLong(LockWatchEvent::sequence).summaryStatistics();
-
-        if (summary.getCount() == 0) {
+        if (events().isEmpty()) {
             return Optional.empty();
         } else {
-            return Optional.of(Range.closed(summary.getMin(), summary.getMax()));
+            long firstVersion = events().get(0).sequence();
+            return Optional.of(Range.closed(firstVersion, firstVersion + events().size() - 1));
         }
     }
 
@@ -62,5 +61,23 @@ public interface LockWatchEvents {
         }
     }
 
-    class Builder extends ImmutableLockWatchEvents.Builder {}
+    default void assertNoEventsAreMissingAfterLatestVersion(Optional<LockWatchVersion> latestVersion) {
+        if (events().isEmpty()) {
+            return;
+        }
+
+        if (latestVersion.isPresent()) {
+            long firstVersion = versionRange().get().lowerEndpoint();
+            Preconditions.checkArgument(
+                    firstVersion <= latestVersion.get().version()
+                            || latestVersion.get().version() + 1 == firstVersion,
+                    "Events missing between last snapshot and this batch of events",
+                    SafeArg.of("latestVersionSequence", latestVersion.get().version()),
+                    SafeArg.of("firstNewVersionSequence", firstVersion));
+        }
+    }
+
+    static ImmutableLockWatchEvents.Builder builder() {
+        return ImmutableLockWatchEvents.builder();
+    }
 }

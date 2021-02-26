@@ -50,7 +50,7 @@ final class ClientLockWatchSnapshot {
         this.snapshotVersion = Optional.empty();
     }
 
-    LockWatchStateUpdate.Snapshot getSnapshot() {
+    private LockWatchStateUpdate.Snapshot getSnapshot() {
         Preconditions.checkState(
                 snapshotVersion.isPresent(), "Snapshot was reset on fail and has not been seeded since");
         return LockWatchStateUpdate.snapshot(
@@ -60,11 +60,19 @@ final class ClientLockWatchSnapshot {
                 ImmutableSet.copyOf(watches));
     }
 
+    LockWatchStateUpdate.Snapshot getSnapshotWithEvents(LockWatchEvents events, UUID versionId) {
+        ClientLockWatchSnapshot freshSnapshot = create();
+        freshSnapshot.resetWithSnapshot(getSnapshot());
+        freshSnapshot.processEvents(events, versionId);
+        return freshSnapshot.getSnapshot();
+    }
+
     void processEvents(LockWatchEvents events, UUID versionId) {
         if (events.events().isEmpty()) {
             return;
         }
 
+        events.assertNoEventsAreMissingAfterLatestVersion(snapshotVersion);
         events.events().forEach(event -> event.accept(visitor));
         snapshotVersion = Optional.of(LockWatchVersion.of(
                 versionId, events.versionRange().map(Range::upperEndpoint).get()));
