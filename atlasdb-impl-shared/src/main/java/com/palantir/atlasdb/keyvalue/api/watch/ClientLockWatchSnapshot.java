@@ -50,7 +50,7 @@ final class ClientLockWatchSnapshot {
         this.snapshotVersion = Optional.empty();
     }
 
-    LockWatchStateUpdate.Snapshot getSnapshot() {
+    private LockWatchStateUpdate.Snapshot getSnapshot() {
         Preconditions.checkState(
                 snapshotVersion.isPresent(), "Snapshot was reset on fail and has not been seeded since");
         return LockWatchStateUpdate.snapshot(

@@ -43,5 +43,7 @@ interface VersionBounds {
         return endVersion().id();
     }
 
-    class Builder extends ImmutableVersionBounds.Builder {}
+    static ImmutableVersionBounds.Builder builder() {
+        return ImmutableVersionBounds.builder();
+    }
 }

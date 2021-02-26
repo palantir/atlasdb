@@ -22,7 +22,6 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.util.List;
-import java.util.LongSummaryStatistics;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -32,13 +31,11 @@ public interface LockWatchEvents {
 
     @Value.Derived
     default Optional<Range<Long>> versionRange() {
-        LongSummaryStatistics summary =
-                events().stream().mapToLong(LockWatchEvent::sequence).summaryStatistics();
-
-        if (summary.getCount() == 0) {
+        if (events().isEmpty()) {
             return Optional.empty();
         } else {
-            return Optional.of(Range.closed(summary.getMin(), summary.getMax()));
+            long firstVersion = events().get(0).sequence();
+            return Optional.of(Range.closed(firstVersion, firstVersion + events().size() - 1));
         }
     }
 
@@ -70,7 +67,6 @@ public interface LockWatchEvents {
         }
 
         if (latestVersion.isPresent()) {
-            Preconditions.checkArgument(versionRange().isPresent(), "First element not preset in list of events");
             long firstVersion = versionRange().get().lowerEndpoint();
             Preconditions.checkArgument(
                     firstVersion <= latestVersion.get().version()
@@ -81,5 +77,7 @@ public interface LockWatchEvents {
         }
     }
 
-    class Builder extends ImmutableLockWatchEvents.Builder {}
+    static ImmutableLockWatchEvents.Builder builder() {
+        return ImmutableLockWatchEvents.builder();
+    }
 }

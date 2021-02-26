@@ -89,7 +89,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
         CommitInfo commitInfo = maybeCommitInfo.get();
 
-        VersionBounds versionBounds = new VersionBounds.Builder()
+        VersionBounds versionBounds = VersionBounds.builder()
                 .startVersion(startVersion)
                 .endVersion(commitInfo.commitVersion())
                 .build();
@@ -102,7 +102,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             Set<Long> startTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
 
-        VersionBounds versionBounds = new VersionBounds.Builder()
+        VersionBounds versionBounds = VersionBounds.builder()
                 .startVersion(lastKnownVersion)
                 .endVersion(timestampMapping.lastVersion())
                 .earliestSnapshotVersion(timestampMapping.versionRange().lowerEndpoint())

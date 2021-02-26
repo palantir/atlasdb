@@ -72,7 +72,7 @@ final class LockWatchEventLog {
             }
             return new ClientLogEvents.Builder()
                     .clearCache(true)
-                    .events(new LockWatchEvents.Builder()
+                    .events(LockWatchEvents.builder()
                             .addEvents(getCompressedSnapshot(versionBounds))
                             .addAllEvents(afterSnapshotEvents)
                             .build())
@@ -86,7 +86,7 @@ final class LockWatchEventLog {
                                     + "transactions"));
             return new ClientLogEvents.Builder()
                     .clearCache(false)
-                    .events(new LockWatchEvents.Builder()
+                    .events(LockWatchEvents.builder()
                             .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(
                                     Optional.of(startVersion.get().version()),
                                     versionBounds.endVersion().version()))
@@ -120,7 +120,7 @@ final class LockWatchEventLog {
         Collection<LockWatchEvent> collapsibleEvents =
                 eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), snapshotVersion);
         LockWatchEvents events =
-                new LockWatchEvents.Builder().addAllEvents(collapsibleEvents).build();
+                LockWatchEvents.builder().addAllEvents(collapsibleEvents).build();
 
         return LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshotWithEvents(events, versionBounds.leader()));
     }
@@ -163,7 +163,7 @@ final class LockWatchEventLog {
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
             LockWatchEvents events =
-                    new LockWatchEvents.Builder().addAllEvents(success.events()).build();
+                    LockWatchEvents.builder().addAllEvents(success.events()).build();
             events.assertNoEventsAreMissing(latestVersion);
             latestVersion = Optional.of(LockWatchVersion.of(success.logId(), eventStore.putAll(events)));
         }
