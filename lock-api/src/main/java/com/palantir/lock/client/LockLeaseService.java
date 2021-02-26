@@ -157,7 +157,7 @@ public class LockLeaseService {
                 .collect(Collectors.toSet());
     }
 
-    LockCleanupService lockCleanupService() {
+    public LockCleanupService lockCleanupService() {
         return new LockCleanupService(this);
     }
 

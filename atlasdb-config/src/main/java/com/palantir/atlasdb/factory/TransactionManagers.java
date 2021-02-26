@@ -161,7 +161,7 @@ import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.LockRefreshingLockService;
-import com.palantir.lock.client.MultiClientBatchingIdentifiedAtlasDbTransactionStarter;
+import com.palantir.lock.client.MultiClientTransactionStarter;
 import com.palantir.lock.client.NamespacedBatchingIdentifiedAtlasDbTransactionStarter;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
@@ -1250,18 +1250,20 @@ public abstract class TransactionManagers {
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             LockWatchEventCache lockWatchEventCache,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        StartTransactionsLockWatchEventCache cache = StartTransactionsLockWatchEventCache.create(lockWatchEventCache);
+
         if (!timelockRequestBatcherProviders.isPresent()) {
             return lockLeaseService ->
-                    BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, lockWatchEventCache);
+                    BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, cache);
         }
-        MultiClientBatchingIdentifiedAtlasDbTransactionStarter batcher = timelockRequestBatcherProviders
+        MultiClientTransactionStarter batcher = timelockRequestBatcherProviders
                 .get()
                 .startTransactionsBatcherProvider()
                 .getBatcher(multiClientTimelockServiceSupplier);
         return lockLeaseService -> new NamespacedBatchingIdentifiedAtlasDbTransactionStarter(
                 namespace,
                 batcher,
-                new StartTransactionsLockWatchEventCache(lockWatchEventCache),
+                cache,
                 lockLeaseService.lockCleanupService());
     }
 
