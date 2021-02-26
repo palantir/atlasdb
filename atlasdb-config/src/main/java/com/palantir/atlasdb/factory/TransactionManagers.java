@@ -1222,7 +1222,6 @@ public abstract class TransactionManagers {
                 getLeaderTimeGetter(
                         timelockNamespace,
                         timelockRequestBatcherProviders,
-                        serviceProvider,
                         namespacedConjureTimelockService,
                         multiClientTimelockServiceSupplier),
                 getTransactionStarterFactory(
