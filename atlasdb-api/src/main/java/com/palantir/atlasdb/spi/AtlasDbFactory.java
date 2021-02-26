@@ -38,6 +38,13 @@ public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
 
     String getType();
 
+    /**
+     * Create the config (a merging of the given install and runtime config) that will be passed to
+     * {@link #createRawKeyValueService}.
+     * {@link KeyValueServiceConfig#defaultGetRangesConcurrency()} and
+     * {@link KeyValueServiceConfig#concurrentGetRangesThreadPoolSize()} will be used from the resulting merged
+     * config to initialize the transaction manager.
+     */
     default MERGED_CONFIG createMergedKeyValueServiceConfig(
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
