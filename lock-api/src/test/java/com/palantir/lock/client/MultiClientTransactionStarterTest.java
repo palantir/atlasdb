@@ -41,7 +41,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -193,14 +192,7 @@ public class MultiClientTransactionStarterTest {
                     requestsForClients,
             Map<Namespace, List<ConjureStartTransactionsResponse>> responseMap) {
 
-        requestsForClients.forEach(batchElement -> {
-            DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> resultFuture = batchElement.result();
-            NamespaceAndRequestParams requestParams = batchElement.argument();
-            assertThat(resultFuture.isDone()).isTrue();
-
-            List<StartIdentifiedAtlasDbTransactionResponse> responseList = Futures.getUnchecked(resultFuture);
-            assertThat(responseList).hasSize(requestParams.params().numTransactions());
-        });
+        assertCompletedWithCorrectNumberOfTransactions(requestsForClients);
 
         Map<Namespace, List<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>>>
                 partitionedResponses = requestsForClients.stream()
@@ -214,10 +206,7 @@ public class MultiClientTransactionStarterTest {
                             .flatMap(Collection::stream)
                             .collect(Collectors.toList());
 
-            Iterator<ConjureStartTransactionsResponse> responseIterator = responses.iterator();
-
-            while (responseIterator.hasNext()) {
-                ConjureStartTransactionsResponse conjureResponse = responseIterator.next();
+            for (ConjureStartTransactionsResponse conjureResponse : responses) {
                 int toIndex =
                         Math.min(startInd + conjureResponse.getTimestamps().count(), startedTransactions.size());
 
@@ -230,6 +219,19 @@ public class MultiClientTransactionStarterTest {
                         .allSatisfy(startTxnResponse -> StartTransactionsTestUtils.assertDerivableFromBatchedResponse(
                                 startTxnResponse, conjureResponse));
             }
+        });
+    }
+
+    private void assertCompletedWithCorrectNumberOfTransactions(
+            List<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>>
+                    requestsForClients) {
+        requestsForClients.forEach(batchElement -> {
+            DisruptorFuture<List<StartIdentifiedAtlasDbTransactionResponse>> resultFuture = batchElement.result();
+            NamespaceAndRequestParams requestParams = batchElement.argument();
+            assertThat(resultFuture.isDone()).isTrue();
+
+            List<StartIdentifiedAtlasDbTransactionResponse> responseList = Futures.getUnchecked(resultFuture);
+            assertThat(responseList).hasSize(requestParams.params().numTransactions());
         });
     }
 
