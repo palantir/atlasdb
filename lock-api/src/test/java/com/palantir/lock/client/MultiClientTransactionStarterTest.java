@@ -51,10 +51,13 @@ import org.junit.Test;
 
 public class MultiClientTransactionStarterTest {
     private static final int PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL = 5;
+    private static final Map<Namespace, StartTransactionsLockWatchEventCache> NAMESPACE_CACHE_MAP = new HashMap();
+    private static final SafeIllegalStateException EXCEPTION = new SafeIllegalStateException("Something went wrong!");
+
     private final InternalMultiClientConjureTimelockService timelockService =
             mock(InternalMultiClientConjureTimelockService.class);
     private final LockCleanupService lockCleanupService = mock(LockCleanupService.class);
-    private static final Map<Namespace, StartTransactionsLockWatchEventCache> NAMESPACE_CACHE_MAP = new HashMap();
+
     private int lowestStartTs = 1;
 
     @Test
@@ -111,11 +114,10 @@ public class MultiClientTransactionStarterTest {
                 requests = ImmutableList.of(requestToBeServed, requestNotToBeServed);
         Map<Namespace, ConjureStartTransactionsResponse> responseMap = startTransactionsResponse(requests, requestorId);
 
-        SafeIllegalStateException exception = new SafeIllegalStateException("Something went wrong!");
-        when(timelockService.startTransactions(any())).thenReturn(responseMap).thenThrow(exception);
+        when(timelockService.startTransactions(any())).thenReturn(responseMap).thenThrow(EXCEPTION);
 
         assertThatThrownBy(() -> processBatch(timelockService, requestorId, requests))
-                .isEqualTo(exception);
+                .isEqualTo(EXCEPTION);
 
         // assert first request is served even if server throws on next request
         assertSanityOfRequestBatch(
@@ -144,17 +146,16 @@ public class MultiClientTransactionStarterTest {
 
         Map<Namespace, ConjureStartTransactionsResponse> responseMap = startTransactionsResponse(requests, requestorId);
 
-        SafeIllegalStateException exception = new SafeIllegalStateException("Something went wrong!");
-        when(timelockService.startTransactions(any())).thenReturn(responseMap).thenThrow(exception);
+        when(timelockService.startTransactions(any())).thenReturn(responseMap).thenThrow(EXCEPTION);
 
         assertThatThrownBy(() -> processBatch(timelockService, requestorId, requests))
-                .isEqualTo(exception);
+                .isEqualTo(EXCEPTION);
 
         // assert requests made by client alpha are served
         assertSanityOfRequestBatch(
                 ImmutableList.of(requestForAlpha), ImmutableMap.of(alpha, ImmutableList.of(responseMap.get(alpha))));
 
-        // assert clean up was done by exactly one service - beta
+        // assert clean up was done by exactly one client - beta
         verify(lockCleanupService).refreshLockLeases(any());
         verify(lockCleanupService).unlock(any());
     }
@@ -217,12 +218,11 @@ public class MultiClientTransactionStarterTest {
 
             while (responseIterator.hasNext()) {
                 ConjureStartTransactionsResponse conjureResponse = responseIterator.next();
-                List<StartIdentifiedAtlasDbTransactionResponse> responseList;
-
                 int toIndex =
                         Math.min(startInd + conjureResponse.getTimestamps().count(), startedTransactions.size());
 
-                responseList = startedTransactions.subList(startInd, toIndex);
+                List<StartIdentifiedAtlasDbTransactionResponse> responseList =
+                        startedTransactions.subList(startInd, toIndex);
                 startInd = toIndex;
 
                 assertThat(responseList)

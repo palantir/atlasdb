@@ -274,7 +274,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
 
     private static final class ResponseHandler implements AutoCloseable {
         private final Queue<SettableResponse> pendingFutures;
-        private Queue<StartIdentifiedAtlasDbTransactionResponse> transientResponseList;
+        private final Queue<StartIdentifiedAtlasDbTransactionResponse> transientResponseList;
         private final LockCleanupService lockCleanupService;
 
         ResponseHandler(LockCleanupService lockCleanupService) {
