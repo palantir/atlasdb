@@ -187,7 +187,7 @@ public class MultiClientTransactionStarterTest {
         assertThatThrownBy(() -> processBatch(timelockService, requestorId, requests))
                 .isEqualTo(EXCEPTION);
 
-        // assert requests made by client omega are served
+        // assert the first request made by client omega is served
         assertSanityOfRequestBatch(
                 ImmutableList.of(requestForOmega), ImmutableMap.of(omega, ImmutableList.of(responseMap.get(omega))));
 
