@@ -20,6 +20,7 @@ import static com.palantir.lock.client.MultiClientTransactionStarter.processBatc
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -36,18 +37,22 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.client.MultiClientTransactionStarter.NamespaceAndRequestParams;
 import com.palantir.lock.client.MultiClientTransactionStarter.RequestParams;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public class MultiClientTransactionStarterTest {
     private static final int PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL = 5;
@@ -159,6 +164,47 @@ public class MultiClientTransactionStarterTest {
         verify(LOCK_CLEANUP_SERVICE_MAP.get(alpha), never()).unlock(any());
         verify(LOCK_CLEANUP_SERVICE_MAP.get(beta)).refreshLockLeases(any());
         verify(LOCK_CLEANUP_SERVICE_MAP.get(beta)).unlock(any());
+    }
+
+    @Test
+    public void shouldNotFreeResourcesWithinNamespaceIfRequestIsServed() {
+        Namespace omega = Namespace.of("omega" + UUID.randomUUID());
+
+        BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>> requestForOmega =
+                batchElementForNamespace(omega, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1);
+        BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>> secondRequestForOmega =
+                batchElementForNamespace(omega, 2);
+
+        UUID requestorId = UUID.randomUUID();
+
+        List<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>> requests =
+                ImmutableList.of(requestForOmega, secondRequestForOmega);
+
+        Map<Namespace, ConjureStartTransactionsResponse> responseMap = startTransactionsResponse(requests, requestorId);
+
+        when(timelockService.startTransactions(any())).thenReturn(responseMap).thenThrow(EXCEPTION);
+
+        assertThatThrownBy(() -> processBatch(timelockService, requestorId, requests))
+                .isEqualTo(EXCEPTION);
+
+        // assert requests made by client omega are served
+        assertSanityOfRequestBatch(
+                ImmutableList.of(requestForOmega), ImmutableMap.of(omega, ImmutableList.of(responseMap.get(omega))));
+
+        @SuppressWarnings({"unchecked", "rawtypes"}) // :internally-screaming:
+        ArgumentCaptor<Set<LockToken>> refreshArgumentCaptor =
+                (ArgumentCaptor<Set<LockToken>>) ArgumentCaptor.forClass((Class) Set.class);
+        verify(LOCK_CLEANUP_SERVICE_MAP.get(omega)).refreshLockLeases(refreshArgumentCaptor.capture());
+        verify(LOCK_CLEANUP_SERVICE_MAP.get(omega)).unlock(eq(Collections.emptySet()));
+        Set<LockToken> refreshedTokens = refreshArgumentCaptor.getValue();
+
+        LockToken tokenShare = Futures.getUnchecked(requestForOmega.result()).get(0).immutableTimestamp().getLock();
+        assertThat(tokenShare)
+                .isInstanceOf(LockTokenShare.class)
+                .satisfies(token -> {
+                    LockTokenShare share = ((LockTokenShare) token);
+                    assertThat(share.sharedLockToken()).isIn(refreshedTokens);
+                });
     }
 
     private BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>
