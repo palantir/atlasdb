@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,12 +51,12 @@ import org.junit.Test;
 
 public class MultiClientTransactionStarterTest {
     private static final int PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL = 5;
-    private static final Map<Namespace, StartTransactionsLockWatchEventCache> NAMESPACE_CACHE_MAP = new HashMap();
+    private static final Map<Namespace, StartTransactionsLockWatchEventCache> NAMESPACE_CACHE_MAP = new HashMap<>();
+    private static final Map<Namespace, LockCleanupService> LOCK_CLEANUP_SERVICE_MAP = new HashMap<>();
     private static final SafeIllegalStateException EXCEPTION = new SafeIllegalStateException("Something went wrong!");
 
     private final InternalMultiClientConjureTimelockService timelockService =
             mock(InternalMultiClientConjureTimelockService.class);
-    private final LockCleanupService lockCleanupService = mock(LockCleanupService.class);
 
     private int lowestStartTs = 1;
 
@@ -124,8 +125,9 @@ public class MultiClientTransactionStarterTest {
                 ImmutableMap.of(namespace, ImmutableList.of(responseMap.get(namespace))));
         assertThat(requestNotToBeServed.result().isDone()).isFalse();
 
-        verify(lockCleanupService).refreshLockLeases(any());
-        verify(lockCleanupService).unlock(any());
+        LockCleanupService relevantLockCleanupService = LOCK_CLEANUP_SERVICE_MAP.get(namespace);
+        verify(relevantLockCleanupService).refreshLockLeases(any());
+        verify(relevantLockCleanupService).unlock(any());
     }
 
     @Test
@@ -154,16 +156,21 @@ public class MultiClientTransactionStarterTest {
         assertSanityOfRequestBatch(
                 ImmutableList.of(requestForAlpha), ImmutableMap.of(alpha, ImmutableList.of(responseMap.get(alpha))));
 
-        // assert clean up was done by exactly one client - beta
-        verify(lockCleanupService).refreshLockLeases(any());
-        verify(lockCleanupService).unlock(any());
+        verify(LOCK_CLEANUP_SERVICE_MAP.get(alpha), never()).unlock(any());
+        verify(LOCK_CLEANUP_SERVICE_MAP.get(beta)).refreshLockLeases(any());
+        verify(LOCK_CLEANUP_SERVICE_MAP.get(beta)).unlock(any());
     }
 
     private BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>
-            batchElementForNamespace(Namespace beta, int numTransactions) {
+            batchElementForNamespace(Namespace namespace, int numTransactions) {
         return BatchElement.of(
                 NamespaceAndRequestParams.of(
-                        beta, RequestParams.of(numTransactions, getCache(beta), lockCleanupService)),
+                        namespace,
+                        RequestParams.of(
+                                numTransactions,
+                                getCache(namespace),
+                                LOCK_CLEANUP_SERVICE_MAP.computeIfAbsent(
+                                        namespace, _unused -> mock(LockCleanupService.class)))),
                 new DisruptorFuture<>("test"));
     }
 
