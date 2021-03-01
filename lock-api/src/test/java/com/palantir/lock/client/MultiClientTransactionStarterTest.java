@@ -198,13 +198,14 @@ public class MultiClientTransactionStarterTest {
         verify(LOCK_CLEANUP_SERVICE_MAP.get(omega)).unlock(eq(Collections.emptySet()));
         Set<LockToken> refreshedTokens = refreshArgumentCaptor.getValue();
 
-        LockToken tokenShare = Futures.getUnchecked(requestForOmega.result()).get(0).immutableTimestamp().getLock();
-        assertThat(tokenShare)
-                .isInstanceOf(LockTokenShare.class)
-                .satisfies(token -> {
-                    LockTokenShare share = ((LockTokenShare) token);
-                    assertThat(share.sharedLockToken()).isIn(refreshedTokens);
-                });
+        LockToken tokenShare = Futures.getUnchecked(requestForOmega.result())
+                .get(0)
+                .immutableTimestamp()
+                .getLock();
+        assertThat(tokenShare).isInstanceOf(LockTokenShare.class).satisfies(token -> {
+            LockTokenShare share = ((LockTokenShare) token);
+            assertThat(share.sharedLockToken()).isIn(refreshedTokens);
+        });
     }
 
     private BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>
