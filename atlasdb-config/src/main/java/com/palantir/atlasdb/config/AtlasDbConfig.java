@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -41,9 +40,6 @@ import org.slf4j.LoggerFactory;
 public abstract class AtlasDbConfig {
 
     private static final Logger log = LoggerFactory.getLogger(AtlasDbConfig.class);
-
-    @VisibleForTesting
-    static final String UNSPECIFIED_NAMESPACE = "unspecified";
 
     public abstract KeyValueServiceConfig keyValueService();
 

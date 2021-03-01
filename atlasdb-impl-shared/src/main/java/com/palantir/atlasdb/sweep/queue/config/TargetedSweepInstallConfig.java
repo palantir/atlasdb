@@ -92,6 +92,12 @@ public class TargetedSweepInstallConfig {
      * If set to true, resets progress to zero for each shard and strategy on startup. This configuration can also only
      * be safely used if nodes are not actively sweeping, and so if configured to be true will prevent targeted sweep
      * from running.
+     *
+     * The reason for this coupling between resetting progress and not sweeping is that the targeted sweeper retries
+     * CAS operations from the existing bound to where it believes it is, only stopping when the bound is at least
+     * that high. Thus, we need to ensure that no active sweep is running when performing a reset (otherwise said
+     * reset could be lost by a rogue CAS). When operating a cluster, the reset is only definitely complete when
+     * *ALL* nodes have reported that they have completed said reset.
      */
     @Value.Default
     public boolean resetTargetedSweepQueueProgressAndStopSweep() {
