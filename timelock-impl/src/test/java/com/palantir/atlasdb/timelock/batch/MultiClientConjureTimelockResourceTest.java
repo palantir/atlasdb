@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.batch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +30,8 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
@@ -60,14 +63,19 @@ public class MultiClientConjureTimelockResourceTest {
     private static final URL REMOTE = url("https://localhost:" + REMOTE_PORT);
     private static final RedirectRetryTargeter TARGETER =
             RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
+    private static final int DUMMY_COMMIT_TS_COUNT = 5;
 
     private Map<String, AsyncTimelockService> namespaces = new HashMap();
     private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap();
+    private Map<String, Integer> namespaceToCommitTsLowerBound = new HashMap();
+
     private MultiClientConjureTimelockResource resource;
 
     private PartitionedTimestamps partitionedTimestamps = mock(PartitionedTimestamps.class);
     private LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
     private LockImmutableTimestampResponse lockImmutableTimestampResponse = mock(LockImmutableTimestampResponse.class);
+
+    private int commitTsLowerInclusive = 1;
 
     @Before
     public void before() {
@@ -123,6 +131,30 @@ public class MultiClientConjureTimelockResourceTest {
         assertThat(leadershipIds).hasSameSizeAs(namespaces);
     }
 
+    @Test
+    public void canGetCommitTimestampsForMultipleClients() {
+        Set<String> namespaces = ImmutableSet.of("client1", "client2");
+        assertThat(Futures.getUnchecked(
+                        resource.getCommitTimestamps(AUTH_HEADER, getGetCommitTimestampsRequests(namespaces))))
+                .isEqualTo(getGetCommitTimestampsResponseMap(namespaces));
+    }
+
+    private Map<Namespace, GetCommitTimestampsResponse> getGetCommitTimestampsResponseMap(Set<String> namespaces) {
+        return KeyedStream.of(namespaces)
+                .mapKeys(Namespace::of)
+                .map(this::getCommitTimestampResponse)
+                .collectToMap();
+    }
+
+    private Map<Namespace, GetCommitTimestampsRequest> getGetCommitTimestampsRequests(Set<String> namespaces) {
+        return KeyedStream.of(namespaces)
+                .mapKeys(Namespace::of)
+                .map(namespace -> GetCommitTimestampsRequest.builder()
+                        .numTimestamps(DUMMY_COMMIT_TS_COUNT)
+                        .build())
+                .collectToMap();
+    }
+
     private Map<Namespace, ConjureStartTransactionsRequest> getStartTransactionsRequests(List<String> namespaces) {
         return KeyedStream.of(namespaces)
                 .map(namespace -> ConjureStartTransactionsRequest.builder()
@@ -150,7 +182,19 @@ public class MultiClientConjureTimelockResourceTest {
                         .timestamps(partitionedTimestamps)
                         .lockWatchUpdate(lockWatchStateUpdate)
                         .build()));
+        when(timelockService.getCommitTimestamps(anyInt(), any()))
+                .thenReturn(Futures.immediateFuture(getCommitTimestampResponse(client)));
         return timelockService;
+    }
+
+    private GetCommitTimestampsResponse getCommitTimestampResponse(String namespace) {
+        int inclusiveLower = getInclusiveLowerCommitTs(namespace);
+        return GetCommitTimestampsResponse.of(
+                inclusiveLower, inclusiveLower + DUMMY_COMMIT_TS_COUNT, lockWatchStateUpdate);
+    }
+
+    private Integer getInclusiveLowerCommitTs(String namespace) {
+        return namespaceToCommitTsLowerBound.computeIfAbsent(namespace, _u -> commitTsLowerInclusive++);
     }
 
     private static URL url(String url) {
