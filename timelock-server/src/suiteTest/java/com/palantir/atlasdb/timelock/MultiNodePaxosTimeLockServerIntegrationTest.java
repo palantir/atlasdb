@@ -504,7 +504,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         List<String> expectedNamespaces = ImmutableList.of("alpha", "beta");
         int numTransactions = 7;
         Map<Namespace, ConjureStartTransactionsRequest> namespaceToRequestMap =
-                defaultNamespaceWiseStartTransactionsRequests(expectedNamespaces, numTransactions);
+                defaultStartTransactionsRequests(expectedNamespaces, numTransactions);
 
         Map<Namespace, ConjureStartTransactionsResponse> startedTransactions =
                 multiClientConjureTimelockService.startTransactions(AUTH_HEADER, namespaceToRequestMap);
@@ -594,7 +594,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         int numTransactions = 5;
 
         Map<Namespace, ConjureStartTransactionsRequest> namespaceToRequestMap =
-                defaultNamespaceWiseStartTransactionsRequests(expectedNamespaces, numTransactions);
+                defaultStartTransactionsRequests(expectedNamespaces, numTransactions);
 
         Map<Namespace, ConjureStartTransactionsResponse> startedTransactions =
                 multiClientConjureTimelockService.startTransactions(AUTH_HEADER, namespaceToRequestMap);
@@ -612,7 +612,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         return startedTransactions;
     }
 
-    private Map<Namespace, ConjureStartTransactionsRequest> defaultNamespaceWiseStartTransactionsRequests(
+    private Map<Namespace, ConjureStartTransactionsRequest> defaultStartTransactionsRequests(
             List<String> namespaces, int numTransactions) {
         return KeyedStream.of(namespaces)
                 .map(namespace -> ConjureStartTransactionsRequest.builder()
