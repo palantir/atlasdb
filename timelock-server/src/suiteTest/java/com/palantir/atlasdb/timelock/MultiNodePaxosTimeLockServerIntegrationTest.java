@@ -528,7 +528,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     public void sanityCheckMultiClientGetCommitTimestamps() {
         MultiClientConjureTimelockService service =
                 cluster.currentLeaderFor(client.namespace()).multiClientService();
-        Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta");
+
+        Set<String> expectedNamespaces = ImmutableSet.of("cli-1", "cli-2");
         Map<Namespace, GetCommitTimestampsResponse> multiClientResponses =
                 service.getCommitTimestamps(AUTH_HEADER, defaultGetCommitTimestampsRequests(expectedNamespaces));
 
@@ -544,10 +545,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void sanityCheckMultiClientGetCommitTimestampsAgainstConjureTimelockService() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        MultiClientConjureTimelockService service = leader.multiClientService();
-        Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta");
-        Map<Namespace, GetCommitTimestampsResponse> multiClientResponses =
-                service.getCommitTimestamps(AUTH_HEADER, defaultGetCommitTimestampsRequests(expectedNamespaces));
+        MultiClientConjureTimelockService multiClientService = leader.multiClientService();
+
+        Set<String> expectedNamespaces = ImmutableSet.of("alta", "mp");
+
+        Map<Namespace, GetCommitTimestampsResponse> multiClientResponses = multiClientService.getCommitTimestamps(
+                AUTH_HEADER, defaultGetCommitTimestampsRequests(expectedNamespaces));
 
         assertSanityOfNamespacesServed(expectedNamespaces, multiClientResponses);
 
