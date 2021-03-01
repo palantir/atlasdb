@@ -191,7 +191,7 @@ public class MultiClientTransactionStarterTest {
         assertSanityOfRequestBatch(
                 ImmutableList.of(requestForOmega), ImmutableMap.of(omega, ImmutableList.of(responseMap.get(omega))));
 
-        @SuppressWarnings({"unchecked", "rawtypes"}) // :internally-screaming:
+        @SuppressWarnings({"unchecked", "rawtypes"})
         ArgumentCaptor<Set<LockToken>> refreshArgumentCaptor =
                 (ArgumentCaptor<Set<LockToken>>) ArgumentCaptor.forClass((Class) Set.class);
         verify(LOCK_CLEANUP_SERVICE_MAP.get(omega)).refreshLockLeases(refreshArgumentCaptor.capture());
