@@ -239,7 +239,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         }
     }
 
-    private static class MultiClientRequestManager implements AutoCloseable {
+    private static final class MultiClientRequestManager implements AutoCloseable {
         private final Map<Namespace, RequestParams> requestMap;
 
         private MultiClientRequestManager(Map<Namespace, RequestParams> requestMap) {
@@ -272,7 +272,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         }
     }
 
-    private static class ResponseHandler implements AutoCloseable {
+    private static final class ResponseHandler implements AutoCloseable {
         private final Queue<SettableResponse> pendingFutures;
         private Queue<StartIdentifiedAtlasDbTransactionResponse> transientResponseList;
         private final LockCleanupService lockCleanupService;
