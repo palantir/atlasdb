@@ -30,11 +30,11 @@ public final class LockCleanupService {
         this.delegate = delegate;
     }
 
-    Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
-        return delegate.refreshLockLeases(uncastedTokens);
+    Set<LockToken> refreshLockLeases(Set<LockToken> userTokens) {
+        return delegate.refreshLockLeases(userTokens);
     }
 
-    Set<LockToken> unlock(Set<LockToken> tokens) {
-        return delegate.unlock(tokens);
+    Set<LockToken> unlock(Set<LockToken> userTokens) {
+        return delegate.unlock(userTokens);
     }
 }
