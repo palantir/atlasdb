@@ -28,6 +28,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
 import java.util.Set;
@@ -46,7 +47,8 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             LeaderTimeGetter leaderTimeGetter) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
-        this.transactionStarter = TransactionStarter.create(lockLeaseService, lockWatchEventCache);
+        this.transactionStarter = TransactionStarter.create(
+                lockLeaseService, StartTransactionsLockWatchEventCache.create(lockWatchEventCache));
         this.commitTimestampGetter = BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
     }

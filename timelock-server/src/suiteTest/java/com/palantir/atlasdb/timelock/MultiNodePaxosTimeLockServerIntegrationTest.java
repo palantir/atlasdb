@@ -525,6 +525,32 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void multiClientStartTransactionsReturnsCorrectStartTimestamps() {
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        Namespace delta = Namespace.of("delta");
+        Namespace gamma = Namespace.of("gamma");
+
+        NamespacedClients deltaClient = leader.client(delta.get()).throughWireMockProxy();
+        NamespacedClients gammaClient = leader.client(gamma.get()).throughWireMockProxy();
+        List<String> expectedNamespaces = ImmutableList.of(delta.get(), gamma.get());
+
+        int deltaFastForwardedTimestamp = 155_200_000;
+        int gammaFastForwardedTimestamp = 988_000_000;
+
+        deltaClient.timestampManagementService().fastForwardTimestamp(deltaFastForwardedTimestamp);
+        gammaClient.timestampManagementService().fastForwardTimestamp(gammaFastForwardedTimestamp);
+
+        Map<Namespace, ConjureStartTransactionsResponse> startedTransactions =
+                assertSanityAndStartTransactions(leader, expectedNamespaces);
+
+        assertThat(startedTransactions.get(delta).getTimestamps().start())
+                .isGreaterThanOrEqualTo(deltaFastForwardedTimestamp)
+                .isLessThan(gammaFastForwardedTimestamp);
+        assertThat(startedTransactions.get(gamma).getTimestamps().start())
+                .isGreaterThanOrEqualTo(gammaFastForwardedTimestamp);
+    }
+
+    @Test
     public void sanityCheckMultiClientGetCommitTimestamps() {
         MultiClientConjureTimelockService service =
                 cluster.currentLeaderFor(client.namespace()).multiClientService();
