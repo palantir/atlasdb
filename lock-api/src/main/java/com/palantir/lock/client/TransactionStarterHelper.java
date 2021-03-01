@@ -25,9 +25,12 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,6 +40,17 @@ public final class TransactionStarterHelper {
     }
 
     static Set<LockToken> unlock(Set<LockToken> tokens, LockLeaseService lockLeaseService) {
+        return unlock(tokens, lockLeaseService::refreshLockLeases, lockLeaseService::unlock);
+    }
+
+    static Set<LockToken> unlock(Set<LockToken> tokens, LockCleanupService lockCleanupService) {
+        return unlock(tokens, lockCleanupService::refreshLockLeases, lockCleanupService::unlock);
+    }
+
+    private static Set<LockToken> unlock(
+            Set<LockToken> tokens,
+            Function<Set<LockToken>, Set<LockToken>> refreshLockLeases,
+            Function<Set<LockToken>, Set<LockToken>> unlock) {
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);
@@ -44,8 +58,8 @@ public final class TransactionStarterHelper {
         Set<LockToken> toUnlock = reduceForUnlock(lockTokenShares);
         Set<LockToken> toRefresh = getLockTokensToRefresh(lockTokenShares, toUnlock);
 
-        Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(toRefresh);
-        Set<LockToken> unlocked = lockLeaseService.unlock(Sets.union(toUnlock, lockTokens));
+        Set<LockToken> refreshed = refreshLockLeases.apply(toRefresh);
+        Set<LockToken> unlocked = unlock.apply(Sets.union(toUnlock, lockTokens));
 
         Set<LockTokenShare> resultLockTokenShares = Sets.filter(
                 lockTokenShares,
@@ -110,5 +124,14 @@ public final class TransactionStarterHelper {
 
         return Streams.zip(immutableTsAndLocks, timestampAndPartitions, StartIdentifiedAtlasDbTransactionResponse::of)
                 .collect(Collectors.toList());
+    }
+
+    static void updateCacheWithStartTransactionResponse(
+            StartTransactionsLockWatchEventCache lockWatchEventCache,
+            Optional<LockWatchVersion> requestedVersion,
+            ConjureStartTransactionsResponse response) {
+        lockWatchEventCache.processStartTransactionsUpdate(
+                response.getTimestamps().stream().boxed().collect(Collectors.toSet()), response.getLockWatchUpdate());
+        LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
     }
 }
