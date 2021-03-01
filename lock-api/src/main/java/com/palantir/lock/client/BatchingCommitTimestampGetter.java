@@ -37,8 +37,7 @@ import java.util.stream.LongStream;
 import org.immutables.value.Value;
 
 /**
- * This class batches getCommitTimestamps requests to TimeLock server for a single client/ namespace. In other words,
- * this does NOT batch requests across namespaces.
+ * This class batches getCommitTimestamps requests to TimeLock server for a single client/namespace.
  * */
 final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     private final DisruptorAutobatcher<Request, Long> autobatcher;
