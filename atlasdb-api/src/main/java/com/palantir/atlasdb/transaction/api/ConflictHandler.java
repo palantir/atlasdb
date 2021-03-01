@@ -102,7 +102,13 @@ public enum ConflictHandler {
      * cell then correctness issues may occur as there is no way for t1 to be aware of t2. Locking on both cell and row
      * level prevents this issue.
      */
-    SERIALIZABLE_LOCK_LEVEL_MIGRATION(true, true, true, true);
+    SERIALIZABLE_LOCK_LEVEL_MIGRATION(true, true, true, true),
+
+    /**
+     * This conflict handler is analogous to SERIALIZABLE_LOCK_LEVEL_MIGRATION, but for migrating between
+     * RETRY_ON_WRITE_WRITE and RETRY_ON_WRITE_WRITE_CELL.
+     */
+    RETRY_ON_WRITE_WRITE_MIGRATION(true, true, true, false);
 
     private final boolean lockCellsForConflicts;
     private final boolean lockRowsForConflicts;

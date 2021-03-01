@@ -108,6 +108,7 @@ enum TableConflictHandler {
     SERIALIZABLE_CELL = 6;
     SERIALIZABLE_INDEX = 7;
     SERIALIZABLE_LOCK_LEVEL_MIGRATION = 8;
+    RETRY_ON_WRITE_WRITE_MIGRATION = 9;
 }
 
 enum CachePriority {
