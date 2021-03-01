@@ -84,31 +84,29 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
             UUID requestorId,
             List<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>> batch) {
 
-        Map<Namespace, ResponseHandler> namespaceWiseResponseHandler = getResponseHandlers(batch);
+        Map<Namespace, ResponseHandler> responseHandler = getResponseHandlers(batch);
         MultiClientRequestManager multiClientRequestManager =
-                new MultiClientRequestManager(getNamespaceWiseRequestParams(batch));
+                new MultiClientRequestManager(partitionRequestsByNamespace(batch));
 
-        Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> startTransactionResponses = new HashMap<>();
-
+        Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> startTransactionResponses;
         try {
             while (multiClientRequestManager.requestsPending()) {
-                startTransactionResponses =
-                        getStartTransactionResponses(multiClientRequestManager.requestMap, delegate, requestorId);
+                startTransactionResponses = getProcessedStartTransactionResponses(
+                        multiClientRequestManager.requestMap, delegate, requestorId);
                 startTransactionResponses.forEach((namespace, responseList) -> {
                     multiClientRequestManager.updatePendingStartTransactionsCount(namespace, responseList.size());
-                    namespaceWiseResponseHandler.get(namespace).processResponse(responseList);
+                    responseHandler.get(namespace).processResponse(responseList);
                 });
             }
         } finally {
-            clearResources(multiClientRequestManager, namespaceWiseResponseHandler);
+            clearResources(multiClientRequestManager, responseHandler);
         }
     }
 
     private static void clearResources(
-            MultiClientRequestManager multiClientRequestManager,
-            Map<Namespace, ResponseHandler> namespaceWiseResponseHandler) {
+            MultiClientRequestManager multiClientRequestManager, Map<Namespace, ResponseHandler> responseHandler) {
         multiClientRequestManager.close();
-        namespaceWiseResponseHandler.forEach((_unused, responseHandler) -> responseHandler.close());
+        responseHandler.forEach((_unused, handler) -> handler.close());
     }
 
     private static Map<Namespace, ResponseHandler> getResponseHandlers(
@@ -130,7 +128,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
     }
 
     @VisibleForTesting
-    static Map<Namespace, RequestParams> getNamespaceWiseRequestParams(
+    static Map<Namespace, RequestParams> partitionRequestsByNamespace(
             List<BatchElement<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>>> batch) {
         return batch.stream()
                 .map(BatchElement::argument)
@@ -138,27 +136,30 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
                         NamespaceAndRequestParams::namespace, NamespaceAndRequestParams::params, RequestParams::merge));
     }
 
-    private static Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> getStartTransactionResponses(
-            Map<Namespace, RequestParams> originalRequestMap,
-            InternalMultiClientConjureTimelockService delegate,
-            UUID requestorId) {
+    private static Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>>
+            getProcessedStartTransactionResponses(
+                    Map<Namespace, RequestParams> originalRequestMap,
+                    InternalMultiClientConjureTimelockService delegate,
+                    UUID requestorId) {
 
-        Map<Namespace, ConjureStartTransactionsRequest> namespaceWiseRequests =
-                getNamespaceWiseRequests(originalRequestMap, requestorId);
-        Map<Namespace, ConjureStartTransactionsResponse> responseMap = getResponseMap(delegate, namespaceWiseRequests);
-        return KeyedStream.stream(responseMap)
-                .mapEntries((namespace, response) -> {
-                    TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                            originalRequestMap.get(namespace).cache(),
-                            fromConjure(namespaceWiseRequests.get(namespace).getLastKnownVersion()),
-                            response);
-                    return Maps.immutableEntry(namespace, TransactionStarterHelper.split(response));
-                })
-                .collectToMap();
+        Map<Namespace, ConjureStartTransactionsRequest> requests = getConjureRequests(originalRequestMap, requestorId);
+        Map<Namespace, ConjureStartTransactionsResponse> responseMap = getResponseMap(delegate, requests);
+
+        Map<Namespace, List<StartIdentifiedAtlasDbTransactionResponse>> processedResult = new HashMap<>();
+        for (Map.Entry<Namespace, ConjureStartTransactionsResponse> entry : responseMap.entrySet()) {
+            Namespace namespace = entry.getKey();
+            ConjureStartTransactionsResponse response = entry.getValue();
+            TransactionStarterHelper.updateCacheWithStartTransactionResponse(
+                    originalRequestMap.get(namespace).cache(),
+                    fromConjure(requests.get(namespace).getLastKnownVersion()),
+                    response);
+            processedResult.put(namespace, TransactionStarterHelper.split(response));
+        }
+        return processedResult;
     }
 
     @VisibleForTesting
-    static Map<Namespace, ConjureStartTransactionsRequest> getNamespaceWiseRequests(
+    static Map<Namespace, ConjureStartTransactionsRequest> getConjureRequests(
             Map<Namespace, RequestParams> originalRequestMap, UUID requestorId) {
         return KeyedStream.stream(originalRequestMap)
                 .mapEntries((namespace, requestParams) ->
@@ -177,8 +178,8 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
 
     private static Map<Namespace, ConjureStartTransactionsResponse> getResponseMap(
             InternalMultiClientConjureTimelockService delegate,
-            Map<Namespace, ConjureStartTransactionsRequest> namespaceWiseRequests) {
-        return KeyedStream.stream(delegate.startTransactions(namespaceWiseRequests))
+            Map<Namespace, ConjureStartTransactionsRequest> conjureRequests) {
+        return KeyedStream.stream(delegate.startTransactions(conjureRequests))
                 .map(LockLeaseService::assignLeasedLockTokenToImmutableTimestampLock)
                 .collectToMap();
     }
@@ -239,33 +240,31 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         }
     }
 
-    private static class MultiClientRequestManager implements AutoCloseable {
+    private static final class MultiClientRequestManager implements AutoCloseable {
         private final Map<Namespace, RequestParams> requestMap;
 
-        public MultiClientRequestManager(Map<Namespace, RequestParams> requestMap) {
+        private MultiClientRequestManager(Map<Namespace, RequestParams> requestMap) {
             this.requestMap = requestMap;
         }
 
-        public boolean requestsPending() {
+        private boolean requestsPending() {
             return !requestMap.isEmpty();
         }
 
-        public void updatePendingStartTransactionsCount(Namespace namespace, int startedTransactionsCount) {
-            Optional<RequestParams> updatedParams = paramsAfterResponse(namespace, startedTransactionsCount);
-            if (updatedParams.isPresent()) {
-                requestMap.put(namespace, updatedParams.get());
-            } else {
-                requestMap.remove(namespace);
-            }
+        private void updatePendingStartTransactionsCount(Namespace namespace, int startedTransactionsCount) {
+            requestMap.compute(
+                    namespace, (_unused, params) -> remainingRequestsForNamespace(params, startedTransactionsCount));
         }
 
-        private Optional<RequestParams> paramsAfterResponse(Namespace namespace, int startedTransactionsCount) {
-            RequestParams params = requestMap.get(namespace);
+        private RequestParams remainingRequestsForNamespace(RequestParams params, int startedTransactionsCount) {
             int numTransactions = params.numTransactions();
-            return startedTransactionsCount < numTransactions
-                    ? Optional.of(RequestParams.of(
-                            numTransactions - startedTransactionsCount, params.cache(), params.lockCleanupService()))
-                    : Optional.empty();
+            if (startedTransactionsCount < numTransactions) {
+                return ImmutableRequestParams.builder()
+                        .from(params)
+                        .numTransactions(numTransactions - startedTransactionsCount)
+                        .build();
+            }
+            return null;
         }
 
         @Override
@@ -274,9 +273,9 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         }
     }
 
-    private static class ResponseHandler implements AutoCloseable {
+    private static final class ResponseHandler implements AutoCloseable {
         private final Queue<SettableResponse> pendingFutures;
-        private Queue<StartIdentifiedAtlasDbTransactionResponse> transientResponseList;
+        private final Queue<StartIdentifiedAtlasDbTransactionResponse> transientResponseList;
         private final LockCleanupService lockCleanupService;
 
         ResponseHandler(LockCleanupService lockCleanupService) {
@@ -285,11 +284,11 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
             this.lockCleanupService = lockCleanupService;
         }
 
-        public void addPendingFuture(SettableResponse future) {
+        private void addPendingFuture(SettableResponse future) {
             pendingFutures.add(future);
         }
 
-        public void processResponse(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
+        private void processResponse(List<StartIdentifiedAtlasDbTransactionResponse> responses) {
             transientResponseList.addAll(responses);
             serveRequests();
         }
@@ -311,11 +310,13 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
 
         @Override
         public void close() {
-            TransactionStarterHelper.unlock(
-                    transientResponseList.stream()
-                            .map(response -> response.immutableTimestamp().getLock())
-                            .collect(Collectors.toSet()),
-                    lockCleanupService);
+            if (!transientResponseList.isEmpty()) {
+                TransactionStarterHelper.unlock(
+                        transientResponseList.stream()
+                                .map(response -> response.immutableTimestamp().getLock())
+                                .collect(Collectors.toSet()),
+                        lockCleanupService);
+            }
             pendingFutures.clear();
             transientResponseList.clear();
         }

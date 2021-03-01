@@ -17,12 +17,14 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
+import java.util.Collection;
 import java.util.Optional;
 
 final class LockWatchEventLog {
@@ -49,35 +51,45 @@ final class LockWatchEventLog {
     }
 
     /**
-     * @param lastKnownVersion latest version that the client knows about; should be before timestamps in the mapping.
-     * @param endVersion       mapping from timestamp to identified version from client-side event cache.
-     * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive)
+     * @return lock watch events that occurred from (exclusive) the provided version, up to the end version (inclusive);
+     *         this may begin with a snapshot if the latest version is too far behind, and this snapshot may be
+     *         condensed.
      */
-    public ClientLogEvents getEventsBetweenVersions(
-            Optional<LockWatchVersion> lastKnownVersion, LockWatchVersion endVersion) {
-        Optional<LockWatchVersion> startVersion = lastKnownVersion.map(this::createStartVersion);
-        LockWatchVersion currentVersion = getLatestVersionAndVerify(endVersion);
+    public ClientLogEvents getEventsBetweenVersions(VersionBounds versionBounds) {
+        Optional<LockWatchVersion> startVersion = versionBounds.startVersion().map(this::createStartVersion);
+        LockWatchVersion currentVersion = getLatestVersionAndVerify(versionBounds.endVersion());
 
         if (!startVersion.isPresent()
-                || differentLeaderOrTooFarBehind(currentVersion, lastKnownVersion.get(), startVersion.get())) {
+                || differentLeaderOrTooFarBehind(
+                        currentVersion, versionBounds.startVersion().get(), startVersion.get())) {
+            long snapshotVersion = versionBounds.snapshotVersion() + 1;
+            Collection<LockWatchEvent> afterSnapshotEvents;
+            if (snapshotVersion > versionBounds.endVersion().version()) {
+                afterSnapshotEvents = ImmutableList.of();
+            } else {
+                afterSnapshotEvents = eventStore.getEventsBetweenVersionsInclusive(
+                        Optional.of(snapshotVersion), versionBounds.endVersion().version());
+            }
             return new ClientLogEvents.Builder()
                     .clearCache(true)
-                    .events(new LockWatchEvents.Builder()
-                            .addEvents(LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshot()))
-                            .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(
-                                    Optional.empty(), endVersion.version()))
+                    .events(LockWatchEvents.builder()
+                            .addEvents(getCompressedSnapshot(versionBounds))
+                            .addAllEvents(afterSnapshotEvents)
                             .build())
                     .build();
         } else {
-            lastKnownVersion.ifPresent(version -> Preconditions.checkState(
-                    version.version() <= endVersion.version(),
-                    "Cannot get update for transactions when the last known version is more recent than the "
-                            + "transactions"));
+            versionBounds
+                    .startVersion()
+                    .ifPresent(version -> Preconditions.checkState(
+                            version.version() <= versionBounds.endVersion().version(),
+                            "Cannot get update for transactions when the last known version is more recent than the "
+                                    + "transactions"));
             return new ClientLogEvents.Builder()
                     .clearCache(false)
-                    .events(new LockWatchEvents.Builder()
+                    .events(LockWatchEvents.builder()
                             .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(
-                                    Optional.of(startVersion.get().version()), endVersion.version()))
+                                    Optional.of(startVersion.get().version()),
+                                    versionBounds.endVersion().version()))
                             .build())
                     .build();
         }
@@ -101,6 +113,16 @@ final class LockWatchEventLog {
                 .eventStoreState(eventStore.getStateForTesting())
                 .snapshotState(snapshot.getStateForTesting())
                 .build();
+    }
+
+    private LockWatchEvent getCompressedSnapshot(VersionBounds versionBounds) {
+        long snapshotVersion = versionBounds.snapshotVersion();
+        Collection<LockWatchEvent> collapsibleEvents =
+                eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), snapshotVersion);
+        LockWatchEvents events =
+                LockWatchEvents.builder().addAllEvents(collapsibleEvents).build();
+
+        return LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshotWithEvents(events, versionBounds.leader()));
     }
 
     private boolean differentLeaderOrTooFarBehind(
@@ -141,27 +163,9 @@ final class LockWatchEventLog {
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
             LockWatchEvents events =
-                    new LockWatchEvents.Builder().addAllEvents(success.events()).build();
-            assertNoEventsAreMissing(events);
+                    LockWatchEvents.builder().addAllEvents(success.events()).build();
+            events.assertNoEventsAreMissingAfterLatestVersion(latestVersion);
             latestVersion = Optional.of(LockWatchVersion.of(success.logId(), eventStore.putAll(events)));
-        }
-    }
-
-    private void assertNoEventsAreMissing(LockWatchEvents events) {
-        if (events.events().isEmpty()) {
-            return;
-        }
-
-        if (latestVersion.isPresent()) {
-            Preconditions.checkArgument(
-                    events.versionRange().isPresent(), "First element not preset in list of events");
-            long firstVersion = events.versionRange().get().lowerEndpoint();
-            Preconditions.checkArgument(
-                    firstVersion <= latestVersion.get().version()
-                            || latestVersion.get().version() + 1 == firstVersion,
-                    "Events missing between last snapshot and this batch of events",
-                    SafeArg.of("latestVersionSequence", latestVersion.get().version()),
-                    SafeArg.of("firstNewVersionSequence", firstVersion));
         }
     }
 

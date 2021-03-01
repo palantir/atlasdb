@@ -79,7 +79,7 @@ public class LockCorrectnessChecker implements Checker {
                 .build();
     }
 
-    private static final class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor<Void> {
         private final Map<Integer, InvokeEvent> pendingForProcess = new HashMap<>();
         private final Map<Integer, OkEvent> lastHeldLock = new HashMap<>();
 
@@ -91,16 +91,17 @@ public class LockCorrectnessChecker implements Checker {
         private String lockName = null;
 
         @Override
-        public void visit(InvokeEvent event) {
+        public Void visit(InvokeEvent event) {
             int process = event.process();
             pendingForProcess.put(process, event);
             this.lockName = event.value();
+            return null;
         }
 
         @Override
-        public void visit(OkEvent event) {
+        public Void visit(OkEvent event) {
             if (EventUtils.isFailure(event)) {
-                return;
+                return null;
             }
 
             int process = event.process();
@@ -134,6 +135,7 @@ public class LockCorrectnessChecker implements Checker {
                 default:
                     throw new SafeIllegalStateException("Not an OkEvent type supported by this checker!");
             }
+            return null;
         }
 
         private void verifyLockCorrectness() {

@@ -43,7 +43,7 @@ public abstract class InfoEvent implements Event {
     public abstract Optional<Object> value();
 
     @Override
-    public void accept(EventVisitor visitor) {
-        visitor.visit(this);
+    public <T> T accept(EventVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

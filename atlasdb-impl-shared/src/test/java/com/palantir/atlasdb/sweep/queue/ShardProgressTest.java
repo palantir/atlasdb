@@ -61,7 +61,7 @@ public class ShardProgressTest {
     @Test
     public void canUpgradeNumberOfShardsIfPersistedDefaultValue() {
         byte[] defaultValue = ShardProgress.createColumnValue(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
-        CheckAndSetRequest request = progress.createNewCellRequest(ShardProgress.SHARD_COUNT_SAS, defaultValue);
+        CheckAndSetRequest request = ShardProgress.createNewCellRequest(ShardProgress.SHARD_COUNT_SAS, defaultValue);
         kvs.checkAndSet(request);
 
         progress.updateNumberOfShards(128);

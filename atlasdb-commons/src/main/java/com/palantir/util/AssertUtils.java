@@ -38,7 +38,7 @@ public class AssertUtils {
      * this will stay, just deprecated.
      */
     @Deprecated
-    private static final Logger defaultLog = LoggerFactory.getLogger(AssertUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(AssertUtils.class);
 
     public static <T> boolean nonNullItems(Collection<T> c) {
         for (T t : c) {
@@ -77,7 +77,7 @@ public class AssertUtils {
      */
     @Deprecated
     public static void assertAndLog(boolean cheapTest, String msg) {
-        assertAndLog(defaultLog, cheapTest, msg);
+        assertAndLog(log, cheapTest, msg);
     }
 
     public static Exception getDebuggingException() {
@@ -98,7 +98,7 @@ public class AssertUtils {
      */
     @Deprecated
     public static void assertAndLog(boolean cheapTest, String format, Object... args) {
-        assertAndLog(defaultLog, cheapTest, format, args);
+        assertAndLog(log, cheapTest, format, args);
     }
 
     public static void assertAndLogWithException(Logger log, boolean cheapTest, String msg, Throwable t) {
@@ -114,7 +114,7 @@ public class AssertUtils {
      */
     @Deprecated
     public static void assertAndLogWithException(boolean cheapTest, String msg, Throwable t) {
-        assertAndLogWithException(defaultLog, cheapTest, msg, t);
+        assertAndLogWithException(log, cheapTest, msg, t);
     }
 
     public static void assertAndLogWithException(
@@ -135,6 +135,6 @@ public class AssertUtils {
      */
     @Deprecated
     public static void assertAndLogWithException(boolean cheapTest, String format, Throwable t, Object... args) {
-        assertAndLogWithException(defaultLog, cheapTest, format, t, args);
+        assertAndLogWithException(log, cheapTest, format, t, args);
     }
 }

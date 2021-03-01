@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
@@ -56,7 +56,10 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * This value, or values derived from it (e.g. the number of Thrift hosts) must ONLY be used on KVS initialization
      * to generate the initial connection(s) to the cluster, or as part of startup checks.
      */
-    CassandraServersConfigs.CassandraServersConfig servers();
+    @Value.Default
+    default CassandraServersConfig servers() {
+        return ImmutableDefaultConfig.of();
+    }
 
     @Value.Default
     default Map<String, InetSocketAddress> addressTranslation() {
@@ -357,10 +360,6 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Check
     default void check() {
-        Preconditions.checkState(
-                !servers().accept(new ThriftHostsExtractingVisitor()).isEmpty(),
-                "'servers' must have at least one defined host");
-
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(
                 evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,

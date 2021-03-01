@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  */
 class DiscoverableSubtypeResolver extends StdSubtypeResolver {
     private static final long serialVersionUID = 1L;
-    private static final Logger LOGGER = LoggerFactory.getLogger(DiscoverableSubtypeResolver.class);
+    private static final Logger log = LoggerFactory.getLogger(DiscoverableSubtypeResolver.class);
 
     private final ImmutableList<Class<?>> discoveredSubtypes;
 
@@ -91,13 +91,13 @@ class DiscoverableSubtypeResolver extends StdSubtypeResolver {
                         try {
                             serviceClasses.add(getClassLoader().loadClass(line.trim()));
                         } catch (ClassNotFoundException e) {
-                            LOGGER.info("Unable to load {}", line);
+                            log.info("Unable to load {}", line);
                         }
                     }
                 }
             }
         } catch (IOException e) {
-            LOGGER.warn("Unable to load META-INF/services/{}", className, e);
+            log.warn("Unable to load META-INF/services/{}", className, e);
         }
         return serviceClasses;
     }

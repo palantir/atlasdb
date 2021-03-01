@@ -32,6 +32,8 @@ import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.Namespace;
@@ -502,7 +504,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         List<String> expectedNamespaces = ImmutableList.of("alpha", "beta");
         int numTransactions = 7;
         Map<Namespace, ConjureStartTransactionsRequest> namespaceToRequestMap =
-                defaultNamespacedStartTransactionsRequests(expectedNamespaces, numTransactions);
+                defaultStartTransactionsRequests(expectedNamespaces, numTransactions);
 
         Map<Namespace, ConjureStartTransactionsResponse> startedTransactions =
                 multiClientConjureTimelockService.startTransactions(AUTH_HEADER, namespaceToRequestMap);
@@ -548,13 +550,77 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .isGreaterThanOrEqualTo(gammaFastForwardedTimestamp);
     }
 
+    @Test
+    public void sanityCheckMultiClientGetCommitTimestamps() {
+        MultiClientConjureTimelockService service =
+                cluster.currentLeaderFor(client.namespace()).multiClientService();
+
+        Set<String> expectedNamespaces = ImmutableSet.of("cli-1", "cli-2");
+        Map<Namespace, GetCommitTimestampsResponse> multiClientResponses =
+                service.getCommitTimestamps(AUTH_HEADER, defaultGetCommitTimestampsRequests(expectedNamespaces));
+
+        assertSanityOfNamespacesServed(expectedNamespaces, multiClientResponses);
+
+        Set<UUID> leadershipIds = multiClientResponses.values().stream()
+                .map(GetCommitTimestampsResponse::getLockWatchUpdate)
+                .map(LockWatchStateUpdate::logId)
+                .collect(Collectors.toSet());
+        assertThat(leadershipIds).hasSameSizeAs(expectedNamespaces);
+    }
+
+    @Test
+    public void sanityCheckMultiClientGetCommitTimestampsAgainstConjureTimelockService() {
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        MultiClientConjureTimelockService multiClientService = leader.multiClientService();
+
+        Set<String> expectedNamespaces = ImmutableSet.of("alta", "mp");
+
+        Map<Namespace, GetCommitTimestampsResponse> multiClientResponses = multiClientService.getCommitTimestamps(
+                AUTH_HEADER, defaultGetCommitTimestampsRequests(expectedNamespaces));
+
+        assertSanityOfNamespacesServed(expectedNamespaces, multiClientResponses);
+
+        // Whether we hit the multi client endpoint or conjureTimelockService endpoint(services one client in one
+        // call), for a namespace, the underlying service to process the request is the same
+        multiClientResponses.forEach((namespace, responseFromBatchedEndpoint) -> {
+            GetCommitTimestampsResponse conjureGetCommitTimestampResponse = leader.client(namespace.get())
+                    .namespacedConjureTimelockService()
+                    .getCommitTimestamps(defaultCommitTimestampRequest());
+            assertThat(conjureGetCommitTimestampResponse.getLockWatchUpdate().logId())
+                    .isEqualTo(responseFromBatchedEndpoint.getLockWatchUpdate().logId());
+            assertThat(conjureGetCommitTimestampResponse.getInclusiveLower())
+                    .as("timestamps should contiguously increase per namespace if there are no elections.")
+                    .isEqualTo(responseFromBatchedEndpoint.getInclusiveUpper() + 1);
+        });
+    }
+
+    private void assertSanityOfNamespacesServed(
+            Set<String> expectedNamespaces, Map<Namespace, GetCommitTimestampsResponse> commitTimestamps) {
+        Set<String> namespaces =
+                commitTimestamps.keySet().stream().map(Namespace::get).collect(Collectors.toSet());
+        assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
+    }
+
+    private Map<Namespace, GetCommitTimestampsRequest> defaultGetCommitTimestampsRequests(Set<String> namespaces) {
+        return KeyedStream.of(namespaces)
+                .map(_unused -> GetCommitTimestampsRequest.builder()
+                        .numTimestamps(defaultCommitTimestampRequest().getNumTimestamps())
+                        .build())
+                .mapKeys(Namespace::of)
+                .collectToMap();
+    }
+
+    private GetCommitTimestampsRequest defaultCommitTimestampRequest() {
+        return GetCommitTimestampsRequest.builder().numTimestamps(5).build();
+    }
+
     private Map<Namespace, ConjureStartTransactionsResponse> assertSanityAndStartTransactions(
             TestableTimelockServer leader, List<String> expectedNamespaces) {
         MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
         int numTransactions = 5;
 
         Map<Namespace, ConjureStartTransactionsRequest> namespaceToRequestMap =
-                defaultNamespacedStartTransactionsRequests(expectedNamespaces, numTransactions);
+                defaultStartTransactionsRequests(expectedNamespaces, numTransactions);
 
         Map<Namespace, ConjureStartTransactionsResponse> startedTransactions =
                 multiClientConjureTimelockService.startTransactions(AUTH_HEADER, namespaceToRequestMap);
@@ -572,7 +638,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         return startedTransactions;
     }
 
-    private Map<Namespace, ConjureStartTransactionsRequest> defaultNamespacedStartTransactionsRequests(
+    private Map<Namespace, ConjureStartTransactionsRequest> defaultStartTransactionsRequests(
             List<String> namespaces, int numTransactions) {
         return KeyedStream.of(namespaces)
                 .map(namespace -> ConjureStartTransactionsRequest.builder()

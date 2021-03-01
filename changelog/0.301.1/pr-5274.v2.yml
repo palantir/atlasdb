@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Improved `CellReference.hashCode()` method to use a more standard implementation rather than depend on `Cell.hashCode()`. This fixes imbalance in the targeted sweep queue caused by writes to cells where row and column names match.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5274

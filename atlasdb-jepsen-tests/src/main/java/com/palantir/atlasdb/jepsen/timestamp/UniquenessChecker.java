@@ -21,7 +21,6 @@ import com.palantir.atlasdb.jepsen.ImmutableCheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
-import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,12 +38,12 @@ public class UniquenessChecker implements Checker {
                 .build();
     }
 
-    private static final class Visitor implements EventVisitor {
+    private static final class Visitor implements EventVisitor<Void> {
         private final List<Event> errors = new ArrayList<>();
         private final Map<String, OkEvent> valuesAlreadySeen = new HashMap<>();
 
         @Override
-        public void visit(OkEvent event) {
+        public Void visit(OkEvent event) {
             String value = event.value();
 
             if (valuesAlreadySeen.containsKey(value)) {
@@ -54,10 +53,8 @@ public class UniquenessChecker implements Checker {
             }
 
             valuesAlreadySeen.put(value, event);
+            return null;
         }
-
-        @Override
-        public void visit(FailEvent event) {}
 
         public boolean valid() {
             return errors.isEmpty();

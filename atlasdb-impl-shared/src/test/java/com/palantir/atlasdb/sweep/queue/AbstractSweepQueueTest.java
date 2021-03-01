@@ -18,8 +18,10 @@ package com.palantir.atlasdb.sweep.queue;
 import static org.mockito.Mockito.spy;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.math.IntMath;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -37,6 +39,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.IntStream;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -53,8 +56,11 @@ public abstract class AbstractSweepQueueTest {
     static final long TS_FINE_PARTITION = SweepQueueUtils.tsPartitionFine(TS);
     static final long TS2_FINE_PARTITION = SweepQueueUtils.tsPartitionFine(TS2);
     static final int DEFAULT_SHARDS = 8;
-    static final int FIXED_SHARD =
-            WriteInfo.write(TABLE_CONS, getCellWithFixedHash(0), 0L).toShard(DEFAULT_SHARDS);
+    static final int FIXED_SHARD = WriteInfo.write(
+                    TABLE_CONS,
+                    getCellRefWithFixedShard(0, TABLE_CONS, DEFAULT_SHARDS).cell(),
+                    0L)
+            .toShard(DEFAULT_SHARDS);
     static final int CONS_SHARD =
             WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
     static final int THOR_SHARD =
@@ -150,16 +156,22 @@ public abstract class AbstractSweepQueueTest {
     List<WriteInfo> writeToCellsInFixedShard(SweepQueueTable writer, long ts, int number, TableReference tableRef) {
         List<WriteInfo> result = new ArrayList<>();
         for (long i = 0; i < number; i++) {
-            Cell cell = getCellWithFixedHash(i);
-            result.add(WriteInfo.write(tableRef, cell, ts));
+            CellReference cellRef = getCellRefWithFixedShard(i, tableRef, numShards);
+            result.add(WriteInfo.write(tableRef, cellRef.cell(), ts));
         }
         putTimestampIntoTransactionTable(ts, ts);
         writer.enqueue(result);
         return result;
     }
 
-    static Cell getCellWithFixedHash(long seed) {
-        return Cell.create(PtBytes.toBytes(seed), PtBytes.toBytes(seed));
+    static CellReference getCellRefWithFixedShard(long seed, TableReference tableRef, int shards) {
+        byte[] rowName = PtBytes.toBytes(seed);
+
+        return IntStream.iterate(0, i -> i + 1)
+                .mapToObj(index -> CellReference.of(tableRef, Cell.create(rowName, PtBytes.toBytes(index))))
+                .filter(cellReference -> IntMath.mod(cellReference.goodHash(), shards) == 0)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Infinite stream had no cell possibilities :("));
     }
 
     boolean isTransactionAborted(long txnTimestamp) {

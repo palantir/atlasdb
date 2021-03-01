@@ -204,3 +204,10 @@ services:
         returns: map<Namespace, ConjureStartTransactionsResponse>
         docs: |
           Version of ConjureTimelockService#startTransactions that starts transactions for multiple namespaces.
+      getCommitTimestamps:
+        http: POST /gcts
+        args:
+          requests: map<Namespace, GetCommitTimestampsRequest>
+        returns: map<Namespace, GetCommitTimestampsResponse>
+        docs: |
+          Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.

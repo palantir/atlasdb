@@ -32,7 +32,7 @@ public class UniquenessCheckerTest {
     private static final String VALUE_B = "1";
 
     @Test
-    public void shouldSuceeedOnNoEvents() {
+    public void shouldSucceedOnNoEvents() {
         CheckerResult result = runUniquenessChecker();
 
         assertThat(result.valid()).isTrue();

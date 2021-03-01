@@ -19,6 +19,7 @@ package com.palantir.lock.client;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;

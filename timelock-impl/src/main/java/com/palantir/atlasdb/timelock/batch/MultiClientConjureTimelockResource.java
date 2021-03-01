@@ -26,8 +26,11 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
+import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
@@ -36,6 +39,7 @@ import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockServi
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +93,34 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                 Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor()));
     }
 
+    @Override
+    public ListenableFuture<Map<Namespace, GetCommitTimestampsResponse>> getCommitTimestamps(
+            AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
+        List<ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>>> futures = KeyedStream.stream(requests)
+                .map(this::getCommitTimestampsForSingleNamespace)
+                .values()
+                .collect(Collectors.toList());
+        return handleExceptions(() ->
+                Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor()));
+    }
+
+    private ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>> getCommitTimestampsForSingleNamespace(
+            Namespace namespace, GetCommitTimestampsRequest request) {
+        ListenableFuture<GetCommitTimestampsResponse> commitTimestampsResponseListenableFuture = getServiceForNamespace(
+                        namespace)
+                .getCommitTimestamps(
+                        request.getNumTimestamps(),
+                        request.getLastKnownVersion().map(this::toIdentifiedVersion));
+        return Futures.transform(
+                commitTimestampsResponseListenableFuture,
+                response -> Maps.immutableEntry(namespace, response),
+                MoreExecutors.directExecutor());
+    }
+
+    private LockWatchVersion toIdentifiedVersion(ConjureIdentifiedVersion conjureIdentifiedVersion) {
+        return LockWatchVersion.of(conjureIdentifiedVersion.getId(), conjureIdentifiedVersion.getVersion());
+    }
+
     private ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>
             startTransactionsForSingleNamespace(Namespace namespace, ConjureStartTransactionsRequest request) {
         ListenableFuture<ConjureStartTransactionsResponse> conjureStartTransactionsResponseListenableFuture =
@@ -132,6 +164,12 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         public Map<Namespace, ConjureStartTransactionsResponse> startTransactions(
                 AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
             return unwrap(resource.startTransactions(authHeader, requests));
+        }
+
+        @Override
+        public Map<Namespace, GetCommitTimestampsResponse> getCommitTimestamps(
+                AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
+            return unwrap(resource.getCommitTimestamps(authHeader, requests));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

@@ -61,5 +61,5 @@ public interface Event {
 
     int process();
 
-    void accept(EventVisitor visitor);
+    <T> T accept(EventVisitor<T> visitor);
 }

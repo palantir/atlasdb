@@ -74,6 +74,6 @@ public final class VersionedEventStoreTest {
     }
 
     private LockWatchEvents makeEvents(LockWatchEvent... events) {
-        return new LockWatchEvents.Builder().addEvents(events).build();
+        return LockWatchEvents.builder().addEvents(events).build();
     }
 }

@@ -22,6 +22,7 @@ import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import java.util.Set;
 import javax.net.ssl.SSLSocketFactory;
@@ -44,7 +45,7 @@ public abstract class ServicesConfig {
         return new ServiceDiscoveringAtlasSupplier(
                 metrics,
                 atlasDbConfig().keyValueService(),
-                () -> atlasDbRuntimeConfig().keyValueService(),
+                Refreshable.only(atlasDbRuntimeConfig().keyValueService()),
                 atlasDbConfig().leader(),
                 atlasDbConfig().namespace(),
                 Optional.empty(),
