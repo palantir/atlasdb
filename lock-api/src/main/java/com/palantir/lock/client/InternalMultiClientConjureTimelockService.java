@@ -18,6 +18,8 @@ package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import java.util.Map;
@@ -25,6 +27,9 @@ import java.util.Set;
 
 public interface InternalMultiClientConjureTimelockService {
     LeaderTimes leaderTimes(Set<Namespace> namespaces);
+
+    Map<Namespace, GetCommitTimestampsResponse> getCommitTimestamps(
+            Map<Namespace, GetCommitTimestampsRequest> requests);
 
     Map<Namespace, ConjureStartTransactionsResponse> startTransactions(
             Map<Namespace, ConjureStartTransactionsRequest> requests);
