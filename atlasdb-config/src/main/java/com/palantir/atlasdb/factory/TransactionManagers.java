@@ -108,6 +108,7 @@ import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -163,9 +164,9 @@ import com.palantir.lock.client.LockCleanupService;
 import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.MultiClientTransactionStarter;
-import com.palantir.lock.client.NamespacedBatchingIdentifiedAtlasDbTransactionStarter;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
+import com.palantir.lock.client.NamespacedIdentifiedTransactionStarter;
 import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
@@ -1259,8 +1260,8 @@ public abstract class TransactionManagers {
                 .get()
                 .startTransactionsBatcherProvider()
                 .getBatcher(multiClientTimelockServiceSupplier);
-        return lockLeaseService -> new NamespacedBatchingIdentifiedAtlasDbTransactionStarter(
-                namespace, batcher, cache, new LockCleanupService(lockLeaseService));
+        return lockLeaseService -> new NamespacedIdentifiedTransactionStarter(
+                Namespace.of(namespace), batcher, cache, new LockCleanupService(lockLeaseService));
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(
