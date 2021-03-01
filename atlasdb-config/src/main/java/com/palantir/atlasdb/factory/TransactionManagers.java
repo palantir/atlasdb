@@ -159,6 +159,7 @@ import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
+import com.palantir.lock.client.LockCleanupService;
 import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.MultiClientTransactionStarter;
@@ -1259,7 +1260,7 @@ public abstract class TransactionManagers {
                 .startTransactionsBatcherProvider()
                 .getBatcher(multiClientTimelockServiceSupplier);
         return lockLeaseService -> new NamespacedBatchingIdentifiedAtlasDbTransactionStarter(
-                namespace, batcher, cache, lockLeaseService.lockCleanupService());
+                namespace, batcher, cache, new LockCleanupService(lockLeaseService));
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(

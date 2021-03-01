@@ -49,8 +49,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             Function<LockLeaseService, IdentifiedAtlasDbTransactionStarter> batchingTransactionStarterFactory) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
-        this.transactionStarter =
-                TransactionStarter.create(lockLeaseService, batchingTransactionStarterFactory.apply(lockLeaseService));
+        this.transactionStarter = TransactionStarter.create(lockLeaseService, batchingTransactionStarterFactory);
         this.commitTimestampGetter = CommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
     }

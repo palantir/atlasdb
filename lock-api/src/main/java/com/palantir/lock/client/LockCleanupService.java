@@ -26,7 +26,7 @@ import java.util.Set;
 public final class LockCleanupService {
     private final LockLeaseService delegate;
 
-    LockCleanupService(LockLeaseService delegate) {
+    public LockCleanupService(LockLeaseService delegate) {
         this.delegate = delegate;
     }
 

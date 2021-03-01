@@ -19,9 +19,9 @@ package com.palantir.lock.client;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -43,8 +43,9 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     static TransactionStarter create(
-            LockLeaseService lockLeaseService, IdentifiedAtlasDbTransactionStarter batchingTransactionStarter) {
-        return new TransactionStarter(lockLeaseService, batchingTransactionStarter);
+            LockLeaseService lockLeaseService,
+            Function<LockLeaseService, IdentifiedAtlasDbTransactionStarter> batchingTransactionStarter) {
+        return new TransactionStarter(lockLeaseService, batchingTransactionStarter.apply(lockLeaseService));
     }
 
     List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
