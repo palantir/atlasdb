@@ -529,8 +529,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         MultiClientConjureTimelockService service =
                 cluster.currentLeaderFor(client.namespace()).multiClientService();
         Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta");
-        Map<Namespace, GetCommitTimestampsResponse> multiClientResponses = service.getCommitTimestamps(
-                AUTH_HEADER, defaultNamespaceWiseGetCommitTimestampsRequests(expectedNamespaces));
+        Map<Namespace, GetCommitTimestampsResponse> multiClientResponses =
+                service.getCommitTimestamps(AUTH_HEADER, defaultGetCommitTimestampsRequests(expectedNamespaces));
 
         assertSanityOfNamespacesServed(expectedNamespaces, multiClientResponses);
 
@@ -546,8 +546,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
         MultiClientConjureTimelockService service = leader.multiClientService();
         Set<String> expectedNamespaces = ImmutableSet.of("alpha", "beta");
-        Map<Namespace, GetCommitTimestampsResponse> multiClientResponses = service.getCommitTimestamps(
-                AUTH_HEADER, defaultNamespaceWiseGetCommitTimestampsRequests(expectedNamespaces));
+        Map<Namespace, GetCommitTimestampsResponse> multiClientResponses =
+                service.getCommitTimestamps(AUTH_HEADER, defaultGetCommitTimestampsRequests(expectedNamespaces));
 
         assertSanityOfNamespacesServed(expectedNamespaces, multiClientResponses);
 
@@ -572,10 +572,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
     }
 
-    private Map<Namespace, GetCommitTimestampsRequest> defaultNamespaceWiseGetCommitTimestampsRequests(
-            Set<String> namespaces) {
+    private Map<Namespace, GetCommitTimestampsRequest> defaultGetCommitTimestampsRequests(Set<String> namespaces) {
         return KeyedStream.of(namespaces)
-                .map(namespace -> GetCommitTimestampsRequest.builder()
+                .map(_unused -> GetCommitTimestampsRequest.builder()
                         .numTimestamps(defaultCommitTimestampRequest().getNumTimestamps())
                         .build())
                 .mapKeys(Namespace::of)

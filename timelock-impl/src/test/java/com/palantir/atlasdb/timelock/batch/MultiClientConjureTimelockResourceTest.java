@@ -136,10 +136,10 @@ public class MultiClientConjureTimelockResourceTest {
         Set<String> namespaces = ImmutableSet.of("client1", "client2");
         assertThat(Futures.getUnchecked(
                         resource.getCommitTimestamps(AUTH_HEADER, getGetCommitTimestampsRequests(namespaces))))
-                .isEqualTo(getGetCommitTimestampsResponseList(namespaces));
+                .isEqualTo(getGetCommitTimestampsResponseMap(namespaces));
     }
 
-    private Map<Namespace, GetCommitTimestampsResponse> getGetCommitTimestampsResponseList(Set<String> namespaces) {
+    private Map<Namespace, GetCommitTimestampsResponse> getGetCommitTimestampsResponseMap(Set<String> namespaces) {
         return KeyedStream.of(namespaces)
                 .mapKeys(Namespace::of)
                 .map(this::getCommitTimestampResponse)
