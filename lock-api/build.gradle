@@ -24,6 +24,7 @@ dependencies {
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile group: 'com.palantir.safe-logging', name: 'preconditions'
     compile group: 'com.palantir.refreshable', name: 'refreshable'
+    compile group: 'one.util', name: 'streamex'
 
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")
