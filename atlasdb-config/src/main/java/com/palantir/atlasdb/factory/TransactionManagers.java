@@ -108,6 +108,7 @@ import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -1247,10 +1248,9 @@ public abstract class TransactionManagers {
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
         return new BatchingTransactionStarterFactory(
                 StartTransactionsLockWatchEventCache.create(lockWatchEventCache),
-                Optional.of(namespace),
-                timelockRequestBatcherProviders.map(batcherProviders -> batcherProviders
-                        .startTransactionsBatcherProvider()
-                        .getBatcher(multiClientTimelockServiceSupplier)));
+                Optional.of(Namespace.of(namespace)),
+                timelockRequestBatcherProviders.map(batcherProviders ->
+                        batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier)));
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(

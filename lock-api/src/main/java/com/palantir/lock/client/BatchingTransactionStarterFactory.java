@@ -22,12 +22,12 @@ import java.util.Optional;
 
 public final class BatchingTransactionStarterFactory {
     private final Optional<MultiClientTransactionStarter> transactionStarterSupplier;
-    private final Optional<String> namespace;
+    private final Optional<Namespace> namespace;
     private final StartTransactionsLockWatchEventCache cache;
 
     public BatchingTransactionStarterFactory(
             StartTransactionsLockWatchEventCache lockWatchEventCache,
-            Optional<String> namespace,
+            Optional<Namespace> namespace,
             Optional<MultiClientTransactionStarter> transactionStarterSupplier) {
         this.transactionStarterSupplier = transactionStarterSupplier;
         this.namespace = namespace;
@@ -39,9 +39,6 @@ public final class BatchingTransactionStarterFactory {
             return BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, cache);
         }
         return new NamespacedIdentifiedTransactionStarter(
-                Namespace.of(namespace.get()),
-                transactionStarterSupplier.get(),
-                cache,
-                new LockCleanupService(lockLeaseService));
+                namespace.get(), transactionStarterSupplier.get(), cache, new LockCleanupService(lockLeaseService));
     }
 }

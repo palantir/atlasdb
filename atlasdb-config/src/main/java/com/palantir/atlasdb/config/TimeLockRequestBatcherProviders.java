@@ -24,5 +24,5 @@ import org.immutables.value.Value;
 public interface TimeLockRequestBatcherProviders {
     TimeLockRequestBatcherProvider<LeaderTimeCoalescingBatcher> leaderTime();
 
-    TimeLockRequestBatcherProvider<MultiClientTransactionStarter> startTransactionsBatcherProvider();
+    TimeLockRequestBatcherProvider<MultiClientTransactionStarter> startTransactions();
 }
