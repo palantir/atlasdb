@@ -30,7 +30,7 @@ public class NamespacedCommitTimestampGetter implements CommitTimestampGetter {
 
     @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return 0;
+        return batcher.getCommitTimestamp(namespace, startTs, commitLocksToken);
     }
 
     @Override

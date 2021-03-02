@@ -144,7 +144,7 @@ public class MultiClientCommitTimestampGetterTest {
                     getCommitTimestampResponse(invocation.getArgument(0));
             commitTimestamps.forEach((namespace, response) -> {
                 expectedResponseMap
-                        .computeIfAbsent(namespace, _u -> new ArrayList())
+                        .computeIfAbsent(namespace, _unused -> new ArrayList())
                         .add(response);
             });
             return commitTimestamps;
@@ -242,8 +242,8 @@ public class MultiClientCommitTimestampGetterTest {
                 ImmutableNamespacedRequest.builder()
                         .namespace(namespace)
                         .startTs(1)
-                        .cache(LOCK_WATCH_EVENT_CACHE_MAP_MAP.computeIfAbsent(namespace,
-                                _u -> mock(LockWatchEventCache.class)))
+                        .cache(LOCK_WATCH_EVENT_CACHE_MAP_MAP.computeIfAbsent(
+                                namespace, _unused -> mock(LockWatchEventCache.class)))
                         .commitLocksToken(lockToken)
                         .build(),
                 new DisruptorFuture<Long>("test"));
