@@ -21,24 +21,24 @@ import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.Optional;
 
 public final class BatchingTransactionStarterFactory {
-    private final Optional<MultiClientTransactionStarter> transactionStarterSupplier;
+    private final Optional<MultiClientTransactionStarter> maybeBatcher;
     private final Optional<Namespace> namespace;
     private final StartTransactionsLockWatchEventCache cache;
 
     public BatchingTransactionStarterFactory(
             StartTransactionsLockWatchEventCache lockWatchEventCache,
             Optional<Namespace> namespace,
-            Optional<MultiClientTransactionStarter> transactionStarterSupplier) {
-        this.transactionStarterSupplier = transactionStarterSupplier;
+            Optional<MultiClientTransactionStarter> maybeBatcher) {
+        this.maybeBatcher = maybeBatcher;
         this.namespace = namespace;
         this.cache = lockWatchEventCache;
     }
 
     public IdentifiedAtlasDbTransactionStarter get(LockLeaseService lockLeaseService) {
-        if (!namespace.isPresent() || !transactionStarterSupplier.isPresent()) {
+        if (!namespace.isPresent() || !maybeBatcher.isPresent()) {
             return BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, cache);
         }
         return new NamespacedIdentifiedTransactionStarter(
-                namespace.get(), transactionStarterSupplier.get(), cache, new LockCleanupService(lockLeaseService));
+                namespace.get(), maybeBatcher.get(), cache, new LockCleanupService(lockLeaseService));
     }
 }
