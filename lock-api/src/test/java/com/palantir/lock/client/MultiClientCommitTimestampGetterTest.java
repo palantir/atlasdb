@@ -174,8 +174,8 @@ public class MultiClientCommitTimestampGetterTest {
             Map<Namespace, List<GetCommitTimestampsResponse>> expectedResponseMap,
             Map<Namespace, List<Long>> partitionedResponseMap) {
         KeyedStream.stream(partitionedResponseMap)
-                .forEach(((namespace, commitTsList) ->
-                        assertSanityOfServedTimestamps(commitTsList, expectedResponseMap.get(namespace))));
+                .forEach((namespace, commitTsList) ->
+                        assertSanityOfServedTimestamps(commitTsList, expectedResponseMap.get(namespace)));
     }
 
     private static void assertSanityOfServedTimestamps(
