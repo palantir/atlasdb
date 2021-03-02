@@ -35,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @AutoService(AtlasDbFactory.class)
-public class JdbcAtlasDbFactory implements AtlasDbFactory {
+public class JdbcAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
     private static final Logger log = LoggerFactory.getLogger(JdbcAtlasDbFactory.class);
 
     @Override

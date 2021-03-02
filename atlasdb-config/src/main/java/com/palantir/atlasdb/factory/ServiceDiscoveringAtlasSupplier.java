@@ -48,6 +48,7 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
+    private final KeyValueServiceConfig mergedKeyValueServiceConfig;
     private final Supplier<ManagedTimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
@@ -63,8 +64,15 @@ public class ServiceDiscoveringAtlasSupplier {
         this.leaderConfig = leaderConfig;
 
         AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
+        mergedKeyValueServiceConfig = atlasFactory.createMergedKeyValueServiceConfig(config, runtimeConfig, namespace);
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
-                metricsManager, config, runtimeConfig, leaderConfig, namespace, timestampSupplier, initializeAsync));
+                metricsManager,
+                mergedKeyValueServiceConfig,
+                runtimeConfig,
+                leaderConfig,
+                namespace,
+                timestampSupplier,
+                initializeAsync));
         timestampService = () -> atlasFactory.createManagedTimestampService(
                 getKeyValueService(), tableReferenceOverride, initializeAsync);
         timestampStoreInvalidator =
@@ -73,6 +81,10 @@ public class ServiceDiscoveringAtlasSupplier {
 
     public KeyValueService getKeyValueService() {
         return keyValueService.get();
+    }
+
+    public KeyValueServiceConfig getMergedKeyValueServiceConfig() {
+        return mergedKeyValueServiceConfig;
     }
 
     public synchronized ManagedTimestampService getManagedTimestampService() {

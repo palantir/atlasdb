@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: |-
+    getRange thread pool size and concurrency now come from runtime config which can be used to dynamically scale
+  links:
+  - https://github.com/palantir/atlasdb/pull/5282

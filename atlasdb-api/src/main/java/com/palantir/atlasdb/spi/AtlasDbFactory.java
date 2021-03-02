@@ -27,7 +27,7 @@ import java.util.function.LongSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public interface AtlasDbFactory {
+public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
     Logger log = LoggerFactory.getLogger(AtlasDbFactory.class);
 
     long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
@@ -37,6 +37,20 @@ public interface AtlasDbFactory {
     };
 
     String getType();
+
+    /**
+     * Create the config (a merging of the given install and runtime config) that will be passed to
+     * {@link #createRawKeyValueService}.
+     * {@link KeyValueServiceConfig#defaultGetRangesConcurrency()} and
+     * {@link KeyValueServiceConfig#concurrentGetRangesThreadPoolSize()} will be used from the resulting merged
+     * config to initialize the transaction manager.
+     */
+    default MERGED_CONFIG createMergedKeyValueServiceConfig(
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace) {
+        return (MERGED_CONFIG) config;
+    }
 
     /**
      * Creates a KeyValueService instance of type according to the config parameter.
@@ -54,7 +68,7 @@ public interface AtlasDbFactory {
      */
     KeyValueService createRawKeyValueService(
             MetricsManager metricsManager,
-            KeyValueServiceConfig config,
+            MERGED_CONFIG config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
