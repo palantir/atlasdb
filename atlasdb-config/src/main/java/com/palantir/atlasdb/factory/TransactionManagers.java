@@ -109,6 +109,7 @@ import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -153,6 +154,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
+import com.palantir.lock.client.BatchingTransactionStarterFactory;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
@@ -1208,11 +1210,23 @@ public abstract class TransactionManagers {
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         LockWatchManagerImpl lockWatchManager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
 
-        LeaderTimeGetter leaderTimeGetter = getLeaderTimeGetter(
-                timelockNamespace, timelockRequestBatcherProviders, serviceProvider, namespacedConjureTimelockService);
+        Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier =
+                getMultiClientTimelockServiceSupplier(serviceProvider);
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
-                namespacedTimelockRpcClient, namespacedConjureTimelockService, lockWatchEventCache, leaderTimeGetter);
+                namespacedTimelockRpcClient,
+                namespacedConjureTimelockService,
+                lockWatchEventCache,
+                getLeaderTimeGetter(
+                        timelockNamespace,
+                        timelockRequestBatcherProviders,
+                        namespacedConjureTimelockService,
+                        multiClientTimelockServiceSupplier),
+                getTransactionStarterFactory(
+                        timelockNamespace,
+                        timelockRequestBatcherProviders,
+                        lockWatchEventCache,
+                        multiClientTimelockServiceSupplier));
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
@@ -1228,20 +1242,30 @@ public abstract class TransactionManagers {
                 .build();
     }
 
+    private static BatchingTransactionStarterFactory getTransactionStarterFactory(
+            String namespace,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            LockWatchEventCache lockWatchEventCache,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        return BatchingTransactionStarterFactory.create(
+                lockWatchEventCache,
+                Optional.of(Namespace.of(namespace)),
+                timelockRequestBatcherProviders.map(batcherProviders ->
+                        batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier)));
+    }
+
     private static LeaderTimeGetter getLeaderTimeGetter(
             String timelockNamespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
-            AtlasDbDialogueServiceProvider serviceProvider,
-            LeaderElectionReportingTimelockService namespacedConjureTimelockService) {
+            LeaderElectionReportingTimelockService namespacedConjureTimelockService,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
 
         if (!timelockRequestBatcherProviders.isPresent()) {
             return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
         }
 
-        LeaderTimeCoalescingBatcher batcher = timelockRequestBatcherProviders
-                .get()
-                .leaderTimeBatcherProvider()
-                .getBatcher(getMultiClientTimelockServiceSupplier(serviceProvider));
+        LeaderTimeCoalescingBatcher batcher =
+                timelockRequestBatcherProviders.get().leaderTime().getBatcher(multiClientTimelockServiceSupplier);
         return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, batcher);
     }
 

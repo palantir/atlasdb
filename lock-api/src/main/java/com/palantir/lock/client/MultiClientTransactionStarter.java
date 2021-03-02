@@ -54,7 +54,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         this.autobatcher = autobatcher;
     }
 
-    static MultiClientTransactionStarter create(InternalMultiClientConjureTimelockService delegate) {
+    public static MultiClientTransactionStarter create(InternalMultiClientConjureTimelockService delegate) {
         DisruptorAutobatcher<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher =
                 Autobatchers.independent(consumer(delegate, UUID.randomUUID()))
                         .safeLoggablePurpose("multi-client-transaction-starter")

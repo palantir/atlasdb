@@ -28,9 +28,9 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
@@ -44,11 +44,11 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LockWatchEventCache lockWatchEventCache,
-            LeaderTimeGetter leaderTimeGetter) {
+            LeaderTimeGetter leaderTimeGetter,
+            BatchingTransactionStarterFactory batchingTransactionStarterFactory) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
-        this.transactionStarter = TransactionStarter.create(
-                lockLeaseService, StartTransactionsLockWatchEventCache.create(lockWatchEventCache));
+        this.transactionStarter = TransactionStarter.create(lockLeaseService, batchingTransactionStarterFactory);
         this.commitTimestampGetter = BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         this.conjureTimelockService = conjureTimelockService;
     }
@@ -57,15 +57,22 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache) {
-        return create(rpcClient, conjureClient, lockWatchEventCache, new LegacyLeaderTimeGetter(conjureClient));
+        return create(
+                rpcClient,
+                conjureClient,
+                lockWatchEventCache,
+                new LegacyLeaderTimeGetter(conjureClient),
+                BatchingTransactionStarterFactory.create(lockWatchEventCache, Optional.empty(), Optional.empty()));
     }
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache,
-            LeaderTimeGetter leaderTimeGetter) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, lockWatchEventCache, leaderTimeGetter);
+            LeaderTimeGetter leaderTimeGetter,
+            BatchingTransactionStarterFactory batchingTransactionStarterFactory) {
+        return new RemoteTimelockServiceAdapter(
+                rpcClient, conjureClient, lockWatchEventCache, leaderTimeGetter, batchingTransactionStarterFactory);
     }
 
     @Override
