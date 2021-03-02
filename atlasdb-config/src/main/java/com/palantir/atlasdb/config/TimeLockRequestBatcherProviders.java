@@ -22,7 +22,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TimeLockRequestBatcherProviders {
-    TimeLockRequestBatcherProvider<LeaderTimeCoalescingBatcher> leaderTimeBatcherProvider();
+    TimeLockRequestBatcherProvider<LeaderTimeCoalescingBatcher> leaderTime();
 
     TimeLockRequestBatcherProvider<MultiClientTransactionStarter> startTransactionsBatcherProvider();
 }

@@ -31,8 +31,8 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private final NamespacedTimelockRpcClient rpcClient;
@@ -46,7 +46,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedConjureTimelockService conjureTimelockService,
             LockWatchEventCache lockWatchEventCache,
             LeaderTimeGetter leaderTimeGetter,
-            Function<LockLeaseService, IdentifiedAtlasDbTransactionStarter> batchingTransactionStarterFactory) {
+            BatchingTransactionStarterFactory batchingTransactionStarterFactory) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, batchingTransactionStarterFactory);
@@ -63,8 +63,10 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
                 conjureClient,
                 lockWatchEventCache,
                 new LegacyLeaderTimeGetter(conjureClient),
-                lockLeaseService -> BatchingIdentifiedAtlasDbTransactionStarter.create(
-                        lockLeaseService, StartTransactionsLockWatchEventCache.create(lockWatchEventCache)));
+                new BatchingTransactionStarterFactory(
+                        StartTransactionsLockWatchEventCache.create(lockWatchEventCache),
+                        Optional.empty(),
+                        Optional.empty()));
     }
 
     public static RemoteTimelockServiceAdapter create(
@@ -72,7 +74,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache,
             LeaderTimeGetter leaderTimeGetter,
-            Function<LockLeaseService, IdentifiedAtlasDbTransactionStarter> batchingTransactionStarterFactory) {
+            BatchingTransactionStarterFactory batchingTransactionStarterFactory) {
         return new RemoteTimelockServiceAdapter(
                 rpcClient, conjureClient, lockWatchEventCache, leaderTimeGetter, batchingTransactionStarterFactory);
     }

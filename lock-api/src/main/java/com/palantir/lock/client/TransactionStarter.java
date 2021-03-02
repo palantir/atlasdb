@@ -21,7 +21,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -43,9 +42,8 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     static TransactionStarter create(
-            LockLeaseService lockLeaseService,
-            Function<LockLeaseService, IdentifiedAtlasDbTransactionStarter> batchingTransactionStarter) {
-        return new TransactionStarter(lockLeaseService, batchingTransactionStarter.apply(lockLeaseService));
+            LockLeaseService lockLeaseService, BatchingTransactionStarterFactory batchingTransactionStarter) {
+        return new TransactionStarter(lockLeaseService, batchingTransactionStarter.get(lockLeaseService));
     }
 
     List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {

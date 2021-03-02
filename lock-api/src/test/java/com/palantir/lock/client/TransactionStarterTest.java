@@ -62,8 +62,7 @@ public class TransactionStarterTest {
     public void before() {
         transactionStarter = TransactionStarter.create(
                 lockLeaseService,
-                lockLeaseService ->
-                        BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, lockWatchEventCache));
+                new BatchingTransactionStarterFactory(lockWatchEventCache, Optional.empty(), Optional.empty()));
     }
 
     @After
