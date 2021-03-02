@@ -92,7 +92,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         return requestMap;
     }
 
-    private static class BatchStateManager {
+    private static final class BatchStateManager {
         private final Map<Namespace, NamespacedBatchStateManager> requestMap;
 
         private BatchStateManager(Map<Namespace, NamespacedBatchStateManager> requestMap) {
@@ -117,7 +117,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         }
     }
 
-    private static class NamespacedBatchStateManager {
+    private static final class NamespacedBatchStateManager {
         private final Queue<BatchElement<NamespacedRequest, Long>> pendingRequestQueue;
         private final LockWatchEventCache cache;
         private Optional<LockWatchVersion> lastKnownVersion;
