@@ -72,7 +72,7 @@ public class MultiClientTransactionStarterTest {
     }
 
     @Test
-    public void canServiceOneClientWithMultipleServerCalls() {
+    public void canServiceOneClientMakingMultipleRequests() {
         setupServiceAndAssertSanity(
                 getStartTransactionRequestsForClients(1, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL * 27));
     }
