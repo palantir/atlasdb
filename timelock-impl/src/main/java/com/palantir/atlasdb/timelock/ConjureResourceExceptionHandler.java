@@ -68,8 +68,7 @@ public class ConjureResourceExceptionHandler {
                         SocketTimeoutException.class,
                         timeout -> {
                             throw new TransactionFailedRetriableException(
-                                    "Socket timed out. Rethrowing as retryable exception."
-                            );
+                                    "Socket timed out. Rethrowing as retryable exception.");
                         },
                         MoreExecutors.directExecutor());
     }
