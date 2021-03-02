@@ -21,10 +21,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.function.Supplier;
 
@@ -60,6 +62,14 @@ public class ConjureResourceExceptionHandler {
                         TooManyRequestsException.class,
                         tooManyRequests -> {
                             throw QosException.throttle();
+                        },
+                        MoreExecutors.directExecutor())
+                .catching(
+                        SocketTimeoutException.class,
+                        timeout -> {
+                            throw new TransactionFailedRetriableException(
+                                    "Socket timed out. Rethrowing as retryable exception."
+                            );
                         },
                         MoreExecutors.directExecutor());
     }
