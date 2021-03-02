@@ -50,7 +50,7 @@ public class MultiClientCommitTimestampGetter implements AutoCloseable {
         this.autobatcher = autobatcher;
     }
 
-    static MultiClientCommitTimestampGetter create(InternalMultiClientConjureTimelockService delegate) {
+    public static MultiClientCommitTimestampGetter create(InternalMultiClientConjureTimelockService delegate) {
         DisruptorAutobatcher<NamespacedRequest, Long> autobatcher = Autobatchers.independent(consumer(delegate))
                 .safeLoggablePurpose("multi-client-get-commit-timestamp")
                 .build();
@@ -152,7 +152,6 @@ public class MultiClientCommitTimestampGetter implements AutoCloseable {
             }
         }
 
-        // Todo snanda this is duplicated
         private List<Long> process(
                 List<BatchElement<NamespacedRequest, Long>> requests, GetCommitTimestampsResponse response) {
             List<Long> timestamps = LongStream.rangeClosed(response.getInclusiveLower(), response.getInclusiveUpper())
