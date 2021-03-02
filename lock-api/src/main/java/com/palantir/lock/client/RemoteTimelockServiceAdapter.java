@@ -28,7 +28,6 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
 import java.util.Optional;
@@ -63,10 +62,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
                 conjureClient,
                 lockWatchEventCache,
                 new LegacyLeaderTimeGetter(conjureClient),
-                new BatchingTransactionStarterFactory(
-                        StartTransactionsLockWatchEventCache.create(lockWatchEventCache),
-                        Optional.empty(),
-                        Optional.empty()));
+                BatchingTransactionStarterFactory.create(lockWatchEventCache, Optional.empty(), Optional.empty()));
     }
 
     public static RemoteTimelockServiceAdapter create(

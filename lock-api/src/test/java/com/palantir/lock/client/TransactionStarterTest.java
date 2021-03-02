@@ -60,9 +60,8 @@ public class TransactionStarterTest {
 
     @Before
     public void before() {
-        transactionStarter = TransactionStarter.create(
-                lockLeaseService,
-                new BatchingTransactionStarterFactory(lockWatchEventCache, Optional.empty(), Optional.empty()));
+        transactionStarter =
+                TransactionStarter.create(lockLeaseService, BatchingTransactionStarterFactory.createForTests());
     }
 
     @After

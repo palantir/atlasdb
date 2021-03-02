@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.Optional;
 
@@ -25,13 +26,26 @@ public final class BatchingTransactionStarterFactory {
     private final Optional<Namespace> namespace;
     private final StartTransactionsLockWatchEventCache cache;
 
-    public BatchingTransactionStarterFactory(
-            StartTransactionsLockWatchEventCache lockWatchEventCache,
+    private BatchingTransactionStarterFactory(
+            StartTransactionsLockWatchEventCache cache,
             Optional<Namespace> namespace,
             Optional<MultiClientTransactionStarter> maybeBatcher) {
         this.maybeBatcher = maybeBatcher;
         this.namespace = namespace;
-        this.cache = lockWatchEventCache;
+        this.cache = cache;
+    }
+
+    public static BatchingTransactionStarterFactory create(
+            LockWatchEventCache lockWatchEventCache,
+            Optional<Namespace> namespace,
+            Optional<MultiClientTransactionStarter> maybeBatcher) {
+        return new BatchingTransactionStarterFactory(
+                StartTransactionsLockWatchEventCache.create(lockWatchEventCache), namespace, maybeBatcher);
+    }
+
+    public static BatchingTransactionStarterFactory createForTests() {
+        return new BatchingTransactionStarterFactory(
+                StartTransactionsLockWatchEventCache.createForTests(), Optional.empty(), Optional.empty());
     }
 
     public IdentifiedAtlasDbTransactionStarter get(LockLeaseService lockLeaseService) {

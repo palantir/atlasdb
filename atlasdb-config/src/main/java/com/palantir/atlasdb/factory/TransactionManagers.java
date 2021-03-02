@@ -174,7 +174,6 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
-import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -1246,8 +1245,8 @@ public abstract class TransactionManagers {
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             LockWatchEventCache lockWatchEventCache,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
-        return new BatchingTransactionStarterFactory(
-                StartTransactionsLockWatchEventCache.create(lockWatchEventCache),
+        return BatchingTransactionStarterFactory.create(
+                lockWatchEventCache,
                 Optional.of(Namespace.of(namespace)),
                 timelockRequestBatcherProviders.map(batcherProviders ->
                         batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier)));
