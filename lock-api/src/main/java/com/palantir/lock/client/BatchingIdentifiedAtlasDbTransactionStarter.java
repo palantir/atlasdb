@@ -42,7 +42,7 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
         this.autobatcher = autobatcher;
     }
 
-    public static BatchingIdentifiedAtlasDbTransactionStarter create(
+    static BatchingIdentifiedAtlasDbTransactionStarter create(
             LockLeaseService lockLeaseService, StartTransactionsLockWatchEventCache lockWatchEventCache) {
         DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher =
                 Autobatchers.independent(consumer(lockLeaseService, lockWatchEventCache))
