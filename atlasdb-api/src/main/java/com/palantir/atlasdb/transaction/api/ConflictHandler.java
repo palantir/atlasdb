@@ -107,6 +107,18 @@ public enum ConflictHandler {
     /**
      * This conflict handler is analogous to SERIALIZABLE_LOCK_LEVEL_MIGRATION, but for migrating between
      * RETRY_ON_WRITE_WRITE and RETRY_ON_WRITE_WRITE_CELL.
+     * <p>
+     * Migrations between RETRY_ON_WRITE_WRITE (ROWW) and RETRY_ON_WRITE_WRITE_CELL (ROWWC) using
+     * RETRY_ON_WRITE_WRITE_MIGRATION (ROWWM) takes three steps:
+     * 0. Product is on version V0, and schema version SV0, and does not even know about ROWWM.
+     * 1. Upgrade product to V1, supporting schema version SV1 (not supporting downgrades to SV0), and now knows
+     * about ROWWM (but does *not* use it).
+     * 2. Upgrade product to V2, supporting SV2 (supporting downgrades to SV1), and uses ROWWM.
+     * 3. Upgrade product to V3, supporting SV3 (supporting downgrades to SV2), and uses the desired new strategy
+     * (for example, now using ROWWC where it was using ROWW in version v0).
+     * <p>
+     * Failure to adhere to this flow may cause arbitrary data corruption.
+     *
      */
     RETRY_ON_WRITE_WRITE_MIGRATION(true, true, true, false);
 
