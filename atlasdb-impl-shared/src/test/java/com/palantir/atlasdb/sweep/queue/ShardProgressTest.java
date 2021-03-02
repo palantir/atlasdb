@@ -22,6 +22,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -226,6 +228,7 @@ public class ShardProgressTest {
 
         assertThatCode(() -> instrumentedProgress.resetProgressForShard(CONSERVATIVE_TEN))
                 .isInstanceOf(CheckAndSetException.class);
+        verify(mockKvs, times(3)).checkAndSet(any());
     }
 
     private Value createValue(long num) {
