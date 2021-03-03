@@ -67,7 +67,7 @@ public final class RequestBatchers {
     }
 
     public CommitTimestampGetter getCommitTimestampGetter(LockLeaseService lockLeaseService) {
-        if (!namespace.isPresent() || maybeCommitTimestampGetter.isPresent()) {
+        if (!namespace.isPresent() || !maybeCommitTimestampGetter.isPresent()) {
             return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         }
         return new NamespacedCommitTimestampGetter(
