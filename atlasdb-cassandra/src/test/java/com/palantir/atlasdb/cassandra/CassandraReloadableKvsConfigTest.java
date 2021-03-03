@@ -103,6 +103,7 @@ public class CassandraReloadableKvsConfigTest {
 
         assertThat(reloadableConfig.servers()).isEqualTo(SERVERS_1);
         assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(42);
+        assertThat(reloadableConfig.defaultGetRangesConcurrency()).isEqualTo(8);
     }
 
     @Test
@@ -119,22 +120,7 @@ public class CassandraReloadableKvsConfigTest {
 
         assertThat(reloadableConfig.servers()).isEqualTo(SERVERS_2);
         assertThat(reloadableConfig.concurrentGetRangesThreadPoolSize()).isEqualTo(84);
-    }
-
-    @Test
-    public void ifInstallServersEmpty_resolvesToRuntimeConfigForRangesConcurrency() {
-        CassandraKeyValueServiceConfig config = configBuilder()
-                .servers(ImmutableDefaultConfig.of())
-                .rangesConcurrency(42)
-                .build();
-        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
-                runtimeConfigBuilder().servers(SERVERS_2).build();
-
-        CassandraReloadableKvsConfig reloadableConfig =
-                new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
-
-        assertThat(reloadableConfig.servers()).isEqualTo(SERVERS_2);
-        assertThat(reloadableConfig.defaultGetRangesConcurrency()).isEqualTo(60);
+        assertThat(reloadableConfig.defaultGetRangesConcurrency()).isEqualTo(8);
     }
 
     @Test
