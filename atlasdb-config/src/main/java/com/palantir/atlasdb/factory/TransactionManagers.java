@@ -166,6 +166,7 @@ import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.RequestBatchers;
+import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.impl.LegacyTimelockService;
@@ -1241,18 +1242,18 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    private static RequestBatchers getRequestBatchers(
+    private static RequestBatchersFactory getRequestBatchers(
             String namespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             LockWatchEventCache lockWatchEventCache,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
-        return RequestBatchers.create(
+
+        return RequestBatchersFactory.create(
                 lockWatchEventCache,
-                Optional.of(Namespace.of(namespace)),
-                timelockRequestBatcherProviders.map(batcherProviders ->
-                        batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier)),
-                timelockRequestBatcherProviders.map(batcherProviders ->
-                        batcherProviders.commitTimestamps().getBatcher(multiClientTimelockServiceSupplier)));
+                Namespace.of(namespace),
+                timelockRequestBatcherProviders.map(batcherProviders -> RequestBatchers.of(
+                        batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier),
+                        batcherProviders.commitTimestamps().getBatcher(multiClientTimelockServiceSupplier))));
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(

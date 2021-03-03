@@ -18,6 +18,7 @@ package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -44,7 +45,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LeaderTimeGetter leaderTimeGetter,
-            RequestBatchers batcherFactory) {
+            RequestBatchersFactory batcherFactory) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, batcherFactory);
@@ -53,6 +54,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     public static RemoteTimelockServiceAdapter create(
+            Namespace namespace,
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LockWatchEventCache lockWatchEventCache) {
@@ -60,14 +62,14 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
                 rpcClient,
                 conjureClient,
                 new LegacyLeaderTimeGetter(conjureClient),
-                RequestBatchers.create(lockWatchEventCache, Optional.empty(), Optional.empty(), Optional.empty()));
+                RequestBatchersFactory.create(lockWatchEventCache, namespace, Optional.empty()));
     }
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LeaderTimeGetter leaderTimeGetter,
-            RequestBatchers batcherFactory) {
+            RequestBatchersFactory batcherFactory) {
         return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, leaderTimeGetter, batcherFactory);
     }
 

@@ -60,7 +60,7 @@ public class TransactionStarterTest {
 
     @Before
     public void before() {
-        transactionStarter = TransactionStarter.create(lockLeaseService, RequestBatchers.createForTests());
+        transactionStarter = TransactionStarter.create(lockLeaseService, RequestBatchersFactory.createForTests());
     }
 
     @After

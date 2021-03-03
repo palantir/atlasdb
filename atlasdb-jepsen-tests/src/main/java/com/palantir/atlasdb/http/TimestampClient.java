@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.http;
 
 import com.palantir.atlasdb.factory.AtlasDbDialogueServiceProvider;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
@@ -31,6 +32,7 @@ public final class TimestampClient {
     public static TimestampService create(MetricsManager metricsManager, List<String> hosts) {
         AtlasDbDialogueServiceProvider provider = TimelockUtils.createServiceProvider(metricsManager, hosts);
         return new TimelockTimestampServiceAdapter(RemoteTimelockServiceAdapter.create(
+                Namespace.of(TimelockUtils.NAMESPACE),
                 new NamespacedTimelockRpcClient(provider.getTimelockRpcClient(), TimelockUtils.NAMESPACE),
                 new NamespacedConjureTimelockServiceImpl(provider.getConjureTimelockService(), TimelockUtils.NAMESPACE),
                 NoOpLockWatchEventCache.create()));
