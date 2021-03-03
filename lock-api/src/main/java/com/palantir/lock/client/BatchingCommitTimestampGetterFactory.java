@@ -22,19 +22,21 @@ import java.util.Optional;
 
 public class BatchingCommitTimestampGetterFactory {
     private final LockWatchEventCache cache;
-    private final Namespace namespace;
+    private final Optional<Namespace> namespace;
     private final Optional<MultiClientCommitTimestampGetter> maybeBatcher;
 
     public BatchingCommitTimestampGetterFactory(
-            LockWatchEventCache cache, Namespace namespace, Optional<MultiClientCommitTimestampGetter> maybeBatcher) {
+            LockWatchEventCache cache,
+            Optional<Namespace> namespace,
+            Optional<MultiClientCommitTimestampGetter> maybeBatcher) {
         this.cache = cache;
         this.namespace = namespace;
         this.maybeBatcher = maybeBatcher;
     }
 
     public CommitTimestampGetter get(LockLeaseService lockLeaseService) {
-        if (maybeBatcher.isPresent()) {
-            return new NamespacedCommitTimestampGetter(namespace, cache, maybeBatcher.get());
+        if (maybeBatcher.isPresent() && namespace.isPresent()) {
+            return new NamespacedCommitTimestampGetter(cache, namespace.get(), maybeBatcher.get());
         }
         return BatchingCommitTimestampGetter.create(lockLeaseService, cache);
     }

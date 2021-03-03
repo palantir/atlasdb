@@ -26,7 +26,7 @@ public class NamespacedCommitTimestampGetter implements CommitTimestampGetter {
     private final MultiClientCommitTimestampGetter batcher;
 
     public NamespacedCommitTimestampGetter(
-            Namespace namespace, LockWatchEventCache cache, MultiClientCommitTimestampGetter batcher) {
+            LockWatchEventCache cache, Namespace namespace, MultiClientCommitTimestampGetter batcher) {
         this.namespace = namespace;
         this.cache = cache;
         this.batcher = batcher;

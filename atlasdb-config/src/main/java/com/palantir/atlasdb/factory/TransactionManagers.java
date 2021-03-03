@@ -154,6 +154,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
+import com.palantir.lock.client.BatchingCommitTimestampGetterFactory;
 import com.palantir.lock.client.BatchingTransactionStarterFactory;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
@@ -1216,13 +1217,17 @@ public abstract class TransactionManagers {
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient,
                 namespacedConjureTimelockService,
-                lockWatchEventCache,
                 getLeaderTimeGetter(
                         timelockNamespace,
                         timelockRequestBatcherProviders,
                         namespacedConjureTimelockService,
                         multiClientTimelockServiceSupplier),
                 getTransactionStarterFactory(
+                        timelockNamespace,
+                        timelockRequestBatcherProviders,
+                        lockWatchEventCache,
+                        multiClientTimelockServiceSupplier),
+                getCommitTimestampGetterFactory(
                         timelockNamespace,
                         timelockRequestBatcherProviders,
                         lockWatchEventCache,
@@ -1252,6 +1257,18 @@ public abstract class TransactionManagers {
                 Optional.of(Namespace.of(namespace)),
                 timelockRequestBatcherProviders.map(batcherProviders ->
                         batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier)));
+    }
+
+    private static BatchingCommitTimestampGetterFactory getCommitTimestampGetterFactory(
+            String namespace,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            LockWatchEventCache lockWatchEventCache,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        return new BatchingCommitTimestampGetterFactory(
+                lockWatchEventCache,
+                Optional.of(Namespace.of(namespace)),
+                timelockRequestBatcherProviders.map(batcherProviders ->
+                        batcherProviders.commitTimestamps().getBatcher(multiClientTimelockServiceSupplier)));
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(
