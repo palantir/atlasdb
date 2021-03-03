@@ -122,6 +122,22 @@ public class CassandraReloadableKvsConfigTest {
     }
 
     @Test
+    public void ifInstallServersEmpty_resolvesToRuntimeConfigForRangesConcurrency() {
+        CassandraKeyValueServiceConfig config = configBuilder()
+                .servers(ImmutableDefaultConfig.of())
+                .rangesConcurrency(42)
+                .build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig =
+                runtimeConfigBuilder().servers(SERVERS_2).build();
+
+        CassandraReloadableKvsConfig reloadableConfig =
+                new CassandraReloadableKvsConfig(config, Refreshable.only(Optional.of(runtimeConfig)));
+
+        assertThat(reloadableConfig.servers()).isEqualTo(SERVERS_2);
+        assertThat(reloadableConfig.defaultGetRangesConcurrency()).isEqualTo(60);
+    }
+
+    @Test
     public void ifInstallAndRuntimeServersEmpty_failsInitialization() {
         CassandraKeyValueServiceConfig config =
                 configBuilder().servers(ImmutableDefaultConfig.of()).build();
