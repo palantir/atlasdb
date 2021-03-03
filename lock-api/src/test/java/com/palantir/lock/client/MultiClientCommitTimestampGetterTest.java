@@ -55,10 +55,11 @@ import one.util.streamex.StreamEx;
 import org.junit.Test;
 
 public class MultiClientCommitTimestampGetterTest {
-    private static final Map<Namespace, Long> LOWEST_START_TS_MAP = new HashMap<>();
     private static final int COMMIT_TS_LIMIT_PER_REQUEST = 5;
     private static final SafeIllegalStateException EXCEPTION = new SafeIllegalStateException("Something went wrong!");
-    private static final Map<Namespace, LockWatchEventCache> LOCK_WATCH_EVENT_CACHE_MAP_MAP = new HashMap<>();
+
+    private final Map<Namespace, Long> lowestStartTsMap = new HashMap<>();
+    private final Map<Namespace, LockWatchEventCache> lockWatchEventCacheMap = new HashMap<>();
 
     private final LockToken lockToken = mock(LockToken.class);
     private final InternalMultiClientConjureTimelockService timelockService =
@@ -100,8 +101,7 @@ public class MultiClientCommitTimestampGetterTest {
                 .collect(toList());
         setupServiceAndAssertSanityOfResponse(batchElements);
 
-        LockWatchEventCache cache = LOCK_WATCH_EVENT_CACHE_MAP_MAP.get(client);
-        verify(cache, times(2)).lastKnownVersion();
+        LockWatchEventCache cache = lockWatchEventCacheMap.get(client);
         verify(cache, times(2)).processGetCommitTimestampsUpdate(any(), any());
     }
 
@@ -124,15 +124,14 @@ public class MultiClientCommitTimestampGetterTest {
         // assert requests made by client alpha are served
         assertSanityOfResponse(alphaRequestList, ImmutableMap.of(alpha, ImmutableList.of(responseMap.get(alpha))));
 
-        LockWatchEventCache alphaCache = LOCK_WATCH_EVENT_CACHE_MAP_MAP.get(alpha);
-        verify(alphaCache).lastKnownVersion();
+        LockWatchEventCache alphaCache = lockWatchEventCacheMap.get(alpha);
         verify(alphaCache).processGetCommitTimestampsUpdate(any(), any());
 
-        // assert unsuccessful requests were made by client beta
-        assertThat(requestForBeta.result().isDone()).isFalse();
+        assertThat(requestForBeta.result().isDone())
+                .as("No requests made by client - beta were successful")
+                .isFalse();
 
-        LockWatchEventCache betaCache = LOCK_WATCH_EVENT_CACHE_MAP_MAP.get(beta);
-        verify(betaCache, times(2)).lastKnownVersion();
+        LockWatchEventCache betaCache = lockWatchEventCacheMap.get(beta);
         verify(betaCache, never()).processGetCommitTimestampsUpdate(any(), any());
     }
 
@@ -157,8 +156,8 @@ public class MultiClientCommitTimestampGetterTest {
     private void assertSanityOfResponse(
             List<BatchElement<NamespacedRequest, Long>> batch,
             Map<Namespace, List<GetCommitTimestampsResponse>> expectedResponseMap) {
-        // all requests should be served
         assertThat(batch.stream().filter(elem -> !elem.result().isDone()).collect(Collectors.toSet()))
+                .as("All requests must be served")
                 .isEmpty();
 
         Map<Namespace, List<Long>> partitionedResponseMap = batch.stream()
@@ -175,19 +174,24 @@ public class MultiClientCommitTimestampGetterTest {
             Map<Namespace, List<Long>> partitionedResponseMap) {
         KeyedStream.stream(partitionedResponseMap)
                 .forEach((namespace, commitTsList) ->
-                        assertSanityOfServedTimestamps(commitTsList, expectedResponseMap.get(namespace)));
+                        assertCorrectnessOfServedTimestamps(expectedResponseMap.get(namespace), commitTsList));
     }
 
-    private static void assertSanityOfServedTimestamps(
-            List<Long> commitTsList, List<GetCommitTimestampsResponse> commitTimestampsResponses) {
-        long requestedCommitTsCount = commitTimestampsResponses.stream()
+    private static void assertCorrectnessOfServedTimestamps(
+            List<GetCommitTimestampsResponse> expectedCommitTimestampsResponses, List<Long> commitTsList) {
+        long requestedCommitTsCount = expectedCommitTimestampsResponses.stream()
                 .mapToLong(resp -> resp.getInclusiveUpper() - resp.getInclusiveLower() + 1)
                 .sum();
-        assertThat(requestedCommitTsCount).isEqualTo(commitTsList.size());
-        assertThat(ImmutableSet.copyOf(commitTsList)).hasSameSizeAs(commitTsList);
+        assertThat(requestedCommitTsCount)
+                .as("We should get as many commit timestamps as we asked for")
+                .isEqualTo(commitTsList.size());
+        assertThat(ImmutableSet.copyOf(commitTsList))
+                .as("There should be no duplicate timestamps")
+                .hasSameSizeAs(commitTsList);
         assertThat(StreamEx.of(commitTsList)
                         .pairMap((first, second) -> first > second)
                         .anyMatch(x -> x))
+                .as("Served timestamps should be in increasing order")
                 .isFalse();
     }
 
@@ -222,11 +226,11 @@ public class MultiClientCommitTimestampGetterTest {
     }
 
     private long getLowerBound(Namespace namespace) {
-        return LOWEST_START_TS_MAP.getOrDefault(namespace, 1L);
+        return lowestStartTsMap.getOrDefault(namespace, 1L);
     }
 
     private void updateLowerBound(Namespace namespace, long numTimestamps) {
-        LOWEST_START_TS_MAP.put(namespace, LOWEST_START_TS_MAP.getOrDefault(namespace, 1L) + numTimestamps);
+        lowestStartTsMap.put(namespace, lowestStartTsMap.getOrDefault(namespace, 1L) + numTimestamps);
     }
 
     private List<BatchElement<NamespacedRequest, Long>> getCommitTimestampRequestsForClients(
@@ -242,7 +246,7 @@ public class MultiClientCommitTimestampGetterTest {
                 ImmutableNamespacedRequest.builder()
                         .namespace(namespace)
                         .startTs(1)
-                        .cache(LOCK_WATCH_EVENT_CACHE_MAP_MAP.computeIfAbsent(
+                        .cache(lockWatchEventCacheMap.computeIfAbsent(
                                 namespace, _unused -> mock(LockWatchEventCache.class)))
                         .commitLocksToken(lockToken)
                         .build(),

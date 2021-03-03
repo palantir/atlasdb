@@ -31,10 +31,11 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
+import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,7 +54,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
 
     public static MultiClientCommitTimestampGetter create(InternalMultiClientConjureTimelockService delegate) {
         DisruptorAutobatcher<NamespacedRequest, Long> autobatcher = Autobatchers.independent(consumer(delegate))
-                .safeLoggablePurpose("multi-client-get-commit-timestamp")
+                .safeLoggablePurpose("multi-client-commit-timestamp-getter")
                 .build();
         return new MultiClientCommitTimestampGetter(autobatcher);
     }
@@ -70,26 +71,11 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
     static Consumer<List<BatchElement<NamespacedRequest, Long>>> consumer(
             InternalMultiClientConjureTimelockService delegate) {
         return batch -> {
-            BatchStateManager batchStateManager = new BatchStateManager(getNamespaceWiseBatchStateManager(batch));
+            BatchStateManager batchStateManager = BatchStateManager.createFromRequestBatch(batch);
             while (batchStateManager.hasPendingRequests()) {
                 batchStateManager.processResponse(delegate.getCommitTimestamps(batchStateManager.getRequests()));
             }
         };
-    }
-
-    private static Map<Namespace, NamespacedBatchStateManager> getNamespaceWiseBatchStateManager(
-            List<BatchElement<NamespacedRequest, Long>> batch) {
-        Map<Namespace, NamespacedBatchStateManager> requestMap = new HashMap<>();
-
-        for (BatchElement<NamespacedRequest, Long> elem : batch) {
-            NamespacedRequest argument = elem.argument();
-            Namespace namespace = argument.namespace();
-            NamespacedBatchStateManager namespacedBatchStateManager =
-                    requestMap.computeIfAbsent(namespace, _unused -> new NamespacedBatchStateManager(argument.cache()));
-            namespacedBatchStateManager.addRequest(elem);
-        }
-
-        return requestMap;
     }
 
     private static final class BatchStateManager {
@@ -99,6 +85,20 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
             this.requestMap = requestMap;
         }
 
+        static BatchStateManager createFromRequestBatch(List<BatchElement<NamespacedRequest, Long>> batch) {
+            Map<Namespace, NamespacedBatchStateManager> requestMap = new HashMap<>();
+
+            for (BatchElement<NamespacedRequest, Long> elem : batch) {
+                NamespacedRequest argument = elem.argument();
+                Namespace namespace = argument.namespace();
+                NamespacedBatchStateManager namespacedBatchStateManager = requestMap.computeIfAbsent(
+                        namespace, _unused -> new NamespacedBatchStateManager(argument.cache()));
+                namespacedBatchStateManager.addRequest(elem);
+            }
+
+            return new BatchStateManager(requestMap);
+        }
+
         private boolean hasPendingRequests() {
             return requestMap.values().stream().anyMatch(NamespacedBatchStateManager::hasPendingRequests);
         }
@@ -106,14 +106,13 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         private Map<Namespace, GetCommitTimestampsRequest> getRequests() {
             return KeyedStream.stream(requestMap)
                     .filter(NamespacedBatchStateManager::hasPendingRequests)
-                    .map(NamespacedBatchStateManager::getPendingRequest)
+                    .map(NamespacedBatchStateManager::getRequestForServer)
                     .collectToMap();
         }
 
-        private void processResponse(Map<Namespace, GetCommitTimestampsResponse> namespaceWiseResponse) {
-            KeyedStream.stream(namespaceWiseResponse)
-                    .forEach((namespace, getCommitTimestampsResponse) ->
-                            requestMap.get(namespace).serviceRequests(getCommitTimestampsResponse));
+        private void processResponse(Map<Namespace, GetCommitTimestampsResponse> responseMap) {
+            responseMap.forEach((namespace, getCommitTimestampsResponse) ->
+                    requestMap.get(namespace).serviceRequests(getCommitTimestampsResponse));
         }
     }
 
@@ -123,7 +122,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         private Optional<LockWatchVersion> lastKnownVersion;
 
         private NamespacedBatchStateManager(LockWatchEventCache cache) {
-            this.pendingRequestQueue = new LinkedList<>();
+            this.pendingRequestQueue = new ArrayDeque<>();
             this.cache = cache;
             this.lastKnownVersion = Optional.empty();
         }
@@ -136,7 +135,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
             pendingRequestQueue.add(elem);
         }
 
-        private GetCommitTimestampsRequest getPendingRequest() {
+        private GetCommitTimestampsRequest getRequestForServer() {
             return GetCommitTimestampsRequest.builder()
                     .numTimestamps(pendingRequestQueue.size())
                     .lastKnownVersion(toConjure(updateAndGetLastKnownVersion()))
@@ -149,7 +148,9 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         }
 
         private void serviceRequests(GetCommitTimestampsResponse commitTimestampsResponse) {
-            List<Long> commitTimestamps = process(commitTimestampsResponse);
+            List<Long> commitTimestamps = getCommitTimestampValues(commitTimestampsResponse);
+
+            processLockWatchUpdate(commitTimestamps, commitTimestampsResponse.getLockWatchUpdate());
             LockWatchLogUtility.logTransactionEvents(lastKnownVersion, commitTimestampsResponse.getLockWatchUpdate());
 
             for (Long commitTimestamp : commitTimestamps) {
@@ -157,10 +158,14 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
             }
         }
 
-        private List<Long> process(GetCommitTimestampsResponse response) {
-            List<Long> timestamps = LongStream.rangeClosed(response.getInclusiveLower(), response.getInclusiveUpper())
+        private List<Long> getCommitTimestampValues(GetCommitTimestampsResponse commitTimestampsResponse) {
+            return LongStream.rangeClosed(
+                            commitTimestampsResponse.getInclusiveLower(), commitTimestampsResponse.getInclusiveUpper())
                     .boxed()
                     .collect(Collectors.toList());
+        }
+
+        private void processLockWatchUpdate(List<Long> timestamps, LockWatchStateUpdate lockWatchUpdate) {
             List<TransactionUpdate> transactionUpdates = Streams.zip(
                             timestamps.stream(),
                             pendingRequestQueue.stream(),
@@ -170,8 +175,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
                                     .writesToken(batchElement.argument().commitLocksToken())
                                     .build())
                     .collect(Collectors.toList());
-            cache.processGetCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
-            return timestamps;
+            cache.processGetCommitTimestampsUpdate(transactionUpdates, lockWatchUpdate);
         }
     }
 
