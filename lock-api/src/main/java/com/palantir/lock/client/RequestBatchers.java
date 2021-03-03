@@ -54,7 +54,7 @@ public final class RequestBatchers {
                 NoOpLockWatchEventCache.create(), Optional.empty(), Optional.empty(), Optional.empty());
     }
 
-    public IdentifiedAtlasDbTransactionStarter getTransactionStarter(LockLeaseService lockLeaseService) {
+    public IdentifiedAtlasDbTransactionStarter getBatchingTransactionStarter(LockLeaseService lockLeaseService) {
         if (!namespace.isPresent() || !maybeTransactionStarter.isPresent()) {
             return BatchingIdentifiedAtlasDbTransactionStarter.create(
                     lockLeaseService, startTransactionsLockWatchEventCache);
@@ -66,7 +66,7 @@ public final class RequestBatchers {
                 new LockCleanupService(lockLeaseService));
     }
 
-    public CommitTimestampGetter getCommitTimestampGetter(LockLeaseService lockLeaseService) {
+    public CommitTimestampGetter getBatchingCommitTimestampGetter(LockLeaseService lockLeaseService) {
         if (!namespace.isPresent() || !maybeCommitTimestampGetter.isPresent()) {
             return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         }
