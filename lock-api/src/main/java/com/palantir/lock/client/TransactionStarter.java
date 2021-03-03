@@ -41,9 +41,8 @@ final class TransactionStarter implements AutoCloseable {
         this.batchingTransactionStarter = batchingTransactionStarter;
     }
 
-    static TransactionStarter create(
-            LockLeaseService lockLeaseService, BatchingTransactionStarterFactory batchingTransactionStarter) {
-        return new TransactionStarter(lockLeaseService, batchingTransactionStarter.get(lockLeaseService));
+    static TransactionStarter create(LockLeaseService lockLeaseService, RequestBatchers requestBatchers) {
+        return new TransactionStarter(lockLeaseService, requestBatchers.getTransactionStarter(lockLeaseService));
     }
 
     List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {

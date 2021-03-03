@@ -44,12 +44,11 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LeaderTimeGetter leaderTimeGetter,
-            BatchingTransactionStarterFactory batchingTransactionStarterFactory,
-            BatchingCommitTimestampGetterFactory batchingCommitTimestampGetterFactory) {
+            RequestBatchers batcherFactory) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
-        this.transactionStarter = TransactionStarter.create(lockLeaseService, batchingTransactionStarterFactory);
-        this.commitTimestampGetter = batchingCommitTimestampGetterFactory.get(lockLeaseService);
+        this.transactionStarter = TransactionStarter.create(lockLeaseService, batcherFactory);
+        this.commitTimestampGetter = batcherFactory.getCommitTimestampGetter(lockLeaseService);
         this.conjureTimelockService = conjureTimelockService;
     }
 
@@ -61,22 +60,15 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
                 rpcClient,
                 conjureClient,
                 new LegacyLeaderTimeGetter(conjureClient),
-                BatchingTransactionStarterFactory.create(lockWatchEventCache, Optional.empty(), Optional.empty()),
-                new BatchingCommitTimestampGetterFactory(lockWatchEventCache, Optional.empty(), Optional.empty()));
+                RequestBatchers.create(lockWatchEventCache, Optional.empty(), Optional.empty(), Optional.empty()));
     }
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LeaderTimeGetter leaderTimeGetter,
-            BatchingTransactionStarterFactory batchingTransactionStarterFactory,
-            BatchingCommitTimestampGetterFactory batchingCommitTimestampGetterFactory) {
-        return new RemoteTimelockServiceAdapter(
-                rpcClient,
-                conjureClient,
-                leaderTimeGetter,
-                batchingTransactionStarterFactory,
-                batchingCommitTimestampGetterFactory);
+            RequestBatchers batcherFactory) {
+        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, leaderTimeGetter, batcherFactory);
     }
 
     @Override
