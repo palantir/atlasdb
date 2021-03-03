@@ -17,28 +17,25 @@
 package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchEventCache;
+import java.util.Optional;
 
-public class NamespacedCommitTimestampGetter implements CommitTimestampGetter {
-    private final Namespace namespace;
+public class BatchingCommitTimestampGetterFactory {
     private final LockWatchEventCache cache;
-    private final MultiClientCommitTimestampGetter batcher;
+    private final Namespace namespace;
+    private final Optional<MultiClientCommitTimestampGetter> maybeBatcher;
 
-    public NamespacedCommitTimestampGetter(
-            Namespace namespace, LockWatchEventCache cache, MultiClientCommitTimestampGetter batcher) {
-        this.namespace = namespace;
+    public BatchingCommitTimestampGetterFactory(
+            LockWatchEventCache cache, Namespace namespace, Optional<MultiClientCommitTimestampGetter> maybeBatcher) {
         this.cache = cache;
-        this.batcher = batcher;
+        this.namespace = namespace;
+        this.maybeBatcher = maybeBatcher;
     }
 
-    @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return batcher.getCommitTimestamp(namespace, startTs, commitLocksToken, cache);
-    }
-
-    @Override
-    public void close() {
-        batcher.close();
+    public CommitTimestampGetter get(LockLeaseService lockLeaseService) {
+        if (maybeBatcher.isPresent()) {
+            return new NamespacedCommitTimestampGetter(namespace, cache, maybeBatcher.get());
+        }
+        return BatchingCommitTimestampGetter.create(lockLeaseService, cache);
     }
 }
