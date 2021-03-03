@@ -33,8 +33,8 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
+import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -278,8 +278,8 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         private final LockCleanupService lockCleanupService;
 
         ResponseHandler(LockCleanupService lockCleanupService) {
-            this.pendingFutures = new LinkedList<>();
-            this.transientResponseList = new LinkedList<>();
+            this.pendingFutures = new ArrayDeque<>();
+            this.transientResponseList = new ArrayDeque<>();
             this.lockCleanupService = lockCleanupService;
         }
 
