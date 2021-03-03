@@ -52,6 +52,7 @@ import org.slf4j.LoggerFactory;
 public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
 
+    private final boolean shouldResetAndStopSweep;
     private final Supplier<TargetedSweepRuntimeConfig> runtime;
     private final List<Follower> followers;
     private final MetricsManager metricsManager;
@@ -76,6 +77,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.conservativeScheduler =
                 new BackgroundSweepScheduler(install.conservativeThreads(), SweeperStrategy.CONSERVATIVE);
         this.thoroughScheduler = new BackgroundSweepScheduler(install.thoroughThreads(), SweeperStrategy.THOROUGH);
+        this.shouldResetAndStopSweep = install.resetTargetedSweepQueueProgressAndStopSweep();
         this.followers = followers;
         this.metricsConfiguration = install.metricsConfiguration();
     }
@@ -175,8 +177,15 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     @Override
     public void runInBackground() {
         assertInitialized();
-        conservativeScheduler.scheduleBackgroundThreads();
-        thoroughScheduler.scheduleBackgroundThreads();
+        if (shouldResetAndStopSweep) {
+            log.warn("This AtlasDB node is operating in a mode where it is attempting to reset the progress of "
+                    + "targeted sweep. While in this mode, your data is not getting swept: please restart your node "
+                    + "once it is confirmed that sweep progress has been reset.");
+            queue.resetSweepProgress();
+        } else {
+            conservativeScheduler.scheduleBackgroundThreads();
+            thoroughScheduler.scheduleBackgroundThreads();
+        }
     }
 
     @Override

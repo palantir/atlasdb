@@ -43,6 +43,7 @@ public final class SweepQueueUtils {
     public static final int BATCH_SIZE_KVS = 1000;
     public static final long READ_TS = Long.MAX_VALUE;
     public static final long INITIAL_TIMESTAMP = -1L;
+    public static final long RESET_TIMESTAMP = 0L;
     public static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
     public static final int MINIMUM_WRITE_INDEX = -TargetedSweepMetadata.MAX_DEDICATED_ROWS;
 

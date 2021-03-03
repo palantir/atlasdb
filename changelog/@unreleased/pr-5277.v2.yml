@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Targeted sweep progress may be reset with the `resetTargetedSweepQueueProgressAndStopSweep` flag in targeted sweep install configuration. This may be useful in cleaning up cruft in the targeted sweep queue that may have been written by failed transactions.
+
+    As the name suggests, this will prevent sweep from cleaning up old cells, so users should not run with this configuration in the steady state. If running your service in HA, once the last node rolls and reports that it has successfully reset the sweep progress table, we can be certain that progress has been reset to zero.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5277

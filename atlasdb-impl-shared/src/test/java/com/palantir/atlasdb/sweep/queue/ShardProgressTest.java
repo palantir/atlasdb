@@ -16,11 +16,14 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -37,6 +40,7 @@ import org.junit.Test;
 
 public class ShardProgressTest {
     private static final long INITIAL_TIMESTAMP = SweepQueueUtils.INITIAL_TIMESTAMP;
+    private static final long RESET_TIMESTAMP = SweepQueueUtils.RESET_TIMESTAMP;
 
     private ShardProgress progress;
     private KeyValueService kvs;
@@ -184,6 +188,47 @@ public class ShardProgressTest {
 
         assertThatThrownBy(() -> instrumentedProgress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 12L))
                 .isInstanceOf(CheckAndSetException.class);
+    }
+
+    @Test
+    public void canResetProgressForSpecificShards() {
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TEN, 8888L);
+        progress.updateLastSweptTimestamp(CONSERVATIVE_TWENTY, 8888L);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(8888L);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(8888L);
+
+        progress.resetProgressForShard(CONSERVATIVE_TEN);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TEN)).isEqualTo(RESET_TIMESTAMP);
+        assertThat(progress.getLastSweptTimestamp(CONSERVATIVE_TWENTY)).isEqualTo(8888L);
+    }
+
+    @Test
+    public void stopsTryingToResetIfSomeoneElseDid() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        when(mockKvs.get(any(), anyMap()))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(8L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(4L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(RESET_TIMESTAMP)));
+        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
+        ShardProgress instrumentedProgress = new ShardProgress(mockKvs);
+
+        assertThatCode(() -> instrumentedProgress.resetProgressForShard(CONSERVATIVE_TEN))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void repeatedlyFailingCasThrowsForReset() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        when(mockKvs.get(any(), anyMap()))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(8L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(9L)))
+                .thenReturn(ImmutableMap.of(DUMMY, createValue(10L)));
+        doThrow(new CheckAndSetException("sadness")).when(mockKvs).checkAndSet(any());
+        ShardProgress instrumentedProgress = new ShardProgress(mockKvs);
+
+        assertThatCode(() -> instrumentedProgress.resetProgressForShard(CONSERVATIVE_TEN))
+                .isInstanceOf(CheckAndSetException.class);
+        verify(mockKvs, times(3)).checkAndSet(any());
     }
 
     private Value createValue(long num) {
