@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: AtlasDb client can now batch getCommitTimestamps requests across namespaces.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5294
