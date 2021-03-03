@@ -50,7 +50,7 @@ public final class RequestBatchersFactory {
                 NoOpLockWatchEventCache.create(), Namespace.of("test-client"), Optional.empty());
     }
 
-    public IdentifiedAtlasDbTransactionStarter getBatchingTransactionStarter(LockLeaseService lockLeaseService) {
+    public IdentifiedAtlasDbTransactionStarter createBatchingTransactionStarter(LockLeaseService lockLeaseService) {
         Optional<MultiClientTransactionStarter> transactionStarter =
                 maybeRequestBatchers.map(RequestBatchers::getMultiClientTransactionStarter);
         if (!transactionStarter.isPresent()) {
@@ -64,7 +64,7 @@ public final class RequestBatchersFactory {
                 new LockCleanupService(lockLeaseService));
     }
 
-    public CommitTimestampGetter getBatchingCommitTimestampGetter(LockLeaseService lockLeaseService) {
+    public CommitTimestampGetter createBatchingCommitTimestampGetter(LockLeaseService lockLeaseService) {
         Optional<MultiClientCommitTimestampGetter> commitTimestampGetter =
                 maybeRequestBatchers.map(RequestBatchers::getMultiClientCommitTimestampGetter);
         if (!commitTimestampGetter.isPresent()) {
