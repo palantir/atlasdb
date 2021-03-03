@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: fix ranges concurrency when specifying cassandra servers in runtime conf
+  links:
+  - https://github.com/palantir/atlasdb/pull/5297
