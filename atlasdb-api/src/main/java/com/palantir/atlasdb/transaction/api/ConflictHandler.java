@@ -114,7 +114,8 @@ public enum ConflictHandler {
      * 1. Upgrade product to V1, supporting schema version SV1 (not supporting downgrades to SV0), and now knows
      * about ROWWM (but does *not* use it).
      * 2. Upgrade product to V2, supporting SV2 (supporting downgrades to SV1), and uses ROWWM.
-     * 3. Upgrade product to V3, supporting SV3 (supporting downgrades to SV2), and uses the desired new strategy
+     * 3. Upgrade product to V3, supporting SV3 (supporting downgrades to SV2 but not SV1), and uses the desired new
+     * strategy
      * (for example, now using ROWWC where it was using ROWW in version v0).
      * <p>
      * Failure to adhere to this flow may cause arbitrary data corruption.
