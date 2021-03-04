@@ -59,11 +59,13 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         return new MultiClientCommitTimestampGetter(autobatcher);
     }
 
-    public long getCommitTimestamp(Namespace namespace, long startTs, LockToken commitLocksToken) {
+    public long getCommitTimestamp(
+            Namespace namespace, long startTs, LockToken commitLocksToken, LockWatchEventCache cache) {
         return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableNamespacedRequest.builder()
                 .namespace(namespace)
                 .startTs(startTs)
                 .commitLocksToken(commitLocksToken)
+                .cache(cache)
                 .build()));
     }
 
