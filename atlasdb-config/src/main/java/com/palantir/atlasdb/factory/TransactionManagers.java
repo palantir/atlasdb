@@ -160,12 +160,12 @@ import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.MultiClientRequestBatchers;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
-import com.palantir.lock.client.RequestBatchers;
 import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
@@ -1222,7 +1222,7 @@ public abstract class TransactionManagers {
                         timelockRequestBatcherProviders,
                         namespacedConjureTimelockService,
                         multiClientTimelockServiceSupplier),
-                getRequestBatchers(
+                getRequestBatchersFactory(
                         timelockNamespace,
                         timelockRequestBatcherProviders,
                         lockWatchEventCache,
@@ -1242,7 +1242,7 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    private static RequestBatchersFactory getRequestBatchers(
+    private static RequestBatchersFactory getRequestBatchersFactory(
             String namespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             LockWatchEventCache lockWatchEventCache,
@@ -1251,7 +1251,7 @@ public abstract class TransactionManagers {
         return RequestBatchersFactory.create(
                 lockWatchEventCache,
                 Namespace.of(namespace),
-                timelockRequestBatcherProviders.map(batcherProviders -> RequestBatchers.of(
+                timelockRequestBatcherProviders.map(batcherProviders -> new MultiClientRequestBatchers(
                         batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier),
                         batcherProviders.commitTimestamps().getBatcher(multiClientTimelockServiceSupplier))));
     }

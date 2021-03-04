@@ -26,12 +26,12 @@ public final class RequestBatchersFactory {
     private final LockWatchEventCache lockWatchEventCache;
     private final StartTransactionsLockWatchEventCache startTransactionsLockWatchEventCache;
     private final Namespace namespace;
-    private final Optional<RequestBatchers> maybeRequestBatchers;
+    private final Optional<MultiClientRequestBatchers> maybeRequestBatchers;
 
     private RequestBatchersFactory(
             LockWatchEventCache lockWatchEventCache,
             Namespace namespace,
-            Optional<RequestBatchers> maybeRequestBatchers) {
+            Optional<MultiClientRequestBatchers> maybeRequestBatchers) {
         this.lockWatchEventCache = lockWatchEventCache;
         this.startTransactionsLockWatchEventCache = StartTransactionsLockWatchEventCache.create(lockWatchEventCache);
         this.namespace = namespace;
@@ -41,7 +41,7 @@ public final class RequestBatchersFactory {
     public static RequestBatchersFactory create(
             LockWatchEventCache lockWatchEventCache,
             Namespace namespace,
-            Optional<RequestBatchers> maybeRequestBatchers) {
+            Optional<MultiClientRequestBatchers> maybeRequestBatchers) {
         return new RequestBatchersFactory(lockWatchEventCache, namespace, maybeRequestBatchers);
     }
 
@@ -52,7 +52,7 @@ public final class RequestBatchersFactory {
 
     public IdentifiedAtlasDbTransactionStarter createBatchingTransactionStarter(LockLeaseService lockLeaseService) {
         Optional<MultiClientTransactionStarter> transactionStarter =
-                maybeRequestBatchers.map(RequestBatchers::getMultiClientTransactionStarter);
+                maybeRequestBatchers.map(MultiClientRequestBatchers::getTransactionStarter);
         if (!transactionStarter.isPresent()) {
             return BatchingIdentifiedAtlasDbTransactionStarter.create(
                     lockLeaseService, startTransactionsLockWatchEventCache);
@@ -66,7 +66,7 @@ public final class RequestBatchersFactory {
 
     public CommitTimestampGetter createBatchingCommitTimestampGetter(LockLeaseService lockLeaseService) {
         Optional<MultiClientCommitTimestampGetter> commitTimestampGetter =
-                maybeRequestBatchers.map(RequestBatchers::getMultiClientCommitTimestampGetter);
+                maybeRequestBatchers.map(MultiClientRequestBatchers::getCommitTimestampGetter);
         if (!commitTimestampGetter.isPresent()) {
             return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         }
