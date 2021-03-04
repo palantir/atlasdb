@@ -154,13 +154,13 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
+import com.palantir.lock.client.ImmutableMultiClientRequestBatchers;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockRefreshingLockService;
-import com.palantir.lock.client.MultiClientRequestBatchers;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.ProfilingTimelockService;
@@ -1247,13 +1247,12 @@ public abstract class TransactionManagers {
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             LockWatchEventCache lockWatchEventCache,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
-
         return RequestBatchersFactory.create(
                 lockWatchEventCache,
                 Namespace.of(namespace),
-                timelockRequestBatcherProviders.map(batcherProviders -> new MultiClientRequestBatchers(
-                        batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier),
-                        batcherProviders.commitTimestamps().getBatcher(multiClientTimelockServiceSupplier))));
+                timelockRequestBatcherProviders.map(batcherProviders -> ImmutableMultiClientRequestBatchers.of(
+                        batcherProviders.commitTimestamps().getBatcher(multiClientTimelockServiceSupplier),
+                        batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier))));
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(

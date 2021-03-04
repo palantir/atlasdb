@@ -21,6 +21,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.Optional;
+import org.immutables.value.Value;
 
 public final class RequestBatchersFactory {
     private final LockWatchEventCache lockWatchEventCache;
@@ -52,7 +53,7 @@ public final class RequestBatchersFactory {
 
     public IdentifiedAtlasDbTransactionStarter createBatchingTransactionStarter(LockLeaseService lockLeaseService) {
         Optional<MultiClientTransactionStarter> transactionStarter =
-                maybeRequestBatchers.map(MultiClientRequestBatchers::getTransactionStarter);
+                maybeRequestBatchers.map(MultiClientRequestBatchers::transactionStarter);
         if (!transactionStarter.isPresent()) {
             return BatchingIdentifiedAtlasDbTransactionStarter.create(
                     lockLeaseService, startTransactionsLockWatchEventCache);
@@ -66,10 +67,19 @@ public final class RequestBatchersFactory {
 
     public CommitTimestampGetter createBatchingCommitTimestampGetter(LockLeaseService lockLeaseService) {
         Optional<MultiClientCommitTimestampGetter> commitTimestampGetter =
-                maybeRequestBatchers.map(MultiClientRequestBatchers::getCommitTimestampGetter);
+                maybeRequestBatchers.map(MultiClientRequestBatchers::commitTimestampGetter);
         if (!commitTimestampGetter.isPresent()) {
             return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         }
         return new NamespacedCommitTimestampGetter(lockWatchEventCache, namespace, commitTimestampGetter.get());
+    }
+
+    @Value.Immutable
+    public interface MultiClientRequestBatchers {
+        @Value.Parameter
+        MultiClientCommitTimestampGetter commitTimestampGetter();
+
+        @Value.Parameter
+        MultiClientTransactionStarter transactionStarter();
     }
 }
