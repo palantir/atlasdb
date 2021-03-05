@@ -115,4 +115,16 @@ public class CassandraReloadableKvsConfig extends ForwardingCassandraKeyValueSer
                 .map(_runtime -> poolSize() * servers().numberOfThriftHosts())
                 .orElseGet(config::concurrentGetRangesThreadPoolSize);
     }
+
+    @Override
+    public int defaultGetRangesConcurrency() {
+        if (config.servers().numberOfThriftHosts() > 0) {
+            return config.defaultGetRangesConcurrency();
+        }
+
+        return runtimeConfigSupplier
+                .get()
+                .map(_runtime -> Math.min(8, concurrentGetRangesThreadPoolSize() / 2))
+                .orElseGet(config::defaultGetRangesConcurrency);
+    }
 }
