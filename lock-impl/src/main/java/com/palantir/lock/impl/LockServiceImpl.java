@@ -50,6 +50,9 @@ import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.HeldLocksTokens;
+import com.palantir.lock.ImmutableLockHolder;
+import com.palantir.lock.ImmutableLockRequester;
+import com.palantir.lock.ImmutableLockState;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollection;
 import com.palantir.lock.LockCollections;
@@ -62,6 +65,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerConfigs;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
+import com.palantir.lock.LockState;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
@@ -85,6 +89,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -97,6 +102,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -1126,6 +1133,73 @@ public final class LockServiceImpl
             log.trace(".getLockServerOptions() returns {}", options);
         }
         return options;
+    }
+
+    @Override
+    public LockState getLockState(LockDescriptor descriptor) {
+        LockServerLock readWriteLock = (LockServerLock) descriptorToLockMap.getIfPresent(descriptor);
+        if (readWriteLock == null) {
+            return ImmutableLockState.builder()
+                    .isWriteLocked(false)
+                    .isFrozen(false)
+                    .build();
+        }
+
+        LockServerSync sync = readWriteLock.getSync();
+        List<LockClient> readHolders;
+        LockClient writeHolders;
+        boolean isFrozen;
+        boolean writeMode;
+        synchronized (sync) {
+            readHolders = ImmutableList.copyOf(Iterables.transform(sync.getReadClients(), clientIndices::fromIndex));
+            writeHolders = sync.getLockHolder();
+            isFrozen = sync.isFrozen();
+            writeMode = readHolders.isEmpty();
+        }
+        List<LockClient> lockHolders;
+        if (readHolders.isEmpty()) {
+            if (writeHolders == null) {
+                lockHolders = ImmutableList.of();
+            } else {
+                lockHolders = ImmutableList.of(writeHolders);
+            }
+        } else{
+            lockHolders = readHolders;
+        }
+
+        List<HeldLocksToken> heldLocks = new ArrayList<>();
+        heldLocksTokenMap.keySet().stream()
+                .filter(token -> token.getLockDescriptors().contains(descriptor))
+                .forEach(heldLocks::add);
+
+        Map<LockRequest, LockClient> requests = new HashMap<>();
+        outstandingLockRequestMultimap.forEach((client, request) -> {
+            if (request.getLockDescriptors().contains(descriptor)) {
+                requests.put(request, client);
+            }
+        });
+
+        ImmutableLockState.Builder lockState = ImmutableLockState.builder()
+                .isWriteLocked(writeMode)
+                .exactCurrentLockHolders(lockHolders)
+                .isFrozen(isFrozen);
+        heldLocks.forEach(lock -> lockState.addHolders(ImmutableLockHolder.builder()
+                .client(lock.getClient())
+                .creationDateMs(lock.getCreationDateMs())
+                .expirationDateMs(lock.getExpirationDateMs())
+                .numOtherLocksHeld(lock.getLocks().size() - 1)
+                .versionId(Optional.ofNullable(lock.getVersionId()))
+                .requestingThread(lock.getRequestingThread())
+                .build()));
+        requests.forEach((request, client) -> lockState.addRequesters(ImmutableLockRequester.builder()
+                .client(client)
+                .lockGroupBehavior(request.getLockGroupBehavior())
+                .blockingMode(request.getBlockingMode())
+                .blockingDuration(Optional.ofNullable(request.getBlockingDuration()))
+                .versionId(Optional.ofNullable(request.getVersionId()))
+                .requestingThread(request.getCreatingThreadName())
+        .build()));
+        return lockState.build();
     }
 
     /**

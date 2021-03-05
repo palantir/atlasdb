@@ -61,6 +61,11 @@ public abstract class ForwardingRemoteLockService extends ForwardingObject imple
     }
 
     @Override
+    public LockState getLockState(LockDescriptor lock) {
+        return delegate().getLockState(lock);
+    }
+
+    @Override
     public void close() throws IOException {
         if (delegate() instanceof Closeable) {
             ((Closeable) delegate()).close();

@@ -22,11 +22,13 @@ import com.palantir.lock.ConjureLockV1ServiceBlocking;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.tokens.auth.AuthHeader;
 import java.math.BigInteger;
@@ -158,5 +160,10 @@ public class DialogueComposingLockRpcClient implements LockRpcClient {
     @Override
     public void logCurrentState(String namespace) {
         dialogueShimDelegate.logCurrentState(namespace);
+    }
+
+    @Override
+    public LockState getLockState(LockDescriptor lock) {
+        return dialogueShimDelegate.getLockState(lock);
     }
 }

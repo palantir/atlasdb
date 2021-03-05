@@ -35,6 +35,10 @@ public class LockServerLock implements ClientAwareReadWriteLock {
         this.sync = new LockServerSync(clients);
     }
 
+    /* package */ LockServerSync getSync() {
+        return sync;
+    }
+
     @Override
     public LockDescriptor getDescriptor() {
         return descriptor;

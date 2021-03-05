@@ -21,6 +21,7 @@ import com.palantir.logsafe.Safe;
 import java.util.Set;
 import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -103,4 +104,20 @@ public interface RemoteLockService {
     @POST
     @Path("log-current-state")
     void logCurrentState();
+
+    /**
+     * Returns the current locking and request state of the specified lock.
+     *
+     * Note that this is a best-effort endpoint, and not all parts of the the returned data
+     * structure is guaranteed to reflect the state of the server at a given point in time.
+     *
+     * Also note that, as this is a debugging endpoint, we do not enforce backcompat guarantees
+     * on this endpoint.
+     */
+    @POST
+    @Idempotent
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("get-debugging-lock-state")
+    LockState getLockState(LockDescriptor lock);
 }

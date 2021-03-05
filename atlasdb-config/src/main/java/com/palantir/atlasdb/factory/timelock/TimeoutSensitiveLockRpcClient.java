@@ -19,11 +19,13 @@ package com.palantir.atlasdb.factory.timelock;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
 import java.math.BigInteger;
 import java.util.Optional;
@@ -154,5 +156,10 @@ public class TimeoutSensitiveLockRpcClient implements LockRpcClient {
         // Even if this does take more than the short timeout, the request will fail while the server will
         // dump its logs out.
         shortTimeoutProxy.logCurrentState(namespace);
+    }
+
+    @Override
+    public LockState getLockState(LockDescriptor lock) {
+        return shortTimeoutProxy.getLockState(lock);
     }
 }
