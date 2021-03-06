@@ -539,7 +539,9 @@ public abstract class LockServiceTest {
         LockState state1 = server.getLockState(lock1);
         Assert.assertFalse(state1.isWriteLocked());
         Assert.assertEquals(state1.exactCurrentLockHolders(), ImmutableList.of(LockClient.ANONYMOUS));
-        Assert.assertEquals(Iterables.getOnlyElement(state1.holders()).requestingThread(), Thread.currentThread().getName());
+        Assert.assertEquals(
+                Iterables.getOnlyElement(state1.holders()).requestingThread(),
+                Thread.currentThread().getName());
 
         executor.submit((Callable<Void>) () -> {
             barrier.await();

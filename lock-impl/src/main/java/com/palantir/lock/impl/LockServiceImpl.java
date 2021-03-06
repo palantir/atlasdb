@@ -102,8 +102,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -1163,7 +1161,7 @@ public final class LockServiceImpl
             } else {
                 lockHolders = ImmutableList.of(writeHolders);
             }
-        } else{
+        } else {
             lockHolders = readHolders;
         }
 
@@ -1198,7 +1196,7 @@ public final class LockServiceImpl
                 .blockingDuration(Optional.ofNullable(request.getBlockingDuration()))
                 .versionId(Optional.ofNullable(request.getVersionId()))
                 .requestingThread(request.getCreatingThreadName())
-        .build()));
+                .build()));
         return lockState.build();
     }
 
