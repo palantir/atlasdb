@@ -16,22 +16,24 @@
 
 package com.palantir.lock;
 
-import java.util.List;
-import java.util.Optional;
-
-import org.immutables.value.Value;
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.List;
+import java.util.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockState.class)
 @JsonDeserialize(as = ImmutableLockState.class)
 public interface LockState {
     boolean isWriteLocked();
+
     boolean isFrozen();
+
     List<LockClient> exactCurrentLockHolders();
+
     List<LockHolder> holders();
+
     List<LockRequester> requesters();
 
     @Value.Immutable
@@ -39,10 +41,15 @@ public interface LockState {
     @JsonDeserialize(as = ImmutableLockHolder.class)
     interface LockHolder {
         LockClient client();
+
         long creationDateMs();
+
         long expirationDateMs();
+
         int numOtherLocksHeld();
+
         Optional<Long> versionId();
+
         String requestingThread();
     }
 
@@ -51,10 +58,15 @@ public interface LockState {
     @JsonDeserialize(as = ImmutableLockRequester.class)
     interface LockRequester {
         LockClient client();
+
         LockGroupBehavior lockGroupBehavior();
+
         BlockingMode blockingMode();
+
         Optional<TimeDuration> blockingDuration();
+
         Optional<Long> versionId();
+
         String requestingThread();
     }
 }
