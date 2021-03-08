@@ -27,7 +27,7 @@ recommendedProductDependencies {
     productDependency {
         productGroup = 'com.palantir.timelock'
         productName = 'timelock-server'
-        minimumVersion = '0.455.0'
+        minimumVersion = '0.331.0'
         maximumVersion = '0.x.x'
     }
 }
