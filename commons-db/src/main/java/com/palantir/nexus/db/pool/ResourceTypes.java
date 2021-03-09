@@ -59,6 +59,11 @@ public final class ResourceTypes {
                         public DBType getDbType() {
                             return delegate.getDbType();
                         }
+
+                        @Override
+                        public void setPassword(String newPassword) {
+                            delegate.setPassword(newPassword);
+                        }
                     };
                 }
 

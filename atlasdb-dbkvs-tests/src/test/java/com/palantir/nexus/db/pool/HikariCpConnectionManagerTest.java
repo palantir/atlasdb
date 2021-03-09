@@ -19,38 +19,24 @@ package com.palantir.nexus.db.pool;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.configuration.ShutdownStrategy;
-import com.palantir.docker.compose.connection.Container;
-import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.docker.compose.logging.LogDirectory;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbkvsPostgresTestSuite;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
-import java.net.InetSocketAddress;
+import com.palantir.nexus.db.pool.config.PostgresConnectionConfig;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTransientConnectionException;
 import java.sql.Statement;
+import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class HikariCpConnectionManagerTest {
-
-    private static final int POSTGRES_PORT_NUMBER = 5432;
-
-    @ClassRule
-    public static final DockerComposeRule docker = DockerComposeRule.builder()
-            .file("src/test/resources/docker-compose.yml")
-            .waitingForService("postgres", Container::areAllPortsOpen)
-            .saveLogsTo(LogDirectory.circleAwareLogDirectory(HikariCpConnectionManagerTest.class))
-            .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
-            .build();
 
     private ConnectionManager manager;
 
@@ -141,6 +127,81 @@ public class HikariCpConnectionManagerTest {
         manager.close(); // shouldn't throw
     }
 
+    @Test
+    public void testRuntimePasswordChange() throws SQLException {
+        // create a new user to avoid messing up the main user for other tests
+        String testUsername = "testpasswordchange";
+        String password1 = "password1";
+        String password2 = "password2";
+        String password3 = "password3";
+
+        try (Connection conn = manager.getConnection()) {
+            try (Statement statement = conn.createStatement()) {
+                statement.execute(String.format("CREATE USER %s WITH PASSWORD '%s'", testUsername, password1));
+            }
+            try (Statement statement = conn.createStatement()) {
+                statement.execute("GRANT ALL PRIVILEGES ON DATABASE atlas TO " + testUsername);
+            }
+        }
+
+        // intentionally create the conn manager with the wrong password initially
+        ConnectionManager testManager =
+                new HikariCPConnectionManager(createConnectionConfig(testUsername, password3, 0, 3));
+        // fixing the password before init should work
+        testManager.setPassword(password1);
+
+        try (Connection conn = testManager.getConnection()) {
+            try (Statement statement = conn.createStatement()) {
+                statement.execute(String.format("ALTER USER %s WITH PASSWORD '%s'", testUsername, password2));
+            }
+            // existing connection should still work
+            checkConnection(conn);
+
+            // trying to get a new connection should fail (times out with wrong password)
+            assertPasswordWrong(testManager);
+
+            // fix the password on the pool
+            testManager.setPassword(password2);
+            // original connection should still work
+            checkConnection(conn);
+
+            // new connection should also work
+            try (Connection conn2 = testManager.getConnection()) {
+                checkConnection(conn2);
+            }
+
+            // changing the pool password again and one connection should work (conn still in the pool)
+            testManager.setPassword(password3);
+            try (Connection conn2 = testManager.getConnection()) {
+                checkConnection(conn2);
+
+                // getting one more connection should see the password error
+                assertPasswordWrong(testManager);
+
+                // use existing conn to fix the password
+                try (Statement statement = conn2.createStatement()) {
+                    statement.execute(String.format("ALTER USER %s WITH PASSWORD '%s'", testUsername, password3));
+                }
+
+                // now a new connection should work
+                try (Connection conn3 = testManager.getConnection()) {
+                    checkConnection(conn3);
+                }
+            }
+        }
+    }
+
+    private static void assertPasswordWrong(ConnectionManager testManager) {
+        Assertions.assertThatThrownBy(() -> {
+                    try (Connection ignored = testManager.getConnection()) {
+                        // should fail
+                    }
+                })
+                .getCause()
+                .describedAs("new connection should fail when password is wrong")
+                .hasMessageContaining("password authentication failed");
+    }
+
     private static void checkConnection(Connection conn) throws SQLException {
         try (Statement statement = conn.createStatement()) {
             try (ResultSet result = statement.executeQuery("SELECT 123")) {
@@ -152,14 +213,19 @@ public class HikariCpConnectionManagerTest {
     }
 
     private static ConnectionConfig createConnectionConfig(int maxConnections) {
-        DockerPort port = docker.containers().container("postgres").port(POSTGRES_PORT_NUMBER);
-        InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
+        return createConnectionConfig("palantir", "palantir", maxConnections, maxConnections);
+    }
+
+    private static ConnectionConfig createConnectionConfig(
+            String username, String password, int minConnections, int maxConnections) {
+        PostgresConnectionConfig suiteConfig = DbkvsPostgresTestSuite.getConnectionConfig();
         return ImmutablePostgresConnectionConfig.builder()
-                .dbName("atlas")
-                .dbLogin("palantir")
-                .dbPassword(ImmutableMaskedValue.of("palantir"))
-                .host(postgresAddress.getHostName())
-                .port(postgresAddress.getPort())
+                .dbName(suiteConfig.getDbName())
+                .host(suiteConfig.getHost())
+                .port(suiteConfig.getPort())
+                .dbLogin(username)
+                .dbPassword(ImmutableMaskedValue.of(password))
+                .minConnections(minConnections)
                 .maxConnections(maxConnections)
                 .checkoutTimeout(2000)
                 .build();
