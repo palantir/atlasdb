@@ -147,7 +147,7 @@ public final class PTExecutors {
      */
     @Deprecated
     public static ExecutorService newCachedThreadPool(ThreadFactory threadFactory, int threadTimeoutMillis) {
-        return tryInstrument(
+        return tryInstrumentCachedExecutor(
                 newThreadPoolExecutor(
                         0,
                         Integer.MAX_VALUE,
@@ -168,9 +168,10 @@ public final class PTExecutors {
         Preconditions.checkNotNull(name, "Name is required");
         Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
         Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
-        return MetricRegistries.instrument(
-                SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(
+        return MetricRegistries.executor()
+                .registry(SharedTaggedMetricRegistries.getSingleton())
+                .name(name)
+                .executor(PTExecutors.wrap(
                         name,
                         new AtlasRenamingExecutorService(
                                 ViewExecutor.builder(SHARED_EXECUTOR.get())
@@ -179,18 +180,26 @@ public final class PTExecutors {
                                         .setUncaughtHandler(AtlasUncaughtExceptionHandler.INSTANCE)
                                         .build(),
                                 AtlasUncaughtExceptionHandler.INSTANCE,
-                                AtlasRenamingExecutorService.threadNameSupplier(name))),
-                name);
+                                AtlasRenamingExecutorService.threadNameSupplier(name))))
+                // Unhelpful for cached executors
+                .reportQueuedDuration(false)
+                .build();
     }
 
     /**
      * Instruments the provided {@link ExecutorService} if the {@link ThreadFactory} is a {@link NamedThreadFactory}.
      */
     @SuppressWarnings("deprecation") // No reasonable way to pass a TaggedMetricRegistry
-    private static ExecutorService tryInstrument(ExecutorService executorService, ThreadFactory factory) {
+    private static ExecutorService tryInstrumentCachedExecutor(ExecutorService executorService, ThreadFactory factory) {
         if (factory instanceof NamedThreadFactory) {
             String name = ((NamedThreadFactory) factory).getPrefix();
-            return MetricRegistries.instrument(SharedTaggedMetricRegistries.getSingleton(), executorService, name);
+            return MetricRegistries.executor()
+                    .registry(SharedTaggedMetricRegistries.getSingleton())
+                    .name(name)
+                    .executor(executorService)
+                    // Unhelpful for cached executors
+                    .reportQueuedDuration(false)
+                    .build();
         }
         return executorService;
     }
