@@ -19,7 +19,9 @@ package com.palantir.nexus.db.pool;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbkvsPostgresTestSuite;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
@@ -29,7 +31,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTransientConnectionException;
 import java.sql.Statement;
-import org.assertj.core.api.Assertions;
+import java.time.Duration;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -135,18 +138,20 @@ public class HikariCpConnectionManagerTest {
         String password2 = "password2";
         String password3 = "password3";
 
+        // initial config intentionally has the wrong password for the test user
+        PostgresConnectionConfig testConfig = createConnectionConfig(testUsername, password3, 0, 3);
+
         try (Connection conn = manager.getConnection()) {
             try (Statement statement = conn.createStatement()) {
                 statement.execute(String.format("CREATE USER %s WITH PASSWORD '%s'", testUsername, password1));
             }
             try (Statement statement = conn.createStatement()) {
-                statement.execute("GRANT ALL PRIVILEGES ON DATABASE atlas TO " + testUsername);
+                statement.execute(String.format(
+                        "GRANT ALL PRIVILEGES ON DATABASE %s TO %s", testConfig.getDbName(), testUsername));
             }
         }
 
-        // intentionally create the conn manager with the wrong password initially
-        ConnectionManager testManager =
-                new HikariCPConnectionManager(createConnectionConfig(testUsername, password3, 0, 3));
+        ConnectionManager testManager = new HikariCPConnectionManager(testConfig);
         // fixing the password before init should work
         testManager.setPassword(password1);
 
@@ -188,18 +193,38 @@ public class HikariCpConnectionManagerTest {
                     checkConnection(conn3);
                 }
             }
+        } finally {
+            testManager.close();
         }
     }
 
     private static void assertPasswordWrong(ConnectionManager testManager) {
-        Assertions.assertThatThrownBy(() -> {
-                    try (Connection ignored = testManager.getConnection()) {
-                        // should fail
-                    }
-                })
-                .getCause()
-                .describedAs("new connection should fail when password is wrong")
-                .hasMessageContaining("password authentication failed");
+        // This is needed because it appears that sometimes postgres password changes do not take effect immediately.
+        // If the password change happens too late, we end up with a connection in the pool that we did not expect.
+        // In that case we need to wait the configured time (1 second) for hikari to remove the idle connection from
+        // the pool before we can detect that the password is wrong. Note that I cannot reproduce this case locally,
+        // but it appears to almost always happen on circle.
+        Awaitility.await("assertPasswordWrong")
+                .atMost(Duration.ofSeconds(10))
+                .pollInterval(Duration.ofSeconds(2))
+                .pollDelay(Duration.ofMillis(100))
+                .until(() -> isPasswordWrong(testManager));
+    }
+
+    private static boolean isPasswordWrong(ConnectionManager testManager) {
+        try (Connection ignored = testManager.getConnection()) {
+            return false;
+        } catch (SQLException e) {
+            // if "password authentication failed" is in the cause chain, the password is wrong
+            // otherwise this is an unexpected exception
+            for (Throwable t : Throwables.getCausalChain(e)) {
+                String message = t.getMessage();
+                if (message != null && message.contains("password authentication failed")) {
+                    return true;
+                }
+            }
+            throw new SafeRuntimeException("unexpected exception checking password on ConnectionManager", e);
+        }
     }
 
     private static void checkConnection(Connection conn) throws SQLException {
@@ -216,7 +241,7 @@ public class HikariCpConnectionManagerTest {
         return createConnectionConfig("palantir", "palantir", maxConnections, maxConnections);
     }
 
-    private static ConnectionConfig createConnectionConfig(
+    private static PostgresConnectionConfig createConnectionConfig(
             String username, String password, int minConnections, int maxConnections) {
         PostgresConnectionConfig suiteConfig = DbkvsPostgresTestSuite.getConnectionConfig();
         return ImmutablePostgresConnectionConfig.builder()
@@ -228,6 +253,8 @@ public class HikariCpConnectionManagerTest {
                 .minConnections(minConnections)
                 .maxConnections(maxConnections)
                 .checkoutTimeout(2000)
+                // if this is set too high, testRuntimePasswordChange will be unreliable (and will take longer)
+                .maxConnectionAge(1)
                 .build();
     }
 }
