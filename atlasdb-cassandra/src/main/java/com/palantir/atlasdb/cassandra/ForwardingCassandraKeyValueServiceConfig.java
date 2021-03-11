@@ -91,7 +91,7 @@ abstract class ForwardingCassandraKeyValueServiceConfig implements CassandraKeyV
     }
 
     @Override
-    public Optional<Duration> timeoutOnConnectionClose() {
+    public Duration timeoutOnConnectionClose() {
         return delegate().timeoutOnConnectionClose();
     }
 
