@@ -72,36 +72,40 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     @Override
     public ListenableFuture<LeaderTimes> leaderTimes(AuthHeader authHeader, Set<Namespace> namespaces) {
-        List<ListenableFuture<Map.Entry<Namespace, LeaderTime>>> futures =
-                namespaces.stream().map(this::getNamespacedLeaderTimes).collect(Collectors.toList());
-
-        return handleExceptions(() -> Futures.transform(
-                Futures.allAsList(futures),
-                entryList -> LeaderTimes.of(ImmutableMap.copyOf(entryList)),
-                MoreExecutors.directExecutor()));
+        return handleExceptions(() -> {
+            List<ListenableFuture<Map.Entry<Namespace, LeaderTime>>> futures =
+                    namespaces.stream().map(this::getNamespacedLeaderTimes).collect(Collectors.toList());
+            return Futures.transform(
+                    Futures.allAsList(futures),
+                    entryList -> LeaderTimes.of(ImmutableMap.copyOf(entryList)),
+                    MoreExecutors.directExecutor());
+        });
     }
 
     @Override
     public ListenableFuture<Map<Namespace, ConjureStartTransactionsResponse>> startTransactions(
             AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
-        List<ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>> futures = KeyedStream.stream(
-                        requests)
-                .map(this::startTransactionsForSingleNamespace)
-                .values()
-                .collect(Collectors.toList());
-        return handleExceptions(() ->
-                Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor()));
+        return handleExceptions(() -> {
+            List<ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>> futures = KeyedStream.stream(
+                            requests)
+                    .map(this::startTransactionsForSingleNamespace)
+                    .values()
+                    .collect(Collectors.toList());
+            return Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor());
+        });
     }
 
     @Override
     public ListenableFuture<Map<Namespace, GetCommitTimestampsResponse>> getCommitTimestamps(
             AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
-        List<ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>>> futures = KeyedStream.stream(requests)
-                .map(this::getCommitTimestampsForSingleNamespace)
-                .values()
-                .collect(Collectors.toList());
-        return handleExceptions(() ->
-                Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor()));
+        return handleExceptions(() -> {
+            List<ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>>> futures = KeyedStream.stream(
+                            requests)
+                    .map(this::getCommitTimestampsForSingleNamespace)
+                    .values()
+                    .collect(Collectors.toList());
+            return Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor());
+        });
     }
 
     private ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>> getCommitTimestampsForSingleNamespace(
