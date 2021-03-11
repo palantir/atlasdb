@@ -36,6 +36,9 @@ import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.NanoTime;
+import com.palantir.conjure.java.api.errors.QosException.RetryOther;
+import com.palantir.conjure.java.api.errors.QosException.Throttle;
+import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
@@ -105,12 +108,23 @@ public class MultiClientConjureTimelockResourceTest {
     }
 
     @Test
-    public void requestThrowsIfAnyQueryFails() {
+    public void requestHandlesExceptionAndThrowsIfAnyQueryFails() {
         String throwingClient = "alpha";
         Set<Namespace> namespaces = ImmutableSet.of(Namespace.of(throwingClient), Namespace.of("beta"));
         when(getServiceForClient(throwingClient).leaderTime()).thenThrow(new BlockingTimeoutException(""));
         assertThatThrownBy(() -> Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
-                .isInstanceOf(BlockingTimeoutException.class);
+                .hasCauseInstanceOf(Throttle.class);
+    }
+
+    @Test
+    public void handlesNotCurrentLeaderExceptions() {
+        String throwingClient = "alpha";
+        Set<Namespace> namespaces = ImmutableSet.of(Namespace.of(throwingClient), Namespace.of("beta"));
+        when(getServiceForClient(throwingClient).leaderTime())
+                .thenThrow(new NotCurrentLeaderException("Not the " + "leader!"));
+        assertThatThrownBy(() -> Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
+                .hasCauseInstanceOf(RetryOther.class)
+                .hasRootCauseMessage("Suggesting request retry against: " + REMOTE);
     }
 
     @Test
