@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Set default timeout to give up on evicting C* connections to 10 seconds. This should not affect regular usage.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5311
