@@ -42,6 +42,8 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
     private final long cutoffInclusive;
     private final AtomicLong legacyLogLeastLogEntry;
 
+    private volatile boolean isInitialized = false;
+
     private SplittingPaxosStateLog(
             PaxosStateLog<V> legacyLog,
             PaxosStateLog<V> currentLog,
@@ -151,6 +153,11 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
     @Override
     public void truncateAllRounds() {
         log.warn("Tried to truncate paxos state log with an implementation that does not support truncations.");
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return isInitialized;
     }
 
     @Value.Immutable

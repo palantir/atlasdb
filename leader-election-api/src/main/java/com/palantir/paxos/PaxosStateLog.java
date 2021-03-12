@@ -72,4 +72,10 @@ public interface PaxosStateLog<V extends Persistable & Versionable> {
     void truncate(long toDeleteInclusive);
 
     void truncateAllRounds();
+
+    /**
+     * Returns true iff this Paxos state log is in a state where it is able to service requests. Behaviour of other
+     * methods is undefined if the log is not initialized yet.
+     */
+    boolean isInitialized();
 }
