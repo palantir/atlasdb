@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[HIGHLY EXPERIMENTAL, SEVERE DATA CORRUPTION (TM) RISK] New deployment can use just the sqlite paxos log directly, which leads to better perf.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5315
