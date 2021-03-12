@@ -103,7 +103,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -138,10 +137,8 @@ public final class LockServiceImpl
     // LegacyTimelockServiceAdapter relies on token ids being convertible to UUIDs; thus this should
     // never be > 127
     public static final int RANDOM_BIT_COUNT = 127;
-    public static final ImmutableLockState EMPTY_LOCK_STATE = ImmutableLockState.builder()
-            .isWriteLocked(false)
-            .isFrozen(false)
-            .build();
+    public static final ImmutableLockState EMPTY_LOCK_STATE =
+            ImmutableLockState.builder().isWriteLocked(false).isFrozen(false).build();
 
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
