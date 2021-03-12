@@ -18,7 +18,6 @@ package com.palantir.paxos;
 
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.util.OptionalLong;
@@ -75,34 +74,14 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
             PaxosStorageParameters params,
             Persistable.Hydrator<V> hydrator,
             LegacyOperationMarkers legacyOperationMarkers,
-            OptionalLong migrateFrom) {
+            OptionalLong _migrateFrom) {
         String logDirectory = params.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
         NamespaceAndUseCase namespaceUseCase = params.namespaceAndUseCase();
-
-        PaxosStateLogMigrator.MigrationContext<V> migrationContext = ImmutableMigrationContext.<V>builder()
-                .sourceLog(PaxosStateLogImpl.createFileBacked(logDirectory))
-                .destinationLog(SqlitePaxosStateLog.create(namespaceUseCase, params.sqliteDataSource()))
-                .hydrator(hydrator)
-                .migrationState(SqlitePaxosStateLogMigrationState.create(namespaceUseCase, params.sqliteDataSource()))
-                .migrateFrom(migrateFrom)
-                .namespaceAndUseCase(namespaceUseCase)
-                .skipValidationAndTruncateSourceIfMigrated(params.skipConsistencyCheckAndTruncateOldPaxosLog())
-                .build();
-
-        log.info(
-                "Starting migration for namespace and use case {} if migration has not run before.",
-                SafeArg.of("namespaceAndUseCase", params.namespaceAndUseCase()));
-        long cutoff = PaxosStateLogMigrator.migrateAndReturnCutoff(migrationContext);
-
-        if (params.skipConsistencyCheckAndTruncateOldPaxosLog()) {
-            return migrationContext.destinationLog();
-        }
-
         SplittingParameters<V> splittingParameters = ImmutableSplittingParameters.<V>builder()
-                .legacyLog(migrationContext.sourceLog())
-                .currentLog(migrationContext.destinationLog())
-                .cutoffInclusive(cutoff)
+                .legacyLog(PaxosStateLogImpl.createFileBacked(logDirectory))
+                .currentLog(SqlitePaxosStateLog.create(namespaceUseCase, params.sqliteDataSource()))
+                .cutoffInclusive(-1) // magic
                 .legacyOperationMarkers(legacyOperationMarkers)
                 .build();
 

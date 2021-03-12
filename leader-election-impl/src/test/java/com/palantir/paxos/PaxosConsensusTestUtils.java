@@ -66,12 +66,12 @@ public final class PaxosConsensusTestUtils {
         for (int i = 0; i < numLeaders; i++) {
             failureToggles.add(new AtomicBoolean(false));
 
-            PaxosLearner learner = PaxosLearnerImpl.newSqliteLearner(
+            PaxosLearner learner = PaxosLearnerImpl.newSplittingLearner(
                     getLearnerStorageParameters(i, sqliteDataSource), noop, PaxosKnowledgeEventRecorder.NO_OP);
             learners.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosLearner.class, learner, failureToggles.get(i), exception));
 
-            PaxosAcceptor acceptor = PaxosAcceptorImpl.newSqliteAcceptor(
+            PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(
                     getAcceptorStorageParameters(i, sqliteDataSource), noop, Optional.empty());
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosAcceptor.class, acceptor, failureToggles.get(i), exception));
