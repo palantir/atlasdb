@@ -454,8 +454,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientLeaderTime() {
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
+        Assume.assumeFalse(leader.isMultiLeader());
+
         Set<Namespace> expectedNamespaces = ImmutableSet.of(Namespace.of("client1"), Namespace.of("client2"));
-        LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(expectedNamespaces);
+        LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(leader, expectedNamespaces);
 
         // leaderTimes for namespaces are computed by their respective underlying AsyncTimelockService instances
         Set<UUID> leadershipIds = leaderTimes.getLeaderTimes().values().stream()
@@ -467,9 +471,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientLeaderTimeAgainstConjureTimelockService() {
-        Set<Namespace> expectedNamespaces = ImmutableSet.of(Namespace.of("alpha"), Namespace.of("beta"));
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(expectedNamespaces);
+        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
+        Assume.assumeFalse(leader.isMultiLeader());
+
+        Set<Namespace> expectedNamespaces = ImmutableSet.of(Namespace.of("alpha"), Namespace.of("beta"));
+        LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(leader, expectedNamespaces);
 
         // Whether we hit the multi client endpoint or conjureTimelockService endpoint(services one client in one
         // call), for a namespace, the underlying service to process the request is the same
@@ -484,6 +491,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void sanityCheckMultiClientStartTransactions() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
+        Assume.assumeFalse(leader.isMultiLeader());
+
         List<String> expectedNamespaces = ImmutableList.of("alpha", "beta");
 
         Map<Namespace, ConjureStartTransactionsResponse> startTransactions =
@@ -499,6 +509,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void sanityCheckMultiClientStartTransactionsAgainstConjureTimelockService() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
+        Assume.assumeFalse(leader.isMultiLeader());
+
         MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
 
         List<String> expectedNamespaces = ImmutableList.of("alpha", "beta");
@@ -527,6 +540,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void multiClientStartTransactionsReturnsCorrectStartTimestamps() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
+        Assume.assumeFalse(leader.isMultiLeader());
+
         Namespace delta = Namespace.of("delta");
         Namespace gamma = Namespace.of("gamma");
 
@@ -552,8 +568,11 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientGetCommitTimestamps() {
-        MultiClientConjureTimelockService service =
-                cluster.currentLeaderFor(client.namespace()).multiClientService();
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
+        Assume.assumeFalse(leader.isMultiLeader());
+
+        MultiClientConjureTimelockService service = leader.multiClientService();
 
         Set<String> expectedNamespaces = ImmutableSet.of("cli-1", "cli-2");
         Map<Namespace, GetCommitTimestampsResponse> multiClientResponses =
@@ -571,6 +590,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void sanityCheckMultiClientGetCommitTimestampsAgainstConjureTimelockService() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
+        Assume.assumeFalse(leader.isMultiLeader());
+
         MultiClientConjureTimelockService multiClientService = leader.multiClientService();
 
         Set<String> expectedNamespaces = ImmutableSet.of("alta", "mp");
@@ -650,8 +672,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .collectToMap();
     }
 
-    private LeaderTimes assertSanityAndGetLeaderTimes(Set<Namespace> expectedNamespaces) {
-        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
+    private LeaderTimes assertSanityAndGetLeaderTimes(
+            TestableTimelockServer leader, Set<Namespace> expectedNamespaces) {
         MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
 
         LeaderTimes leaderTimes = multiClientConjureTimelockService.leaderTimes(AUTH_HEADER, expectedNamespaces);
