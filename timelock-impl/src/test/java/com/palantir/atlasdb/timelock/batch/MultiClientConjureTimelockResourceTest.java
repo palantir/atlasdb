@@ -121,7 +121,7 @@ public class MultiClientConjureTimelockResourceTest {
         String throwingClient = "alpha";
         Set<Namespace> namespaces = ImmutableSet.of(Namespace.of(throwingClient), Namespace.of("beta"));
         when(getServiceForClient(throwingClient).leaderTime())
-                .thenThrow(new NotCurrentLeaderException("Not the " + "leader!"));
+                .thenThrow(new NotCurrentLeaderException("Not the leader!"));
         assertThatThrownBy(() -> Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
                 .hasCauseInstanceOf(RetryOther.class)
                 .hasRootCauseMessage("Suggesting request retry against: " + REMOTE);
