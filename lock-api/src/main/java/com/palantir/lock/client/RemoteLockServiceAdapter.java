@@ -162,6 +162,6 @@ public class RemoteLockServiceAdapter implements LockService {
 
     @Override
     public LockState getLockState(LockDescriptor lock) {
-        return null;
+        return namespaceAgnosticLockRpcClient.getLockState(lock);
     }
 }

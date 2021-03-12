@@ -35,7 +35,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
         this.sync = new LockServerSync(clients);
     }
 
-    /* package */ LockServerSync getSync() {
+    LockServerSync getSync() {
         return sync;
     }
 

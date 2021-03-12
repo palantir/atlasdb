@@ -555,12 +555,6 @@ public abstract class LockServiceTest {
             return null;
         });
 
-        /* Now make the logCurrentState() request; with the WRITE lock request blocked inside LockServer.lock(),
-         * this call should block until the first of these happens:
-         * -The READ lock times out and the WRITE lock can be granted, thus freeing up the debugLock
-         * -The logCurrentState tryLock() call times out after LOG_STATE_DEBUG_LOCK_WAIT_TIME_IN_MILLIS
-         *   and the call moves on to logCurrentStateInconsistent()
-         */
         barrier.await();
         Thread.sleep(500);
         LockState state2 = server.getLockState(lock1);

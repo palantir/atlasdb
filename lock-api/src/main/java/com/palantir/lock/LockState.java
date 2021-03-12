@@ -40,6 +40,17 @@ public interface LockState {
     @JsonSerialize(as = ImmutableLockHolder.class)
     @JsonDeserialize(as = ImmutableLockHolder.class)
     interface LockHolder {
+        static LockHolder from(HeldLocksToken lock) {
+            return ImmutableLockHolder.builder()
+                    .client(lock.getClient())
+                    .creationDateMs(lock.getCreationDateMs())
+                    .expirationDateMs(lock.getExpirationDateMs())
+                    .numOtherLocksHeld(lock.getLocks().size() - 1)
+                    .versionId(Optional.ofNullable(lock.getVersionId()))
+                    .requestingThread(lock.getRequestingThread())
+                    .build();
+        }
+
         LockClient client();
 
         long creationDateMs();
@@ -57,6 +68,17 @@ public interface LockState {
     @JsonSerialize(as = ImmutableLockRequester.class)
     @JsonDeserialize(as = ImmutableLockRequester.class)
     interface LockRequester {
+        static ImmutableLockRequester from(LockRequest request, LockClient client) {
+            return ImmutableLockRequester.builder()
+                    .client(client)
+                    .lockGroupBehavior(request.getLockGroupBehavior())
+                    .blockingMode(request.getBlockingMode())
+                    .blockingDuration(Optional.ofNullable(request.getBlockingDuration()))
+                    .versionId(Optional.ofNullable(request.getVersionId()))
+                    .requestingThread(request.getCreatingThreadName())
+                    .build();
+        }
+
         LockClient client();
 
         LockGroupBehavior lockGroupBehavior();
