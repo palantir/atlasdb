@@ -21,7 +21,6 @@ import com.palantir.logsafe.SafeArg;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
@@ -51,10 +50,10 @@ public final class PaxosLearnerImpl implements PaxosLearner {
 
     public static PaxosLearner newSplittingLearner(
             PaxosStorageParameters params,
-            SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
+            SplittingPaxosStateLog.LegacyOperationMarkers _legacyOperationMarkers,
             PaxosKnowledgeEventRecorder event) {
-        PaxosStateLog<PaxosValue> stateLog = SplittingPaxosStateLog.createWithMigration(
-                params, PaxosValue.BYTES_HYDRATOR, legacyOperationMarkers, OptionalLong.empty());
+        PaxosStateLog<PaxosValue> stateLog = SqlitePaxosStateLog.create(params.namespaceAndUseCase(),
+                params.sqliteDataSource());
         return newLearner(stateLog, event);
     }
 
