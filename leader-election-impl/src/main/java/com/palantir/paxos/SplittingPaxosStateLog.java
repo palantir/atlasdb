@@ -16,12 +16,13 @@
 
 package com.palantir.paxos;
 
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.util.OptionalLong;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -110,15 +111,17 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
             PaxosStorageParameters params,
             Persistable.Hydrator<V> hydrator,
             LegacyOperationMarkers legacyOperationMarkers,
-            OptionalLong migrateFrom,
-            Executor migrationExecutor) {
+            OptionalLong migrateFrom) {
         SeedableDelegatingPaxosStateLog<V> delegatingLog = new SeedableDelegatingPaxosStateLog<>();
+
+        ExecutorService migrationExecutor = PTExecutors.newSingleThreadExecutor();
         migrationExecutor.execute(() -> {
             PaxosStateLog<V> logWithBlockingMigration = createWithBlockingMigration(params, hydrator,
                     legacyOperationMarkers, migrateFrom);
             log.info("Blocking migration of Paxos logs is complete. Now making the new Paxos state logs visible to "
                     + "all");
             delegatingLog.supplyDelegate(logWithBlockingMigration);
+            migrationExecutor.shutdown();
         });
         return delegatingLog;
     }

@@ -29,11 +29,9 @@ import org.slf4j.LoggerFactory;
 public class SeedableDelegatingPaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
     private static final Logger log = LoggerFactory.getLogger(SeedableDelegatingPaxosStateLog.class);
 
-    private static final NotCurrentLeaderException NOT_CURRENT_LEADER_EXCEPTION = new NotCurrentLeaderException(
-            "This node's Paxos state log is not ready yet, probably because we're migrating the Paxos store. Please "
-                    + "wait...");
-
     private final AtomicReference<PaxosStateLog<V>> delegateReference = new AtomicReference<>();
+
+    public SeedableDelegatingPaxosStateLog() {}
 
     public void supplyDelegate(PaxosStateLog<V> delegate) {
         if (!delegateReference.compareAndSet(null, delegate)) {
@@ -78,7 +76,9 @@ public class SeedableDelegatingPaxosStateLog<V extends Persistable & Versionable
         if (delegate != null) {
             consumer.accept(delegate);
         } else {
-            throw NOT_CURRENT_LEADER_EXCEPTION;
+            throw new NotCurrentLeaderException(
+                    "This node's Paxos state log is not ready yet, probably because we're migrating the Paxos store. Please "
+                            + "wait...");
         }
     }
 
@@ -87,7 +87,9 @@ public class SeedableDelegatingPaxosStateLog<V extends Persistable & Versionable
         if (delegate != null) {
             return function.apply(delegate);
         } else {
-            throw NOT_CURRENT_LEADER_EXCEPTION;
+            throw new NotCurrentLeaderException(
+                    "This node's Paxos state log is not ready yet, probably because we're migrating the Paxos store. Please "
+                            + "wait...");
         }
     }
 
@@ -96,7 +98,9 @@ public class SeedableDelegatingPaxosStateLog<V extends Persistable & Versionable
         if (delegate != null) {
             return functionCheckedException.apply(delegate);
         } else {
-            throw NOT_CURRENT_LEADER_EXCEPTION;
+            throw new NotCurrentLeaderException(
+                    "This node's Paxos state log is not ready yet, probably because we're migrating the Paxos store. Please "
+                            + "wait...");
         }
     }
 }

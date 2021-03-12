@@ -18,9 +18,11 @@ package com.palantir.atlasdb.timelock.paxos;
 import com.codahale.metrics.Counter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
@@ -46,6 +48,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
@@ -148,10 +153,33 @@ public class LocalPaxosComponents {
     }
 
     private Components getOrCreateComponents(Client client) {
-        return componentsByClient.computeIfAbsent(client, this::createComponents);
+        return componentsByClient.computeIfAbsent(client, this::createComponentWrapperAndRunMigrationsInBackground);
     }
 
-    private Components createComponents(Client client) {
+    private Components createComponentWrapperAndRunMigrationsInBackground(Client client) {
+        ExecutorService singleThreadedExecutor = PTExecutors.newSingleThreadExecutor();
+
+        AtomicReference<PaxosLearner> learnerRef = new AtomicReference<>();
+        AtomicReference<PaxosAcceptor> acceptorRef = new AtomicReference<>();
+        AtomicReference<PingableLeader> leaderRef = new AtomicReference<>();
+
+        singleThreadedExecutor.execute(() -> {
+            Components createdComponents = createComponentsWithBlocking(client);
+            Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
+            // Leader must come after the learner. It may be better to wire the refs directly in to the factory.
+            learnerRef.set(createdComponents.learner());
+            acceptorRef.set(createdComponents.acceptor());
+            leaderRef.set(createdComponents.pingableLeader());
+            singleThreadedExecutor.shutdown();
+        });
+        return ImmutableComponents.builder()
+                .acceptor(LeadershipInitializationProxy.newProxyInstance(acceptorRef, PaxosAcceptor.class))
+                .learner(LeadershipInitializationProxy.newProxyInstance(learnerRef, PaxosLearner.class))
+                .pingableLeader(LeadershipInitializationProxy.newProxyInstance(leaderRef, PingableLeader.class))
+                .build();
+    }
+
+    private Components createComponentsWithBlocking(Client client) {
         Path legacyClientDir = paxosUseCase
                 .logDirectoryRelativeToDataDirectory(baseLogDirectory)
                 .resolve(client.value());
