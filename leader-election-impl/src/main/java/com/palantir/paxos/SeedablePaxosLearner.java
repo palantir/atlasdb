@@ -29,16 +29,15 @@ public class SeedablePaxosLearner implements PaxosLearner {
 
     public void supplyDelegate(PaxosLearner delegate) {
         if (!delegateReference.compareAndSet(null, delegate)) {
-            log.warn("Attempted to set the delegate of a seedable Paxos learner multiple times! This is indicative "
+            log.warn(
+                    "Attempted to set the delegate of a seedable Paxos learner multiple times! This is indicative "
                             + "of a bug in the atlasdb or timelock code. We'll just use the first delegate.",
                     new RuntimeException("I exist to show you the stack trace"));
         }
     }
 
     @Override
-    public void learn(long seq, PaxosValue val) {
-
-    }
+    public void learn(long seq, PaxosValue val) {}
 
     @Override
     public Optional<PaxosValue> getLearnedValue(long seq) {

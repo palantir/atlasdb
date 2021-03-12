@@ -45,7 +45,8 @@ public final class SingleLeaderHealthCheckPinger implements HealthCheckPinger {
         try {
             return pingableLeader.ping();
         } catch (Exception e) {
-            log.info("Caught an exception when attempting to do a ping. If this is bad we expect exceptions elsewhere",
+            log.info(
+                    "Caught an exception when attempting to do a ping. If this is bad we expect exceptions elsewhere",
                     e);
             return false;
         }

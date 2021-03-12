@@ -65,10 +65,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             PaxosLearnerNetworkClient learnerClient,
             long maximumWaitBeforeProposalMs) {
         DebugLogger.logger.info(
-                "Creating PaxosTimestampBoundStore. The UUID of my proposer is {}. "
-                        + "Currently, I believe the timestamp bound is {}.",
-                SafeArg.of("proposerUuid", proposer.getUuid()),
-                SafeArg.of("timestampBound", knowledge.getGreatestLearnedValue()));
+                "Creating PaxosTimestampBoundStore. The UUID of my proposer is {}.",
+                SafeArg.of("proposerUuid", proposer.getUuid()));
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.acceptorNetworkClient = acceptorNetworkClient;

@@ -35,8 +35,9 @@ public class SeedableDelegatingPaxosStateLog<V extends Persistable & Versionable
 
     public void supplyDelegate(PaxosStateLog<V> delegate) {
         if (!delegateReference.compareAndSet(null, delegate)) {
-            log.warn("Attempted to set the delegate of a seedable Paxos state log multiple times! This is indicative "
-                    + "of a bug in the atlasdb or timelock code. We'll just use the first delegate.",
+            log.warn(
+                    "Attempted to set the delegate of a seedable Paxos state log multiple times! This is indicative "
+                            + "of a bug in the atlasdb or timelock code. We'll just use the first delegate.",
                     new RuntimeException("I exist to show you the stack trace"));
         }
     }
@@ -77,8 +78,8 @@ public class SeedableDelegatingPaxosStateLog<V extends Persistable & Versionable
             consumer.accept(delegate);
         } else {
             throw new NotCurrentLeaderException(
-                    "This node's Paxos state log is not ready yet, probably because we're migrating the Paxos store. Please "
-                            + "wait...");
+                    "This node's Paxos state log is not ready yet, probably because we're migrating the Paxos store."
+                            + " Please wait...");
         }
     }
 
@@ -88,19 +89,20 @@ public class SeedableDelegatingPaxosStateLog<V extends Persistable & Versionable
             return function.apply(delegate);
         } else {
             throw new NotCurrentLeaderException(
-                    "This node's Paxos state log is not ready yet, probably because we're migrating the Paxos store. Please "
-                            + "wait...");
+                    "This node's Paxos state log is not ready yet, probably because we're migrating the Paxos store."
+                            + " Please wait...");
         }
     }
 
-    private <T, K extends Exception> T checkedCallOnDelegate(FunctionCheckedException<PaxosStateLog<V>, T, K> functionCheckedException) throws K {
+    private <T, K extends Exception> T checkedCallOnDelegate(
+            FunctionCheckedException<PaxosStateLog<V>, T, K> functionCheckedException) throws K {
         PaxosStateLog<V> delegate = delegateReference.get();
         if (delegate != null) {
             return functionCheckedException.apply(delegate);
         } else {
             throw new NotCurrentLeaderException(
-                    "This node's Paxos state log is not ready yet, probably because we're migrating the Paxos store. Please "
-                            + "wait...");
+                    "This node's Paxos state log is not ready yet, probably because we're migrating the Paxos store."
+                            + " Please wait...");
         }
     }
 }

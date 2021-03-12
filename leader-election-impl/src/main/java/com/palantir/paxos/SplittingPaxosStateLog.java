@@ -116,8 +116,8 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
 
         ExecutorService migrationExecutor = PTExecutors.newSingleThreadExecutor();
         migrationExecutor.execute(() -> {
-            PaxosStateLog<V> logWithBlockingMigration = createWithBlockingMigration(params, hydrator,
-                    legacyOperationMarkers, migrateFrom);
+            PaxosStateLog<V> logWithBlockingMigration =
+                    createWithBlockingMigration(params, hydrator, legacyOperationMarkers, migrateFrom);
             log.info("Blocking migration of Paxos logs is complete. Now making the new Paxos state logs visible to "
                     + "all");
             delegatingLog.supplyDelegate(logWithBlockingMigration);

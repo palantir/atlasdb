@@ -18,13 +18,14 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.leader.NotCurrentLeaderException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class LeadershipInitializationProxy<T> extends AbstractInvocationHandler {
-    private static final RuntimeException EXCEPTION = new NotCurrentLeaderException("This node has not fully "
-            + "initialized yet, and is not ready to be the leader.");
+    private static final RuntimeException EXCEPTION = new NotCurrentLeaderException(
+            "This node has not fully " + "initialized yet, and is not ready to be the leader.");
 
     private final AtomicReference<T> initializationReference;
 
@@ -32,8 +33,7 @@ public final class LeadershipInitializationProxy<T> extends AbstractInvocationHa
         this.initializationReference = initializationReference;
     }
 
-    public static <T> T newProxyInstance(
-            AtomicReference<T> reference, Class<T> clazz) {
+    public static <T> T newProxyInstance(AtomicReference<T> reference, Class<T> clazz) {
         LeadershipInitializationProxy<T> service = new LeadershipInitializationProxy<>(reference);
         return (T) Proxy.newProxyInstance(clazz.getClassLoader(), new Class[] {clazz}, service);
     }
@@ -44,6 +44,10 @@ public final class LeadershipInitializationProxy<T> extends AbstractInvocationHa
         if (target == null) {
             throw EXCEPTION;
         }
-        return method.invoke(target, args);
+        try {
+            return method.invoke(target, args);
+        } catch (InvocationTargetException e) {
+            throw e.getCause();
+        }
     }
 }
