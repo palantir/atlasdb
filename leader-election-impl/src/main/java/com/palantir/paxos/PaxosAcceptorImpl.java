@@ -30,12 +30,12 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
         return new PaxosAcceptorImpl(new ConcurrentSkipListMap<>(), stateLog, stateLog.getGreatestLogEntry());
     }
 
-    public static PaxosAcceptor newSplittingAcceptor(
+    public static PaxosAcceptor newSqliteAcceptor(
             PaxosStorageParameters params,
             SplittingPaxosStateLog.LegacyOperationMarkers _legacyOperationMarkers,
             Optional<Long> _migrateFrom) {
-        PaxosStateLog<PaxosAcceptorState> stateLog = SqlitePaxosStateLog.create(params.namespaceAndUseCase(),
-                params.sqliteDataSource());
+        PaxosStateLog<PaxosAcceptorState> stateLog =
+                SqlitePaxosStateLog.create(params.namespaceAndUseCase(), params.sqliteDataSource());
         return new PaxosAcceptorImpl(new ConcurrentSkipListMap<>(), stateLog, stateLog.getGreatestLogEntry());
     }
 

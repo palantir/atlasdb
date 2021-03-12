@@ -48,12 +48,12 @@ public final class PaxosLearnerImpl implements PaxosLearner {
         return new PaxosLearnerImpl(state, stateLog, eventRecorder);
     }
 
-    public static PaxosLearner newSplittingLearner(
+    public static PaxosLearner newSqliteLearner(
             PaxosStorageParameters params,
             SplittingPaxosStateLog.LegacyOperationMarkers _legacyOperationMarkers,
             PaxosKnowledgeEventRecorder event) {
-        PaxosStateLog<PaxosValue> stateLog = SqlitePaxosStateLog.create(params.namespaceAndUseCase(),
-                params.sqliteDataSource());
+        PaxosStateLog<PaxosValue> stateLog =
+                SqlitePaxosStateLog.create(params.namespaceAndUseCase(), params.sqliteDataSource());
         return newLearner(stateLog, event);
     }
 

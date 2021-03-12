@@ -146,10 +146,10 @@ public class LocalPaxosComponents {
                     + " time, and the client " + client + " provided is novel for this TimeLock server.");
         }
 
-        PaxosLearner learner = PaxosLearnerImpl.newSplittingLearner(
+        PaxosLearner learner = PaxosLearnerImpl.newSqliteLearner(
                 getLearnerParameters(client), createMetrics(PaxosLearner.class), PaxosKnowledgeEventRecorder.NO_OP);
 
-        PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(
+        PaxosAcceptor acceptor = PaxosAcceptorImpl.newSqliteAcceptor(
                 getAcceptorParameters(client),
                 createMetrics(PaxosAcceptor.class),
                 learner.getGreatestLearnedValue().map(PaxosValue::getRound));
