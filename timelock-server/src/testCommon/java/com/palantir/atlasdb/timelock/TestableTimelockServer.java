@@ -142,7 +142,7 @@ public class TestableTimelockServer {
 
     public boolean isMultiLeader() {
         PaxosLeaderMode mode = serverHolder.installConfig().paxos().leaderMode();
-        return mode == PaxosLeaderMode.LEADER_PER_CLIENT ? true : false;
+        return mode == PaxosLeaderMode.LEADER_PER_CLIENT;
     }
 
     NamespacedClients client(String namespace) {
