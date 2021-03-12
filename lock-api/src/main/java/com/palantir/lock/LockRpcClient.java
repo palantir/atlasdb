@@ -138,4 +138,8 @@ public interface LockRpcClient {
     @POST
     @Path("log-current-state")
     void logCurrentState(@Safe @PathParam("namespace") String namespace);
+
+    @POST
+    @Path("get-debugging-lock-state")
+    LockState getLockState(LockDescriptor lock);
 }

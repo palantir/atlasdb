@@ -19,11 +19,13 @@ import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
+import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -148,6 +150,11 @@ public class ThreadPooledLockService implements CloseableLockService {
     @Override
     public void logCurrentState() {
         delegate.logCurrentState();
+    }
+
+    @Override
+    public LockState getLockState(LockDescriptor lock) {
+        return delegate.getLockState(lock);
     }
 
     @Override
