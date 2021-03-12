@@ -19,11 +19,8 @@ package com.palantir.paxos;
 import com.palantir.common.persist.Persistable;
 import com.palantir.leader.NotCurrentLeaderException;
 import java.io.IOException;
+import java.util.function.Supplier;
 
-/**
- * This class is
- * @param <V>
- */
 public class InitializeCheckingPaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
     private static final NotCurrentLeaderException NOT_CURRENT_LEADER_EXCEPTION = new NotCurrentLeaderException(
             "This node is not ready to serve requests yet! Please wait, or try the other leader nodes.");
@@ -36,46 +33,57 @@ public class InitializeCheckingPaxosStateLog<V extends Persistable & Versionable
 
     @Override
     public void writeRound(long seq, V round) {
-        if (delegate.isInitialized()) {
-            writeRound(seq, round);
-        }
-        throw NOT_CURRENT_LEADER_EXCEPTION;
+        runWithInitializeCheck(() -> {
+            delegate.writeRound(seq, round);
+            return null;
+        });
     }
 
     @Override
     public byte[] readRound(long seq) throws IOException {
+        // Written slightly differently to allow for checked exceptions
         if (delegate.isInitialized()) {
-            return readRound(seq);
+            return delegate.readRound(seq);
         }
         throw NOT_CURRENT_LEADER_EXCEPTION;
     }
 
     @Override
     public long getLeastLogEntry() {
-        return 0;
+        return runWithInitializeCheck(delegate::getLeastLogEntry);
     }
 
     @Override
     public long getGreatestLogEntry() {
-        return 0;
+        return runWithInitializeCheck(delegate::getGreatestLogEntry);
     }
 
     @Override
     public void truncate(long toDeleteInclusive) {
-
+        runWithInitializeCheck(() -> {
+            delegate.truncate(toDeleteInclusive);
+            return null;
+        });
     }
 
     @Override
     public void truncateAllRounds() {
-
+        runWithInitializeCheck(() -> {
+            delegate.truncateAllRounds();
+            return null;
+        });
     }
 
     @Override
     public boolean isInitialized() {
-        return false;
+        // This shouldn't throw even if we aren't initialized
+        return delegate.isInitialized();
     }
 
-    private <T> T runIn() {
-
+    private <T> T runWithInitializeCheck(Supplier<T> operation) {
+        if (delegate.isInitialized()) {
+            return operation.get();
+        }
+        throw NOT_CURRENT_LEADER_EXCEPTION;
     }
 }
