@@ -23,8 +23,11 @@ import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.HealthCheckResponse;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SingleLeaderHealthCheckPinger implements HealthCheckPinger {
+    private static final Logger log = LoggerFactory.getLogger(SingleLeaderHealthCheckPinger.class);
 
     private final PingableLeader pingableLeader;
 
@@ -36,5 +39,15 @@ public final class SingleLeaderHealthCheckPinger implements HealthCheckPinger {
     public Map<Client, HealthCheckResponse> apply(Set<Client> request) {
         boolean isLeader = pingableLeader.ping();
         return Maps.toMap(request, _client -> new HealthCheckResponse(isLeader));
+    }
+
+    public boolean safePing() {
+        try {
+            return pingableLeader.ping();
+        } catch (Exception e) {
+            log.info("Caught an exception when attempting to do a ping. If this is bad we expect exceptions elsewhere",
+                    e);
+            return false;
+        }
     }
 }
