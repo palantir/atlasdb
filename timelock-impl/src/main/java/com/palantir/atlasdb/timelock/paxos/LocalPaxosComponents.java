@@ -19,13 +19,10 @@ import com.codahale.metrics.Counter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbMetricNames;
-import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
-import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.ImmutableLegacyOperationMarkers;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
@@ -40,10 +37,7 @@ import com.palantir.paxos.SplittingPaxosStateLog;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -100,7 +94,8 @@ public class LocalPaxosComponents {
             boolean canCreateNewClients,
             OrderableSlsVersion timeLockVersion,
             boolean skipConsistencyCheckAndTruncateOldPaxosLog) {
-        LocalPaxosComponents components = new LocalPaxosComponents(
+        // LIES. No blocking migration lol
+        return new LocalPaxosComponents(
                 metrics,
                 paxosUseCase,
                 legacyLogDirectory,
@@ -109,18 +104,6 @@ public class LocalPaxosComponents {
                 canCreateNewClients,
                 timeLockVersion,
                 skipConsistencyCheckAndTruncateOldPaxosLog);
-
-        Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(legacyLogDirectory);
-        PersistentNamespaceLoader namespaceLoader = new DiskNamespaceLoader(legacyClientDir);
-        Set<Client> namespaces = namespaceLoader.getAllPersistedNamespaces();
-        log.info("Performing blocking migration of {} namespaces", SafeArg.of("numNamespaces", namespaces.size()));
-        Instant startInstant = Instant.now();
-        namespaces.forEach(components::getOrCreateComponents);
-        log.info(
-                "Successfully migrated a total of {} namespaces in {}",
-                SafeArg.of("numNamespaces", namespaces.size()),
-                SafeArg.of("duration", Duration.between(startInstant, Instant.now())));
-        return components;
     }
 
     public PaxosAcceptor acceptor(Client client) {
