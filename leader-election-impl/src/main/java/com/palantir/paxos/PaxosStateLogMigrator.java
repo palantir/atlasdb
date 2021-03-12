@@ -62,7 +62,8 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     public static <V extends Persistable & Versionable> long migrateAndReturnCutoff(MigrationContext<V> context) {
         PaxosStateLogMigrator<V> migrator = new PaxosStateLogMigrator<>(context.sourceLog(), context.destinationLog());
         if (!context.migrationState().isInMigratedState()) {
-            log.info("Now migrating namespace and use case {} to sqlite.",
+            log.info(
+                    "Now migrating namespace and use case {} to sqlite.",
                     SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
             long cutoff = calculateCutoff(context);
             migrator.runMigration(cutoff, context);
@@ -71,21 +72,26 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             if (context.skipValidationAndTruncateSourceIfMigrated()) {
                 context.sourceLog().truncateAllRounds();
             }
-            log.info("Migrated namespace and use case {} to sqlite.",
+            log.info(
+                    "Migrated namespace and use case {} to sqlite.",
                     SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
             return cutoff;
         } else {
             if (!context.skipValidationAndTruncateSourceIfMigrated()) {
-                log.info("Now validating the sqlite migration state for namespace and use case {}.",
+                log.info(
+                        "Now validating the sqlite migration state for namespace and use case {}.",
                         SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
                 validateConsistency(context);
-                log.info("Validated the sqlite migration state for namespace and use case {}.",
+                log.info(
+                        "Validated the sqlite migration state for namespace and use case {}.",
                         SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
             } else {
-                log.info("Now truncating the sqlite migration state for namespace and use case {}.",
+                log.info(
+                        "Now truncating the sqlite migration state for namespace and use case {}.",
                         SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
                 context.sourceLog().truncateAllRounds();
-                log.info("Truncated the source log for namespace and use case {}.",
+                log.info(
+                        "Truncated the source log for namespace and use case {}.",
                         SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
             }
         }
