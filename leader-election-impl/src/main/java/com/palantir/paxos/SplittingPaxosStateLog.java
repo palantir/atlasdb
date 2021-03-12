@@ -21,6 +21,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.util.OptionalLong;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -70,7 +71,7 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
                 new AtomicLong(parameters.legacyLog().getLeastLogEntry()));
     }
 
-    public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithMigration(
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithBlockingMigration(
             PaxosStorageParameters params,
             Persistable.Hydrator<V> hydrator,
             LegacyOperationMarkers legacyOperationMarkers,
@@ -103,6 +104,23 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
                 .build();
 
         return SplittingPaxosStateLog.create(splittingParameters);
+    }
+
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithBackgroundMigration(
+            PaxosStorageParameters params,
+            Persistable.Hydrator<V> hydrator,
+            LegacyOperationMarkers legacyOperationMarkers,
+            OptionalLong migrateFrom,
+            Executor migrationExecutor) {
+        SeedableDelegatingPaxosStateLog<V> delegatingLog = new SeedableDelegatingPaxosStateLog<>();
+        migrationExecutor.execute(() -> {
+            PaxosStateLog<V> logWithBlockingMigration = createWithBlockingMigration(params, hydrator,
+                    legacyOperationMarkers, migrateFrom);
+            log.info("Blocking migration of Paxos logs is complete. Now making the new Paxos state logs visible to "
+                    + "all");
+            delegatingLog.supplyDelegate(logWithBlockingMigration);
+        });
+        return delegatingLog;
     }
 
     @Override

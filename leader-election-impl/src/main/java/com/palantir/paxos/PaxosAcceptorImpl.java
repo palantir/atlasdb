@@ -35,7 +35,7 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
             PaxosStorageParameters params,
             SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
             Optional<Long> migrateFrom) {
-        PaxosStateLog<PaxosAcceptorState> stateLog = SplittingPaxosStateLog.createWithMigration(
+        PaxosStateLog<PaxosAcceptorState> stateLog = SplittingPaxosStateLog.createWithBlockingMigration(
                 params,
                 PaxosAcceptorState.BYTES_HYDRATOR,
                 legacyOperationMarkers,
