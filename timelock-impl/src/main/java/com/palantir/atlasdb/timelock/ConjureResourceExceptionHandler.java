@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
@@ -54,6 +55,12 @@ public class ConjureResourceExceptionHandler {
                                     .redirectRequest(notCurrentLeader.getServiceHint())
                                     .<QosException>map(QosException::retryOther)
                                     .orElseGet(QosException::unavailable);
+                        },
+                        MoreExecutors.directExecutor())
+                .catching(
+                        ServiceNotAvailableException.class,
+                        cause -> {
+                            throw QosException.unavailable(cause);
                         },
                         MoreExecutors.directExecutor())
                 .catching(

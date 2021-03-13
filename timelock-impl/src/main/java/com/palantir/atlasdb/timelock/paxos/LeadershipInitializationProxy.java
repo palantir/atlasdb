@@ -17,16 +17,13 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class LeadershipInitializationProxy<T> extends AbstractInvocationHandler {
-    private static final RuntimeException EXCEPTION = new NotCurrentLeaderException(
-            "This node has not fully " + "initialized yet, and is not ready to be the leader.");
-
     private final AtomicReference<T> initializationReference;
 
     public LeadershipInitializationProxy(AtomicReference<T> initializationReference) {
@@ -42,7 +39,8 @@ public final class LeadershipInitializationProxy<T> extends AbstractInvocationHa
     protected Object handleInvocation(Object _proxy, Method method, Object[] args) throws Throwable {
         T target = initializationReference.get();
         if (target == null) {
-            throw EXCEPTION;
+            throw new ServiceNotAvailableException(
+                    "This node has not fully initialized yet, and is not ready to be the leader.");
         }
         try {
             return method.invoke(target, args);

@@ -34,6 +34,7 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
+import com.palantir.atlasdb.timelock.ServiceNotAvailableExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
@@ -407,6 +408,8 @@ public class TimeLockAgent {
         registrar.accept(new NotCurrentLeaderExceptionMapper(redirectRetryTargeter()));
 
         registrar.accept(new TooManyRequestsExceptionMapper());
+
+        registrar.accept(new ServiceNotAvailableExceptionMapper());
     }
 
     private RedirectRetryTargeter redirectRetryTargeter() {
