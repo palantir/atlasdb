@@ -130,8 +130,8 @@ public class MultiClientConjureTimelockResourceTest {
     @Test
     public void canStartTransactionsForMultipleClients() {
         List<String> namespaces = ImmutableList.of("client1", "client2");
-        Map<Namespace, ConjureStartTransactionsResponse> startTransactionsResponseMap =
-                Futures.getUnchecked(resource.startTransactions(AUTH_HEADER, getStartTransactionsRequests(namespaces)));
+        Map<Namespace, ConjureStartTransactionsResponse> startTransactionsResponseMap = Futures.getUnchecked(
+                resource.startTransactionsForClients(AUTH_HEADER, getStartTransactionsRequests(namespaces)));
 
         startTransactionsResponseMap.forEach((namespace, response) -> {
             assertThat(response.getLease().leaderTime().id()).isEqualTo(namespaceToLeaderMap.get(namespace.get()));
@@ -148,8 +148,8 @@ public class MultiClientConjureTimelockResourceTest {
     @Test
     public void canGetCommitTimestampsForMultipleClients() {
         Set<String> namespaces = ImmutableSet.of("client1", "client2");
-        assertThat(Futures.getUnchecked(
-                        resource.getCommitTimestamps(AUTH_HEADER, getGetCommitTimestampsRequests(namespaces))))
+        assertThat(Futures.getUnchecked(resource.getCommitTimestampsForClients(
+                        AUTH_HEADER, getGetCommitTimestampsRequests(namespaces))))
                 .isEqualTo(getGetCommitTimestampsResponseMap(namespaces));
     }
 
