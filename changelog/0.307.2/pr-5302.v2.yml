@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add new getLockState(LockDescriptor) debugging endpoint to the RemoteLockService, which allows for easier, more targeted debugging than would be possible with previous logCurrentState() endpoint. Provide a LockDescriptor, and get the current set of clients holding and waiting for the lock.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5302

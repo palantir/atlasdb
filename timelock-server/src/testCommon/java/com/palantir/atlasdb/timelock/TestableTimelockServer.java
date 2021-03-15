@@ -140,6 +140,11 @@ public class TestableTimelockServer {
         throw new SafeIllegalStateException("unexpected mode", SafeArg.of("mode", mode));
     }
 
+    public boolean isMultiLeader() {
+        PaxosLeaderMode mode = serverHolder.installConfig().paxos().leaderMode();
+        return mode == PaxosLeaderMode.LEADER_PER_CLIENT;
+    }
+
     NamespacedClients client(String namespace) {
         return clientsByNamespace.computeIfAbsent(namespace, key -> NamespacedClients.from(namespace, proxyFactory));
     }

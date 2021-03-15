@@ -260,7 +260,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         }
     }
 
-    private synchronized Iterable<Integer> getReadClients() {
+    synchronized Iterable<Integer> getReadClients() {
         if (readLockHolders == null) {
             return ImmutableList.of();
         }

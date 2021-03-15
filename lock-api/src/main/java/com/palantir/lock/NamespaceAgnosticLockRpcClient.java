@@ -124,4 +124,8 @@ public interface NamespaceAgnosticLockRpcClient {
     @POST
     @Path("log-current-state")
     void logCurrentState();
+
+    @POST
+    @Path("get-debugging-lock-state")
+    LockState getLockState(LockDescriptor lock);
 }

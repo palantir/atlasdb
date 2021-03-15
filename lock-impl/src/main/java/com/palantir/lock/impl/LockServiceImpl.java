@@ -43,6 +43,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.random.SecureRandomPool;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
@@ -50,6 +51,7 @@ import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.HeldLocksTokens;
+import com.palantir.lock.ImmutableLockState;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollection;
 import com.palantir.lock.LockCollections;
@@ -62,6 +64,9 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerConfigs;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
+import com.palantir.lock.LockState;
+import com.palantir.lock.LockState.LockHolder;
+import com.palantir.lock.LockState.LockRequester;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
@@ -85,6 +90,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -131,6 +137,8 @@ public final class LockServiceImpl
     // LegacyTimelockServiceAdapter relies on token ids being convertible to UUIDs; thus this should
     // never be > 127
     public static final int RANDOM_BIT_COUNT = 127;
+    public static final ImmutableLockState EMPTY_LOCK_STATE =
+            ImmutableLockState.builder().isWriteLocked(false).isFrozen(false).build();
 
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
@@ -1126,6 +1134,45 @@ public final class LockServiceImpl
             log.trace(".getLockServerOptions() returns {}", options);
         }
         return options;
+    }
+
+    @Override
+    public LockState getLockState(LockDescriptor descriptor) {
+        LockServerLock readWriteLock = (LockServerLock) descriptorToLockMap.getIfPresent(descriptor);
+        if (readWriteLock == null) {
+            return EMPTY_LOCK_STATE;
+        }
+
+        LockServerSync sync = readWriteLock.getSync();
+        List<LockClient> readHolders;
+        LockClient writeHolders;
+        boolean isFrozen;
+        boolean writeMode;
+        synchronized (sync) {
+            readHolders = ImmutableList.copyOf(Iterables.transform(sync.getReadClients(), clientIndices::fromIndex));
+            writeHolders = sync.getLockHolder();
+            isFrozen = sync.isFrozen();
+            writeMode = readHolders.isEmpty();
+        }
+
+        List<LockClient> lockHolders = getLockHolders(readHolders, writeHolders);
+        ImmutableLockState.Builder lockState = ImmutableLockState.builder()
+                .isWriteLocked(writeMode)
+                .exactCurrentLockHolders(lockHolders)
+                .isFrozen(isFrozen);
+        heldLocksTokenMap.keySet().stream()
+                .filter(token -> token.getLockDescriptors().contains(descriptor))
+                .forEach(lock -> lockState.addHolders(LockHolder.from(lock)));
+        KeyedStream.stream(outstandingLockRequestMultimap)
+                .filterEntries((client, request) -> request.getLockDescriptors().contains(descriptor))
+                .forEach((client, request) -> lockState.addRequesters(LockRequester.from(request, client)));
+        return lockState.build();
+    }
+
+    private List<LockClient> getLockHolders(List<LockClient> readHolders, LockClient writeHolders) {
+        return readHolders.isEmpty()
+                ? Optional.ofNullable(writeHolders).map(ImmutableList::of).orElseGet(ImmutableList::of)
+                : readHolders;
     }
 
     /**

@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: TimeLock logs for the splitting paxos state log now indicate which operation is performed as part of startup (migration, validation or truncation).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5314

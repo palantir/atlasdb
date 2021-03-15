@@ -18,7 +18,6 @@ package com.palantir.paxos;
 
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.util.OptionalLong;
@@ -90,9 +89,6 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
                 .skipValidationAndTruncateSourceIfMigrated(params.skipConsistencyCheckAndTruncateOldPaxosLog())
                 .build();
 
-        log.info(
-                "Starting migration for namespace and use case {} if migration has not run before.",
-                SafeArg.of("namespaceAndUseCase", params.namespaceAndUseCase()));
         long cutoff = PaxosStateLogMigrator.migrateAndReturnCutoff(migrationContext);
 
         if (params.skipConsistencyCheckAndTruncateOldPaxosLog()) {
