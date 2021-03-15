@@ -209,21 +209,21 @@ services:
       getCommitTimestamps:
         http: POST /gcts
         deprecated: |
-          This endpoint is deprecated. Please use {@link #getCommitTimestampsForClients} to get commitTimestamps for multiple clients.
+          This endpoint is deprecated. Please use {@link #getCommitTimestampsForClients} to get commit timestamps for multiple clients.
         args:
           requests: map<Namespace, GetCommitTimestampsRequest>
         returns: map<Namespace, GetCommitTimestampsResponse>
         docs: |
           Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.
       startTransactionsForClients:
-        http: POST /msts
+        http: POST /stsfc
         args:
           requests: map<Namespace, ConjureStartTransactionsRequest>
         returns: map<Namespace, ConjureStartTransactionsResponse>
         docs: |
           Version of ConjureTimelockService#startTransactions that starts transactions for multiple namespaces.
       getCommitTimestampsForClients:
-        http: POST /mgcts
+        http: POST /gctsfc
         args:
           requests: map<Namespace, GetCommitTimestampsRequest>
         returns: map<Namespace, GetCommitTimestampsResponse>
