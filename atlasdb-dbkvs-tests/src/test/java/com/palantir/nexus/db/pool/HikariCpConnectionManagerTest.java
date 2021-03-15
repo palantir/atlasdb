@@ -19,38 +19,27 @@ package com.palantir.nexus.db.pool;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.configuration.ShutdownStrategy;
-import com.palantir.docker.compose.connection.Container;
-import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.docker.compose.logging.LogDirectory;
+import com.google.common.base.Throwables;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbkvsPostgresTestSuite;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
-import java.net.InetSocketAddress;
+import com.palantir.nexus.db.pool.config.PostgresConnectionConfig;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTransientConnectionException;
 import java.sql.Statement;
+import java.time.Duration;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class HikariCpConnectionManagerTest {
-
-    private static final int POSTGRES_PORT_NUMBER = 5432;
-
-    @ClassRule
-    public static final DockerComposeRule docker = DockerComposeRule.builder()
-            .file("src/test/resources/docker-compose.yml")
-            .waitingForService("postgres", Container::areAllPortsOpen)
-            .saveLogsTo(LogDirectory.circleAwareLogDirectory(HikariCpConnectionManagerTest.class))
-            .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
-            .build();
 
     private ConnectionManager manager;
 
@@ -141,6 +130,103 @@ public class HikariCpConnectionManagerTest {
         manager.close(); // shouldn't throw
     }
 
+    @Test
+    public void testRuntimePasswordChange() throws SQLException {
+        // create a new user to avoid messing up the main user for other tests
+        String testUsername = "testpasswordchange";
+        String password1 = "password1";
+        String password2 = "password2";
+        String password3 = "password3";
+
+        // initial config intentionally has the wrong password for the test user
+        PostgresConnectionConfig testConfig = createConnectionConfig(testUsername, password3, 0, 3);
+
+        try (Connection conn = manager.getConnection()) {
+            try (Statement statement = conn.createStatement()) {
+                statement.execute(String.format("CREATE USER %s WITH PASSWORD '%s'", testUsername, password1));
+            }
+            try (Statement statement = conn.createStatement()) {
+                statement.execute(String.format(
+                        "GRANT ALL PRIVILEGES ON DATABASE %s TO %s", testConfig.getDbName(), testUsername));
+            }
+        }
+
+        ConnectionManager testManager = new HikariCPConnectionManager(testConfig);
+        // fixing the password before init should work
+        testManager.setPassword(password1);
+
+        try (Connection conn = testManager.getConnection()) {
+            try (Statement statement = conn.createStatement()) {
+                statement.execute(String.format("ALTER USER %s WITH PASSWORD '%s'", testUsername, password2));
+            }
+            // existing connection should still work
+            checkConnection(conn);
+
+            // trying to get a new connection should fail (times out with wrong password)
+            assertPasswordWrong(testManager);
+
+            // fix the password on the pool
+            testManager.setPassword(password2);
+            // original connection should still work
+            checkConnection(conn);
+
+            // new connection should also work
+            try (Connection conn2 = testManager.getConnection()) {
+                checkConnection(conn2);
+            }
+
+            // changing the pool password again and one connection should work (conn still in the pool)
+            testManager.setPassword(password3);
+            try (Connection conn2 = testManager.getConnection()) {
+                checkConnection(conn2);
+
+                // getting one more connection should see the password error
+                assertPasswordWrong(testManager);
+
+                // use existing conn to fix the password
+                try (Statement statement = conn2.createStatement()) {
+                    statement.execute(String.format("ALTER USER %s WITH PASSWORD '%s'", testUsername, password3));
+                }
+
+                // now a new connection should work
+                try (Connection conn3 = testManager.getConnection()) {
+                    checkConnection(conn3);
+                }
+            }
+        } finally {
+            testManager.close();
+        }
+    }
+
+    private static void assertPasswordWrong(ConnectionManager testManager) {
+        // This is needed because it appears that sometimes postgres password changes do not take effect immediately.
+        // If the password change happens too late, we end up with a connection in the pool that we did not expect.
+        // In that case we need to wait the configured time (1 second) for hikari to remove the idle connection from
+        // the pool before we can detect that the password is wrong. Note that I cannot reproduce this case locally,
+        // but it appears to almost always happen on circle.
+        Awaitility.await("assertPasswordWrong")
+                .atMost(Duration.ofSeconds(10))
+                .pollInterval(Duration.ofSeconds(2))
+                .pollDelay(Duration.ofMillis(100))
+                .until(() -> isPasswordWrong(testManager));
+    }
+
+    private static boolean isPasswordWrong(ConnectionManager testManager) {
+        try (Connection ignored = testManager.getConnection()) {
+            return false;
+        } catch (SQLException e) {
+            // if "password authentication failed" is in the cause chain, the password is wrong
+            // otherwise this is an unexpected exception
+            for (Throwable t : Throwables.getCausalChain(e)) {
+                String message = t.getMessage();
+                if (message != null && message.contains("password authentication failed")) {
+                    return true;
+                }
+            }
+            throw new SafeRuntimeException("unexpected exception checking password on ConnectionManager", e);
+        }
+    }
+
     private static void checkConnection(Connection conn) throws SQLException {
         try (Statement statement = conn.createStatement()) {
             try (ResultSet result = statement.executeQuery("SELECT 123")) {
@@ -152,16 +238,23 @@ public class HikariCpConnectionManagerTest {
     }
 
     private static ConnectionConfig createConnectionConfig(int maxConnections) {
-        DockerPort port = docker.containers().container("postgres").port(POSTGRES_PORT_NUMBER);
-        InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
+        return createConnectionConfig("palantir", "palantir", maxConnections, maxConnections);
+    }
+
+    private static PostgresConnectionConfig createConnectionConfig(
+            String username, String password, int minConnections, int maxConnections) {
+        PostgresConnectionConfig suiteConfig = DbkvsPostgresTestSuite.getConnectionConfig();
         return ImmutablePostgresConnectionConfig.builder()
-                .dbName("atlas")
-                .dbLogin("palantir")
-                .dbPassword(ImmutableMaskedValue.of("palantir"))
-                .host(postgresAddress.getHostName())
-                .port(postgresAddress.getPort())
+                .dbName(suiteConfig.getDbName())
+                .host(suiteConfig.getHost())
+                .port(suiteConfig.getPort())
+                .dbLogin(username)
+                .dbPassword(ImmutableMaskedValue.of(password))
+                .minConnections(minConnections)
                 .maxConnections(maxConnections)
                 .checkoutTimeout(2000)
+                // if this is set too high, testRuntimePasswordChange will be unreliable (and will take longer)
+                .maxConnectionAge(1)
                 .build();
     }
 }

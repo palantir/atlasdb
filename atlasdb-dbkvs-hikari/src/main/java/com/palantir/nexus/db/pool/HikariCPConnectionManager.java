@@ -23,6 +23,7 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.sql.ExceptionCheck;
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
@@ -52,7 +53,8 @@ import org.slf4j.LoggerFactory;
 public class HikariCPConnectionManager extends BaseConnectionManager {
     private static final Logger log = LoggerFactory.getLogger(HikariCPConnectionManager.class);
 
-    private ConnectionConfig connConfig;
+    private final ConnectionConfig connConfig;
+    private final HikariConfig hikariConfig;
 
     private enum StateType {
         // Base state at construction.  Nothing is set.
@@ -83,6 +85,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     public HikariCPConnectionManager(ConnectionConfig connConfig) {
         this.connConfig = Preconditions.checkNotNull(connConfig, "ConnectionConfig must not be null");
+        this.hikariConfig = connConfig.getHikariConfig();
     }
 
     @Override
@@ -293,17 +296,15 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
         try {
             try {
-                dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
+                dataSourcePool = new HikariDataSource(hikariConfig);
             } catch (IllegalArgumentException e) {
                 // allow multiple pools on same JVM (they need unique names / endpoints)
                 if (e.getMessage().contains("A metric named")) {
                     String poolName = connConfig.getConnectionPoolName();
 
-                    connConfig
-                            .getHikariConfig()
-                            .setPoolName(
-                                    poolName + "-" + ThreadLocalRandom.current().nextInt());
-                    dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
+                    hikariConfig.setPoolName(
+                            poolName + "-" + ThreadLocalRandom.current().nextInt());
+                    dataSourcePool = new HikariDataSource(hikariConfig);
                 } else {
                     throw e;
                 }
@@ -362,6 +363,50 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     @Override
     public DBType getDbType() {
         return connConfig.getDbType();
+    }
+
+    @Override
+    public void setPassword(String newPassword) {
+        Preconditions.checkNotNull(newPassword, "password cannot be null");
+        State localState = state;
+        if (localState.type == StateType.ZERO) {
+            synchronized (this) {
+                // need to check again in case init just happened
+                localState = state;
+                if (localState.type == StateType.ZERO) {
+                    // the pool is not initialized, need to set password on the config object
+                    internalSetPassword(newPassword, hikariConfig);
+                    return;
+                }
+            }
+        }
+        if (localState.type == StateType.NORMAL) {
+            // pool is initialized, need to set password directly on the pool
+            internalSetPassword(newPassword, localState.dataSourcePool);
+        } else if (localState.type == StateType.CLOSED) {
+            throw new SafeRuntimeException("Hikari pool is closed", localState.closeTrace);
+        }
+    }
+
+    /**
+     * Sets the password (and username) on the HikariConfig (or HikariDataSource pool) if it is necessary.
+     *
+     * <p>Note that when the password matches static config, performance is better when setting the username and
+     * password to null so that hikari uses the original JDBC parameters and avoids making new copies for every
+     * new connection. See {@link com.zaxxer.hikari.pool.PoolBase#newConnection}. Also see
+     * {@link com.palantir.nexus.db.pool.config.OracleConnectionConfig#getHikariProperties} for the JDBC properties.
+     *
+     * <p>Hikari checks the username field for being null to determine if it needs to copy the JDBC parameters, so
+     * the username *must* be set for it to respect the password change.
+     */
+    private void internalSetPassword(String newPassword, HikariConfig configOrPool) {
+        if (newPassword.equals(connConfig.getDbPassword().unmasked())) {
+            configOrPool.setUsername(null);
+            configOrPool.setPassword(null);
+        } else {
+            configOrPool.setPassword(newPassword);
+            configOrPool.setUsername(connConfig.getDbLogin());
+        }
     }
 
     private final class ConnectionAcquisitionProfiler {

@@ -51,4 +51,16 @@ public interface ConnectionManager {
     void initUnchecked();
 
     DBType getDbType();
+
+    /**
+     * Change the password which will be used for new connections. Existing connections are not modified in any way.
+     *
+     * <p>Note that if the password is changed at runtime, there is a slight negative impact on pool performance
+     * because Hikari will copy the JDBC parameters every time a new connection is made.
+     *
+     * <p>Concurrent calls to this method should be avoided since the behavior for concurrent calls is not
+     * deterministic. It is recommended to only call this method from a single runtime config subscription so this is
+     * called when the runtime config changes.
+     */
+    void setPassword(String newPassword);
 }

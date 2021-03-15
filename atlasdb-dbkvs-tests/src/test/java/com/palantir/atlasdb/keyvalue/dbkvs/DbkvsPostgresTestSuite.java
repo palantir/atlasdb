@@ -23,9 +23,10 @@ import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.logging.LogDirectory;
-import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import com.palantir.nexus.db.pool.HikariCpConnectionManagerTest;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
+import com.palantir.nexus.db.pool.config.PostgresConnectionConfig;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.concurrent.Callable;
@@ -49,7 +50,8 @@ import org.junit.runners.Suite.SuiteClasses;
     DbKvsPostgresGetCandidateCellsForSweepingTest.class,
     DbKvsSweepProgressStoreIntegrationTest.class,
     DbKvsPostgresInvalidationRunnerTest.class,
-    DbTimestampStoreInvalidatorCreationTest.class
+    DbTimestampStoreInvalidatorCreationTest.class,
+    HikariCpConnectionManagerTest.class,
 })
 public final class DbkvsPostgresTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;
@@ -74,21 +76,21 @@ public final class DbkvsPostgresTestSuite {
                 .until(canCreateKeyValueService());
     }
 
-    public static DbKeyValueServiceConfig getKvsConfig() {
+    public static PostgresConnectionConfig getConnectionConfig() {
         DockerPort port = docker.containers().container("postgres").port(POSTGRES_PORT_NUMBER);
-
         InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
-
-        ConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
+        return ImmutablePostgresConnectionConfig.builder()
                 .dbName("atlas")
                 .dbLogin("palantir")
                 .dbPassword(ImmutableMaskedValue.of("palantir"))
                 .host(postgresAddress.getHostName())
                 .port(postgresAddress.getPort())
                 .build();
+    }
 
+    public static DbKeyValueServiceConfig getKvsConfig() {
         return ImmutableDbKeyValueServiceConfig.builder()
-                .connection(connectionConfig)
+                .connection(getConnectionConfig())
                 .ddl(ImmutablePostgresDdlConfig.builder()
                         .compactInterval(HumanReadableDuration.days(2))
                         .build())

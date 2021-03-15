@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    The Hikari ConnectionManager now has a setPassword method which allows changing the password at runtime without needing to shutdown and restart services. A future change will add standard runtime configs for this (for now this is only usable by internal products that have their own custom runtime config).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5308
