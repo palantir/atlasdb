@@ -199,6 +199,8 @@ services:
           Version of ConjureTimelockService#leaderTime endpoint for acquiring leaderTimes for a set of namespaces.
       startTransactions:
         http: POST /sts
+        deprecated: |
+          This endpoint is deprecated. Please use {@link #startTransactionsForClients} to start transactions for multiple clients.
         args:
           requests: map<Namespace, ConjureStartTransactionsRequest>
         returns: map<Namespace, ConjureStartTransactionsResponse>
@@ -206,6 +208,22 @@ services:
           Version of ConjureTimelockService#startTransactions that starts transactions for multiple namespaces.
       getCommitTimestamps:
         http: POST /gcts
+        deprecated: |
+          This endpoint is deprecated. Please use {@link #getCommitTimestampsForClients} to get commit timestamps for multiple clients.
+        args:
+          requests: map<Namespace, GetCommitTimestampsRequest>
+        returns: map<Namespace, GetCommitTimestampsResponse>
+        docs: |
+          Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.
+      startTransactionsForClients:
+        http: POST /stsfc
+        args:
+          requests: map<Namespace, ConjureStartTransactionsRequest>
+        returns: map<Namespace, ConjureStartTransactionsResponse>
+        docs: |
+          Version of ConjureTimelockService#startTransactions that starts transactions for multiple namespaces.
+      getCommitTimestampsForClients:
+        http: POST /gctsfc
         args:
           requests: map<Namespace, GetCommitTimestampsRequest>
         returns: map<Namespace, GetCommitTimestampsResponse>

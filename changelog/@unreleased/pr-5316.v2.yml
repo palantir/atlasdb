@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Adds startTransactionsForClients and getCommitTimestampsForClients endpoints on TimeLock for multi client batched requests.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5316
