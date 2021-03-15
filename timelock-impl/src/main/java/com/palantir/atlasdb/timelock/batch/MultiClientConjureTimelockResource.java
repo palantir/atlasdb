@@ -88,6 +88,18 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     @Override
     public ListenableFuture<Map<Namespace, ConjureStartTransactionsResponse>> startTransactions(
             AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
+        return startTransactionsForClients(authHeader, requests);
+    }
+
+    @Override
+    public ListenableFuture<Map<Namespace, GetCommitTimestampsResponse>> getCommitTimestamps(
+            AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
+        return getCommitTimestampsForClients(authHeader, requests);
+    }
+
+    @Override
+    public ListenableFuture<Map<Namespace, ConjureStartTransactionsResponse>> startTransactionsForClients(
+            AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
         return handleExceptions(() -> {
             List<ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>> futures = KeyedStream.stream(
                             requests)
@@ -99,7 +111,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     }
 
     @Override
-    public ListenableFuture<Map<Namespace, GetCommitTimestampsResponse>> getCommitTimestamps(
+    public ListenableFuture<Map<Namespace, GetCommitTimestampsResponse>> getCommitTimestampsForClients(
             AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
         return handleExceptions(() -> {
             List<ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>>> futures = KeyedStream.stream(
@@ -168,15 +180,29 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         }
 
         @Override
+        @Deprecated
         public Map<Namespace, ConjureStartTransactionsResponse> startTransactions(
                 AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
             return unwrap(resource.startTransactions(authHeader, requests));
         }
 
         @Override
+        @Deprecated
         public Map<Namespace, GetCommitTimestampsResponse> getCommitTimestamps(
                 AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
             return unwrap(resource.getCommitTimestamps(authHeader, requests));
+        }
+
+        @Override
+        public Map<Namespace, ConjureStartTransactionsResponse> startTransactionsForClients(
+                AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
+            return unwrap(resource.startTransactionsForClients(authHeader, requests));
+        }
+
+        @Override
+        public Map<Namespace, GetCommitTimestampsResponse> getCommitTimestampsForClients(
+                AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
+            return unwrap(resource.getCommitTimestampsForClients(authHeader, requests));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
