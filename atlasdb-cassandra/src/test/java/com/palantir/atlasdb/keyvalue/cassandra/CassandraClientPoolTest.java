@@ -37,6 +37,7 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -448,6 +449,7 @@ public class CassandraClientPoolTest {
                 .thenReturn(ImmutableDefaultConfig.builder()
                         .addAllThriftHosts(servers)
                         .build());
+        when(config.timeoutOnConnectionClose()).thenReturn(Duration.ofSeconds(10));
 
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),

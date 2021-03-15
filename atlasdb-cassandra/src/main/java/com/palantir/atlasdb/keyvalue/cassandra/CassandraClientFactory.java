@@ -33,6 +33,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.cassandra.thrift.AuthenticationRequest;
@@ -69,7 +70,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.addr = addr;
         this.config = config;
         this.sslSocketFactory = createSslSocketFactory(config);
-        this.safeShutdownRunner = SafeShutdownRunner.createWithSingleThreadpool(config.timeoutOnConnectionClose());
+        this.safeShutdownRunner =
+                SafeShutdownRunner.createWithSingleThreadpool(Optional.of(config.timeoutOnConnectionClose()));
         // todo(jshah): Remove or refactor this after PDS-146088 is resolved
         this.shutdownDurationTimer = metricsManager.registerOrGetTimer(
                 CassandraClientFactory.class, "cassandra-connection-shutdown-duration");

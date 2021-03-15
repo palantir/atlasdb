@@ -159,7 +159,10 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * threadpool. Note that this is potentially unsafe in the general case, as unclosed connections can eventually leak
      * memory.
      */
-    Optional<Duration> timeoutOnConnectionClose();
+    @Value.Default
+    default Duration timeoutOnConnectionClose() {
+        return Duration.ofSeconds(10);
+    }
 
     @JsonIgnore
     @Value.Lazy
