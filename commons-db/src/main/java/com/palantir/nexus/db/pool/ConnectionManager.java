@@ -57,6 +57,10 @@ public interface ConnectionManager {
      *
      * <p>Note that if the password is changed at runtime, there is a slight negative impact on pool performance
      * because Hikari will copy the JDBC parameters every time a new connection is made.
+     *
+     * <p>Concurrent calls to this method should be avoided since the behavior for concurrent calls is not
+     * deterministic. It is recommended to only call this method from a single runtime config subscription so this is
+     * called when the runtime config changes.
      */
     void setPassword(String newPassword);
 }
