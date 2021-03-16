@@ -142,7 +142,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
@@ -467,8 +466,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Iterator<Map.Entry<Cell, Value>> postFilterIterator =
                 getRowColumnRangePostFilteredWithoutOriginalRowOrder(tableRef, cells, columnRangeSelection.getBatchHint());
 
-        // todo bug fix
-        Streams.stream(postFilterIterator).map(Entry::getKey).collect(toList()).toString();
 
         // transform value to bytes
         Iterator<Map.Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
@@ -485,6 +482,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 Comparator.comparing(entry -> entry.getKey(), Cell.columnFirstComparator),
                 com.palantir.util.Pair::getLhSide);
 
+        // todo bug fix
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return filterDeletedValues(merged, tableRef);
     }
 
