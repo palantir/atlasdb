@@ -451,17 +451,27 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         int size = Iterables.size(rows);
         int batchSize = Math.max(
                 Math.min(100, columnRangeSelection.getBatchHint()), columnRangeSelection.getBatchHint() / size);
+
         BatchColumnRangeSelection perBatchSelection = BatchColumnRangeSelection.create(
                 columnRangeSelection.getStartCol(), columnRangeSelection.getEndCol(), batchSize);
+
         Map<byte[], RowColumnRangeIterator> rawResults =
                 keyValueService.getRowsColumnRange(tableRef, rows, perBatchSelection, getStartTimestamp());
 
+        // should be sorted by columns
         Iterator<Map.Entry<Cell, Value>> cells = mergeColumnFirst(rawResults.values());
+
+
+        // breaks down cells in batches and runs validation - should preserve the order of cells
         Iterator<Map.Entry<Cell, Value>> postFilterIterator =
-                getRowColumnRangePostFiltered(tableRef, cells, columnRangeSelection.getBatchHint());
+                getRowColumnRangePostFilteredWithoutOriginalRowOrder(tableRef, cells, columnRangeSelection.getBatchHint());
+
+        // transform value to bytes
         Iterator<Map.Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
                 postFilterIterator,
                 entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
+
+        // should get sorted local writes
         Iterator<Map.Entry<Cell, byte[]>> localWrites =
                 getSortedColumnsLocalWrites(tableRef, rows, columnRangeSelection);
 
@@ -563,6 +573,25 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }));
     }
 
+
+    private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFilteredWithoutOriginalRowOrder(
+            TableReference tableRef, Iterator<Map.Entry<Cell, Value>> iterator, int batchHint) {
+        return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
+            ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
+            batch.forEach(rawBuilder::put);
+            Map<Cell, Value> raw = rawBuilder.build();
+
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            if (raw.isEmpty()) {
+                return Collections.emptyIterator();
+            }
+
+            SortedMap<Cell, Value> postFiltered = ImmutableSortedMap.copyOf(
+                    getWithPostFilteringSync(tableRef, raw, x -> x), columnOrderThenPreserveInputRowOrder(batch));
+            return postFiltered.entrySet().iterator();
+        }));
+    }
+
     private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
             TableReference tableRef,
             byte[] row,
@@ -583,14 +612,29 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
         // is to preserve the original row order.
         return Comparator.comparing(
-                        (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
-                        Ordering.explicit(inputEntries.stream()
-                                .map(Map.Entry::getKey)
-                                .map(Cell::getRowName)
-                                .map(ByteBuffer::wrap)
-                                .distinct()
-                                .collect(ImmutableList.toImmutableList())))
+                (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                Ordering.explicit(inputEntries.stream()
+                        .map(Map.Entry::getKey)
+                        .map(Cell::getRowName)
+                        .map(ByteBuffer::wrap)
+                        .distinct()
+                        .collect(ImmutableList.toImmutableList())))
                 .thenComparing(Cell::getColumnName, PtBytes.BYTES_COMPARATOR);
+    }
+
+    private Comparator<Cell> columnOrderThenPreserveInputRowOrder(List<Map.Entry<Cell, Value>> inputEntries) {
+        // N.B. This batch could be spread across multiple rows, and those rows might extend into other
+        // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
+        // is to preserve the original row order.
+        return Cell.columnFirstComparator
+                .thenComparing(
+                (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                Ordering.explicit(inputEntries.stream()
+                        .map(Map.Entry::getKey)
+                        .map(Cell::getRowName)
+                        .map(ByteBuffer::wrap)
+                        .distinct()
+                        .collect(ImmutableList.toImmutableList())));
     }
 
     /**

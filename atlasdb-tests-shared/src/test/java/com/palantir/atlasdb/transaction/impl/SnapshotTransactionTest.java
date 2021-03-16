@@ -48,6 +48,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -125,6 +126,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.SortedMap;
@@ -335,6 +337,55 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
                 keyValueServiceWrapper);
+    }
+
+    @Test
+    public void getSortedColumns() {
+        byte[] row1 = "foo".getBytes();
+        byte[] row2 = "bar".getBytes();
+        byte[] col1 = "a".getBytes();
+        byte[] col2 = "b".getBytes();
+        Cell rowOneColumnOneCell = Cell.create(row1, "a".getBytes());
+        Cell rowOneColumnTwoCell = Cell.create(row1, "b".getBytes());
+        Cell rowTwoColumnOneCell = Cell.create(row2, "a".getBytes());
+        Cell rowTwoColumnTwoCell = Cell.create(row2, "b".getBytes());
+
+
+        System.out.println(rowOneColumnOneCell);
+        System.out.println(rowOneColumnTwoCell);
+        System.out.println(rowTwoColumnOneCell);
+        System.out.println(rowTwoColumnTwoCell);
+
+
+
+        byte[] value = new byte[1];
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(
+                    TABLE,
+                    ImmutableMap.of(
+                            rowOneColumnOneCell,
+                            value,
+                            rowOneColumnTwoCell,
+                            value,
+                            rowTwoColumnOneCell,
+                            value,
+                            rowTwoColumnTwoCell,
+                            value));
+            return null;
+        });
+        List<Cell> entries = serializableTxManager.runTaskWithRetry(tx -> {
+            Iterator<Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
+                    TABLE,
+                    ImmutableList.of(row1, row2),
+                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
+            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        });
+        org.assertj.core.api.Assertions.assertThat(entries)
+                .containsExactly(
+                        rowTwoColumnOneCell,
+                        rowOneColumnOneCell,
+                        rowTwoColumnTwoCell,
+                        rowOneColumnTwoCell); // Nope, order is R2C1, R2C2, R1C1, R1C2
     }
 
     @Test
