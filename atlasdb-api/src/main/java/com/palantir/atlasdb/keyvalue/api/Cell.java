@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 public final class Cell implements Serializable, Comparable<Cell> {
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(Cell.class);
-    private static final Comparator<Cell> columnComparator = PtBytes.BYTES_COMPARATOR.onResultOf(Cell::getColumnName);
+    public static final Comparator<Cell> columnComparator = PtBytes.BYTES_COMPARATOR.onResultOf(Cell::getColumnName);
     private static final Comparator<Cell> rowComparator = PtBytes.BYTES_COMPARATOR.onResultOf(Cell::getRowName);
     public static final Comparator<Cell> columnFirstComparator = columnComparator.thenComparing(rowComparator);
 

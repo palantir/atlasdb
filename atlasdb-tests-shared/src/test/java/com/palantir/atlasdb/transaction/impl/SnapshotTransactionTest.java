@@ -343,23 +343,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void getSortedColumns() {
         byte[] row1 = "foo".getBytes();
         byte[] row2 = "bar".getBytes();
-        byte[] col1 = "a".getBytes();
-        byte[] col2 = "b".getBytes();
         Cell rowOneColumnOneCell = Cell.create(row1, "a".getBytes());
         Cell rowOneColumnTwoCell = Cell.create(row1, "b".getBytes());
         Cell rowTwoColumnOneCell = Cell.create(row2, "a".getBytes());
         Cell rowTwoColumnTwoCell = Cell.create(row2, "b".getBytes());
 
-
-        System.out.println(rowOneColumnOneCell);
-        System.out.println(rowOneColumnTwoCell);
-        System.out.println(rowTwoColumnOneCell);
-        System.out.println(rowTwoColumnTwoCell);
-
-
-
         byte[] value = new byte[1];
-        serializableTxManager.runTaskWithRetry(tx -> {
+        txManager.runTaskWithRetry(tx -> {
             tx.put(
                     TABLE,
                     ImmutableMap.of(
@@ -386,6 +376,44 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         rowOneColumnOneCell,
                         rowTwoColumnTwoCell,
                         rowOneColumnTwoCell); // Nope, order is R2C1, R2C2, R1C1, R1C2
+    }
+
+    @Test
+    public void validateLocksOnGetSortedColumns() {
+        byte[] row1 = "foo".getBytes();
+        byte[] row2 = "bar".getBytes();
+        Cell rowOneColumnOneCell = Cell.create(row1, "a".getBytes());
+        Cell rowOneColumnTwoCell = Cell.create(row1, "b".getBytes());
+        Cell rowTwoColumnOneCell = Cell.create(row2, "a".getBytes());
+        Cell rowTwoColumnTwoCell = Cell.create(row2, "b".getBytes());
+        byte[] value = new byte[1];
+        txManager.runTaskWithRetry(tx -> {
+            tx.put(
+                    TABLE_SWEPT_THOROUGH,
+                    ImmutableMap.of(
+                            rowOneColumnOneCell,
+                            value,
+                            rowOneColumnTwoCell,
+                            value,
+                            rowTwoColumnOneCell,
+                            value,
+                            rowTwoColumnTwoCell,
+                            value));
+            return null;
+        });
+        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        assertThatExceptionOfType(TransactionLockTimeoutException.class)
+                .isThrownBy(() -> transaction.getSortedColumns(TABLE_SWEPT_THOROUGH,
+                        ImmutableList.of(row1, row2),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000)));
     }
 
     @Test

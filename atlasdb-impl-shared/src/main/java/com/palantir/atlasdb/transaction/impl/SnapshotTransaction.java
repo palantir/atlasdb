@@ -142,6 +142,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
@@ -462,9 +463,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Iterator<Map.Entry<Cell, Value>> cells = mergeColumnFirst(rawResults.values());
 
 
-        // breaks down cells in batches and runs validation - should preserve the order of cells
+        // breaks down cells in batches and (~runs validation) - should preserve the order of cells
         Iterator<Map.Entry<Cell, Value>> postFilterIterator =
                 getRowColumnRangePostFilteredWithoutOriginalRowOrder(tableRef, cells, columnRangeSelection.getBatchHint());
+
+        // todo bug fix
+        Streams.stream(postFilterIterator).map(Entry::getKey).collect(toList()).toString();
 
         // transform value to bytes
         Iterator<Map.Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
@@ -581,6 +585,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             batch.forEach(rawBuilder::put);
             Map<Cell, Value> raw = rawBuilder.build();
 
+            // this does not happen at all - there is no iteration over this transform :(
             validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
             if (raw.isEmpty()) {
                 return Collections.emptyIterator();
@@ -626,7 +631,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // N.B. This batch could be spread across multiple rows, and those rows might extend into other
         // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
         // is to preserve the original row order.
-        return Cell.columnFirstComparator
+        return Cell.columnComparator
                 .thenComparing(
                 (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
                 Ordering.explicit(inputEntries.stream()
