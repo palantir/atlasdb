@@ -34,6 +34,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Joiner;
@@ -102,6 +103,7 @@ import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.MultiDelegateProxy;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -141,6 +143,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
@@ -375,7 +378,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         rowTwoColumnOneCell,
                         rowOneColumnOneCell,
                         rowTwoColumnTwoCell,
-                        rowOneColumnTwoCell); // Nope, order is R2C1, R2C2, R1C1, R1C2
+                        rowOneColumnTwoCell);
     }
 
     @Test
@@ -414,6 +417,120 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .isThrownBy(() -> transaction.getSortedColumns(TABLE_SWEPT_THOROUGH,
                         ImmutableList.of(row1, row2),
                         BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000)));
+    }
+
+    @Test
+    public void getSortedColumnsObeysColumnRangeSelection() {
+        byte[] row1 = "foo".getBytes();
+        byte[] row2 = "bar".getBytes();
+        Cell rowOneColumnOneCell = Cell.create(row1, "a".getBytes());
+        Cell rowOneColumnTwoCell = Cell.create(row1, "b".getBytes());
+        Cell rowTwoColumnOneCell = Cell.create(row2, "a".getBytes());
+        Cell rowTwoColumnTwoCell = Cell.create(row2, "b".getBytes());
+
+        byte[] value = new byte[1];
+        txManager.runTaskWithRetry(tx -> {
+            tx.put(
+                    TABLE,
+                    ImmutableMap.of(
+                            rowOneColumnOneCell,
+                            value,
+                            rowOneColumnTwoCell,
+                            value,
+                            rowTwoColumnOneCell,
+                            value,
+                            rowTwoColumnTwoCell,
+                            value));
+            return null;
+        });
+
+        List<Cell> entries = serializableTxManager.runTaskWithRetry(tx -> {
+            Iterator<Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
+                    TABLE,
+                    ImmutableList.of(row1, row2),
+                    BatchColumnRangeSelection.create("a".getBytes(), "az".getBytes(), 1000));
+            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        });
+        org.assertj.core.api.Assertions.assertThat(entries)
+                .containsExactly(
+                        rowTwoColumnOneCell,
+                        rowOneColumnOneCell);
+
+        List<Cell> outOfRangeEntries = serializableTxManager.runTaskWithRetry(tx -> {
+            Iterator<Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
+                    TABLE,
+                    ImmutableList.of(row1, row2),
+                    BatchColumnRangeSelection.create("cat".getBytes(), "dog".getBytes(), 1000));
+            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        });
+        org.assertj.core.api.Assertions.assertThat(outOfRangeEntries).isEmpty();
+    }
+
+    @Test
+    public void getSortedColumnsIteratesOverMultipleBatchesIfRequired() {
+        byte[] row1 = "foo".getBytes();
+        byte[] row2 = "bar".getBytes();
+        Cell rowOneColumnOneCell = Cell.create(row1, "a".getBytes());
+        Cell rowOneColumnTwoCell = Cell.create(row1, "b".getBytes());
+        Cell rowTwoColumnOneCell = Cell.create(row2, "a".getBytes());
+        Cell rowTwoColumnTwoCell = Cell.create(row2, "b".getBytes());
+
+        byte[] value = new byte[1];
+        txManager.runTaskWithRetry(tx -> {
+            tx.put(
+                    TABLE,
+                    ImmutableMap.of(
+                            rowOneColumnOneCell,
+                            value,
+                            rowOneColumnTwoCell,
+                            value,
+                            rowTwoColumnOneCell,
+                            value,
+                            rowTwoColumnTwoCell,
+                            value));
+            return null;
+        });
+        List<Cell> entries = serializableTxManager.runTaskWithRetry(tx -> {
+            Iterator<Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
+                    TABLE,
+                    ImmutableList.of(row1, row2),
+                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        });
+        org.assertj.core.api.Assertions.assertThat(entries)
+                .containsExactly(
+                        rowTwoColumnOneCell,
+                        rowOneColumnOneCell,
+                        rowTwoColumnTwoCell,
+                        rowOneColumnTwoCell);
+    }
+
+    @Test
+    public void getSortedColumnsOnlyValidatesLocksWhereNeeded() {
+        List<byte[]> rows = LongStream.range(1, 1000)
+                .mapToObj(PtBytes::toBytes)
+                .collect(Collectors.toList());
+
+        Map<Cell, byte[]> map = KeyedStream.of(rows.stream())
+                .map(_unused -> new byte[1])
+                .mapKeys(row -> Cell.create(row, "a".getBytes()))
+                .collectToMap();
+
+        TimelockService timelockSpy = spy(txManager.getTimelockService());
+
+        txManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, map);
+            return null;
+        });
+        List<Cell> entries = serializableTxManager.runTaskWithRetry(tx -> {
+            Iterator<Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
+                    TABLE,
+                    rows,
+                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        });
+
+        verifyNoMoreInteractions(timelockSpy);
     }
 
     @Test

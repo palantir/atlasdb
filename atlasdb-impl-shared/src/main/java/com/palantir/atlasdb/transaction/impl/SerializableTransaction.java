@@ -242,7 +242,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
                     }
                     markRowColumnRangeRead(tableRef, row, columnRangeSelection, items);
-                    return visitor.visit(items);
+                    return v.visit(items);
                 });
                 if (hitEnd) {
                     reachedEndOfColumnRange(tableRef, row, columnRangeSelection);

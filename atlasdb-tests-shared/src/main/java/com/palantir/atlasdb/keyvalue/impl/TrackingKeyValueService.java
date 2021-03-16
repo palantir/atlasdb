@@ -18,12 +18,14 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -35,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TrackingKeyValueService extends ForwardingKeyValueService {
     private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(new ConcurrentHashMap<>());
     private final Set<TableReference> tablesReadFrom = Sets.newSetFromMap(new ConcurrentHashMap<>());
+    private final int numberOfRangePagesRequested = 0;
     private final KeyValueService delegate;
 
     public TrackingKeyValueService(KeyValueService delegate) {
@@ -70,6 +73,17 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
         tablesWrittenTo.add(tableRef);
         super.put(tableRef, values, timestamp);
+    }
+
+    @Override
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            long timestamp) {
+        Map<byte[], RowColumnRangeIterator> rowsToIterators = super.getRowsColumnRange(tableRef, rows,
+                batchColumnRangeSelection, timestamp);
+        return null;
     }
 
     @Override
