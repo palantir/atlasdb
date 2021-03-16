@@ -141,6 +141,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -432,6 +433,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // validate requirements here as the first batch for each of the above iterators will not check
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return postFilteredResults;
+    }
+
+    @Override
+    public Iterator<Entry<Cell, byte[]>> getSortedColumns(
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+        throw new UnsupportedOperationException();
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
