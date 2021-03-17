@@ -455,7 +455,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<byte[], RowColumnRangeIterator> rawResults =
                 keyValueService.getRowsColumnRange(tableRef, distinctRows, perBatchSelection, getStartTimestamp());
 
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return getPostFilteredSortedColumns(tableRef, columnRangeSelection, distinctRows, rawResults);
     }
 
