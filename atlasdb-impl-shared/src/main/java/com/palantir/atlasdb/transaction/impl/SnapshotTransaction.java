@@ -144,7 +144,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -439,7 +438,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public Iterator<Entry<Cell, byte[]>> getSortedColumns(
+    public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
@@ -458,24 +457,24 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return getPostFilteredSortedColumns(tableRef, columnRangeSelection, distinctRows, rawResults);
     }
 
-    private Iterator<Entry<Cell, byte[]>> getPostFilteredSortedColumns(
+    private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredSortedColumns(
             TableReference tableRef,
             BatchColumnRangeSelection columnRangeSelection,
             Iterable<byte[]> distinctRows,
             Map<byte[], RowColumnRangeIterator> rawResults) {
         Comparator<Cell> cellComparator = columnOrderThenPreserveInputRowOrder(distinctRows);
 
-        Iterator<Entry<Cell, Value>> postFilterIterator = getRowColumnRangePostFilteredWithoutSorting(
+        Iterator<Map.Entry<Cell, Value>> postFilterIterator = getRowColumnRangePostFilteredWithoutSorting(
                 tableRef, mergeColumnFirst(rawResults.values(), cellComparator), columnRangeSelection.getBatchHint());
-        Iterator<Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
+        Iterator<Map.Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
                 postFilterIterator,
                 entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
-        Iterator<Entry<Cell, byte[]>> localWrites =
+        Iterator<Map.Entry<Cell, byte[]>> localWrites =
                 getSortedColumnsLocalWrites(tableRef, distinctRows, columnRangeSelection, cellComparator);
-        Iterator<Entry<Cell, byte[]>> merged = IteratorUtils.mergeIterators(
+        Iterator<Map.Entry<Cell, byte[]>> merged = IteratorUtils.mergeIterators(
                 localWrites,
                 remoteWrites,
-                Comparator.comparing(entry -> entry.getKey(), cellComparator),
+                Comparator.comparing(Map.Entry::getKey, cellComparator),
                 com.palantir.util.Pair::getLhSide);
 
         return filterDeletedValues(merged, tableRef);
@@ -503,7 +502,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected <V> Iterator<Map.Entry<Cell, V>> mergeColumnFirst(
-            Iterable<? extends Iterator<Entry<Cell, V>>> iterators, Comparator<Cell> cellComparator) {
+            Iterable<? extends Iterator<Map.Entry<Cell, V>>> iterators, Comparator<Cell> cellComparator) {
         Comparator<Map.Entry<Cell, V>> comp = Comparator.comparing(Map.Entry::getKey, cellComparator);
         return Iterators.mergeSorted(iterators, comp);
     }
@@ -613,7 +612,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Map<Cell, Value> validateBatch(
             TableReference tableRef,
-            @org.checkerframework.checker.nullness.qual.Nullable List<Entry<Cell, Value>> batch) {
+            @org.checkerframework.checker.nullness.qual.Nullable List<Map.Entry<Cell, Value>> batch) {
         ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
         batch.forEach(rawBuilder::put);
         Map<Cell, Value> raw = rawBuilder.build();

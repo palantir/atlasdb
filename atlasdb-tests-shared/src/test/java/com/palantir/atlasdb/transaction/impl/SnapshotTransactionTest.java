@@ -123,7 +123,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.SortedMap;
@@ -1706,14 +1705,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     TABLE,
                     rows,
                     BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
-            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+            return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         });
 
         List<Cell> entriesSortedByColumn = columns.stream()
                 .map(col -> rows.stream().map(row -> Cell.create(row, col)).collect(Collectors.toList()))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
-        org.assertj.core.api.Assertions.assertThat(entries).containsExactlyElementsOf(entriesSortedByColumn);
+        Assertions.assertThat(entries).containsExactlyElementsOf(entriesSortedByColumn);
     }
 
     @Test
@@ -1730,13 +1729,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
 
-        assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() -> {
-            Iterator<Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
-                    TABLE_SWEPT_THOROUGH,
-                    ImmutableList.of(row1),
-                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
-            Streams.stream(sortedColumns).forEach(Entry::getKey);
-        });
+        assertThatThrownBy(() -> {
+                    Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
+                            TABLE_SWEPT_THOROUGH,
+                            ImmutableList.of(row1),
+                            BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
+                    Streams.stream(sortedColumns).forEach(Map.Entry::getKey);
+                })
+                .isInstanceOf(TransactionLockTimeoutException.class);
     }
 
     @Test
@@ -1752,16 +1752,16 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         List<Cell> entries = serializableTxManager.runTaskWithRetry(tx -> {
             Iterator<Map.Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
                     TABLE, rows, BatchColumnRangeSelection.create("a".getBytes(), "az".getBytes(), 1000));
-            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+            return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         });
-        org.assertj.core.api.Assertions.assertThat(entries).containsExactlyElementsOf(col1_cells);
+        Assertions.assertThat(entries).containsExactlyElementsOf(col1_cells);
 
         List<Cell> outOfRangeEntries = serializableTxManager.runTaskWithRetry(tx -> {
-            Iterator<Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
+            Iterator<Map.Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
                     TABLE, rows, BatchColumnRangeSelection.create("b".getBytes(), "c".getBytes(), 1000));
-            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+            return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         });
-        org.assertj.core.api.Assertions.assertThat(outOfRangeEntries).isEmpty();
+        Assertions.assertThat(outOfRangeEntries).isEmpty();
     }
 
     @Test
@@ -1782,14 +1782,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     TABLE,
                     rows,
                     BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+            return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         });
 
         List<Cell> entriesSortedByColumn = columns.stream()
                 .map(col -> rows.stream().map(row -> Cell.create(row, col)).collect(Collectors.toList()))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
-        org.assertj.core.api.Assertions.assertThat(entries).containsExactlyElementsOf(entriesSortedByColumn);
+        Assertions.assertThat(entries).containsExactlyElementsOf(entriesSortedByColumn);
     }
 
     @Test
@@ -1806,13 +1806,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
 
-        Iterator<Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
                 TABLE_SWEPT_THOROUGH,
                 rows,
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
-        List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        List<Cell> entries =
+                Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
 
-        org.assertj.core.api.Assertions.assertThat(entries).containsExactlyElementsOf(cells);
+        Assertions.assertThat(entries).containsExactlyElementsOf(cells);
         verify(timelockService, times(10)).refreshLockLeases(ImmutableSet.of(res.getLock()));
     }
 

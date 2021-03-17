@@ -132,8 +132,8 @@ public interface Transaction {
 
     /**
      * Returns an iterator over cell-value pairs within {@code tableRef} for the specified {@code rows}, where the
-     * columns fall within the provided  {@link BatchColumnRangeSelection}. The single provide
-     * {@link BatchColumnRangeSelection} applies to all of the rows.
+     * columns fall within the provided  {@link BatchColumnRangeSelection}.The single provided
+     * {@link ColumnRangeSelection} applies to all of the rows.
      *
      * The returned iterator is guaranteed to contain cells sorted first in order of column, then in order of row,
      * where rows are sorted according to the provided {@code rows} {@link Iterable}. If the {@link Iterable} does not
@@ -142,8 +142,8 @@ public interface Transaction {
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply column range selection to
-     * @param columnRangeSelection range of columns and batch size to load for all rows provided.
-     * @return iterator of cells matching predicate in rows, following ordering outlined above.
+     * @param columnRangeSelection range of columns and batch size to load for all rows provided
+     * @return an iterator over cell-value pairs, guaranteed to follow the ordering outlined above
      */
     @Idempotent
     Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
