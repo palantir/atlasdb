@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static java.util.stream.Collectors.toList;
+
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
@@ -40,6 +42,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -438,7 +441,86 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public Iterator<Entry<Cell, byte[]>> getSortedColumns(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
-        throw new UnsupportedOperationException();
+        checkGetPreconditions(tableRef);
+        if (Iterables.isEmpty(rows)) {
+            return Collections.emptyIterator();
+        }
+        Iterable<byte[]> distinctRows = getDistinctRows(rows);
+
+        hasReads = true;
+        int batchSize = getBatchSizeForSortedColumns(columnRangeSelection, Iterables.size(distinctRows));
+        BatchColumnRangeSelection perBatchSelection = BatchColumnRangeSelection.create(
+                columnRangeSelection.getStartCol(), columnRangeSelection.getEndCol(), batchSize);
+
+        Map<byte[], RowColumnRangeIterator> rawResults =
+                keyValueService.getRowsColumnRange(tableRef, distinctRows, perBatchSelection, getStartTimestamp());
+
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+        return getPostFilteredSortedColumns(tableRef, columnRangeSelection, distinctRows, rawResults);
+    }
+
+    private Iterator<Entry<Cell, byte[]>> getPostFilteredSortedColumns(
+            TableReference tableRef,
+            BatchColumnRangeSelection columnRangeSelection,
+            Iterable<byte[]> distinctRows,
+            Map<byte[], RowColumnRangeIterator> rawResults) {
+        Comparator<Cell> cellComparator = columnOrderThenPreserveInputRowOrder(distinctRows);
+
+        Iterator<Entry<Cell, Value>> postFilterIterator = getRowColumnRangePostFilteredWithoutSorting(
+                tableRef, mergeColumnFirst(rawResults.values(), cellComparator), columnRangeSelection.getBatchHint());
+        Iterator<Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
+                postFilterIterator,
+                entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
+        Iterator<Entry<Cell, byte[]>> localWrites =
+                getSortedColumnsLocalWrites(tableRef, distinctRows, columnRangeSelection, cellComparator);
+        Iterator<Entry<Cell, byte[]>> merged = IteratorUtils.mergeIterators(
+                localWrites,
+                remoteWrites,
+                Comparator.comparing(entry -> entry.getKey(), cellComparator),
+                com.palantir.util.Pair::getLhSide);
+
+        return filterDeletedValues(merged, tableRef);
+    }
+
+    private Iterator<Map.Entry<Cell, byte[]>> getSortedColumnsLocalWrites(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columns,
+            Comparator<Cell> cellComparator) {
+        return mergeColumnFirst(
+                Iterables.transform(rows, row -> getLocalWritesForColumnRange(tableRef, columns, row)
+                        .entrySet()
+                        .iterator()),
+                cellComparator);
+    }
+
+    private Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
+        return Cell.columnComparator.thenComparing(
+                (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                Ordering.explicit(Streams.stream(rows)
+                        .map(ByteBuffer::wrap)
+                        .distinct()
+                        .collect(ImmutableList.toImmutableList())));
+    }
+
+    protected <V> Iterator<Map.Entry<Cell, V>> mergeColumnFirst(
+            Iterable<? extends Iterator<Entry<Cell, V>>> iterators, Comparator<Cell> cellComparator) {
+        Comparator<Map.Entry<Cell, V>> comp = Comparator.comparing(Map.Entry::getKey, cellComparator);
+        return Iterators.mergeSorted(iterators, comp);
+    }
+
+    private int getBatchSizeForSortedColumns(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
+        return Math.max(
+                Math.min(100, columnRangeSelection.getBatchHint()),
+                columnRangeSelection.getBatchHint() / distinctRowCount);
+    }
+
+    private List<byte[]> getDistinctRows(Iterable<byte[]> inputRows) {
+        return Streams.stream(inputRows)
+                .map(ByteBuffer::wrap)
+                .distinct()
+                .map(ByteBuffer::array)
+                .collect(toList());
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
@@ -500,21 +582,39 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
-            TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
+            TableReference tableRef, Iterator<Map.Entry<Cell, Value>> iterator, int batchHint) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
-            ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
-            batch.forEach(rawBuilder::put);
-            Map<Cell, Value> raw = rawBuilder.build();
-
-            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            Map<Cell, Value> raw = validateBatch(tableRef, batch);
             if (raw.isEmpty()) {
                 return Collections.emptyIterator();
             }
-
             SortedMap<Cell, Value> postFiltered = ImmutableSortedMap.copyOf(
                     getWithPostFilteringSync(tableRef, raw, x -> x), preserveInputRowOrder(batch));
             return postFiltered.entrySet().iterator();
         }));
+    }
+
+    private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFilteredWithoutSorting(
+            TableReference tableRef, Iterator<Map.Entry<Cell, Value>> iterator, int batchHint) {
+        return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
+            Map<Cell, Value> raw = validateBatch(tableRef, batch);
+            if (raw.isEmpty()) {
+                return Collections.emptyIterator();
+            }
+            Map<Cell, Value> postFiltered = ImmutableMap.copyOf(getWithPostFilteringSync(tableRef, raw, x -> x));
+            return postFiltered.entrySet().iterator();
+        }));
+    }
+
+    private Map<Cell, Value> validateBatch(
+            TableReference tableRef,
+            @org.checkerframework.checker.nullness.qual.Nullable List<Entry<Cell, Value>> batch) {
+        ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
+        batch.forEach(rawBuilder::put);
+        Map<Cell, Value> raw = rawBuilder.build();
+
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+        return raw;
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
