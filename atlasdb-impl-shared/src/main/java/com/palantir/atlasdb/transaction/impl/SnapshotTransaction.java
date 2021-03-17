@@ -448,7 +448,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Iterable<byte[]> distinctRows = getDistinctRows(rows);
 
         hasReads = true;
-        int batchSize = getBatchSizeForSortedColumns(columnRangeSelection, Iterables.size(distinctRows));
+        int batchSize = getPerRowBatchSize(columnRangeSelection, Iterables.size(distinctRows));
         BatchColumnRangeSelection perBatchSelection = BatchColumnRangeSelection.create(
                 columnRangeSelection.getStartCol(), columnRangeSelection.getEndCol(), batchSize);
 
@@ -508,7 +508,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return Iterators.mergeSorted(iterators, comp);
     }
 
-    private int getBatchSizeForSortedColumns(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
+    private int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
+        /**
+         * If the batch hint is small, ask for at least that many from each of the input rows to avoid the
+         * possibility of needing a second batch of fetching.
+         * If the batch hint is large, split batch size across rows to avoid loading too much data, while accepting that
+         * second fetches may be needed to get everyone their data.
+         * */
         return Math.max(
                 Math.min(100, columnRangeSelection.getBatchHint()),
                 columnRangeSelection.getBatchHint() / distinctRowCount);
