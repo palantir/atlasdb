@@ -598,6 +598,21 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }));
     }
 
+    private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
+            TableReference tableRef,
+            byte[] row,
+            BatchColumnRangeSelection columnRangeSelection,
+            RowColumnRangeIterator rawIterator) {
+        ColumnRangeBatchProvider batchProvider =
+                new ColumnRangeBatchProvider(keyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
+        return GetRowsColumnRangeIterator.iterator(
+                batchProvider,
+                rawIterator,
+                columnRangeSelection,
+                () -> validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp()),
+                raw -> getWithPostFilteringSync(tableRef, raw, Value.GET_VALUE));
+    }
+
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFilteredWithoutSorting(
             TableReference tableRef, Iterator<Map.Entry<Cell, Value>> iterator, int batchHint) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
@@ -619,21 +634,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return raw;
-    }
-
-    private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
-            TableReference tableRef,
-            byte[] row,
-            BatchColumnRangeSelection columnRangeSelection,
-            RowColumnRangeIterator rawIterator) {
-        ColumnRangeBatchProvider batchProvider =
-                new ColumnRangeBatchProvider(keyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
-        return GetRowsColumnRangeIterator.iterator(
-                batchProvider,
-                rawIterator,
-                columnRangeSelection,
-                () -> validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp()),
-                raw -> getWithPostFilteringSync(tableRef, raw, Value.GET_VALUE));
     }
 
     private Comparator<Cell> preserveInputRowOrder(List<Map.Entry<Cell, Value>> inputEntries) {
