@@ -133,21 +133,25 @@ public interface Transaction {
     /**
      * Returns an iterator over cell-value pairs within {@code tableRef} for the specified {@code rows}, where the
      * columns fall within the provided  {@link BatchColumnRangeSelection}.The single provided
-     * {@link ColumnRangeSelection} applies to all of the rows.
+     * {@link BatchColumnRangeSelection} applies to all of the rows. If the same row is included multiple times,
+     * the cells will appear with only the first occurrence of the row in the stable case.
      *
-     * The returned iterator is guaranteed to contain cells sorted first in order of column, then in order of row,
-     * where rows are sorted according to the provided {@code rows} {@link Iterable}. If the {@link Iterable} does not
-     * have a stable ordering (i.e. iteration order can change across iterators returned) then the returned
-     * iterator is sorted lexicographically with columns sorted on byte ordering, but the ordering of rows is undefined.
+     * The returned iterator is guaranteed to contain cells sorted first in lexicographical order of column on byte
+     * ordering, then in order of row, where rows are sorted according to the provided {@code rows} {@link Iterable}.
+     * If the {@link Iterable} does not have a stable ordering (i.e. iteration order can change across iterators
+     * returned) then the returned iterator is sorted lexicographically with columns sorted on byte ordering, but the
+     * ordering of rows is undefined.
+     *
+     *
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply column range selection to
-     * @param columnRangeSelection range of columns and batch size to load for all rows provided
+     * @param batchColumnRangeSelection range of columns and batch size to load for all rows provided
      * @return an iterator over cell-value pairs, guaranteed to follow the ordering outlined above
      */
     @Idempotent
     Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection);
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection);
     /**
      * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}.
      *

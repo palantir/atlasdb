@@ -219,11 +219,11 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
         if (isSerializableTable(tableRef)) {
             throw new UnsupportedOperationException("This method does not support serializable conflict handling");
         }
-        return super.getSortedColumns(tableRef, rows, columnRangeSelection);
+        return super.getSortedColumns(tableRef, rows, batchColumnRangeSelection);
     }
 
     @Override

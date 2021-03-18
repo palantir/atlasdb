@@ -124,8 +124,9 @@ public class ReadTransaction extends ForwardingTransaction {
 
     @Override
     public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
-        return delegate().getSortedColumns(tableRef, rows, columnRangeSelection);
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
+        checkTableName(tableRef);
+        return delegate().getSortedColumns(tableRef, rows, batchColumnRangeSelection);
     }
 
     @Override

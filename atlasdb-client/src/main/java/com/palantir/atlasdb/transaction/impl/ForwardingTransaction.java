@@ -68,8 +68,8 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
 
     @Override
     public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
-        return delegate().getSortedColumns(tableRef, rows, columnRangeSelection);
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
+        return delegate().getSortedColumns(tableRef, rows, batchColumnRangeSelection);
     }
 
     @Override

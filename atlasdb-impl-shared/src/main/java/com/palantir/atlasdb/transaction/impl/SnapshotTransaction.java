@@ -439,7 +439,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
@@ -447,37 +447,45 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Iterable<byte[]> distinctRows = getDistinctRows(rows);
 
         hasReads = true;
-        int batchSize = getPerRowBatchSize(columnRangeSelection, Iterables.size(distinctRows));
+        int batchSize = getPerRowBatchSize(batchColumnRangeSelection, Iterables.size(distinctRows));
         BatchColumnRangeSelection perBatchSelection = BatchColumnRangeSelection.create(
-                columnRangeSelection.getStartCol(), columnRangeSelection.getEndCol(), batchSize);
+                batchColumnRangeSelection.getStartCol(), batchColumnRangeSelection.getEndCol(), batchSize);
 
         Map<byte[], RowColumnRangeIterator> rawResults =
                 keyValueService.getRowsColumnRange(tableRef, distinctRows, perBatchSelection, getStartTimestamp());
 
-        return getPostFilteredSortedColumns(tableRef, columnRangeSelection, distinctRows, rawResults);
+        return getPostFilteredSortedColumns(tableRef, batchColumnRangeSelection, distinctRows, rawResults);
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredSortedColumns(
             TableReference tableRef,
-            BatchColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             Iterable<byte[]> distinctRows,
             Map<byte[], RowColumnRangeIterator> rawResults) {
         Comparator<Cell> cellComparator = columnOrderThenPreserveInputRowOrder(distinctRows);
 
         Iterator<Map.Entry<Cell, Value>> postFilterIterator = getRowColumnRangePostFilteredWithoutSorting(
-                tableRef, mergeColumnFirst(rawResults.values(), cellComparator), columnRangeSelection.getBatchHint());
+                tableRef, mergeByComparator(rawResults.values(), cellComparator), batchColumnRangeSelection.getBatchHint());
         Iterator<Map.Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
                 postFilterIterator,
                 entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
         Iterator<Map.Entry<Cell, byte[]>> localWrites =
-                getSortedColumnsLocalWrites(tableRef, distinctRows, columnRangeSelection, cellComparator);
-        Iterator<Map.Entry<Cell, byte[]>> merged = IteratorUtils.mergeIterators(
+                getSortedColumnsLocalWrites(tableRef, distinctRows, batchColumnRangeSelection, cellComparator);
+        Iterator<Map.Entry<Cell, byte[]>> merged = mergeLocalAndRemoteWrites(localWrites, remoteWrites, cellComparator);
+
+        return filterDeletedValues(merged, tableRef);
+    }
+
+    private static Iterator<Map.Entry<Cell, byte[]>> mergeLocalAndRemoteWrites(
+            Iterator<Map.Entry<Cell, byte[]>> localWrites,
+            Iterator<Map.Entry<Cell, byte[]>> remoteWrites,
+            Comparator<Cell> cellComparator) {
+        // always override remote values with locally written values
+        return IteratorUtils.mergeIterators(
                 localWrites,
                 remoteWrites,
                 Comparator.comparing(Map.Entry::getKey, cellComparator),
                 com.palantir.util.Pair::getLhSide);
-
-        return filterDeletedValues(merged, tableRef);
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getSortedColumnsLocalWrites(
@@ -485,15 +493,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columns,
             Comparator<Cell> cellComparator) {
-        return mergeColumnFirst(
+        return mergeByComparator(
                 Iterables.transform(rows, row -> getLocalWritesForColumnRange(tableRef, columns, row)
                         .entrySet()
                         .iterator()),
                 cellComparator);
     }
 
-    private Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
-        return Cell.columnComparator.thenComparing(
+    private static Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
+        return Cell.COLUMN_COMPARATOR.thenComparing(
                 (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
                 Ordering.explicit(Streams.stream(rows)
                         .map(ByteBuffer::wrap)
@@ -501,19 +509,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .collect(ImmutableList.toImmutableList())));
     }
 
-    protected <V> Iterator<Map.Entry<Cell, V>> mergeColumnFirst(
+    private static <V> Iterator<Map.Entry<Cell, V>> mergeByComparator(
             Iterable<? extends Iterator<Map.Entry<Cell, V>>> iterators, Comparator<Cell> cellComparator) {
         Comparator<Map.Entry<Cell, V>> comp = Comparator.comparing(Map.Entry::getKey, cellComparator);
         return Iterators.mergeSorted(iterators, comp);
     }
 
-    private int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
-        /**
-         * If the batch hint is small, ask for at least that many from each of the input rows to avoid the
-         * possibility of needing a second batch of fetching.
-         * If the batch hint is large, split batch size across rows to avoid loading too much data, while accepting that
-         * second fetches may be needed to get everyone their data.
-         * */
+    /**
+     * If the batch hint is small, ask for at least that many from each of the input rows to avoid the
+     * possibility of needing a second batch of fetching.
+     * If the batch hint is large, split batch size across rows to avoid loading too much data, while accepting that
+     * second fetches may be needed to get everyone their data.
+     * */
+    private static int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
         return Math.max(
                 Math.min(100, columnRangeSelection.getBatchHint()),
                 columnRangeSelection.getBatchHint() / distinctRowCount);
@@ -536,13 +544,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 getRowColumnRangePostFiltered(tableRef, row, batchColumnRangeSelection, rawIterator);
         SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(tableRef, batchColumnRangeSelection, row);
         Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
-        Iterator<Map.Entry<Cell, byte[]>> mergedIterator = IteratorUtils.mergeIterators(
-                localIterator,
-                postFilterIterator,
-                Ordering.from(UnsignedBytes.lexicographicalComparator())
-                        .onResultOf(entry -> entry.getKey().getColumnName()),
-                com.palantir.util.Pair::getLhSide);
-
+        Iterator<Map.Entry<Cell, byte[]>> mergedIterator =
+                mergeLocalAndRemoteWrites(localIterator, postFilterIterator, Cell.COLUMN_COMPARATOR);
         return filterDeletedValues(mergedIterator, tableRef);
     }
 
@@ -562,12 +565,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                             Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
             Iterator<Map.Entry<Cell, byte[]>> localIterator =
                     localWrites.entrySet().iterator();
-            return IteratorUtils.mergeIterators(
-                    localIterator,
-                    remoteIterator,
-                    Ordering.from(UnsignedBytes.lexicographicalComparator())
-                            .onResultOf(entry -> entry.getKey().getColumnName()),
-                    com.palantir.util.Pair::getLhSide);
+            return mergeLocalAndRemoteWrites(localIterator, remoteIterator, Cell.COLUMN_COMPARATOR);
         }));
 
         return filterDeletedValues(merged, tableRef);
@@ -586,7 +584,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
-            TableReference tableRef, Iterator<Map.Entry<Cell, Value>> iterator, int batchHint) {
+            TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
             Map<Cell, Value> raw = validateBatch(tableRef, batch);
             if (raw.isEmpty()) {
@@ -625,15 +623,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }));
     }
 
-    private Map<Cell, Value> validateBatch(
-            TableReference tableRef,
-            @org.checkerframework.checker.nullness.qual.Nullable List<Map.Entry<Cell, Value>> batch) {
-        ImmutableMap.Builder<Cell, Value> rawBuilder = ImmutableMap.builder();
-        batch.forEach(rawBuilder::put);
-        Map<Cell, Value> raw = rawBuilder.build();
-
+    private Map<Cell, Value> validateBatch(TableReference tableRef, List<Map.Entry<Cell, Value>> batch) {
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-        return raw;
+        return ImmutableMap.copyOf(batch);
     }
 
     private Comparator<Cell> preserveInputRowOrder(List<Map.Entry<Cell, Value>> inputEntries) {
@@ -1131,13 +1123,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterator<Map.Entry<Cell, byte[]>> postFilterIterator,
             Iterator<Map.Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
-        Ordering<Map.Entry<Cell, byte[]>> ordering = Ordering.natural().onResultOf(MapEntries.getKeyFunction());
-        Iterator<Map.Entry<Cell, byte[]>> mergeIterators = IteratorUtils.mergeIterators(
-                postFilterIterator,
-                localWritesInRange,
-                isReverse ? ordering.reverse() : ordering,
-                from -> from.rhSide); // always override their value with written values
-
+        Comparator<Cell> cellComparator = isReverse ? Comparator.reverseOrder() : Comparator.naturalOrder();
+        Iterator<Map.Entry<Cell, byte[]>> mergeIterators =
+                mergeLocalAndRemoteWrites(localWritesInRange, postFilterIterator, cellComparator);
         return postFilterEmptyValues(tableRef, mergeIterators);
     }
 

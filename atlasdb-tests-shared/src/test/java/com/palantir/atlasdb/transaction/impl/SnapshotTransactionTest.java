@@ -123,6 +123,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.SortedMap;
@@ -295,6 +296,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             TableReference.createFromFullyQualifiedName("default.table4");
     static final TableReference TABLE_SWEPT_THOROUGH_MIGRATION =
             TableReference.createFromFullyQualifiedName("default.table5");
+
+    private static final byte[] ROW_FOO = "foo".getBytes();
+    private static final byte[] ROW_BAR = "bar".getBytes();
+    private static final byte[] COL_A = "a".getBytes();
+    private static final byte[] COL_B = "b".getBytes();
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
     private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
@@ -1689,10 +1695,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void getSortedColumnsReturnsCellsSortedByColumn() {
-        byte[] row1 = "foo".getBytes();
-        byte[] row2 = "bar".getBytes();
-        ImmutableList<byte[]> rows = ImmutableList.of(row1, row2);
-        ImmutableList<byte[]> columns = ImmutableList.of("a".getBytes(), "b".getBytes());
+        ImmutableList<byte[]> rows = ImmutableList.of(ROW_FOO, ROW_BAR);
+        ImmutableList<byte[]> columns = ImmutableList.of(COL_A, COL_B);
 
         List<Cell> cells = rows.stream()
                 .map(row -> columns.stream().map(col -> Cell.create(row, col)).collect(Collectors.toList()))
@@ -1716,9 +1720,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void validateLocksOnGetSortedColumns() {
-        byte[] row1 = "foo".getBytes();
-        List<Cell> cells = ImmutableList.of(Cell.create(row1, "a".getBytes()));
+    public void getSortedColumnsThrowsIfLockIsLost() {
+        List<Cell> cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A));
         putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
 
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
@@ -1728,37 +1731,55 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
+                TABLE_SWEPT_THOROUGH,
+                ImmutableList.of(ROW_FOO),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
+        assertThatThrownBy(() -> Streams.stream(sortedColumns).forEach(Map.Entry::getKey))
+                .isInstanceOf(TransactionLockTimeoutException.class);
+    }
 
-        assertThatThrownBy(() -> {
-                    Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
-                            TABLE_SWEPT_THOROUGH,
-                            ImmutableList.of(row1),
-                            BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
-                    Streams.stream(sortedColumns).forEach(Map.Entry::getKey);
-                })
+    @Test
+    public void getSortedColumnsThrowsIfLockIsLostMidway() {
+        List<byte[]> rows = LongStream.range(0, 3).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
+        List<Cell> cells = rows.stream().map(row -> Cell.create(row, COL_A)).collect(Collectors.toList());
+        putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
+
+        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
+                TABLE_SWEPT_THOROUGH,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        assertThat(sortedColumns.next().getKey()).isEqualTo(cells.get(0));
+
+        // lock lost after getting first batch
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        assertThatThrownBy(() -> Streams.stream(sortedColumns).forEach(Map.Entry::getKey))
                 .isInstanceOf(TransactionLockTimeoutException.class);
     }
 
     @Test
     public void getSortedColumnsObeysColumnRangeSelection() {
-        byte[] row1 = "foo".getBytes();
-        byte[] row2 = "bar".getBytes();
-        byte[] col1 = "a".getBytes();
-
-        List<byte[]> rows = ImmutableList.of(row1, row2);
-        List<Cell> col1_cells = ImmutableList.of(Cell.create(row1, col1), Cell.create(row2, col1));
+        List<byte[]> rows = ImmutableList.of(ROW_FOO, ROW_BAR);
+        List<Cell> col1_cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A), Cell.create(ROW_BAR, COL_A));
 
         putCellsInTable(col1_cells, TABLE);
         List<Cell> entries = serializableTxManager.runTaskWithRetry(tx -> {
-            Iterator<Map.Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
-                    TABLE, rows, BatchColumnRangeSelection.create("a".getBytes(), "az".getBytes(), 1000));
+            Iterator<Map.Entry<Cell, byte[]>> sortedColumns =
+                    tx.getSortedColumns(TABLE, rows, BatchColumnRangeSelection.create(COL_A, "az".getBytes(), 1000));
             return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         });
         Assertions.assertThat(entries).containsExactlyElementsOf(col1_cells);
 
         List<Cell> outOfRangeEntries = serializableTxManager.runTaskWithRetry(tx -> {
-            Iterator<Map.Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
-                    TABLE, rows, BatchColumnRangeSelection.create("b".getBytes(), "c".getBytes(), 1000));
+            Iterator<Map.Entry<Cell, byte[]>> sortedColumns =
+                    tx.getSortedColumns(TABLE, rows, BatchColumnRangeSelection.create(COL_B, "c".getBytes(), 1000));
             return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         });
         Assertions.assertThat(outOfRangeEntries).isEmpty();
@@ -1766,10 +1787,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void getSortedColumnsIteratesOverMultipleBatchesIfRequired() {
-        byte[] row1 = "foo".getBytes();
-        byte[] row2 = "bar".getBytes();
-        ImmutableList<byte[]> rows = ImmutableList.of(row1, row2);
-        ImmutableList<byte[]> columns = ImmutableList.of("a".getBytes(), "b".getBytes());
+        ImmutableList<byte[]> rows = ImmutableList.of(ROW_FOO, ROW_BAR);
+        ImmutableList<byte[]> columns = ImmutableList.of(COL_A, COL_B);
 
         List<Cell> cells = rows.stream()
                 .map(row -> columns.stream().map(col -> Cell.create(row, col)).collect(Collectors.toList()))
@@ -1794,27 +1813,38 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void getSortedColumnsValidatesLocksOncePerBatch() {
-        List<byte[]> rows = LongStream.range(1, 1000).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
+        List<byte[]> rows = LongStream.range(0, 1000).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
 
-        List<Cell> cells =
-                rows.stream().map(row -> Cell.create(row, "a".getBytes())).collect(Collectors.toList());
+        List<Cell> cells = rows.stream().map(row -> Cell.create(row, COL_A)).collect(Collectors.toList());
         putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
 
+        verifyPrefetchValidations(rows, cells, 100, 10, 1000);
+        verifyPrefetchValidations(rows, cells, 100, 3, 299);
+        verifyPrefetchValidations(rows, cells, 100, 4, 300);
+        verifyPrefetchValidations(rows, cells, 100, 4, 301);
+    }
+
+    private void verifyPrefetchValidations(
+            List<byte[]> rows,
+            List<Cell> cells,
+            int batchHint,
+            int expectedNumberOfInvocations,
+            int numElementsToBeAccessed) {
         TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         Transaction transaction =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
 
-        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
+        Iterator<Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
                 TABLE_SWEPT_THOROUGH,
                 rows,
-                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
-        List<Cell> entries =
-                Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
-
-        Assertions.assertThat(entries).containsExactlyElementsOf(cells);
-        verify(timelockService, times(10)).refreshLockLeases(ImmutableSet.of(res.getLock()));
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, batchHint));
+        List<Cell> entries = IntStream.range(0, numElementsToBeAccessed)
+                .mapToObj(_unused -> sortedColumns.next().getKey())
+                .collect(Collectors.toList());
+        Assertions.assertThat(entries).containsExactlyElementsOf(cells.subList(0, numElementsToBeAccessed));
+        verify(timelockService, times(expectedNumberOfInvocations)).refreshLockLeases(ImmutableSet.of(res.getLock()));
     }
 
     private void putCellsInTable(List<Cell> cells, TableReference table) {
