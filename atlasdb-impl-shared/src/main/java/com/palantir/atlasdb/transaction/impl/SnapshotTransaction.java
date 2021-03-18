@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toList;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
@@ -465,7 +466,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Comparator<Cell> cellComparator = columnOrderThenPreserveInputRowOrder(distinctRows);
 
         Iterator<Map.Entry<Cell, Value>> postFilterIterator = getRowColumnRangePostFilteredWithoutSorting(
-                tableRef, mergeByComparator(rawResults.values(), cellComparator), batchColumnRangeSelection.getBatchHint());
+                tableRef,
+                mergeByComparator(rawResults.values(), cellComparator),
+                batchColumnRangeSelection.getBatchHint());
         Iterator<Map.Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
                 postFilterIterator,
                 entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
@@ -500,7 +503,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 cellComparator);
     }
 
-    private static Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
+    /**
+     * Provides comparator to sort cells by columns (sorted lexicographically on byte ordering) and then in the order
+     * of input rows.
+     * */
+    @VisibleForTesting
+    static Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
         return Cell.COLUMN_COMPARATOR.thenComparing(
                 (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
                 Ordering.explicit(Streams.stream(rows)

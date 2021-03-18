@@ -1694,6 +1694,28 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void testColumnOrderThenPreserveInputRowOrder() {
+        Cell foo_A = Cell.create(ROW_FOO, COL_A);
+        Cell bar_A = Cell.create(ROW_BAR, COL_A);
+        Cell foo_B = Cell.create(ROW_FOO, COL_B);
+        Cell bar_B = Cell.create(ROW_BAR, COL_B);
+
+        putCellsInTable(ImmutableList.of(foo_B, bar_A, bar_B, foo_A), TABLE);
+
+        Assertions.assertThat(getSortedEntries(
+                        TABLE,
+                        ImmutableList.of(ROW_FOO, ROW_BAR),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000)))
+                .containsExactly(foo_A, bar_A, foo_B, bar_B);
+
+        Assertions.assertThat(getSortedEntries(
+                        TABLE,
+                        ImmutableList.of(ROW_BAR, ROW_FOO),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000)))
+                .containsExactly(bar_A, foo_A, bar_B, foo_B);
+    }
+
+    @Test
     public void getSortedColumnsReturnsCellsSortedByColumn() {
         ImmutableList<byte[]> rows = ImmutableList.of(ROW_FOO, ROW_BAR);
         ImmutableList<byte[]> columns = ImmutableList.of(COL_A, COL_B);
@@ -1704,13 +1726,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .collect(Collectors.toList());
 
         putCellsInTable(cells, TABLE);
-        List<Cell> entries = serializableTxManager.runTaskWithRetry(tx -> {
-            Iterator<Map.Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
-                    TABLE,
-                    rows,
-                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
-            return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
-        });
+        List<Cell> entries = getSortedEntries(
+                TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
 
         List<Cell> entriesSortedByColumn = columns.stream()
                 .map(col -> rows.stream().map(row -> Cell.create(row, col)).collect(Collectors.toList()))
@@ -1760,8 +1779,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // lock lost after getting first batch
         timelockService.unlock(ImmutableSet.of(res.getLock()));
-        assertThatThrownBy(() -> Streams.stream(sortedColumns).forEach(Map.Entry::getKey))
-                .isInstanceOf(TransactionLockTimeoutException.class);
+        assertThatThrownBy(() -> sortedColumns.next()).isInstanceOf(TransactionLockTimeoutException.class);
     }
 
     @Test
@@ -1770,18 +1788,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         List<Cell> col1_cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A), Cell.create(ROW_BAR, COL_A));
 
         putCellsInTable(col1_cells, TABLE);
-        List<Cell> entries = serializableTxManager.runTaskWithRetry(tx -> {
-            Iterator<Map.Entry<Cell, byte[]>> sortedColumns =
-                    tx.getSortedColumns(TABLE, rows, BatchColumnRangeSelection.create(COL_A, "az".getBytes(), 1000));
-            return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
-        });
+        List<Cell> entries =
+                getSortedEntries(TABLE, rows, BatchColumnRangeSelection.create(COL_A, "az".getBytes(), 1000));
         Assertions.assertThat(entries).containsExactlyElementsOf(col1_cells);
 
-        List<Cell> outOfRangeEntries = serializableTxManager.runTaskWithRetry(tx -> {
-            Iterator<Map.Entry<Cell, byte[]>> sortedColumns =
-                    tx.getSortedColumns(TABLE, rows, BatchColumnRangeSelection.create(COL_B, "c".getBytes(), 1000));
-            return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
-        });
+        List<Cell> outOfRangeEntries =
+                getSortedEntries(TABLE, rows, BatchColumnRangeSelection.create("y".getBytes(), "z".getBytes(), 1000));
         Assertions.assertThat(outOfRangeEntries).isEmpty();
     }
 
@@ -1796,13 +1808,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .collect(Collectors.toList());
 
         putCellsInTable(cells, TABLE);
-        List<Cell> entries = serializableTxManager.runTaskWithRetry(tx -> {
-            Iterator<Map.Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(
-                    TABLE,
-                    rows,
-                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
-            return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
-        });
+        List<Cell> entries = getSortedEntries(
+                TABLE, rows, BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
 
         List<Cell> entriesSortedByColumn = columns.stream()
                 .map(col -> rows.stream().map(row -> Cell.create(row, col)).collect(Collectors.toList()))
@@ -1845,6 +1852,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .collect(Collectors.toList());
         Assertions.assertThat(entries).containsExactlyElementsOf(cells.subList(0, numElementsToBeAccessed));
         verify(timelockService, times(expectedNumberOfInvocations)).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    private List<Cell> getSortedEntries(
+            TableReference table, List<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
+        return serializableTxManager.runTaskWithRetry(tx -> {
+            Iterator<Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(table, rows, batchColumnRangeSelection);
+            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        });
     }
 
     private void putCellsInTable(List<Cell> cells, TableReference table) {
