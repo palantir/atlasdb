@@ -45,12 +45,12 @@ public class AuthenticatedInternalMultiClientConjureTimelockService
     @Override
     public Map<Namespace, GetCommitTimestampsResponse> getCommitTimestamps(
             Map<Namespace, GetCommitTimestampsRequest> requests) {
-        return delegate.getCommitTimestamps(AUTH_HEADER, requests);
+        return delegate.getCommitTimestampsForClients(AUTH_HEADER, requests);
     }
 
     @Override
     public Map<Namespace, ConjureStartTransactionsResponse> startTransactions(
             Map<Namespace, ConjureStartTransactionsRequest> requests) {
-        return delegate.startTransactions(AUTH_HEADER, requests);
+        return delegate.startTransactionsForClients(AUTH_HEADER, requests);
     }
 }

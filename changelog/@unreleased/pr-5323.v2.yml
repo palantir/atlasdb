@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: AtlasDb client now uses new multi-client endpoints - startTransactionsForClients & getCommitTimestampsForClients.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5323
