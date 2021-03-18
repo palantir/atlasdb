@@ -123,7 +123,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.SortedMap;
@@ -1779,7 +1778,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // lock lost after getting first batch
         timelockService.unlock(ImmutableSet.of(res.getLock()));
-        assertThatThrownBy(() -> sortedColumns.next()).isInstanceOf(TransactionLockTimeoutException.class);
+        assertThatThrownBy(sortedColumns::next).isInstanceOf(TransactionLockTimeoutException.class);
     }
 
     @Test
@@ -1843,7 +1842,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
 
-        Iterator<Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
                 TABLE_SWEPT_THOROUGH,
                 rows,
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, batchHint));
@@ -1857,8 +1856,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private List<Cell> getSortedEntries(
             TableReference table, List<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
         return serializableTxManager.runTaskWithRetry(tx -> {
-            Iterator<Entry<Cell, byte[]>> sortedColumns = tx.getSortedColumns(table, rows, batchColumnRangeSelection);
-            return Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+            Iterator<Map.Entry<Cell, byte[]>> sortedColumns =
+                    tx.getSortedColumns(table, rows, batchColumnRangeSelection);
+            return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         });
     }
 
