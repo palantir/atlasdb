@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -1840,6 +1841,32 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         verifyPrefetchValidations(rows, cells, 100, 4, 301);
     }
 
+    @Test
+    public void getSortedColumnsServesInOneRequestForSmallLoad() {
+        int numRows = 7;
+        int numColumns = 99;
+        int expectedBatchHintForKvs = numColumns;
+
+        verifyLoadOnKvs(numColumns, numRows, expectedBatchHintForKvs);
+    }
+
+    @Test
+    public void getSortedColumnsDistributesLoadAmongRows() {
+        int numRows = 7;
+        int numColumns = 10_000;
+        int expectedBatchHintForKvs = numColumns / numRows;
+
+        verifyLoadOnKvs(numColumns, numRows, expectedBatchHintForKvs);
+    }
+
+    @Test
+    public void getSortedColumnsDistributesLoadWithMinBound() {
+        int numRows = 5;
+        int numColumns = 101;
+
+        verifyLoadOnKvs(numColumns, numRows, SnapshotTransaction.MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD);
+    }
+
     private void verifyPrefetchValidations(
             List<byte[]> rows,
             List<Cell> cells,
@@ -1861,6 +1888,40 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .collect(Collectors.toList());
         Assertions.assertThat(entries).containsExactlyElementsOf(cells.subList(0, numElementsToBeAccessed));
         verify(timelockService, times(expectedNumberOfInvocations)).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    private void verifyLoadOnKvs(int numColumns, int numRows, int expectedBatchHintForKvs) {
+        List<byte[]> rows =
+                LongStream.range(0, numRows).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
+        List<byte[]> columns =
+                LongStream.range(0, numColumns).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
+
+        // Only provide entries for the first row
+        List<Cell> cells =
+                columns.stream().map(column -> Cell.create(rows.get(0), column)).collect(Collectors.toList());
+        putCellsInTable(cells, TABLE);
+
+        verifyBatchHintSizesForKvs(rows, cells.size(), expectedBatchHintForKvs);
+    }
+
+    private void verifyBatchHintSizesForKvs(List<byte[]> rows, int batchHint, int expectedBatchHintForKvs) {
+        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        transaction.getSortedColumns(
+                TABLE_SWEPT_THOROUGH,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, batchHint));
+
+        ArgumentCaptor<BatchColumnRangeSelection> perBatchSelection =
+                ArgumentCaptor.forClass(BatchColumnRangeSelection.class);
+        // In-memory kvs does not honour batch hint; returns all cells in one call
+        verify(keyValueService)
+                .getRowsColumnRange(eq(TABLE_SWEPT_THOROUGH), eq(rows), perBatchSelection.capture(), eq(transactionTs));
+        assertThat(perBatchSelection.getValue().getBatchHint()).isEqualTo(expectedBatchHintForKvs);
     }
 
     private List<Cell> getSortedEntries(

@@ -190,6 +190,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
 
+    @VisibleForTesting
+    static final int MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD = 100;
+
     private enum State {
         UNCOMMITTED,
         COMMITTED,
@@ -531,7 +534,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * */
     private static int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
         return Math.max(
-                Math.min(100, columnRangeSelection.getBatchHint()),
+                Math.min(MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD, columnRangeSelection.getBatchHint()),
                 columnRangeSelection.getBatchHint() / distinctRowCount);
     }
 
