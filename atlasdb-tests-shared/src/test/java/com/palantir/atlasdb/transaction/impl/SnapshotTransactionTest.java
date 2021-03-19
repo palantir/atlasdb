@@ -1794,12 +1794,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void getSortedColumnsObeysColumnRangeSelection() {
         List<byte[]> rows = ImmutableList.of(ROW_FOO, ROW_BAR);
-        List<Cell> col1_cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A), Cell.create(ROW_BAR, COL_A));
+        List<Cell> colA_cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A), Cell.create(ROW_BAR, COL_A));
 
-        putCellsInTable(col1_cells, TABLE);
+        putCellsInTable(colA_cells, TABLE);
         List<Cell> entries =
                 getSortedEntries(TABLE, rows, BatchColumnRangeSelection.create(COL_A, "az".getBytes(), 1000));
-        Assertions.assertThat(entries).containsExactlyElementsOf(col1_cells);
+        Assertions.assertThat(entries).containsExactlyElementsOf(colA_cells);
 
         List<Cell> outOfRangeEntries =
                 getSortedEntries(TABLE, rows, BatchColumnRangeSelection.create("y".getBytes(), "z".getBytes(), 1000));
