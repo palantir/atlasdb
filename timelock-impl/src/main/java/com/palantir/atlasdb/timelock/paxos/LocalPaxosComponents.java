@@ -103,18 +103,20 @@ public class LocalPaxosComponents {
             OrderableSlsVersion timeLockVersion,
             boolean skipConsistencyCheckAndTruncateOldPaxosLog) {
         ExecutorService sqliteAsyncExecutor = PTExecutors.newSingleThreadExecutor(true);
-        LocalPaxosComponents components = createWithAsyncMigration(
-                metrics,
-                paxosUseCase,
-                legacyLogDirectory,
-                sqliteDataSource,
-                leaderUuid,
-                canCreateNewClients,
-                timeLockVersion,
-                skipConsistencyCheckAndTruncateOldPaxosLog,
-                sqliteAsyncExecutor);
-        sqliteAsyncExecutor.shutdown();
-        return components;
+        try {
+            return createWithAsyncMigration(
+                    metrics,
+                    paxosUseCase,
+                    legacyLogDirectory,
+                    sqliteDataSource,
+                    leaderUuid,
+                    canCreateNewClients,
+                    timeLockVersion,
+                    skipConsistencyCheckAndTruncateOldPaxosLog,
+                    sqliteAsyncExecutor);
+        } finally {
+            sqliteAsyncExecutor.shutdown();
+        }
     }
 
     public static LocalPaxosComponents createWithAsyncMigration(
