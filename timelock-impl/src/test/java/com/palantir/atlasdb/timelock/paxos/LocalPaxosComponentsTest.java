@@ -126,7 +126,7 @@ public class LocalPaxosComponentsTest {
 
     // utils
     public LocalPaxosComponents createPaxosComponents(boolean canCreateNewClients) {
-        return LocalPaxosComponents.createWithBlockingMigration(
+        return LocalPaxosComponents.createWithAsyncMigration(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,
@@ -139,7 +139,7 @@ public class LocalPaxosComponentsTest {
 
     public LocalPaxosComponents createPaxosComponents(
             boolean canCreateNewClients, OrderableSlsVersion timeLockVersion) {
-        return LocalPaxosComponents.createWithBlockingMigration(
+        return LocalPaxosComponents.createWithAsyncMigration(
                 TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                 PaxosUseCase.TIMESTAMP,
                 legacyDirectory,

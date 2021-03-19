@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: SQLite migration/validation is now done asynchronously at startup instead of synchronously. This is correct because if a paxos component is needed before it is initialised, it will be initialised lazily.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5327
