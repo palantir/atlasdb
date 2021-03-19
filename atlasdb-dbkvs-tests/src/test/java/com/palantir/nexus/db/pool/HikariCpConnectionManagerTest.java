@@ -32,6 +32,7 @@ import java.sql.SQLException;
 import java.sql.SQLTransientConnectionException;
 import java.sql.Statement;
 import java.time.Duration;
+import java.util.Random;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
@@ -133,7 +134,8 @@ public class HikariCpConnectionManagerTest {
     @Test
     public void testRuntimePasswordChange() throws SQLException {
         // create a new user to avoid messing up the main user for other tests
-        String testUsername = "testpasswordchange";
+        // make username random in case concurrent runs makes things bad
+        String testUsername = "testuser" + new Random().nextInt(1 << 16);
         String password1 = "password1";
         String password2 = "password2";
         String password3 = "password3";
@@ -156,9 +158,7 @@ public class HikariCpConnectionManagerTest {
         testManager.setPassword(password1);
 
         try (Connection conn = testManager.getConnection()) {
-            try (Statement statement = conn.createStatement()) {
-                statement.execute(String.format("ALTER USER %s WITH PASSWORD '%s'", testUsername, password2));
-            }
+            changePassword(conn, testUsername, password2);
             // existing connection should still work
             checkConnection(conn);
 
@@ -184,9 +184,7 @@ public class HikariCpConnectionManagerTest {
                 assertPasswordWrong(testManager);
 
                 // use existing conn to fix the password
-                try (Statement statement = conn2.createStatement()) {
-                    statement.execute(String.format("ALTER USER %s WITH PASSWORD '%s'", testUsername, password3));
-                }
+                changePassword(conn2, testUsername, password3);
 
                 // now a new connection should work
                 try (Connection conn3 = testManager.getConnection()) {
@@ -198,6 +196,15 @@ public class HikariCpConnectionManagerTest {
         }
     }
 
+    private static void changePassword(Connection conn, String username, String newPassword) throws SQLException {
+        // for some reason things seem to sometimes be unreliable in CI, so try setting the password twice
+        for (int i = 0; i < 2; i++) {
+            try (Statement statement = conn.createStatement()) {
+                statement.execute(String.format("ALTER USER %s WITH PASSWORD '%s'", username, newPassword));
+            }
+        }
+    }
+
     private static void assertPasswordWrong(ConnectionManager testManager) {
         // This is needed because it appears that sometimes postgres password changes do not take effect immediately.
         // If the password change happens too late, we end up with a connection in the pool that we did not expect.
@@ -205,7 +212,7 @@ public class HikariCpConnectionManagerTest {
         // the pool before we can detect that the password is wrong. Note that I cannot reproduce this case locally,
         // but it appears to almost always happen on circle.
         Awaitility.await("assertPasswordWrong")
-                .atMost(Duration.ofSeconds(10))
+                .atMost(Duration.ofSeconds(60))
                 .pollInterval(Duration.ofSeconds(2))
                 .pollDelay(Duration.ofMillis(100))
                 .until(() -> isPasswordWrong(testManager));
