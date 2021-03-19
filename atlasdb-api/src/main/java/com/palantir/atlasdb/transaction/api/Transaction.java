@@ -133,16 +133,15 @@ public interface Transaction {
     /**
      * Returns an iterator over cell-value pairs within {@code tableRef} for the specified {@code rows}, where the
      * columns fall within the provided  {@link BatchColumnRangeSelection}.The single provided
-     * {@link BatchColumnRangeSelection} applies to all of the rows. If the same row is included multiple times,
-     * the cells will appear with only the first occurrence of the row in the stable case.
+     * {@link BatchColumnRangeSelection} applies to all of the rows. The cells for a row appear exactly once even if
+     * the same row is included multiple times in {@code rows}.
      *
      * The returned iterator is guaranteed to contain cells sorted first in lexicographical order of column on byte
      * ordering, then in order of row, where rows are sorted according to the provided {@code rows} {@link Iterable}.
      * If the {@link Iterable} does not have a stable ordering (i.e. iteration order can change across iterators
      * returned) then the returned iterator is sorted lexicographically with columns sorted on byte ordering, but the
-     * ordering of rows is undefined.
-     *
-     *
+     * ordering of rows is undefined. In case of duplicate rows, the ordering is based on the first occurrence of
+     * the row.
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply column range selection to

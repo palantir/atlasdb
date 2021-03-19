@@ -1759,7 +1759,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void getSortedColumnsThrowsIfLockIsLostMidway() {
-        List<byte[]> rows = LongStream.range(0, 3).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
+        List<byte[]> rows = LongStream.range(0, 10).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
         List<Cell> cells = rows.stream().map(row -> Cell.create(row, COL_A)).collect(Collectors.toList());
         putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
 
@@ -1770,14 +1770,24 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
 
+        int batchHint = 5;
         Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
                 TABLE_SWEPT_THOROUGH,
                 rows,
-                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, batchHint));
         assertThat(sortedColumns.next().getKey()).isEqualTo(cells.get(0));
 
         // lock lost after getting first batch
         timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        // should still be able to get all but last element of the elements for the first batch;
+        // next batch is preemptively fetched when last element of curr batch is retrieved
+        List<Cell> retrievedEntries = IntStream.range(1, batchHint - 1)
+                .mapToObj(_unused -> sortedColumns.next().getKey())
+                .collect(Collectors.toList());
+        assertThat(retrievedEntries).hasSameElementsAs(cells.subList(1, batchHint - 1));
+
+        // should throw while fetching the next batch
         assertThatThrownBy(sortedColumns::next).isInstanceOf(TransactionLockTimeoutException.class);
     }
 
