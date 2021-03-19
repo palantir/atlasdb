@@ -43,6 +43,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -96,6 +97,7 @@ import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.MultiDelegateProxy;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -136,6 +138,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -292,6 +295,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             TableReference.createFromFullyQualifiedName("default.table4");
     static final TableReference TABLE_SWEPT_THOROUGH_MIGRATION =
             TableReference.createFromFullyQualifiedName("default.table5");
+
+    private static final byte[] ROW_FOO = "foo".getBytes();
+    private static final byte[] ROW_BAR = "bar".getBytes();
+    private static final byte[] COL_A = "a".getBytes();
+    private static final byte[] COL_B = "b".getBytes();
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
     private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
@@ -1682,6 +1690,195 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         assertThat(keyValueService.get(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL, 0L)))
                 .isNotEmpty();
+    }
+
+    @Test
+    public void testColumnOrderThenPreserveInputRowOrder() {
+        Cell foo_A = Cell.create(ROW_FOO, COL_A);
+        Cell bar_A = Cell.create(ROW_BAR, COL_A);
+        Cell foo_B = Cell.create(ROW_FOO, COL_B);
+        Cell bar_B = Cell.create(ROW_BAR, COL_B);
+
+        putCellsInTable(ImmutableList.of(foo_B, bar_A, bar_B, foo_A), TABLE);
+
+        Assertions.assertThat(getSortedEntries(
+                        TABLE,
+                        ImmutableList.of(ROW_FOO, ROW_BAR),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000)))
+                .containsExactly(foo_A, bar_A, foo_B, bar_B);
+
+        Assertions.assertThat(getSortedEntries(
+                        TABLE,
+                        ImmutableList.of(ROW_BAR, ROW_FOO),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000)))
+                .containsExactly(bar_A, foo_A, bar_B, foo_B);
+    }
+
+    @Test
+    public void getSortedColumnsReturnsCellsSortedByColumn() {
+        ImmutableList<byte[]> rows = ImmutableList.of(ROW_FOO, ROW_BAR);
+        ImmutableList<byte[]> columns = ImmutableList.of(COL_A, COL_B);
+
+        List<Cell> cells = rows.stream()
+                .map(row -> columns.stream().map(col -> Cell.create(row, col)).collect(Collectors.toList()))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+        putCellsInTable(cells, TABLE);
+        List<Cell> entries = getSortedEntries(
+                TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
+
+        List<Cell> entriesSortedByColumn = columns.stream()
+                .map(col -> rows.stream().map(row -> Cell.create(row, col)).collect(Collectors.toList()))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+        Assertions.assertThat(entries).containsExactlyElementsOf(entriesSortedByColumn);
+    }
+
+    @Test
+    public void getSortedColumnsThrowsIfLockIsLost() {
+        List<Cell> cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A));
+        putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
+
+        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
+                TABLE_SWEPT_THOROUGH,
+                ImmutableList.of(ROW_FOO),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000));
+        assertThatThrownBy(() -> Streams.stream(sortedColumns).forEach(Map.Entry::getKey))
+                .isInstanceOf(TransactionLockTimeoutException.class);
+    }
+
+    @Test
+    public void getSortedColumnsThrowsIfLockIsLostMidway() {
+        List<byte[]> rows = LongStream.range(0, 10).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
+        List<Cell> cells = rows.stream().map(row -> Cell.create(row, COL_A)).collect(Collectors.toList());
+        putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
+
+        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        int batchHint = 5;
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
+                TABLE_SWEPT_THOROUGH,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, batchHint));
+        assertThat(sortedColumns.next().getKey()).isEqualTo(cells.get(0));
+
+        // lock lost after getting first batch
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        // should still be able to get all but last element of the elements for the first batch;
+        // next batch is preemptively fetched when last element of curr batch is retrieved
+        List<Cell> retrievedEntries = IntStream.range(1, batchHint - 1)
+                .mapToObj(_unused -> sortedColumns.next().getKey())
+                .collect(Collectors.toList());
+        assertThat(retrievedEntries).hasSameElementsAs(cells.subList(1, batchHint - 1));
+
+        // should throw while fetching the next batch
+        assertThatThrownBy(sortedColumns::next).isInstanceOf(TransactionLockTimeoutException.class);
+    }
+
+    @Test
+    public void getSortedColumnsObeysColumnRangeSelection() {
+        List<byte[]> rows = ImmutableList.of(ROW_FOO, ROW_BAR);
+        List<Cell> colA_cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A), Cell.create(ROW_BAR, COL_A));
+
+        putCellsInTable(colA_cells, TABLE);
+        List<Cell> entries =
+                getSortedEntries(TABLE, rows, BatchColumnRangeSelection.create(COL_A, "az".getBytes(), 1000));
+        Assertions.assertThat(entries).containsExactlyElementsOf(colA_cells);
+
+        List<Cell> outOfRangeEntries =
+                getSortedEntries(TABLE, rows, BatchColumnRangeSelection.create("y".getBytes(), "z".getBytes(), 1000));
+        Assertions.assertThat(outOfRangeEntries).isEmpty();
+    }
+
+    @Test
+    public void getSortedColumnsIteratesOverMultipleBatchesIfRequired() {
+        ImmutableList<byte[]> rows = ImmutableList.of(ROW_FOO, ROW_BAR);
+        ImmutableList<byte[]> columns = ImmutableList.of(COL_A, COL_B);
+
+        List<Cell> cells = rows.stream()
+                .map(row -> columns.stream().map(col -> Cell.create(row, col)).collect(Collectors.toList()))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+        putCellsInTable(cells, TABLE);
+        List<Cell> entries = getSortedEntries(
+                TABLE, rows, BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+
+        List<Cell> entriesSortedByColumn = columns.stream()
+                .map(col -> rows.stream().map(row -> Cell.create(row, col)).collect(Collectors.toList()))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+        Assertions.assertThat(entries).containsExactlyElementsOf(entriesSortedByColumn);
+    }
+
+    @Test
+    public void getSortedColumnsValidatesLocksOncePerBatch() {
+        List<byte[]> rows = LongStream.range(0, 1000).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
+
+        List<Cell> cells = rows.stream().map(row -> Cell.create(row, COL_A)).collect(Collectors.toList());
+        putCellsInTable(cells, TABLE_SWEPT_THOROUGH);
+
+        verifyPrefetchValidations(rows, cells, 100, 10, 1000);
+        verifyPrefetchValidations(rows, cells, 100, 3, 299);
+        verifyPrefetchValidations(rows, cells, 100, 4, 300);
+        verifyPrefetchValidations(rows, cells, 100, 4, 301);
+    }
+
+    private void verifyPrefetchValidations(
+            List<byte[]> rows,
+            List<Cell> cells,
+            int batchHint,
+            int expectedNumberOfInvocations,
+            int numElementsToBeAccessed) {
+        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = transaction.getSortedColumns(
+                TABLE_SWEPT_THOROUGH,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, batchHint));
+        List<Cell> entries = IntStream.range(0, numElementsToBeAccessed)
+                .mapToObj(_unused -> sortedColumns.next().getKey())
+                .collect(Collectors.toList());
+        Assertions.assertThat(entries).containsExactlyElementsOf(cells.subList(0, numElementsToBeAccessed));
+        verify(timelockService, times(expectedNumberOfInvocations)).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    private List<Cell> getSortedEntries(
+            TableReference table, List<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
+        return serializableTxManager.runTaskWithRetry(tx -> {
+            Iterator<Map.Entry<Cell, byte[]>> sortedColumns =
+                    tx.getSortedColumns(table, rows, batchColumnRangeSelection);
+            return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
+        });
+    }
+
+    private void putCellsInTable(List<Cell> cells, TableReference table) {
+        byte[] value = new byte[1];
+        Map<Cell, byte[]> cellMap = KeyedStream.of(cells).map(_unused -> value).collectToMap();
+        txManager.runTaskWithRetry(tx -> {
+            tx.put(table, cellMap);
+            return null;
+        });
     }
 
     private void putUncommittedAtFreshTimestamp(TableReference tableRef, Cell cell) {

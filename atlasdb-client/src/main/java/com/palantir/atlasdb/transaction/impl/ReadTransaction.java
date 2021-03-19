@@ -123,6 +123,13 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     @Override
+    public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
+            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
+        checkTableName(tableRef);
+        return delegate().getSortedColumns(tableRef, rows, batchColumnRangeSelection);
+    }
+
+    @Override
     public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         checkTableName(tableRef);

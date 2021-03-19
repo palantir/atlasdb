@@ -27,6 +27,7 @@ import com.palantir.logsafe.UnsafeArg;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Comparator;
 import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
 
     // Oracle has an upper bound on RAW types of 2000.
     public static final int MAX_NAME_LENGTH = 1500;
+    public static final Comparator<Cell> COLUMN_COMPARATOR = PtBytes.BYTES_COMPARATOR.onResultOf(Cell::getColumnName);
 
     /**
      * Creates a key. Do not modify the rowName or the columnName arrays after passing them.
