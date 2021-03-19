@@ -59,7 +59,7 @@ public abstract class LeadershipContextFactory
     @Override
     @Value.Derived
     public LocalPaxosComponents components() {
-        return LocalPaxosComponents.createWithBlockingMigration(
+        return LocalPaxosComponents.createWithAsyncMigration(
                 metrics(),
                 useCase(),
                 install().dataDirectory(),

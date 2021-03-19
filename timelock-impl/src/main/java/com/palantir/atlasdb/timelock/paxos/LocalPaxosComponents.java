@@ -21,6 +21,7 @@ import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
@@ -46,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
@@ -91,7 +93,7 @@ public class LocalPaxosComponents {
         this.skipConsistencyCheckAndTruncateOldPaxosLog = skipConsistencyCheckAndTruncateOldPaxosLog;
     }
 
-    public static LocalPaxosComponents createWithBlockingMigration(
+    public static LocalPaxosComponents createWithAsyncMigration(
             TimelockPaxosMetrics metrics,
             PaxosUseCase paxosUseCase,
             Path legacyLogDirectory,
@@ -100,6 +102,31 @@ public class LocalPaxosComponents {
             boolean canCreateNewClients,
             OrderableSlsVersion timeLockVersion,
             boolean skipConsistencyCheckAndTruncateOldPaxosLog) {
+        ExecutorService sqliteAsyncExecutor = PTExecutors.newSingleThreadExecutor(true);
+        LocalPaxosComponents components = createWithAsyncMigration(
+                metrics,
+                paxosUseCase,
+                legacyLogDirectory,
+                sqliteDataSource,
+                leaderUuid,
+                canCreateNewClients,
+                timeLockVersion,
+                skipConsistencyCheckAndTruncateOldPaxosLog,
+                sqliteAsyncExecutor);
+        sqliteAsyncExecutor.shutdown();
+        return components;
+    }
+
+    public static LocalPaxosComponents createWithAsyncMigration(
+            TimelockPaxosMetrics metrics,
+            PaxosUseCase paxosUseCase,
+            Path legacyLogDirectory,
+            DataSource sqliteDataSource,
+            UUID leaderUuid,
+            boolean canCreateNewClients,
+            OrderableSlsVersion timeLockVersion,
+            boolean skipConsistencyCheckAndTruncateOldPaxosLog,
+            ExecutorService sqliteAsyncExecutor) {
         LocalPaxosComponents components = new LocalPaxosComponents(
                 metrics,
                 paxosUseCase,
@@ -113,14 +140,20 @@ public class LocalPaxosComponents {
         Path legacyClientDir = paxosUseCase.logDirectoryRelativeToDataDirectory(legacyLogDirectory);
         PersistentNamespaceLoader namespaceLoader = new DiskNamespaceLoader(legacyClientDir);
         Set<Client> namespaces = namespaceLoader.getAllPersistedNamespaces();
-        log.info("Performing blocking migration of {} namespaces", SafeArg.of("numNamespaces", namespaces.size()));
+
+        sqliteAsyncExecutor.execute(() -> migrate(components, namespaces));
+
+        return components;
+    }
+
+    private static void migrate(LocalPaxosComponents components, Set<Client> namespaces) {
+        log.info("Performing asynchronous migration of {} namespaces", SafeArg.of("numNamespaces", namespaces.size()));
         Instant startInstant = Instant.now();
         namespaces.forEach(components::getOrCreateComponents);
         log.info(
                 "Successfully migrated a total of {} namespaces in {}",
                 SafeArg.of("numNamespaces", namespaces.size()),
                 SafeArg.of("duration", Duration.between(startInstant, Instant.now())));
-        return components;
     }
 
     public PaxosAcceptor acceptor(Client client) {

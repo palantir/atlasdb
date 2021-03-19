@@ -170,7 +170,7 @@ public final class PaxosResourcesFactory {
             PaxosRemoteClients remoteClients) {
         TimelockPaxosMetrics timelockMetrics = TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, metrics);
 
-        LocalPaxosComponents paxosComponents = LocalPaxosComponents.createWithBlockingMigration(
+        LocalPaxosComponents paxosComponents = LocalPaxosComponents.createWithAsyncMigration(
                 timelockMetrics,
                 PaxosUseCase.TIMESTAMP,
                 install.dataDirectory(),

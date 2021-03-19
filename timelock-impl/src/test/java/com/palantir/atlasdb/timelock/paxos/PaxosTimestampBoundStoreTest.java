@@ -109,7 +109,7 @@ public class PaxosTimestampBoundStoreTest {
 
         for (int i = 0; i < NUM_NODES; i++) {
             String root = temporaryFolder.getRoot().getAbsolutePath();
-            LocalPaxosComponents components = LocalPaxosComponents.createWithBlockingMigration(
+            LocalPaxosComponents components = LocalPaxosComponents.createWithAsyncMigration(
                     TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                     PaxosUseCase.TIMESTAMP,
                     Paths.get(root, i + "legacy"),

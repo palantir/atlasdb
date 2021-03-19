@@ -37,19 +37,33 @@ import com.palantir.paxos.Versionable;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.UUID;
 import javax.sql.DataSource;
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class PaxosStateLogMigrationIntegrationTest {
+    @Parameterized.Parameters(name = "Async migration completed {0}")
+    public static Collection<Object[]> succeeded() {
+        return Arrays.asList(new Object[][] {{true}, {false}});
+    }
+
     private static final Client CLIENT = Client.of("test");
     private static final PaxosUseCase useCase = PaxosUseCase.LEADER_FOR_ALL_CLIENTS;
     private static final long LATEST_ROUND_BEFORE_MIGRATING = 100;
     private static final long CUTOFF = LATEST_ROUND_BEFORE_MIGRATING - PaxosStateLogMigrator.SAFETY_BUFFER;
     private static final long ROUND_BEFORE_CUTOFF = CUTOFF - 1;
+
+    private final boolean asyncMigrationCompleted;
+    private final DeterministicScheduler executor = new DeterministicScheduler();
 
     private Path legacyDirectory;
     private DataSource sqlite;
@@ -66,9 +80,13 @@ public class PaxosStateLogMigrationIntegrationTest {
         fileBasedLearnerLog = createFileSystemLearnerLog(CLIENT);
     }
 
+    public PaxosStateLogMigrationIntegrationTest(boolean asyncMigrationCompleted) {
+        this.asyncMigrationCompleted = asyncMigrationCompleted;
+    }
+
     @Test
     public void canMigrateWithEmptyLegacy() {
-        LocalPaxosComponents paxosComponents = createPaxosComponents();
+        LocalPaxosComponents paxosComponents = createPaxosComponentsAndMaybeMigrate();
 
         PaxosLearner learner = paxosComponents.learner(CLIENT);
         assertThat(learner.getLearnedValue(0L)).isEmpty();
@@ -86,14 +104,14 @@ public class PaxosStateLogMigrationIntegrationTest {
         fileBasedLearnerLog.writeRound(CUTOFF, valueForRound(CUTOFF));
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents();
+        LocalPaxosComponents paxosComponents = createPaxosComponentsAndMaybeMigrate();
+        PaxosLearner learner = paxosComponents.learner(CLIENT);
 
         PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(paxosComponents.getLearnerParameters(CLIENT));
         assertValuePresent(LATEST_ROUND_BEFORE_MIGRATING, sqliteLog);
         assertValuePresent(CUTOFF, sqliteLog);
         assertValueAbsent(ROUND_BEFORE_CUTOFF, sqliteLog);
 
-        PaxosLearner learner = paxosComponents.learner(CLIENT);
         assertValueLearned(LATEST_ROUND_BEFORE_MIGRATING, learner);
         assertValueLearned(CUTOFF, learner);
         assertValueLearned(ROUND_BEFORE_CUTOFF, learner);
@@ -108,7 +126,9 @@ public class PaxosStateLogMigrationIntegrationTest {
     public void legacyLogIsTheSourceOfTruthForValuesBelowCutoff() throws IOException {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents();
+        LocalPaxosComponents paxosComponents = createPaxosComponentsAndMaybeMigrate();
+        PaxosLearner learner = paxosComponents.learner(CLIENT);
+
         fileBasedLearnerLog.writeRound(CUTOFF, valueForRound(CUTOFF));
         fileBasedLearnerLog.writeRound(ROUND_BEFORE_CUTOFF, valueForRound(ROUND_BEFORE_CUTOFF));
 
@@ -116,7 +136,6 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueAbsent(CUTOFF, sqliteLog);
         assertValueAbsent(ROUND_BEFORE_CUTOFF, sqliteLog);
 
-        PaxosLearner learner = paxosComponents.learner(CLIENT);
         assertValueNotLearned(CUTOFF, learner);
         assertValueLearned(ROUND_BEFORE_CUTOFF, learner);
 
@@ -130,7 +149,8 @@ public class PaxosStateLogMigrationIntegrationTest {
     public void currentLogIsTheSourceOfTruthForValuesAboveCutoff() throws IOException {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents();
+        LocalPaxosComponents paxosComponents = createPaxosComponentsAndMaybeMigrate();
+        paxosComponents.learner(CLIENT);
 
         PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(paxosComponents.getLearnerParameters(CLIENT));
         sqliteLog.writeRound(CUTOFF, valueForRound(CUTOFF));
@@ -153,9 +173,9 @@ public class PaxosStateLogMigrationIntegrationTest {
     public void learningValuesBeforeCutoffPersistsToLegacyLog() throws IOException {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents();
-
+        LocalPaxosComponents paxosComponents = createPaxosComponentsAndMaybeMigrate();
         PaxosLearner learner = paxosComponents.learner(CLIENT);
+
         learner.learn(ROUND_BEFORE_CUTOFF, valueForRound(ROUND_BEFORE_CUTOFF));
 
         PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(paxosComponents.getLearnerParameters(CLIENT));
@@ -178,13 +198,14 @@ public class PaxosStateLogMigrationIntegrationTest {
         PaxosStateLog<PaxosValue> otherFileBasedLog = createFileSystemLearnerLog(otherClient);
         otherFileBasedLog.writeRound(otherRound, valueForRound(otherRound));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents();
-
+        LocalPaxosComponents paxosComponents = createPaxosComponentsAndMaybeMigrate();
         PaxosLearner learner = paxosComponents.learner(CLIENT);
+
+        PaxosLearner otherLearner = paxosComponents.learner(otherClient);
+
         assertValueLearned(LATEST_ROUND_BEFORE_MIGRATING, learner);
         assertValueNotLearned(otherRound, learner);
 
-        PaxosLearner otherLearner = paxosComponents.learner(otherClient);
         assertValueNotLearned(LATEST_ROUND_BEFORE_MIGRATING, otherLearner);
         assertValueLearned(otherRound, otherLearner);
     }
@@ -199,7 +220,8 @@ public class PaxosStateLogMigrationIntegrationTest {
         fileBasedAcceptorLog.writeRound(CUTOFF, stateForRound(CUTOFF));
         fileBasedAcceptorLog.writeRound(newRound, stateForRound(newRound));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents();
+        LocalPaxosComponents paxosComponents = createPaxosComponentsAndMaybeMigrate();
+        paxosComponents.acceptor(CLIENT);
 
         PaxosStateLog<PaxosAcceptorState> sqliteLog = createSqliteLog(paxosComponents.getAcceptorParameters(CLIENT));
         assertStateAbsent(ROUND_BEFORE_CUTOFF, sqliteLog);
@@ -214,22 +236,25 @@ public class PaxosStateLogMigrationIntegrationTest {
         PaxosStateLog<PaxosAcceptorState> fileBasedAcceptorLog = createFileSystemAcceptorLog(CLIENT);
         fileBasedAcceptorLog.writeRound(ROUND_BEFORE_CUTOFF, stateForRound(ROUND_BEFORE_CUTOFF));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents();
+        LocalPaxosComponents paxosComponents = createPaxosComponentsAndMaybeMigrate();
+        paxosComponents.acceptor(CLIENT);
 
         PaxosStateLog<PaxosAcceptorState> sqliteLog = createSqliteLog(paxosComponents.getAcceptorParameters(CLIENT));
         assertStatePresent(ROUND_BEFORE_CUTOFF, sqliteLog);
     }
 
     @Test
-    public void failWhenOldLogWritesAtGreaterSequenceAfterMigrationAlreadyRan() throws IOException {
+    public void failWhenOldLogWritesAtGreaterSequenceAfterMigrationAlreadyRan() {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
 
-        createPaxosComponents();
+        LocalPaxosComponents paxosComponents = createPaxosComponentsAndMaybeMigrate();
+        paxosComponents.learner(CLIENT);
 
         long newRound = LATEST_ROUND_BEFORE_MIGRATING + 3;
         fileBasedLearnerLog.writeRound(newRound, valueForRound(newRound));
 
-        assertThatThrownBy(this::createPaxosComponents)
+        LocalPaxosComponents brokenComponents = createPaxosComponentsAndMaybeMigrate();
+        assertThatThrownBy(() -> brokenComponents.learner(CLIENT))
                 .as("Written to file based log at greater sequence after migration already ran")
                 .isInstanceOf(IllegalStateException.class);
     }
@@ -240,14 +265,14 @@ public class PaxosStateLogMigrationIntegrationTest {
         fileBasedLearnerLog.writeRound(CUTOFF, valueForRound(CUTOFF));
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents(true);
+        LocalPaxosComponents paxosComponents = createPaxosComponentsSkipValidationAndTruncate();
+        PaxosLearner learner = paxosComponents.learner(CLIENT);
 
         PaxosStateLog<PaxosValue> sqliteLog = createSqliteLog(paxosComponents.getLearnerParameters(CLIENT));
         assertValuePresent(LATEST_ROUND_BEFORE_MIGRATING, sqliteLog);
         assertValuePresent(CUTOFF, sqliteLog);
         assertValueAbsent(ROUND_BEFORE_CUTOFF, sqliteLog);
 
-        PaxosLearner learner = paxosComponents.learner(CLIENT);
         assertValueLearned(LATEST_ROUND_BEFORE_MIGRATING, learner);
         assertValueLearned(CUTOFF, learner);
         assertValueNotLearned(ROUND_BEFORE_CUTOFF, learner);
@@ -267,18 +292,19 @@ public class PaxosStateLogMigrationIntegrationTest {
     public void doNotFailWhenOldLogWritesAtGreaterSequenceAfterMigrationAlreadyRanAndTruncate() throws IOException {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
 
-        createPaxosComponents();
+        LocalPaxosComponents paxosComponents = createPaxosComponentsSkipValidationAndTruncate();
+        paxosComponents.learner(CLIENT);
 
         long newRound = LATEST_ROUND_BEFORE_MIGRATING + 3;
         fileBasedLearnerLog.writeRound(newRound, valueForRound(newRound));
 
-        LocalPaxosComponents paxosComponents = createPaxosComponents(true);
+        LocalPaxosComponents newComponents = createPaxosComponentsSkipValidationAndTruncate();
+        PaxosLearner learner = newComponents.learner(CLIENT);
 
         assertThat(fileBasedLearnerLog.getGreatestLogEntry()).isEqualTo(PaxosAcceptor.NO_LOG_ENTRY);
         assertValueAbsent(LATEST_ROUND_BEFORE_MIGRATING, fileBasedLearnerLog);
         assertValueAbsent(newRound, fileBasedLearnerLog);
 
-        PaxosLearner learner = paxosComponents.learner(CLIENT);
         assertValueLearned(LATEST_ROUND_BEFORE_MIGRATING, learner);
         assertValueNotLearned(newRound, learner);
     }
@@ -308,12 +334,16 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertThat(log.readRound(round)).isNull();
     }
 
-    private LocalPaxosComponents createPaxosComponents() {
-        return createPaxosComponents(false);
+    private LocalPaxosComponents createPaxosComponentsAndMaybeMigrate() {
+        return createPaxosComponents(false, asyncMigrationCompleted);
     }
 
-    private LocalPaxosComponents createPaxosComponents(boolean skipValidationAndTruncate) {
-        return LocalPaxosComponents.createWithBlockingMigration(
+    private LocalPaxosComponents createPaxosComponentsSkipValidationAndTruncate() {
+        return createPaxosComponents(true, asyncMigrationCompleted);
+    }
+
+    private LocalPaxosComponents createPaxosComponents(boolean skipValidationAndTruncate, boolean ranAsync) {
+        LocalPaxosComponents components = LocalPaxosComponents.createWithAsyncMigration(
                 TimelockPaxosMetrics.of(useCase, MetricsManagers.createForTests()),
                 useCase,
                 legacyDirectory,
@@ -321,7 +351,12 @@ public class PaxosStateLogMigrationIntegrationTest {
                 UUID.randomUUID(),
                 true,
                 OrderableSlsVersion.valueOf("0.0.0"),
-                skipValidationAndTruncate);
+                skipValidationAndTruncate,
+                executor);
+        if (ranAsync) {
+            executor.runUntilIdle();
+        }
+        return components;
     }
 
     private PaxosValue valueForRound(long num) {
