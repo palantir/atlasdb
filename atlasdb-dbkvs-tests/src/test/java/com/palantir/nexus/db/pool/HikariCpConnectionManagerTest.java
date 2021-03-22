@@ -208,11 +208,11 @@ public class HikariCpConnectionManagerTest {
     private static void assertPasswordWrong(ConnectionManager testManager) {
         // This is needed because it appears that sometimes postgres password changes do not take effect immediately.
         // If the password change happens too late, we end up with a connection in the pool that we did not expect.
-        // In that case we need to wait the configured time (1 second) for hikari to remove the idle connection from
+        // In that case we need to wait the configured time (30 seconds) for hikari to remove the idle connection from
         // the pool before we can detect that the password is wrong. Note that I cannot reproduce this case locally,
         // but it appears to almost always happen on circle.
         Awaitility.await("assertPasswordWrong")
-                .atMost(Duration.ofSeconds(60))
+                .atMost(Duration.ofMinutes(2))
                 .pollInterval(Duration.ofSeconds(2))
                 .pollDelay(Duration.ofMillis(100))
                 .until(() -> isPasswordWrong(testManager));
@@ -260,8 +260,8 @@ public class HikariCpConnectionManagerTest {
                 .minConnections(minConnections)
                 .maxConnections(maxConnections)
                 .checkoutTimeout(2000)
-                // if this is set too high, testRuntimePasswordChange will be unreliable (and will take longer)
-                .maxConnectionAge(1)
+                // hikari doesn't allow this to be lower than 30 seconds
+                .maxConnectionAge(30)
                 .build();
     }
 }
