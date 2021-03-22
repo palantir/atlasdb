@@ -31,6 +31,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -69,7 +70,9 @@ import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Callable;
@@ -77,6 +80,8 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Test;
 
 @SuppressWarnings("CheckReturnValue")
@@ -1078,6 +1083,48 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t1.commit();
     }
 
+    @Test
+    public void testSortedColumnRangeNoConflict() {
+        int rowCount = 5;
+        List<byte[]> rows = writeColumnsForRows(rowCount);
+
+        Transaction t1 = startTransaction();
+        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+        // Write to avoid the read only path.
+        Cell newCell = Cell.create(PtBytes.toBytes("row1_1"), PtBytes.toBytes("col0"));
+        put(t1, "row1_1", "col0", "v0");
+        t1.commit();
+
+        List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        assertThat(entries).hasSize(rowCount * 101);
+        assertThat(entries).doesNotContain(newCell);
+    }
+
+    @Test
+    public void testSortedColumnRangeReadWriteConflict_iterator() {
+        int rowCount = 2;
+        List<byte[]> rows = writeColumnsForRows(rowCount);
+
+        Transaction t1 = startTransaction();
+        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+        List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        assertThat(entries).hasSize(rowCount * 101);
+        // Write to avoid the read only path.
+        put(t1, "row1_1", "col0", "v0");
+
+        Transaction t2 = startTransaction();
+        put(t2, "row1", "col0", "v0_0");
+        t2.commit();
+
+        assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
+    }
+
     private void testMarkTableInvolvedForcesPreCommitConditionCheckingOnCommit(TableReference table) {
         TransactionFailedNonRetriableException exception = new TransactionFailedNonRetriableException("I failed");
         PreCommitCondition condition = mock(PreCommitCondition.class);
@@ -1110,15 +1157,26 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         assertThat(timelockService.unlock(Collections.singleton(lockToken))).containsExactlyInAnyOrder(lockToken);
     }
 
+    private List<byte[]> writeColumnsForRows(int rowCount) {
+        List<byte[]> rows = IntStream.range(0, rowCount)
+                .mapToObj(idx -> PtBytes.toBytes("row" + idx))
+                .collect(Collectors.toList());
+        rows.forEach(this::writeColumnsForRow);
+        return rows;
+    }
+
     private void writeColumns() {
+        writeColumnsForRow(PtBytes.toBytes("row1"));
+    }
+
+    private void writeColumnsForRow(byte[] row) {
         Transaction t1 = startTransaction();
         int totalPuts = 101;
-        byte[] row = PtBytes.toBytes("row1");
         // Record expected results using byte ordering
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap.orderedBy(
                 Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
         for (int i = 0; i < totalPuts; i++) {
-            put(t1, "row1", "col" + i, "v" + i);
+            put(t1, PtBytes.toString(row), "col" + i, "v" + i);
             writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
         }
         t1.commit();

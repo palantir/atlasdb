@@ -520,7 +520,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .collect(ImmutableList.toImmutableList())));
     }
 
-    private static <V> Iterator<Map.Entry<Cell, V>> mergeByComparator(
+    protected static <V> Iterator<Map.Entry<Cell, V>> mergeByComparator(
             Iterable<? extends Iterator<Map.Entry<Cell, V>>> iterators, Comparator<Cell> cellComparator) {
         Comparator<Map.Entry<Cell, V>> comp = Comparator.comparing(Map.Entry::getKey, cellComparator);
         return Iterators.mergeSorted(iterators, comp);
@@ -538,7 +538,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 columnRangeSelection.getBatchHint() / distinctRowCount);
     }
 
-    private List<byte[]> getDistinctRows(Iterable<byte[]> inputRows) {
+    protected List<byte[]> getDistinctRows(Iterable<byte[]> inputRows) {
         return Streams.stream(inputRows)
                 .map(ByteBuffer::wrap)
                 .distinct()
