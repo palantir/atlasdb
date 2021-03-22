@@ -63,7 +63,7 @@ public final class DbkvsPostgresTestSuite {
     @ClassRule
     public static final DockerComposeRule docker = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose.yml")
-            .waitingForService("postgres", Container::areAllPortsOpen)
+            .waitingForService("postgres-dbkvs", Container::areAllPortsOpen)
             .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbkvsPostgresTestSuite.class))
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
@@ -77,7 +77,7 @@ public final class DbkvsPostgresTestSuite {
     }
 
     public static PostgresConnectionConfig getConnectionConfig() {
-        DockerPort port = docker.containers().container("postgres").port(POSTGRES_PORT_NUMBER);
+        DockerPort port = docker.containers().container("postgres-dbkvs").port(POSTGRES_PORT_NUMBER);
         InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
         return ImmutablePostgresConnectionConfig.builder()
                 .dbName("atlas")

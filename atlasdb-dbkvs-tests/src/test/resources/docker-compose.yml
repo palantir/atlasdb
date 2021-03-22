@@ -1,11 +1,11 @@
 version: '2'
 
 services:
-  postgres:
+  postgres-dbkvs:
     image: postgres:9.6-alpine
     environment:
        POSTGRES_PASSWORD: palantir
        POSTGRES_USER: palantir
        POSTGRES_DB: atlas
     ports:
-      - "5432:5432"
+      - "5432"
