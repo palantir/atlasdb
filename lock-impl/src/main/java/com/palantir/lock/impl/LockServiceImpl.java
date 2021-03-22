@@ -853,7 +853,7 @@ public final class LockServiceImpl
                             "Token refreshed from a very long lived atlas transaction which is {} ms old: {}",
                             SafeArg.of("ageMillis", age),
                             UnsafeArg.of("description", description.get()));
-                } else {
+                } else if (log.isDebugEnabled()) {
                     log.debug(
                             "Token refreshed which is {} ms old: {}",
                             SafeArg.of("ageMillis", age),

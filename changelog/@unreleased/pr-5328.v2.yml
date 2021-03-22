@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: We now only get the description of a v1 lock for purposes of a debug log line in the lock service if debug logging is actually enabled there.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5328
