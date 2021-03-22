@@ -1084,7 +1084,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testSortedColumnRangeNoConflict() {
+    public void testGetSortedColumnsNoConflict() {
         int rowCount = 5;
         List<byte[]> rows = writeColumnsForRows(rowCount);
 
@@ -1096,15 +1096,15 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // Write to avoid the read only path.
         Cell newCell = Cell.create(PtBytes.toBytes("row1_1"), PtBytes.toBytes("col0"));
         put(t1, "row1_1", "col0", "v0");
-        t1.commit();
 
         List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
         assertThat(entries).hasSize(rowCount * 101);
         assertThat(entries).doesNotContain(newCell);
+        t1.commit();
     }
 
     @Test
-    public void testSortedColumnRangeReadWriteConflict_iterator() {
+    public void getSortedColumnsUnloadedBatchIsConsideredUnread() {
         int rowCount = 2;
         List<byte[]> rows = writeColumnsForRows(rowCount);
 
@@ -1113,13 +1113,110 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TEST_TABLE,
                 rows,
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+        assertThat(sortedColumns.hasNext()).isTrue();
+
+        // Write on read path
+        Transaction t2 = startTransaction();
+        put(t2, "row1", "col0", "v0_0");
+        t2.commit();
+
+        t1.commit();
+
+        List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        assertThat(entries).hasSize(rowCount * 101);
+    }
+
+    @Test
+    public void testGetSortedColumnsReadWriteConflict() {
+        int rowCount = 2;
+        List<byte[]> rows = writeColumnsForRows(rowCount);
+
+        Transaction t1 = startTransaction();
+        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+
         List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
         assertThat(entries).hasSize(rowCount * 101);
         // Write to avoid the read only path.
         put(t1, "row1_1", "col0", "v0");
 
+        // Write on read path
         Transaction t2 = startTransaction();
         put(t2, "row1", "col0", "v0_0");
+        t2.commit();
+
+        assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
+    }
+
+    @Test
+    public void testGetSortedColumnsNewCellReadWriteConflict() {
+        int rowCount = 2;
+        List<byte[]> rows = writeColumnsForRows(rowCount);
+
+        Transaction t1 = startTransaction();
+        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+
+        List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        assertThat(entries).hasSize(rowCount * 101);
+        // Write to avoid the read only path.
+        put(t1, "row1_1", "col0", "v0");
+
+        // Write on read path
+        Transaction t2 = startTransaction();
+        put(t2, "row1", "col", "v0_0");
+        t2.commit();
+
+        assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
+    }
+
+    @Test
+    public void testGetSortedColumnsNoConflictForUnreadValue() {
+        int rowCount = 2;
+        List<byte[]> rows = writeColumnsForRows(rowCount);
+
+        Transaction t1 = startTransaction();
+        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+
+        Cell firstCell = Cell.create(PtBytes.toBytes("row0"), PtBytes.toBytes("col0"));
+        assertThat(sortedColumns.next().getKey()).isEqualTo(firstCell);
+        // Write to avoid the read only path.
+        put(t1, "row1_1", "col0", "v0");
+
+        // Write on read path
+        Transaction t2 = startTransaction();
+        put(t2, "row2", "col0", "v0_0");
+        t2.commit();
+
+        t1.commit();
+    }
+
+    @Test
+    public void testGetSortedColumnsConflictForReadValue() {
+        int rowCount = 2;
+        List<byte[]> rows = writeColumnsForRows(rowCount);
+
+        Transaction t1 = startTransaction();
+        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+
+        Cell firstCell = Cell.create(PtBytes.toBytes("row0"), PtBytes.toBytes("col0"));
+        assertThat(sortedColumns.next().getKey()).isEqualTo(firstCell);
+        // Write to avoid the read only path.
+        put(t1, "row1_1", "col0", "v0");
+
+        // Write on read path
+        Transaction t2 = startTransaction();
+        put(t2, "row0", "col0", "v0_0");
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);

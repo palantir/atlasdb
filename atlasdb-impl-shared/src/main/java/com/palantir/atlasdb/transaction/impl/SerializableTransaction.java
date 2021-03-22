@@ -256,16 +256,42 @@ public class SerializableTransaction extends SnapshotTransaction {
                 sortedColumnRangeEnds.computeIfAbsent(request, _key -> new AtomicReference<>());
         ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(tableRef);
 
-        return new AbstractIterator<Entry<Cell, byte[]>>() {
+        return new Iterator<Map.Entry<Cell, byte[]>>() {
+            Map.Entry<Cell, byte[]> next = null;
+
             @Override
-            protected Entry<Cell, byte[]> computeNext() {
-                if (!sortedColumns.hasNext()) {
-                    reachedEndOfRange();
-                    return endOfData();
+            public boolean hasNext() {
+                if (next != null) {
+                    return true;
                 }
-                Entry<Cell, byte[]> ret = sortedColumns.next();
-                markReadUpTo(ret.getKey(), ret.getValue());
-                return ret;
+
+                if (sortedColumns.hasNext()) {
+                    next = sortedColumns.next();
+                    markReadUpTo(next.getKey(), next.getValue());
+                    return true;
+                }
+
+                reachedEndOfRange();
+                return false;
+            }
+
+            @Override
+            public Map.Entry<Cell, byte[]> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                Map.Entry<Cell, byte[]> result = next;
+                next = null;
+                return result;
+            }
+
+            private void markReadUpTo(Cell cell, byte[] value) {
+                readsForTable.put(cell, value);
+                updateRangeEnd(Cell.create(cell.getRowName(), cell.getColumnName()));
+            }
+
+            private void reachedEndOfRange() {
+                updateRangeEnd(Cell.create(maxRow.array(), RangeRequests.getLastColumnName()));
             }
 
             private void updateRangeEnd(Cell end) {
@@ -282,21 +308,13 @@ public class SerializableTransaction extends SnapshotTransaction {
                     return Ordering.from(cellComparator).max(curVal, newVal);
                 });
             }
-
-            private void markReadUpTo(Cell cell, byte[] value) {
-                readsForTable.put(cell, value);
-                updateRangeEnd(Cell.create(cell.getRowName(), cell.getColumnName()));
-            }
-
-            private void reachedEndOfRange() {
-                updateRangeEnd(Cell.create(maxRow.array(), RangeRequests.getLastColumnName()));
-            }
         };
     }
 
     private void verifyGetSortedColumns(Transaction readOnlyTransaction) {
         sortedColumnRangeEnds.forEach((request, endOfRangeReference) -> {
             Cell endOfRange = endOfRangeReference.get();
+            // no checks required if no data has been read so far
             if (endOfRange == null) {
                 return;
             }
@@ -304,24 +322,26 @@ public class SerializableTransaction extends SnapshotTransaction {
                     nextLexicographicalRangeEnd(request.getColumnRangeSelection(), endOfRange.getColumnName());
             Iterable<byte[]> rows = request.getRows();
             Comparator<Cell> comparator = columnOrderThenPreserveInputRowOrder(request.getRows());
-            Iterator<Map.Entry<Cell, byte[]>> readValues =
+            Iterator<Map.Entry<Cell, ByteBuffer>> readValues =
                     readSortedColumns(request.getTableRef(), rows, range, comparator);
-            Iterator<Map.Entry<Cell, byte[]>> storedValues =
-                    readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range);
 
-            final Iterator<Map.Entry<Cell, byte[]>> truncatedStoredValues;
+            Iterator<Map.Entry<Cell, ByteBuffer>> storedValues = Iterators.transform(
+                    readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range),
+                    this::getBufferedCellEntry);
+
+            final Iterator<Map.Entry<Cell, ByteBuffer>> truncatedStoredValues;
             if (RangeRequests.isLastColumnName(endOfRange.getColumnName())) {
                 truncatedStoredValues = storedValues;
             } else {
                 // handles the case where (r1, c), (r2, c) exists and we read only up to (r1, c).
-                truncatedStoredValues = new AbstractIterator<Map.Entry<Cell, byte[]>>() {
+                truncatedStoredValues = new AbstractIterator<Map.Entry<Cell, ByteBuffer>>() {
                     @Override
-                    protected Map.Entry<Cell, byte[]> computeNext() {
+                    protected Map.Entry<Cell, ByteBuffer> computeNext() {
                         if (!storedValues.hasNext()) {
                             return endOfData();
                         }
 
-                        Map.Entry<Cell, byte[]> ret = storedValues.next();
+                        Map.Entry<Cell, ByteBuffer> ret = storedValues.next();
                         if (comparator.compare(ret.getKey(), endOfRange) > 0) {
                             return endOfData();
                         }
@@ -336,13 +356,18 @@ public class SerializableTransaction extends SnapshotTransaction {
         });
     }
 
-    private Iterator<Map.Entry<Cell, byte[]>> readSortedColumns(
+    private Iterator<Map.Entry<Cell, ByteBuffer>> readSortedColumns(
             TableReference table, Iterable<byte[]> rows, BatchColumnRangeSelection range, Comparator<Cell> comparator) {
-        return mergeByComparator(
+        Iterator<Map.Entry<Cell, byte[]>> merged = mergeByComparator(
                 Iterables.transform(rows, row -> getReadsInColumnRangeSkippingWrites(table, row, range)
                         .entrySet()
                         .iterator()),
                 comparator);
+        return Iterators.transform(merged, this::getBufferedCellEntry);
+    }
+
+    private Map.Entry<Cell, ByteBuffer> getBufferedCellEntry(Map.Entry<Cell, byte[]> cellEntry) {
+        return Maps.immutableEntry(cellEntry.getKey(), ByteBuffer.wrap(cellEntry.getValue()));
     }
 
     @Override
