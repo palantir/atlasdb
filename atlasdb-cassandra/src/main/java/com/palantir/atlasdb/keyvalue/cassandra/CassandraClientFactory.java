@@ -203,7 +203,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
         }
         try (Timer.Context context = shutdownDurationTimer.time()) {
-            safeShutdownRunner.shutdownSingleton(() -> client.getObject().close());
+            // safeShutdownRunner.shutdownSingleton(() -> client.getObject().close());
         } catch (Throwable t) {
             if (log.isDebugEnabled()) {
                 log.debug(

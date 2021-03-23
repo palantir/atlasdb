@@ -27,8 +27,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SafeShutdownRunner implements AutoCloseable {
+    private static final Logger log = LoggerFactory.getLogger(SafeShutdownRunner.class);
+
     private final List<Throwable> failures = new ArrayList<>();
     private final ExecutorService executor;
     private final Optional<Duration> timeoutDuration;
@@ -51,8 +56,16 @@ public final class SafeShutdownRunner implements AutoCloseable {
         shutdownInternal(shutdownCallback);
     }
 
-    public void shutdownSingleton(Runnable shutdownCallback) {
-        shutdownInternal(shutdownCallback);
+    public void shutdownSingleton(SingletonShutdownContext shutdownContext) {
+        shutdownInternal(shutdownContext.shutdownCallback());
+        if (!failures.isEmpty()) {
+            try {
+                shutdownContext.shutdownFailureHandler().run();
+            } catch (Throwable t) {
+                failures.add(t);
+                log.warn("Shutdown failure handler threw an exception itself!", t);
+            }
+        }
         throwIfFailures();
     }
 
@@ -101,5 +114,18 @@ public final class SafeShutdownRunner implements AutoCloseable {
             failures.clear();
             throw closeFailed;
         }
+    }
+
+    @Value.Immutable
+    interface SingletonShutdownContext {
+        /**
+         * Executed to shut down an object.
+         */
+        Runnable shutdownCallback();
+
+        /**
+         * Executed only if the shutdownCallback times out or otherwise has an exception.
+         */
+        Runnable shutdownFailureHandler();
     }
 }

@@ -39,7 +39,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class SafeShutdownRunnerTest {
-    private static final RuntimeException EXCEPTION = new RuntimeException("test");
+    private static final RuntimeException EXCEPTION_1 = new RuntimeException("test");
+    private static final RuntimeException EXCEPTION_2 = new RuntimeException("bleh");
 
     private Runnable mockRunnable = mock(Runnable.class);
     private Runnable throwingRunnable = mock(Runnable.class);
@@ -53,7 +54,7 @@ public class SafeShutdownRunnerTest {
                 })
                 .when(blockingUninterruptibleRunnable)
                 .run();
-        doThrow(EXCEPTION).when(throwingRunnable).run();
+        doThrow(EXCEPTION_1).when(throwingRunnable).run();
     }
 
     @Test
@@ -73,16 +74,39 @@ public class SafeShutdownRunnerTest {
         assertThatCode(() -> runner.shutdownSafely(throwingRunnable)).doesNotThrowAnyException();
         assertThatThrownBy(runner::close)
                 .isInstanceOf(SafeRuntimeException.class)
-                .hasSuppressedException(EXCEPTION);
+                .hasSuppressedException(EXCEPTION_1);
     }
 
     @Test
     public void exceptionsAreThrownWhenRunningSingleton() {
         SafeShutdownRunner runner = SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(1));
+        Runnable failureHandler = mock(Runnable.class);
 
-        assertThatThrownBy(() -> runner.shutdownSingleton(throwingRunnable))
+        assertThatThrownBy(() -> runner.shutdownSingleton(ImmutableSingletonShutdownContext.builder()
+                .shutdownCallback(throwingRunnable)
+                .shutdownFailureHandler(failureHandler)
+                .build()))
                 .isInstanceOf(SafeRuntimeException.class)
-                .hasSuppressedException(EXCEPTION);
+                .hasSuppressedException(EXCEPTION_1);
+        verify(failureHandler).run();
+
+        assertThatCode(runner::close).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void correctSuppressedExceptionsAreThrownIfFailureHandlerThrows() {
+        SafeShutdownRunner runner = SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(1));
+        Runnable failureHandler = mock(Runnable.class);
+        doThrow(EXCEPTION_2).when(failureHandler).run();
+
+        assertThatThrownBy(() -> runner.shutdownSingleton(ImmutableSingletonShutdownContext.builder()
+                .shutdownCallback(throwingRunnable)
+                .shutdownFailureHandler(failureHandler)
+                .build()))
+                .isInstanceOf(SafeRuntimeException.class)
+                .hasSuppressedException(EXCEPTION_1)
+                .hasSuppressedException(EXCEPTION_2);
+        verify(failureHandler).run();
 
         assertThatCode(runner::close).doesNotThrowAnyException();
     }
