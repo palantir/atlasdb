@@ -1085,6 +1085,20 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
+    public void testGetSortedColumnsEmptyRead() {
+        Transaction t1 = startTransaction();
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                ImmutableList.of(),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+
+        List<Cell> entries =
+                Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
+        assertThat(entries).isEmpty();
+        t1.commit();
+    }
+
+    @Test
     public void testGetSortedColumnsNoConflict() {
         List<byte[]> rows = writeColumnsForRows(5);
 
