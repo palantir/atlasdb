@@ -86,6 +86,7 @@ import org.junit.Test;
 
 @SuppressWarnings("CheckReturnValue")
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
+    private static final int DEFAULT_COL_COUNT = 101;
 
     public AbstractSerializableTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
@@ -1178,16 +1179,20 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Test
     public void testGetSortedColumnsNoConflictForUnreadValue() {
+        // we introduce conflict at the cell right after the last cell we read
         readSortedColumnsAndInduceConflict(1, 0, "row0", "col0", false);
         readSortedColumnsAndInduceConflict(1, 1, "row0", "col1", false);
-        readSortedColumnsAndInduceConflict(2, 101, "row1", "col53", false);
+        readSortedColumnsAndInduceConflict(2, DEFAULT_COL_COUNT, "row1", "col53", false);
     }
 
     @Test
     public void testGetSortedColumnsConflictForReadValue() {
+        // we introduce conflict at the last cell we read
         readSortedColumnsAndInduceConflict(1, 1, "row0", "col0", true);
         readSortedColumnsAndInduceConflict(1, 2, "row0", "col1", true);
-        readSortedColumnsAndInduceConflict(2, 101, "row0", "col53", true);
+        readSortedColumnsAndInduceConflict(2, DEFAULT_COL_COUNT, "row0", "col53", true);
+
+        // we introduce a new cell that should have been read
         readSortedColumnsAndInduceConflict(1, 2, "row0", "col00", true);
     }
 
@@ -1222,7 +1227,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     private void sanityCheckOnSortedEntries(List<byte[]> rows, List<Cell> entries) {
-        assertThat(entries).hasSize(rows.size() * 101);
+        assertThat(entries).hasSize(rows.size() * DEFAULT_COL_COUNT);
         assertThat(entries).isSortedAccordingTo(columnOrderThenPreserveInputRowOrder(rows));
     }
 
@@ -1272,11 +1277,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     private void writeColumnsForRow(byte[] row) {
         Transaction t1 = startTransaction();
-        int totalPuts = 101;
         // Record expected results using byte ordering
         ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap.orderedBy(
                 Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(Cell::getColumnName));
-        for (int i = 0; i < totalPuts; i++) {
+        for (int i = 0; i < DEFAULT_COL_COUNT; i++) {
             put(t1, PtBytes.toString(row), "col" + i, "v" + i);
             writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
         }

@@ -226,24 +226,29 @@ public class SerializableTransaction extends SnapshotTransaction {
     @Override
     public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
+        if (Iterables.isEmpty(rows)) {
+            return Collections.emptyIterator();
+        }
 
+        List<byte[]> distinctRows = getDistinctRows(rows);
         Iterator<Map.Entry<Cell, byte[]>> sortedColumns =
-                super.getSortedColumns(tableRef, rows, batchColumnRangeSelection);
+                super.getSortedColumns(tableRef, distinctRows, batchColumnRangeSelection);
+
         if (!isSerializableTable(tableRef)) {
             return sortedColumns;
         }
 
-        List<byte[]> distinctRows = getDistinctRows(rows);
         // if only one row is passed in, this approach gives us one extra attempt at parallel conflict handling
         if (distinctRows.size() == 1) {
             return wrapIteratorWithBoundsChecking(
                     tableRef, batchColumnRangeSelection, Iterables.getOnlyElement(distinctRows), sortedColumns);
         }
 
-        return wrapIteratorWithSortedBoundChecking(tableRef, distinctRows, batchColumnRangeSelection, sortedColumns);
+        return wrapIteratorWithSortedColumnsBoundChecking(
+                tableRef, distinctRows, batchColumnRangeSelection, sortedColumns);
     }
 
-    private Iterator<Map.Entry<Cell, byte[]>> wrapIteratorWithSortedBoundChecking(
+    private Iterator<Map.Entry<Cell, byte[]>> wrapIteratorWithSortedColumnsBoundChecking(
             TableReference tableRef,
             List<byte[]> distinctRows,
             BatchColumnRangeSelection batchColumnRangeSelection,
@@ -257,7 +262,6 @@ public class SerializableTransaction extends SnapshotTransaction {
         ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(tableRef);
 
         return new AbstractIterator<Map.Entry<Cell, byte[]>>() {
-
             @Override
             protected Map.Entry<Cell, byte[]> computeNext() {
                 if (!sortedColumns.hasNext()) {
@@ -279,14 +283,14 @@ public class SerializableTransaction extends SnapshotTransaction {
             }
 
             private void updateRangeEnd(Cell end) {
-                if (end.getColumnName().length == 0) {
+                if (RangeRequests.isLastColumnName(end.getColumnName())) {
                     rangeEnd.set(end);
                     return;
                 }
                 rangeEnd.accumulateAndGet(end, (curVal, newVal) -> {
                     if (curVal == null) {
                         return newVal;
-                    } else if (curVal.getColumnName().length == 0) {
+                    } else if (RangeRequests.isLastColumnName(curVal.getColumnName())) {
                         return curVal;
                     }
                     return Ordering.from(cellComparator).max(curVal, newVal);
@@ -743,7 +747,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
             Iterator<Map.Entry<Cell, ByteBuffer>> storedValues = Iterators.transform(
                     readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range),
-                    this::getByteBufferWrappedCellEntry);
+                    this::getCellEntryWithByteBufferWrappedValue);
 
             final Iterator<Map.Entry<Cell, ByteBuffer>> truncatedStoredValues;
             if (RangeRequests.isLastColumnName(endOfRange.getColumnName())) {
@@ -779,10 +783,10 @@ public class SerializableTransaction extends SnapshotTransaction {
                         .entrySet()
                         .iterator()),
                 comparator);
-        return Iterators.transform(merged, this::getByteBufferWrappedCellEntry);
+        return Iterators.transform(merged, this::getCellEntryWithByteBufferWrappedValue);
     }
 
-    private Map.Entry<Cell, ByteBuffer> getByteBufferWrappedCellEntry(Map.Entry<Cell, byte[]> cellEntry) {
+    private Map.Entry<Cell, ByteBuffer> getCellEntryWithByteBufferWrappedValue(Map.Entry<Cell, byte[]> cellEntry) {
         return Maps.immutableEntry(cellEntry.getKey(), ByteBuffer.wrap(cellEntry.getValue()));
     }
 
