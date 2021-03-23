@@ -73,7 +73,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Callable;
@@ -1089,7 +1088,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         List<byte[]> rows = writeColumnsForRows(5);
 
         Transaction t1 = startTransaction();
-        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
                 TEST_TABLE,
                 rows,
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
@@ -1097,7 +1096,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Cell newCell = Cell.create(PtBytes.toBytes("row1_1"), PtBytes.toBytes("col0"));
         put(t1, "row1_1", "col0", "v0");
 
-        List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        List<Cell> entries = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         assertThat(entries).doesNotContain(newCell);
         sanityCheckOnSortedEntries(rows, entries);
         t1.commit();
@@ -1108,7 +1107,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         List<byte[]> rows = writeColumnsForRows(2);
 
         Transaction t1 = startTransaction();
-        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
                 TEST_TABLE,
                 rows,
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
@@ -1121,7 +1120,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         t1.commit();
 
-        List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        List<Cell> entries = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedEntries(rows, entries);
     }
 
@@ -1130,12 +1129,12 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         List<byte[]> rows = writeColumnsForRows(2);
 
         Transaction t1 = startTransaction();
-        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
                 TEST_TABLE,
                 rows,
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
 
-        List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        List<Cell> entries = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedEntries(rows, entries);
 
         // Write to avoid the read only path.
@@ -1154,12 +1153,12 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         List<byte[]> rows = writeColumnsForRows(2);
 
         Transaction t1 = startTransaction();
-        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
                 TEST_TABLE,
                 rows,
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
 
-        List<Cell> entries = Streams.stream(sortedColumns).map(Entry::getKey).collect(Collectors.toList());
+        List<Cell> entries = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedEntries(rows, entries);
 
         // Write to avoid the read only path.
@@ -1185,6 +1184,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         readSortedColumnsAndInduceConflict(1, 1, "row0", "col0", true);
         readSortedColumnsAndInduceConflict(1, 2, "row0", "col1", true);
         readSortedColumnsAndInduceConflict(2, 101, "row0", "col53", true);
+        readSortedColumnsAndInduceConflict(1, 2, "row0", "col00", true);
     }
 
     private void readSortedColumnsAndInduceConflict(
@@ -1192,7 +1192,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         List<byte[]> rows = writeColumnsForRows(rowCount);
 
         Transaction t1 = startTransaction();
-        Iterator<Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
                 TEST_TABLE,
                 rows,
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
