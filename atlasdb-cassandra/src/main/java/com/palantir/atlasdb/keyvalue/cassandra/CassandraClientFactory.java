@@ -27,7 +27,9 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.util.ImmutableSingletonShutdownContext;
 import com.palantir.util.SafeShutdownRunner;
+import com.palantir.util.SafeShutdownRunner.SingletonShutdownContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
@@ -203,7 +205,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
         }
         try (Timer.Context context = shutdownDurationTimer.time()) {
-            // safeShutdownRunner.shutdownSingleton(() -> client.getObject().close());
+            SingletonShutdownContext shutdownContext = ImmutableSingletonShutdownContext.builder()
+                    .shutdownCallback(() -> client.getObject().close())
+                    .shutdownFailureHandler(() -> {})
+                    .build();
+            safeShutdownRunner.shutdownSingleton(shutdownContext);
         } catch (Throwable t) {
             if (log.isDebugEnabled()) {
                 log.debug(

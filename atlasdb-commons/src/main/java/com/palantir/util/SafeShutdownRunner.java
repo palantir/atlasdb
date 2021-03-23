@@ -117,7 +117,7 @@ public final class SafeShutdownRunner implements AutoCloseable {
     }
 
     @Value.Immutable
-    interface SingletonShutdownContext {
+    public interface SingletonShutdownContext {
         /**
          * Executed to shut down an object.
          */
