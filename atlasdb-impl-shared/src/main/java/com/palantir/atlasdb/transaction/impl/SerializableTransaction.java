@@ -227,7 +227,8 @@ public class SerializableTransaction extends SnapshotTransaction {
     public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
 
-        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = super.getSortedColumns(tableRef, rows, batchColumnRangeSelection);
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns =
+                super.getSortedColumns(tableRef, rows, batchColumnRangeSelection);
         if (!isSerializableTable(tableRef)) {
             return sortedColumns;
         }

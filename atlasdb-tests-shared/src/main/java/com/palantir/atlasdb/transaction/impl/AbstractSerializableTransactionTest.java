@@ -1096,7 +1096,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Cell newCell = Cell.create(PtBytes.toBytes("row1_1"), PtBytes.toBytes("col0"));
         put(t1, "row1_1", "col0", "v0");
 
-        List<Cell> entries = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
+        List<Cell> entries =
+                Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         assertThat(entries).doesNotContain(newCell);
         sanityCheckOnSortedEntries(rows, entries);
         t1.commit();
@@ -1120,7 +1121,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         t1.commit();
 
-        List<Cell> entries = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
+        List<Cell> entries =
+                Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedEntries(rows, entries);
     }
 
@@ -1134,7 +1136,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 rows,
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
 
-        List<Cell> entries = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
+        List<Cell> entries =
+                Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedEntries(rows, entries);
 
         // Write to avoid the read only path.
@@ -1158,7 +1161,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 rows,
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
 
-        List<Cell> entries = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
+        List<Cell> entries =
+                Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedEntries(rows, entries);
 
         // Write to avoid the read only path.
