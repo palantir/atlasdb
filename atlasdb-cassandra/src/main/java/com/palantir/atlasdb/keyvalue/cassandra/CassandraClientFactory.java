@@ -65,7 +65,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private static final LoadingCache<SslConfiguration, SSLSocketFactory> sslSocketFactoryCache =
             Caffeine.newBuilder().weakValues().build(SslSocketFactories::createSslSocketFactory);
     private static final RateLimitingFailureHandler SHUTDOWN_FAILURE_HANDLER = RateLimitingFailureHandler.create(
-            CassandraClientFactory::expensivelyLogAllThreadState, Duration.ofMinutes(10));
+            CassandraClientFactory::expensivelyLogAllThreadState, Duration.ofHours(1));
 
     private final MetricsManager metricsManager;
     private final InetSocketAddress addr;
