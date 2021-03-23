@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Users who are confident they do not need Background Sweep (e.g. because they are running Targeted Sweep stably) may turn it off in config. This saves on thread scheduling overheads at the expense of requiring a rolling bounce if it is desired that Background Sweep is turned on again.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5334
