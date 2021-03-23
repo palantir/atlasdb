@@ -83,9 +83,9 @@ public class SafeShutdownRunnerTest {
         Runnable failureHandler = mock(Runnable.class);
 
         assertThatThrownBy(() -> runner.shutdownSingleton(ImmutableSingletonShutdownContext.builder()
-                .shutdownCallback(throwingRunnable)
-                .shutdownFailureHandler(failureHandler)
-                .build()))
+                        .shutdownCallback(throwingRunnable)
+                        .shutdownFailureHandler(failureHandler)
+                        .build()))
                 .isInstanceOf(SafeRuntimeException.class)
                 .hasSuppressedException(EXCEPTION_1);
         verify(failureHandler).run();
@@ -100,9 +100,9 @@ public class SafeShutdownRunnerTest {
         doThrow(EXCEPTION_2).when(failureHandler).run();
 
         assertThatThrownBy(() -> runner.shutdownSingleton(ImmutableSingletonShutdownContext.builder()
-                .shutdownCallback(throwingRunnable)
-                .shutdownFailureHandler(failureHandler)
-                .build()))
+                        .shutdownCallback(throwingRunnable)
+                        .shutdownFailureHandler(failureHandler)
+                        .build()))
                 .isInstanceOf(SafeRuntimeException.class)
                 .hasSuppressedException(EXCEPTION_1)
                 .hasSuppressedException(EXCEPTION_2);
