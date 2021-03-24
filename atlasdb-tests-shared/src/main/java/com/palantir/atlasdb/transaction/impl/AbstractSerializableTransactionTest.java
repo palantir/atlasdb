@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
@@ -1171,6 +1172,56 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
+
+    @Test
+    public void testGetSortedColumnsReadWriteConflictAtEndOfBatch() {
+        List<byte[]> rows = generateRows(5);
+        List<Cell> cellsWrittenOriginally = generateCells(rows, generateColumns(5));
+        writeCells(cellsWrittenOriginally);
+
+        Transaction t1 = startTransactionWithSerializableConflictChecking();
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+
+        List<Cell> cells = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
+        sanityCheckOnSortedCells(rows, cells, cellsWrittenOriginally);
+
+        // we write to a cell that has been read to introduce conflict
+        Transaction t2 = startTransaction();
+        Cell cell = cellsWrittenOriginally.get(cellsWrittenOriginally.size() - 1);
+        put(t2, PtBytes.toString(cell.getRowName()), PtBytes.toString(cell.getColumnName()), "v0_0");
+        t2.commit();
+
+        assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
+    }
+
+    @Test
+    public void testGetSortedColumnsReadWriteConflictForTerminalColumn() {
+        List<byte[]> rows = generateRows(1);
+        byte[] onlyRow = Iterables.getOnlyElement(rows);
+        byte[] lastColumnName = RangeRequests.getLastColumnName();
+        List<Cell> cellsWrittenOriginally = ImmutableList.of(Cell.create(onlyRow, lastColumnName));
+        writeCells(cellsWrittenOriginally);
+
+        Transaction t1 = startTransactionWithSerializableConflictChecking();
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+
+        List<Cell> cells = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
+        sanityCheckOnSortedCells(rows, cells, cellsWrittenOriginally);
+
+        // we write to a cell that has been read to introduce conflict
+        Transaction t2 = startTransaction();
+        put(t2, onlyRow, lastColumnName, "v0_0");
+        t2.commit();
+
+        assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
+    }
+
     @Test
     public void testGetSortedColumnsNewCellReadWriteConflict() {
         List<byte[]> rows = generateRows(5);
@@ -1318,7 +1369,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Transaction t1 = startTransaction();
         for (int i = 0; i < cells.size(); i++) {
             Cell cell = cells.get(i);
-            put(t1, PtBytes.toString(cell.getRowName()), PtBytes.toString(cell.getColumnName()), "v" + i);
+            put(t1, cell.getRowName(), cell.getColumnName(), "v" + i);
         }
         t1.commit();
     }
