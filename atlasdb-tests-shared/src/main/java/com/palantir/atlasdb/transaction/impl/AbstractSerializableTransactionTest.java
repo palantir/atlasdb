@@ -1172,7 +1172,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
     }
 
-
     @Test
     public void testGetSortedColumnsReadWriteConflictAtEndOfBatch() {
         List<byte[]> rows = generateRows(5);
