@@ -8,14 +8,6 @@ publishing {
     publications {
         dists(MavenPublication) {
             artifact distTar
-            pom.withXml {
-                def scm = asNode().appendNode('scm')
-                scm.appendNode('url', 'https://github.com/palantir/atlasdb')
-                def licenses = asNode().appendNode('licenses')
-                def license = licenses.appendNode('license')
-                license.appendNode('name', 'Apache 2.0')
-                license.appendNode('url', 'https://opensource.org/licenses/Apache-2.0')
-            }
         }
     }
 }
