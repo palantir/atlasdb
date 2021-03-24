@@ -25,7 +25,7 @@ import java.util.function.Supplier;
  * Wraps a potentially expensive failure-handling computation in a memoizing supplier, so that it is only executed
  * once per fixed duration.
  */
-public class RateLimitingFailureHandler implements Runnable {
+public final class RateLimitingFailureHandler implements Runnable {
     private final Supplier<Void> delegate;
 
     private RateLimitingFailureHandler(Supplier<Void> delegate) {
