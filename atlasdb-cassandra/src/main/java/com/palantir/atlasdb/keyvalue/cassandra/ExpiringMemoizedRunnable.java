@@ -22,18 +22,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
- * Wraps a potentially expensive failure-handling computation in a memoizing supplier, so that it is only executed
- * once per fixed duration.
+ * Wraps a potentially expensive operation in a memoizing supplier, so that it is only executed (at most) once
+ * per fixed duration.
  */
-public final class RateLimitingFailureHandler implements Runnable {
+public final class ExpiringMemoizedRunnable implements Runnable {
     private final Supplier<Void> delegate;
 
-    private RateLimitingFailureHandler(Supplier<Void> delegate) {
+    private ExpiringMemoizedRunnable(Supplier<Void> delegate) {
         this.delegate = delegate;
     }
 
-    public static RateLimitingFailureHandler create(Runnable failureHandler, Duration duration) {
-        return new RateLimitingFailureHandler(Suppliers.memoizeWithExpiration(
+    public static ExpiringMemoizedRunnable create(Runnable failureHandler, Duration duration) {
+        return new ExpiringMemoizedRunnable(Suppliers.memoizeWithExpiration(
                 () -> {
                     failureHandler.run();
                     return null;

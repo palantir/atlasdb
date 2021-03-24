@@ -24,11 +24,11 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import java.time.Duration;
 import org.junit.Test;
 
-public class RateLimitingFailureHandlerTest {
+public class ExpiringMemoizedRunnableTest {
     @Test
     public void callsDelegateMultipleTimesIfIntervalHasElapsed() {
         Runnable delegate = mock(Runnable.class);
-        RateLimitingFailureHandler failureHandler = RateLimitingFailureHandler.create(delegate, Duration.ofNanos(1));
+        ExpiringMemoizedRunnable failureHandler = ExpiringMemoizedRunnable.create(delegate, Duration.ofNanos(1));
         failureHandler.run();
         Uninterruptibles.sleepUninterruptibly(Duration.ofNanos(10));
         failureHandler.run();
@@ -38,7 +38,7 @@ public class RateLimitingFailureHandlerTest {
     @Test
     public void callsDelegateOnlyOnceIfIntervalHasNotElapsed() {
         Runnable delegate = mock(Runnable.class);
-        RateLimitingFailureHandler failureHandler = RateLimitingFailureHandler.create(delegate, Duration.ofDays(1));
+        ExpiringMemoizedRunnable failureHandler = ExpiringMemoizedRunnable.create(delegate, Duration.ofDays(1));
         failureHandler.run();
         failureHandler.run();
         verify(delegate).run();
