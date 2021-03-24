@@ -749,26 +749,22 @@ public class SerializableTransaction extends SnapshotTransaction {
                     readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range),
                     this::getCellEntryWithByteBufferWrappedValue);
 
-            final Iterator<Map.Entry<Cell, ByteBuffer>> truncatedStoredValues;
-            if (RangeRequests.isLastColumnName(endOfRange.getColumnName())) {
-                truncatedStoredValues = storedValues;
-            } else {
-                // handles the case where (r1, c), (r2, c) exists and we read only up to (r1, c).
-                truncatedStoredValues = new AbstractIterator<Map.Entry<Cell, ByteBuffer>>() {
-                    @Override
-                    protected Map.Entry<Cell, ByteBuffer> computeNext() {
-                        if (!storedValues.hasNext()) {
-                            return endOfData();
-                        }
+            // handles the case where (r1, c), (r2, c) exists and we read only up to (r1, c).
+            Iterator<Map.Entry<Cell, ByteBuffer>> truncatedStoredValues =
+                    new AbstractIterator<Map.Entry<Cell, ByteBuffer>>() {
+                        @Override
+                        protected Map.Entry<Cell, ByteBuffer> computeNext() {
+                            if (!storedValues.hasNext()) {
+                                return endOfData();
+                            }
 
-                        Map.Entry<Cell, ByteBuffer> ret = storedValues.next();
-                        if (comparator.compare(ret.getKey(), endOfRange) > 0) {
-                            return endOfData();
+                            Map.Entry<Cell, ByteBuffer> ret = storedValues.next();
+                            if (comparator.compare(ret.getKey(), endOfRange) > 0) {
+                                return endOfData();
+                            }
+                            return ret;
                         }
-                        return ret;
-                    }
-                };
-            }
+                    };
 
             if (!Iterators.elementsEqual(readValues, truncatedStoredValues)) {
                 handleTransactionConflict(request.getTableRef());
