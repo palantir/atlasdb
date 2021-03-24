@@ -704,7 +704,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 for (Map.Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
                     BatchColumnRangeSelection range = e.getKey();
                     byte[] rangeEnd = e.getValue();
-                    rangesToRows.put(nextLexicographicalRangeEnd(range, rangeEnd), row);
+                    rangesToRows.put(getBatchColumnRangeSelectionForEntriesReadSoFar(range, rangeEnd), row);
                 }
             }
 
@@ -738,8 +738,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             if (endOfRange == null) {
                 return;
             }
-            BatchColumnRangeSelection range =
-                    nextLexicographicalRangeEnd(request.getColumnRangeSelection(), endOfRange.getColumnName());
+            BatchColumnRangeSelection range = getBatchColumnRangeSelectionForEntriesReadSoFar(
+                    request.getColumnRangeSelection(), endOfRange.getColumnName());
             Iterable<byte[]> rows = request.getRows();
             Comparator<Cell> comparator = columnOrderThenPreserveInputRowOrder(request.getRows());
             Iterator<Map.Entry<Cell, ByteBuffer>> readValues =
@@ -786,16 +786,19 @@ public class SerializableTransaction extends SnapshotTransaction {
         return Maps.immutableEntry(cellEntry.getKey(), ByteBuffer.wrap(cellEntry.getValue()));
     }
 
-    private static BatchColumnRangeSelection nextLexicographicalRangeEnd(
-            BatchColumnRangeSelection currentRange, byte[] rangeEnd) {
-        if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(false, rangeEnd)) {
-            return BatchColumnRangeSelection.create(
-                    currentRange.getStartCol(),
-                    RangeRequests.getNextStartRow(false, rangeEnd),
-                    currentRange.getBatchHint());
-        } else {
+    private static BatchColumnRangeSelection getBatchColumnRangeSelectionForEntriesReadSoFar(
+            BatchColumnRangeSelection currentRange, byte[] greatestColumnSoFar) {
+        if (allEntriesRead(greatestColumnSoFar)) {
             return currentRange;
         }
+        return BatchColumnRangeSelection.create(
+                currentRange.getStartCol(),
+                RangeRequests.getNextStartRow(false, greatestColumnSoFar),
+                currentRange.getBatchHint());
+    }
+
+    private static boolean allEntriesRead(byte[] greatestColumnSoFar) {
+        return greatestColumnSoFar.length == 0 || RangeRequests.isLastColumnName(greatestColumnSoFar);
     }
 
     private List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
