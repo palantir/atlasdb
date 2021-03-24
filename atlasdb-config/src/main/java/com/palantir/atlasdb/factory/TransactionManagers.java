@@ -698,9 +698,11 @@ public abstract class TransactionManagers {
      *
      * lockImmutableTsOnReadOnlyTransaction flag is used to decide on disabling background sweep, as this flag is used
      * as an intermediate step for migrating to thorough sweep.
+     *
+     * Separately, users may disable the background sweep process entirely in config, which we respect.
      */
     private boolean runBackgroundSweepProcess() {
-        return !lockImmutableTsOnReadOnlyTransactions();
+        return config().runBackgroundSweepProcess() && !lockImmutableTsOnReadOnlyTransactions();
     }
 
     @VisibleForTesting
