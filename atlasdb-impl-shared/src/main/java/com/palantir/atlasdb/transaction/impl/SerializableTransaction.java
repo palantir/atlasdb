@@ -19,10 +19,12 @@ import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -78,6 +80,7 @@ import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -96,6 +99,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
@@ -122,6 +126,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             new ConcurrentHashMap<>();
     final ConcurrentMap<TableReference, ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
             columnRangeEndsByTable = new ConcurrentHashMap<>();
+    final ConcurrentMap<GetSortedColumnsRequest, AtomicReference<Cell>> sortedColumnRangeEnds =
+            new ConcurrentHashMap<>();
     final ConcurrentMap<TableReference, Set<Cell>> cellsRead = new ConcurrentHashMap<>();
     final ConcurrentMap<TableReference, Set<RowRead>> rowsRead = new ConcurrentHashMap<>();
 
@@ -220,10 +226,77 @@ public class SerializableTransaction extends SnapshotTransaction {
     @Override
     public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
-        if (isSerializableTable(tableRef)) {
-            throw new UnsupportedOperationException("This method does not support serializable conflict handling");
+        if (Iterables.isEmpty(rows)) {
+            return Collections.emptyIterator();
         }
-        return super.getSortedColumns(tableRef, rows, batchColumnRangeSelection);
+
+        List<byte[]> distinctRows = getDistinctRows(rows);
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns =
+                super.getSortedColumns(tableRef, distinctRows, batchColumnRangeSelection);
+
+        if (!isSerializableTable(tableRef)) {
+            return sortedColumns;
+        }
+
+        // if only one row is passed in, this approach gives us one extra attempt at parallel conflict handling
+        if (distinctRows.size() == 1) {
+            return wrapIteratorWithBoundsChecking(
+                    tableRef, batchColumnRangeSelection, Iterables.getOnlyElement(distinctRows), sortedColumns);
+        }
+
+        return wrapIteratorWithSortedColumnsBoundChecking(
+                tableRef, distinctRows, batchColumnRangeSelection, sortedColumns);
+    }
+
+    private Iterator<Map.Entry<Cell, byte[]>> wrapIteratorWithSortedColumnsBoundChecking(
+            TableReference tableRef,
+            List<byte[]> distinctRows,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            Iterator<Map.Entry<Cell, byte[]>> sortedColumns) {
+        Comparator<Cell> cellComparator = columnOrderThenPreserveInputRowOrder(distinctRows);
+        ByteBuffer maxRow = ByteBuffer.wrap(distinctRows.get(distinctRows.size() - 1));
+        GetSortedColumnsRequest request =
+                ImmutableGetSortedColumnsRequest.of(tableRef, distinctRows, batchColumnRangeSelection);
+        AtomicReference<Cell> rangeEnd =
+                sortedColumnRangeEnds.computeIfAbsent(request, _key -> new AtomicReference<>());
+        ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(tableRef);
+
+        return new AbstractIterator<Map.Entry<Cell, byte[]>>() {
+            @Override
+            protected Map.Entry<Cell, byte[]> computeNext() {
+                if (!sortedColumns.hasNext()) {
+                    reachedEndOfRange();
+                    return endOfData();
+                }
+                Map.Entry<Cell, byte[]> ret = sortedColumns.next();
+                markReadUpTo(ret.getKey(), ret.getValue());
+                return ret;
+            }
+
+            private void markReadUpTo(Cell cell, byte[] value) {
+                readsForTable.put(cell, value);
+                updateRangeEnd(Cell.create(cell.getRowName(), cell.getColumnName()));
+            }
+
+            private void reachedEndOfRange() {
+                updateRangeEnd(Cell.create(maxRow.array(), RangeRequests.getLastColumnName()));
+            }
+
+            private void updateRangeEnd(Cell end) {
+                if (RangeRequests.isLastColumnName(end.getColumnName())) {
+                    rangeEnd.set(end);
+                    return;
+                }
+                rangeEnd.accumulateAndGet(end, (curVal, newVal) -> {
+                    if (curVal == null) {
+                        return newVal;
+                    } else if (RangeRequests.isLastColumnName(curVal.getColumnName())) {
+                        return curVal;
+                    }
+                    return Ordering.from(cellComparator).max(curVal, newVal);
+                });
+            }
+        };
     }
 
     @Override
@@ -447,6 +520,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         verifyColumnRanges(ro);
         verifyCells(ro);
         verifyRows(ro);
+        verifyGetSortedColumns(ro);
     }
 
     private void verifyRows(Transaction ro) {
@@ -630,7 +704,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 for (Map.Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
                     BatchColumnRangeSelection range = e.getKey();
                     byte[] rangeEnd = e.getValue();
-                    rangesToRows.put(nextLexicographicalRangeEnd(range, rangeEnd), row);
+                    rangesToRows.put(getBatchColumnRangeSelectionForEntriesReadSoFar(range, rangeEnd), row);
                 }
             }
 
@@ -657,16 +731,74 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private static BatchColumnRangeSelection nextLexicographicalRangeEnd(
-            BatchColumnRangeSelection currentRange, byte[] rangeEnd) {
-        if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(false, rangeEnd)) {
-            return BatchColumnRangeSelection.create(
-                    currentRange.getStartCol(),
-                    RangeRequests.getNextStartRow(false, rangeEnd),
-                    currentRange.getBatchHint());
-        } else {
+    private void verifyGetSortedColumns(Transaction readOnlyTransaction) {
+        sortedColumnRangeEnds.forEach((request, endOfRangeReference) -> {
+            Cell endOfRange = endOfRangeReference.get();
+            // no checks required if no data has been read so far
+            if (endOfRange == null) {
+                return;
+            }
+            BatchColumnRangeSelection range = getBatchColumnRangeSelectionForEntriesReadSoFar(
+                    request.getColumnRangeSelection(), endOfRange.getColumnName());
+            Iterable<byte[]> rows = request.getRows();
+            Comparator<Cell> comparator = columnOrderThenPreserveInputRowOrder(request.getRows());
+            Iterator<Map.Entry<Cell, ByteBuffer>> readValues =
+                    readSortedColumns(request.getTableRef(), rows, range, comparator);
+
+            Iterator<Map.Entry<Cell, ByteBuffer>> storedValues = Iterators.transform(
+                    readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range),
+                    this::getCellEntryWithByteBufferWrappedValue);
+
+            // handles the case where (r1, c), (r2, c) exists and we read only up to (r1, c).
+            Iterator<Map.Entry<Cell, ByteBuffer>> truncatedStoredValues =
+                    new AbstractIterator<Map.Entry<Cell, ByteBuffer>>() {
+                        @Override
+                        protected Map.Entry<Cell, ByteBuffer> computeNext() {
+                            if (!storedValues.hasNext()) {
+                                return endOfData();
+                            }
+
+                            Map.Entry<Cell, ByteBuffer> ret = storedValues.next();
+                            if (comparator.compare(ret.getKey(), endOfRange) > 0) {
+                                return endOfData();
+                            }
+                            return ret;
+                        }
+                    };
+
+            if (!Iterators.elementsEqual(readValues, truncatedStoredValues)) {
+                handleTransactionConflict(request.getTableRef());
+            }
+        });
+    }
+
+    private Iterator<Map.Entry<Cell, ByteBuffer>> readSortedColumns(
+            TableReference table, Iterable<byte[]> rows, BatchColumnRangeSelection range, Comparator<Cell> comparator) {
+        Iterator<Map.Entry<Cell, byte[]>> merged = mergeByComparator(
+                Iterables.transform(rows, row -> getReadsInColumnRangeSkippingWrites(table, row, range)
+                        .entrySet()
+                        .iterator()),
+                comparator);
+        return Iterators.transform(merged, this::getCellEntryWithByteBufferWrappedValue);
+    }
+
+    private Map.Entry<Cell, ByteBuffer> getCellEntryWithByteBufferWrappedValue(Map.Entry<Cell, byte[]> cellEntry) {
+        return Maps.immutableEntry(cellEntry.getKey(), ByteBuffer.wrap(cellEntry.getValue()));
+    }
+
+    private static BatchColumnRangeSelection getBatchColumnRangeSelectionForEntriesReadSoFar(
+            BatchColumnRangeSelection currentRange, byte[] greatestColumnSoFar) {
+        if (allEntriesRead(greatestColumnSoFar)) {
             return currentRange;
         }
+        return BatchColumnRangeSelection.create(
+                currentRange.getStartCol(),
+                RangeRequests.getNextStartRow(false, greatestColumnSoFar),
+                currentRange.getBatchHint());
+    }
+
+    private static boolean allEntriesRead(byte[] greatestColumnSoFar) {
+        return greatestColumnSoFar.length == 0 || RangeRequests.isLastColumnName(greatestColumnSoFar);
     }
 
     private List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
@@ -912,5 +1044,17 @@ public class SerializableTransaction extends SnapshotTransaction {
                     ? ImmutableMap.of(splittingStartTimestamp().getAsLong(), myCommitTimestamp())
                     : ImmutableMap.of();
         }
+    }
+
+    @Value.Immutable(prehash = true)
+    interface GetSortedColumnsRequest {
+        @Value.Parameter
+        TableReference getTableRef();
+
+        @Value.Parameter
+        List<byte[]> getRows();
+
+        @Value.Parameter
+        BatchColumnRangeSelection getColumnRangeSelection();
     }
 }

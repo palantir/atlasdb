@@ -186,7 +186,15 @@ public abstract class TransactionTestSetup {
         put(txn, TEST_TABLE, rowName, columnName, value);
     }
 
+    protected void put(Transaction txn, byte[] rowName, byte[] columnName, String value) {
+        put(txn, TEST_TABLE, rowName, columnName, value);
+    }
+
     protected void put(Transaction txn, TableReference tableRef, String rowName, String columnName, String value) {
+        put(txn, tableRef, PtBytes.toBytes(rowName), PtBytes.toBytes(columnName), value);
+    }
+
+    protected void put(Transaction txn, TableReference tableRef, byte[] rowName, byte[] columnName, String value) {
         Cell cell = createCell(rowName, columnName);
         byte[] valueBytes = value == null ? null : PtBytes.toBytes(value);
         Map<Cell, byte[]> map = new HashMap<>();
@@ -245,5 +253,9 @@ public abstract class TransactionTestSetup {
 
     Cell createCell(String rowName, String columnName) {
         return Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
+    }
+
+    Cell createCell(byte[] rowName, byte[] columnName) {
+        return Cell.create(rowName, columnName);
     }
 }

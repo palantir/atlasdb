@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Adds getSortedColumns endpoint for tables with serializable conflict checking.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5332

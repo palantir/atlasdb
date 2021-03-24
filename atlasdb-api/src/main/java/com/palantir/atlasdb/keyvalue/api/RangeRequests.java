@@ -157,6 +157,10 @@ public final class RangeRequests {
         return ret;
     }
 
+    public static byte[] getLastColumnName() {
+        return getLastRowName();
+    }
+
     public static boolean isFirstRowName(boolean reverse, @Nonnull byte[] name) {
         return reverse ? isLastRowName(name) : isFirstRowName(name);
     }
@@ -170,6 +174,10 @@ public final class RangeRequests {
             return false;
         }
         return nextLexicographicNameInternal(name) == null;
+    }
+
+    public static boolean isLastColumnName(@Nonnull byte[] name) {
+        return isLastRowName(name);
     }
 
     public static boolean isTerminalRow(boolean reverse, @Nonnull byte[] rowName) {
