@@ -270,8 +270,8 @@ class Table {
         }
         else {
             data = entryList.collect { entry ->
-                def result = [row: convertToListIfMapConvertValuesToList(entry['row'])]
-                Map cols = entry['cols'] as Map
+                Map<String, List> result = [row: convertToListIfMapConvertValuesToList(entry['row'])]
+                Map cols = entry['cols'] as Map<String, List>
                 Set colNames = this.columnNames().toSet()
                 cols.each { key, value ->
                     if(!colNames.contains(key)) {
