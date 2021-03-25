@@ -18,13 +18,15 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 final class VersionedEventStore {
     private static final boolean INCLUSIVE = true;
@@ -48,11 +50,24 @@ final class VersionedEventStore {
                 .orElseGet(ImmutableList::of);
     }
 
-    LockWatchEvents retentionEvents() {
-        int numToRetention = Math.max(0, eventMap.size() - maxEvents);
+    LockWatchEvents retentionEvents(long earliestVersionToKeep) {
+        if (eventMap.size() < maxEvents) {
+            return LockWatchEvents.builder().build();
+        }
+
+        int numToRetention = eventMap.size() - maxEvents;
         ImmutableLockWatchEvents.Builder builder = LockWatchEvents.builder();
-        Iterators.consumingIterator(Iterators.limit(eventMap.entrySet().iterator(), numToRetention))
-                .forEachRemaining(entry -> builder.addEvents(entry.getValue()));
+
+        Set<Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
+                .limit(numToRetention)
+                .filter(entry -> entry.getKey() < earliestVersionToKeep)
+                .collect(Collectors.toSet());
+
+        eventsToClear.forEach(event -> {
+            eventMap.remove(event.getKey(), event.getValue());
+            builder.addEvents(event.getValue());
+        });
+
         return builder.build();
     }
 

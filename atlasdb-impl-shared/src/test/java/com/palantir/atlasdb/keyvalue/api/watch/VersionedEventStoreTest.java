@@ -47,7 +47,7 @@ public final class VersionedEventStoreTest {
     public void getAndRemoveElementsRemovesOldestElements() {
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3));
         eventStore.putAll(makeEvents(EVENT_4));
-        LockWatchEvents events = eventStore.retentionEvents();
+        LockWatchEvents events = eventStore.retentionEvents(earliestVersionToKeep);
         assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
         assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(3L);
     }

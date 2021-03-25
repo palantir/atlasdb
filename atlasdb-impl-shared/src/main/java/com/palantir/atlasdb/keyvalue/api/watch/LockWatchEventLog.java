@@ -97,7 +97,7 @@ final class LockWatchEventLog {
 
     void retentionEvents() {
         getLatestKnownVersion().ifPresent(version -> {
-            LockWatchEvents eventsToBeRemoved = eventStore.retentionEvents();
+            LockWatchEvents eventsToBeRemoved = eventStore.retentionEvents(earliestVersionToKeep);
             snapshot.processEvents(eventsToBeRemoved, version.id());
         });
     }
