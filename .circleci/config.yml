@@ -104,13 +104,9 @@ jobs:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
             if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
-              if [[ "${CIRCLE_BRANCH}" =~ develop ]]; then
-                ./scripts/circle-ci/publish-github-page.sh
-                # Internal publishing from an external CircleCI is... not a thing.
-                # curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
-              else
-                echo "Internal and external docs are typically published from develop, not ${CIRCLE_BRANCH}."
-              fi
+              ./scripts/circle-ci/publish-github-page.sh
+              # Internal publishing from an external CircleCI is... not a thing.
+              # curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
             fi
       - run:
           command: |
@@ -135,5 +131,7 @@ workflows:
       - deploy:
           requires: [build]
           filters:
+            branches:
+              only: develop
             tags:
               only: /.*/
