@@ -50,7 +50,7 @@ final class VersionedEventStore {
                 .orElseGet(ImmutableList::of);
     }
 
-    LockWatchEvents retentionEvents(long earliestVersionToKeep) {
+    LockWatchEvents retentionEvents(Optional<Long> earliestVersionToKeep) {
         if (eventMap.size() < maxEvents) {
             return LockWatchEvents.builder().build();
         }
@@ -60,12 +60,12 @@ final class VersionedEventStore {
 
         Set<Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
                 .limit(numToRetention)
-                .filter(entry -> entry.getKey() < earliestVersionToKeep)
+                .filter(entry -> entry.getKey() < earliestVersionToKeep.orElse(Long.MAX_VALUE))
                 .collect(Collectors.toSet());
 
-        eventsToClear.forEach(event -> {
-            eventMap.remove(event.getKey(), event.getValue());
-            builder.addEvents(event.getValue());
+        eventsToClear.forEach(entry -> {
+            eventMap.remove(entry.getKey(), entry.getValue());
+            builder.addEvents(entry.getValue());
         });
 
         return builder.build();

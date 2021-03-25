@@ -25,13 +25,13 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.TreeMap;
 import org.immutables.value.Value;
 
 final class TimestampStateStore {
-    private final Map<Long, MapEntry> timestampMap = new HashMap<>();
+    private final NavigableMap<Long, MapEntry> timestampMap = new TreeMap<>();
 
     void putStartTimestamps(Collection<Long> startTimestamps, LockWatchVersion version) {
         startTimestamps.forEach(startTimestamp -> {
@@ -77,6 +77,14 @@ final class TimestampStateStore {
         return ImmutableTimestampStateStoreState.builder()
                 .timestampMap(timestampMap)
                 .build();
+    }
+
+    public Optional<Long> getEarliestLiveTimestamp() {
+        if (timestampMap.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(timestampMap.firstKey());
+        }
     }
 
     @Value.Immutable

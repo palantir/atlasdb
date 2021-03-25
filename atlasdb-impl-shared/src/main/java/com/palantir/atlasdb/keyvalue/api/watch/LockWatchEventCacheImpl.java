@@ -36,7 +36,8 @@ import java.util.Set;
  * in concurrency issues and inconsistency in the cache state.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
-    // This value should be the same as in TimeLock's LockEventLogImpl.
+    // This value should be the same as in TimeLock's LockEventLogImpl. Note that this is not a hard limit - we
+    // instead guarantee that we will not delete events unless they exceed this count.
     private static final int MAX_EVENTS = 1000;
 
     private final LockWatchEventLog eventLog;
@@ -142,7 +143,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             timestampStateStore.clear();
         }
 
-        eventLog.retentionEvents();
+        eventLog.retentionEvents(timestampStateStore.getEarliestLiveTimestamp());
 
         return cacheUpdate.getVersion();
     }
