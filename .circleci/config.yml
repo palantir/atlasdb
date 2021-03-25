@@ -125,6 +125,7 @@ jobs:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
             if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
+              git status
               ./gradlew --profile --stacktrace --continue publish
             fi
 
