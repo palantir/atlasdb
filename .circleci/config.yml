@@ -133,7 +133,7 @@ workflows:
             tags:
               only: /.*/
       - deploy:
-          requires: [build, test]
+          requires: [build]
           filters:
             tags:
               only: /.*/
