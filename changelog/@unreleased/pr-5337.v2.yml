@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Use gradle-external-publish-plugin to continue publishing after bintray decomissioning.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5337
