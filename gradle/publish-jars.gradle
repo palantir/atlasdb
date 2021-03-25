@@ -1,47 +1,18 @@
 import java.util.stream.Collectors
 
-apply plugin: 'java-library'
-apply plugin: 'com.jfrog.artifactory'
-apply plugin: 'com.jfrog.bintray'
-apply plugin: 'maven-publish'
-apply plugin: 'nebula.maven-resolved-dependencies'
-
-// If you modify bintray or artifactory publishing you also need to modify publish-dists.gradle
-
-task sourceJar(type: Jar) {
-    from project.sourceSets.main.allSource
-    classifier 'sources'
-}
-
-task testJarForPublishing(type: Jar) {
-    from project.sourceSets.test.output
-    classifier 'tests'
-}
+apply plugin: 'com.palantir.external-publish-jar'
 
 publishing {
     publications {
-        artifactory(MavenPublication) {
-            from components.java
+        maven(MavenPublication) {
+            artifact(testJarForPublishing) {
+                classifier 'tests'
+            }
 
             // This interfaces between Shadow and Nebula
             def hasShadowConfiguration = project.configurations.findByName('shadow') != null
             if (hasShadowConfiguration) {
                 replaceShadedDependencies(it)
-            }
-
-            artifact(sourceJar) {
-                classifier 'sources'
-            }
-            artifact(testJarForPublishing) {
-                classifier 'tests'
-            }
-            pom.withXml {
-                def scm = asNode().appendNode('scm')
-                scm.appendNode('url', 'git@github.com:palantir/atlasdb.git')
-                def licenses = asNode().appendNode('licenses')
-                def license = licenses.appendNode('license')
-                license.appendNode('name', 'Apache 2.0')
-                license.appendNode('url', 'https://opensource.org/licenses/Apache-2.0')
             }
         }
     }
@@ -114,50 +85,4 @@ private static void addNodesForShadowDependenciesNotInCompileConfiguration(
         def version = recommender.getRecommendedVersion(dependency.getGroup(), dependency.getName())
         newDependency.appendNode('version', version)
     }
-}
-
-// Bintray publish
-bintray {
-    user = System.getenv('BINTRAY_USERNAME')
-    key = System.getenv('BINTRAY_PASSWORD')
-    publish = true
-    pkg {
-        userOrg = 'palantir'
-        repo = 'releases'
-        name = 'atlasdb'
-        licenses = ['Apache-2.0']
-        publications = ['artifactory']
-    }
-}
-
-bintrayUpload.onlyIf {
-    System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ releaseVersionRegex
-}
-
-bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJarForPublishing', 'build'
-
-// Artifactory publish
-artifactory {
-    publish {
-        contextUrl = System.env.ARTIFACTORY_URL
-        repository {
-            repoKey = System.env.ARTIFACTORY_JAR_REPO
-            username = System.env.ARTIFACTORY_USERNAME
-            password = System.env.ARTIFACTORY_PASSWORD
-            maven = true
-        }
-        defaults {
-            publications ('artifactory')
-            properties = ['git': project.version.toString()]
-        }
-    }
-}
-
-artifactoryPublish.onlyIf {
-    System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_JAR_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
-}
-artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJarForPublishing', 'build'
-
-ext {
-    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta|-rc)?(\d+)?/
 }
