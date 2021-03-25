@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
@@ -58,7 +58,7 @@ final class VersionedEventStore {
         int numToRetention = eventMap.size() - maxEvents;
         ImmutableLockWatchEvents.Builder builder = LockWatchEvents.builder();
 
-        Set<Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
+        Set<Map.Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
                 .limit(numToRetention)
                 .filter(entry -> entry.getKey() < earliestVersionToKeep.orElse(Long.MAX_VALUE))
                 .collect(Collectors.toSet());
