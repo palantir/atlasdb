@@ -116,12 +116,7 @@ jobs:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
             if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
-              # publishing snapshots to bintray does not work, so we only publish from tag builds (not develop)
-              if [[ "${CIRCLE_TAG}" =~ [0-9]+(\.[0-9]+){2}(-alpha|-beta|-rc[0-9]+)?(\+[0-9]{3})? ]]; then
-                ./gradlew --profile --stacktrace --continue bintrayUpload -x check
-              else
-                echo "${CIRCLE_TAG} does not appear to be a version, so not publishing."
-              fi
+              ./gradlew --profile --stacktrace --continue publish
             fi
 
 workflows:
