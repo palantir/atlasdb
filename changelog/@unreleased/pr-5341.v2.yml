@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: AtlasDB now switches back to Groovy 2.x to avoid possible breaking changes in AtlasConsole scripts.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5341
