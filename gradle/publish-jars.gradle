@@ -37,7 +37,7 @@ private void replaceShadedDependencies(MavenPublication mavenPublication) {
         addNodesForShadowDependenciesNotInCompileConfiguration(
                 newDependencyRoot,
                 shadowDependencies,
-                dependencyRecommendations)
+                project)
 
         asNode().getByName('dependencies')[0].replaceNode(newDependencyRoot)
     }
@@ -75,14 +75,14 @@ private static String getOnlyValue(List<Node> nodeList) {
 private static void addNodesForShadowDependenciesNotInCompileConfiguration(
         Node dependencyRoot,
         Set<Tuple> remainingDeps,
-        recommender) {
+        project) {
     remainingDeps.forEach { dependencyTuple ->
         Node newDependency = dependencyRoot.appendNode('dependency')
         newDependency.appendNode('groupId', dependencyTuple[0])
         newDependency.appendNode('artifactId', dependencyTuple[1])
         newDependency.appendNode('scope', 'runtime')
 
-        def version = recommender.getRecommendedVersion(dependency.getGroup(), dependency.getName())
+        def version = getVersion("${dependency.getGroup()}:${dependency.getName()}")
         newDependency.appendNode('version', version)
     }
 }
