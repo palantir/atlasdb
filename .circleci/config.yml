@@ -84,6 +84,19 @@ jobs:
           root: .
           paths: [ . ]
 
+  trial-publish:
+    docker:
+      - image: circleci/openjdk:8u212-jdk-stretch-node
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /tmp/test-reports
+      CIRCLE_ARTIFACTS: /tmp/artifacts
+    steps:
+      - attach_workspace: { at: . }
+      - run: ./gradlew --profile --stacktrace --continue publishToMavenLocal
+
   deploy:
     docker:
       - image: circleci/openjdk:8u212-jdk-stretch-node
@@ -128,6 +141,11 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - trial-publish:
+          requires: [build]
+          filters:
+            branches:
+              ignore: [develop]
       - deploy:
           requires: [build, test]
           filters:
