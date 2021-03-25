@@ -12,9 +12,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
-        classpath 'com.netflix.nebula:gradle-info-plugin:9.3.0'
-        classpath 'com.netflix.nebula:nebula-publishing-plugin:17.3.2'
+        classpath 'com.palantir.gradle.externalpublish:gradle-external-publish-plugin:0.4.0'
         classpath 'com.palantir.baseline:gradle-baseline-java:3.74.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:4.22.0'
         classpath 'com.palantir.javaformat:gradle-palantir-java-format:1.0.1'
@@ -24,7 +22,6 @@ buildscript {
         classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
         classpath 'gradle.plugin.com.palantir.gradle.gitversion:gradle-git-version:0.11.0'
         classpath 'gradle.plugin.org.inferred:gradle-processors:3.3.0'
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.9.8'
     }
 }
 
@@ -37,6 +34,7 @@ plugins {
 
 apply plugin: 'com.palantir.baseline'
 apply plugin: 'com.palantir.git-version'
+apply plugin: 'com.palantir.external-publish'
 
 apply from: 'gradle/versions.gradle'
 
@@ -187,9 +185,14 @@ subprojects {
     task allDeps(type: DependencyReportTask) {}
 }
 
-configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
-    apply from: "$rootDir/gradle/publish-jars.gradle"
+afterEvaluate {
+    configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
+        if (!project.plugins.hasPlugin('com.palantir.external-publish-dist')) {
+            apply from: "$rootDir/gradle/publish-jars.gradle"
+        }
+    }
 }
+
 
 // Setup copyright notice as a block comment, and no newline after it
 project.afterEvaluate {
