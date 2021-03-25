@@ -185,9 +185,14 @@ subprojects {
     task allDeps(type: DependencyReportTask) {}
 }
 
-configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
-    apply from: "$rootDir/gradle/publish-jars.gradle"
+afterEvaluate {
+    configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
+        if (!project.plugins.hasPlugin('com.palantir.external-publish-dist')) {
+            apply from: "$rootDir/gradle/publish-jars.gradle"
+        }
+    }
 }
+
 
 // Setup copyright notice as a block comment, and no newline after it
 project.afterEvaluate {

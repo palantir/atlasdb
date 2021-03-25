@@ -2,11 +2,6 @@ import java.util.stream.Collectors
 
 apply plugin: 'com.palantir.external-publish-jar'
 
-task testJarForPublishing(type: Jar) {
-    from project.sourceSets.test.output
-    classifier 'tests'
-}
-
 publishing {
     publications {
         maven(MavenPublication) {
