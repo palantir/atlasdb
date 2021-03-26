@@ -21,7 +21,7 @@ services:
 
   ete1.palantir.pt:
     build: .
-    command: [bash, -c, 'cp var/conf/atlasdb-ete.no-leader.dbkvs.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://postgres:5432 && service/bin/init.sh start']
+    command: [bash, -c, 'dockerize -timeout 120s -wait tcp://postgres:5432 && service/bin/init.sh start && tail -F var/log/atlasdb-ete-startup.log']
     ports:
       - "3828"
     environment:
@@ -34,7 +34,7 @@ services:
 
   ete-cli.palantir.pt:
     build: .
-    entrypoint: [bash, -c, 'cp var/conf/atlasdb-ete.timelock.dbkvs.yml var/conf/atlasdb-ete.yml && "$$@"', --]
+    entrypoint: [bash, -c, 'cp var/conf/atlasdb-ete.no-leader.dbkvs.yml var/conf/atlasdb-ete.yml && "$$@"', --]
     command: exit
     depends_on:
       - ete1.palantir.pt
