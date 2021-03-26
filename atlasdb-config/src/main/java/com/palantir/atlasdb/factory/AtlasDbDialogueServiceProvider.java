@@ -179,7 +179,7 @@ public final class AtlasDbDialogueServiceProvider {
     private <T> T wrapInProxy(Class<T> type, T service) {
         return RetryOnSocketTimeoutExceptionProxy.newProxyInstance(
                 type,
-                () -> FastFailoverProxy.newProxyInstance(type, () -> service);
+                () -> FastFailoverProxy.newProxyInstance(type, () -> service));
     }
 
     private static ImmutableMap<String, RemoteServiceConfiguration> getServiceConfigurations(
