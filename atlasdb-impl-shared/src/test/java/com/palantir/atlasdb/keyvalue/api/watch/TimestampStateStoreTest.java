@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
@@ -30,15 +31,30 @@ import org.junit.Before;
 import org.junit.Test;
 
 public final class TimestampStateStoreTest {
-    private static UUID leader = UUID.randomUUID();
-    private static LockWatchVersion version1 = LockWatchVersion.of(leader, 1L);
-    private static LockWatchVersion version2 = LockWatchVersion.of(leader, 17L);
+    private static final UUID LEADER = UUID.randomUUID();
+    private static final LockWatchVersion VERSION_1 = LockWatchVersion.of(LEADER, 1L);
+    private static final LockWatchVersion VERSION_2 = LockWatchVersion.of(LEADER, 17L);
 
     private TimestampStateStore timestampStateStore;
 
     @Before
     public void before() {
         timestampStateStore = new TimestampStateStore();
+    }
+
+    @Test
+    public void earliestVersionUpdatesWhenAllTimestampsRemovedForVersion() {
+        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L, 200L), VERSION_1);
+        timestampStateStore.putStartTimestamps(ImmutableSet.of(400L, 800L), VERSION_2);
+
+        assertThat(timestampStateStore.getEarliestLiveSequence()).hasValue(1L);
+
+        removeAndCheckEarliestVersion(100L, 1L);
+        removeAndCheckEarliestVersion(800L, 1L);
+        removeAndCheckEarliestVersion(200L, 17L);
+
+        timestampStateStore.remove(400L);
+        assertThat(timestampStateStore.getEarliestLiveSequence()).isEmpty();
     }
 
     @Test
@@ -49,9 +65,9 @@ public final class TimestampStateStoreTest {
                 .writesToken(LockToken.of(UUID.randomUUID()))
                 .build();
 
-        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L), version1);
-        timestampStateStore.putCommitUpdates(ImmutableSet.of(update), version2);
-        assertThatThrownBy(() -> timestampStateStore.putCommitUpdates(ImmutableSet.of(update), version2))
+        timestampStateStore.putStartTimestamps(ImmutableSet.of(100L), VERSION_1);
+        timestampStateStore.putCommitUpdates(ImmutableSet.of(update), VERSION_2);
+        assertThatThrownBy(() -> timestampStateStore.putCommitUpdates(ImmutableSet.of(update), VERSION_2))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Commit info already present for given timestamp");
     }
@@ -64,8 +80,13 @@ public final class TimestampStateStoreTest {
                 .writesToken(LockToken.of(UUID.randomUUID()))
                 .build();
 
-        assertThatThrownBy(() -> timestampStateStore.putCommitUpdates(ImmutableSet.of(update), version2))
+        assertThatThrownBy(() -> timestampStateStore.putCommitUpdates(ImmutableSet.of(update), VERSION_2))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("start timestamp missing from map");
+    }
+
+    private void removeAndCheckEarliestVersion(long timestamp, long sequence) {
+        timestampStateStore.remove(timestamp);
+        assertThat(timestampStateStore.getEarliestLiveSequence()).hasValue(sequence);
     }
 }

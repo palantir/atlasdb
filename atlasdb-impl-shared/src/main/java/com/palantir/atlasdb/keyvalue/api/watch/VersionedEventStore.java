@@ -21,10 +21,10 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
-import java.util.Map;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -50,7 +50,7 @@ final class VersionedEventStore {
                 .orElseGet(ImmutableList::of);
     }
 
-    LockWatchEvents retentionEvents(Optional<Long> earliestVersionToKeep) {
+    LockWatchEvents retentionEvents(Optional<Long> earliestSequenceToKeep) {
         if (eventMap.size() < maxEvents) {
             return LockWatchEvents.builder().build();
         }
@@ -58,10 +58,11 @@ final class VersionedEventStore {
         int numToRetention = eventMap.size() - maxEvents;
         ImmutableLockWatchEvents.Builder builder = LockWatchEvents.builder();
 
-        Set<Map.Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
+        long earliestVersion = earliestSequenceToKeep.orElse(Long.MAX_VALUE);
+        List<Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
                 .limit(numToRetention)
-                .filter(entry -> entry.getKey() < earliestVersionToKeep.orElse(Long.MAX_VALUE))
-                .collect(Collectors.toSet());
+                .filter(entry -> entry.getKey() < earliestVersion)
+                .collect(Collectors.toList());
 
         eventsToClear.forEach(entry -> {
             eventMap.remove(entry.getKey(), entry.getValue());

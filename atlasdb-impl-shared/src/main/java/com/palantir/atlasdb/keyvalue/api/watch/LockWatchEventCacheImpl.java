@@ -143,7 +143,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             timestampStateStore.clear();
         }
 
-        eventLog.retentionEvents(timestampStateStore.getEarliestLiveTimestamp());
+        eventLog.retentionEvents(timestampStateStore.getEarliestLiveSequence());
 
         return cacheUpdate.getVersion();
     }

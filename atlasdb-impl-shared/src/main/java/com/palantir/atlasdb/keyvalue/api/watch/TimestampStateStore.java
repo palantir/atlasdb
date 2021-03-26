@@ -19,6 +19,9 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -32,11 +35,13 @@ import org.immutables.value.Value;
 
 final class TimestampStateStore {
     private final NavigableMap<Long, MapEntry> timestampMap = new TreeMap<>();
+    private final SortedSetMultimap<Long, Long> livingVersions = TreeMultimap.create();
 
     void putStartTimestamps(Collection<Long> startTimestamps, LockWatchVersion version) {
         startTimestamps.forEach(startTimestamp -> {
             MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
             Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
+            livingVersions.put(version.version(), startTimestamp);
         });
     }
 
@@ -57,11 +62,13 @@ final class TimestampStateStore {
     }
 
     void remove(long startTimestamp) {
-        Optional.ofNullable(timestampMap.remove(startTimestamp));
+        Optional.ofNullable(timestampMap.remove(startTimestamp))
+                .ifPresent(entry -> livingVersions.remove(entry.version().version(), startTimestamp));
     }
 
     void clear() {
         timestampMap.clear();
+        livingVersions.clear();
     }
 
     Optional<LockWatchVersion> getStartVersion(long startTimestamp) {
@@ -76,15 +83,12 @@ final class TimestampStateStore {
     TimestampStateStoreState getStateForTesting() {
         return ImmutableTimestampStateStoreState.builder()
                 .timestampMap(timestampMap)
+                .livingVersions(livingVersions)
                 .build();
     }
 
-    public Optional<Long> getEarliestLiveTimestamp() {
-        if (timestampMap.isEmpty()) {
-            return Optional.empty();
-        } else {
-            return Optional.of(timestampMap.firstKey());
-        }
+    public Optional<Long> getEarliestLiveSequence() {
+        return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
     }
 
     @Value.Immutable
