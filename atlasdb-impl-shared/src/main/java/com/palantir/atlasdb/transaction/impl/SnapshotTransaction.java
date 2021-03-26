@@ -626,7 +626,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFilteredWithoutSorting(
             TableReference tableRef,
-            Iterator<Entry<Cell, Value>> iterator,
+            Iterator<Map.Entry<Cell, Value>> iterator,
             int batchHint,
             Comparator<Cell> cellComparator) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
