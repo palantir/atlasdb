@@ -30,6 +30,7 @@ import com.palantir.atlasdb.http.v2.DialogueClientOptions;
 import com.palantir.atlasdb.http.v2.FastFailoverProxy;
 import com.palantir.atlasdb.http.v2.ImmutableRemoteServiceConfiguration;
 import com.palantir.atlasdb.http.v2.RemoteServiceConfiguration;
+import com.palantir.atlasdb.http.v2.RetryOnSocketTimeoutExceptionProxy;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
@@ -56,11 +57,11 @@ import java.util.Map;
  * zero or more nodes, where contacting any of the nodes is legitimate (subject to redirects via 308s and 503s). If
  * working with heterogeneous nodes and/or broadcast is important (e.g. for Paxos Acceptor use cases), you should be
  * VERY careful when using this class.
- *
+ * <p>
  * Proxies must be resilient to servers repeatedly returning 308s that are large in number, but persist for only a short
  * duration. Furthermore, proxies should include in their {@link com.palantir.conjure.java.api.config.service.UserAgent}
- * information to allow client services to identify the protocol they are using to talk, via
- * {@link AtlasDbHttpProtocolVersion}.
+ * information to allow client services to identify the protocol they are using to talk, via {@link
+ * AtlasDbHttpProtocolVersion}.
  */
 public final class AtlasDbDialogueServiceProvider {
     private static final String TIMELOCK_SHORT_TIMEOUT = "timelock-short-timeout";
@@ -85,7 +86,7 @@ public final class AtlasDbDialogueServiceProvider {
                 timeLockServerListConfig.map(
                         serverListConfig -> getServiceConfigurations(versionedAgent, serverListConfig));
         DialogueClients.ReloadingFactory reloadingFactory = decorateForFailoverServices(
-                        baseFactory, timeLockRemoteConfigurations)
+                baseFactory, timeLockRemoteConfigurations)
                 .withUserAgent(versionedAgent);
 
         return new AtlasDbDialogueServiceProvider(reloadingFactory, taggedMetricRegistry);
@@ -104,8 +105,7 @@ public final class AtlasDbDialogueServiceProvider {
                         .longTimeout(longTimeoutService)
                         .shortTimeout(shortTimeoutService)
                         .build()
-                        .map(proxy ->
-                                FastFailoverProxy.newProxyInstance(ConjureTimelockServiceBlocking.class, () -> proxy))
+                        .map(proxy -> wrapInProxy(ConjureTimelockServiceBlocking.class, proxy))
                         .map(service -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                                 taggedMetricRegistry, ConjureTimelockServiceBlocking.class, service))
                         .map(instrumentedService -> new DialogueAdaptingConjureTimelockService(
@@ -120,8 +120,7 @@ public final class AtlasDbDialogueServiceProvider {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 taggedMetricRegistry,
                 MultiClientConjureTimelockServiceBlocking.class,
-                FastFailoverProxy.newProxyInstance(
-                        MultiClientConjureTimelockServiceBlocking.class, () -> blockingService));
+                wrapInProxy(MultiClientConjureTimelockServiceBlocking.class, blockingService));
     }
 
     TimestampManagementRpcClient getTimestampManagementRpcClient() {
@@ -146,8 +145,7 @@ public final class AtlasDbDialogueServiceProvider {
                         .shortTimeout(shortTimeoutDialogueService)
                         .longTimeout(longTimeoutDialogueService)
                         .build()
-                        .map(proxy ->
-                                FastFailoverProxy.newProxyInstance(ConjureLockV1ServiceBlocking.class, () -> proxy))
+                        .map(proxy -> wrapInProxy(ConjureLockV1ServiceBlocking.class, proxy))
                         .map(service -> AtlasDbMetrics.instrumentWithTaggedMetrics(
                                 taggedMetricRegistry, ConjureLockV1ServiceBlocking.class, service))
                         .zipWith(legacyRpcClients, DialogueComposingLockRpcClient::new));
@@ -163,7 +161,7 @@ public final class AtlasDbDialogueServiceProvider {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 taggedMetricRegistry,
                 ConjureLockWatchingServiceBlocking.class,
-                FastFailoverProxy.newProxyInstance(ConjureLockWatchingServiceBlocking.class, () -> blockingService));
+                wrapInProxy(ConjureLockWatchingServiceBlocking.class, blockingService));
     }
 
     private <T> T createDialogueProxyWithShortTimeout(Class<T> type) {
@@ -176,6 +174,12 @@ public final class AtlasDbDialogueServiceProvider {
 
     private <T> T createDialogueProxy(Class<T> type, Channel channel) {
         return AtlasDbHttpClients.createDialogueProxy(taggedMetricRegistry, type, channel);
+    }
+
+    private <T> T wrapInProxy(Class<T> type, T service) {
+        return RetryOnSocketTimeoutExceptionProxy.newProxyInstance(
+                type,
+                () -> FastFailoverProxy.newProxyInstance(type, () -> service);
     }
 
     private static ImmutableMap<String, RemoteServiceConfiguration> getServiceConfigurations(
