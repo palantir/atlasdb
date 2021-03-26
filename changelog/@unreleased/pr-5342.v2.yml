@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: getSortedColumns | Sorting order should be maintained after validating batch of entries.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5342
