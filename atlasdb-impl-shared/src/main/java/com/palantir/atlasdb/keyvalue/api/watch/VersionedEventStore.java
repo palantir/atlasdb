@@ -22,7 +22,7 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -59,7 +59,7 @@ final class VersionedEventStore {
         long earliestVersion = earliestSequenceToKeep.orElse(Long.MAX_VALUE);
 
         ImmutableLockWatchEvents.Builder builder = LockWatchEvents.builder();
-        List<Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
+        List<Map.Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
                 .limit(numToRetention)
                 .filter(entry -> entry.getKey() < earliestVersion)
                 .collect(Collectors.toList());
