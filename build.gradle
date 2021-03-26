@@ -39,7 +39,7 @@ apply plugin: 'com.palantir.external-publish'
 apply from: 'gradle/versions.gradle'
 
 group = 'com.palantir.atlasdb'
-version = gitVersion()
+version = System.env.CIRCLE_TAG ?: gitVersion()
 description = 'Transactional distributed database layer'
 
 task printLastVersion {
