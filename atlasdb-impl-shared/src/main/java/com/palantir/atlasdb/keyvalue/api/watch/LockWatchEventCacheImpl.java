@@ -116,6 +116,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
         timestampStateStore.remove(startTimestamp);
+        eventLog.retentionEvents(timestampStateStore.getEarliestLiveSequence());
     }
 
     @VisibleForTesting

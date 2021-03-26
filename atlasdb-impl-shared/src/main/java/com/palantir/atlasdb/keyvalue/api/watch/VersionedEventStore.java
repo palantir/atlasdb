@@ -56,9 +56,9 @@ final class VersionedEventStore {
         }
 
         int numToRetention = eventMap.size() - maxEvents;
-        ImmutableLockWatchEvents.Builder builder = LockWatchEvents.builder();
-
         long earliestVersion = earliestSequenceToKeep.orElse(Long.MAX_VALUE);
+
+        ImmutableLockWatchEvents.Builder builder = LockWatchEvents.builder();
         List<Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
                 .limit(numToRetention)
                 .filter(entry -> entry.getKey() < earliestVersion)
