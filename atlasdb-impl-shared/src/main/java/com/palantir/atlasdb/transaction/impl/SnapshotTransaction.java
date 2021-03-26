@@ -145,6 +145,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -471,7 +472,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Iterator<Map.Entry<Cell, Value>> postFilterIterator = getRowColumnRangePostFilteredWithoutSorting(
                 tableRef,
                 mergeByComparator(rawResults.values(), cellComparator),
-                batchColumnRangeSelection.getBatchHint());
+                batchColumnRangeSelection.getBatchHint(),
+                cellComparator);
         Iterator<Map.Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
                 postFilterIterator,
                 entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
@@ -623,13 +625,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFilteredWithoutSorting(
-            TableReference tableRef, Iterator<Map.Entry<Cell, Value>> iterator, int batchHint) {
+            TableReference tableRef,
+            Iterator<Entry<Cell, Value>> iterator,
+            int batchHint,
+            Comparator<Cell> cellComparator) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
             Map<Cell, Value> raw = validateBatch(tableRef, batch);
             if (raw.isEmpty()) {
                 return Collections.emptyIterator();
             }
-            Map<Cell, Value> postFiltered = ImmutableMap.copyOf(getWithPostFilteringSync(tableRef, raw, x -> x));
+
+            SortedMap<Cell, Value> postFiltered =
+                    ImmutableSortedMap.copyOf(getWithPostFilteringSync(tableRef, raw, x -> x), cellComparator);
             return postFiltered.entrySet().iterator();
         }));
     }
