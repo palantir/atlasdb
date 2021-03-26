@@ -48,4 +48,3 @@ interface ResultOrThrowable {
                 .build();
     }
 }
-

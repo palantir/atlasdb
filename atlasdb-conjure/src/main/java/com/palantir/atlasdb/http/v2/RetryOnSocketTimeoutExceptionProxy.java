@@ -19,8 +19,6 @@ package com.palantir.atlasdb.http.v2;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.base.Throwables;
-import com.palantir.conjure.java.api.errors.QosException;
-import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -28,9 +26,7 @@ import java.net.SocketTimeoutException;
 import java.util.function.Supplier;
 
 /**
- * This proxy exists to support "fast failover" behaviour with no limit as to the number of attempts made; instead,
- * we use a time limit. This exists to support perpetual {@code 308} responses from servers, which may happen if
- * leader election is still taking place.
+ * This proxy exists to retry in case of a SocketTimeoutException (something that isn't retried natively by Dialogue).
  */
 public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocationHandler {
     private static final int MAX_NUM_RETRIES = 5;
@@ -50,9 +46,9 @@ public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocat
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        numRetries++;
         ResultOrThrowable attempt = singleInvocation(method, args);
         while ((numRetries < MAX_NUM_RETRIES) && !attempt.isSuccessful()) {
+            numRetries++;
             Throwable cause = attempt.throwable().get();
             ResultOrThrowable retriableExceptionCheck = isRetriable(cause);
             if (!retriableExceptionCheck.isSuccessful()) {
@@ -80,28 +76,21 @@ public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocat
         }
         InvocationTargetException exception = (InvocationTargetException) throwable;
         Throwable cause = exception.getCause();
-        if (!isCausedByRetryOther(cause)) {
+        if (!isCausedBySocketTimeoutException(cause)) {
             return ResultOrThrowable.failure(cause);
         }
         return ResultOrThrowable.success(null);
     }
 
     @VisibleForTesting
-    static boolean isCausedByRetryOther(Throwable throwable) {
+    static boolean isCausedBySocketTimeoutException(Throwable throwable) {
         Throwable cause = throwable;
         while (cause != null) {
-            if (cause instanceof QosException.RetryOther) {
-                return true;
-            }
             if (cause instanceof SocketTimeoutException) {
-                return true;
-            }
-            if (cause instanceof UnknownRemoteException && ((UnknownRemoteException) cause).getStatus() == 308) {
                 return true;
             }
             cause = cause.getCause();
         }
         return false;
     }
-
 }
