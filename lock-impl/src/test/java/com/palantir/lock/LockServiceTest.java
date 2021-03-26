@@ -15,6 +15,8 @@
  */
 package com.palantir.lock;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -30,7 +32,6 @@ import com.palantir.util.Mutables;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
@@ -558,8 +559,8 @@ public abstract class LockServiceTest {
         barrier.await();
         Thread.sleep(500);
         LockState state2 = server.getLockState(lock1);
-        Assert.assertEquals(state2.requesters().size(), 1);
-        Assert.assertEquals(Iterables.getOnlyElement(state2.requesters()).versionId(), Optional.of(100L));
+        assertThat(state2.requesters().size()).isEqualTo(2);
+        assertThat(Iterables.getOnlyElement(state2.requesters()).versionId()).hasValue(100L);
     }
 
     /** Tests lock responses */
