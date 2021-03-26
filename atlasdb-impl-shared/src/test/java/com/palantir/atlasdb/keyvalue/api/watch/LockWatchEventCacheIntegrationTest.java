@@ -584,17 +584,4 @@ public class LockWatchEventCacheIntegrationTest {
             return invalidatedLocks;
         }
     }
-
-    private static final class InvalidatedAllVisitor implements CommitUpdate.Visitor<Boolean> {
-
-        @Override
-        public Boolean invalidateAll() {
-            return true;
-        }
-
-        @Override
-        public Boolean invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-            return false;
-        }
-    }
 }
