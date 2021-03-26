@@ -27,8 +27,28 @@ runtime:
 
 server:
   applicationConnectors:
-    - type: http
+    - type: https
       port: 8421
+      keyStorePath: var/security/keyStore.jks
+      keyStorePassword: keystore
+      trustStorePath: var/security/trustStore.jks
+      validateCerts: false
+      supportedCipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+        - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384
+        - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256
+        - TLS_RSA_WITH_AES_128_CBC_SHA256
+        - TLS_RSA_WITH_AES_256_CBC_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+        - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+        - TLS_ECDH_RSA_WITH_AES_256_CBC_SHA
+        - TLS_ECDH_RSA_WITH_AES_128_CBC_SHA
+        - TLS_RSA_WITH_AES_256_CBC_SHA
+        - TLS_RSA_WITH_AES_128_CBC_SHA
+        - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
   adminConnectors:
     - type: http
       port: 8422

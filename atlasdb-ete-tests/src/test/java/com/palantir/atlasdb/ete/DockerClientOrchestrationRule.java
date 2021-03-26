@@ -42,10 +42,10 @@ import org.slf4j.LoggerFactory;
 public class DockerClientOrchestrationRule extends ExternalResource {
     private static final Logger log = LoggerFactory.getLogger(DockerClientOrchestrationRule.class);
 
-    public static final File TIMELOCK_CONFIG = new File("docker/conf/atlasdb-ete.timelock.cassandra.yml");
-    public static final File EMBEDDED_CONFIG = new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml");
+    public static final File TIMELOCK_CONFIG = new File("docker/conf/atlasdb-ete.timelock.dbkvs.yml");
+    public static final File EMBEDDED_CONFIG = new File("docker/conf/atlasdb-ete.no-leader.dbkvs.yml");
 
-    private static final String CONTAINER = "ete1";
+    private static final String CONTAINER = "ete1.palantir.pt";
     private static final Duration WAIT_TIMEOUT = Duration.standardMinutes(5);
     private static final int MAX_EXEC_TRIES = 10;
 
@@ -71,8 +71,8 @@ public class DockerClientOrchestrationRule extends ExternalResource {
         DockerMachine dockerMachine = createDockerMachine();
         dockerComposeRule = DockerComposeRule.builder()
                 .machine(dockerMachine)
-                .file("docker-compose.timelock-migration.cassandra.yml")
-                .waitingForService("cassandra", HealthChecks.toHaveAllPortsOpen())
+                .file("docker-compose.timelock.database.bound.postgres.yml")
+                .waitingForService("postgres", HealthChecks.toHaveAllPortsOpen())
                 .saveLogsTo(LogDirectory.circleAwareLogDirectory(TimeLockMigrationEteTest.class.getSimpleName()))
                 .addClusterWait(new ClusterWait(ClusterHealthCheck.nativeHealthChecks(), WAIT_TIMEOUT))
                 .build();

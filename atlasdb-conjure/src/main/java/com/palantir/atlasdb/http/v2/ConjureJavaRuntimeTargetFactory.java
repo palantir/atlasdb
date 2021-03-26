@@ -55,7 +55,11 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
     public <T> InstanceAndVersion<T> createProxy(
             Optional<TrustContext> trustContext, String uri, Class<T> type, AuxiliaryRemotingParameters parameters) {
         ClientOptions relevantOptions = ClientOptions.fromRemotingParameters(parameters);
-        ClientConfiguration clientConfiguration = relevantOptions.create(
+        ClientOptions relevantOptions2 = ImmutableClientOptions.builder()
+                .from(relevantOptions)
+                .connectTimeout(Duration.ofMinutes(1))
+                .build();
+        ClientConfiguration clientConfiguration = relevantOptions2.create(
                 ImmutableList.of(uri),
                 Optional.empty(),
                 trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")));

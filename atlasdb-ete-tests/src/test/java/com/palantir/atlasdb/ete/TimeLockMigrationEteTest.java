@@ -22,8 +22,11 @@ import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.timestamp.TimestampService;
 import java.io.File;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -35,6 +38,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.LoggerFactory;
 
 // We don't use EteSetup because we need much finer-grained control of the orchestration here, compared to the other
 // ETE tests where the general idea is "set up all the containers, and fire".
@@ -54,8 +58,8 @@ public class TimeLockMigrationEteTest {
     private static final Todo TODO_3 = ImmutableTodo.of("even more stuff to do");
 
     private static final int ETE_PORT = 3828;
-    private static final String ETE_CONTAINER = "ete1";
-    private static final String TIMELOCK_CONTAINER = "timelock";
+    private static final String ETE_CONTAINER = "ete1.palantir.pt";
+    private static final String TIMELOCK_CONTAINER = "timelock.palantir.pt";
     private static final int TIMELOCK_PORT = 8421;
     private static final String TEST_CLIENT = "atlasete";
 
@@ -178,20 +182,34 @@ public class TimeLockMigrationEteTest {
 
     private static Callable<Boolean> serversAreReady() {
         return () -> {
-            createEteClientFor(TodoResource.class).isHealthy();
+            try {
+                createEteClientFor(TodoResource.class).isHealthy();
+            } catch (Exception e) {
+                LoggerFactory.getLogger(TimeLockMigrationEteTest.class).warn(":O", e);
+            }
             return true;
         };
     }
 
     private static <T> T createEteClientFor(Class<T> clazz) {
-        String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
+        String uri = String.format("https://%s:%s", ETE_CONTAINER, ETE_PORT);
         return AtlasDbHttpClients.createProxy(
-                Optional.empty(), uri, clazz, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
+                Optional.of(SslSocketFactories.createTrustContext(
+                        SslConfiguration.of(
+                                Paths.get("var/security/trustStore.jks"),
+                                Paths.get("var/security/keyStore.jks"),
+                                "keystore"))),
+                uri, clazz, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 
     private static TimestampService createTimeLockTimestampClient() {
-        String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
+        String uri = String.format("https://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
         return AtlasDbHttpClients.createProxy(
-                Optional.empty(), uri, TimestampService.class, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
+                Optional.of(SslSocketFactories.createTrustContext(
+                        SslConfiguration.of(
+                                Paths.get("var/security/trustStore.jks"),
+                                Paths.get("var/security/keyStore.jks"),
+                                "keystore"))),
+                uri, TimestampService.class, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 }
