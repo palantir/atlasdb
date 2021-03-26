@@ -116,7 +116,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @Override
     public void removeTransactionStateFromCache(long startTimestamp) {
         timestampStateStore.remove(startTimestamp);
-        eventLog.retentionEvents(timestampStateStore.getEarliestLiveSequence());
+        retentionEvents();
     }
 
     @VisibleForTesting
@@ -144,9 +144,12 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
             timestampStateStore.clear();
         }
 
-        eventLog.retentionEvents(timestampStateStore.getEarliestLiveSequence());
-
+        retentionEvents();
         return cacheUpdate.getVersion();
+    }
+
+    private void retentionEvents() {
+        eventLog.retentionEvents(timestampStateStore.getEarliestLiveSequence());
     }
 
     private static void assertTrue(boolean condition, String message) {
