@@ -176,7 +176,7 @@ public final class AtlasDbDialogueServiceProvider {
         return AtlasDbHttpClients.createDialogueProxy(taggedMetricRegistry, type, channel);
     }
 
-    private <T> T wrapInProxy(Class<T> type, T service) {
+    private static <T> T wrapInProxy(Class<T> type, T service) {
         return RetryOnSocketTimeoutExceptionProxy.newProxyInstance(
                 type,
                 () -> FastFailoverProxy.newProxyInstance(type, () -> service));
