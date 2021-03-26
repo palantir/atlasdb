@@ -181,7 +181,7 @@ subprojects {
 afterEvaluate {
     configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
         if (!project.plugins.hasPlugin('com.palantir.external-publish-dist')) {
-            apply from: "$rootDir/gradle/publish-jars.gradle"
+            apply plugin: 'com.palantir.external-publish-jar'
         }
     }
 }
