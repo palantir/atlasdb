@@ -46,12 +46,20 @@ public class TimeLockMigrationEteTest {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Gradle DOCKER_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
 
+    public static final File TIMELOCK_CONFIG = new File("docker/conf/atlasdb-ete.timelock.cassandra.yml");
+    public static final File EMBEDDED_CONFIG = new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml");
+
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
     // Thus ensure the temporary folder is a subdirectory of the user's home directory
     private static final TemporaryFolder TEMPORARY_FOLDER =
             new TemporaryFolder(new File(System.getProperty("user.home")));
-    private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE =
-            new DockerClientOrchestrationRule(TEMPORARY_FOLDER);
+    private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE = new DockerClientOrchestrationRule(
+            ImmutableDockerClientConfiguration.builder()
+                    .initialConfigFile(EMBEDDED_CONFIG)
+                    .dockerComposeYmlFile(new File("docker-compose.timelock-migration.cassandra.yml"))
+                    .databaseServiceName("cassandra")
+                    .build(),
+            TEMPORARY_FOLDER);
 
     private static final SslConfiguration SSL_CONFIGURATION =
             SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
@@ -122,13 +130,13 @@ public class TimeLockMigrationEteTest {
     }
 
     private void upgradeAtlasClientToTimelock() {
-        CLIENT_ORCHESTRATION_RULE.updateClientConfig(DockerClientOrchestrationRule.TIMELOCK_CONFIG);
+        CLIENT_ORCHESTRATION_RULE.updateClientConfig(TIMELOCK_CONFIG);
         CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
         waitUntil(serversAreReady());
     }
 
     private void downgradeAtlasClientFromTimelockWithoutMigration() {
-        CLIENT_ORCHESTRATION_RULE.updateClientConfig(DockerClientOrchestrationRule.EMBEDDED_CONFIG);
+        CLIENT_ORCHESTRATION_RULE.updateClientConfig(EMBEDDED_CONFIG);
         CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
         waitForTransactionManagerCreationError();
     }
