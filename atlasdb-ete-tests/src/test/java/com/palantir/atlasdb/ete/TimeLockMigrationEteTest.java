@@ -172,7 +172,13 @@ public class TimeLockMigrationEteTest {
     private void downgradeAtlasClientFromTimelockWithoutMigration() {
         CLIENT_ORCHESTRATION_RULE.updateClientConfig(TEST_CONTEXT.eteConfigWithEmbedded());
         CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
-        waitForTransactionManagerCreationError();
+        if (TEST_CASE == TimeLockMigrationTestCase.CASSANDRA_PAXOS) {
+            // Doesn't work for Postgres because of extreme volume of logs produced in this way
+            waitForTransactionManagerCreationError();
+        } else {
+            // TODO (jkong): Make this better
+            waitUntil(serversAreReady());
+        }
     }
 
     private void assertNoLongerExposesEmbeddedTimestampService() {
