@@ -22,8 +22,12 @@ import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.timestamp.TimestampService;
 import java.io.File;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -48,6 +52,10 @@ public class TimeLockMigrationEteTest {
             new TemporaryFolder(new File(System.getProperty("user.home")));
     private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE =
             new DockerClientOrchestrationRule(TEMPORARY_FOLDER);
+
+    private static final SslConfiguration SSL_CONFIGURATION =
+            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    public static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
 
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Todo TODO_2 = ImmutableTodo.of("more stuff to do");
@@ -186,12 +194,13 @@ public class TimeLockMigrationEteTest {
     private static <T> T createEteClientFor(Class<T> clazz) {
         String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
         return AtlasDbHttpClients.createProxy(
-                Optional.empty(), uri, clazz, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
+                Optional.of(TRUST_CONTEXT), uri, clazz, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
         return AtlasDbHttpClients.createProxy(
-                Optional.empty(), uri, TimestampService.class, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
+                Optional.of(TRUST_CONTEXT), uri, TimestampService.class,
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 }

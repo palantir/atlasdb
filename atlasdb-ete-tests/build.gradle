@@ -57,7 +57,7 @@ task timeLockTest(type: Test) {
 
     // TODO (jkong): Re-enable migration tests once a new story for handling volumes-in-circle-2 is available.
     // See: https://discuss.circleci.com/t/mount-project-folder-using-docker-compose-and-circle-ci/22923
-    exclude '**/*TimeLockMigration*.class'
+    // exclude '**/*TimeLockMigration*.class'
 }
 
 task dbkvsTest(type: Test) {
