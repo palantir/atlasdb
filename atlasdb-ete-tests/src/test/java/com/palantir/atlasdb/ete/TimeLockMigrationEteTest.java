@@ -87,21 +87,13 @@ public class TimeLockMigrationEteTest {
         }
     }
 
-    public static final File CASSANDRA_TIMELOCK_CONFIG = new File("docker/conf/atlasdb-ete.timelock.cassandra.yml");
-
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
     // Thus ensure the temporary folder is a subdirectory of the user's home directory
     private static final TemporaryFolder TEMPORARY_FOLDER =
             new TemporaryFolder(new File(System.getProperty("user.home")));
-    private static final ImmutableDockerClientConfiguration CASSANDRA_DOCKER_CONFIG =
-            ImmutableDockerClientConfiguration.builder()
-                    .initialConfigFile(new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml"))
-                    .dockerComposeYmlFile(new File("docker-compose.timelock-migration.cassandra.yml"))
-                    .databaseServiceName("cassandra")
-                    .build();
-    private static final DockerClientOrchestrationRule CASSANDRA_CLIENT_ORCHESTRATION_RULE =
-            new DockerClientOrchestrationRule(CASSANDRA_DOCKER_CONFIG, TEMPORARY_FOLDER);
-    private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE = CASSANDRA_CLIENT_ORCHESTRATION_RULE;
+
+    private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE =
+            new DockerClientOrchestrationRule(TEST_CONTEXT.dockerClientConfiguration(), TEMPORARY_FOLDER);
 
     private static final SslConfiguration SSL_CONFIGURATION =
             SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
@@ -172,7 +164,7 @@ public class TimeLockMigrationEteTest {
     }
 
     private void upgradeAtlasClientToTimelock() {
-        CLIENT_ORCHESTRATION_RULE.updateClientConfig(CASSANDRA_TIMELOCK_CONFIG);
+        CLIENT_ORCHESTRATION_RULE.updateClientConfig(TEST_CONTEXT.eteConfigWithTimeLock());
         CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
         waitUntil(serversAreReady());
     }
