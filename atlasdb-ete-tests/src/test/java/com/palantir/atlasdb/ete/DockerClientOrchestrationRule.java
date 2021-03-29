@@ -150,7 +150,7 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     }
 
     @Value.Immutable
-    interface DockerClientConfiguration {
+    public interface DockerClientConfiguration {
         File dockerComposeYmlFile();
 
         File initialConfigFile();
