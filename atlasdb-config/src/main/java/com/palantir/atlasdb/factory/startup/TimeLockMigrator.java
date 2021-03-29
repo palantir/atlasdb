@@ -79,7 +79,8 @@ public class TimeLockMigrator extends AsyncInitializer {
             throw new AtlasDbDependencyException("Could not contact the TimeLock Server.", e);
         }
         long currentTimestamp = source.backupAndInvalidate();
-        log.info("Now fast forwarding the timestamp on TimeLock Server, possibly as part of a TimeLock migration."
+        log.info(
+                "Now fast forwarding the timestamp on TimeLock Server, possibly as part of a TimeLock migration."
                         + " If you are already using TimeLock, DON'T PANIC if this number is less than what you"
                         + " expect a current timestamp to be.",
                 SafeArg.of("fastForwardTimestamp", currentTimestamp));

@@ -16,7 +16,7 @@ services:
     environment:
       POSTGRES_PASSWORD: palantir
       POSTGRES_USER: palantir
-      POSTGRES_DB: atlas
+      POSTGRES_DB: atlasete
     ports:
       - "5432"
 
