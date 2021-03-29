@@ -12,6 +12,7 @@ services:
 
   postgres:
     image: postgres:9.6-alpine
+    mem_limit: 512m
     environment:
       POSTGRES_PASSWORD: palantir
       POSTGRES_USER: palantir
