@@ -24,7 +24,7 @@ services:
     command: [bash, -c, '
         dockerize -timeout 120s -wait tcp://cassandra:9160
         && service/bin/init.sh start
-        && tail -F var/log/atlasdb-ete-startup.log']
+        && tail -F var/log/startup.log']
     ports:
       - "3828"
     depends_on:

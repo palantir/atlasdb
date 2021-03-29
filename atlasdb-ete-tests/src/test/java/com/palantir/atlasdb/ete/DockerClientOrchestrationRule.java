@@ -109,7 +109,7 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     }
 
     public String getClientLogs() {
-        return dockerExecOnClient("cat", "var/log/atlasdb-ete-startup.log");
+        return dockerExecOnClient("cat", "var/log/startup.log");
     }
 
     private DockerMachine createDockerMachine() {
