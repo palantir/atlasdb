@@ -65,7 +65,7 @@ final class VersionedEventStore {
                 .collect(Collectors.toList());
 
         eventsToClear.forEach(entry -> {
-            eventMap.remove(entry.getKey(), entry.getValue());
+            eventMap.remove(entry.getKey());
             builder.addEvents(entry.getValue());
         });
 
