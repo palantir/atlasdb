@@ -27,7 +27,9 @@ CONTAINER_6=(':timelock-server:suiteTest')
 
 CONTAINER_7=(':timelock-server:stressTest')
 
-CONTAINER_8=('compileJava' 'compileTestJava')
+CONTAINER_8=(':atlasdb-ete-tests:timeLockMigrationTest')
+
+CONTAINER_9=('compileJava' 'compileTestJava')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}")
@@ -55,7 +57,7 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:-TraceClassUnloading"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 
 # External builds have a 16gb limit.
-if [ "$CIRCLE_NODE_INDEX" -eq "7" ]; then
+if [ "$CIRCLE_NODE_INDEX" -eq "9" ]; then
     export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 else
     BASE_GRADLE_ARGS+=" --parallel"
@@ -68,11 +70,12 @@ export CASSANDRA_HEAP_NEWSIZE=64m
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:check;;
     1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest -x :atlasdb-ete-tests:timeLockMigrationTest ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
     7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
-    8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
+    8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} ;;
+    9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
