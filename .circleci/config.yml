@@ -32,7 +32,7 @@ jobs:
           paths: [ . ]
 
   test:
-    parallelism: 9
+    parallelism: 10
     machine:
       image: circleci/classic:edge
     resource_class: xlarge
