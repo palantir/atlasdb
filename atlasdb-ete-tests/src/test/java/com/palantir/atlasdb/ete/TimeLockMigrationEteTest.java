@@ -163,6 +163,9 @@ public class TimeLockMigrationEteTest {
         downgradeAtlasClientFromTimelockWithoutMigration();
 
         assertCanNeitherReadNorWrite();
+
+        // Do this explicitly to avoid mountains of log spam
+        CLIENT_ORCHESTRATION_RULE.stopAtlasClient();
     }
 
     private void upgradeAtlasClientToTimelock() {

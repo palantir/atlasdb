@@ -105,12 +105,20 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     }
 
     public void restartAtlasClient() {
-        // Need nohup - otherwise our process is a child of our shell, and will be killed when we're done.
-        dockerExecOnClient("bash", "-c", "nohup service/bin/init.sh restart");
+        runInitShWithVerb("restart");
+    }
+
+    public void stopAtlasClient() {
+        runInitShWithVerb("stop");
     }
 
     public String getClientLogs() {
         return dockerExecOnClient("cat", "var/log/startup.log");
+    }
+
+    private void runInitShWithVerb(String verb) {
+        // Need nohup - otherwise our process is a child of our shell, and will be killed when we're done.
+        dockerExecOnClient("bash", "-c", "nohup service/bin/init.sh " + verb);
     }
 
     private DockerMachine createDockerMachine() {
