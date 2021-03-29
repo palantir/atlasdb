@@ -113,11 +113,6 @@ public class DockerClientOrchestrationRule extends ExternalResource {
         return dockerExecOnClient("cat", "var/log/startup.log");
     }
 
-    public void waitForServersToBeUp() {
-        new ClusterWait(ClusterHealthCheck.nativeHealthChecks(), WAIT_TIMEOUT)
-                .waitUntilReady(dockerComposeRule.containers());
-    }
-
     private DockerMachine createDockerMachine() {
         return DockerMachine.localMachine().withEnvironment(getEnvironment()).build();
     }

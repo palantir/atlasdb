@@ -17,6 +17,7 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.ete.DockerClientOrchestrationRule.DockerClientConfiguration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
@@ -33,6 +34,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.awaitility.Awaitility;
 import org.immutables.value.Value;
@@ -176,7 +178,10 @@ public class TimeLockMigrationEteTest {
             // Doesn't work for Postgres because of extreme volume of logs produced in this way
             waitForTransactionManagerCreationError();
         } else {
-            CLIENT_ORCHESTRATION_RULE.waitForServersToBeUp();
+            // TODO (jkong): Be better.
+            // Realistically, this is enough time for the server to start up, and we value the test signal here
+            // if we're going to be doing these migrations...
+            Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
         }
     }
 
