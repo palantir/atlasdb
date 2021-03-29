@@ -33,6 +33,7 @@ dependencies {
     testCompile project(':atlasdb-container-test-utils')
     testCompile project(':atlasdb-ete-test-utils')
     testCompile project(':flake-rule')
+    testCompileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
