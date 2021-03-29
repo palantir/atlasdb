@@ -176,8 +176,7 @@ public class TimeLockMigrationEteTest {
             // Doesn't work for Postgres because of extreme volume of logs produced in this way
             waitForTransactionManagerCreationError();
         } else {
-            // TODO (jkong): Make this better
-            waitUntil(serversAreReady());
+            CLIENT_ORCHESTRATION_RULE.waitForServersToBeUp();
         }
     }
 
