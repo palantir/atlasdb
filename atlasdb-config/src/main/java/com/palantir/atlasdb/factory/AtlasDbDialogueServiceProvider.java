@@ -86,7 +86,7 @@ public final class AtlasDbDialogueServiceProvider {
                 timeLockServerListConfig.map(
                         serverListConfig -> getServiceConfigurations(versionedAgent, serverListConfig));
         DialogueClients.ReloadingFactory reloadingFactory = decorateForFailoverServices(
-                baseFactory, timeLockRemoteConfigurations)
+                        baseFactory, timeLockRemoteConfigurations)
                 .withUserAgent(versionedAgent);
 
         return new AtlasDbDialogueServiceProvider(reloadingFactory, taggedMetricRegistry);
@@ -178,8 +178,7 @@ public final class AtlasDbDialogueServiceProvider {
 
     private static <T> T wrapInProxy(Class<T> type, T service) {
         return RetryOnSocketTimeoutExceptionProxy.newProxyInstance(
-                type,
-                () -> FastFailoverProxy.newProxyInstance(type, () -> service));
+                type, () -> FastFailoverProxy.newProxyInstance(type, () -> service));
     }
 
     private static ImmutableMap<String, RemoteServiceConfiguration> getServiceConfigurations(
