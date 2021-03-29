@@ -200,7 +200,9 @@ public class TimeLockMigrationEteTest {
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
         return AtlasDbHttpClients.createProxy(
-                Optional.of(TRUST_CONTEXT), uri, TimestampService.class,
+                Optional.of(TRUST_CONTEXT),
+                uri,
+                TimestampService.class,
                 TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 }
