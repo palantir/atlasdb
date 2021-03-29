@@ -57,12 +57,10 @@ task longTest(type: Test) {
 task timeLockTest(type: Test) {
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
     include '**/*TimeLock*.class'
-    exclude '**/*TimeLockMigration*.class'
-}
 
-task timeLockMigrationTest(type: Test) {
-    dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
-    include '**/*TimeLockMigration*.class'
+    // TODO (jkong): Re-enable migration tests once a new story for handling volumes-in-circle-2 is available.
+    // See: https://discuss.circleci.com/t/mount-project-folder-using-docker-compose-and-circle-ci/22923
+    // exclude '**/*TimeLockMigration*.class'
 }
 
 task dbkvsTest(type: Test) {
@@ -73,11 +71,7 @@ task dbkvsTest(type: Test) {
 test {
     dependsOn longTest, prepareForEteTests, timeLockTest, dbkvsTest
     exclude '**/MultiCassandraTestSuite.class'
-
     exclude '**/*TimeLock*.class'
-    // Technically covered by previous line, but explicitly avoiding in case of refactor
-    exclude '**/*TimeLockMigration*.class'
-
     exclude '**/*EteTest.class'
     exclude '**/DbKvsTestSuite.class'
 }
