@@ -20,7 +20,4 @@ import com.palantir.lock.v2.LeaderTime;
 
 public interface LeaderTimeGetter extends AutoCloseable {
     LeaderTime leaderTime();
-
-    @Override
-    void close();
 }

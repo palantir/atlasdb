@@ -23,22 +23,24 @@ import com.palantir.lock.watch.LockWatchEventCache;
 public class NamespacedCommitTimestampGetter implements CommitTimestampGetter {
     private final Namespace namespace;
     private final LockWatchEventCache cache;
-    private final MultiClientCommitTimestampGetter batcher;
+    private final ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher;
 
     public NamespacedCommitTimestampGetter(
-            LockWatchEventCache cache, Namespace namespace, MultiClientCommitTimestampGetter batcher) {
+            LockWatchEventCache cache,
+            Namespace namespace,
+            ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher) {
         this.namespace = namespace;
         this.cache = cache;
-        this.batcher = batcher;
+        this.referenceTrackingBatcher = referenceTrackingBatcher;
     }
 
     @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return batcher.getCommitTimestamp(namespace, startTs, commitLocksToken, cache);
+        return referenceTrackingBatcher.getDelegate().getCommitTimestamp(namespace, startTs, commitLocksToken, cache);
     }
 
     @Override
-    public void close() {
-        batcher.close();
+    public void close() throws Exception {
+        referenceTrackingBatcher.close();
     }
 }

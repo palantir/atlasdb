@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ReferenceTrackingWrapper<T extends AutoCloseable> implements AutoCloseable {
     private final AtomicInteger referenceCount;
+
     private final T delegate;
 
     public ReferenceTrackingWrapper(T delegate) {
@@ -29,6 +30,10 @@ public class ReferenceTrackingWrapper<T extends AutoCloseable> implements AutoCl
 
     public void recordReference() {
         referenceCount.incrementAndGet();
+    }
+
+    public T getDelegate() {
+        return delegate;
     }
 
     @Override

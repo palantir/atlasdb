@@ -21,7 +21,4 @@ import java.util.List;
 
 public interface IdentifiedAtlasDbTransactionStarter extends AutoCloseable {
     List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count);
-
-    @Override
-    void close();
 }

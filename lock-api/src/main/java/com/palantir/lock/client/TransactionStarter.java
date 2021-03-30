@@ -75,7 +75,7 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     @Override
-    public void close() {
+    public void close() throws Exception {
         batchingTransactionStarter.close();
     }
 }

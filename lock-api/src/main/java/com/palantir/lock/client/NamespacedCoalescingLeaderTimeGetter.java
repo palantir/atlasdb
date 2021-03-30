@@ -27,21 +27,22 @@ import com.palantir.lock.v2.LeaderTime;
  * single namespace.
  */
 public class NamespacedCoalescingLeaderTimeGetter implements LeaderTimeGetter {
-    private final LeaderTimeCoalescingBatcher batcher;
+    private final ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher> referenceTrackingBatcher;
     private final Namespace namespace;
 
-    public NamespacedCoalescingLeaderTimeGetter(String namespace, LeaderTimeCoalescingBatcher batcher) {
+    public NamespacedCoalescingLeaderTimeGetter(
+            String namespace, ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher> referenceTrackingBatcher) {
         this.namespace = Namespace.of(namespace);
-        this.batcher = batcher;
+        this.referenceTrackingBatcher = referenceTrackingBatcher;
     }
 
     @Override
     public LeaderTime leaderTime() {
-        return batcher.apply(namespace);
+        return referenceTrackingBatcher.getDelegate().apply(namespace);
     }
 
     @Override
-    public void close() {
-        batcher.close();
+    public void close() throws Exception {
+        referenceTrackingBatcher.close();
     }
 }

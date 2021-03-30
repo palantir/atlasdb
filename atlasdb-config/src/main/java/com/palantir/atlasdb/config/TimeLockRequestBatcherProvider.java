@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.config;
 
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
+import com.palantir.lock.client.ReferenceTrackingWrapper;
 import java.util.function.Supplier;
 
-public interface TimeLockRequestBatcherProvider<T> {
-    T getBatcher(Supplier<InternalMultiClientConjureTimelockService> multiClientConjureTimelockService);
+public interface TimeLockRequestBatcherProvider<T extends AutoCloseable> {
+    ReferenceTrackingWrapper<T> getBatcher(
+            Supplier<InternalMultiClientConjureTimelockService> multiClientConjureTimelockService);
 }

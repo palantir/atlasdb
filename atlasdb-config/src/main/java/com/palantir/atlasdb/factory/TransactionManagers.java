@@ -164,6 +164,7 @@ import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.ProfilingTimelockService;
+import com.palantir.lock.client.ReferenceTrackingWrapper;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.RequestBatchersFactory;
@@ -1267,7 +1268,7 @@ public abstract class TransactionManagers {
             return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
         }
 
-        LeaderTimeCoalescingBatcher batcher =
+        ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher> batcher =
                 timelockRequestBatcherProviders.get().leaderTime().getBatcher(multiClientTimelockServiceSupplier);
         return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, batcher);
     }

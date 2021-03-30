@@ -52,7 +52,7 @@ public final class RequestBatchersFactory {
     }
 
     public IdentifiedAtlasDbTransactionStarter createBatchingTransactionStarter(LockLeaseService lockLeaseService) {
-        Optional<MultiClientTransactionStarter> transactionStarter =
+        Optional<ReferenceTrackingWrapper<MultiClientTransactionStarter>> transactionStarter =
                 maybeRequestBatchers.map(MultiClientRequestBatchers::transactionStarter);
         if (!transactionStarter.isPresent()) {
             return BatchingIdentifiedAtlasDbTransactionStarter.create(
@@ -66,7 +66,7 @@ public final class RequestBatchersFactory {
     }
 
     public CommitTimestampGetter createBatchingCommitTimestampGetter(LockLeaseService lockLeaseService) {
-        Optional<MultiClientCommitTimestampGetter> commitTimestampGetter =
+        Optional<ReferenceTrackingWrapper<MultiClientCommitTimestampGetter>> commitTimestampGetter =
                 maybeRequestBatchers.map(MultiClientRequestBatchers::commitTimestampGetter);
         if (!commitTimestampGetter.isPresent()) {
             return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
@@ -77,9 +77,9 @@ public final class RequestBatchersFactory {
     @Value.Immutable
     public interface MultiClientRequestBatchers {
         @Value.Parameter
-        MultiClientCommitTimestampGetter commitTimestampGetter();
+        ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> commitTimestampGetter();
 
         @Value.Parameter
-        MultiClientTransactionStarter transactionStarter();
+        ReferenceTrackingWrapper<MultiClientTransactionStarter> transactionStarter();
     }
 }

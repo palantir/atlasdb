@@ -64,7 +64,7 @@ public class TransactionStarterTest {
     }
 
     @After
-    public void after() {
+    public void after() throws Exception {
         transactionStarter.close();
     }
 
