@@ -32,13 +32,13 @@ final class LockWatchEventLog {
     private final VersionedEventStore eventStore;
     private Optional<LockWatchVersion> latestVersion = Optional.empty();
 
-    static LockWatchEventLog create(int maxEvents) {
-        return new LockWatchEventLog(ClientLockWatchSnapshot.create(), maxEvents);
+    static LockWatchEventLog create(int minEvents, int maxEvents) {
+        return new LockWatchEventLog(ClientLockWatchSnapshot.create(), minEvents, maxEvents);
     }
 
-    private LockWatchEventLog(ClientLockWatchSnapshot snapshot, int maxEvents) {
+    private LockWatchEventLog(ClientLockWatchSnapshot snapshot, int minEvents, int maxEvents) {
         this.snapshot = snapshot;
-        this.eventStore = new VersionedEventStore(maxEvents);
+        this.eventStore = new VersionedEventStore(minEvents, maxEvents);
     }
 
     CacheUpdate processUpdate(LockWatchStateUpdate update) {

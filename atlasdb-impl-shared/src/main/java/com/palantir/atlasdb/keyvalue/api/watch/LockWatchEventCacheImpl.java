@@ -36,16 +36,16 @@ import java.util.Set;
  * in concurrency issues and inconsistency in the cache state.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
-    // This value should be the same as in TimeLock's LockEventLogImpl. Note that this is not a hard limit - we
-    // instead guarantee that we will not delete events unless they exceed this count.
-    private static final int MAX_EVENTS = 1000;
+    // The minimum number of events should be the same as Timelocks' LockEventLogImpl.
+    private static final int MIN_EVENTS = 1000;
+    private static final int MAX_EVENTS = 10_000;
 
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
 
     public static LockWatchEventCache create(MetricsManager metricsManager) {
         return ResilientLockWatchEventCache.newProxyInstance(
-                new LockWatchEventCacheImpl(LockWatchEventLog.create(MAX_EVENTS)),
+                new LockWatchEventCacheImpl(LockWatchEventLog.create(MIN_EVENTS, MAX_EVENTS)),
                 NoOpLockWatchEventCache.create(),
                 metricsManager);
     }

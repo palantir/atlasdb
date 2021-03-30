@@ -40,7 +40,7 @@ public final class VersionedEventStoreTest {
 
     @Before
     public void before() {
-        eventStore = new VersionedEventStore(2);
+        eventStore = new VersionedEventStore(0, 2);
     }
 
     @Test
