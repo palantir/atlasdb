@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Increase AtlasDB's dependency on Rescue to 4.137.0.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5352
