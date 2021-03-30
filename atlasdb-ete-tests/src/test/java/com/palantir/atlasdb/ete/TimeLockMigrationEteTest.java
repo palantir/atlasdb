@@ -51,7 +51,7 @@ public class TimeLockMigrationEteTest {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Gradle DOCKER_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
 
-    private static final TimeLockMigrationTestCase TEST_CASE = TimeLockMigrationTestCase.POSTGRES_DB_TIMELOCK;
+    private static final TimeLockMigrationTestCase TEST_CASE = TimeLockMigrationTestCase.CASSANDRA_PAXOS;
     private static final TimeLockMigrationTestContext TEST_CONTEXT;
 
     static {
