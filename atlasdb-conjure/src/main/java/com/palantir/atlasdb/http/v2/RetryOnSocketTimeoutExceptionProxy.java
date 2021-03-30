@@ -32,7 +32,7 @@ public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocat
     private static final int MAX_NUM_RETRIES = 5;
     private final Supplier<T> delegate;
 
-    private static int numRetries = 0;
+    private int numRetries = 0;
 
     private RetryOnSocketTimeoutExceptionProxy(Supplier<T> delegate) {
         this.delegate = delegate;
@@ -47,6 +47,7 @@ public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocat
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         ResultOrThrowable attempt = singleInvocation(method, args);
+        numRetries = 0;
         while ((numRetries < MAX_NUM_RETRIES) && !attempt.isSuccessful()) {
             numRetries++;
             Throwable cause = attempt.throwable().get();
@@ -56,7 +57,6 @@ public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocat
             }
             attempt = singleInvocation(method, args);
         }
-        numRetries = 0;
         if (attempt.isSuccessful()) {
             return attempt.result().orElse(null);
         }

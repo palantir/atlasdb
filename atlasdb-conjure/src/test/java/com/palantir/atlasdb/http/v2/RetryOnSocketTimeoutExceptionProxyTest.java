@@ -121,6 +121,33 @@ public class RetryOnSocketTimeoutExceptionProxyTest {
         assertThatThrownBy(() -> proxy.apply(1,2)).isEqualTo(socketException);
     }
 
+    @Test
+    public void twoProxies(){
+        BinaryOperator<Integer> binaryOperator2 = mock(BinaryOperator.class);
+        BinaryOperator<Integer> proxy2 = RetryOnSocketTimeoutExceptionProxy.newProxyInstance(BinaryOperator.class,
+                () -> binaryOperator2);
+
+        RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
+
+        when(binaryOperator.apply(1,2))
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenReturn(3);
+
+        when(binaryOperator2.apply(3,4))
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenReturn(5);
+
+        assertThat(proxy.apply(1,2)).isEqualTo(3);
+        assertThat(proxy2.apply(3,4)).isEqualTo(5);
+    }
+
 
     private void createProxy() {
     proxy = RetryOnSocketTimeoutExceptionProxy.newProxyInstance(BinaryOperator.class, () -> binaryOperator);
