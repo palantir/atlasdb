@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -63,15 +64,25 @@ final class VersionedEventStore {
             return LockWatchEvents.builder().build();
         }
 
+        // Guarantees that we remove some events while still also potentially performing further retention
         if (eventMap.size() > maxEvents) {
-            return retentionEvents(eventMap.size() - maxEvents, Long.MAX_VALUE);
+            List<LockWatchEvent> overMaxSizeEvents = retentionEvents(eventMap.size() - maxEvents, Long.MAX_VALUE);
+            List<LockWatchEvent> restOfEvents =
+                    retentionEvents(eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE));
+            return ImmutableLockWatchEvents.builder()
+                    .addAllEvents(overMaxSizeEvents)
+                    .addAllEvents(restOfEvents)
+                    .build();
         } else {
-            return retentionEvents(eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE));
+            return ImmutableLockWatchEvents.builder()
+                    .addAllEvents(
+                            retentionEvents(eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE)))
+                    .build();
         }
     }
 
-    private LockWatchEvents retentionEvents(int numToRetention, long maxVersion) {
-        ImmutableLockWatchEvents.Builder builder = LockWatchEvents.builder();
+    private List<LockWatchEvent> retentionEvents(int numToRetention, long maxVersion) {
+        List<LockWatchEvent> events = new ArrayList<>(numToRetention);
         List<Map.Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
                 .limit(numToRetention)
                 .filter(entry -> entry.getKey() < maxVersion)
@@ -79,10 +90,10 @@ final class VersionedEventStore {
 
         eventsToClear.forEach(entry -> {
             eventMap.remove(entry.getKey());
-            builder.addEvents(entry.getValue());
+            events.add(entry.getValue());
         });
 
-        return builder.build();
+        return events;
     }
 
     boolean containsEntryLessThanOrEqualTo(long key) {
