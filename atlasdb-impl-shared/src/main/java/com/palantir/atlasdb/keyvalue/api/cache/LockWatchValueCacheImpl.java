@@ -21,7 +21,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchEvent.Visitor;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.UnlockEvent;
 import io.vavr.collection.HashSet;
@@ -39,31 +38,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
 
     @Override
     public void applyEvents(List<LockWatchEvent> events) {
-        events.forEach(event -> event.accept(new Visitor<Object>() {
-            @Override
-            public Object visit(LockEvent lockEvent) {
-                lockEvent.lockDescriptors().stream()
-                        .map(LockWatchValueCacheImpl.this::extractTableAndCell)
-                        .forEach(valueStore::putLockedCell);
-                return null;
-            }
-
-            @Override
-            public Object visit(UnlockEvent unlockEvent) {
-                unlockEvent.lockDescriptors().stream()
-                        .map(LockWatchValueCacheImpl.this::extractTableAndCell)
-                        .forEach(valueStore::clearLockedCell);
-                return null;
-            }
-
-            @Override
-            public Object visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-                lockWatchCreatedEvent.references().stream()
-                        .map(LockWatchValueCacheImpl.this::extractTableReference)
-                        .forEach(tableReference -> watchedTables.with(tables -> tables.add(tableReference)));
-                return null;
-            }
-        }));
+        events.forEach(event -> event.accept(new LockWatchVisitor()));
     }
 
     @Override
@@ -80,5 +55,34 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private TableAndCell extractTableAndCell(LockDescriptor descriptor) {
         // todo(jshah): implement
         return null;
+    }
+
+    private final class LockWatchVisitor implements LockWatchEvent.Visitor<Void> {
+        @Override
+        public Void visit(LockEvent lockEvent) {
+            lockEvent.lockDescriptors().stream()
+                    .map(LockWatchValueCacheImpl.this::extractTableAndCell)
+                    .forEach(valueStore::putLockedCell);
+            return null;
+        }
+
+        @Override
+        public Void visit(UnlockEvent unlockEvent) {
+            unlockEvent.lockDescriptors().stream()
+                    .map(LockWatchValueCacheImpl.this::extractTableAndCell)
+                    .forEach(valueStore::clearLockedCell);
+            return null;
+        }
+
+        @Override
+        public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            lockWatchCreatedEvent.references().stream()
+                    .map(LockWatchValueCacheImpl.this::extractTableReference)
+                    .forEach(tableReference -> watchedTables.with(tables -> tables.add(tableReference)));
+            lockWatchCreatedEvent.lockDescriptors().stream()
+                    .map(LockWatchValueCacheImpl.this::extractTableAndCell)
+                    .forEach(valueStore::putLockedCell);
+            return null;
+        }
     }
 }
