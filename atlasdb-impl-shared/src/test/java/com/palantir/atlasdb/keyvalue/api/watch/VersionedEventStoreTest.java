@@ -40,7 +40,7 @@ public final class VersionedEventStoreTest {
 
     @Before
     public void before() {
-        eventStore = new VersionedEventStore(0, 2);
+        eventStore = new VersionedEventStore(2, 20);
     }
 
     @Test
@@ -74,6 +74,20 @@ public final class VersionedEventStoreTest {
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
         assertThat(eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), 3L))
                 .containsExactly(EVENT_1, EVENT_2, EVENT_3);
+    }
+
+    @Test
+    public void retentionEventsClearsEventsOverMaxBound() {
+        eventStore = new VersionedEventStore(1, 3);
+        eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        assertThat(eventStore.retentionEvents(Optional.of(-1L)).events().stream()
+                        .map(LockWatchEvent::sequence))
+                .as("First event retentioned anyway as it exceeds maximum size")
+                .containsExactly(1L);
+        assertThat(eventStore.retentionEvents(Optional.empty()).events().stream()
+                        .map(LockWatchEvent::sequence))
+                .as("Two more events retentioned as they exceed the minimum size")
+                .containsExactly(2L, 3L);
     }
 
     private LockWatchEvents makeEvents(LockWatchEvent... events) {
