@@ -76,10 +76,11 @@ public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocat
         }
         InvocationTargetException exception = (InvocationTargetException) throwable;
         Throwable cause = exception.getCause();
-        if (!isCausedBySocketTimeoutException(cause)) {
+        if (isCausedBySocketTimeoutException(cause)) {
+            return ResultOrThrowable.success(null);
+        } else {
             return ResultOrThrowable.failure(cause);
         }
-        return ResultOrThrowable.success(null);
     }
 
     @VisibleForTesting
