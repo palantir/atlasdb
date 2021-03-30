@@ -56,6 +56,7 @@ public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocat
             }
             attempt = singleInvocation(method, args);
         }
+        numRetries = 0;
         if (attempt.isSuccessful()) {
             return attempt.result().orElse(null);
         }
