@@ -25,13 +25,14 @@ import org.junit.Test;
 public class RetryOnSocketTimeoutExceptionProxyTest {
 
     @Test
-    public void isSocketTimeoutException(){
-        assertThat(RetryOnSocketTimeoutExceptionProxy.isCausedBySocketTimeoutException(new SocketTimeoutException())).isTrue();
+    public void isSocketTimeoutException() {
+        assertThat(RetryOnSocketTimeoutExceptionProxy.isCausedBySocketTimeoutException(new SocketTimeoutException()))
+                .isTrue();
     }
 
     @Test
-    public void isNotSocketTimeoutException(){
-        assertThat(RetryOnSocketTimeoutExceptionProxy.isCausedBySocketTimeoutException(new SocketException())).isFalse();
+    public void isNotSocketTimeoutException() {
+        assertThat(RetryOnSocketTimeoutExceptionProxy.isCausedBySocketTimeoutException(new SocketException()))
+                .isFalse();
     }
-
 }
