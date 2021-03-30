@@ -94,7 +94,7 @@ recommendedProductDependencies {
     productDependency {
         productGroup = 'com.palantir.rescue'
         productName = 'rescue'
-        minimumVersion = '4.4.0'
+        minimumVersion = '4.137.0'
         maximumVersion = '4.x.x'
     }
 
