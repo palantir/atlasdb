@@ -147,10 +147,3 @@ workflows:
           filters:
             branches:
               ignore: [develop]
-      - deploy:
-          requires: [build, test]
-          filters:
-            branches:
-              only: develop
-            tags:
-              only: /.*/
