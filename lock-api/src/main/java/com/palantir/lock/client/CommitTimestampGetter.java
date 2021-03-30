@@ -20,4 +20,7 @@ import com.palantir.lock.v2.LockToken;
 
 public interface CommitTimestampGetter extends AutoCloseable {
     long getCommitTimestamp(long startTs, LockToken commitLocksToken);
+
+    @Override
+    void close();
 }

@@ -46,7 +46,7 @@ public class NamespacedIdentifiedTransactionStarter implements IdentifiedAtlasDb
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         referenceTrackingBatcher.close();
     }
 }

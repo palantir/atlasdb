@@ -58,9 +58,11 @@ public final class RequestBatchersFactory {
             return BatchingIdentifiedAtlasDbTransactionStarter.create(
                     lockLeaseService, startTransactionsLockWatchEventCache);
         }
+        ReferenceTrackingWrapper<MultiClientTransactionStarter> referenceTrackingBatcher = transactionStarter.get();
+        referenceTrackingBatcher.recordReference();
         return new NamespacedIdentifiedTransactionStarter(
                 namespace,
-                transactionStarter.get(),
+                referenceTrackingBatcher,
                 startTransactionsLockWatchEventCache,
                 new LockCleanupService(lockLeaseService));
     }
@@ -71,7 +73,10 @@ public final class RequestBatchersFactory {
         if (!commitTimestampGetter.isPresent()) {
             return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         }
-        return new NamespacedCommitTimestampGetter(lockWatchEventCache, namespace, commitTimestampGetter.get());
+        ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher =
+                commitTimestampGetter.get();
+        referenceTrackingBatcher.recordReference();
+        return new NamespacedCommitTimestampGetter(lockWatchEventCache, namespace, referenceTrackingBatcher);
     }
 
     @Value.Immutable

@@ -40,6 +40,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
     private final CommitTimestampGetter commitTimestampGetter;
+    private final LeaderTimeGetter leaderTimeGetter;
 
     private RemoteTimelockServiceAdapter(
             NamespacedTimelockRpcClient rpcClient,
@@ -50,6 +51,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, batcherFactory);
         this.commitTimestampGetter = batcherFactory.createBatchingCommitTimestampGetter(lockLeaseService);
+        this.leaderTimeGetter = leaderTimeGetter;
         this.conjureTimelockService = conjureTimelockService;
     }
 
@@ -137,11 +139,8 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     @Override
     public void close() {
-        try {
-            transactionStarter.close();
-            commitTimestampGetter.close();
-        } catch (Exception e) {
-            // Ignore
-        }
+        transactionStarter.close();
+        commitTimestampGetter.close();
+        leaderTimeGetter.close();
     }
 }

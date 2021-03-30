@@ -52,8 +52,8 @@ public class ReferenceTrackingWrapperTest {
         IntStream.range(0, referenceCount).forEach(_ind -> referenceTrackingWrapper.recordReference());
 
         ExecutorService executor = Executors.newFixedThreadPool(50);
-        List<Future<Void>> futures = IntStream.range(0, referenceCount)
-                .mapToObj(temp -> executor.submit(() -> closeUnchecked(referenceTrackingWrapper)))
+        List<Future<?>> futures = IntStream.range(0, referenceCount)
+                .mapToObj(temp -> executor.submit(referenceTrackingWrapper::close))
                 .collect(Collectors.toList());
         futures.forEach(Futures::getUnchecked);
         verify(closeableDelegate).close();
@@ -62,14 +62,6 @@ public class ReferenceTrackingWrapperTest {
     private void recordReferencesAndClose(int referenceCount, int closingCount) {
         ReferenceTrackingWrapper referenceTrackingWrapper = new ReferenceTrackingWrapper(closeableDelegate);
         IntStream.range(0, referenceCount).forEach(_ind -> referenceTrackingWrapper.recordReference());
-        IntStream.range(0, closingCount).forEach(_ind -> closeUnchecked(referenceTrackingWrapper));
-
-    private Void closeUnchecked(ReferenceTrackingWrapper<?> referenceTrackingWrapper) {
-        try {
-            referenceTrackingWrapper.close();
-        } catch (Exception e) {
-            // Ignore
-        }
-        return null;
+        IntStream.range(0, closingCount).forEach(_ind -> referenceTrackingWrapper.close());
     }
 }

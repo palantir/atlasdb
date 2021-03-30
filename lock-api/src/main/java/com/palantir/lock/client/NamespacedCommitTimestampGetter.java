@@ -40,7 +40,7 @@ public class NamespacedCommitTimestampGetter implements CommitTimestampGetter {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         referenceTrackingBatcher.close();
     }
 }

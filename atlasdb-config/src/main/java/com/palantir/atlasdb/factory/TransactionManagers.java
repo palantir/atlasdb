@@ -1268,9 +1268,10 @@ public abstract class TransactionManagers {
             return new LegacyLeaderTimeGetter(namespacedConjureTimelockService);
         }
 
-        ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher> batcher =
+        ReferenceTrackingWrapper<LeaderTimeCoalescingBatcher> referenceTrackingBatcher =
                 timelockRequestBatcherProviders.get().leaderTime().getBatcher(multiClientTimelockServiceSupplier);
-        return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, batcher);
+        referenceTrackingBatcher.recordReference();
+        return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, referenceTrackingBatcher);
     }
 
     private static Supplier<InternalMultiClientConjureTimelockService> getMultiClientTimelockServiceSupplier(

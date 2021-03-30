@@ -42,7 +42,7 @@ public class NamespacedCoalescingLeaderTimeGetter implements LeaderTimeGetter {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         referenceTrackingBatcher.close();
     }
 }
