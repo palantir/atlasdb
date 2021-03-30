@@ -69,12 +69,5 @@ public class ReferenceTrackingWrapperTest {
     private void recordReferencesAndClose(int referenceCount, int closingCount) {
         ReferenceTrackingWrapper referenceTrackingWrapper = new ReferenceTrackingWrapper(closeableDelegate);
         IntStream.range(0, referenceCount).forEach(_ind -> referenceTrackingWrapper.recordReference());
-        IntStream.range(0, closingCount).forEach(_ind -> {
-            try {
-                referenceTrackingWrapper.close();
-            } catch (Exception e) {
-                // Ignore
-            }
-        });
-    }
+        IntStream.range(0, closingCount).forEach(_ind -> closeUnchecked(referenceTrackingWrapper));
 }
