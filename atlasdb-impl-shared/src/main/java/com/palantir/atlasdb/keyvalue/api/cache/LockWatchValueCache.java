@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.lock.watch.LockWatchEvent;
 import java.util.List;

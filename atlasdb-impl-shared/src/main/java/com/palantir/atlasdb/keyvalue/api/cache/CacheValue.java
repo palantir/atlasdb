@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.watch.ImmutableCacheValue;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface TableAndCell {
-    TableReference table();
+public interface CacheValue {
+    byte[] value();
 
-    Cell cell();
-
-    static TableAndCell of(TableReference table, Cell cell) {
-        return ImmutableTableAndCell.builder().table(table).cell(cell).build();
+    static CacheValue of(byte[] value) {
+        return ImmutableCacheValue.builder().value(value).build();
     }
 }

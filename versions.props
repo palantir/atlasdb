@@ -67,3 +67,4 @@ org.wildfly.common:wildfly-common = 1.5.4.Final
 # dependency-upgrader:OFF
 # Blocked on Java 11
 com.github.ben-manes.caffeine:caffeine = 2.9.0
+io.vavr:* = 0.10.3
