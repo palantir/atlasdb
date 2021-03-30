@@ -17,12 +17,25 @@
 package com.palantir.atlasdb.http.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.function.BinaryOperator;
+import org.junit.Before;
 import org.junit.Test;
 
 public class RetryOnSocketTimeoutExceptionProxyTest {
+
+    private final BinaryOperator<Integer> binaryOperator = mock(BinaryOperator.class);
+    private BinaryOperator<Integer> proxy;
+
+    @Before
+    public void setUp(){
+        createProxy();
+    }
 
     @Test
     public void isSocketTimeoutException() {
@@ -35,4 +48,81 @@ public class RetryOnSocketTimeoutExceptionProxyTest {
         assertThat(RetryOnSocketTimeoutExceptionProxy.isCausedBySocketTimeoutException(new SocketException()))
                 .isFalse();
     }
+
+    @Test
+    public void noFailures(){
+        when(binaryOperator.apply(1,2)).thenReturn(3);
+        assertThat(proxy.apply(1,2)).isEqualTo(3);
+    }
+
+    @Test
+    public void oneFailure(){
+        RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
+        when(binaryOperator.apply(1,2))
+                .thenThrow(socketTimeoutException)
+                .thenReturn(3);
+        assertThat(proxy.apply(1,2)).isEqualTo(3);
+    }
+
+    @Test
+    public void twoFailures(){
+        RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
+        when(binaryOperator.apply(1,2))
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenReturn(3);
+        assertThat(proxy.apply(1,2)).isEqualTo(3);
+    }
+
+    @Test
+    public void fourFailures(){
+        RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
+        when(binaryOperator.apply(1,2))
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenReturn(3);
+        assertThat(proxy.apply(1,2)).isEqualTo(3);
+    }
+
+    @Test
+    public void sixFailures(){
+        RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
+        when(binaryOperator.apply(1,2))
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketTimeoutException)
+                .thenReturn(3);
+
+        assertThatThrownBy(() -> proxy.apply(1,2)).isEqualTo(socketTimeoutException);
+    }
+
+    @Test
+    public void differentFailure(){
+        RuntimeException socketException = new RuntimeException(new SocketException());
+        when(binaryOperator.apply(1,2))
+                .thenThrow(socketException)
+                .thenReturn(3);
+        assertThatThrownBy(() -> proxy.apply(1,2)).isEqualTo(socketException);
+    }
+
+    @Test
+    public void retryThenDifferentFailure(){
+        RuntimeException socketTimeoutException = new RuntimeException(new SocketTimeoutException());
+        RuntimeException socketException = new RuntimeException(new SocketException());
+        when(binaryOperator.apply(1,2))
+                .thenThrow(socketTimeoutException)
+                .thenThrow(socketException)
+                .thenReturn(3);
+        assertThatThrownBy(() -> proxy.apply(1,2)).isEqualTo(socketException);
+    }
+
+
+    private void createProxy() {
+    proxy = RetryOnSocketTimeoutExceptionProxy.newProxyInstance(BinaryOperator.class, () -> binaryOperator);
+}
 }
