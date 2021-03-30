@@ -48,7 +48,7 @@ public class ReferenceTrackingWrapperTest {
     @Test
     public void closeWorksWithConcurrentCloseRequests() throws Exception {
         int referenceCount = 999;
-        ReferenceTrackingWrapper referenceTrackingWrapper = new ReferenceTrackingWrapper(closeableDelegate);
+        ReferenceTrackingWrapper<?> referenceTrackingWrapper = new ReferenceTrackingWrapper<>(closeableDelegate);
         IntStream.range(0, referenceCount).forEach(_ind -> referenceTrackingWrapper.recordReference());
 
         ExecutorService executor = Executors.newFixedThreadPool(50);
