@@ -57,11 +57,12 @@ public class ReferenceTrackingWrapperTest {
                     try {
                         referenceTrackingWrapper.close();
                     } catch (Exception e) {
+                        // Ignore
                     }
                     return null;
                 }))
                 .collect(Collectors.toList());
-        futures.stream().forEach(Futures::getUnchecked);
+        futures.forEach(Futures::getUnchecked);
         verify(closeableDelegate).close();
     }
 
@@ -72,6 +73,7 @@ public class ReferenceTrackingWrapperTest {
             try {
                 referenceTrackingWrapper.close();
             } catch (Exception e) {
+                // Ignore
             }
         });
     }
