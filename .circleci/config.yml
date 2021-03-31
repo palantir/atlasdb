@@ -126,12 +126,7 @@ jobs:
             # hack - notion of "owners" isn't supported in Circle 2
             if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
               git status
-              if [[ $(git describe --tags --always --first-parent) ~= .*-[0-9]*-g.* ]]; then
-                # Publish: this is a snapshot which we need
-                ./gradlew --profile --stacktrace --continue publish;
-              else
-                echo "Won't publish develop because it equals a release tag that should be published by that tag";
-              fi
+              ./gradlew --profile --stacktrace --continue publish
             fi
 
 workflows:
