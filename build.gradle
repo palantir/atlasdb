@@ -45,13 +45,13 @@ version = System.env.CIRCLE_TAG ?: sanitizeVersion()
 description = 'Transactional distributed database layer'
 
 def sanitizeVersion() {
-    def lastTag = "git describe --tags --always --first-parent".execute().text.trim()
     def isClean = "git status --porcelain".execute().text.isEmpty()
+    def pluginReportedVersion = gitVersion()
 
-    if (isClean) {
-        return lastTag
+    if (isClean && pluginReportedVersion.endsWith(".dirty")) {
+        return pluginReportedVersion.dropRight(".dirty".length())
     }
-    return lastTag + ".dirty"
+    return pluginReportedVersion
 }
 
 task printLastVersion {
