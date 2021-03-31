@@ -41,7 +41,7 @@ apply plugin: 'com.palantir.external-publish'
 apply from: 'gradle/versions.gradle'
 
 group = 'com.palantir.atlasdb'
-version = System.env.CIRCLE_TAG ?: sanitizeVersion()
+version = sanitizeVersion()
 description = 'Transactional distributed database layer'
 
 def sanitizeVersion() {
