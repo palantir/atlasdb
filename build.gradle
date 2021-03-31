@@ -44,18 +44,20 @@ group = 'com.palantir.atlasdb'
 version = System.env.CIRCLE_TAG ?: gitVersion()
 description = 'Transactional distributed database layer'
 
+def sanitizeVersion() {
+    def lastTag = "git describe --tags --always --first-parent".execute().text()
+    def isClean = "git status --porcelain".execute().text().isEmpty()
+
+    if (isClean) {
+        return lastTag
+    }
+    return lastTag + ".dirty"
+}
+
 task printLastVersion {
     doLast {
         def details = versionDetails()
         println details.lastTag
-    }
-}
-
-task isClean {
-    doLast {
-        def diff = "git status --porcelain".execute().text
-        println diff
-        println diff.isEmpty()
     }
 }
 
