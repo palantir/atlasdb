@@ -45,7 +45,7 @@ version = System.env.CIRCLE_TAG ?: sanitizeVersion()
 description = 'Transactional distributed database layer'
 
 def sanitizeVersion() {
-    def lastTag = "git describe --tags --always --first-parent".execute().text
+    def lastTag = "git describe --tags --always --first-parent".execute().text.trim()
     def isClean = "git status --porcelain".execute().text.isEmpty()
 
     if (isClean) {
