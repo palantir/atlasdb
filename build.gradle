@@ -51,6 +51,14 @@ task printLastVersion {
     }
 }
 
+task isClean {
+    doLast {
+        def diff = "git status --porcelain".execute().text
+        println diff
+        println diff.isEmpty()
+    }
+}
+
 allprojects {
     repositories {
         mavenCentral()
