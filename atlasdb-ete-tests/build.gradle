@@ -34,6 +34,9 @@ dependencies {
     testCompile project(':atlasdb-ete-test-utils')
     testCompile project(':flake-rule')
 
+    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    testCompileOnly 'org.immutables:value::annotations'
+
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     testCompile group: 'org.assertj', name: 'assertj-core'
@@ -54,10 +57,12 @@ task longTest(type: Test) {
 task timeLockTest(type: Test) {
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
     include '**/*TimeLock*.class'
-
-    // TODO (jkong): Re-enable migration tests once a new story for handling volumes-in-circle-2 is available.
-    // See: https://discuss.circleci.com/t/mount-project-folder-using-docker-compose-and-circle-ci/22923
     exclude '**/*TimeLockMigration*.class'
+}
+
+task timeLockMigrationTest(type: Test) {
+    dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
+    include '**/*TimeLockMigration*.class'
 }
 
 task dbkvsTest(type: Test) {
@@ -68,7 +73,11 @@ task dbkvsTest(type: Test) {
 test {
     dependsOn longTest, prepareForEteTests, timeLockTest, dbkvsTest
     exclude '**/MultiCassandraTestSuite.class'
+
     exclude '**/*TimeLock*.class'
+    // Technically covered by previous line, but explicitly avoiding in case of refactor
+    exclude '**/*TimeLockMigration*.class'
+
     exclude '**/*EteTest.class'
     exclude '**/DbKvsTestSuite.class'
 }
