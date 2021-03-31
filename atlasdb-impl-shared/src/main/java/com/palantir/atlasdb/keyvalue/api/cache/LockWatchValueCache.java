@@ -16,8 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.palantir.lock.watch.LockWatchEvent;
-import java.util.List;
+import java.util.Set;
 
 /**
  * The idea here is to keep a map of Cell -> value for each table (so in practice, probably a nested map). Applying
@@ -33,11 +32,10 @@ import java.util.List;
  * adding a check in the {@link com.palantir.atlasdb.transaction.api.PreCommitCondition}.
  */
 public interface LockWatchValueCache {
-    void applyEvents(List<LockWatchEvent> events);
+    void processStartTransactions(Set<Long> startTimestamps);
 
-    // todo(jshah): come up with a type for digest
-    void updateCache(Void digest, long startTs);
+    void updateCache(TransactionDigest digest, long startTs);
 
     // todo(jshah): this needs to return something, of course!
-    void createTransactionScopedCache(long startTs);
+    TransactionScopedCache createTransactionScopedCache(long startTs);
 }

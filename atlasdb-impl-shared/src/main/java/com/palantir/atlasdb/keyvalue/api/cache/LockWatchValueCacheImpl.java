@@ -17,35 +17,74 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
-import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private final ValueStore valueStore;
     private final StructureHolder<Set<TableReference>> watchedTables;
+    private final LockWatchEventCache eventCache;
 
-    public LockWatchValueCacheImpl() {
+    // todo(jshah): implement version tracking
+    private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
+
+    public LockWatchValueCacheImpl(LockWatchEventCache eventCache) {
+        this.eventCache = eventCache;
         valueStore = new ValueStoreImpl();
         watchedTables = StructureHolder.create(HashSet.empty());
     }
 
     @Override
-    public void applyEvents(List<LockWatchEvent> events) {
-        events.forEach(event -> event.accept(new LockWatchVisitor()));
+    public void processStartTransactions(java.util.Set<Long> startTimestamps) {
+        TransactionsLockWatchUpdate updateForTransactions =
+                eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
+        // update current version
+        updateForTransactions.events().forEach(event -> event.accept(new LockWatchVisitor()));
     }
 
     @Override
-    public void updateCache(Void digest, long startTs) {}
+    public void updateCache(TransactionDigest digest, long startTs) {
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTs);
+        commitUpdate.accept(new Visitor<Void>() {
+            @Override
+            public Void invalidateAll() {
+                // If this is an election, we should throw. If not and we are not a serialisable transaction, we are
+                // *technically* ok to go on here.
+                return null;
+            }
+
+            @Override
+            public Void invalidateSome(java.util.Set<LockDescriptor> invalidatedLocks) {
+                java.util.Set<TableAndCell> invalidatedCells = invalidatedLocks.stream()
+                        .map(LockWatchValueCacheImpl.this::extractTableAndCell)
+                        .collect(Collectors.toSet());
+                KeyedStream.stream(digest.loadedValues())
+                        .filterKeys(tableAndCell -> !invalidatedCells.contains(tableAndCell))
+                        .forEach((valueStore::putValue));
+                return null;
+            }
+        });
+    }
 
     @Override
-    public void createTransactionScopedCache(long startTs) {}
+    public TransactionScopedCache createTransactionScopedCache(long startTs) {
+        // todo(jshah): implement
+        return new TransactionScopedCacheImpl();
+    }
 
     private TableReference extractTableReference(LockWatchReference lockWatchReference) {
         // todo(jshah): implement
@@ -60,9 +99,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private final class LockWatchVisitor implements LockWatchEvent.Visitor<Void> {
         @Override
         public Void visit(LockEvent lockEvent) {
-            lockEvent.lockDescriptors().stream()
-                    .map(LockWatchValueCacheImpl.this::extractTableAndCell)
-                    .forEach(valueStore::putLockedCell);
+            applyLockedDescriptors(lockEvent.lockDescriptors());
             return null;
         }
 
@@ -79,10 +116,14 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
             lockWatchCreatedEvent.references().stream()
                     .map(LockWatchValueCacheImpl.this::extractTableReference)
                     .forEach(tableReference -> watchedTables.with(tables -> tables.add(tableReference)));
-            lockWatchCreatedEvent.lockDescriptors().stream()
-                    .map(LockWatchValueCacheImpl.this::extractTableAndCell)
-                    .forEach(valueStore::putLockedCell);
+            applyLockedDescriptors(lockWatchCreatedEvent.lockDescriptors());
             return null;
         }
+    }
+
+    private void applyLockedDescriptors(java.util.Set<LockDescriptor> lockDescriptors) {
+        lockDescriptors.stream()
+                .map(LockWatchValueCacheImpl.this::extractTableAndCell)
+                .forEach(valueStore::putLockedCell);
     }
 }
