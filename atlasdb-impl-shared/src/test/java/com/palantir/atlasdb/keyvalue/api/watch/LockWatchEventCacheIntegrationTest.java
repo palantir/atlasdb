@@ -498,7 +498,7 @@ public class LockWatchEventCacheIntegrationTest {
 
         assertThat(laterUpdate.clearCache()).as("Verify update is a snapshot").isTrue();
         assertThat(laterUpdate.events())
-                .as("Verify events are not condensed into a snapshot")
+                .as("Verify events are condensed into a snapshot")
                 .containsExactly(LockWatchCreatedEvent.builder(
                                 ImmutableSet.of(REFERENCE), ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3))
                         .build(6L));

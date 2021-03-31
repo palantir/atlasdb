@@ -64,25 +64,29 @@ final class VersionedEventStore {
             return LockWatchEvents.builder().build();
         }
 
-        // Guarantees that we remove some events while still also potentially performing further retention
+        // Guarantees that we remove some events while still also potentially performing further retention - note
+        // that each call to retentionEventsInternal modifies eventMap.
         if (eventMap.size() > maxEvents) {
-            List<LockWatchEvent> overMaxSizeEvents = retentionEvents(eventMap.size() - maxEvents, Long.MAX_VALUE);
+            List<LockWatchEvent> overMaxSizeEvents =
+                    retentionEventsInternal(eventMap.size() - maxEvents, Long.MAX_VALUE);
             List<LockWatchEvent> restOfEvents =
-                    retentionEvents(eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE));
+                    retentionEventsInternal(eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE));
             return ImmutableLockWatchEvents.builder()
                     .addAllEvents(overMaxSizeEvents)
                     .addAllEvents(restOfEvents)
                     .build();
         } else {
             return ImmutableLockWatchEvents.builder()
-                    .addAllEvents(
-                            retentionEvents(eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE)))
+                    .addAllEvents(retentionEventsInternal(
+                            eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE)))
                     .build();
         }
     }
 
-    private List<LockWatchEvent> retentionEvents(int numToRetention, long maxVersion) {
+    private List<LockWatchEvent> retentionEventsInternal(int numToRetention, long maxVersion) {
         List<LockWatchEvent> events = new ArrayList<>(numToRetention);
+
+        // The correctness of this depends upon eventMap's entrySet returning entries in ascending sorted order.
         List<Map.Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
                 .limit(numToRetention)
                 .filter(entry -> entry.getKey() < maxVersion)
