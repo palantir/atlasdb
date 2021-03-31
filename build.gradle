@@ -41,12 +41,12 @@ apply plugin: 'com.palantir.external-publish'
 apply from: 'gradle/versions.gradle'
 
 group = 'com.palantir.atlasdb'
-version = System.env.CIRCLE_TAG ?: gitVersion()
+version = System.env.CIRCLE_TAG ?: sanitizeVersion()
 description = 'Transactional distributed database layer'
 
 def sanitizeVersion() {
-    def lastTag = "git describe --tags --always --first-parent".execute().text()
-    def isClean = "git status --porcelain".execute().text().isEmpty()
+    def lastTag = "git describe --tags --always --first-parent".execute().text
+    def isClean = "git status --porcelain".execute().text.isEmpty()
 
     if (isClean) {
         return lastTag
