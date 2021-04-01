@@ -47,7 +47,7 @@ public class PersistenceConfigStore {
         try {
             return OBJECT_MAPPER.readValue(bytes, TsBoundPersisterConfiguration.class);
         } catch (IOException e) {
-            throw new SafeRuntimeException("Error deserializing previously persisted persister " + "configuration", e);
+            throw new SafeRuntimeException("Error deserializing previously persisted persister configuration", e);
         }
     }
 
