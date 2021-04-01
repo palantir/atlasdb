@@ -30,6 +30,13 @@ public abstract class DatabaseTsBoundPersisterConfiguration implements TsBoundPe
     @JsonProperty("key-value-service")
     public abstract KeyValueServiceConfig keyValueServiceConfig();
 
+    @Override
+    public boolean isLocationallyIncompatible(TsBoundPersisterConfiguration other) {
+        // More can be done e.g. to mitigate the impact of a KVS migration: we can check that database names or paths
+        // agree, for instance. But this gives us a starting point, nonetheless.
+        return !(other instanceof DatabaseTsBoundPersisterConfiguration);
+    }
+
     /*
      * "relational" is hard-coded from DbKeyValueServiceConfig
      * to avoid taking a compile time dependency on atlasdb-dbkvs

@@ -22,4 +22,9 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutablePaxosTsBoundPersisterConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosTsBoundPersisterConfiguration.class)
 @Value.Immutable
-public abstract class PaxosTsBoundPersisterConfiguration implements TsBoundPersisterConfiguration {}
+public abstract class PaxosTsBoundPersisterConfiguration implements TsBoundPersisterConfiguration {
+    @Override
+    public boolean isLocationallyIncompatible(TsBoundPersisterConfiguration other) {
+        return !(other instanceof PaxosTsBoundPersisterConfiguration);
+    }
+}

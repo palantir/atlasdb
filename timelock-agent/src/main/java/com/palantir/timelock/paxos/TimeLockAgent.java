@@ -61,6 +61,7 @@ import com.palantir.leader.health.LeaderElectionHealthReport;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -79,6 +80,8 @@ import com.palantir.timelock.invariants.NoSimultaneousServiceCheck;
 import com.palantir.timelock.invariants.TimeLockActivityCheckerFactory;
 import com.palantir.timelock.management.ImmutableTimestampStorage;
 import com.palantir.timelock.management.TimestampStorage;
+import com.palantir.timelock.store.PersistenceConfigStore;
+import com.palantir.timelock.store.SqliteBlobStore;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.zaxxer.hikari.HikariDataSource;
 import java.net.URL;
@@ -138,6 +141,10 @@ public class TimeLockAgent {
                 PersistedSchemaVersion.create(installationContext.sqliteDataSource());
         persistedSchemaVersion.upgradeVersion(SCHEMA_VERSION);
         verifySchemaVersion(persistedSchemaVersion);
+
+        verifyTimestampBoundPersisterConfiguration(
+                installationContext.sqliteDataSource(),
+                install.timestampBoundPersistence());
 
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
@@ -362,6 +369,36 @@ public class TimeLockAgent {
                 "Persisted schema version does not match timelock's current schema version.",
                 SafeArg.of("current schema version", SCHEMA_VERSION),
                 SafeArg.of("persisted schema version", persistedSchemaVersion.getVersion()));
+    }
+
+    private static void verifyTimestampBoundPersisterConfiguration(
+            HikariDataSource sqliteDataSource,
+            TsBoundPersisterConfiguration timestampBoundPersistence) {
+        PersistenceConfigStore store = new PersistenceConfigStore(SqliteBlobStore.create(sqliteDataSource));
+        Optional<TsBoundPersisterConfiguration> configInDatabase = store.getPersistedConfig();
+
+        if (!configInDatabase.isPresent()) {
+            log.info("There is no config in the SQLite database indicating where timestamps are being stored."
+                    + " We are thus assuming that your current configuration is indeed correct, and using that as a"
+                    + " future reference.",
+                    SafeArg.of("configuration", timestampBoundPersistence));
+            store.storeConfig(timestampBoundPersistence);
+            return;
+        }
+
+        TsBoundPersisterConfiguration presentConfig = configInDatabase.get();
+        if (timestampBoundPersistence.isLocationallyIncompatible(presentConfig)) {
+            log.error("Configuration in the SQLite database does not agree with what the user has provided!",
+                    SafeArg.of("ourConfiguration", timestampBoundPersistence),
+                    SafeArg.of("persistedConfiguration", presentConfig));
+            throw new SafeIllegalStateException("Configuration in the SQLite database does not agree with the"
+                    + " configuration the user has provided, in a way that is known to be incompatible. For integrity"
+                    + " of the service, we will shut down and cannot serve any user requests. If you have"
+                    + " accidentally changed the DB configs, please revert them. If this is intentional, you can"
+                    + " update the config stored in the database by setting the override flag.");
+        } else {
+            log.info("Passed consistency check: the config in the SQLite database agrees with our config.");
+        }
     }
 
     @SuppressWarnings("unused") // used by external health checks
