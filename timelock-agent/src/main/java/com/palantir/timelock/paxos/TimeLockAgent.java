@@ -144,7 +144,7 @@ public class TimeLockAgent {
 
         verifyTimestampBoundPersisterConfiguration(
                 installationContext.sqliteDataSource(),
-                install.timestampBoundPersistence());
+                install);
 
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
@@ -373,29 +373,37 @@ public class TimeLockAgent {
 
     private static void verifyTimestampBoundPersisterConfiguration(
             HikariDataSource sqliteDataSource,
-            TsBoundPersisterConfiguration timestampBoundPersistence) {
+            TimeLockInstallConfiguration installConfiguration) {
         PersistenceConfigStore store = new PersistenceConfigStore(SqliteBlobStore.create(sqliteDataSource));
+        TsBoundPersisterConfiguration currentUserConfiguration = installConfiguration.timestampBoundPersistence();
+        if (installConfiguration.iAmOnThePersistenceTeamAndKnowWhatIAmDoingReseedPersistedPersisterConfiguration()) {
+            log.info("As configured, updating the configuration persisted in the SQLite database.",
+                    SafeArg.of("ourConfiguration", currentUserConfiguration));
+            store.storeConfig(currentUserConfiguration);
+            return;
+        }
+
         Optional<TsBoundPersisterConfiguration> configInDatabase = store.getPersistedConfig();
 
         if (!configInDatabase.isPresent()) {
             log.info("There is no config in the SQLite database indicating where timestamps are being stored."
                     + " We are thus assuming that your current configuration is indeed correct, and using that as a"
                     + " future reference.",
-                    SafeArg.of("configuration", timestampBoundPersistence));
-            store.storeConfig(timestampBoundPersistence);
+                    SafeArg.of("configuration", currentUserConfiguration));
+            store.storeConfig(currentUserConfiguration);
             return;
         }
 
         TsBoundPersisterConfiguration presentConfig = configInDatabase.get();
-        if (timestampBoundPersistence.isLocationallyIncompatible(presentConfig)) {
+        if (currentUserConfiguration.isLocationallyIncompatible(presentConfig)) {
             log.error("Configuration in the SQLite database does not agree with what the user has provided!",
-                    SafeArg.of("ourConfiguration", timestampBoundPersistence),
+                    SafeArg.of("ourConfiguration", currentUserConfiguration),
                     SafeArg.of("persistedConfiguration", presentConfig));
             throw new SafeIllegalStateException("Configuration in the SQLite database does not agree with the"
                     + " configuration the user has provided, in a way that is known to be incompatible. For integrity"
                     + " of the service, we will shut down and cannot serve any user requests. If you have"
                     + " accidentally changed the DB configs, please revert them. If this is intentional, you can"
-                    + " update the config stored in the database by setting the override flag.");
+                    + " update the config stored in the database by setting the relevant override flag.");
         } else {
             log.info("Passed consistency check: the config in the SQLite database agrees with our config.");
         }

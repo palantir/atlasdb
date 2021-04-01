@@ -55,6 +55,11 @@ public interface TimeLockInstallConfiguration {
         return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
     }
 
+    @Value.Default
+    default boolean iAmOnThePersistenceTeamAndKnowWhatIAmDoingReseedPersistedPersisterConfiguration() {
+        return false;
+    }
+
     @Value.Derived
     default boolean isNewServiceNode() {
         return paxos().isNewService()
