@@ -39,8 +39,18 @@ apply plugin: 'com.palantir.external-publish'
 apply from: 'gradle/versions.gradle'
 
 group = 'com.palantir.atlasdb'
-version = gitVersion()
+version = sanitizeVersion()
 description = 'Transactional distributed database layer'
+
+def sanitizeVersion() {
+    def isClean = "git status --porcelain".execute().text.isEmpty()
+    def pluginReportedVersion = gitVersion()
+
+    if (isClean && pluginReportedVersion.endsWith(".dirty")) {
+        return pluginReportedVersion.dropRight(".dirty".length())
+    }
+    return pluginReportedVersion
+}
 
 task printLastVersion {
     doLast {
