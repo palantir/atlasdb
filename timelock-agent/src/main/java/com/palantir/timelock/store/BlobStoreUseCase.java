@@ -17,7 +17,8 @@
 package com.palantir.timelock.store;
 
 public enum BlobStoreUseCase {
-    PERSISTENCE_STORAGE("p");
+    PERSISTENCE_STORAGE("p"),
+    INTERNAL_TESTING_RESERVED("itr");
 
     private final String shortName;
 

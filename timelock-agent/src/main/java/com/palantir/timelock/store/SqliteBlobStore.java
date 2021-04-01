@@ -22,6 +22,7 @@ import java.util.function.Function;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
@@ -33,7 +34,10 @@ public class SqliteBlobStore {
     }
 
     public static SqliteBlobStore create(DataSource dataSource) {
-        Jdbi jdbi = Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin());
+        Jdbi jdbi =
+                Jdbi.create(dataSource).installPlugin(new SqlObjectPlugin())
+                        .registerColumnMapper(InputStream.class,
+                                (rs, columnNumber, ctx) -> rs.getBinaryStream(columnNumber));
         SqliteBlobStore blobStore = new SqliteBlobStore(jdbi);
         blobStore.initialize();
         return blobStore;
@@ -47,11 +51,11 @@ public class SqliteBlobStore {
         return jdbi.withExtension(SqliteBlobStore.Queries.class, call::apply);
     }
 
-    Optional<InputStream> getValue(BlobStoreUseCase useCase) {
+    Optional<byte[]> getValue(BlobStoreUseCase useCase) {
         return execute(dao -> dao.getVersion(useCase.getShortName()));
     }
 
-    void putValue(BlobStoreUseCase useCase, InputStream blob) {
+    void putValue(BlobStoreUseCase useCase, byte[] blob) {
         execute(dao -> {
             dao.putBlob(useCase.getShortName(), blob);
             return null;
@@ -63,9 +67,9 @@ public class SqliteBlobStore {
         boolean createBlobStoreTable();
 
         @SqlUpdate("INSERT OR REPLACE INTO blob_store (row, value) VALUES (?, ?)")
-        void putBlob(String row, InputStream blob);
+        void putBlob(@Bind String row, @Bind byte[] blob);
 
         @SqlQuery("SELECT value FROM blob_store WHERE row = ?")
-        Optional<InputStream> getVersion(String row);
+        Optional<byte[]> getVersion(@Bind String row);
     }
 }
