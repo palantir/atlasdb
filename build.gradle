@@ -47,9 +47,10 @@ description = 'Transactional distributed database layer'
 def sanitizeVersion() {
     def isClean = "git status --porcelain".execute().text.isEmpty()
     def pluginReportedVersion = gitVersion()
+    def dirtySuffix = ".dirty"
 
-    if (isClean && pluginReportedVersion.endsWith(".dirty")) {
-        return pluginReportedVersion.substring(0, pluginReportedVersion.length() - ".dirty".length())
+    if (isClean && pluginReportedVersion.endsWith(dirtySuffix)) {
+        return pluginReportedVersion.substring(0, pluginReportedVersion.length() - dirtySuffix.length())
     }
     return pluginReportedVersion
 }
