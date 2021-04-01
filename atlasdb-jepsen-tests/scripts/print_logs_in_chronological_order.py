@@ -102,7 +102,7 @@ def main(argv):
         sys.stderr.write('Tests failed. Fix them or run with --skip-tests\n')
         return 1
     if args.tests_only:
-        print 'Tests passed'
+        print('Tests passed')
         return 0
 
     # make the filenames shorter
@@ -137,8 +137,8 @@ def main(argv):
     for t, file, line in sorted_parsed_lines:
         output = '{}: {} {}'.format(str(file), t, line)
         if file != last_file:
-            print '-------------------------------'
-        print output
+            print('-------------------------------')
+        print(output)
         last_file = file
 
 

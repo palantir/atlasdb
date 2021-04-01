@@ -19,11 +19,16 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("FinalClass")
 public class TimeLockMigrator extends AsyncInitializer {
+    private static final Logger log = LoggerFactory.getLogger(TimeLockMigrator.class);
+
     private final TimestampStoreInvalidator source;
     private final TimestampManagementService destination;
     private final boolean initializeAsync;
@@ -71,9 +76,14 @@ public class TimeLockMigrator extends AsyncInitializer {
         try {
             destination.ping();
         } catch (Exception e) {
-            throw new AtlasDbDependencyException("Could not contact the Timelock Server.", e);
+            throw new AtlasDbDependencyException("Could not contact the TimeLock Server.", e);
         }
         long currentTimestamp = source.backupAndInvalidate();
+        log.info(
+                "Now fast forwarding the timestamp on TimeLock Server, possibly as part of a TimeLock migration."
+                        + " If you are already using TimeLock, DO NOT PANIC if this number is less than what you"
+                        + " expect a current timestamp to be.",
+                SafeArg.of("fastForwardTimestamp", currentTimestamp));
         destination.fastForwardTimestamp(currentTimestamp);
     }
 

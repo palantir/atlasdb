@@ -19,53 +19,39 @@ package com.palantir.atlasdb.http.v2;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.base.Throwables;
-import com.palantir.conjure.java.api.errors.QosException;
-import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
+import java.net.SocketTimeoutException;
 import java.util.function.Supplier;
 
 /**
- * This proxy exists to support "fast failover" behaviour with no limit as to the number of attempts made; instead,
- * we use a time limit. This exists to support perpetual {@code 308} responses from servers, which may happen if
- * leader election is still taking place.
+ * This proxy exists to retry in case of a SocketTimeoutException (something that isn't retried natively by Dialogue).
  */
-public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
-    private static final Duration TIME_LIMIT = Duration.ofSeconds(10);
-
+public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocationHandler {
+    private static final int MAX_NUM_RETRIES = 5;
     private final Supplier<T> delegate;
-    private final Clock clock;
 
-    private FastFailoverProxy(Supplier<T> delegate, Clock clock) {
+    private RetryOnSocketTimeoutExceptionProxy(Supplier<T> delegate) {
         this.delegate = delegate;
-        this.clock = clock;
     }
 
     public static <U> U newProxyInstance(Class<U> interfaceClass, Supplier<U> delegate) {
-        return newProxyInstance(interfaceClass, delegate, Clock.systemUTC());
-    }
-
-    @VisibleForTesting
-    @SuppressWarnings("unchecked") // Class guaranteed to be correct
-    static <U> U newProxyInstance(Class<U> interfaceClass, Supplier<U> delegate, Clock clock) {
-        FastFailoverProxy<U> proxy = new FastFailoverProxy<>(delegate, clock);
+        RetryOnSocketTimeoutExceptionProxy<U> proxy = new RetryOnSocketTimeoutExceptionProxy<>(delegate);
 
         return (U) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass}, proxy);
     }
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        Instant lastRetryInstant = clock.instant().plus(TIME_LIMIT);
         ResultOrThrowable attempt = singleInvocation(method, args);
-        while (clock.instant().isBefore(lastRetryInstant) && !attempt.isSuccessful()) {
+        int numRetries = 0;
+        while ((numRetries < MAX_NUM_RETRIES) && !attempt.isSuccessful()) {
+            numRetries++;
             Throwable cause = attempt.throwable().get();
-            ResultOrThrowable fastFailoverCheck = isRetriable(cause);
-            if (!fastFailoverCheck.isSuccessful()) {
-                throw fastFailoverCheck.throwable().get();
+            ResultOrThrowable retriableExceptionCheck = isRetriable(cause);
+            if (!retriableExceptionCheck.isSuccessful()) {
+                throw retriableExceptionCheck.throwable().get();
             }
             attempt = singleInvocation(method, args);
         }
@@ -89,20 +75,18 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
         }
         InvocationTargetException exception = (InvocationTargetException) throwable;
         Throwable cause = exception.getCause();
-        if (!isCausedByRetryOther(cause)) {
+        if (isCausedBySocketTimeoutException(cause)) {
+            return ResultOrThrowable.success(null);
+        } else {
             return ResultOrThrowable.failure(cause);
         }
-        return ResultOrThrowable.success(null);
     }
 
     @VisibleForTesting
-    static boolean isCausedByRetryOther(Throwable throwable) {
+    static boolean isCausedBySocketTimeoutException(Throwable throwable) {
         Throwable cause = throwable;
         while (cause != null) {
-            if (cause instanceof QosException.RetryOther) {
-                return true;
-            }
-            if (cause instanceof UnknownRemoteException && ((UnknownRemoteException) cause).getStatus() == 308) {
+            if (cause instanceof SocketTimeoutException) {
                 return true;
             }
             cause = cause.getCause();

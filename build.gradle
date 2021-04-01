@@ -12,6 +12,8 @@ buildscript {
     }
 
     dependencies {
+        classpath 'com.netflix.nebula:gradle-info-plugin:9.3.0'
+        classpath 'com.netflix.nebula:nebula-publishing-plugin:17.3.2'
         classpath 'com.palantir.gradle.externalpublish:gradle-external-publish-plugin:0.4.0'
         classpath 'com.palantir.baseline:gradle-baseline-java:3.75.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:4.22.0'
@@ -39,8 +41,19 @@ apply plugin: 'com.palantir.external-publish'
 apply from: 'gradle/versions.gradle'
 
 group = 'com.palantir.atlasdb'
-version = gitVersion()
+version = sanitizeVersion()
 description = 'Transactional distributed database layer'
+
+def sanitizeVersion() {
+    def isClean = "git status --porcelain".execute().text.isEmpty()
+    def pluginReportedVersion = gitVersion()
+    def dirtySuffix = ".dirty"
+
+    if (isClean && pluginReportedVersion.endsWith(dirtySuffix)) {
+        return pluginReportedVersion.substring(0, pluginReportedVersion.length() - dirtySuffix.length())
+    }
+    return pluginReportedVersion
+}
 
 task printLastVersion {
     doLast {

@@ -23,28 +23,30 @@ import java.util.List;
 
 public class NamespacedIdentifiedTransactionStarter implements IdentifiedAtlasDbTransactionStarter {
     private final Namespace namespace;
-    private final MultiClientTransactionStarter batcher;
+    private final ReferenceTrackingWrapper<MultiClientTransactionStarter> referenceTrackingBatcher;
     private final StartTransactionsLockWatchEventCache lockWatchEventCache;
     private final LockCleanupService lockCleanupService;
 
     public NamespacedIdentifiedTransactionStarter(
             Namespace namespace,
-            MultiClientTransactionStarter batcher,
+            ReferenceTrackingWrapper<MultiClientTransactionStarter> referenceTrackingBatcher,
             StartTransactionsLockWatchEventCache lockWatchEventCache,
             LockCleanupService lockCleanupService) {
         this.namespace = namespace;
-        this.batcher = batcher;
+        this.referenceTrackingBatcher = referenceTrackingBatcher;
         this.lockWatchEventCache = lockWatchEventCache;
         this.lockCleanupService = lockCleanupService;
     }
 
     @Override
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
-        return batcher.startTransactions(namespace, count, lockWatchEventCache, lockCleanupService);
+        return referenceTrackingBatcher
+                .getDelegate()
+                .startTransactions(namespace, count, lockWatchEventCache, lockCleanupService);
     }
 
     @Override
     public void close() {
-        batcher.close();
+        referenceTrackingBatcher.close();
     }
 }

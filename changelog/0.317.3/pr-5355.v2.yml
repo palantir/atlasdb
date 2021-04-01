@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Multi client batchers can now be wrapped in ReferenceTrackingWrapper to avoid closing if the TransactionManager of one the clients is closed.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5355

@@ -19,16 +19,16 @@ com.palantir.common:streams = 1.9.1
 com.palantir.config.crypto:encrypted-config-value-module = 2.1.0
 com.palantir.conjure:conjure = 4.14.2
 com.palantir.conjure.java.api:* = 2.16.2
-com.palantir.conjure.java:* = 5.48.0
+com.palantir.conjure.java:* = 5.49.0
 com.palantir.conjure.java.runtime:* = 6.15.0
-com.palantir.dialogue:* = 1.104.2
+com.palantir.dialogue:* = 1.109.0
 com.palantir.docker.compose:docker-compose-rule* = 1.5.0
 com.palantir.docker.proxy:docker-proxy-rule* = 1.1.1
 com.palantir.refreshable:refreshable = 1.2.0
 com.palantir.remoting2:* = 2.6.3
 com.palantir.safe-logging:* = 1.14.0
 com.palantir.sls.versions:* = 0.14.0
-com.palantir.tracing:* = 4.12.0
+com.palantir.tracing:* = 4.13.0
 com.palantir.tritium:* = 0.18.8
 com.squareup:javapoet = 1.13.0
 com.zaxxer:HikariCP = 4.0.3
@@ -43,7 +43,6 @@ org.apache.commons:commons-pool2 = 2.9.0
 org.assertj:assertj-* = 3.19.0
 org.awaitility:awaitility = 4.0.3
 org.clojure:clojure = 1.8.0
-org.codehaus.groovy:* = 3.0.7
 org.derive4j:* = 1.1.1
 org.freemarker:freemarker = 2.3.31
 org.immutables:* = 2.8.8
@@ -67,3 +66,6 @@ org.wildfly.common:wildfly-common = 1.5.4.Final
 # dependency-upgrader:OFF
 # Blocked on Java 11
 com.github.ben-manes.caffeine:caffeine = 2.9.0
+
+# Large internal product uses 2.x
+org.codehaus.groovy:* = 2.5.14

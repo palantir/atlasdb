@@ -21,15 +21,3 @@ atlasdb:
       dbName: atlasete
       dbLogin: palantir
       dbPassword: palantir
-
-  namespace: atlasete
-
-atlasDbRuntime:
-  timelockRuntime:
-    serversList:
-      servers:
-        - 'http://timelock:8421'
-      sslConfiguration:
-        keyStorePath: "var/security/keyStore.jks"
-        keyStorePassword: "keystore"
-        trustStorePath: "var/security/trustStore.jks"

@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
+import org.immutables.value.Value;
 import org.joda.time.Duration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
@@ -42,20 +43,20 @@ import org.slf4j.LoggerFactory;
 public class DockerClientOrchestrationRule extends ExternalResource {
     private static final Logger log = LoggerFactory.getLogger(DockerClientOrchestrationRule.class);
 
-    public static final File TIMELOCK_CONFIG = new File("docker/conf/atlasdb-ete.timelock.cassandra.yml");
-    public static final File EMBEDDED_CONFIG = new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml");
-
     private static final String CONTAINER = "ete1";
     private static final Duration WAIT_TIMEOUT = Duration.standardMinutes(5);
     private static final int MAX_EXEC_TRIES = 10;
 
+    private final DockerClientConfiguration clientConfiguration;
     private final TemporaryFolder temporaryFolder;
 
     private DockerComposeRule dockerComposeRule;
     private DockerProxyRule dockerProxyRule;
     private File configFile;
 
-    public DockerClientOrchestrationRule(TemporaryFolder temporaryFolder) {
+    public DockerClientOrchestrationRule(
+            DockerClientConfiguration dockerClientConfiguration, TemporaryFolder temporaryFolder) {
+        this.clientConfiguration = dockerClientConfiguration;
         this.temporaryFolder = temporaryFolder;
     }
 
@@ -63,7 +64,7 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     protected void before() throws Throwable {
         try {
             configFile = temporaryFolder.newFile("atlasdb-ete.yml");
-            updateClientConfig(EMBEDDED_CONFIG);
+            updateClientConfig(clientConfiguration.initialConfigFile());
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
@@ -71,8 +72,8 @@ public class DockerClientOrchestrationRule extends ExternalResource {
         DockerMachine dockerMachine = createDockerMachine();
         dockerComposeRule = DockerComposeRule.builder()
                 .machine(dockerMachine)
-                .file("docker-compose.timelock-migration.cassandra.yml")
-                .waitingForService("cassandra", HealthChecks.toHaveAllPortsOpen())
+                .file(clientConfiguration.dockerComposeYmlFile().toString())
+                .waitingForService(clientConfiguration.databaseServiceName(), HealthChecks.toHaveAllPortsOpen())
                 .saveLogsTo(LogDirectory.circleAwareLogDirectory(TimeLockMigrationEteTest.class.getSimpleName()))
                 .addClusterWait(new ClusterWait(ClusterHealthCheck.nativeHealthChecks(), WAIT_TIMEOUT))
                 .build();
@@ -104,12 +105,20 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     }
 
     public void restartAtlasClient() {
-        // Need nohup - otherwise our process is a child of our shell, and will be killed when we're done.
-        dockerExecOnClient("bash", "-c", "nohup service/bin/init.sh restart");
+        runInitShWithVerb("restart");
+    }
+
+    public void stopAtlasClient() {
+        runInitShWithVerb("stop");
     }
 
     public String getClientLogs() {
-        return dockerExecOnClient("cat", "var/log/atlasdb-ete-startup.log");
+        return dockerExecOnClient("cat", "var/log/startup.log");
+    }
+
+    private void runInitShWithVerb(String verb) {
+        // Need nohup - otherwise our process is a child of our shell, and will be killed when we're done.
+        dockerExecOnClient("bash", "-c", "nohup service/bin/init.sh " + verb);
     }
 
     private DockerMachine createDockerMachine() {
@@ -146,5 +155,14 @@ public class DockerClientOrchestrationRule extends ExternalResource {
         }
         throw new IllegalStateException(
                 String.format("Unexpected state after %s unsuccessful attempts in docker-exec", MAX_EXEC_TRIES));
+    }
+
+    @Value.Immutable
+    public interface DockerClientConfiguration {
+        File dockerComposeYmlFile();
+
+        File initialConfigFile();
+
+        String databaseServiceName();
     }
 }

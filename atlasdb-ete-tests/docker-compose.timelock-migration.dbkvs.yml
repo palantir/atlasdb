@@ -3,32 +3,34 @@ version: '2'
 services:
   timelock:
     image: palantirtechnologies/timelock-server-distribution
+    command: [bash, -c, 'cp var/conf/timelock-postgres.yml var/conf/timelock.yml && service/bin/init.sh console']
+    depends_on:
+      - postgres
     ports:
       - "8421"
       - "8422"
 
-  cassandra:
-    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
-    ports:
-      - "9160"
-      - "9042"
-      - "7199"
+  postgres:
+    image: postgres:9.6-alpine
+    mem_limit: 512m
     environment:
-      - MAX_HEAP_SIZE=512m
-      - HEAP_NEWSIZE=64m
-      - LOCAL_JMX=no
+      POSTGRES_PASSWORD: palantir
+      POSTGRES_USER: palantir
+      POSTGRES_DB: atlasete
+    ports:
+      - "5432"
 
   ete1:
     build: .
     # We don't use console, because we might want to start/stop/restart the service.
     command: [bash, -c, '
-        dockerize -timeout 120s -wait tcp://cassandra:9160
+        dockerize -timeout 120s -wait tcp://postgres:5432
         && service/bin/init.sh start
         && tail -F var/log/startup.log']
     ports:
       - "3828"
     depends_on:
-      - cassandra
+      - postgres
       - timelock
     volumes:
       - $CONFIG_FILE_MOUNTPOINT:/atlasdb-ete/atlasdb-ete-snapshot/var/conf/
