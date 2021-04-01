@@ -142,9 +142,7 @@ public class TimeLockAgent {
         persistedSchemaVersion.upgradeVersion(SCHEMA_VERSION);
         verifySchemaVersion(persistedSchemaVersion);
 
-        verifyTimestampBoundPersisterConfiguration(
-                installationContext.sqliteDataSource(),
-                install);
+        verifyTimestampBoundPersisterConfiguration(installationContext.sqliteDataSource(), install);
 
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
@@ -372,12 +370,12 @@ public class TimeLockAgent {
     }
 
     private static void verifyTimestampBoundPersisterConfiguration(
-            HikariDataSource sqliteDataSource,
-            TimeLockInstallConfiguration installConfiguration) {
+            HikariDataSource sqliteDataSource, TimeLockInstallConfiguration installConfiguration) {
         PersistenceConfigStore store = new PersistenceConfigStore(SqliteBlobStore.create(sqliteDataSource));
         TsBoundPersisterConfiguration currentUserConfiguration = installConfiguration.timestampBoundPersistence();
         if (installConfiguration.iAmOnThePersistenceTeamAndKnowWhatIAmDoingReseedPersistedPersisterConfiguration()) {
-            log.info("As configured, updating the configuration persisted in the SQLite database.",
+            log.info(
+                    "As configured, updating the configuration persisted in the SQLite database.",
                     SafeArg.of("ourConfiguration", currentUserConfiguration));
             store.storeConfig(currentUserConfiguration);
             return;
@@ -386,9 +384,10 @@ public class TimeLockAgent {
         Optional<TsBoundPersisterConfiguration> configInDatabase = store.getPersistedConfig();
 
         if (!configInDatabase.isPresent()) {
-            log.info("There is no config in the SQLite database indicating where timestamps are being stored."
-                    + " We are thus assuming that your current configuration is indeed correct, and using that as a"
-                    + " future reference.",
+            log.info(
+                    "There is no config in the SQLite database indicating where timestamps are being stored. We are"
+                            + " thus assuming that your current configuration is indeed correct, and using that as a"
+                            + " future reference.",
                     SafeArg.of("configuration", currentUserConfiguration));
             store.storeConfig(currentUserConfiguration);
             return;
@@ -396,7 +395,8 @@ public class TimeLockAgent {
 
         TsBoundPersisterConfiguration presentConfig = configInDatabase.get();
         if (currentUserConfiguration.isLocationallyIncompatible(presentConfig)) {
-            log.error("Configuration in the SQLite database does not agree with what the user has provided!",
+            log.error(
+                    "Configuration in the SQLite database does not agree with what the user has provided!",
                     SafeArg.of("ourConfiguration", currentUserConfiguration),
                     SafeArg.of("persistedConfiguration", presentConfig));
             throw new SafeIllegalStateException("Configuration in the SQLite database does not agree with the"

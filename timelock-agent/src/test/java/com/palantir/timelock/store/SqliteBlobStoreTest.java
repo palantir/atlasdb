@@ -36,7 +36,8 @@ public class SqliteBlobStoreTest {
 
     @Before
     public void setup() {
-        blobStore = SqliteBlobStore.create(SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath()));
+        blobStore = SqliteBlobStore.create(
+                SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath()));
     }
 
     @Test
@@ -63,7 +64,8 @@ public class SqliteBlobStoreTest {
     @Test
     public void maintainsSeparateBlobsForSeparateUseCases() {
         blobStore.putValue(BlobStoreUseCase.PERSISTENCE_STORAGE, BYTES_1);
-        assertThat(blobStore.getValue(BlobStoreUseCase.INTERNAL_TESTING_RESERVED)).isEmpty();
+        assertThat(blobStore.getValue(BlobStoreUseCase.INTERNAL_TESTING_RESERVED))
+                .isEmpty();
 
         blobStore.putValue(BlobStoreUseCase.INTERNAL_TESTING_RESERVED, BYTES_2);
         assertBlobStoreContains(BlobStoreUseCase.PERSISTENCE_STORAGE, BYTES_1);

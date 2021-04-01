@@ -40,16 +40,14 @@ public class PersistenceConfigStore {
     }
 
     public Optional<TsBoundPersisterConfiguration> getPersistedConfig() {
-        return sqliteBlobStore.getValue(USE_CASE)
-                .map(this::deserializeConfigUnchecked);
+        return sqliteBlobStore.getValue(USE_CASE).map(this::deserializeConfigUnchecked);
     }
 
     private TsBoundPersisterConfiguration deserializeConfigUnchecked(byte[] bytes) {
         try {
             return OBJECT_MAPPER.readValue(bytes, TsBoundPersisterConfiguration.class);
         } catch (IOException e) {
-            throw new SafeRuntimeException("Error deserializing previously persisted persister "
-                    + "configuration", e);
+            throw new SafeRuntimeException("Error deserializing previously persisted persister " + "configuration", e);
         }
     }
 
@@ -57,7 +55,7 @@ public class PersistenceConfigStore {
         try {
             return OBJECT_MAPPER.writeValueAsBytes(persisterConfiguration);
         } catch (JsonProcessingException e) {
-            throw new SafeRuntimeException("Error deserializing persister configuration", e);
+            throw new SafeRuntimeException("Error serializing persister configuration", e);
         }
     }
 }
