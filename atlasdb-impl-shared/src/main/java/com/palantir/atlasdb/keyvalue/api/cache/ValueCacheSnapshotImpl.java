@@ -16,20 +16,21 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import io.vavr.collection.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
-    Map<TableAndCell, CacheEntry> values();
+    Map<CellReference, CacheEntry> values();
 
     @Override
-    default Optional<CacheEntry> getValue(TableAndCell tableAndCell) {
+    default Optional<CacheEntry> getValue(CellReference tableAndCell) {
         return values().get(tableAndCell).toJavaOptional();
     }
 
-    static ValueCacheSnapshot of(Map<TableAndCell, CacheEntry> values) {
+    static ValueCacheSnapshot of(Map<CellReference, CacheEntry> values) {
         return ImmutableValueCacheSnapshotImpl.builder().values(values).build();
     }
 }

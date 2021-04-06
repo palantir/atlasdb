@@ -16,8 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import java.util.Optional;
 
 public interface ValueCacheSnapshot {
-    Optional<CacheEntry> getValue(TableAndCell tableAndCell);
+    Optional<CacheEntry> getValue(CellReference cellReference);
 }

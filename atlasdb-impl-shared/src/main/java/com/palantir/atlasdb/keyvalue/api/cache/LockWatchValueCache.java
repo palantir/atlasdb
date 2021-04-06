@@ -36,6 +36,5 @@ public interface LockWatchValueCache {
 
     void updateCache(TransactionDigest digest, long startTs);
 
-    // todo(jshah): this needs to return something, of course!
     TransactionScopedCache createTransactionScopedCache(long startTs);
 }

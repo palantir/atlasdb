@@ -16,12 +16,14 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.atlasdb.keyvalue.api.CellReference;
+
 public interface ValueStore {
-    void putLockedCell(TableAndCell tableAndCell);
+    void putLockedCell(CellReference cellReference);
 
-    void clearLockedCell(TableAndCell tableAndCell);
+    void clearLockedCell(CellReference cellReference);
 
-    void putValue(TableAndCell tableAndCell, CacheValue value);
+    void putValue(CellReference cellReference, CacheValue value);
 
     ValueCacheSnapshot getSnapshot();
 }

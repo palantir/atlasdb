@@ -16,14 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import java.util.Map;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TransactionDigest {
-    Map<TableAndCell, CacheValue> loadedValues();
+    Map<CellReference, CacheValue> loadedValues();
 
-    static TransactionDigest of(Map<TableAndCell, CacheValue> loadedValues) {
+    static TransactionDigest of(Map<CellReference, CacheValue> loadedValues) {
         return ImmutableTransactionDigest.builder().loadedValues(loadedValues).build();
     }
 }

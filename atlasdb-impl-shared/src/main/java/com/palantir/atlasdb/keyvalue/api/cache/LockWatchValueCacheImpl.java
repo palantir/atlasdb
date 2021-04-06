@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
@@ -26,6 +28,7 @@ import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
@@ -33,6 +36,7 @@ import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private final ValueStore valueStore;
@@ -44,8 +48,8 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
 
     public LockWatchValueCacheImpl(LockWatchEventCache eventCache) {
         this.eventCache = eventCache;
-        valueStore = new ValueStoreImpl();
-        watchedTables = StructureHolder.create(HashSet.empty());
+        this.valueStore = new ValueStoreImpl();
+        this.watchedTables = StructureHolder.create(HashSet.empty());
     }
 
     @Override
@@ -69,11 +73,11 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
 
             @Override
             public Void invalidateSome(java.util.Set<LockDescriptor> invalidatedLocks) {
-                java.util.Set<TableAndCell> invalidatedCells = invalidatedLocks.stream()
-                        .map(LockWatchValueCacheImpl.this::extractTableAndCell)
+                java.util.Set<CellReference> invalidatedCells = invalidatedLocks.stream()
+                        .flatMap(LockWatchValueCacheImpl.this::extractTableAndCell)
                         .collect(Collectors.toSet());
                 KeyedStream.stream(digest.loadedValues())
-                        .filterKeys(tableAndCell -> !invalidatedCells.contains(tableAndCell))
+                        .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
                         .forEach((valueStore::putValue));
                 return null;
             }
@@ -87,16 +91,23 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     }
 
     private TableReference extractTableReference(LockWatchReference lockWatchReference) {
-        // todo(jshah): implement
-        return null;
+        return lockWatchReference
+                .accept(LockWatchReferencesVisitor.INSTANCE)
+                .orElseThrow(() -> new RuntimeException("Failed to parse table reference from lock watch reference"));
     }
 
-    private TableAndCell extractTableAndCell(LockDescriptor descriptor) {
-        // todo(jshah): implement
-        return null;
+    private Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
+        return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
+    }
+
+    private void applyLockedDescriptors(java.util.Set<LockDescriptor> lockDescriptors) {
+        lockDescriptors.stream()
+                .flatMap(LockWatchValueCacheImpl.this::extractTableAndCell)
+                .forEach(valueStore::putLockedCell);
     }
 
     private final class LockWatchVisitor implements LockWatchEvent.Visitor<Void> {
+
         @Override
         public Void visit(LockEvent lockEvent) {
             applyLockedDescriptors(lockEvent.lockDescriptors());
@@ -106,7 +117,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         @Override
         public Void visit(UnlockEvent unlockEvent) {
             unlockEvent.lockDescriptors().stream()
-                    .map(LockWatchValueCacheImpl.this::extractTableAndCell)
+                    .flatMap(LockWatchValueCacheImpl.this::extractTableAndCell)
                     .forEach(valueStore::clearLockedCell);
             return null;
         }
@@ -119,11 +130,5 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
             applyLockedDescriptors(lockWatchCreatedEvent.lockDescriptors());
             return null;
         }
-    }
-
-    private void applyLockedDescriptors(java.util.Set<LockDescriptor> lockDescriptors) {
-        lockDescriptors.stream()
-                .map(LockWatchValueCacheImpl.this::extractTableAndCell)
-                .forEach(valueStore::putLockedCell);
     }
 }

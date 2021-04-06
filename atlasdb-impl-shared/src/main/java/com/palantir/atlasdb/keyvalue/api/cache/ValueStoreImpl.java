@@ -16,40 +16,41 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 
 public final class ValueStoreImpl implements ValueStore {
-    private final StructureHolder<Map<TableAndCell, CacheEntry>> values;
+    private final StructureHolder<Map<CellReference, CacheEntry>> values;
 
     public ValueStoreImpl() {
         values = StructureHolder.create(HashMap.empty());
     }
 
     @Override
-    public void putLockedCell(TableAndCell tableAndCell) {
-        values.with(map -> map.put(tableAndCell, CacheEntry.locked()));
+    public void putLockedCell(CellReference cellReference) {
+        values.with(map -> map.put(cellReference, CacheEntry.locked()));
     }
 
     @Override
-    public void clearLockedCell(TableAndCell tableAndCell) {
-        values.with(map -> map.get(tableAndCell)
+    public void clearLockedCell(CellReference cellReference) {
+        values.with(map -> map.get(cellReference)
                 .toJavaOptional()
                 .filter(entry -> !entry.status().isUnlocked())
-                .map(_unused -> map.remove(tableAndCell))
+                .map(_unused -> map.remove(cellReference))
                 .orElse(map));
     }
 
     @Override
-    public void putValue(TableAndCell tableAndCell, CacheValue value) {
-        values.with(map -> map.put(tableAndCell, CacheEntry.unlocked(value), (oldValue, newValue) -> {
+    public void putValue(CellReference cellReference, CacheValue value) {
+        values.with(map -> map.put(cellReference, CacheEntry.unlocked(value), (oldValue, newValue) -> {
             Preconditions.checkState(
                     oldValue.status().isUnlocked() && oldValue.equals(newValue),
                     "Trying to cache a value which is " + "either locked or is not equal to a currently cached value",
-                    UnsafeArg.of("table", tableAndCell.table()),
-                    UnsafeArg.of("cell", tableAndCell.cell()),
+                    UnsafeArg.of("table", cellReference.tableRef()),
+                    UnsafeArg.of("cell", cellReference.cell()),
                     UnsafeArg.of("oldValue", oldValue),
                     UnsafeArg.of("newValue", newValue));
             return newValue;
