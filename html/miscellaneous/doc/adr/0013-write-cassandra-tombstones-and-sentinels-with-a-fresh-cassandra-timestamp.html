@@ -213,7 +213,7 @@
 <h3>Mutations<a class="headerlink" href="#mutations" title="Permalink to this headline">¶</a></h3>
 <p>Mutations in Cassandra take place at a Cassandra <em>writetime</em> or timestamp. In normal Cassandra operation, these times
 are the wall-clock times where a mutation took place. These are used to “resolve” conflicts when performing reads;
-for a given column, the most recently written value will be read (“last-write-wins”).</p>
+for a given column, the most recently written value will be read (”last-write-wins”).</p>
 <p>AtlasDB columns take the form <code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">column1,</span> <span class="pre">column2,</span> <span class="pre">value)</span></code> where <code class="docutils literal notranslate"><span class="pre">column2</span></code> is the Atlas timestamp. These timestamps
 are unique - thus, for transactional tables, no mutations to the same column should take place apart from deleting
 a cell that is no longer needed (e.g. because of sweep).</p>

@@ -277,7 +277,7 @@ way.</li>
 most writes to the transactions table will take place at numbers that are numerically close, because these
 correspond to actively running transactions, and thus at keys that are close in byte-space. Considering that
 Cassandra uses consistent hashing to handle data partitioning, at any given point in time the majority of writes
-to the cluster will end up going to the same node (‘hot-spotting’). This is undesirable, because we lose
+to the cluster will end up going to the same node (’hot-spotting’). This is undesirable, because we lose
 horizontal scalability; writes are bottlenecked on a single node regardless of the size of the cluster.</li>
 <li>VAR_LONG encoding is not particularly efficient for our purposes in that it fails to exploit some characteristics
 of the distribution of our data. In particular:<ol>
@@ -636,7 +636,7 @@ difficult in general.</p>
 </div>
 <div class="section" id="benchmarking">
 <h4>Benchmarking<a class="headerlink" href="#benchmarking" title="Permalink to this headline">¶</a></h4>
-<p>We tested the selective batching cell loader (“CL2”) against the original algorithm (“CL1”) and a full-batching
+<p>We tested the selective batching cell loader (”CL2”) against the original algorithm (”CL1”) and a full-batching
 algorithm that always batches cells up to <code class="docutils literal notranslate"><span class="pre">CC</span></code>, regardless of what rows or columns they are from. We tested these
 loaders against both general AtlasDB user workloads (100 rows/100 static columns and 1000 rows/10 static columns), and
 workloads more specific to transactions2 (16 rows/500 dynamic columns). This is important as we would prefer not to
