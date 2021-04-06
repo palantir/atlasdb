@@ -35,12 +35,12 @@ import org.junit.rules.TemporaryFolder;
 
 public class TimeLockAgentPersistedConfigTest {
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
-    private static final TsBoundPersisterConfiguration
-            DATABASE_TS_BOUND_PERSISTER_CONFIGURATION = ImmutableDatabaseTsBoundPersisterConfiguration.builder()
+    private static final TsBoundPersisterConfiguration DATABASE_TS_BOUND_PERSISTER_CONFIGURATION =
+            ImmutableDatabaseTsBoundPersisterConfiguration.builder()
                     .keyValueServiceConfig(new InMemoryAtlasDbConfig())
                     .build();
-    private static final TsBoundPersisterConfiguration
-            PAXOS_TS_BOUND_PERSISTER_CONFIGURATION = ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
+    private static final TsBoundPersisterConfiguration PAXOS_TS_BOUND_PERSISTER_CONFIGURATION =
+            ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
 
     static {
         OBJECT_MAPPER.registerSubtypes(InMemoryAtlasDbConfig.class);
@@ -114,20 +114,14 @@ public class TimeLockAgentPersistedConfigTest {
 
     private void assertConfigurationDoesNotDisagree(TsBoundPersisterConfiguration userConfiguration, boolean reseed) {
         assertThatCode(() -> TimeLockAgent.verifyTimestampBoundPersisterConfiguration(
-                dataSource,
-                userConfiguration,
-                reseed,
-                OBJECT_MAPPER))
+                        dataSource, userConfiguration, reseed, OBJECT_MAPPER))
                 .doesNotThrowAnyException();
     }
 
     private void assertConfigurationDisagrees(TsBoundPersisterConfiguration userConfiguration) {
         // We don't need a reseed parameter here as reseeding should never disagree.
         assertThatThrownBy(() -> TimeLockAgent.verifyTimestampBoundPersisterConfiguration(
-                dataSource,
-                userConfiguration,
-                false,
-                OBJECT_MAPPER))
+                        dataSource, userConfiguration, false, OBJECT_MAPPER))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Configuration in the SQLite database does not agree with the configuration"
                         + " the user has provided");

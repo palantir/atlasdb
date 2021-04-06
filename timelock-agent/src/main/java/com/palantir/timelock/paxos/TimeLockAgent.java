@@ -382,7 +382,8 @@ public class TimeLockAgent {
             TsBoundPersisterConfiguration currentUserConfiguration,
             boolean reseedPersistedPersisterConfiguration,
             ObjectMapper objectMapper) {
-        PersistenceConfigStore store = new PersistenceConfigStore(objectMapper, SqliteBlobStore.create(sqliteDataSource));
+        PersistenceConfigStore store =
+                new PersistenceConfigStore(objectMapper, SqliteBlobStore.create(sqliteDataSource));
         if (reseedPersistedPersisterConfiguration) {
             log.info(
                     "As configured, updating the configuration persisted in the SQLite database.",

@@ -16,5 +16,4 @@
 
 package com.palantir.timelock.paxos;
 
-public class PersistenceConfigChecker {
-}
+public class PersistenceConfigChecker {}

@@ -29,9 +29,7 @@ public class PersistenceConfigStore {
     private final SqliteBlobStore sqliteBlobStore;
     private final ObjectMapper objectMapper;
 
-    public PersistenceConfigStore(
-            ObjectMapper objectMapper,
-            SqliteBlobStore sqliteBlobStore) {
+    public PersistenceConfigStore(ObjectMapper objectMapper, SqliteBlobStore sqliteBlobStore) {
         this.objectMapper = objectMapper;
         this.sqliteBlobStore = sqliteBlobStore;
     }

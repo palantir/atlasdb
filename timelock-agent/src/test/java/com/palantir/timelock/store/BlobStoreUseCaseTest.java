@@ -29,8 +29,6 @@ public class BlobStoreUseCaseTest {
         Set<String> rowNames = Arrays.stream(BlobStoreUseCase.values())
                 .map(BlobStoreUseCase::getShortName)
                 .collect(Collectors.toSet());
-        assertThat(rowNames)
-                .as("use cases should have distinct short names")
-                .hasSameSizeAs(BlobStoreUseCase.values());
+        assertThat(rowNames).as("use cases should have distinct short names").hasSameSizeAs(BlobStoreUseCase.values());
     }
 }
