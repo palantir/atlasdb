@@ -19,6 +19,8 @@ import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.ACCEPTO
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -128,7 +130,8 @@ public class TimeLockAgent {
             long blockingTimeoutMs,
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar,
-            OrderableSlsVersion timeLockVersion) {
+            OrderableSlsVersion timeLockVersion,
+            ObjectMapper objectMapper) {
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider =
                 createTimeLockDialogueServiceProvider(metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
@@ -142,7 +145,11 @@ public class TimeLockAgent {
         persistedSchemaVersion.upgradeVersion(SCHEMA_VERSION);
         verifySchemaVersion(persistedSchemaVersion);
 
-        verifyTimestampBoundPersisterConfiguration(installationContext.sqliteDataSource(), install);
+        verifyTimestampBoundPersisterConfiguration(
+                installationContext.sqliteDataSource(),
+                install.timestampBoundPersistence(),
+                install.iAmOnThePersistenceTeamAndKnowWhatIAmDoingReseedPersistedPersisterConfiguration(),
+                objectMapper);
 
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
@@ -369,11 +376,14 @@ public class TimeLockAgent {
                 SafeArg.of("persisted schema version", persistedSchemaVersion.getVersion()));
     }
 
-    private static void verifyTimestampBoundPersisterConfiguration(
-            HikariDataSource sqliteDataSource, TimeLockInstallConfiguration installConfiguration) {
-        PersistenceConfigStore store = new PersistenceConfigStore(SqliteBlobStore.create(sqliteDataSource));
-        TsBoundPersisterConfiguration currentUserConfiguration = installConfiguration.timestampBoundPersistence();
-        if (installConfiguration.iAmOnThePersistenceTeamAndKnowWhatIAmDoingReseedPersistedPersisterConfiguration()) {
+    @VisibleForTesting
+    static void verifyTimestampBoundPersisterConfiguration(
+            HikariDataSource sqliteDataSource,
+            TsBoundPersisterConfiguration currentUserConfiguration,
+            boolean reseedPersistedPersisterConfiguration,
+            ObjectMapper objectMapper) {
+        PersistenceConfigStore store = new PersistenceConfigStore(objectMapper, SqliteBlobStore.create(sqliteDataSource));
+        if (reseedPersistedPersisterConfiguration) {
             log.info(
                     "As configured, updating the configuration persisted in the SQLite database.",
                     SafeArg.of("ourConfiguration", currentUserConfiguration));

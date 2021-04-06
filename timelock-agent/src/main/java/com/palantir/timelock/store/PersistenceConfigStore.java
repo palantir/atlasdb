@@ -18,7 +18,6 @@ package com.palantir.timelock.store;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 import java.io.IOException;
@@ -26,11 +25,14 @@ import java.util.Optional;
 
 public class PersistenceConfigStore {
     private static final BlobStoreUseCase USE_CASE = BlobStoreUseCase.PERSISTENCE_STORAGE;
-    private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
 
     private final SqliteBlobStore sqliteBlobStore;
+    private final ObjectMapper objectMapper;
 
-    public PersistenceConfigStore(SqliteBlobStore sqliteBlobStore) {
+    public PersistenceConfigStore(
+            ObjectMapper objectMapper,
+            SqliteBlobStore sqliteBlobStore) {
+        this.objectMapper = objectMapper;
         this.sqliteBlobStore = sqliteBlobStore;
     }
 
@@ -45,7 +47,7 @@ public class PersistenceConfigStore {
 
     private TsBoundPersisterConfiguration deserializeConfigUnchecked(byte[] bytes) {
         try {
-            return OBJECT_MAPPER.readValue(bytes, TsBoundPersisterConfiguration.class);
+            return objectMapper.readValue(bytes, TsBoundPersisterConfiguration.class);
         } catch (IOException e) {
             throw new SafeRuntimeException("Error deserializing previously persisted persister configuration", e);
         }
@@ -53,7 +55,7 @@ public class PersistenceConfigStore {
 
     private byte[] serializeConfigUnchecked(TsBoundPersisterConfiguration persisterConfiguration) {
         try {
-            return OBJECT_MAPPER.writeValueAsBytes(persisterConfiguration);
+            return objectMapper.writeValueAsBytes(persisterConfiguration);
         } catch (JsonProcessingException e) {
             throw new SafeRuntimeException("Error serializing persister configuration", e);
         }

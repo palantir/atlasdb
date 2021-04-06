@@ -16,6 +16,7 @@
 package com.palantir.timelock.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -24,6 +25,7 @@ import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableDatabaseTsBoundPersisterConfiguration.class)
 @JsonSerialize(as = ImmutableDatabaseTsBoundPersisterConfiguration.class)
+@JsonTypeName("database")
 @Value.Immutable
 public abstract class DatabaseTsBoundPersisterConfiguration implements TsBoundPersisterConfiguration {
 
