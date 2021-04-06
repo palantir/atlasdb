@@ -384,14 +384,6 @@ public class TimeLockAgent {
             ObjectMapper objectMapper) {
         PersistenceConfigStore store =
                 new PersistenceConfigStore(objectMapper, SqliteBlobStore.create(sqliteDataSource));
-        if (reseedPersistedPersisterConfiguration) {
-            log.info(
-                    "As configured, updating the configuration persisted in the SQLite database.",
-                    SafeArg.of("ourConfiguration", currentUserConfiguration));
-            store.storeConfig(currentUserConfiguration);
-            return;
-        }
-
         Optional<TsBoundPersisterConfiguration> configInDatabase = store.getPersistedConfig();
 
         if (!configInDatabase.isPresent()) {
@@ -406,17 +398,36 @@ public class TimeLockAgent {
 
         TsBoundPersisterConfiguration presentConfig = configInDatabase.get();
         if (currentUserConfiguration.isLocationallyIncompatible(presentConfig)) {
-            log.error(
-                    "Configuration in the SQLite database does not agree with what the user has provided!",
-                    SafeArg.of("ourConfiguration", currentUserConfiguration),
-                    SafeArg.of("persistedConfiguration", presentConfig));
-            throw new SafeIllegalStateException("Configuration in the SQLite database does not agree with the"
-                    + " configuration the user has provided, in a way that is known to be incompatible. For integrity"
-                    + " of the service, we will shut down and cannot serve any user requests. If you have"
-                    + " accidentally changed the DB configs, please revert them. If this is intentional, you can"
-                    + " update the config stored in the database by setting the relevant override flag.");
+            if (reseedPersistedPersisterConfiguration) {
+                log.info(
+                        "As configured, updating the configuration persisted in the SQLite database.",
+                        SafeArg.of("ourConfiguration", currentUserConfiguration));
+                store.storeConfig(currentUserConfiguration);
+            } else {
+                log.error(
+                        "Configuration in the SQLite database does not agree with what the user has provided!",
+                        SafeArg.of("ourConfiguration", currentUserConfiguration),
+                        SafeArg.of("persistedConfiguration", presentConfig));
+                throw new SafeIllegalStateException("Configuration in the SQLite database does not agree with the"
+                        + " configuration the user has provided, in a way that is known to be incompatible. For integrity"
+                        + " of the service, we will shut down and cannot serve any user requests. If you have"
+                        + " accidentally changed the DB configs, please revert them. If this is intentional, you can"
+                        + " update the config stored in the database by setting the relevant override flag.");
+            }
         } else {
-            log.info("Passed consistency check: the config in the SQLite database agrees with our config.");
+            if (reseedPersistedPersisterConfiguration) {
+                log.error(
+                        "Configuration in the SQLite database exists and agrees with what the user provided, but"
+                                + " we attempted to reseed the persister!",
+                        SafeArg.of("ourConfiguration", currentUserConfiguration),
+                        SafeArg.of("persistedConfiguration", presentConfig));
+                throw new SafeIllegalStateException("Configuration in the SQLite database exists and agrees with the"
+                        + " configuration the user has provided, but we attempted to reseed the persisted "
+                        + " configuration nonetheless. Unless you actually intend to change the DB configs, please"
+                        + " disable this flag.");
+            } else {
+                log.info("Passed consistency check: the config in the SQLite database agrees with our config.");
+            }
         }
     }
 

@@ -26,7 +26,7 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
-public class SqliteBlobStore {
+public final class SqliteBlobStore {
     private final Jdbi jdbi;
 
     private SqliteBlobStore(Jdbi jdbi) {
