@@ -1,0 +1,21 @@
+type: improvement
+improvement:
+  description: |-
+    add dbkvs runtime password config
+
+    **Goals (and why)**: Supports live password changes for products that use the standard atlas install and runtime config. Previously only products that had their own custom config and managed their own hikari pool could update the password at runtime. No behavior is changed when the new dbkvs runtime config is absent.
+
+    **Implementation Description (bullets)**:
+    * adds a new dbkvs runtime config
+    * when the dbkvs runtime config is absent, behavior is the same as before
+    * subscribes to the runtime config so that the hikari pool is updated any time the config changes
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**:
+
+    **Concerns (what feedback would you like?)**:
+
+    **Where should we start reviewing?**:
+
+    **Priority (whenever / two weeks / yesterday)**: normal
+  links:
+  - https://github.com/palantir/atlasdb/pull/5365
