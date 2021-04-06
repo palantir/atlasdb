@@ -19,7 +19,9 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ConnectionManager;
@@ -29,7 +31,9 @@ import com.palantir.nexus.db.sql.ConnectionBackedSqlConnectionImpl;
 import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
+import com.palantir.refreshable.Refreshable;
 import java.sql.Connection;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 // This class should be removed and replaced by DbKvs when InDbTimestampStore depends directly on DbKvs
@@ -38,16 +42,47 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
     private final ConnectionManager connManager;
     private final SqlConnectionSupplier sqlConnectionSupplier;
 
+    /**
+     * @deprecated This method does not support live reloading the DB password. Use
+     * {@link #create(DbKeyValueServiceConfig, Refreshable, boolean)} instead.
+     */
+    @Deprecated
     public static ConnectionManagerAwareDbKvs create(DbKeyValueServiceConfig config) {
         return create(config, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
+    /**
+     * @deprecated This method does not support live reloading the DB password. Use
+     * {@link #create(DbKeyValueServiceConfig, Refreshable, boolean)} instead.
+     */
+    @Deprecated
     public static ConnectionManagerAwareDbKvs create(DbKeyValueServiceConfig config, boolean initializeAsync) {
+        return create(config, Refreshable.only(Optional.empty()), initializeAsync);
+    }
+
+    public static ConnectionManagerAwareDbKvs create(
+            DbKeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            boolean initializeAsync) {
         HikariCPConnectionManager connManager = new HikariCPConnectionManager(config.connection());
+        runtimeConfig.subscribe(newRuntimeConfig -> updateConnManagerConfig(connManager, config, newRuntimeConfig));
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
         return new ConnectionManagerAwareDbKvs(
                 DbKvs.create(config, sqlConnSupplier, initializeAsync), connManager, sqlConnSupplier);
+    }
+
+    private static void updateConnManagerConfig(
+            HikariCPConnectionManager connManager,
+            DbKeyValueServiceConfig config,
+            Optional<KeyValueServiceRuntimeConfig> runtimeConfig) {
+        if (runtimeConfig.isPresent() && runtimeConfig.get() instanceof DbKeyValueServiceRuntimeConfig) {
+            DbKeyValueServiceRuntimeConfig dbRuntimeConfig = (DbKeyValueServiceRuntimeConfig) runtimeConfig.get();
+            connManager.setPassword(dbRuntimeConfig.getDbPassword().unmasked());
+        } else {
+            // no runtime config (or wrong type), use the password from the install config
+            connManager.setPassword(config.connection().getDbPassword().unmasked());
+        }
     }
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
