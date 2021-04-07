@@ -64,7 +64,6 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         TransactionsLockWatchUpdate updateForTransactions =
                 eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
         updateCurrentVersionFromTransactionUpdate(updateForTransactions);
-        // update current version
 
         Map<StartTimestamp, Sequence> timestampToSequence = KeyedStream.stream(
                         updateForTransactions.startTsToSequence())
@@ -76,7 +75,13 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         Multimap<Sequence, StartTimestamp> reversedMap = HashMultimap.create();
         timestampToSequence.forEach((startTs, sequence) -> reversedMap.put(sequence, startTs));
 
-        updateForTransactions.events().forEach(event -> event.accept(new LockWatchVisitor()));
+        updateForTransactions.events().forEach(event -> {
+            event.accept(new LockWatchVisitor());
+            Sequence sequence = Sequence.of(event.sequence());
+            reversedMap
+                    .get(sequence)
+                    .forEach(timestamp -> snapshotStore.storeSnapshot(sequence, timestamp, valueStore.getSnapshot()));
+        });
     }
 
     private void updateCurrentVersionFromTransactionUpdate(TransactionsLockWatchUpdate updateForTransactions) {
