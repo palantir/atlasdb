@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.palantir.atlasdb.keyvalue.api.watch.ImmutableCacheValue;
 import org.immutables.value.Value;
 
 @Value.Immutable

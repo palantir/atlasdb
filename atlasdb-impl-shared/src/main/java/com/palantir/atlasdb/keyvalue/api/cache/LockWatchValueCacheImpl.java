@@ -122,7 +122,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
                         .collect(Collectors.toSet());
                 KeyedStream.stream(digest.loadedValues())
                         .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
-                        .forEach((valueStore::putValue));
+                        .forEach(valueStore::putValue);
                 return null;
             }
         });
