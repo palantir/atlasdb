@@ -44,7 +44,14 @@ public abstract class ConnectionConfig {
 
     public abstract String getDbLogin();
 
-    public abstract MaskedValue getDbPassword();
+    /**
+     * If a runtime config is present, this does not need to be set and will not be used. A default value is provided
+     * so that the config will parse when this field is missing.
+     */
+    @Value.Default
+    public MaskedValue getDbPassword() {
+        return ImmutableMaskedValue.of("");
+    }
 
     public abstract String getUrl();
 

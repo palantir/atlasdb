@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.MultiSequenceTimestampSeriesProvider;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.refreshable.Refreshable;
@@ -51,11 +52,14 @@ public class RelationalDbTimeLockFactory implements DbTimeLockFactory {
 
     @Override
     public KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager, KeyValueServiceConfig config, LeaderConfig leaderConfig) {
+            MetricsManager metricsManager,
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            LeaderConfig leaderConfig) {
         return delegate.createRawKeyValueService(
                 metricsManager,
                 config,
-                Refreshable.only(Optional.empty()),
+                runtimeConfig,
                 Optional.of(leaderConfig),
                 Optional.empty(), // This refers to an AtlasDB namespace - we use the config to talk to the db
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE, // This is how we give out timestamps!

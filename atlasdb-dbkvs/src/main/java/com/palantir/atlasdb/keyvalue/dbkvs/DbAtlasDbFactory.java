@@ -69,7 +69,7 @@ public class DbAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
                 config instanceof DbKeyValueServiceConfig,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
                 config.getClass());
-        return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config, initializeAsync);
+        return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config, runtimeConfig, initializeAsync);
     }
 
     @Override

@@ -25,12 +25,15 @@ import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @AutoService(DbTimeLockFactory.class)
 public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
@@ -43,7 +46,10 @@ public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
 
     @Override
     public KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager, KeyValueServiceConfig config, LeaderConfig leaderConfig) {
+            MetricsManager metricManager,
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            LeaderConfig leaderConfig) {
         return new InMemoryKeyValueService(true);
     }
 
