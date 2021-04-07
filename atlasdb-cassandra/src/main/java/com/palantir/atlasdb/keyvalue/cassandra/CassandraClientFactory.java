@@ -237,7 +237,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     private static void expensivelyLogAllThreadState() {
         ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
-        ThreadInfo[] threadInfos = threadBean.getThreadInfo(threadBean.getAllThreadIds());
+        ThreadInfo[] threadInfos = threadBean.getThreadInfo(threadBean.getAllThreadIds(), Integer.MAX_VALUE);
         for (int index = 0; index < threadInfos.length; index++) {
             // This is superior to using standard jstacks because it is based on what we believe to be the unique
             // trigger of PDS-146088.
