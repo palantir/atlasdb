@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.http.v2;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.base.Throwables;
 import com.palantir.conjure.java.api.errors.QosException;
@@ -28,9 +27,7 @@ import java.lang.reflect.Proxy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.function.Supplier;
-import org.immutables.value.Value;
 
 /**
  * This proxy exists to support "fast failover" behaviour with no limit as to the number of attempts made; instead,
@@ -111,34 +108,5 @@ public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
             cause = cause.getCause();
         }
         return false;
-    }
-
-    @Value.Immutable
-    interface ResultOrThrowable {
-        boolean isSuccessful();
-
-        Optional<Object> result();
-
-        Optional<Throwable> throwable();
-
-        @Value.Check
-        default void exactlyOneSet() {
-            Preconditions.checkState(result().isPresent() ^ throwable().isPresent()
-                    || isSuccessful() && !throwable().isPresent());
-        }
-
-        static ResultOrThrowable success(Object result) {
-            return ImmutableResultOrThrowable.builder()
-                    .isSuccessful(true)
-                    .result(Optional.ofNullable(result))
-                    .build();
-        }
-
-        static ResultOrThrowable failure(Throwable throwable) {
-            return ImmutableResultOrThrowable.builder()
-                    .isSuccessful(false)
-                    .throwable(throwable)
-                    .build();
-        }
     }
 }

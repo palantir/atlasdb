@@ -1342,7 +1342,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     private void sanityCheckOnSortedCells(List<byte[]> rows, List<Cell> cells, List<Cell> expectedCells) {
-        assertThat(cells).hasSize(expectedCells.size());
+        assertThat(cells).hasSameSizeAs(expectedCells);
         assertThat(cells).hasSameElementsAs(expectedCells);
         assertThat(cells).isSortedAccordingTo(columnOrderThenPreserveInputRowOrder(rows));
     }

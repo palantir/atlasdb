@@ -139,5 +139,6 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     public void close() {
         transactionStarter.close();
         commitTimestampGetter.close();
+        lockLeaseService.close();
     }
 }

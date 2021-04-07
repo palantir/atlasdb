@@ -1,0 +1,38 @@
+version: '2'
+
+services:
+  timelock:
+    image: palantirtechnologies/timelock-server-distribution
+    command: [bash, -c, 'cp var/conf/timelock-postgres.yml var/conf/timelock.yml && service/bin/init.sh console']
+    depends_on:
+      - postgres
+    ports:
+      - "8421"
+      - "8422"
+
+  postgres:
+    image: postgres:9.6-alpine
+    mem_limit: 512m
+    environment:
+      POSTGRES_PASSWORD: palantir
+      POSTGRES_USER: palantir
+      POSTGRES_DB: atlasete
+    ports:
+      - "5432"
+
+  ete1:
+    build: .
+    # We don't use console, because we might want to start/stop/restart the service.
+    command: [bash, -c, '
+        dockerize -timeout 120s -wait tcp://postgres:5432
+        && service/bin/init.sh start
+        && tail -F var/log/startup.log']
+    ports:
+      - "3828"
+    depends_on:
+      - postgres
+      - timelock
+    volumes:
+      - $CONFIG_FILE_MOUNTPOINT:/atlasdb-ete/atlasdb-ete-snapshot/var/conf/
+    environment:
+      - ME=ete1

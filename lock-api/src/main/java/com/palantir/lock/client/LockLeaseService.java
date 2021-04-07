@@ -42,7 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-class LockLeaseService {
+class LockLeaseService implements AutoCloseable {
     private final NamespacedConjureTimelockService delegate;
     private final UUID clientId;
     private final LeaderTimeGetter leaderTimeGetter;
@@ -185,5 +185,10 @@ class LockLeaseService {
 
     private static Set<ConjureLockToken> serverTokens(Set<LeasedLockToken> leasedTokens) {
         return leasedTokens.stream().map(LeasedLockToken::serverToken).collect(Collectors.toSet());
+    }
+
+    @Override
+    public void close() {
+        leaderTimeGetter.close();
     }
 }

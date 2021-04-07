@@ -52,34 +52,39 @@ public final class RequestBatchersFactory {
     }
 
     public IdentifiedAtlasDbTransactionStarter createBatchingTransactionStarter(LockLeaseService lockLeaseService) {
-        Optional<MultiClientTransactionStarter> transactionStarter =
+        Optional<ReferenceTrackingWrapper<MultiClientTransactionStarter>> transactionStarter =
                 maybeRequestBatchers.map(MultiClientRequestBatchers::transactionStarter);
         if (!transactionStarter.isPresent()) {
             return BatchingIdentifiedAtlasDbTransactionStarter.create(
                     lockLeaseService, startTransactionsLockWatchEventCache);
         }
+        ReferenceTrackingWrapper<MultiClientTransactionStarter> referenceTrackingBatcher = transactionStarter.get();
+        referenceTrackingBatcher.recordReference();
         return new NamespacedIdentifiedTransactionStarter(
                 namespace,
-                transactionStarter.get(),
+                referenceTrackingBatcher,
                 startTransactionsLockWatchEventCache,
                 new LockCleanupService(lockLeaseService));
     }
 
     public CommitTimestampGetter createBatchingCommitTimestampGetter(LockLeaseService lockLeaseService) {
-        Optional<MultiClientCommitTimestampGetter> commitTimestampGetter =
+        Optional<ReferenceTrackingWrapper<MultiClientCommitTimestampGetter>> commitTimestampGetter =
                 maybeRequestBatchers.map(MultiClientRequestBatchers::commitTimestampGetter);
         if (!commitTimestampGetter.isPresent()) {
             return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
         }
-        return new NamespacedCommitTimestampGetter(lockWatchEventCache, namespace, commitTimestampGetter.get());
+        ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher =
+                commitTimestampGetter.get();
+        referenceTrackingBatcher.recordReference();
+        return new NamespacedCommitTimestampGetter(lockWatchEventCache, namespace, referenceTrackingBatcher);
     }
 
     @Value.Immutable
     public interface MultiClientRequestBatchers {
         @Value.Parameter
-        MultiClientCommitTimestampGetter commitTimestampGetter();
+        ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> commitTimestampGetter();
 
         @Value.Parameter
-        MultiClientTransactionStarter transactionStarter();
+        ReferenceTrackingWrapper<MultiClientTransactionStarter> transactionStarter();
     }
 }

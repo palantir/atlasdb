@@ -32,7 +32,7 @@ jobs:
           paths: [ . ]
 
   test:
-    parallelism: 9
+    parallelism: 10
     machine:
       image: circleci/classic:edge
     resource_class: xlarge
@@ -84,6 +84,19 @@ jobs:
           root: .
           paths: [ . ]
 
+  trial-publish:
+    docker:
+      - image: circleci/openjdk:8u212-jdk-stretch-node
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /tmp/test-reports
+      CIRCLE_ARTIFACTS: /tmp/artifacts
+    steps:
+      - attach_workspace: { at: . }
+      - run: ./gradlew --profile --stacktrace --continue publishToMavenLocal
+
   deploy:
     docker:
       - image: circleci/openjdk:8u212-jdk-stretch-node
@@ -104,24 +117,16 @@ jobs:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
             if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
-              if [[ "${CIRCLE_BRANCH}" =~ develop ]]; then
-                ./scripts/circle-ci/publish-github-page.sh
-                # Internal publishing from an external CircleCI is... not a thing.
-                # curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
-              else
-                echo "Internal and external docs are typically published from develop, not ${CIRCLE_BRANCH}."
-              fi
+              ./scripts/circle-ci/publish-github-page.sh
+              # Internal publishing from an external CircleCI is... not a thing.
+              # curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
             fi
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
             if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
-              # publishing snapshots to bintray does not work, so we only publish from tag builds (not develop)
-              if [[ "${CIRCLE_TAG}" =~ [0-9]+(\.[0-9]+){2}(-alpha|-beta|-rc[0-9]+)?(\+[0-9]{3})? ]]; then
-                ./gradlew --profile --stacktrace --continue bintrayUpload -x check
-              else
-                echo "${CIRCLE_TAG} does not appear to be a version, so not publishing."
-              fi
+              git status
+              ./gradlew --profile --stacktrace --continue publish
             fi
 
 workflows:
@@ -137,8 +142,15 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - trial-publish:
+          requires: [build]
+          filters:
+            branches:
+              ignore: [develop]
       - deploy:
           requires: [build, test]
           filters:
+            branches:
+              only: develop
             tags:
               only: /.*/

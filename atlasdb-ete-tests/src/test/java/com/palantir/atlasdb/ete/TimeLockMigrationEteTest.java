@@ -17,18 +17,27 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.ete.DockerClientOrchestrationRule.DockerClientConfiguration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import java.io.File;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.awaitility.Awaitility;
+import org.immutables.value.Value;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -42,12 +51,55 @@ public class TimeLockMigrationEteTest {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Gradle DOCKER_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
 
+    private static final TimeLockMigrationTestCase TEST_CASE = TimeLockMigrationTestCase.CASSANDRA_PAXOS;
+    private static final TimeLockMigrationTestContext TEST_CONTEXT;
+
+    static {
+        File embeddedConfig;
+        DockerClientConfiguration dockerClientConfiguration;
+        switch (TEST_CASE) {
+            case CASSANDRA_PAXOS:
+                embeddedConfig = new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml");
+                dockerClientConfiguration = ImmutableDockerClientConfiguration.builder()
+                        .initialConfigFile(embeddedConfig)
+                        .dockerComposeYmlFile(new File("docker-compose.timelock-migration.cassandra.yml"))
+                        .databaseServiceName("cassandra")
+                        .build();
+                TEST_CONTEXT = ImmutableTimeLockMigrationTestContext.builder()
+                        .eteConfigWithEmbedded(embeddedConfig)
+                        .eteConfigWithTimeLock(new File("docker/conf/atlasdb-ete.timelock.cassandra.yml"))
+                        .dockerClientConfiguration(dockerClientConfiguration)
+                        .build();
+                break;
+            case POSTGRES_DB_TIMELOCK:
+                embeddedConfig = new File("docker/conf/atlasdb-ete.no-leader.dbkvs.yml");
+                dockerClientConfiguration = ImmutableDockerClientConfiguration.builder()
+                        .initialConfigFile(embeddedConfig)
+                        .dockerComposeYmlFile(new File("docker-compose.timelock-migration.dbkvs.yml"))
+                        .databaseServiceName("postgres")
+                        .build();
+                TEST_CONTEXT = ImmutableTimeLockMigrationTestContext.builder()
+                        .eteConfigWithEmbedded(embeddedConfig)
+                        .eteConfigWithTimeLock(new File("docker/conf/atlasdb-ete.timelock.dbkvs.yml"))
+                        .dockerClientConfiguration(dockerClientConfiguration)
+                        .build();
+                break;
+            default:
+                throw new SafeIllegalStateException("Unexpected enum value");
+        }
+    }
+
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
     // Thus ensure the temporary folder is a subdirectory of the user's home directory
     private static final TemporaryFolder TEMPORARY_FOLDER =
             new TemporaryFolder(new File(System.getProperty("user.home")));
+
     private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE =
-            new DockerClientOrchestrationRule(TEMPORARY_FOLDER);
+            new DockerClientOrchestrationRule(TEST_CONTEXT.dockerClientConfiguration(), TEMPORARY_FOLDER);
+
+    private static final SslConfiguration SSL_CONFIGURATION =
+            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+    public static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
 
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Todo TODO_2 = ImmutableTodo.of("more stuff to do");
@@ -111,18 +163,29 @@ public class TimeLockMigrationEteTest {
         downgradeAtlasClientFromTimelockWithoutMigration();
 
         assertCanNeitherReadNorWrite();
+
+        // Do this explicitly to avoid mountains of log spam
+        CLIENT_ORCHESTRATION_RULE.stopAtlasClient();
     }
 
     private void upgradeAtlasClientToTimelock() {
-        CLIENT_ORCHESTRATION_RULE.updateClientConfig(DockerClientOrchestrationRule.TIMELOCK_CONFIG);
+        CLIENT_ORCHESTRATION_RULE.updateClientConfig(TEST_CONTEXT.eteConfigWithTimeLock());
         CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
         waitUntil(serversAreReady());
     }
 
     private void downgradeAtlasClientFromTimelockWithoutMigration() {
-        CLIENT_ORCHESTRATION_RULE.updateClientConfig(DockerClientOrchestrationRule.EMBEDDED_CONFIG);
+        CLIENT_ORCHESTRATION_RULE.updateClientConfig(TEST_CONTEXT.eteConfigWithEmbedded());
         CLIENT_ORCHESTRATION_RULE.restartAtlasClient();
-        waitForTransactionManagerCreationError();
+        if (TEST_CASE == TimeLockMigrationTestCase.CASSANDRA_PAXOS) {
+            // Doesn't work for Postgres because of extreme volume of logs produced in this way
+            waitForTransactionManagerCreationError();
+        } else {
+            // TODO (jkong): Be better.
+            // Realistically, this is enough time for the server to start up, and we value the test signal here
+            // if we're going to be doing these migrations...
+            Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
+        }
     }
 
     private void assertNoLongerExposesEmbeddedTimestampService() {
@@ -141,11 +204,11 @@ public class TimeLockMigrationEteTest {
         softAssertions
                 .assertThat(catchThrowable(() -> todoClient.addTodo(TODO_3)))
                 .as("cannot write using embedded service after migration to TimeLock")
-                .hasMessageContaining("Connection refused");
+                .hasMessageContaining("Dialogue transport failure");
         softAssertions
                 .assertThat(catchThrowable(todoClient::getTodoList))
                 .as("cannot read using embedded service after migration to TimeLock")
-                .hasMessageContaining("Connection refused");
+                .hasMessageContaining("Dialogue transport failure");
     }
 
     private void assertTimeLockGivesHigherTimestampThan(long timestamp) {
@@ -186,12 +249,29 @@ public class TimeLockMigrationEteTest {
     private static <T> T createEteClientFor(Class<T> clazz) {
         String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
         return AtlasDbHttpClients.createProxy(
-                Optional.empty(), uri, clazz, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
+                Optional.of(TRUST_CONTEXT), uri, clazz, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
     }
 
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
         return AtlasDbHttpClients.createProxy(
-                Optional.empty(), uri, TimestampService.class, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
+                Optional.of(TRUST_CONTEXT),
+                uri,
+                TimestampService.class,
+                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
+    }
+
+    @Value.Immutable
+    interface TimeLockMigrationTestContext {
+        DockerClientConfiguration dockerClientConfiguration();
+
+        File eteConfigWithEmbedded();
+
+        File eteConfigWithTimeLock();
+    }
+
+    private enum TimeLockMigrationTestCase {
+        CASSANDRA_PAXOS,
+        POSTGRES_DB_TIMELOCK;
     }
 }
