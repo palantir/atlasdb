@@ -17,9 +17,12 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.lock.watch.LockWatchEvent;
 
 public interface ValueStore {
     void reset();
+
+    void applyEvent(LockWatchEvent event);
 
     void putLockedCell(CellReference cellReference);
 

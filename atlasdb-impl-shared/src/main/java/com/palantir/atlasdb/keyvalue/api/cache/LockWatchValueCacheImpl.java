@@ -20,23 +20,14 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
-import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import com.palantir.lock.watch.UnlockEvent;
-import io.vavr.collection.HashSet;
-import io.vavr.collection.Set;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -44,7 +35,6 @@ import java.util.stream.Stream;
 
 public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private final ValueStore valueStore;
-    private final StructureHolder<Set<TableReference>> watchedTables;
     private final LockWatchEventCache eventCache;
     private final SnapshotStore snapshotStore;
 
@@ -53,7 +43,6 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     public LockWatchValueCacheImpl(LockWatchEventCache eventCache) {
         this.eventCache = eventCache;
         this.valueStore = new ValueStoreImpl();
-        this.watchedTables = StructureHolder.create(HashSet.empty());
         this.snapshotStore = new SnapshotStoreImpl();
     }
 
@@ -68,7 +57,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
         updateForTransactions.events().forEach(event -> {
-            event.accept(new LockWatchVisitor());
+            valueStore.applyEvent(event);
             Sequence sequence = Sequence.of(event.sequence());
             reversedMap
                     .get(sequence)
@@ -87,30 +76,29 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     }
 
     private void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
-        Optional<LockWatchVersion> latestVersion = updateForTransactions.startTsToSequence().values().stream()
+        Optional<LockWatchVersion> maybeLatestVersion = updateForTransactions.startTsToSequence().values().stream()
                 .max(Comparator.comparingLong(LockWatchVersion::version));
 
-        latestVersion.ifPresent(latestVersion1 -> {
+        maybeLatestVersion.ifPresent(latestVersion -> {
             if (!currentVersion.isPresent()) {
                 // first update after a snapshot or creation of cache
-                currentVersion = latestVersion;
+                currentVersion = maybeLatestVersion;
             } else {
                 LockWatchVersion current = currentVersion.get();
 
-                if (!current.id().equals(latestVersion1.id())) {
+                if (!current.id().equals(latestVersion.id())) {
                     // leader election
                     clearCache();
-                    currentVersion = latestVersion;
-                } else if (current.version() < latestVersion1.version()) {
+                    currentVersion = maybeLatestVersion;
+                } else if (current.version() < latestVersion.version()) {
                     // normal update
-                    currentVersion = latestVersion;
+                    currentVersion = maybeLatestVersion;
                 }
             }
         });
     }
 
     private void clearCache() {
-        watchedTables.resetToInitialValue();
         valueStore.reset();
         snapshotStore.reset();
     }
@@ -146,45 +134,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         return new TransactionScopedCacheImpl();
     }
 
-    private TableReference extractTableReference(LockWatchReference lockWatchReference) {
-        return lockWatchReference
-                .accept(LockWatchReferencesVisitor.INSTANCE)
-                .orElseThrow(() -> new RuntimeException("Failed to parse table reference from lock watch reference"));
-    }
-
     private Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
         return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
-    }
-
-    private void applyLockedDescriptors(java.util.Set<LockDescriptor> lockDescriptors) {
-        lockDescriptors.stream()
-                .flatMap(LockWatchValueCacheImpl.this::extractTableAndCell)
-                .forEach(valueStore::putLockedCell);
-    }
-
-    private final class LockWatchVisitor implements LockWatchEvent.Visitor<Void> {
-
-        @Override
-        public Void visit(LockEvent lockEvent) {
-            applyLockedDescriptors(lockEvent.lockDescriptors());
-            return null;
-        }
-
-        @Override
-        public Void visit(UnlockEvent unlockEvent) {
-            unlockEvent.lockDescriptors().stream()
-                    .flatMap(LockWatchValueCacheImpl.this::extractTableAndCell)
-                    .forEach(valueStore::clearLockedCell);
-            return null;
-        }
-
-        @Override
-        public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-            lockWatchCreatedEvent.references().stream()
-                    .map(LockWatchValueCacheImpl.this::extractTableReference)
-                    .forEach(tableReference -> watchedTables.with(tables -> tables.add(tableReference)));
-            applyLockedDescriptors(lockWatchCreatedEvent.lockDescriptors());
-            return null;
-        }
     }
 }
