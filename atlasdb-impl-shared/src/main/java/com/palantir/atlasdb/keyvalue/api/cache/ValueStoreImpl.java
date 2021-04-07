@@ -30,6 +30,11 @@ public final class ValueStoreImpl implements ValueStore {
     }
 
     @Override
+    public void reset() {
+        values.resetToInitialValue();
+    }
+
+    @Override
     public void putLockedCell(CellReference cellReference) {
         values.with(map -> map.put(cellReference, CacheEntry.locked()));
     }

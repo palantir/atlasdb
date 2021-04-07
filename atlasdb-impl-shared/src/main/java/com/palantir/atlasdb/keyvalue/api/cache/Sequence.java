@@ -16,16 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.palantir.atlasdb.keyvalue.api.CellReference;
+import org.immutables.value.Value;
 
-public interface ValueStore {
-    void reset();
+/**
+ * Dealing with two longs in maps is driving me insane. Made a couple of interfaces to make this less terrible.
+ */
+@Value.Immutable
+public interface Sequence {
+    long value();
 
-    void putLockedCell(CellReference cellReference);
-
-    void clearLockedCell(CellReference cellReference);
-
-    void putValue(CellReference cellReference, CacheValue value);
-
-    ValueCacheSnapshot getSnapshot();
+    static Sequence of(long value) {
+        return ImmutableSequence.builder().value(value).build();
+    }
 }

@@ -16,9 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
@@ -34,6 +37,8 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,6 +47,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private final ValueStore valueStore;
     private final StructureHolder<Set<TableReference>> watchedTables;
     private final LockWatchEventCache eventCache;
+    private final SnapshotStore snapshotStore;
 
     // todo(jshah): implement version tracking
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
@@ -50,14 +56,60 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         this.eventCache = eventCache;
         this.valueStore = new ValueStoreImpl();
         this.watchedTables = StructureHolder.create(HashSet.empty());
+        this.snapshotStore = new SnapshotStoreImpl();
     }
 
     @Override
     public void processStartTransactions(java.util.Set<Long> startTimestamps) {
         TransactionsLockWatchUpdate updateForTransactions =
                 eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
+        updateCurrentVersionFromTransactionUpdate(updateForTransactions);
         // update current version
+
+        Map<StartTimestamp, Sequence> timestampToSequence = KeyedStream.stream(
+                        updateForTransactions.startTsToSequence())
+                .map(LockWatchVersion::version)
+                .map(Sequence::of)
+                .mapKeys(StartTimestamp::of)
+                .collectToMap();
+
+        Multimap<Sequence, StartTimestamp> reversedMap = HashMultimap.create();
+        timestampToSequence.forEach((startTs, sequence) -> reversedMap.put(sequence, startTs));
+
         updateForTransactions.events().forEach(event -> event.accept(new LockWatchVisitor()));
+    }
+
+    private void updateCurrentVersionFromTransactionUpdate(TransactionsLockWatchUpdate updateForTransactions) {
+        Optional<LockWatchVersion> latestVersion = updateForTransactions.startTsToSequence().values().stream()
+                .max(Comparator.comparingLong(LockWatchVersion::version));
+
+        updateCurrentVersion(latestVersion);
+    }
+
+    private void updateCurrentVersion(Optional<LockWatchVersion> maybeLatestVersion) {
+        maybeLatestVersion.ifPresent(latestVersion -> {
+            if (!currentVersion.isPresent()) {
+                // first update after a snapshot or creation of cache
+                currentVersion = maybeLatestVersion;
+            } else {
+                LockWatchVersion current = currentVersion.get();
+
+                if (!current.id().equals(latestVersion.id())) {
+                    // leader election
+                    clearCache();
+                    currentVersion = maybeLatestVersion;
+                } else if (current.version() < latestVersion.version()) {
+                    // normal update
+                    currentVersion = maybeLatestVersion;
+                }
+            }
+        });
+    }
+
+    private void clearCache() {
+        watchedTables.resetToInitialValue();
+        valueStore.reset();
+        snapshotStore.reset();
     }
 
     @Override
@@ -67,8 +119,9 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
             @Override
             public Void invalidateAll() {
                 // If this is an election, we should throw. If not and we are not a serialisable transaction, we are
-                // *technically* ok to go on here.
-                return null;
+                // *technically* ok to go on here. However, we cannot determine which of the two we are in, so I think
+                // we just need to throw anyway.
+                throw new TransactionLockWatchFailedException("Leader election by commit time, must retry.");
             }
 
             @Override

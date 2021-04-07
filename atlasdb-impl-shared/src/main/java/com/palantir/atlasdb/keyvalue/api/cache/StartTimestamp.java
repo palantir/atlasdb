@@ -16,16 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.palantir.atlasdb.keyvalue.api.CellReference;
+import org.immutables.value.Value;
 
-public interface ValueStore {
-    void reset();
+/**
+ * See {@link Sequence} for justification.
+ */
+@Value.Immutable
+public interface StartTimestamp {
+    long value();
 
-    void putLockedCell(CellReference cellReference);
-
-    void clearLockedCell(CellReference cellReference);
-
-    void putValue(CellReference cellReference, CacheValue value);
-
-    ValueCacheSnapshot getSnapshot();
+    static StartTimestamp of(long value) {
+        return ImmutableStartTimestamp.builder().value(value).build();
+    }
 }
