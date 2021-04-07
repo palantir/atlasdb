@@ -14,11 +14,6 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    conjureCompiler 'com.palantir.conjure:conjure'
-    conjureJava 'com.palantir.conjure.java:conjure-java'
-}
-
 subprojects {
     apply from: "../../gradle/shared.gradle"
     apply plugin: 'com.palantir.sls-recommended-dependencies'

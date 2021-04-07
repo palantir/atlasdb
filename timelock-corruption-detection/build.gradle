@@ -10,9 +10,6 @@ conjure {
 }
 
 dependencies {
-    conjureCompiler 'com.palantir.conjure:conjure'
-    conjureJava 'com.palantir.conjure.java:conjure-java'
-
     compile project(':atlasdb-api')
 
     compile project(":timelock-corruption-detection:timelock-corruption-detection-undertow")
