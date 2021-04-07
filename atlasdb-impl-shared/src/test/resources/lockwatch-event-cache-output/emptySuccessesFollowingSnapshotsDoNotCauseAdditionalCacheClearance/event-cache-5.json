@@ -59,6 +59,10 @@
         },
         "commitInfo" : null
       }
+    },
+    "livingVersions" : {
+      "3" : [ 1, 2, 3 ],
+      "4" : [ 99 ]
     }
   }
 }
