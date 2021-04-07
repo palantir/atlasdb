@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
@@ -38,7 +38,6 @@ import com.palantir.lock.watch.UnlockEvent;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
 import java.util.Comparator;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,7 +48,6 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private final LockWatchEventCache eventCache;
     private final SnapshotStore snapshotStore;
 
-    // todo(jshah): implement version tracking
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     public LockWatchValueCacheImpl(LockWatchEventCache eventCache) {
@@ -63,18 +61,12 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     public void processStartTransactions(java.util.Set<Long> startTimestamps) {
         TransactionsLockWatchUpdate updateForTransactions =
                 eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
-        updateCurrentVersionFromTransactionUpdate(updateForTransactions);
+        updateCurrentVersion(updateForTransactions);
+        updateStores(updateForTransactions);
+    }
 
-        Map<StartTimestamp, Sequence> timestampToSequence = KeyedStream.stream(
-                        updateForTransactions.startTsToSequence())
-                .map(LockWatchVersion::version)
-                .map(Sequence::of)
-                .mapKeys(StartTimestamp::of)
-                .collectToMap();
-
-        Multimap<Sequence, StartTimestamp> reversedMap = HashMultimap.create();
-        timestampToSequence.forEach((startTs, sequence) -> reversedMap.put(sequence, startTs));
-
+    private void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
+        Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
         updateForTransactions.events().forEach(event -> {
             event.accept(new LockWatchVisitor());
             Sequence sequence = Sequence.of(event.sequence());
@@ -84,28 +76,34 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         });
     }
 
-    private void updateCurrentVersionFromTransactionUpdate(TransactionsLockWatchUpdate updateForTransactions) {
+    private Multimap<Sequence, StartTimestamp> createSequenceTimestampMultimap(
+            TransactionsLockWatchUpdate updateForTransactions) {
+        return KeyedStream.stream(updateForTransactions.startTsToSequence())
+                .mapKeys(StartTimestamp::of)
+                .map(LockWatchVersion::version)
+                .map(Sequence::of)
+                .mapEntries((timestamp, sequence) -> Maps.immutableEntry(sequence, timestamp))
+                .collectToSetMultimap();
+    }
+
+    private void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
         Optional<LockWatchVersion> latestVersion = updateForTransactions.startTsToSequence().values().stream()
                 .max(Comparator.comparingLong(LockWatchVersion::version));
 
-        updateCurrentVersion(latestVersion);
-    }
-
-    private void updateCurrentVersion(Optional<LockWatchVersion> maybeLatestVersion) {
-        maybeLatestVersion.ifPresent(latestVersion -> {
+        latestVersion.ifPresent(latestVersion1 -> {
             if (!currentVersion.isPresent()) {
                 // first update after a snapshot or creation of cache
-                currentVersion = maybeLatestVersion;
+                currentVersion = latestVersion;
             } else {
                 LockWatchVersion current = currentVersion.get();
 
-                if (!current.id().equals(latestVersion.id())) {
+                if (!current.id().equals(latestVersion1.id())) {
                     // leader election
                     clearCache();
-                    currentVersion = maybeLatestVersion;
-                } else if (current.version() < latestVersion.version()) {
+                    currentVersion = latestVersion;
+                } else if (current.version() < latestVersion1.version()) {
                     // normal update
-                    currentVersion = maybeLatestVersion;
+                    currentVersion = latestVersion;
                 }
             }
         });
