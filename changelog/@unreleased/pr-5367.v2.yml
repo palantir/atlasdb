@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Cassandra client pool diagnostic thread dumps now include stack traces.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5367
