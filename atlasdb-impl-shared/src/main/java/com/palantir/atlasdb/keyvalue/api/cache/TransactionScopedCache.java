@@ -16,4 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-public interface TransactionScopedCache {}
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
+public interface TransactionScopedCache {
+    void invalidate(TableReference tableReference, Cell cell);
+
+    Map<> get(TableReference tableReference, Cell cell);
+}
