@@ -11,6 +11,7 @@
     "latestVersion" : null
   },
   "timestampStoreState" : {
-    "timestampMap" : { }
+    "timestampMap" : { },
+    "livingVersions" : { }
   }
 }

@@ -70,6 +70,10 @@
         },
         "commitInfo" : null
       }
+    },
+    "livingVersions" : {
+      "3" : [ 1 ],
+      "6" : [ 5, 123 ]
     }
   }
 }

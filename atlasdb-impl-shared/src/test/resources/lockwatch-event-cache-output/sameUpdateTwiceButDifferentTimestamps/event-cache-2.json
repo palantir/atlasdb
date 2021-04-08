@@ -63,14 +63,14 @@
         },
         "commitInfo" : null
       },
-      "91" : {
+      "12" : {
         "version" : {
           "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
           "version" : 6
         },
         "commitInfo" : null
       },
-      "12" : {
+      "91" : {
         "version" : {
           "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
           "version" : 6
@@ -91,6 +91,10 @@
         },
         "commitInfo" : null
       }
+    },
+    "livingVersions" : {
+      "3" : [ 1 ],
+      "6" : [ 11, 12, 91, 92, 93 ]
     }
   }
 }

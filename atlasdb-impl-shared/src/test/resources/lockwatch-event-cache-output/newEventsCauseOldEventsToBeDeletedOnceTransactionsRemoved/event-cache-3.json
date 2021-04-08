@@ -52,21 +52,7 @@
     }
   },
   "timestampStoreState" : {
-    "timestampMap" : {
-      "16" : {
-        "version" : {
-          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
-          "version" : 7
-        },
-        "commitInfo" : null
-      },
-      "1" : {
-        "version" : {
-          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
-          "version" : 3
-        },
-        "commitInfo" : null
-      }
-    }
+    "timestampMap" : { },
+    "livingVersions" : { }
   }
 }
