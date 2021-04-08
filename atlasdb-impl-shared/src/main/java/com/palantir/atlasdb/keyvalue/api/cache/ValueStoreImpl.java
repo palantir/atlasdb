@@ -85,7 +85,7 @@ public final class ValueStoreImpl implements ValueStore {
 
     @Override
     public ValueCacheSnapshot getSnapshot() {
-        return ValueCacheSnapshotImpl.of(values.getStructure());
+        return ValueCacheSnapshotImpl.of(values.getStructure(), watchedTables.getStructure());
     }
 
     private Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {

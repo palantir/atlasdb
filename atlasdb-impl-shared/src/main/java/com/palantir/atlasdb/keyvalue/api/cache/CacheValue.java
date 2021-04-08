@@ -16,13 +16,18 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CacheValue {
-    byte[] value();
+    Optional<byte[]> value();
 
     static CacheValue of(byte[] value) {
         return ImmutableCacheValue.builder().value(value).build();
+    }
+
+    static CacheValue empty() {
+        return ImmutableCacheValue.builder().build();
     }
 }

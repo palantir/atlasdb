@@ -18,9 +18,17 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
 
 public interface TransactionScopedCache {
     void invalidate(TableReference tableReference, Cell cell);
 
-    Map<> get(TableReference tableReference, Cell cell);
+    Map<Cell, byte[]> get(
+            TableReference tableReference,
+            Set<Cell> cell,
+            BiFunction<TableReference, Set<Cell>, Map<Cell, byte[]>> valueLoader);
+
+    TransactionDigest getDigest();
 }

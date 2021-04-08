@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import io.vavr.collection.Map;
+import io.vavr.collection.Set;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -25,12 +27,22 @@ import org.immutables.value.Value;
 public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     Map<CellReference, CacheEntry> values();
 
+    Set<TableReference> enabledTables();
+
+    @Override
+    default boolean canCache(TableReference tableReference) {
+        return enabledTables().contains(tableReference);
+    }
+
     @Override
     default Optional<CacheEntry> getValue(CellReference tableAndCell) {
         return values().get(tableAndCell).toJavaOptional();
     }
 
-    static ValueCacheSnapshot of(Map<CellReference, CacheEntry> values) {
-        return ImmutableValueCacheSnapshotImpl.builder().values(values).build();
+    static ValueCacheSnapshot of(Map<CellReference, CacheEntry> values, Set<TableReference> enabledTables) {
+        return ImmutableValueCacheSnapshotImpl.builder()
+                .values(values)
+                .enabledTables(enabledTables)
+                .build();
     }
 }

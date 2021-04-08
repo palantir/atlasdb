@@ -16,17 +16,19 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CacheEntry {
     Status status();
 
-    Optional<CacheValue> value();
+    CacheValue value();
 
     static CacheEntry locked() {
-        return ImmutableCacheEntry.builder().status(Status.LOCKED).build();
+        return ImmutableCacheEntry.builder()
+                .status(Status.LOCKED)
+                .value(CacheValue.empty())
+                .build();
     }
 
     static CacheEntry unlocked(CacheValue value) {

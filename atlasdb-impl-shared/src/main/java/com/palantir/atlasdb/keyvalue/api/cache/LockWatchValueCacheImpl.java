@@ -30,6 +30,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -47,7 +48,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     }
 
     @Override
-    public void processStartTransactions(java.util.Set<Long> startTimestamps) {
+    public void processStartTransactions(Set<Long> startTimestamps) {
         TransactionsLockWatchUpdate updateForTransactions =
                 eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
         updateCurrentVersion(updateForTransactions);
@@ -131,7 +132,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     @Override
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
         // todo(jshah): implement
-        return new TransactionScopedCacheImpl();
+        return new TransactionScopedCacheImpl(null);
     }
 
     private Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
