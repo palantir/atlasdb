@@ -35,8 +35,8 @@ public class PersistenceConfigStoreTest {
             ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
     private static final TsBoundPersisterConfiguration DB_CONFIG =
             ImmutableDatabaseTsBoundPersisterConfiguration.builder()
-            .keyValueServiceConfig(new InMemoryAtlasDbConfig())
-            .build();
+                    .keyValueServiceConfig(new InMemoryAtlasDbConfig())
+                    .build();
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
