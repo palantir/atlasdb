@@ -21,9 +21,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.SqliteConnections;
-import com.palantir.remoting2.ext.jackson.ObjectMappers;
 import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
