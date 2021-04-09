@@ -23,13 +23,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,11 +75,13 @@ public class CellsSweeper {
         }
 
         if (cellTsPairsToSweep.entries().stream().anyMatch(entry -> entry.getValue() == null)) {
+            SafeAndUnsafeCellArgs args = getLoggingArgsForCells(tableRef, cellTsPairsToSweep);
             log.error(
                     "When sweeping table {} found cells to sweep with the start timestamp null."
-                            + " This is unexpected. The cellTs pairs to sweep were: {}.",
+                            + " This is unexpected. The cellTs pairs to sweep were: {} (safe) and {} (unsafe).",
                     LoggingArgs.tableRef(tableRef),
-                    getLoggingArgForCells(cellTsPairsToSweep));
+                    args.safeCells(),
+                    args.unsafeCells());
         }
 
         persistentLockManager.acquirePersistentLockWithRetry();
@@ -90,14 +93,30 @@ public class CellsSweeper {
         }
     }
 
-    private Arg<String> getLoggingArgForCells(Multimap<Cell, Long> cellTsPairsToSweep) {
-        return UnsafeArg.of("cellTsPairsToSweep", getMessage(cellTsPairsToSweep));
+    private SafeAndUnsafeCellArgs getLoggingArgsForCells(TableReference tableRef, Multimap<Cell, Long> cellTsPairsToSweep) {
+        Multimap<Cell, Long> safePairs = KeyedStream.stream(cellTsPairsToSweep)
+                .filterKeys(cell -> LoggingArgs.cell(tableRef, cell) instanceof SafeArg)
+                .collectToSetMultimap();
+        Multimap<Cell, Long> unsafePairs = KeyedStream.stream(cellTsPairsToSweep)
+                .filterEntries((cell, timestamp) -> !safePairs.containsEntry(cell, timestamp))
+                .collectToSetMultimap();
+
+        return ImmutableSafeAndUnsafeCellArgs.builder()
+                .safeCells(SafeArg.of("safeCells", getMessage(safePairs)))
+                .unsafeCells(UnsafeArg.of("unsafeCells", getMessage(unsafePairs)))
+                .build();
     }
 
     private String getMessage(Multimap<Cell, Long> cellTsPairsToSweep) {
         return cellTsPairsToSweep.entries().stream()
-                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .sorted(Map.Entry.comparingByKey())
                 .map(entry -> entry.getKey().toString() + "->" + entry.getValue())
                 .collect(Collectors.joining(", ", "[", "]"));
+    }
+
+    @Value.Immutable
+    interface SafeAndUnsafeCellArgs {
+        Arg<String> safeCells();
+        Arg<String> unsafeCells();
     }
 }

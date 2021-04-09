@@ -147,7 +147,7 @@ public class SpecificTableSweeper {
                         + " up to timestamp {}.",
                 SafeArg.of("cellTs pairs examined", results.getCellTsPairsExamined()),
                 LoggingArgs.tableRef("tableRef", tableRef),
-                UnsafeArg.of("startRow", startRowToHex(startRow)),
+                LoggingArgs.row(tableRef, startRow, SpecificTableSweeper::startRowToHex),
                 SafeArg.of("cellTs pairs deleted", results.getStaleValuesDeleted()),
                 SafeArg.of("time taken", results.getTimeInMillis()),
                 SafeArg.of("last swept timestamp", results.getMinSweptTimestamp()));

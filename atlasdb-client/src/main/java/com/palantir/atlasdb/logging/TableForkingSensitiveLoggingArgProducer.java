@@ -46,7 +46,7 @@ public class TableForkingSensitiveLoggingArgProducer implements SensitiveLogging
                 return producerResult;
             }
         }
-        // Every relevant producer returns an empty list
+        // Every relevant producer returns empty
         return task.apply(catchall);
     }
 

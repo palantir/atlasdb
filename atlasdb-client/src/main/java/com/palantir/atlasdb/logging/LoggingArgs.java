@@ -258,6 +258,17 @@ public final class LoggingArgs {
                         () -> new SafeRuntimeException("if the forking producer returns optional empty it's forked"));
     }
 
+    public static Arg<?> cell(TableReference tableReference, Cell cell) {
+        // TODO (jkong): Type comparison as control flow? Lovely!
+        boolean isRowSafe = tableForkingProducer.getArgForRow(tableReference, cell.getRowName(), x -> x)
+                .map(t -> t instanceof SafeArg)
+                .orElse(false);
+        boolean isColumnSafe = tableForkingProducer.getArgForRow(tableReference, cell.getRowName(), x -> x)
+                .map(t -> t instanceof SafeArg)
+                .orElse(false);
+        return getArg("cell", cell, isRowSafe && isColumnSafe);
+    }
+
     public static Arg<?> value(
             TableReference tableReference, Cell cell, byte[] value, Function<byte[], Object> transform) {
         return tableForkingProducer
