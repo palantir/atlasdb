@@ -32,7 +32,7 @@ public final class DefaultSensitiveLoggingArgProducers {
         // nope
     }
 
-    private static class DefaultSensitiveLoggingArgProducer implements SensitiveLoggingArgProducer {
+    private static final class DefaultSensitiveLoggingArgProducer implements SensitiveLoggingArgProducer {
         private final boolean safe;
 
         private DefaultSensitiveLoggingArgProducer(boolean safe) {
