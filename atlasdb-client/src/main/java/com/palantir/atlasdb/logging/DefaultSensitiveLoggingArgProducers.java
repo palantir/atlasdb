@@ -52,15 +52,19 @@ public final class DefaultSensitiveLoggingArgProducers {
         }
 
         @Override
-        public Optional<Arg<?>> getArgForDynamicColumnsColumnKey(
+        public Optional<Arg<?>> getArgForColumn(
                 TableReference tableReference, byte[] row, Function<byte[], Object> transform) {
             return Optional.of(getArg("columnKey", row, transform));
         }
 
         @Override
-        public Optional<Arg<?>> getArgForValue(
-                TableReference tableReference, Cell cellReference, byte[] value, Function<byte[], Object> transform) {
-            return Optional.of(getArg("value", value, transform));
+        public Optional<Arg<?>> getNamedArgForValue(
+                TableReference tableReference,
+                Cell cellReference,
+                byte[] value,
+                Function<byte[], Object> transform,
+                String name) {
+            return Optional.of(getArg(name, value, transform));
         }
     }
 }

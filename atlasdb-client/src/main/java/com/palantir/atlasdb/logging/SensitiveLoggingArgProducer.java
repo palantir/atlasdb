@@ -34,9 +34,17 @@ import java.util.function.Function;
 public interface SensitiveLoggingArgProducer {
     Optional<Arg<?>> getArgForRow(TableReference tableReference, byte[] row, Function<byte[], Object> transform);
 
-    Optional<Arg<?>> getArgForDynamicColumnsColumnKey(TableReference tableReference, byte[] row, Function<byte[],
-            Object> transform);
+    Optional<Arg<?>> getArgForColumn(TableReference tableReference, byte[] row, Function<byte[], Object> transform);
 
-    Optional<Arg<?>> getArgForValue(TableReference tableReference, Cell cellReference, byte[] value, Function<byte[],
-     Object       > transform);
+    default Optional<Arg<?>> getArgForValue(
+            TableReference tableReference, Cell cellReference, byte[] value, Function<byte[], Object> transform) {
+        return getNamedArgForValue(tableReference, cellReference, value, transform, "value");
+    }
+
+    Optional<Arg<?>> getNamedArgForValue(
+            TableReference tableReference,
+            Cell cellReference,
+            byte[] value,
+            Function<byte[], Object> transform,
+            String name);
 }

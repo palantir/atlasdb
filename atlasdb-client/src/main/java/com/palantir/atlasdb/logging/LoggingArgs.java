@@ -21,6 +21,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -92,8 +93,8 @@ public final class LoggingArgs {
         }
     }
 
-    public static void registerSensitiveLoggingArgProducerForTable(TableReference tableRef,
-            SensitiveLoggingArgProducer sensitiveLoggingArgProducer) {
+    public static void registerSensitiveLoggingArgProducerForTable(
+            TableReference tableRef, SensitiveLoggingArgProducer sensitiveLoggingArgProducer) {
         tableForkingProducer.register(tableRef, sensitiveLoggingArgProducer);
     }
 
@@ -244,8 +245,33 @@ public final class LoggingArgs {
     }
 
     public static Arg<?> row(TableReference tableReference, byte[] row, Function<byte[], Object> transform) {
-        return tableForkingProducer.getArgForRow(tableReference, row, transform).orElseThrow(
-                () -> new SafeRuntimeException("if the forking producer returns optional empty it's forked"));
+        return tableForkingProducer
+                .getArgForRow(tableReference, row, transform)
+                .orElseThrow(
+                        () -> new SafeRuntimeException("if the forking producer returns optional empty it's forked"));
+    }
+
+    public static Arg<?> column(TableReference tableReference, byte[] column, Function<byte[], Object> transform) {
+        return tableForkingProducer
+                .getArgForColumn(tableReference, column, transform)
+                .orElseThrow(
+                        () -> new SafeRuntimeException("if the forking producer returns optional empty it's forked"));
+    }
+
+    public static Arg<?> value(
+            TableReference tableReference, Cell cell, byte[] value, Function<byte[], Object> transform) {
+        return tableForkingProducer
+                .getArgForValue(tableReference, cell, value, transform)
+                .orElseThrow(
+                        () -> new SafeRuntimeException("if the forking producer returns optional empty it's forked"));
+    }
+
+    public static Arg<?> namedValue(
+            TableReference tableReference, Cell cell, byte[] value, Function<byte[], Object> transform, String name) {
+        return tableForkingProducer
+                .getNamedArgForValue(tableReference, cell, value, transform, name)
+                .orElseThrow(
+                        () -> new SafeRuntimeException("if the forking producer returns optional empty it's forked"));
     }
 
     private static <T> Arg<T> getArg(String name, T value, boolean safe) {

@@ -29,7 +29,8 @@ import java.util.function.Function;
 public class TableForkingSensitiveLoggingArgProducer implements SensitiveLoggingArgProducer {
     // TODO (jkong): perf
     private final ListMultimap<TableReference, SensitiveLoggingArgProducer> producers =
-            Multimaps.synchronizedListMultimap(MultimapBuilder.hashKeys().arrayListValues().build());
+            Multimaps.synchronizedListMultimap(
+                    MultimapBuilder.hashKeys().arrayListValues().build());
     private final SensitiveLoggingArgProducer catchall;
 
     public TableForkingSensitiveLoggingArgProducer(SensitiveLoggingArgProducer catchall) {
@@ -37,8 +38,7 @@ public class TableForkingSensitiveLoggingArgProducer implements SensitiveLogging
     }
 
     public Optional<Arg<?>> runOnRelevantProducersWithFallback(
-            TableReference tableReference,
-            Function<SensitiveLoggingArgProducer, Optional<Arg<?>>> task) {
+            TableReference tableReference, Function<SensitiveLoggingArgProducer, Optional<Arg<?>>> task) {
         List<SensitiveLoggingArgProducer> tableRelevantProducers = producers.get(tableReference);
         for (SensitiveLoggingArgProducer producer : tableRelevantProducers) {
             Optional<Arg<?>> producerResult = task.apply(producer);
@@ -62,16 +62,21 @@ public class TableForkingSensitiveLoggingArgProducer implements SensitiveLogging
     }
 
     @Override
-    public Optional<Arg<?>> getArgForDynamicColumnsColumnKey(
+    public Optional<Arg<?>> getArgForColumn(
             TableReference tableReference, byte[] row, Function<byte[], Object> transform) {
         return runOnRelevantProducersWithFallback(
-                tableReference, producer -> producer.getArgForDynamicColumnsColumnKey(tableReference, row, transform));
+                tableReference, producer -> producer.getArgForColumn(tableReference, row, transform));
     }
 
     @Override
-    public Optional<Arg<?>> getArgForValue(
-            TableReference tableReference, Cell cellReference, byte[] value, Function<byte[], Object> transform) {
+    public Optional<Arg<?>> getNamedArgForValue(
+            TableReference tableReference,
+            Cell cellReference,
+            byte[] value,
+            Function<byte[], Object> transform,
+            String name) {
         return runOnRelevantProducersWithFallback(
-                tableReference, producer -> producer.getArgForValue(tableReference, cellReference, value, transform));
+                tableReference,
+                producer -> producer.getNamedArgForValue(tableReference, cellReference, value, transform, name));
     }
 }

@@ -22,7 +22,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCqlQuery;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 
 final class CheckAndSetQueries {
     private static final long CASSANDRA_TIMESTAMP = -1L;
@@ -45,13 +44,21 @@ final class CheckAndSetQueries {
                         "INSERT INTO \"%s\" (key, column1, column2, value)" + " VALUES (%s, %s, %s, %s) IF NOT EXISTS;")
                 .addArgs(
                         LoggingArgs.internalTableName(request.table()),
-                        LoggingArgs.row(request.table(), request.cell().getRowName(),
+                        LoggingArgs.row(
+                                request.table(),
+                                request.cell().getRowName(),
                                 CheckAndSetQueries::encodeCassandraHexString),
-                        UnsafeArg.of(
-                                "column",
-                                encodeCassandraHexString(request.cell().getColumnName())),
+                        LoggingArgs.column(
+                                request.table(),
+                                request.cell().getColumnName(),
+                                CheckAndSetQueries::encodeCassandraHexString),
                         SafeArg.of("cassandraTimestamp", CASSANDRA_TIMESTAMP),
-                        UnsafeArg.of("newValue", encodeCassandraHexString(request.newValue())))
+                        LoggingArgs.namedValue(
+                                request.table(),
+                                request.cell(),
+                                request.newValue(),
+                                CheckAndSetQueries::encodeCassandraHexString,
+                                "newValue"))
                 .build();
     }
 
@@ -63,16 +70,27 @@ final class CheckAndSetQueries {
                 .safeQueryFormat("UPDATE \"%s\" SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;")
                 .addArgs(
                         LoggingArgs.internalTableName(request.table()),
-                        UnsafeArg.of("newValue", encodeCassandraHexString(request.newValue())),
-                        LoggingArgs.row(request.table(), request.cell().getRowName(),
+                        LoggingArgs.namedValue(
+                                request.table(),
+                                request.cell(),
+                                request.newValue(),
+                                CheckAndSetQueries::encodeCassandraHexString,
+                                "newValue"),
+                        LoggingArgs.row(
+                                request.table(),
+                                request.cell().getRowName(),
                                 CheckAndSetQueries::encodeCassandraHexString),
-                        UnsafeArg.of(
-                                "column",
-                                encodeCassandraHexString(request.cell().getColumnName())),
+                        LoggingArgs.column(
+                                request.table(),
+                                request.cell().getColumnName(),
+                                CheckAndSetQueries::encodeCassandraHexString),
                         SafeArg.of("cassandraTimestamp", CASSANDRA_TIMESTAMP),
-                        UnsafeArg.of(
-                                "oldValue",
-                                encodeCassandraHexString(request.oldValue().get())))
+                        LoggingArgs.namedValue(
+                                request.table(),
+                                request.cell(),
+                                request.newValue(),
+                                CheckAndSetQueries::encodeCassandraHexString,
+                                "newValue"))
                 .build();
     }
 
