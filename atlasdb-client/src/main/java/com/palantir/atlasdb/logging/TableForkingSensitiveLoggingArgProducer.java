@@ -16,21 +16,27 @@
 
 package com.palantir.atlasdb.logging;
 
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
+/**
+ * Supports multiple {@link SensitiveLoggingArgProducer}s, that should be indexable by table reference. If multiple
+ * {@link SensitiveLoggingArgProducer}s have been associated with a given {@link TableReference} and more than one
+ * of them may definitively judge a context as safe or unsafe (not including the catchall producer), then behaviour
+ * is non-deterministic. It is guaranteed that all {@link SensitiveLoggingArgProducer}s for a given
+ * {@link TableReference} will be allowed to make a judgment before the catchall producer is invoked.
+ */
 public class TableForkingSensitiveLoggingArgProducer implements SensitiveLoggingArgProducer {
     // TODO (jkong): perf
-    private final ListMultimap<TableReference, SensitiveLoggingArgProducer> producers =
-            Multimaps.synchronizedListMultimap(
-                    MultimapBuilder.hashKeys().arrayListValues().build());
+    private final SetMultimap<TableReference, SensitiveLoggingArgProducer> producers =
+            Multimaps.synchronizedSetMultimap(MultimapBuilder.hashKeys().hashSetValues().build());
     private final SensitiveLoggingArgProducer catchall;
 
     public TableForkingSensitiveLoggingArgProducer(SensitiveLoggingArgProducer catchall) {
@@ -39,7 +45,7 @@ public class TableForkingSensitiveLoggingArgProducer implements SensitiveLogging
 
     public Optional<Arg<?>> runOnRelevantProducersWithFallback(
             TableReference tableReference, Function<SensitiveLoggingArgProducer, Optional<Arg<?>>> task) {
-        List<SensitiveLoggingArgProducer> tableRelevantProducers = producers.get(tableReference);
+        Set<SensitiveLoggingArgProducer> tableRelevantProducers = producers.get(tableReference);
         for (SensitiveLoggingArgProducer producer : tableRelevantProducers) {
             Optional<Arg<?>> producerResult = task.apply(producer);
             if (producerResult.isPresent()) {

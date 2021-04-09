@@ -260,10 +260,12 @@ public final class LoggingArgs {
 
     public static Arg<?> cell(TableReference tableReference, Cell cell) {
         // TODO (jkong): Type comparison as control flow? Lovely!
-        boolean isRowSafe = tableForkingProducer.getArgForRow(tableReference, cell.getRowName(), x -> x)
+        boolean isRowSafe = tableForkingProducer
+                .getArgForRow(tableReference, cell.getRowName(), x -> x)
                 .map(t -> t instanceof SafeArg)
                 .orElse(false);
-        boolean isColumnSafe = tableForkingProducer.getArgForRow(tableReference, cell.getRowName(), x -> x)
+        boolean isColumnSafe = tableForkingProducer
+                .getArgForRow(tableReference, cell.getRowName(), x -> x)
                 .map(t -> t instanceof SafeArg)
                 .orElse(false);
         return getArg("cell", cell, isRowSafe && isColumnSafe);

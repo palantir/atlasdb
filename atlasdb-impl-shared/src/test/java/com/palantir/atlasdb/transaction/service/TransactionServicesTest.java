@@ -83,26 +83,30 @@ public class TransactionServicesTest {
                 .isInstanceOf(SafeArg.class);
         assertThat(LoggingArgs.column(TransactionConstants.TRANSACTIONS2_TABLE, new byte[] {2}, x -> x))
                 .isInstanceOf(SafeArg.class);
-        assertThat(LoggingArgs.value(TransactionConstants.TRANSACTIONS2_TABLE,
-                Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c")), new byte[] {3}, x -> x))
+        assertThat(LoggingArgs.value(
+                        TransactionConstants.TRANSACTIONS2_TABLE,
+                        Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c")),
+                        new byte[] {3},
+                        x -> x))
                 .isInstanceOf(SafeArg.class);
 
         assertThat(LoggingArgs.row(TransactionConstants.TRANSACTION_TABLE, new byte[] {1}, x -> x))
                 .isInstanceOf(SafeArg.class);
         assertThat(LoggingArgs.column(TransactionConstants.TRANSACTION_TABLE, new byte[] {2}, x -> x))
                 .isInstanceOf(SafeArg.class);
-        assertThat(LoggingArgs.value(TransactionConstants.TRANSACTION_TABLE,
-                Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c")), new byte[] {3}, x -> x))
+        assertThat(LoggingArgs.value(
+                        TransactionConstants.TRANSACTION_TABLE,
+                        Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c")),
+                        new byte[] {3},
+                        x -> x))
                 .isInstanceOf(SafeArg.class);
 
-        TableReference randomTable =
-                TableReference.createWithEmptyNamespace("t" + ThreadLocalRandom.current().nextLong());
-        assertThat(LoggingArgs.row(randomTable, new byte[] {1}, x -> x))
-                .isInstanceOf(UnsafeArg.class);
-        assertThat(LoggingArgs.column(randomTable, new byte[] {2}, x -> x))
-                .isInstanceOf(UnsafeArg.class);
-        assertThat(LoggingArgs.value(randomTable,
-                Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c")), new byte[] {3}, x -> x))
+        TableReference randomTable = TableReference.createWithEmptyNamespace(
+                "t" + ThreadLocalRandom.current().nextLong());
+        assertThat(LoggingArgs.row(randomTable, new byte[] {1}, x -> x)).isInstanceOf(UnsafeArg.class);
+        assertThat(LoggingArgs.column(randomTable, new byte[] {2}, x -> x)).isInstanceOf(UnsafeArg.class);
+        assertThat(LoggingArgs.value(
+                        randomTable, Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c")), new byte[] {3}, x -> x))
                 .isInstanceOf(UnsafeArg.class);
     }
 

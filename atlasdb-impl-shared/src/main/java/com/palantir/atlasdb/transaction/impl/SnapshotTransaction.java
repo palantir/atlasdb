@@ -2012,7 +2012,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 log.info(
                         "Another transaction committed to the same cell before us but their value was the same."
                                 + " Cell: {} Table: {}",
-                        UnsafeArg.of("cell", cell),
+                        LoggingArgs.cell(table, cell),
                         LoggingArgs.tableRef(table));
             }
         }

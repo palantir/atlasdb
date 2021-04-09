@@ -93,7 +93,8 @@ public class CellsSweeper {
         }
     }
 
-    private SafeAndUnsafeCellArgs getLoggingArgsForCells(TableReference tableRef, Multimap<Cell, Long> cellTsPairsToSweep) {
+    private SafeAndUnsafeCellArgs getLoggingArgsForCells(
+            TableReference tableRef, Multimap<Cell, Long> cellTsPairsToSweep) {
         Multimap<Cell, Long> safePairs = KeyedStream.stream(cellTsPairsToSweep)
                 .filterKeys(cell -> LoggingArgs.cell(tableRef, cell) instanceof SafeArg)
                 .collectToSetMultimap();
@@ -117,6 +118,7 @@ public class CellsSweeper {
     @Value.Immutable
     interface SafeAndUnsafeCellArgs {
         Arg<String> safeCells();
+
         Arg<String> unsafeCells();
     }
 }

@@ -35,7 +35,6 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.time.Clock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,7 +169,7 @@ public class SpecificTableSweeper {
                         + " delete batch size {},"
                         + " and {} cell+timestamp pairs to examine.",
                 LoggingArgs.tableRef("tableRef", tableRef),
-                UnsafeArg.of("startRow", startRowToHex(startRow)),
+                LoggingArgs.row(tableRef, startRow, SpecificTableSweeper::startRowToHex),
                 SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
                 SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
                 SafeArg.of("maxCellTsPairsToExamine", config.maxCellTsPairsToExamine()),

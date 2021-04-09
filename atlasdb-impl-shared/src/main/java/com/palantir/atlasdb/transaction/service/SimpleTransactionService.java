@@ -58,16 +58,16 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     public static SimpleTransactionService createV1(KeyValueService kvs) {
         SimpleTransactionService v1Service =
                 new SimpleTransactionService(kvs, V1EncodingStrategy.INSTANCE, TransactionConstants.TRANSACTION_TABLE);
-        LoggingArgs.registerSensitiveLoggingArgProducerForTable(TransactionConstants.TRANSACTION_TABLE,
-                DefaultSensitiveLoggingArgProducers.ALWAYS_SAFE);
+        LoggingArgs.registerSensitiveLoggingArgProducerForTable(
+                TransactionConstants.TRANSACTION_TABLE, DefaultSensitiveLoggingArgProducers.ALWAYS_SAFE);
         return v1Service;
     }
 
     public static SimpleTransactionService createV2(KeyValueService kvs) {
         SimpleTransactionService v2Service = new SimpleTransactionService(
                 kvs, TicketsEncodingStrategy.INSTANCE, TransactionConstants.TRANSACTIONS2_TABLE);
-        LoggingArgs.registerSensitiveLoggingArgProducerForTable(TransactionConstants.TRANSACTIONS2_TABLE,
-                DefaultSensitiveLoggingArgProducers.ALWAYS_SAFE);
+        LoggingArgs.registerSensitiveLoggingArgProducerForTable(
+                TransactionConstants.TRANSACTIONS2_TABLE, DefaultSensitiveLoggingArgProducers.ALWAYS_SAFE);
         return v2Service;
     }
 
