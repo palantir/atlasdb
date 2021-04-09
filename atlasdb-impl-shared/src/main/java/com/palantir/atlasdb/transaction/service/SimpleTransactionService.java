@@ -25,6 +25,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.DefaultSensitiveLoggingArgProducers;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
@@ -54,12 +56,19 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     public static SimpleTransactionService createV1(KeyValueService kvs) {
-        return new SimpleTransactionService(kvs, V1EncodingStrategy.INSTANCE, TransactionConstants.TRANSACTION_TABLE);
+        SimpleTransactionService v1Service =
+                new SimpleTransactionService(kvs, V1EncodingStrategy.INSTANCE, TransactionConstants.TRANSACTION_TABLE);
+        LoggingArgs.registerSensitiveLoggingArgProducerForTable(TransactionConstants.TRANSACTION_TABLE,
+                DefaultSensitiveLoggingArgProducers.ALWAYS_SAFE);
+        return v1Service;
     }
 
     public static SimpleTransactionService createV2(KeyValueService kvs) {
-        return new SimpleTransactionService(
+        SimpleTransactionService v2Service = new SimpleTransactionService(
                 kvs, TicketsEncodingStrategy.INSTANCE, TransactionConstants.TRANSACTIONS2_TABLE);
+        LoggingArgs.registerSensitiveLoggingArgProducerForTable(TransactionConstants.TRANSACTIONS2_TABLE,
+                DefaultSensitiveLoggingArgProducers.ALWAYS_SAFE);
+        return v2Service;
     }
 
     @Override

@@ -25,6 +25,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
@@ -33,17 +34,21 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,6 +75,35 @@ public class TransactionServicesTest {
         initializeTimestamps();
         transactionService.putUnlessExists(startTs, commitTs);
         assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
+    }
+
+    @Test
+    public void transactionTableLoggingArgsAreSafe() {
+        assertThat(LoggingArgs.row(TransactionConstants.TRANSACTIONS2_TABLE, new byte[] {1}, x -> x))
+                .isInstanceOf(SafeArg.class);
+        assertThat(LoggingArgs.column(TransactionConstants.TRANSACTIONS2_TABLE, new byte[] {2}, x -> x))
+                .isInstanceOf(SafeArg.class);
+        assertThat(LoggingArgs.value(TransactionConstants.TRANSACTIONS2_TABLE,
+                Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c")), new byte[] {3}, x -> x))
+                .isInstanceOf(SafeArg.class);
+
+        assertThat(LoggingArgs.row(TransactionConstants.TRANSACTION_TABLE, new byte[] {1}, x -> x))
+                .isInstanceOf(SafeArg.class);
+        assertThat(LoggingArgs.column(TransactionConstants.TRANSACTION_TABLE, new byte[] {2}, x -> x))
+                .isInstanceOf(SafeArg.class);
+        assertThat(LoggingArgs.value(TransactionConstants.TRANSACTION_TABLE,
+                Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c")), new byte[] {3}, x -> x))
+                .isInstanceOf(SafeArg.class);
+
+        TableReference randomTable =
+                TableReference.createWithEmptyNamespace("t" + ThreadLocalRandom.current().nextLong());
+        assertThat(LoggingArgs.row(randomTable, new byte[] {1}, x -> x))
+                .isInstanceOf(UnsafeArg.class);
+        assertThat(LoggingArgs.column(randomTable, new byte[] {2}, x -> x))
+                .isInstanceOf(UnsafeArg.class);
+        assertThat(LoggingArgs.value(randomTable,
+                Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c")), new byte[] {3}, x -> x))
+                .isInstanceOf(UnsafeArg.class);
     }
 
     @Test
