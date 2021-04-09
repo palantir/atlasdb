@@ -19,7 +19,8 @@ package com.palantir.atlasdb.logging;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
-import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Normally, rows, dynamic columns and values are unsafe for logging; this is because they may contain user data.
@@ -27,13 +28,15 @@ import java.util.List;
  * user is storing information in a queue, the indexes of the queue may be eligible to be considered as safe
  * information (even if the values in the queue itself may not).
  *
- * Methods in this class MAY return the empty list of arguments to indicate that they are not able to make a final
+ * Methods in this class MAY return Optional.empty() to indicate that they are not able to make a final
  * decision as to what arguments should be produced.
  */
 public interface SensitiveLoggingArgProducer {
-    List<Arg<?>> getArgsForRow(TableReference tableReference, byte[] row);
+    Optional<Arg<?>> getArgForRow(TableReference tableReference, byte[] row, Function<byte[], Object> transform);
 
-    List<Arg<?>> getArgsForDynamicColumnsColumnKey(TableReference tableReference, byte[] row);
+    Optional<Arg<?>> getArgForDynamicColumnsColumnKey(TableReference tableReference, byte[] row, Function<byte[],
+            Object> transform);
 
-    List<Arg<?>> getArgsForValue(TableReference tableReference, Cell cellReference, byte[] value);
+    Optional<Arg<?>> getArgForValue(TableReference tableReference, Cell cellReference, byte[] value, Function<byte[],
+     Object       > transform);
 }

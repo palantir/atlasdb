@@ -18,49 +18,60 @@ package com.palantir.atlasdb.logging;
 
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 public class TableForkingSensitiveLoggingArgProducer implements SensitiveLoggingArgProducer {
+    // TODO (jkong): perf
     private final ListMultimap<TableReference, SensitiveLoggingArgProducer> producers =
-            MultimapBuilder.hashKeys().arrayListValues().build();
+            Multimaps.synchronizedListMultimap(MultimapBuilder.hashKeys().arrayListValues().build());
     private final SensitiveLoggingArgProducer catchall;
 
     public TableForkingSensitiveLoggingArgProducer(SensitiveLoggingArgProducer catchall) {
         this.catchall = catchall;
     }
 
-    @Override
-    public List<Arg<?>> getArgsForRow(TableReference tableReference, byte[] row) {
-        return runOnRelevantProducersWithFallback(
-                tableReference, producer -> producer.getArgsForRow(tableReference, row));
-    }
-
-    @Override
-    public List<Arg<?>> getArgsForDynamicColumnsColumnKey(TableReference tableReference, byte[] row) {
-        return runOnRelevantProducersWithFallback(
-                tableReference, producer -> producer.getArgsForDynamicColumnsColumnKey(tableReference, row));
-    }
-
-    @Override
-    public List<Arg<?>> getArgsForValue(TableReference tableReference, Cell cellReference, byte[] value) {
-        return runOnRelevantProducersWithFallback(
-                tableReference, producer -> producer.getArgsForValue(tableReference, cellReference, value));
-    }
-
-    public List<Arg<?>> runOnRelevantProducersWithFallback(
-            TableReference tableReference, Function<SensitiveLoggingArgProducer, List<Arg<?>>> task) {
+    public Optional<Arg<?>> runOnRelevantProducersWithFallback(
+            TableReference tableReference,
+            Function<SensitiveLoggingArgProducer, Optional<Arg<?>>> task) {
         List<SensitiveLoggingArgProducer> tableRelevantProducers = producers.get(tableReference);
         for (SensitiveLoggingArgProducer producer : tableRelevantProducers) {
-            List<Arg<?>> producerResult = task.apply(producer);
-            if (!producerResult.isEmpty()) {
+            Optional<Arg<?>> producerResult = task.apply(producer);
+            if (producerResult.isPresent()) {
                 return producerResult;
             }
         }
-        // Every relevant producer returned an empty list.
+        // Every relevant producer returns an empty list
         return task.apply(catchall);
+    }
+
+    public void register(TableReference tableRef, SensitiveLoggingArgProducer sensitiveLoggingArgProducer) {
+        producers.put(tableRef, sensitiveLoggingArgProducer);
+    }
+
+    @Override
+    public Optional<Arg<?>> getArgForRow(
+            TableReference tableReference, byte[] row, Function<byte[], Object> transform) {
+        return runOnRelevantProducersWithFallback(
+                tableReference, producer -> producer.getArgForRow(tableReference, row, transform));
+    }
+
+    @Override
+    public Optional<Arg<?>> getArgForDynamicColumnsColumnKey(
+            TableReference tableReference, byte[] row, Function<byte[], Object> transform) {
+        return runOnRelevantProducersWithFallback(
+                tableReference, producer -> producer.getArgForDynamicColumnsColumnKey(tableReference, row, transform));
+    }
+
+    @Override
+    public Optional<Arg<?>> getArgForValue(
+            TableReference tableReference, Cell cellReference, byte[] value, Function<byte[], Object> transform) {
+        return runOnRelevantProducersWithFallback(
+                tableReference, producer -> producer.getArgForValue(tableReference, cellReference, value, transform));
     }
 }

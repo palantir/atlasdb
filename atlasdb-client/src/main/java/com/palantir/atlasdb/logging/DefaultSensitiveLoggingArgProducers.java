@@ -16,17 +16,17 @@
 
 package com.palantir.atlasdb.logging;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 public final class DefaultSensitiveLoggingArgProducers {
-    private static final SensitiveLoggingArgProducer ALWAYS_UNSAFE = new DefaultSensitiveLoggingArgProducer(false);
-    private static final SensitiveLoggingArgProducer ALWAYS_SAFE = new DefaultSensitiveLoggingArgProducer(true);
+    public static final SensitiveLoggingArgProducer ALWAYS_UNSAFE = new DefaultSensitiveLoggingArgProducer(false);
+    public static final SensitiveLoggingArgProducer ALWAYS_SAFE = new DefaultSensitiveLoggingArgProducer(true);
 
     private DefaultSensitiveLoggingArgProducers() {
         // nope
@@ -39,27 +39,28 @@ public final class DefaultSensitiveLoggingArgProducers {
             this.safe = safe;
         }
 
-        @Override
-        public List<Arg<?>> getArgsForRow(TableReference tableReference, byte[] row) {
-            return singleton(getArg("row", row));
+        private Arg<?> getArg(String name, byte[] intendedValue, Function<byte[], Object> transform) {
+            return safe
+                    ? SafeArg.of(name, transform.apply(intendedValue))
+                    : UnsafeArg.of(name, transform.apply(intendedValue));
         }
 
         @Override
-        public List<Arg<?>> getArgsForDynamicColumnsColumnKey(TableReference tableReference, byte[] row) {
-            return singleton(getArg("columnKey", row));
+        public Optional<Arg<?>> getArgForRow(
+                TableReference tableReference, byte[] row, Function<byte[], Object> transform) {
+            return Optional.of(getArg("row", row, transform));
         }
 
         @Override
-        public List<Arg<?>> getArgsForValue(TableReference tableReference, Cell cellReference, byte[] value) {
-            return singleton(getArg("value", value));
+        public Optional<Arg<?>> getArgForDynamicColumnsColumnKey(
+                TableReference tableReference, byte[] row, Function<byte[], Object> transform) {
+            return Optional.of(getArg("columnKey", row, transform));
         }
 
-        private static <T> List<T> singleton(T element) {
-            return ImmutableList.of(element);
-        }
-
-        private Arg<?> getArg(String name, Object intendedValue) {
-            return safe ? SafeArg.of(name, intendedValue) : UnsafeArg.of(name, intendedValue);
+        @Override
+        public Optional<Arg<?>> getArgForValue(
+                TableReference tableReference, Cell cellReference, byte[] value, Function<byte[], Object> transform) {
+            return Optional.of(getArg("value", value, transform));
         }
     }
 }

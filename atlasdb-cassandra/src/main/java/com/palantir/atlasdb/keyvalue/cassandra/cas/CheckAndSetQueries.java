@@ -45,8 +45,8 @@ final class CheckAndSetQueries {
                         "INSERT INTO \"%s\" (key, column1, column2, value)" + " VALUES (%s, %s, %s, %s) IF NOT EXISTS;")
                 .addArgs(
                         LoggingArgs.internalTableName(request.table()),
-                        UnsafeArg.of(
-                                "row", encodeCassandraHexString(request.cell().getRowName())),
+                        LoggingArgs.row(request.table(), request.cell().getRowName(),
+                                CheckAndSetQueries::encodeCassandraHexString),
                         UnsafeArg.of(
                                 "column",
                                 encodeCassandraHexString(request.cell().getColumnName())),
@@ -64,8 +64,8 @@ final class CheckAndSetQueries {
                 .addArgs(
                         LoggingArgs.internalTableName(request.table()),
                         UnsafeArg.of("newValue", encodeCassandraHexString(request.newValue())),
-                        UnsafeArg.of(
-                                "row", encodeCassandraHexString(request.cell().getRowName())),
+                        LoggingArgs.row(request.table(), request.cell().getRowName(),
+                                CheckAndSetQueries::encodeCassandraHexString),
                         UnsafeArg.of(
                                 "column",
                                 encodeCassandraHexString(request.cell().getColumnName())),

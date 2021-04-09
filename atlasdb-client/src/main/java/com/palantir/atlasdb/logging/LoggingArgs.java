@@ -29,12 +29,14 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import org.immutables.value.Value;
 
 /**
@@ -60,6 +62,10 @@ public final class LoggingArgs {
     private static volatile KeyValueServiceLogArbitrator logArbitrator = KeyValueServiceLogArbitrator.ALL_UNSAFE;
     private static Optional<Boolean> allSafeForLogging = Optional.empty();
 
+    // MUTABLE. The producer is final, but still, MUTABLE.
+    private static final TableForkingSensitiveLoggingArgProducer tableForkingProducer =
+            new TableForkingSensitiveLoggingArgProducer(DefaultSensitiveLoggingArgProducers.ALWAYS_UNSAFE);
+
     private LoggingArgs() {
         // no
     }
@@ -84,6 +90,11 @@ public final class LoggingArgs {
         if (allSafeForLogging.get()) {
             logArbitrator = KeyValueServiceLogArbitrator.ALL_SAFE;
         }
+    }
+
+    public static void registerSensitiveLoggingArgProducerForTable(TableReference tableRef,
+            SensitiveLoggingArgProducer sensitiveLoggingArgProducer) {
+        tableForkingProducer.register(tableRef, sensitiveLoggingArgProducer);
     }
 
     @VisibleForTesting
@@ -230,6 +241,11 @@ public final class LoggingArgs {
 
     public static Arg<ColumnRangeSelection> columnRangeSelection(ColumnRangeSelection columnRangeSelection) {
         return getArg("columnRangeSelection", columnRangeSelection, false);
+    }
+
+    public static Arg<?> row(TableReference tableReference, byte[] row, Function<byte[], Object> transform) {
+        return tableForkingProducer.getArgForRow(tableReference, row, transform).orElseThrow(
+                () -> new SafeRuntimeException("if the forking producer returns optional empty it's forked"));
     }
 
     private static <T> Arg<T> getArg(String name, T value, boolean safe) {
