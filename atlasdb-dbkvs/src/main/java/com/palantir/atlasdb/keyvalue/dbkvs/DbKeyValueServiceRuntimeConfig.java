@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
@@ -26,6 +27,7 @@ import org.immutables.value.Value;
 @AutoService(KeyValueServiceRuntimeConfig.class)
 @JsonSerialize(as = ImmutableDbKeyValueServiceRuntimeConfig.class)
 @JsonDeserialize(as = ImmutableDbKeyValueServiceRuntimeConfig.class)
+@JsonTypeName(DbAtlasDbFactory.TYPE)
 @Value.Immutable
 public abstract class DbKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
 
