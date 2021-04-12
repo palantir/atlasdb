@@ -20,7 +20,7 @@
   },
   "timestampStoreState" : {
     "timestampMap" : {
-      "1" : {
+      "StartTimestamp{value=1}" : {
         "version" : {
           "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
           "version" : 3
@@ -29,7 +29,9 @@
       }
     },
     "livingVersions" : {
-      "3" : [ 1 ]
+      "Sequence{value=3}" : [ {
+        "start-ts" : 1
+      } ]
     }
   }
 }
