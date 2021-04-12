@@ -21,6 +21,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface CacheValue {
+    // This is optional as we also want to cache reads where there is no value present.
     Optional<byte[]> value();
 
     static CacheValue of(byte[] value) {
