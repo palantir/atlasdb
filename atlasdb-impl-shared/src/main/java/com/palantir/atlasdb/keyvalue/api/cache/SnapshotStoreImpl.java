@@ -23,10 +23,9 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.immutables.value.Value;
 
 public final class SnapshotStoreImpl implements SnapshotStore {
-    private final Map<Sequence, VersionedSnapshot> snapshotMap;
+    private final Map<Sequence, ValueCacheSnapshot> snapshotMap;
     private final Multimap<Sequence, StartTimestamp> liveSequences;
     private final Map<StartTimestamp, Sequence> timestampMap;
 
@@ -37,20 +36,15 @@ public final class SnapshotStoreImpl implements SnapshotStore {
     }
 
     @Override
-    public void reset() {
-        snapshotMap.clear();
-    }
-
-    @Override
     public void storeSnapshot(Sequence sequence, StartTimestamp timestamp, ValueCacheSnapshot snapshot) {
-        snapshotMap.putIfAbsent(sequence, VersionedSnapshot.of(sequence, snapshot));
+        snapshotMap.putIfAbsent(sequence, snapshot);
         liveSequences.put(sequence, timestamp);
         timestampMap.put(timestamp, sequence);
     }
 
     @Override
     public Optional<ValueCacheSnapshot> getSnapshot(Sequence sequence) {
-        return Optional.ofNullable(snapshotMap.get(sequence)).map(VersionedSnapshot::snapshot);
+        return Optional.ofNullable(snapshotMap.get(sequence));
     }
 
     @Override
@@ -64,16 +58,8 @@ public final class SnapshotStoreImpl implements SnapshotStore {
         });
     }
 
-    @Value.Immutable
-    interface VersionedSnapshot {
-        @Value.Parameter
-        Sequence sequence();
-
-        @Value.Parameter
-        ValueCacheSnapshot snapshot();
-
-        static VersionedSnapshot of(Sequence sequence, ValueCacheSnapshot snapshot) {
-            return ImmutableVersionedSnapshot.of(sequence, snapshot);
-        }
+    @Override
+    public void reset() {
+        snapshotMap.clear();
     }
 }

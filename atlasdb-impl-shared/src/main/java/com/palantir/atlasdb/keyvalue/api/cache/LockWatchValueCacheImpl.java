@@ -88,6 +88,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
                 return null;
             }
         });
+        snapshotStore.removeTimestamp(StartTimestamp.of(startTs));
     }
 
     @Override

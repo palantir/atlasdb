@@ -20,12 +20,17 @@ import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import java.util.Optional;
 
+/**
+ * Stores snapshots of the cache taken at the sequence corresponding to the provided start timestamp. De-duplicates in
+ * the case of multiple start timestamps corresponding to a single sequence (which is likely as they are batched),
+ * and calculates when to remove a snapshot based on which sequences are living.
+ */
 public interface SnapshotStore {
-    void removeTimestamp(StartTimestamp timestamp);
-
-    void reset();
-
     void storeSnapshot(Sequence sequence, StartTimestamp timestamp, ValueCacheSnapshot snapshot);
 
     Optional<ValueCacheSnapshot> getSnapshot(Sequence sequence);
+
+    void removeTimestamp(StartTimestamp timestamp);
+
+    void reset();
 }

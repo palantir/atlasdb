@@ -18,6 +18,10 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import java.util.function.Function;
 
+/**
+ * Utility class to make manipulating {@link io.vavr.collection.Map} and {@link io.vavr.collection.Set} less
+ * error-prone (puts return a *new* instance).
+ */
 final class StructureHolder<V> {
     private final V initialValue;
     private V structure;
