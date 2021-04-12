@@ -36,7 +36,11 @@
       }
     },
     "livingVersions" : {
-      "Sequence{value=7}" : [ { }, { } ]
+      "Sequence{value=7}" : [ {
+        "start-ts" : 123
+      }, {
+        "start-ts" : 1255
+      } ]
     }
   }
 }

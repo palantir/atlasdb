@@ -58,7 +58,9 @@
       }
     },
     "livingVersions" : {
-      "Sequence{value=6}" : [ { } ]
+      "Sequence{value=6}" : [ {
+        "start-ts" : 16
+      } ]
     }
   }
 }

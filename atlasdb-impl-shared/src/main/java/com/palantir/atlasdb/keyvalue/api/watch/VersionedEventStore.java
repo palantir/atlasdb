@@ -23,7 +23,6 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -37,8 +36,7 @@ final class VersionedEventStore {
 
     private final int minEvents;
     private final int maxEvents;
-    private final NavigableMap<Sequence, LockWatchEvent> eventMap =
-            new TreeMap<>(Comparator.comparingLong(Sequence::value));
+    private final NavigableMap<Sequence, LockWatchEvent> eventMap = new TreeMap<>();
 
     VersionedEventStore(int minEvents, int maxEvents) {
         Preconditions.checkArgument(minEvents > 0, "minEvents must be positive", SafeArg.of("minEvents", minEvents));

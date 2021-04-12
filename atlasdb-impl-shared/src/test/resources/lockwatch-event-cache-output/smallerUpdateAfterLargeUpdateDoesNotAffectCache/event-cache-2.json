@@ -103,9 +103,21 @@
       }
     },
     "livingVersions" : {
-      "Sequence{value=3}" : [ { } ],
-      "Sequence{value=5}" : [ { }, { }, { } ],
-      "Sequence{value=7}" : [ { }, { } ]
+      "Sequence{value=3}" : [ {
+        "start-ts" : 1
+      } ],
+      "Sequence{value=5}" : [ {
+        "start-ts" : 91
+      }, {
+        "start-ts" : 92
+      }, {
+        "start-ts" : 93
+      } ],
+      "Sequence{value=7}" : [ {
+        "start-ts" : 11
+      }, {
+        "start-ts" : 12
+      } ]
     }
   }
 }

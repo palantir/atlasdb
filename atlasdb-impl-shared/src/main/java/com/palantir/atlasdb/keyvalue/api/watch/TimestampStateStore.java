@@ -28,17 +28,14 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
 import org.immutables.value.Value;
 
 final class TimestampStateStore {
-    private final NavigableMap<StartTimestamp, MapEntry> timestampMap =
-            new TreeMap<>(Comparator.comparingLong(StartTimestamp::value));
-    private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions = TreeMultimap.create(
-            Comparator.comparingLong(Sequence::value), Comparator.comparingLong(StartTimestamp::value));
+    private final NavigableMap<StartTimestamp, MapEntry> timestampMap = new TreeMap<>();
+    private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions = TreeMultimap.create();
 
     void putStartTimestamps(Collection<Long> startTimestamps, LockWatchVersion version) {
         startTimestamps.stream().map(StartTimestamp::of).forEach(startTimestamp -> {

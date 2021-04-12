@@ -65,8 +65,12 @@
       }
     },
     "livingVersions" : {
-      "Sequence{value=3}" : [ { } ],
-      "Sequence{value=6}" : [ { } ]
+      "Sequence{value=3}" : [ {
+        "start-ts" : 1
+      } ],
+      "Sequence{value=6}" : [ {
+        "start-ts" : 16
+      } ]
     }
   }
 }

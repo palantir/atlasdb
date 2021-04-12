@@ -96,9 +96,19 @@
       }
     },
     "livingVersions" : {
-      "Sequence{value=3}" : [ { } ],
-      "Sequence{value=6}" : [ { }, { } ],
-      "Sequence{value=7}" : [ { }, { } ]
+      "Sequence{value=3}" : [ {
+        "start-ts" : 1
+      } ],
+      "Sequence{value=6}" : [ {
+        "start-ts" : 5
+      }, {
+        "start-ts" : 123
+      } ],
+      "Sequence{value=7}" : [ {
+        "start-ts" : 6677
+      }, {
+        "start-ts" : 8888
+      } ]
     }
   }
 }
