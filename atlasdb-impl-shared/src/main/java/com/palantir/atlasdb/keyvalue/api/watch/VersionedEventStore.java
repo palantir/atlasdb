@@ -18,23 +18,34 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 final class VersionedEventStore {
     private static final boolean INCLUSIVE = true;
 
+    private final int minEvents;
     private final int maxEvents;
     private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
 
-    VersionedEventStore(int maxEvents) {
-        Preconditions.checkArgument(maxEvents > 0, "maxEvents must be positive");
+    VersionedEventStore(int minEvents, int maxEvents) {
+        Preconditions.checkArgument(minEvents > 0, "minEvents must be positive", SafeArg.of("minEvents", minEvents));
+        Preconditions.checkArgument(
+                maxEvents >= minEvents,
+                "maxEvents must be greater than or equal to minEvents",
+                SafeArg.of("minEvents", minEvents),
+                SafeArg.of("maxEvents", maxEvents));
         this.maxEvents = maxEvents;
+        this.minEvents = minEvents;
     }
 
     Collection<LockWatchEvent> getEventsBetweenVersionsInclusive(Optional<Long> maybeStartVersion, long endVersion) {
@@ -48,12 +59,45 @@ final class VersionedEventStore {
                 .orElseGet(ImmutableList::of);
     }
 
-    LockWatchEvents retentionEvents() {
-        int numToRetention = Math.max(0, eventMap.size() - maxEvents);
-        ImmutableLockWatchEvents.Builder builder = LockWatchEvents.builder();
-        Iterators.consumingIterator(Iterators.limit(eventMap.entrySet().iterator(), numToRetention))
-                .forEachRemaining(entry -> builder.addEvents(entry.getValue()));
-        return builder.build();
+    LockWatchEvents retentionEvents(Optional<Long> earliestSequenceToKeep) {
+        if (eventMap.size() < minEvents) {
+            return LockWatchEvents.builder().build();
+        }
+
+        // Guarantees that we remove some events while still also potentially performing further retention - note
+        // that each call to retentionEventsInternal modifies eventMap.
+        if (eventMap.size() > maxEvents) {
+            List<LockWatchEvent> overMaxSizeEvents =
+                    retentionEventsInternal(eventMap.size() - maxEvents, Long.MAX_VALUE);
+            List<LockWatchEvent> restOfEvents =
+                    retentionEventsInternal(eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE));
+            return ImmutableLockWatchEvents.builder()
+                    .addAllEvents(overMaxSizeEvents)
+                    .addAllEvents(restOfEvents)
+                    .build();
+        } else {
+            return ImmutableLockWatchEvents.builder()
+                    .addAllEvents(retentionEventsInternal(
+                            eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE)))
+                    .build();
+        }
+    }
+
+    private List<LockWatchEvent> retentionEventsInternal(int numToRetention, long maxVersion) {
+        List<LockWatchEvent> events = new ArrayList<>(numToRetention);
+
+        // The correctness of this depends upon eventMap's entrySet returning entries in ascending sorted order.
+        List<Map.Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
+                .limit(numToRetention)
+                .filter(entry -> entry.getKey() < maxVersion)
+                .collect(Collectors.toList());
+
+        eventsToClear.forEach(entry -> {
+            eventMap.remove(entry.getKey());
+            events.add(entry.getValue());
+        });
+
+        return events;
     }
 
     boolean containsEntryLessThanOrEqualTo(long key) {

@@ -9,11 +9,6 @@ conjure {
     }
 }
 
-dependencies {
-    conjureCompiler 'com.palantir.conjure:conjure'
-    conjureJava 'com.palantir.conjure.java:conjure-java'
-}
-
 subprojects {
     apply from: "../../gradle/shared.gradle"
     dependencies {

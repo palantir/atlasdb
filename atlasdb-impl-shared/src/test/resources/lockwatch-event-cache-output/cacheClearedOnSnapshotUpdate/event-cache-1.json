@@ -49,20 +49,24 @@
   },
   "timestampStoreState" : {
     "timestampMap" : {
-      "16" : {
-        "version" : {
-          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
-          "version" : 6
-        },
-        "commitInfo" : null
-      },
       "1" : {
         "version" : {
           "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
           "version" : 3
         },
         "commitInfo" : null
+      },
+      "16" : {
+        "version" : {
+          "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
+          "version" : 6
+        },
+        "commitInfo" : null
       }
+    },
+    "livingVersions" : {
+      "3" : [ 1 ],
+      "6" : [ 16 ]
     }
   }
 }

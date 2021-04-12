@@ -273,7 +273,7 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void getCommitUpdateIsInvalidatedAllIfEventsHaveBeenDeleted() {
+    public void getCommitUpdateIsInvalidateSomeAsEventsAreRetained() {
         createEventCache(2);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
@@ -281,7 +281,10 @@ public class LockWatchEventCacheIntegrationTest {
         verifyStage();
 
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(START_TS_1);
-        assertThat(commitUpdate.accept(new InvalidatedAllVisitor())).isTrue();
+        assertThat(commitUpdate.accept(new CommitUpdateVisitor())).containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_3);
+
+        eventCache.removeTransactionStateFromCache(START_TS_1);
+        verifyStage();
     }
 
     @Test
@@ -467,8 +470,46 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void timestampEventsRetentionedThrows() {
+    public void eventsExceedingMinimumCacheSizeAreNotRetentionedForActiveTransactions() {
         createEventCache(1);
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
+
+        TransactionsLockWatchUpdate update =
+                eventCache.getUpdateForTransactions(TIMESTAMPS_2, Optional.of(LockWatchVersion.of(LEADER, 3L)));
+
+        assertThat(update.clearCache()).as("Verify update is not a snapshot").isFalse();
+        assertThat(update.events())
+                .as("Verify events are not condensed into a snapshot")
+                .containsExactly(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT);
+        assertThat(update.startTsToSequence())
+                .as("Verify transaction present in timestamp map")
+                .containsExactlyEntriesOf(ImmutableMap.of(START_TS_2, LockWatchVersion.of(LEADER, SUCCESS_VERSION)));
+    }
+
+    @Test
+    public void eventsExceedingMaximumCacheSizeAreRetentionedAnyway() {
+        createEventCache(1, 1);
+        setupInitialState();
+        eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
+
+        TransactionsLockWatchUpdate laterUpdate =
+                eventCache.getUpdateForTransactions(TIMESTAMPS_2, Optional.of(LockWatchVersion.of(LEADER, 3L)));
+
+        assertThat(laterUpdate.clearCache()).as("Verify update is a snapshot").isTrue();
+        assertThat(laterUpdate.events())
+                .as("Verify events are condensed into a snapshot")
+                .containsExactly(LockWatchCreatedEvent.builder(
+                                ImmutableSet.of(REFERENCE), ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_3))
+                        .build(6L));
+        assertThat(laterUpdate.startTsToSequence())
+                .as("Verify transaction present in timestamp map")
+                .containsExactlyEntriesOf(ImmutableMap.of(START_TS_2, LockWatchVersion.of(LEADER, SUCCESS_VERSION)));
+    }
+
+    @Test
+    public void timestampEventsRetentionedThrows() {
+        createEventCache(1, 1);
         setupInitialState();
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
 
@@ -513,12 +554,15 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void newEventsCauseOldEventsToBeDeleted() {
+    public void newEventsCauseOldEventsToBeDeletedOnceTransactionsRemoved() {
         createEventCache(3);
         setupInitialState();
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
         verifyStage();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
+        verifyStage();
+        eventCache.removeTransactionStateFromCache(START_TS_1);
+        eventCache.removeTransactionStateFromCache(START_TS_2);
         verifyStage();
     }
 
@@ -558,9 +602,13 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(TIMESTAMPS, SNAPSHOT);
     }
 
-    private void createEventCache(int maxSize) {
+    private void createEventCache(int minSize) {
+        createEventCache(minSize, 20);
+    }
+
+    private void createEventCache(int minSize, int maxSize) {
         fakeCache = NoOpLockWatchEventCache.create();
-        realEventCache = new LockWatchEventCacheImpl(LockWatchEventLog.create(maxSize));
+        realEventCache = new LockWatchEventCacheImpl(LockWatchEventLog.create(minSize, maxSize));
         eventCache = new DuplicatingLockWatchEventCache(realEventCache, fakeCache);
     }
 
@@ -574,19 +622,6 @@ public class LockWatchEventCacheIntegrationTest {
         @Override
         public Set<LockDescriptor> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
             return invalidatedLocks;
-        }
-    }
-
-    private static final class InvalidatedAllVisitor implements CommitUpdate.Visitor<Boolean> {
-
-        @Override
-        public Boolean invalidateAll() {
-            return true;
-        }
-
-        @Override
-        public Boolean invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-            return false;
         }
     }
 }

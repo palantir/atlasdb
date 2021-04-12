@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: DB TimeLock is now more resilient to configuration changes in terms of its backing store that may affect correctness. Users must set an override flag if they wish to change the backing store of DB TimeLock after it has started successfully.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5363

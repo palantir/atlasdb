@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    Adds supports for live password changes for products that use the standard atlas install and runtime config. To take advantage of this products must add a runtime config for dbkvs (this appears in the same place as the cassandra runtime config would appear but has type "relational"). No behavior is changed when the new dbkvs runtime config is absent.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5365

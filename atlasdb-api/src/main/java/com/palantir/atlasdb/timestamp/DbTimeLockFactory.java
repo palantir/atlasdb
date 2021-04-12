@@ -22,8 +22,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Optional;
 
 /**
  * See {@link com.palantir.atlasdb.spi.AtlasDbFactory}. A {@link DbTimeLockFactory} is an extension of an
@@ -33,8 +36,21 @@ import com.palantir.timestamp.ManagedTimestampService;
 public interface DbTimeLockFactory {
     String getType();
 
+    /**
+     * @deprecated Creating a DbKeyValueService with this method will not support live reloading the DB password. Use
+     * {@link #createRawKeyValueService(MetricsManager, KeyValueServiceConfig, Refreshable, LeaderConfig)} instead.
+     */
+    @Deprecated
+    default KeyValueService createRawKeyValueService(
+            MetricsManager metricsManager, KeyValueServiceConfig config, LeaderConfig leaderConfig) {
+        return createRawKeyValueService(metricsManager, config, Refreshable.only(Optional.empty()), leaderConfig);
+    }
+
     KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager, KeyValueServiceConfig config, LeaderConfig leaderConfig);
+            MetricsManager metricManager,
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            LeaderConfig leaderConfig);
 
     ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, DbTimestampCreationSetting dbTimestampCreationSetting, boolean initializeAsync);

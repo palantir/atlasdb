@@ -20,6 +20,7 @@ import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -55,6 +56,7 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 environment.jersey()::register,
                 Optional.empty(),
-                OrderableSlsVersion.valueOf("0.0.0"));
+                OrderableSlsVersion.valueOf("0.0.0"),
+                ObjectMappers.newServerObjectMapper());
     }
 }
