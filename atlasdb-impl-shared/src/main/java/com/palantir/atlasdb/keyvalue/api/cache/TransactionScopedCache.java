@@ -22,6 +22,23 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
+/**
+ * The {@link LockWatchValueCache} will provide one of these to every (relevant) transaction, and this will contain a
+ * view of the cache at the correct point in time, which is determined by the transaction's
+ * {@link com.palantir.lock.watch.LockWatchVersion}.
+ *
+ * The semantics of this cache are as follows:
+ *  1. Writes in the transaction will invalidate values in this local cache (but *not* in the central cache, as the
+ *     lock events will take care of that);
+ *  2. Reads will first try to read a value from the cache; if not present, it will be loaded remotely and cached
+ *     locally.
+ *  3. At commit time, all remote reads will be flushed to the central cache (and these reads will be filtered based on
+ *     the lock events that have happened since the transaction was started).
+ *
+ * It is safe to perform these reads due to the transaction semantics: for a serialisable transaction, we will use
+ * the locked descriptors at commit time to validate whether we have read-write conflicts; otherwise, reading the
+ * values in the cache is just as safe as reading a snapshot of the database taken at the start timestamp.
+ */
 public interface TransactionScopedCache {
     void invalidate(TableReference tableReference, Cell cell);
 

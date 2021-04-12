@@ -19,17 +19,17 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import java.util.Set;
 
 /**
- * The idea here is to keep a map of Cell -> value for each table (so in practice, probably a nested map). Applying
- * events will:
+ * The idea here is to keep a map of {@link com.palantir.atlasdb.keyvalue.api.CellReference} -> value for each table.
+ * Applying lock watch events will:
  *  - for {@link com.palantir.lock.watch.LockEvent}, denote that the given descriptor cannot be cached;
  *  - for {@link com.palantir.lock.watch.UnlockEvent}, denote that the given descriptor can now be cached;
  *  - for {@link com.palantir.lock.watch.LockWatchCreatedEvent}, denote that the given table can now be cached;
  *
  * The central mapping is kept up-to-date with the above, but views of the map are given to transactions which are
- * accurate at the start timestamp. Each transaction then can read from the cache as well as create a digest of values
- * that it has read (and is allowed to read). At commit time, it will flush those values to the central cache (taking
- * in to account the since-locked descriptors), as well as checking for conflicts for serializable transactions by
- * adding a check in the {@link com.palantir.atlasdb.transaction.api.PreCommitCondition}.
+ * accurate at the start timestamp's lock watch version. Each transaction then can read from the cache as well as
+ * create a digest of values that it has read (and is allowed to read). At commit time, it will flush those values to
+ * the central cache (taking in to account the since-locked descriptors), as well as checking for conflicts for
+ * serializable transactions by adding a check in the {@link com.palantir.atlasdb.transaction.api.PreCommitCondition}.
  */
 public interface LockWatchValueCache {
     void processStartTransactions(Set<Long> startTimestamps);
