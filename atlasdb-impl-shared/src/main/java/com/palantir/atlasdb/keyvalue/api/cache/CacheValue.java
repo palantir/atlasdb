@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.watch.LockWatchEvent;
-import java.util.NavigableMap;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableVersionedEventStoreState.class)
-@JsonDeserialize(as = ImmutableVersionedEventStoreState.class)
-interface VersionedEventStoreState {
-    NavigableMap<Sequence, LockWatchEvent> eventMap();
+public interface CacheValue {
+    // This is optional as we also want to cache reads where there is no value present.
+    Optional<byte[]> value();
+
+    static CacheValue of(byte[] value) {
+        return ImmutableCacheValue.builder().value(value).build();
+    }
+
+    static CacheValue empty() {
+        return ImmutableCacheValue.builder().build();
+    }
 }

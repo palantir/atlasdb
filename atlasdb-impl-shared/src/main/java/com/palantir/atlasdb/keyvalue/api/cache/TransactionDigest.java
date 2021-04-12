@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.watch.LockWatchEvent;
-import java.util.NavigableMap;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
+import java.util.Map;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableVersionedEventStoreState.class)
-@JsonDeserialize(as = ImmutableVersionedEventStoreState.class)
-interface VersionedEventStoreState {
-    NavigableMap<Sequence, LockWatchEvent> eventMap();
+public interface TransactionDigest {
+    Map<CellReference, CacheValue> loadedValues();
+
+    static TransactionDigest of(Map<CellReference, CacheValue> loadedValues) {
+        return ImmutableTransactionDigest.builder().loadedValues(loadedValues).build();
+    }
 }
