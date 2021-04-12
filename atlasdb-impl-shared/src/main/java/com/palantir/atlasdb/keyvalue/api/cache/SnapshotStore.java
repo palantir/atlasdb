@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
+import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import java.util.Optional;
 
 public interface SnapshotStore {

@@ -14,18 +14,31 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.cache;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.Comparator;
 import org.immutables.value.Value;
 
 /**
- * Dealing with two longs in maps is driving me insane. Made a couple of interfaces to make this less terrible.
+ * Encapsulates the sequence or version number from {@link com.palantir.lock.watch.LockWatchVersion}. This is only
+ * intended to be used internally.
  */
 @Value.Immutable
-public interface Sequence {
+@JsonSerialize(as = ImmutableSequence.class)
+@JsonDeserialize(as = ImmutableSequence.class)
+public interface Sequence extends Comparable<Sequence> {
+    @JsonProperty("sequence")
     long value();
 
     static Sequence of(long value) {
         return ImmutableSequence.builder().value(value).build();
+    }
+
+    @Override
+    default int compareTo(Sequence other) {
+        return Comparator.comparingLong(Sequence::value).compare(this, other);
     }
 }

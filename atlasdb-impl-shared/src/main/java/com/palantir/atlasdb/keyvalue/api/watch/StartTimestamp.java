@@ -14,18 +14,31 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.cache;
+package com.palantir.atlasdb.keyvalue.api.watch;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.Comparator;
 import org.immutables.value.Value;
 
 /**
- * See {@link Sequence} for justification.
+ * Encapsulates a start timestamp to avoid the need to use excessive numbers of longs everywhere. This is only
+ * intended to be used internally.
  */
 @Value.Immutable
-public interface StartTimestamp {
+@JsonSerialize(as = ImmutableStartTimestamp.class)
+@JsonDeserialize(as = ImmutableStartTimestamp.class)
+public interface StartTimestamp extends Comparable<StartTimestamp> {
+    @JsonProperty("start-ts")
     long value();
 
     static StartTimestamp of(long value) {
         return ImmutableStartTimestamp.builder().value(value).build();
+    }
+
+    @Override
+    default int compareTo(StartTimestamp other) {
+        return Comparator.comparingLong(StartTimestamp::value).compare(this, other);
     }
 }

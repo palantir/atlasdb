@@ -18,6 +18,8 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
+import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
