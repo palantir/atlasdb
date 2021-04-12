@@ -23,4 +23,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = PaxosTsBoundPersisterConfiguration.class, name = "paxos"),
     @JsonSubTypes.Type(value = DatabaseTsBoundPersisterConfiguration.class, name = "database")
 })
-public interface TsBoundPersisterConfiguration {}
+public interface TsBoundPersisterConfiguration {
+    /**
+     * Returns true if read and write operations on the {@param other} configuration would definitely compromise
+     * correctness of also performing read and write operations on this configuration. The implication does not go
+     * the other way.
+     */
+    boolean isLocationallyIncompatible(TsBoundPersisterConfiguration other);
+}

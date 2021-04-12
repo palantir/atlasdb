@@ -12,11 +12,8 @@ conjure {
 
 repositories {
     mavenCentral()
-}
-
-dependencies {
-    conjureCompiler 'com.palantir.conjure:conjure'
-    conjureJava 'com.palantir.conjure.java:conjure-java'
+    maven { url 'https://palantir.bintray.com/releases' }
+    jcenter()
 }
 
 subprojects {

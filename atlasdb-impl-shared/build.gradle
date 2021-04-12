@@ -4,6 +4,8 @@ apply plugin: 'com.palantir.metric-schema'
 
 repositories {
     mavenCentral()
+    maven { url 'https://palantir.bintray.com/releases' }
+    jcenter()
 }
 
 libsDirName = file('build/artifacts')

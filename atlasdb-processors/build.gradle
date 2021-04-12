@@ -4,6 +4,8 @@ apply plugin: 'java-library'
 
 repositories {
     mavenCentral()
+    maven { url 'https://palantir.bintray.com/releases' }
+    jcenter()
 }
 
 dependencies {

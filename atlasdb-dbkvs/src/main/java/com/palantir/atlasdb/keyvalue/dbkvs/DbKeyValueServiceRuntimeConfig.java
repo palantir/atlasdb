@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.timelock.config;
 
-import com.fasterxml.jackson.annotation.JsonTypeName;
+package com.palantir.atlasdb.keyvalue.dbkvs;
+
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.auto.service.AutoService;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.nexus.db.pool.config.MaskedValue;
 import org.immutables.value.Value;
 
-@JsonDeserialize(as = ImmutablePaxosTsBoundPersisterConfiguration.class)
-@JsonSerialize(as = ImmutablePaxosTsBoundPersisterConfiguration.class)
-@JsonTypeName("paxos")
+@AutoService(KeyValueServiceRuntimeConfig.class)
+@JsonSerialize(as = ImmutableDbKeyValueServiceRuntimeConfig.class)
+@JsonDeserialize(as = ImmutableDbKeyValueServiceRuntimeConfig.class)
 @Value.Immutable
-public abstract class PaxosTsBoundPersisterConfiguration implements TsBoundPersisterConfiguration {
+public abstract class DbKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
+
     @Override
-    public boolean isLocationallyIncompatible(TsBoundPersisterConfiguration other) {
-        return !(other instanceof PaxosTsBoundPersisterConfiguration);
+    public String type() {
+        return DbAtlasDbFactory.TYPE;
     }
+
+    public abstract MaskedValue getDbPassword();
 }

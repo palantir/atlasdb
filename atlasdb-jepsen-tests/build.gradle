@@ -2,6 +2,9 @@ apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 
 buildscript {
     repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url 'https://palantir.bintray.com/releases' }
         jcenter()
     }
     dependencies {
