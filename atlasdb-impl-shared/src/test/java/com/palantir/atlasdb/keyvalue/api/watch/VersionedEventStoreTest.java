@@ -59,7 +59,7 @@ public final class VersionedEventStoreTest {
 
         LockWatchEvents events = eventStore.retentionEvents(Optional.empty());
         assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
-        assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(3L);
+        assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(SEQ_3);
     }
 
     @Test
