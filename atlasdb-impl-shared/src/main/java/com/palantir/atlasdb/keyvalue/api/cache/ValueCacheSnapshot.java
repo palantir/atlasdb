@@ -23,5 +23,5 @@ import java.util.Optional;
 public interface ValueCacheSnapshot {
     Optional<CacheEntry> getValue(CellReference cellReference);
 
-    boolean canCache(TableReference tableReference);
+    boolean isWatched(TableReference tableReference);
 }

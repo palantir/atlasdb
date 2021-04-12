@@ -20,6 +20,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
+import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
@@ -34,9 +36,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * The operations on this class *must* be synchronised to protect against concurrent modification of the cache.
+ */
 public final class LockWatchValueCacheImpl implements LockWatchValueCache {
-    private final ValueStore valueStore;
     private final LockWatchEventCache eventCache;
+    private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
 
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
@@ -48,13 +53,60 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     }
 
     @Override
-    public void processStartTransactions(Set<Long> startTimestamps) {
+    public synchronized void processStartTransactions(Set<Long> startTimestamps) {
         TransactionsLockWatchUpdate updateForTransactions =
                 eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
         updateCurrentVersion(updateForTransactions);
         updateStores(updateForTransactions);
     }
 
+    // TODO(jshah): This needs to be *very* carefully wired to ensure that the synchronised aspect here is not an
+    //  issue. Chances are that this may need to be re-jigged to take a batch, and be connected to the batched commit
+    //  timestamp call.
+    @Override
+    public synchronized void updateCache(TransactionDigest digest, long startTs) {
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTs);
+        commitUpdate.accept(new Visitor<Void>() {
+            @Override
+            public Void invalidateAll() {
+                // If this is an election, we should throw. If not and we are not a serialisable transaction, we are
+                // *technically* ok to go on here. However, we cannot determine which of the two we are in, so we
+                // throw anyway.
+                throw new TransactionLockWatchFailedException("A Timelock leader election has occurred between the "
+                        + "start and commit time of this transaction, and thus all events have been invalidated. This"
+                        + " transaction will be retried");
+            }
+
+            @Override
+            public Void invalidateSome(java.util.Set<LockDescriptor> invalidatedLocks) {
+                java.util.Set<CellReference> invalidatedCells = invalidatedLocks.stream()
+                        .flatMap(LockWatchValueCacheImpl::extractTableAndCell)
+                        .collect(Collectors.toSet());
+                KeyedStream.stream(digest.loadedValues())
+                        .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
+                        .forEach(valueStore::putValue);
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public TransactionScopedCache createTransactionScopedCache(long startTs) {
+        // todo(jshah): implement
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    /**
+     * In order to maintain the necessary invariants, we need to do the following:
+     *
+     *  1. For each new event, we apply it to the cache. The effects of this application is described in
+     *     {@link LockWatchValueCache}.
+     *  2. For each transaction, we must ensure that we store a snapshot of the cache at the sequence corresponding
+     *     to the transaction's start timestamp. Note that not every sequence will have a corresponding timestamp, so we
+     *     don't bother storing a snapshot for those sequences. Also note that we know that each call here will only
+     *     ever have new events, and that consecutive calls to this method will *always* have increasing sequences
+     *     (without this last guarantee, we'd need to store snapshots for all sequences).
+     */
     private void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
         updateForTransactions.events().forEach(event -> {
@@ -104,38 +156,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         snapshotStore.reset();
     }
 
-    @Override
-    public void updateCache(TransactionDigest digest, long startTs) {
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTs);
-        commitUpdate.accept(new Visitor<Void>() {
-            @Override
-            public Void invalidateAll() {
-                // If this is an election, we should throw. If not and we are not a serialisable transaction, we are
-                // *technically* ok to go on here. However, we cannot determine which of the two we are in, so I think
-                // we just need to throw anyway.
-                throw new TransactionLockWatchFailedException("Leader election by commit time, must retry.");
-            }
-
-            @Override
-            public Void invalidateSome(java.util.Set<LockDescriptor> invalidatedLocks) {
-                java.util.Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                        .flatMap(LockWatchValueCacheImpl.this::extractTableAndCell)
-                        .collect(Collectors.toSet());
-                KeyedStream.stream(digest.loadedValues())
-                        .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
-                        .forEach(valueStore::putValue);
-                return null;
-            }
-        });
-    }
-
-    @Override
-    public TransactionScopedCache createTransactionScopedCache(long startTs) {
-        // todo(jshah): implement
-        return null;
-    }
-
-    private Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
+    private static Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
         return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 }

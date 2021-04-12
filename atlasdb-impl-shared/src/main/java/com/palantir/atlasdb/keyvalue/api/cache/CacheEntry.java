@@ -18,6 +18,13 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import org.immutables.value.Value;
 
+/**
+ * Represents either:
+ *  1. A value that cannot be currently cached due to a lock being taken out. This has an empty cache value (which
+ *     should never actually need to be read), and a status of LOCKED.
+ *  2. A value that is cached because the last seen event for it was an unlock event (or there was never a lock event in
+ *     the first place). This has a status of UNLOCKED and a value which may be present or empty.
+ */
 @Value.Immutable
 public interface CacheEntry {
     Status status();
