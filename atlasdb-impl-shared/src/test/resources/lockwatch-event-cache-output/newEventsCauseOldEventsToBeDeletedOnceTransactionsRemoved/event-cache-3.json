@@ -17,14 +17,14 @@
     },
     "eventStoreState" : {
       "eventMap" : {
-        "5" : {
+        "Sequence{value=5}" : {
           "type" : "unlock",
           "sequence" : 5,
           "lockDescriptors" : [ {
             "bytes" : "dGFibGUAAg=="
           } ]
         },
-        "6" : {
+        "Sequence{value=6}" : {
           "type" : "lock",
           "sequence" : 6,
           "lockDescriptors" : [ {
@@ -34,7 +34,7 @@
             "requestId" : "203fcd7a-b3d7-4c2a-9d2c-3d61cde1ba59"
           }
         },
-        "7" : {
+        "Sequence{value=7}" : {
           "type" : "lock",
           "sequence" : 7,
           "lockDescriptors" : [ {

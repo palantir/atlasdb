@@ -36,6 +36,12 @@ public final class VersionedEventStoreTest {
     private static final LockWatchEvent EVENT_4 =
             UnlockEvent.builder(ImmutableSet.of()).build(4L);
 
+    private static final Sequence SEQ_MIN = Sequence.of(-1L);
+    private static final Sequence SEQ_1 = Sequence.of(1L);
+    private static final Sequence SEQ_2 = Sequence.of(2L);
+    private static final Sequence SEQ_3 = Sequence.of(3L);
+    private static final Sequence SEQ_4 = Sequence.of(4L);
+
     private VersionedEventStore eventStore;
 
     @Before
@@ -46,9 +52,10 @@ public final class VersionedEventStoreTest {
     @Test
     public void retentionEventsDoesNotRetentionAfterEarliestVersion() {
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
-        LockWatchEvents emptyEvents = eventStore.retentionEvents(Optional.of(-1L));
+        LockWatchEvents emptyEvents = eventStore.retentionEvents(Optional.of(SEQ_MIN));
         assertThat(emptyEvents.events()).isEmpty();
-        assertThat(eventStore.getStateForTesting().eventMap().keySet()).containsExactlyInAnyOrder(1L, 2L, 3L, 4L);
+        assertThat(eventStore.getStateForTesting().eventMap().keySet())
+                .containsExactlyInAnyOrder(SEQ_1, SEQ_2, SEQ_3, SEQ_4);
 
         LockWatchEvents events = eventStore.retentionEvents(Optional.empty());
         assertThat(events.events().stream().map(LockWatchEvent::sequence)).containsExactly(1L, 2L);
@@ -80,7 +87,7 @@ public final class VersionedEventStoreTest {
     public void retentionEventsClearsEventsOverMaxBound() {
         eventStore = new VersionedEventStore(1, 3);
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
-        assertThat(eventStore.retentionEvents(Optional.of(-1L)).events().stream()
+        assertThat(eventStore.retentionEvents(Optional.of(SEQ_MIN)).events().stream()
                         .map(LockWatchEvent::sequence))
                 .as("First event retentioned anyway as it exceeds maximum size")
                 .containsExactly(1L);

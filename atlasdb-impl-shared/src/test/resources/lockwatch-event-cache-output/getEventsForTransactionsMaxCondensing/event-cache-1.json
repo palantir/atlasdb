@@ -12,7 +12,7 @@
     },
     "eventStoreState" : {
       "eventMap" : {
-        "4" : {
+        "Sequence{value=4}" : {
           "type" : "created",
           "sequence" : 4,
           "references" : [ {
@@ -23,14 +23,14 @@
             "bytes" : "dGFibGUAAQ=="
           } ]
         },
-        "5" : {
+        "Sequence{value=5}" : {
           "type" : "unlock",
           "sequence" : 5,
           "lockDescriptors" : [ {
             "bytes" : "dGFibGUAAg=="
           } ]
         },
-        "6" : {
+        "Sequence{value=6}" : {
           "type" : "lock",
           "sequence" : 6,
           "lockDescriptors" : [ {
@@ -40,7 +40,7 @@
             "requestId" : "203fcd7a-b3d7-4c2a-9d2c-3d61cde1ba59"
           }
         },
-        "7" : {
+        "Sequence{value=7}" : {
           "type" : "lock",
           "sequence" : 7,
           "lockDescriptors" : [ {
@@ -59,14 +59,14 @@
   },
   "timestampStoreState" : {
     "timestampMap" : {
-      "1" : {
+      "StartTimestamp{value=1}" : {
         "version" : {
           "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
           "version" : 3
         },
         "commitInfo" : null
       },
-      "16" : {
+      "StartTimestamp{value=16}" : {
         "version" : {
           "id" : "470c855e-f77b-44df-b56a-14d3df085dbc",
           "version" : 7
@@ -75,8 +75,8 @@
       }
     },
     "livingVersions" : {
-      "3" : [ 1 ],
-      "7" : [ 16 ]
+      "Sequence{value=3}" : [ { } ],
+      "Sequence{value=7}" : [ { } ]
     }
   }
 }

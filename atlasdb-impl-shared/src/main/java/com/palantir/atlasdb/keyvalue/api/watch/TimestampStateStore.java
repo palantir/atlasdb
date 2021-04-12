@@ -28,26 +28,30 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
 import org.immutables.value.Value;
 
 final class TimestampStateStore {
-    private final NavigableMap<Long, MapEntry> timestampMap = new TreeMap<>();
-    private final SortedSetMultimap<Long, Long> livingVersions = TreeMultimap.create();
+    private final NavigableMap<StartTimestamp, MapEntry> timestampMap =
+            new TreeMap<>(Comparator.comparingLong(StartTimestamp::value));
+    private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions = TreeMultimap.create(
+            Comparator.comparingLong(Sequence::value), Comparator.comparingLong(StartTimestamp::value));
 
     void putStartTimestamps(Collection<Long> startTimestamps, LockWatchVersion version) {
-        startTimestamps.forEach(startTimestamp -> {
+        startTimestamps.stream().map(StartTimestamp::of).forEach(startTimestamp -> {
             MapEntry previous = timestampMap.putIfAbsent(startTimestamp, MapEntry.of(version));
             Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
-            livingVersions.put(version.version(), startTimestamp);
+            livingVersions.put(Sequence.of(version.version()), startTimestamp);
         });
     }
 
     void putCommitUpdates(Collection<TransactionUpdate> transactionUpdates, LockWatchVersion newVersion) {
         transactionUpdates.forEach(transactionUpdate -> {
-            MapEntry previousEntry = timestampMap.get(transactionUpdate.startTs());
+            StartTimestamp startTimestamp = StartTimestamp.of(transactionUpdate.startTs());
+            MapEntry previousEntry = timestampMap.get(startTimestamp);
             if (previousEntry == null) {
                 throw new TransactionLockWatchFailedException("start timestamp missing from map");
             }
@@ -56,14 +60,15 @@ final class TimestampStateStore {
                     !previousEntry.commitInfo().isPresent(), "Commit info already present for given timestamp");
 
             timestampMap.replace(
-                    transactionUpdate.startTs(),
+                    startTimestamp,
                     previousEntry.withCommitInfo(CommitInfo.of(transactionUpdate.writesToken(), newVersion)));
         });
     }
 
     void remove(long startTimestamp) {
-        Optional.ofNullable(timestampMap.remove(startTimestamp))
-                .ifPresent(entry -> livingVersions.remove(entry.version().version(), startTimestamp));
+        Optional.ofNullable(timestampMap.remove(StartTimestamp.of(startTimestamp)))
+                .ifPresent(entry -> livingVersions.remove(
+                        Sequence.of(entry.version().version()), StartTimestamp.of(startTimestamp)));
     }
 
     void clear() {
@@ -72,11 +77,13 @@ final class TimestampStateStore {
     }
 
     Optional<LockWatchVersion> getStartVersion(long startTimestamp) {
-        return Optional.ofNullable(timestampMap.get(startTimestamp)).map(MapEntry::version);
+        return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)))
+                .map(MapEntry::version);
     }
 
     Optional<CommitInfo> getCommitInfo(long startTimestamp) {
-        return Optional.ofNullable(timestampMap.get(startTimestamp)).flatMap(MapEntry::commitInfo);
+        return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)))
+                .flatMap(MapEntry::commitInfo);
     }
 
     @VisibleForTesting
@@ -87,7 +94,7 @@ final class TimestampStateStore {
                 .build();
     }
 
-    public Optional<Long> getEarliestLiveSequence() {
+    public Optional<Sequence> getEarliestLiveSequence() {
         return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
     }
 

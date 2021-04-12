@@ -26,5 +26,5 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableVersionedEventStoreState.class)
 @JsonDeserialize(as = ImmutableVersionedEventStoreState.class)
 interface VersionedEventStoreState {
-    NavigableMap<Long, LockWatchEvent> eventMap();
+    NavigableMap<Sequence, LockWatchEvent> eventMap();
 }

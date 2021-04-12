@@ -47,7 +47,7 @@ public final class TimestampStateStoreTest {
         timestampStateStore.putStartTimestamps(ImmutableSet.of(100L, 200L), VERSION_1);
         timestampStateStore.putStartTimestamps(ImmutableSet.of(400L, 800L), VERSION_2);
 
-        assertThat(timestampStateStore.getEarliestLiveSequence()).hasValue(1L);
+        assertThat(timestampStateStore.getEarliestLiveSequence()).hasValue(Sequence.of(1L));
 
         removeAndCheckEarliestVersion(100L, 1L);
         removeAndCheckEarliestVersion(800L, 1L);
@@ -87,6 +87,6 @@ public final class TimestampStateStoreTest {
 
     private void removeAndCheckEarliestVersion(long timestamp, long sequence) {
         timestampStateStore.remove(timestamp);
-        assertThat(timestampStateStore.getEarliestLiveSequence()).hasValue(sequence);
+        assertThat(timestampStateStore.getEarliestLiveSequence()).hasValue(Sequence.of(sequence));
     }
 }
