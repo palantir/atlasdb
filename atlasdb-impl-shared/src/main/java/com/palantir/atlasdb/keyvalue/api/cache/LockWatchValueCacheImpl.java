@@ -78,8 +78,8 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
             }
 
             @Override
-            public Void invalidateSome(java.util.Set<LockDescriptor> invalidatedLocks) {
-                java.util.Set<CellReference> invalidatedCells = invalidatedLocks.stream()
+            public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                Set<CellReference> invalidatedCells = invalidatedLocks.stream()
                         .flatMap(LockWatchValueCacheImpl::extractTableAndCell)
                         .collect(Collectors.toSet());
                 KeyedStream.stream(digest.loadedValues())
