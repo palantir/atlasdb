@@ -35,6 +35,7 @@ import io.vavr.collection.Set;
 import java.util.stream.Stream;
 
 public final class ValueStoreImpl implements ValueStore {
+    // TODO(jshah): implement cache eviction based on cache size
     private final StructureHolder<Map<CellReference, CacheEntry>> values;
     private final StructureHolder<Set<TableReference>> watchedTables;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
@@ -74,7 +75,7 @@ public final class ValueStoreImpl implements ValueStore {
         values.with(map -> map.put(cellReference, CacheEntry.unlocked(value), (oldValue, newValue) -> {
             Preconditions.checkState(
                     oldValue.status().isUnlocked() && oldValue.equals(newValue),
-                    "Trying to cache a value which is " + "either locked or is not equal to a currently cached value",
+                    "Trying to cache a value which is either locked or is not equal to a currently cached value",
                     UnsafeArg.of("table", cellReference.tableRef()),
                     UnsafeArg.of("cell", cellReference.cell()),
                     UnsafeArg.of("oldValue", oldValue),

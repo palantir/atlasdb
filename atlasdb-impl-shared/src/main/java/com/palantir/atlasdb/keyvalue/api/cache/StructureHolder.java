@@ -20,7 +20,7 @@ import java.util.function.Function;
 
 /**
  * Utility class to make manipulating {@link io.vavr.collection.Map} and {@link io.vavr.collection.Set} less
- * error-prone (puts return a *new* instance).
+ * error-prone as all methods that modify state return a *new* instance in vavr.
  */
 final class StructureHolder<V> {
     private final V initialValue;

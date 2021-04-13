@@ -49,11 +49,10 @@ public final class SnapshotStoreImpl implements SnapshotStore {
 
     @Override
     public void removeTimestamp(StartTimestamp timestamp) {
-        Optional<Sequence> sequence = Optional.of(timestampMap.remove(timestamp));
-        sequence.ifPresent(seq -> {
-            liveSequences.remove(seq, timestamp);
-            if (liveSequences.containsKey(seq)) {
-                snapshotMap.remove(seq);
+        Optional.ofNullable(timestampMap.remove(timestamp)).ifPresent(sequence -> {
+            liveSequences.remove(sequence, timestamp);
+            if (!liveSequences.containsKey(sequence)) {
+                snapshotMap.remove(sequence);
             }
         });
     }
@@ -61,5 +60,7 @@ public final class SnapshotStoreImpl implements SnapshotStore {
     @Override
     public void reset() {
         snapshotMap.clear();
+        liveSequences.clear();
+        timestampMap.clear();
     }
 }
