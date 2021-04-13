@@ -16,4 +16,57 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-public final class SnapshotStoreImplTest {}
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
+import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import io.vavr.collection.HashMap;
+import io.vavr.collection.HashSet;
+import java.util.Optional;
+import org.junit.Before;
+import org.junit.Test;
+
+public final class SnapshotStoreImplTest {
+    private static final Sequence SEQUENCE_1 = Sequence.of(1337L);
+    private static final Sequence SEQUENCE_2 = Sequence.of(8284L);
+    private static final StartTimestamp TIMESTAMP_1 = StartTimestamp.of(42L);
+    private static final StartTimestamp TIMESTAMP_2 = StartTimestamp.of(31415925635L);
+    private static final StartTimestamp TIMESTAMP_3 = StartTimestamp.of(404L);
+    private static final StartTimestamp TIMESTAMP_4 = StartTimestamp.of(10110101L);
+    private static final ValueCacheSnapshot SNAPSHOT_1 = ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty());
+    private static final ValueCacheSnapshot SNAPSHOT_2 = ValueCacheSnapshotImpl.of(
+            HashMap.<CellReference, CacheEntry>empty()
+                    .put(
+                            CellReference.of(
+                                    TableReference.create(Namespace.DEFAULT_NAMESPACE, "table"),
+                                    Cell.create(new byte[] {1}, new byte[] {1})),
+                            CacheEntry.locked()),
+            HashSet.empty());
+    private SnapshotStore snapshotStore;
+
+    @Before
+    public void before() {
+        snapshotStore = new SnapshotStoreImpl();
+    }
+
+    @Test
+    public void singleSnapshotStoredForMultipleTimestamps() {
+        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_1, SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_2, SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_3, SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_2, TIMESTAMP_4, SNAPSHOT_2);
+
+        assertThat(snapshotStore.getSnapshot(TIMESTAMP_1))
+                .isEqualTo(snapshotStore.getSnapshot(TIMESTAMP_2))
+                .isEqualTo(snapshotStore.getSnapshot(TIMESTAMP_3))
+                .hasValue(SNAPSHOT_1);
+
+        assertThat(snapshotStore.getSnapshot(TIMESTAMP_4))
+                .isNotEqualTo(Optional.of(SNAPSHOT_1))
+                .hasValue(SNAPSHOT_2);
+    }
+}

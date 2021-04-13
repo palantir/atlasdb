@@ -43,8 +43,9 @@ public final class SnapshotStoreImpl implements SnapshotStore {
     }
 
     @Override
-    public Optional<ValueCacheSnapshot> getSnapshot(Sequence sequence) {
-        return Optional.ofNullable(snapshotMap.get(sequence));
+    public Optional<ValueCacheSnapshot> getSnapshot(StartTimestamp timestamp) {
+        return Optional.ofNullable(timestampMap.get(timestamp))
+                .flatMap(sequence -> Optional.ofNullable(snapshotMap.get(sequence)));
     }
 
     @Override
