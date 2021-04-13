@@ -26,7 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
-import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,13 +60,43 @@ public final class SnapshotStoreImplTest {
         snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_3, SNAPSHOT_1);
         snapshotStore.storeSnapshot(SEQUENCE_2, TIMESTAMP_4, SNAPSHOT_2);
 
-        assertThat(snapshotStore.getSnapshot(TIMESTAMP_1))
-                .isEqualTo(snapshotStore.getSnapshot(TIMESTAMP_2))
-                .isEqualTo(snapshotStore.getSnapshot(TIMESTAMP_3))
-                .hasValue(SNAPSHOT_1);
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_1, TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3);
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_2, TIMESTAMP_4);
+    }
 
-        assertThat(snapshotStore.getSnapshot(TIMESTAMP_4))
-                .isNotEqualTo(Optional.of(SNAPSHOT_1))
-                .hasValue(SNAPSHOT_2);
+    @Test
+    public void snapshotsNotOverwrittenForSameSequence() {
+        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_1, SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_2, SNAPSHOT_2);
+
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_1, TIMESTAMP_1, TIMESTAMP_2);
+    }
+
+    @Test
+    public void removeTimestampRemovesSnapshotWhenThereAreNoMoreLiveTimestampsForSequence() {
+        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_1, SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_2, SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_3, SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_2, TIMESTAMP_4, SNAPSHOT_2);
+
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_1, TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3);
+
+        snapshotStore.removeTimestamp(TIMESTAMP_2);
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_1, TIMESTAMP_1, TIMESTAMP_3);
+        assertThat(snapshotStore.getSnapshot(TIMESTAMP_2)).isEmpty();
+
+        snapshotStore.removeTimestamp(TIMESTAMP_1);
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_1, TIMESTAMP_3);
+        assertThat(snapshotStore.getSnapshot(TIMESTAMP_1)).isEmpty();
+
+        snapshotStore.removeTimestamp(TIMESTAMP_3);
+        assertThat(snapshotStore.getSnapshot(TIMESTAMP_1)).isEmpty();
+
+        assertSnapshotsEqualForTimestamp(SNAPSHOT_2, TIMESTAMP_4);
+    }
+
+    private void assertSnapshotsEqualForTimestamp(ValueCacheSnapshot expectedValue, StartTimestamp... timestamps) {
+        Stream.of(timestamps).map(snapshotStore::getSnapshot).forEach(snapshot -> assertThat(snapshot)
+                .hasValue(expectedValue));
     }
 }
