@@ -41,7 +41,7 @@ public final class SnapshotStoreImplTest {
             HashMap.<CellReference, CacheEntry>empty()
                     .put(
                             CellReference.of(
-                                    TableReference.createWithEmptyNamespace("t.table"),
+                                    TableReference.createFromFullyQualifiedName("t.table"),
                                     Cell.create(new byte[] {1}, new byte[] {1})),
                             CacheEntry.locked()),
             HashSet.empty());

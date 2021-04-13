@@ -33,8 +33,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 public final class ValueStoreImplTest {
-    private static final TableReference TABLE_1 = TableReference.createWithEmptyNamespace("t.table1");
-    private static final TableReference TABLE_2 = TableReference.createWithEmptyNamespace("t.table2");
+    private static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("t.table1");
+    private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("t.table2");
     private static final Cell CELL_1 = createCell(1);
     private static final Cell CELL_2 = createCell(2);
     private static final Cell CELL_3 = createCell(3);

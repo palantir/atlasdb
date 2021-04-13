@@ -36,7 +36,6 @@ import java.util.stream.Stream;
 
 public final class ValueStoreImpl implements ValueStore {
     // TODO(jshah): implement cache eviction based on cache size
-    // TODO(jshah): maybe refactor to not use cells as cells have a terrible hash function
     private final StructureHolder<Map<CellReference, CacheEntry>> values;
     private final StructureHolder<Set<TableReference>> watchedTables;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
