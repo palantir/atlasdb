@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 
 public final class ValueStoreImpl implements ValueStore {
     // TODO(jshah): implement cache eviction based on cache size
+    // TODO(jshah): maybe refactor to not use cells as cells have a terrible hash function
     private final StructureHolder<Map<CellReference, CacheEntry>> values;
     private final StructureHolder<Set<TableReference>> watchedTables;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
@@ -57,20 +58,6 @@ public final class ValueStoreImpl implements ValueStore {
     }
 
     @Override
-    public void putLockedCell(CellReference cellReference) {
-        values.with(map -> map.put(cellReference, CacheEntry.locked()));
-    }
-
-    @Override
-    public void clearLockedCell(CellReference cellReference) {
-        values.with(map -> map.get(cellReference)
-                .toJavaOptional()
-                .filter(entry -> !entry.status().isUnlocked())
-                .map(_unused -> map.remove(cellReference))
-                .orElse(map));
-    }
-
-    @Override
     public void putValue(CellReference cellReference, CacheValue value) {
         values.with(map -> map.put(cellReference, CacheEntry.unlocked(value), (oldValue, newValue) -> {
             Preconditions.checkState(
@@ -89,12 +76,24 @@ public final class ValueStoreImpl implements ValueStore {
         return ValueCacheSnapshotImpl.of(values.getStructure(), watchedTables.getStructure());
     }
 
-    private Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
+    private void putLockedCell(CellReference cellReference) {
+        values.with(map -> map.put(cellReference, CacheEntry.locked()));
+    }
+
+    private void clearLockedCell(CellReference cellReference) {
+        values.with(map -> map.get(cellReference)
+                .toJavaOptional()
+                .filter(entry -> !entry.status().isUnlocked())
+                .map(_unused -> map.remove(cellReference))
+                .orElse(map));
+    }
+
+    private Stream<CellReference> extractCandidateCells(LockDescriptor descriptor) {
         return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 
     private void applyLockedDescriptors(java.util.Set<LockDescriptor> lockDescriptors) {
-        lockDescriptors.stream().flatMap(this::extractTableAndCell).forEach(this::putLockedCell);
+        lockDescriptors.stream().flatMap(this::extractCandidateCells).forEach(this::putLockedCell);
     }
 
     private TableReference extractTableReference(LockWatchReference lockWatchReference) {
@@ -113,7 +112,7 @@ public final class ValueStoreImpl implements ValueStore {
         @Override
         public Void visit(UnlockEvent unlockEvent) {
             unlockEvent.lockDescriptors().stream()
-                    .flatMap(ValueStoreImpl.this::extractTableAndCell)
+                    .flatMap(ValueStoreImpl.this::extractCandidateCells)
                     .forEach(ValueStoreImpl.this::clearLockedCell);
             return null;
         }

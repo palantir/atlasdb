@@ -24,10 +24,6 @@ public interface ValueStore {
 
     void applyEvent(LockWatchEvent event);
 
-    void putLockedCell(CellReference cellReference);
-
-    void clearLockedCell(CellReference cellReference);
-
     void putValue(CellReference cellReference, CacheValue value);
 
     ValueCacheSnapshot getSnapshot();

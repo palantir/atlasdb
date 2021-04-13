@@ -40,7 +40,7 @@ public final class AtlasLockDescriptorUtils {
         TableReference tableRef = tableRefAndRemainder.get().tableRef();
         ByteString remainingBytes = tableRefAndRemainder.get().remainder();
 
-        return IntStream.range(1, remainingBytes.size() - 2)
+        return IntStream.range(1, remainingBytes.size() - 1)
                 .filter(index -> isZeroDelimiterIndex(remainingBytes, index))
                 .mapToObj(index -> createCellFromByteString(remainingBytes, index))
                 .map(cell -> CellReference.of(tableRef, cell))

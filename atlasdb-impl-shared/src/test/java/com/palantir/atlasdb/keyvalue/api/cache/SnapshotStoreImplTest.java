@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
@@ -42,7 +41,7 @@ public final class SnapshotStoreImplTest {
             HashMap.<CellReference, CacheEntry>empty()
                     .put(
                             CellReference.of(
-                                    TableReference.create(Namespace.DEFAULT_NAMESPACE, "table"),
+                                    TableReference.createWithEmptyNamespace("t.table"),
                                     Cell.create(new byte[] {1}, new byte[] {1})),
                             CacheEntry.locked()),
             HashSet.empty());
