@@ -15,7 +15,7 @@ buildscript {
         classpath 'com.palantir.baseline:gradle-baseline-java:3.74.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:5.2.0'
         classpath 'com.palantir.javaformat:gradle-palantir-java-format:1.0.1'
-        classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.20'
+        classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.21'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:4.24.0'
         classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.15.0'
         classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
