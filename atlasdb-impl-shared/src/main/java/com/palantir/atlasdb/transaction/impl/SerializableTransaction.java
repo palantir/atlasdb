@@ -751,23 +751,23 @@ public class SerializableTransaction extends SnapshotTransaction {
                     readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range);
 
             // handles the case where (r1, c), (r2, c) exists and we read only up to (r1, c).
-            Iterator<Map.Entry<Cell, byte[]>> truncatedStoredValues =
-                    new AbstractIterator<Map.Entry<Cell, byte[]>>() {
-                        @Override
-                        protected Map.Entry<Cell, byte[]> computeNext() {
-                            if (!storedValues.hasNext()) {
-                                return endOfData();
-                            }
+            Iterator<Map.Entry<Cell, byte[]>> truncatedStoredValues = new AbstractIterator<Map.Entry<Cell, byte[]>>() {
+                @Override
+                protected Map.Entry<Cell, byte[]> computeNext() {
+                    if (!storedValues.hasNext()) {
+                        return endOfData();
+                    }
 
-                            Map.Entry<Cell, byte[]> ret = storedValues.next();
-                            if (comparator.compare(ret.getKey(), endOfRange) > 0) {
-                                return endOfData();
-                            }
-                            return ret;
-                        }
-                    };
+                    Map.Entry<Cell, byte[]> ret = storedValues.next();
+                    if (comparator.compare(ret.getKey(), endOfRange) > 0) {
+                        return endOfData();
+                    }
+                    return ret;
+                }
+            };
 
-            List<Map.Entry<Cell, ByteBuffer>> actualReadList = Streams.stream(readValues).collect(Collectors.toList());
+            List<Map.Entry<Cell, ByteBuffer>> actualReadList =
+                    Streams.stream(readValues).collect(Collectors.toList());
             List<Map.Entry<Cell, ByteBuffer>> storedValuesWithoutLocalWrites = filterWritesFromCells(
                     Streams.stream(truncatedStoredValues).collect(Collectors.toList()), request.getTableRef());
 

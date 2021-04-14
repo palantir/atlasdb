@@ -1221,12 +1221,15 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 BatchColumnRangeSelection.create(
                         PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
 
-        List<Map.Entry<Cell, byte[]>> sortedColumnValues = Streams.stream(sortedColumns).collect(Collectors.toList());
-        List<Cell> sortedCellsRead = sortedColumnValues.stream().map(Entry::getKey).collect(Collectors.toList());
+        List<Map.Entry<Cell, byte[]>> sortedColumnValues =
+                Streams.stream(sortedColumns).collect(Collectors.toList());
+        List<Cell> sortedCellsRead =
+                sortedColumnValues.stream().map(Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedCells(rows, sortedCellsRead, cellsWrittenOriginally);
-        assertThat(sortedColumnValues).contains(
-                Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
-                Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
+        assertThat(sortedColumnValues)
+                .contains(
+                        Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
+                        Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
         t1.commit();
     }
 
@@ -1247,12 +1250,15 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t1.put(TEST_TABLE, ImmutableMap.of(cellsWrittenOriginally.get(0), newValue1));
         t1.put(TEST_TABLE, ImmutableMap.of(cellsWrittenOriginally.get(17), newValue2));
 
-        List<Map.Entry<Cell, byte[]>> sortedColumnValues = Streams.stream(sortedColumns).collect(Collectors.toList());
-        List<Cell> sortedCellsRead = sortedColumnValues.stream().map(Entry::getKey).collect(Collectors.toList());
+        List<Map.Entry<Cell, byte[]>> sortedColumnValues =
+                Streams.stream(sortedColumns).collect(Collectors.toList());
+        List<Cell> sortedCellsRead =
+                sortedColumnValues.stream().map(Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedCells(rows, sortedCellsRead, cellsWrittenOriginally);
-        assertThat(sortedColumnValues).doesNotContain(
-                Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
-                Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
+        assertThat(sortedColumnValues)
+                .doesNotContain(
+                        Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
+                        Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
         t1.commit();
     }
 
@@ -1262,8 +1268,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         List<Cell> cellsWrittenOriginally = generateCells(rows, generateColumns(5));
         writeCells(cellsWrittenOriginally);
 
-        TableReference anotherTable = TableReference.createFromFullyQualifiedName("ns.atlasdb_another_test_"
-                + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE));
+        TableReference anotherTable = TableReference.createFromFullyQualifiedName(
+                "ns.atlasdb_another_test_" + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE));
         keyValueService.createTable(anotherTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         Transaction t1 = startTransactionWithSerializableConflictChecking();
@@ -1281,12 +1287,15 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 BatchColumnRangeSelection.create(
                         PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
 
-        List<Map.Entry<Cell, byte[]>> sortedColumnValues = Streams.stream(sortedColumns).collect(Collectors.toList());
-        List<Cell> sortedCellsRead = sortedColumnValues.stream().map(Entry::getKey).collect(Collectors.toList());
+        List<Map.Entry<Cell, byte[]>> sortedColumnValues =
+                Streams.stream(sortedColumns).collect(Collectors.toList());
+        List<Cell> sortedCellsRead =
+                sortedColumnValues.stream().map(Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedCells(rows, sortedCellsRead, cellsWrittenOriginally);
-        assertThat(sortedColumnValues).doesNotContain(
-                Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
-                Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
+        assertThat(sortedColumnValues)
+                .doesNotContain(
+                        Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
+                        Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
         assertThatCode(t1::commit).doesNotThrowAnyException();
     }
 
