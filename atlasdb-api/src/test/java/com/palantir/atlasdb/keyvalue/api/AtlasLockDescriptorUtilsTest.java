@@ -18,13 +18,13 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import okio.ByteString;
 import org.junit.Test;
 
@@ -36,6 +36,24 @@ public class AtlasLockDescriptorUtilsTest {
     private static final byte[] COL_WITH_ZEROS = new byte[] {4, 0, 0, 5, 6};
     private static final byte[] START_WITH_ZERO = new byte[] {0, 1, 2, 3};
     private static final byte[] END_WITH_ZERO = new byte[] {4, 5, 6, 0};
+    private static final byte[] SHORT_ROW = new byte[] {1};
+    private static final byte[] SHORT_COL = new byte[] {2};
+    private static final byte[] END_WITH_TWO_ZEROES = new byte[] {1, 3, 3, 7, 0, 0};
+
+    @Test
+    public void shortLockDescriptorCorrectlyDecodesCell() {
+        LockDescriptor descriptor = AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), SHORT_ROW, SHORT_COL);
+        assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor))
+                .containsExactly(CellReference.of(TABLE, Cell.create(SHORT_ROW, SHORT_COL)));
+    }
+
+    @Test
+    public void lockDescriptorEndingWithTwoZeroesDecodesCorrectly() {
+        LockDescriptor descriptor = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), END_WITH_TWO_ZEROES);
+
+        assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor))
+                .containsExactly(CellReference.of(TABLE, Cell.create(new byte[] {1, 3, 3, 7}, new byte[] {0})));
+    }
 
     @Test
     public void lockDescriptorWithNoZerosReturnsEmptyForCells() {
@@ -60,13 +78,10 @@ public class AtlasLockDescriptorUtilsTest {
     public void rowWithNullsParsesAllCombinationsForCells() {
         LockDescriptor descriptor = AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), ROW_WITH_ZEROS, NO_ZERO_COL);
 
-        List<CellReference> expected = ImmutableList.of(
-                        Cell.create(new byte[] {1}, new byte[] {2, 0, 3, 0, 4, 5, 6}),
-                        Cell.create(new byte[] {1, 0, 2}, new byte[] {3, 0, 4, 5, 6}),
-                        Cell.create(new byte[] {1, 0, 2, 0, 3}, new byte[] {4, 5, 6}))
-                .stream()
-                .map(cell -> CellReference.of(TABLE, cell))
-                .collect(Collectors.toList());
+        List<CellReference> expected = createExpectedCells(
+                Cell.create(new byte[] {1}, new byte[] {2, 0, 3, 0, 4, 5, 6}),
+                Cell.create(new byte[] {1, 0, 2}, new byte[] {3, 0, 4, 5, 6}),
+                Cell.create(new byte[] {1, 0, 2, 0, 3}, new byte[] {4, 5, 6}));
 
         assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor)).isEqualTo(expected);
         assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor))
@@ -77,13 +92,10 @@ public class AtlasLockDescriptorUtilsTest {
     public void colWithNullsParsesAllCombinationsForCells() {
         LockDescriptor descriptor = AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), NO_ZERO_ROW, COL_WITH_ZEROS);
 
-        List<CellReference> expected = ImmutableList.of(
-                        Cell.create(new byte[] {1, 2, 3}, new byte[] {4, 0, 0, 5, 6}),
-                        Cell.create(new byte[] {1, 2, 3, 0, 4}, new byte[] {0, 5, 6}),
-                        Cell.create(new byte[] {1, 2, 3, 0, 4, 0}, new byte[] {5, 6}))
-                .stream()
-                .map(cell -> CellReference.of(TABLE, cell))
-                .collect(Collectors.toList());
+        List<CellReference> expected = createExpectedCells(
+                Cell.create(new byte[] {1, 2, 3}, new byte[] {4, 0, 0, 5, 6}),
+                Cell.create(new byte[] {1, 2, 3, 0, 4}, new byte[] {0, 5, 6}),
+                Cell.create(new byte[] {1, 2, 3, 0, 4, 0}, new byte[] {5, 6}));
 
         assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor)).isEqualTo(expected);
         assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor))
@@ -94,12 +106,9 @@ public class AtlasLockDescriptorUtilsTest {
     public void rowEndingWithZeroIsCorrectlyParsedForCombinationsForCells() {
         LockDescriptor descriptor = AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), END_WITH_ZERO, NO_ZERO_COL);
 
-        List<CellReference> expected = ImmutableList.of(
-                        Cell.create(new byte[] {4, 5, 6}, new byte[] {0, 4, 5, 6}),
-                        Cell.create(new byte[] {4, 5, 6, 0}, new byte[] {4, 5, 6}))
-                .stream()
-                .map(cell -> CellReference.of(TABLE, cell))
-                .collect(Collectors.toList());
+        List<CellReference> expected = createExpectedCells(
+                Cell.create(new byte[] {4, 5, 6}, new byte[] {0, 4, 5, 6}),
+                Cell.create(new byte[] {4, 5, 6, 0}, new byte[] {4, 5, 6}));
 
         assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor)).isEqualTo(expected);
         assertThat(AtlasLockDescriptorUtils.candidateCells(descriptor))
@@ -132,5 +141,9 @@ public class AtlasLockDescriptorUtilsTest {
         LockDescriptor descriptor = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW_WITH_ZEROS);
         assertThat(AtlasLockDescriptorUtils.tryParseTableRef(descriptor))
                 .hasValue(ImmutableTableRefAndRemainder.of(TABLE, ByteString.of(ROW_WITH_ZEROS)));
+    }
+
+    private static List<CellReference> createExpectedCells(Cell... cells) {
+        return Stream.of(cells).map(cell -> CellReference.of(TABLE, cell)).collect(Collectors.toList());
     }
 }
