@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -28,6 +30,8 @@ import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +43,7 @@ public final class ValueStoreImplTest {
     private static final Cell CELL_2 = createCell(2);
     private static final Cell CELL_3 = createCell(3);
     private static final Cell CELL_4 = createCell(4);
+    private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_1, CELL_1);
     private static final CacheValue VALUE_1 = createValue(10);
     private static final CacheValue VALUE_2 = createValue(20);
     private static final CacheValue VALUE_3 = createValue(30);
@@ -47,8 +52,9 @@ public final class ValueStoreImplTest {
     private static final LockWatchEvent LOCK_EVENT_1 = createLockEvent(TABLE_1, CELL_1);
     private static final LockWatchEvent LOCK_EVENT_2 = createLockEvent(TABLE_2, CELL_2);
     private static final LockWatchEvent WATCH_EVENT_1 = createWatchEvent(TABLE_1);
+    private static final LockWatchEvent UNLOCK_EVENT_1 = createUnlockEvent(TABLE_1, CELL_1);
 
-    private ValueStoreImpl valueStore;
+    private ValueStore valueStore;
 
     @Before
     public void before() {
@@ -58,7 +64,7 @@ public final class ValueStoreImplTest {
     @Test
     public void lockEventInvalidatesValue() {
         valueStore.applyEvent(WATCH_EVENT_1);
-        valueStore.putValue(CellReference.of(TABLE_1, CELL_1), VALUE_1);
+        valueStore.putValue(TABLE_CELL_1, VALUE_1);
         valueStore.putValue(CellReference.of(TABLE_1, CELL_3), VALUE_3);
 
         assertExpectedValue(TABLE_1, CELL_1, CacheEntry.unlocked(VALUE_1));
@@ -67,6 +73,36 @@ public final class ValueStoreImplTest {
         valueStore.applyEvent(LOCK_EVENT_1);
         assertExpectedValue(TABLE_1, CELL_1, CacheEntry.locked());
         assertExpectedValue(TABLE_1, CELL_3, CacheEntry.unlocked(VALUE_3));
+    }
+
+    @Test
+    public void unlockEventsClearLockedEntries() {
+        valueStore.applyEvent(WATCH_EVENT_1);
+        valueStore.applyEvent(LOCK_EVENT_1);
+
+        assertExpectedValue(TABLE_1, CELL_1, CacheEntry.locked());
+
+        valueStore.applyEvent(UNLOCK_EVENT_1);
+        assertThat(valueStore.getSnapshot().getValue(TABLE_CELL_1)).isEmpty();
+    }
+
+    @Test
+    public void putValueThrowsIfCurrentValueDiffers() {
+        valueStore.applyEvent(WATCH_EVENT_1);
+        valueStore.putValue(TABLE_CELL_1, VALUE_1);
+
+        assertThatCode(() -> valueStore.putValue(TABLE_CELL_1, VALUE_1)).doesNotThrowAnyException();
+        assertPutThrows(VALUE_2);
+
+        valueStore.applyEvent(LOCK_EVENT_1);
+        assertPutThrows(VALUE_1);
+    }
+
+    private void assertPutThrows(CacheValue value) {
+        assertThatThrownBy(() -> valueStore.putValue(TABLE_CELL_1, value))
+                .isExactlyInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining(
+                        "Trying to cache a value which is either locked or is not equal to a currently cached value");
     }
 
     private void assertExpectedValue(TableReference table, Cell cell, CacheEntry entry) {
@@ -85,6 +121,12 @@ public final class ValueStoreImplTest {
                         ImmutableSet.of(AtlasCellLockDescriptor.of(
                                 table.getQualifiedName(), cell.getRowName(), cell.getColumnName())),
                         LockToken.of(UUID.randomUUID()))
+                .build(1L);
+    }
+
+    private static LockWatchEvent createUnlockEvent(TableReference table, Cell cell) {
+        return UnlockEvent.builder(ImmutableSet.of(
+                        AtlasCellLockDescriptor.of(table.getQualifiedName(), cell.getRowName(), cell.getColumnName())))
                 .build(1L);
     }
 
