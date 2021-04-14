@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: '`getSortedColumns()` no longer causes transactions to conflict with themselves if they are reading a local write as part of this read operation. Previously, they would always conflict.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5383
