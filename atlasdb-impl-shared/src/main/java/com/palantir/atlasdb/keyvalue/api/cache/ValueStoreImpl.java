@@ -41,8 +41,8 @@ public final class ValueStoreImpl implements ValueStore {
     private final LockWatchVisitor visitor = new LockWatchVisitor();
 
     public ValueStoreImpl() {
-        values = StructureHolder.create(HashMap.empty());
-        watchedTables = StructureHolder.create(HashSet.empty());
+        values = StructureHolder.create(HashMap::empty);
+        watchedTables = StructureHolder.create(HashSet::empty);
     }
 
     @Override
@@ -96,9 +96,7 @@ public final class ValueStoreImpl implements ValueStore {
     }
 
     private TableReference extractTableReference(LockWatchReference lockWatchReference) {
-        return lockWatchReference
-                .accept(LockWatchReferencesVisitor.INSTANCE)
-                .orElseThrow(() -> new RuntimeException("Failed to parse table reference from lock watch reference"));
+        return lockWatchReference.accept(LockWatchReferencesVisitor.INSTANCE);
     }
 
     private final class LockWatchVisitor implements LockWatchEvent.Visitor<Void> {

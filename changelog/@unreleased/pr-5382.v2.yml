@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fixed out-by-one bug in `AtlasLockDescriptorUtils`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5382

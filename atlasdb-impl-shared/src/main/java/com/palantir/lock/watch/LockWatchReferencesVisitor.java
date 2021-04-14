@@ -22,33 +22,32 @@ import com.palantir.lock.watch.LockWatchReferences.ExactCell;
 import com.palantir.lock.watch.LockWatchReferences.ExactRow;
 import com.palantir.lock.watch.LockWatchReferences.RowPrefix;
 import com.palantir.lock.watch.LockWatchReferences.RowRange;
-import java.util.Optional;
 
-public final class LockWatchReferencesVisitor implements LockWatchReferences.Visitor<Optional<TableReference>> {
+public final class LockWatchReferencesVisitor implements LockWatchReferences.Visitor<TableReference> {
     public static final LockWatchReferencesVisitor INSTANCE = new LockWatchReferencesVisitor();
 
     @Override
-    public Optional<TableReference> visit(EntireTable reference) {
-        return Optional.of(TableReference.createFromFullyQualifiedName(reference.qualifiedTableRef()));
+    public TableReference visit(EntireTable reference) {
+        return TableReference.createFromFullyQualifiedName(reference.qualifiedTableRef());
     }
 
     @Override
-    public Optional<TableReference> visit(RowPrefix reference) {
-        return Optional.empty();
+    public TableReference visit(RowPrefix reference) {
+        throw new UnsupportedOperationException("Row prefix watches are not yet supported");
     }
 
     @Override
-    public Optional<TableReference> visit(RowRange reference) {
-        return Optional.empty();
+    public TableReference visit(RowRange reference) {
+        throw new UnsupportedOperationException("Row range watches are not yet supported");
     }
 
     @Override
-    public Optional<TableReference> visit(ExactRow reference) {
-        return Optional.empty();
+    public TableReference visit(ExactRow reference) {
+        throw new UnsupportedOperationException("Exact row watches are not yet supported");
     }
 
     @Override
-    public Optional<TableReference> visit(ExactCell reference) {
-        return Optional.empty();
+    public TableReference visit(ExactCell reference) {
+        throw new UnsupportedOperationException("Exact cell watches are not yet supported");
     }
 }

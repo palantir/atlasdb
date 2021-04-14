@@ -23,7 +23,7 @@ import java.util.Optional;
 /**
  * Stores snapshots of the cache taken at the sequence corresponding to the provided start timestamp. De-duplicates in
  * the case of multiple start timestamps corresponding to a single sequence (which is likely as they are batched),
- * and calculates when to remove a snapshot based on which sequences are living.
+ * and and removes snapshots when they are no longer referenced by any live start timestamps.
  */
 public interface SnapshotStore {
     void storeSnapshot(Sequence sequence, StartTimestamp timestamp, ValueCacheSnapshot snapshot);

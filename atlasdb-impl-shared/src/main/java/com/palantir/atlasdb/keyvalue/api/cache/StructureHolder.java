@@ -17,18 +17,19 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Utility class to make manipulating {@link io.vavr.collection.Map} and {@link io.vavr.collection.Set} less
  * error-prone as all methods that modify state return a *new* instance in vavr.
  */
 final class StructureHolder<V> {
-    private final V initialValue;
+    private final Supplier<V> initialValueSupplier;
     private V structure;
 
-    private StructureHolder(V initialValue) {
-        this.initialValue = initialValue;
-        this.structure = initialValue;
+    private StructureHolder(Supplier<V> initialValueSupplier) {
+        this.initialValueSupplier = initialValueSupplier;
+        this.structure = initialValueSupplier.get();
     }
 
     synchronized void with(Function<V, V> mutator) {
@@ -44,10 +45,10 @@ final class StructureHolder<V> {
     }
 
     synchronized void resetToInitialValue() {
-        structure = initialValue;
+        structure = initialValueSupplier.get();
     }
 
-    static <V> StructureHolder<V> create(V initialValue) {
+    static <V> StructureHolder<V> create(Supplier<V> initialValue) {
         return new StructureHolder<>(initialValue);
     }
 }

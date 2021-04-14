@@ -16,23 +16,25 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import javax.annotation.concurrent.NotThreadSafe;
 
+@NotThreadSafe
 public final class SnapshotStoreImpl implements SnapshotStore {
     private final Map<Sequence, ValueCacheSnapshot> snapshotMap;
-    private final Multimap<Sequence, StartTimestamp> liveSequences;
+    private final SetMultimap<Sequence, StartTimestamp> liveSequences;
     private final Map<StartTimestamp, Sequence> timestampMap;
 
     public SnapshotStoreImpl() {
         snapshotMap = new HashMap<>();
         timestampMap = new HashMap<>();
-        liveSequences = HashMultimap.create();
+        liveSequences = MultimapBuilder.hashKeys().hashSetValues().build();
     }
 
     @Override
