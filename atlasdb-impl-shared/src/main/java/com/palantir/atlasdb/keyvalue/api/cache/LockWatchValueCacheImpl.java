@@ -65,30 +65,33 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     //  timestamp call.
     @Override
     public synchronized void updateCache(TransactionDigest digest, long startTs) {
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTs);
-        commitUpdate.accept(new Visitor<Void>() {
-            @Override
-            public Void invalidateAll() {
-                // If this is an election, we should throw. If not and we are not a serialisable transaction, we are
-                // *technically* ok to go on here. However, we cannot determine which of the two we are in, so we
-                // throw anyway.
-                throw new TransactionLockWatchFailedException("A Timelock leader election has occurred between the "
-                        + "start and commit time of this transaction, and thus all events have been invalidated. This"
+        try {
+            CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTs);
+            commitUpdate.accept(new Visitor<Void>() {
+                @Override
+                public Void invalidateAll() {
+                    // If this is an election, we should throw. If not and we are not a serialisable transaction, we are
+                    // *technically* ok to go on here. However, we cannot determine which of the two we are in, so we
+                    // throw anyway.
+                    throw new TransactionLockWatchFailedException("A Timelock leader election has occurred between the"
+                        + " start and commit time of this transaction, and thus all events have been invalidated. This"
                         + " transaction will be retried");
-            }
+                }
 
-            @Override
-            public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-                Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                        .flatMap(LockWatchValueCacheImpl::extractTableAndCell)
-                        .collect(Collectors.toSet());
-                KeyedStream.stream(digest.loadedValues())
-                        .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
-                        .forEach(valueStore::putValue);
-                return null;
-            }
-        });
-        snapshotStore.removeTimestamp(StartTimestamp.of(startTs));
+                @Override
+                public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                    Set<CellReference> invalidatedCells = invalidatedLocks.stream()
+                            .flatMap(LockWatchValueCacheImpl::extractTableAndCell)
+                            .collect(Collectors.toSet());
+                    KeyedStream.stream(digest.loadedValues())
+                            .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
+                            .forEach(valueStore::putValue);
+                    return null;
+                }
+            });
+        } finally {
+            snapshotStore.removeTimestamp(StartTimestamp.of(startTs));
+        }
     }
 
     @Override

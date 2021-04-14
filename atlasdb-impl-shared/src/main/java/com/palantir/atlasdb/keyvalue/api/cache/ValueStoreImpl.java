@@ -41,8 +41,8 @@ public final class ValueStoreImpl implements ValueStore {
     private final LockWatchVisitor visitor = new LockWatchVisitor();
 
     public ValueStoreImpl() {
-        values = StructureHolder.create(HashMap.empty());
-        watchedTables = StructureHolder.create(HashSet.empty());
+        values = StructureHolder.create(HashMap::empty);
+        watchedTables = StructureHolder.create(HashSet::empty);
     }
 
     @Override
