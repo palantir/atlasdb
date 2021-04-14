@@ -161,6 +161,8 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     }
 
     private static Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
+        // TODO(jshah): this has potentially large blow-up for cells with lots of zero bytes. We should probably make
+        //  users opt-in or warn when this is the case.
         return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 }
