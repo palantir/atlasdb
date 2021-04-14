@@ -64,7 +64,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     //  issue. Chances are that this may need to be re-jigged to take a batch, and be connected to the batched commit
     //  timestamp call.
     @Override
-    public synchronized void updateCache(TransactionDigest digest, long startTs) {
+    public synchronized void updateCacheOnCommit(TransactionDigest digest, long startTs) {
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTs);
         commitUpdate.accept(new Visitor<Void>() {
             @Override
@@ -93,8 +93,11 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
 
     @Override
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
-        // todo(jshah): implement
-        throw new UnsupportedOperationException("Not yet implemented");
+        // Chances are that, instead of throwing, we should just return a no-op cache that doesn't cache anything;
+        // however, this does retry, so maybe this is fine too (this should only happen around leader elections).
+        return new TransactionScopedCacheImpl(snapshotStore
+                .getSnapshot(StartTimestamp.of(startTs))
+                .orElseThrow(() -> new TransactionLockWatchFailedException("Snapshot missing for timestamp")));
     }
 
     /**
