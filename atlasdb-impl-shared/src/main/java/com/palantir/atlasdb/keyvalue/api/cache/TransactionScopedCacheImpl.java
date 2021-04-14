@@ -67,7 +67,11 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
         valueStore.updateLocalReads(tableReference, remoteReadValues);
 
         // The get method does not return an entry if a value is absent; we want to cache this fact.
-        Set<CellReference> emptyCells = Sets.difference(uncachedCells, remoteReadValues.keySet());
+        Set<CellReference> emptyCells = Sets.difference(
+                uncachedCells,
+                remoteReadValues.keySet().stream()
+                        .map(cell -> CellReference.of(tableReference, cell))
+                        .collect(Collectors.toSet()));
 
         valueStore.updateEmptyReads(tableReference, emptyCells);
 
