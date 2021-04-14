@@ -1290,7 +1290,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         List<Map.Entry<Cell, byte[]>> sortedColumnValues =
                 Streams.stream(sortedColumns).collect(Collectors.toList());
         List<Cell> sortedCellsRead =
-                sortedColumnValues.stream().map(Entry::getKey).collect(Collectors.toList());
+                sortedColumnValues.stream().map(Map.Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedCells(rows, sortedCellsRead, cellsWrittenOriginally);
         assertThat(sortedColumnValues)
                 .doesNotContain(
