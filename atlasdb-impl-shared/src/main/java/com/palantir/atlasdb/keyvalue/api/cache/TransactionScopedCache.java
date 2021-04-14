@@ -40,7 +40,7 @@ import java.util.function.BiFunction;
  * values in the cache is just as safe as reading a snapshot of the database taken at the start timestamp.
  */
 public interface TransactionScopedCache {
-    void invalidate(TableReference tableReference, Cell cell);
+    void write(TableReference tableReference, Cell cell, CacheValue value);
 
     Map<Cell, byte[]> get(
             TableReference tableReference,
