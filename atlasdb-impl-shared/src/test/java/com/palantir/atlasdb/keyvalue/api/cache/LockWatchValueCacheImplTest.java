@@ -16,4 +16,21 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-public final class LockWatchValueCacheImplTest {}
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchEventCacheImpl;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.lock.watch.LockWatchEventCache;
+import org.junit.Before;
+
+public final class LockWatchValueCacheImplTest {
+    private LockWatchEventCache eventCache;
+    private LockWatchValueCache valueCache;
+
+    @Before
+    public void before() {
+        eventCache = LockWatchEventCacheImpl.create(MetricsManagers.createForTests());
+        valueCache = new LockWatchValueCacheImpl(eventCache);
+    }
+
+    // TODO(jshah): implement these tests. It's hard to test anything yet as there is no way to get snapshots of the
+    //  state (that will come when the per-transaction cache is implemented).
+}
