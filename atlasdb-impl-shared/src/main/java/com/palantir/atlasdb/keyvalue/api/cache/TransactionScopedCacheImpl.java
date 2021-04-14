@@ -41,13 +41,18 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
         localUpdates = new HashMap<>();
     }
 
+    // TODO(jshah): figure out how we can improve perf given that this is now synchronised. Maybe its fine, but maybe
+    //  we should instead autobatch?
     @Override
     public synchronized void write(TableReference tableReference, Cell cell, CacheValue value) {
-        if (snapshot.isWatched(tableReference)) {
-            localUpdates.put(CellReference.of(tableReference, cell), LocalCacheEntry.write(value));
+        CellReference cellReference = CellReference.of(tableReference, cell);
+        if (snapshot.isWatched(tableReference) && snapshot.isUnlocked(cellReference)) {
+            localUpdates.put(cellReference, LocalCacheEntry.write(value));
         }
     }
 
+    // TODO(jshah): as above. Equally, we should probably use the async value loader, then have it get afterwards,
+    //  thus reducing the time spent in this method.
     @Override
     public synchronized Map<Cell, byte[]> get(
             TableReference tableReference,
@@ -57,26 +62,16 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
                 .map(cell -> CellReference.of(tableReference, cell))
                 .collect(Collectors.toSet());
 
-        // Read values from the snapshot. For the hits, mark as hit in the local map.
-        Map<CellReference, CacheValue> snapshotCachedValues = KeyedStream.of(cellReferences.stream())
-                .map(snapshot::getValue)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .filter(CacheEntry::isUnlocked)
-                .map(CacheEntry::value)
-                .collectToMap();
-        snapshotCachedValues.forEach(
-                (cellReference, value) -> localUpdates.put(cellReference, LocalCacheEntry.hit(value)));
+        // Read local values first - they may be different in the case of writes.
+        Map<CellReference, CacheValue> localCachedValues = getLocallyCachedValues(cellReferences);
 
         // Filter out which values have not been read yet
-        Set<CellReference> thusFarUncachedValues = Sets.difference(cellReferences, snapshotCachedValues.keySet());
+        Set<CellReference> thusFarUncachedValues = Sets.difference(cellReferences, localCachedValues.keySet());
 
-        // Similar to above, except we check the local values next
-        Map<CellReference, CacheValue> localCachedValues = KeyedStream.of(thusFarUncachedValues)
-                .map(localUpdates::get)
-                .filter(Objects::nonNull)
-                .map(LocalCacheEntry::value)
-                .collectToMap();
+        // Read values from the snapshot. For the hits, mark as hit in the local map.
+        Map<CellReference, CacheValue> snapshotCachedValues = getSnapshotValues(thusFarUncachedValues);
+        snapshotCachedValues.forEach(
+                (cellReference, value) -> localUpdates.put(cellReference, LocalCacheEntry.hit(value)));
 
         // Now we need to read the remaining values from the DB
         Set<CellReference> nowActuallyUncachedValues =
@@ -86,15 +81,19 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
                 tableReference,
                 nowActuallyUncachedValues.stream().map(CellReference::cell).collect(Collectors.toSet()));
 
-        remoteReadValues.forEach((cell, value) ->
-                localUpdates.put(CellReference.of(tableReference, cell), LocalCacheEntry.read(CacheValue.of(value))));
+        KeyedStream.stream(remoteReadValues)
+                .mapKeys(cell -> CellReference.of(tableReference, cell))
+                .map(CacheValue::of)
+                .filterKeys(snapshot::isUnlocked)
+                .forEach((cell, value) -> localUpdates.put(cell, LocalCacheEntry.read(value)));
 
-        // The map does not return an entry if a value is absent; we want to cache this fact.
+        // The get method does not return an entry if a value is absent; we want to cache this fact.
         Set<CellReference> emptyCells = Sets.difference(nowActuallyUncachedValues, remoteReadValues.keySet());
-        emptyCells.forEach(cell -> localUpdates.put(cell, LocalCacheEntry.read(CacheValue.empty())));
+        emptyCells.stream()
+                .filter(snapshot::isUnlocked)
+                .forEach(cell -> localUpdates.put(cell, LocalCacheEntry.read(CacheValue.empty())));
 
-        // Now we need to combine all the maps
-
+        // Now we need to combine all the maps, filtering out empty values
         ImmutableMap.Builder<Cell, byte[]> output = ImmutableMap.builder();
         output.putAll(remoteReadValues);
         output.putAll(filterEmptyValues(snapshotCachedValues));
@@ -114,6 +113,24 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
         return TransactionDigest.of(loadedValues);
     }
 
+    private Map<CellReference, CacheValue> getSnapshotValues(Set<CellReference> thusFarUncachedValues) {
+        return KeyedStream.of(thusFarUncachedValues)
+                .map(snapshot::getValue)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(CacheEntry::isUnlocked)
+                .map(CacheEntry::value)
+                .collectToMap();
+    }
+
+    private Map<CellReference, CacheValue> getLocallyCachedValues(Set<CellReference> cellReferences) {
+        return KeyedStream.of(cellReferences)
+                .map(localUpdates::get)
+                .filter(Objects::nonNull)
+                .map(LocalCacheEntry::value)
+                .collectToMap();
+    }
+
     private Map<Cell, byte[]> filterEmptyValues(Map<CellReference, CacheValue> snapshotCachedValues) {
         return KeyedStream.stream(snapshotCachedValues)
                 .filter(value -> value.value().isPresent())
@@ -121,83 +138,6 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
                 .mapKeys(CellReference::cell)
                 .collectToMap();
     }
-    // private final ValueCacheSnapshot snapshot;
-    // private final ValueStore localChanges;
-    //
-    // public TransactionScopedCacheImpl(ValueCacheSnapshot snapshot) {
-    //     this.snapshot = snapshot;
-    //     this.localChanges = new ValueStoreImpl();
-    // }
-    //
-    // @Override
-    // public void invalidate(TableReference tableReference, Cell cell) {
-    //     localChanges.putLockedCell(CellReference.of(tableReference, cell));
-    // }
-    //
-    // @Override
-    // public Map<Cell, byte[]> get(
-    //         TableReference tableReference,
-    //         Set<Cell> cells,
-    //         BiFunction<TableReference, Set<Cell>, java.util.Map<Cell, byte[]>> valueLoader) {
-    //     if (!snapshot.canCache(tableReference)) {
-    //         return valueLoader.apply(tableReference, cells);
-    //     }
-    //
-    //     Map<Cell, Optional<byte[]>> cachedCells = readFromCache(tableReference, cells);
-    //     Set<Cell> uncachedCells = Sets.difference(cells, cachedCells.keySet());
-    //
-    //     Map<Cell, byte[]> loadedValues = valueLoader.apply(tableReference, uncachedCells);
-    //     loadedValues.entrySet().stream()
-    //             .filter(entry -> filterLockedCells(tableReference, entry.getKey()))
-    //             .forEach(entry -> cacheLocally(tableReference, entry.getKey(), entry.getValue()));
-    //
-    //     Sets.difference(uncachedCells, loadedValues.keySet()).stream()
-    //             .filter(cell -> filterLockedCells(tableReference, cell))
-    //             .forEach(cell -> cacheLocally(tableReference, cell, new byte[0]));
-    //
-    //     ImmutableMap.Builder<Cell, byte[]> builder = ImmutableMap.builder();
-    //     builder.putAll(loadedValues);
-    //     cachedCells.entrySet().stream()
-    //             .filter(entry -> entry.getValue().isPresent())
-    //             .forEach(entry -> builder.put(entry.getKey(), entry.getValue().get()));
-    //
-    //     return builder.build();
-    // }
-    //
-    // private void cacheLocally(TableReference tableReference, Cell key, byte[] value) {
-    //     localChanges.putValue(CellReference.of(tableReference, key), CacheValue.of(value));
-    // }
-    //
-    // private boolean filterLockedCells(TableReference tableReference, Cell cell) {
-    //     Optional<CacheEntry> value = getEntryFromCache(CellReference.of(tableReference, cell));
-    //     Preconditions.checkState(
-    //             !value.isPresent() || !value.get().status().isUnlocked(),
-    //             "Value must either not be "
-    //                     + "cached, or must be locked. Otherwise, this value should have been read from the cache!");
-    //     return !value.isPresent();
-    // }
-    //
-    // @Override
-    // public TransactionDigest getDigest() {
-    //     return localChanges.getSnapshot() // need to think of a better thing here
-    // }
-    //
-    // private Optional<CacheEntry> getEntryFromCache(CellReference cellReference) {
-    //     Optional<CacheEntry> snapshotRead = this.snapshot.getValue(cellReference);
-    //
-    //     if (snapshotRead.isPresent()) {
-    //         return snapshotRead;
-    //     } else {
-    //         return localChanges.getSnapshot().getValue(cellReference);
-    //     }
-    // }
-    //
-    // private Map<Cell, Optional<byte[]>> readFromCache(TableReference tableReference, Set<Cell> cells) {
-    //     Set<CellReference> cellReferences = cells.stream()
-    //             .map(cell -> CellReference.of(tableReference, cell))
-    //             .collect(Collectors.toSet());
-    //     return null;
-    // }
 
     @Value.Immutable
     public interface LocalCacheEntry {
