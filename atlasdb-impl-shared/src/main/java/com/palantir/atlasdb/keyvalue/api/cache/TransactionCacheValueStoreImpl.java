@@ -40,6 +40,11 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
+    public boolean isWatched(TableReference tableReference) {
+        return snapshot.isWatched(tableReference);
+    }
+
+    @Override
     public void cacheLocalWrite(TableReference tableReference, Cell cell, CacheValue value) {
         CellReference cellReference = CellReference.of(tableReference, cell);
         if (snapshot.isWatched(tableReference) && snapshot.isUnlocked(cellReference)) {
@@ -49,18 +54,22 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
 
     @Override
     public void updateLocalReads(TableReference tableReference, Map<Cell, byte[]> remoteReadValues) {
-        KeyedStream.stream(remoteReadValues)
-                .mapKeys(cell -> CellReference.of(tableReference, cell))
-                .map(CacheValue::of)
-                .filterKeys(snapshot::isUnlocked)
-                .forEach((cell, value) -> localUpdates.put(cell, LocalCacheEntry.read(value)));
+        if (snapshot.isWatched(tableReference)) {
+            KeyedStream.stream(remoteReadValues)
+                    .mapKeys(cell -> CellReference.of(tableReference, cell))
+                    .map(CacheValue::of)
+                    .filterKeys(snapshot::isUnlocked)
+                    .forEach((cell, value) -> localUpdates.put(cell, LocalCacheEntry.read(value)));
+        }
     }
 
     @Override
     public void updateEmptyReads(TableReference tableReference, Set<CellReference> emptyCells) {
-        emptyCells.stream()
-                .filter(snapshot::isUnlocked)
-                .forEach(cell -> localUpdates.put(cell, LocalCacheEntry.read(CacheValue.empty())));
+        if (snapshot.isWatched(tableReference)) {
+            emptyCells.stream()
+                    .filter(snapshot::isUnlocked)
+                    .forEach(cell -> localUpdates.put(cell, LocalCacheEntry.read(CacheValue.empty())));
+        }
     }
 
     @Override

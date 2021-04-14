@@ -22,7 +22,9 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
 import java.util.Set;
 
-public interface TransactionCacheValueStore {
+interface TransactionCacheValueStore {
+    boolean isWatched(TableReference tableReference);
+
     void cacheLocalWrite(TableReference tableReference, Cell cell, CacheValue value);
 
     void updateLocalReads(TableReference tableReference, Map<Cell, byte[]> remoteReadValues);

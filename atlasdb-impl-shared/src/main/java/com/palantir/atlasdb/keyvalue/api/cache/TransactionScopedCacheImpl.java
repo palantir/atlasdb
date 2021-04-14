@@ -48,6 +48,11 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
             TableReference tableReference,
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, Map<Cell, byte[]>> valueLoader) {
+        // We can potentially short-cut all the logic below if the table is not watched.
+        if (!valueStore.isWatched(tableReference)) {
+            return valueLoader.apply(tableReference, cells);
+        }
+
         Set<CellReference> cellReferences = cells.stream()
                 .map(cell -> CellReference.of(tableReference, cell))
                 .collect(Collectors.toSet());
