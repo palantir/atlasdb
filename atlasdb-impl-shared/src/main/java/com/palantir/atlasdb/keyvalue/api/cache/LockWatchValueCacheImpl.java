@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
@@ -30,9 +31,7 @@ import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import java.util.Collection;
 import java.util.Comparator;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -58,8 +57,8 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     public synchronized void processStartTransactions(Set<Long> startTimestamps) {
         TransactionsLockWatchUpdate updateForTransactions =
                 eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
-        updateCurrentVersion(updateForTransactions);
         updateStores(updateForTransactions);
+        updateCurrentVersion(updateForTransactions);
     }
 
     // TODO(jshah): This needs to be *very* carefully wired to ensure that the synchronised aspect here is not an
@@ -127,22 +126,19 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
-        // There is an edge case where there have been no new events, but we still need to store a snapshot for the
-        // timestamp.
-        if (updateForTransactions.events().isEmpty() && reversedMap.keySet().size() == 1) {
-            Collection<Entry<Sequence, StartTimestamp>> entries = reversedMap.entries();
-            entries.forEach(
-                    entry -> snapshotStore.storeSnapshot(entry.getKey(), entry.getValue(), valueStore.getSnapshot()));
-        } else {
-            updateForTransactions.events().forEach(event -> {
-                valueStore.applyEvent(event);
-                Sequence sequence = Sequence.of(event.sequence());
-                reversedMap
-                        .get(sequence)
-                        .forEach(timestamp ->
-                                snapshotStore.storeSnapshot(sequence, timestamp, valueStore.getSnapshot()));
-            });
-        }
+        // There is an edge case where transactions on the current version will not have a snapshot stored.
+        currentVersion.map(LockWatchVersion::version).map(Sequence::of).ifPresent(sequence -> Optional.ofNullable(
+                        reversedMap.get(sequence))
+                .orElseGet(ImmutableList::of)
+                .forEach(timestamp -> snapshotStore.storeSnapshot(sequence, timestamp, valueStore.getSnapshot())));
+
+        updateForTransactions.events().forEach(event -> {
+            valueStore.applyEvent(event);
+            Sequence sequence = Sequence.of(event.sequence());
+            reversedMap
+                    .get(sequence)
+                    .forEach(timestamp -> snapshotStore.storeSnapshot(sequence, timestamp, valueStore.getSnapshot()));
+        });
     }
 
     private Multimap<Sequence, StartTimestamp> createSequenceTimestampMultimap(
