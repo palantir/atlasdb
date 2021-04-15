@@ -1230,7 +1230,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 .contains(
                         Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
                         Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
-        t1.commit();
+        assertThatCode(t1::commit).doesNotThrowAnyException();
     }
 
     @Test
@@ -1259,7 +1259,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 .doesNotContain(
                         Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
                         Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
-        t1.commit();
+       assertThatCode(t1::commit).doesNotThrowAnyException();
     }
 
     @Test
