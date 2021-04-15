@@ -46,7 +46,7 @@ public final class TransactionCacheValueStoreImplTest {
     @Test
     public void localReadsAreStoredAndRead() {
         TransactionCacheValueStore valueStore = emptyCache();
-        assertThat(valueStore.getCachedValues(ImmutableSet.of(TABLE_CELL))).isEmpty();
+        assertCacheIsEmpty(valueStore);
 
         valueStore.updateLocalReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
 
@@ -69,12 +69,31 @@ public final class TransactionCacheValueStoreImplTest {
     @Test
     public void emptyReadsAreCached() {
         TransactionCacheValueStore valueStore = emptyCache();
-        assertThat(valueStore.getCachedValues(ImmutableSet.of(TABLE_CELL))).isEmpty();
+        assertCacheIsEmpty(valueStore);
 
         valueStore.updateEmptyReads(TABLE, ImmutableSet.of(TABLE_CELL));
         assertCacheContainsValue(valueStore, VALUE_EMPTY);
 
         assertDigestContainsEntries(valueStore, ImmutableMap.of(TABLE_CELL, VALUE_EMPTY));
+    }
+
+    @Test
+    public void valuesNotCachedForUnwatchedTables() {
+        TransactionCacheValueStore valueStore =
+                new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty()));
+
+        valueStore.cacheLocalWrite(TABLE, CELL, VALUE_1);
+        assertCacheIsEmpty(valueStore);
+
+        valueStore.updateEmptyReads(TABLE, ImmutableSet.of(TABLE_CELL));
+        assertCacheIsEmpty(valueStore);
+
+        valueStore.updateLocalReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
+        assertCacheIsEmpty(valueStore);
+    }
+
+    private void assertCacheIsEmpty(TransactionCacheValueStore valueStore) {
+        assertThat(valueStore.getCachedValues(ImmutableSet.of(TABLE_CELL))).isEmpty();
     }
 
     private static void assertCacheContainsValue(TransactionCacheValueStore valueStore, CacheValue value) {
