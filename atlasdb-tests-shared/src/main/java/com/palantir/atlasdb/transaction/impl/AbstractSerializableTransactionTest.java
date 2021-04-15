@@ -77,7 +77,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
@@ -1259,7 +1258,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 .doesNotContain(
                         Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
                         Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
-       assertThatCode(t1::commit).doesNotThrowAnyException();
+        assertThatCode(t1::commit).doesNotThrowAnyException();
     }
 
     @Test
