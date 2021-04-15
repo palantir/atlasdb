@@ -36,6 +36,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -85,6 +86,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
@@ -1199,6 +1201,101 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t2.commit();
 
         assertThatThrownBy(t1::commit).isInstanceOf(TransactionSerializableConflictException.class);
+    }
+
+    @Test
+    public void testGetSortedColumnsLocalWritesBeforeAreReadAndDoNotTriggerConflict() {
+        List<byte[]> rows = generateRows(5);
+        List<Cell> cellsWrittenOriginally = generateCells(rows, generateColumns(5));
+        writeCells(cellsWrittenOriginally);
+
+        Transaction t1 = startTransactionWithSerializableConflictChecking();
+        byte[] newValue1 = PtBytes.toBytes("find a way");
+        byte[] newValue2 = PtBytes.toBytes("persevere to the end");
+        t1.put(TEST_TABLE, ImmutableMap.of(cellsWrittenOriginally.get(0), newValue1));
+        t1.put(TEST_TABLE, ImmutableMap.of(cellsWrittenOriginally.get(17), newValue2));
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(
+                        PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
+
+        List<Map.Entry<Cell, byte[]>> sortedColumnValues =
+                Streams.stream(sortedColumns).collect(Collectors.toList());
+        List<Cell> sortedCellsRead =
+                sortedColumnValues.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+        sanityCheckOnSortedCells(rows, sortedCellsRead, cellsWrittenOriginally);
+        assertThat(sortedColumnValues)
+                .contains(
+                        Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
+                        Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
+        assertThatCode(t1::commit).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void testGetSortedColumnsLocalWritesAfterAreNotReadButDoNotTriggerConflict() {
+        List<byte[]> rows = generateRows(5);
+        List<Cell> cellsWrittenOriginally = generateCells(rows, generateColumns(5));
+        writeCells(cellsWrittenOriginally);
+
+        Transaction t1 = startTransactionWithSerializableConflictChecking();
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(
+                        PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
+        byte[] newValue1 = PtBytes.toBytes("burning smoke and bullet fire");
+        byte[] newValue2 = PtBytes.toBytes("something to protect");
+        t1.put(TEST_TABLE, ImmutableMap.of(cellsWrittenOriginally.get(0), newValue1));
+        t1.put(TEST_TABLE, ImmutableMap.of(cellsWrittenOriginally.get(17), newValue2));
+
+        List<Map.Entry<Cell, byte[]>> sortedColumnValues =
+                Streams.stream(sortedColumns).collect(Collectors.toList());
+        List<Cell> sortedCellsRead =
+                sortedColumnValues.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+        sanityCheckOnSortedCells(rows, sortedCellsRead, cellsWrittenOriginally);
+        assertThat(sortedColumnValues)
+                .doesNotContain(
+                        Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
+                        Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
+        assertThatCode(t1::commit).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void testGetSortedColumnsNoConflictOnSameCellsInOtherTables() {
+        List<byte[]> rows = generateRows(5);
+        List<Cell> cellsWrittenOriginally = generateCells(rows, generateColumns(5));
+        writeCells(cellsWrittenOriginally);
+
+        TableReference anotherTable = TableReference.createFromFullyQualifiedName(
+                "ns.atlasdb_another_test_" + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE));
+        keyValueService.createTable(anotherTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        Transaction t1 = startTransactionWithSerializableConflictChecking();
+
+        byte[] newValue1 = PtBytes.toBytes("beautiful comet");
+        byte[] newValue2 = PtBytes.toBytes("racing through the night");
+        Transaction t2 = startTransactionWithSerializableConflictChecking();
+        t2.put(anotherTable, ImmutableMap.of(cellsWrittenOriginally.get(0), newValue1));
+        t2.put(anotherTable, ImmutableMap.of(cellsWrittenOriginally.get(17), newValue2));
+        t2.commit();
+
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(
+                        PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
+
+        List<Map.Entry<Cell, byte[]>> sortedColumnValues =
+                Streams.stream(sortedColumns).collect(Collectors.toList());
+        List<Cell> sortedCellsRead =
+                sortedColumnValues.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+        sanityCheckOnSortedCells(rows, sortedCellsRead, cellsWrittenOriginally);
+        assertThat(sortedColumnValues)
+                .doesNotContain(
+                        Maps.immutableEntry(cellsWrittenOriginally.get(0), newValue1),
+                        Maps.immutableEntry(cellsWrittenOriginally.get(17), newValue2));
+        assertThatCode(t1::commit).doesNotThrowAnyException();
     }
 
     @Test
