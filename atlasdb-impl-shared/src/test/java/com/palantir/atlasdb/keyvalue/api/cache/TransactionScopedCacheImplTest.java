@@ -74,7 +74,7 @@ public final class TransactionScopedCacheImplTest {
         assertThat(getRemotelyReadCells(cache, TABLE_1, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_6);
         assertThat(getRemotelyReadCells(cache, TABLE_1, CELL_1, CELL_6)).isEmpty();
 
-        assertThat(cache.get(TABLE_1, ImmutableSet.of(CELL_1, CELL_6), (_unused, cells) -> readFromDatabase(cells)))
+        assertThat(cache.get(TABLE_1, ImmutableSet.of(CELL_1, CELL_6), (_unused, cells) -> remoteRead(cells)))
                 .containsExactlyInAnyOrderEntriesOf(
                         ImmutableMap.of(CELL_1, VALUE_1.value().get()));
         assertThat(cache.getDigest().loadedValues())
@@ -85,12 +85,12 @@ public final class TransactionScopedCacheImplTest {
         Set<Cell> remoteReads = new java.util.HashSet<>();
         cache.get(table, Stream.of(cells).collect(Collectors.toSet()), (_unused, cellsToRead) -> {
             remoteReads.addAll(cellsToRead);
-            return readFromDatabase(cellsToRead);
+            return remoteRead(cellsToRead);
         });
         return remoteReads;
     }
 
-    private static Map<Cell, byte[]> readFromDatabase(Set<Cell> cells) {
+    private static Map<Cell, byte[]> remoteRead(Set<Cell> cells) {
         return KeyedStream.of(cells)
                 .map(VALUES::get)
                 .map(Optional::ofNullable)
