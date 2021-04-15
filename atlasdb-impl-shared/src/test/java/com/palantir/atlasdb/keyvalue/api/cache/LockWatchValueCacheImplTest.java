@@ -39,6 +39,7 @@ import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -167,6 +168,24 @@ public final class LockWatchValueCacheImplTest {
                 .isEmpty();
         assertThat(scopedCache3.getDigest().loadedValues())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_1), VALUE_1));
+    }
+
+    @Test
+    public void processingTransactionsOutOfOrderThrows() {
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), LOCK_WATCH_SNAPSHOT);
+        eventCache.processStartTransactionsUpdate(
+                ImmutableSet.of(TIMESTAMP_2), LockWatchStateUpdate.success(LEADER, 1L, ImmutableList.of(LOCK_EVENT)));
+
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
+
+        // This throws inside the eventCache because we're trying to get an update yet our version is later than the
+        // transaction's.
+        assertThatThrownBy(() -> valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1)))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasRootCauseExactlyInstanceOf(SafeIllegalStateException.class)
+                .hasRootCauseMessage(
+                        "Cannot get update for transactions when the last known version is more recent than the "
+                                + "transactions");
     }
 
     @Test
