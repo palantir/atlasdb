@@ -37,7 +37,6 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.LockWatchStateUpdate.Success;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import java.util.Map;
@@ -52,41 +51,27 @@ import org.junit.Test;
 public final class LockWatchValueCacheImplTest {
     private static final long TIMESTAMP_1 = 5L;
     private static final long TIMESTAMP_2 = 123123123L;
-    private static final long TIMESTAMP_3 = 999L;
-    private static final long TIMESTAMP_4 = 10101L;
+    private static final Long TIMESTAMP_3 = 88888888L;
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table");
     private static final Cell CELL_1 = createCell(1);
     private static final Cell CELL_2 = createCell(2);
-    private static final Cell CELL_3 = createCell(3);
-    private static final Cell CELL_4 = createCell(4);
-    private static final Cell CELL_5 = createCell(5);
-    private static final Cell CELL_6 = createCell(6);
+    private static final Cell CELL_3 = createCell(6);
     private static final CacheValue VALUE_1 = createValue(10);
     private static final CacheValue VALUE_2 = createValue(20);
-    private static final CacheValue VALUE_3 = createValue(30);
-    private static final CacheValue VALUE_4 = createValue(40);
-    private static final CacheValue VALUE_5 = createValue(50);
-    private static final CellReference TABLE_CELL = CellReference.of(TABLE, CELL_1);
     private static final UUID LEADER = UUID.randomUUID();
     private static final ImmutableMap<Cell, byte[]> VALUES = ImmutableMap.<Cell, byte[]>builder()
             .put(CELL_1, VALUE_1.value().get())
             .put(CELL_2, VALUE_2.value().get())
-            .put(CELL_3, VALUE_3.value().get())
-            .put(CELL_4, VALUE_4.value().get())
-            .put(CELL_5, VALUE_5.value().get())
             .build();
-    private static final CacheValue VALUE_EMPTY = CacheValue.empty();
 
     private static final LockWatchEvent LOCK_EVENT = createLockEvent();
-    public static final Success LOCK_WATCH_SUCCESS =
-            LockWatchStateUpdate.success(LEADER, 1L, ImmutableList.of(LOCK_EVENT));
     private static final LockWatchEvent WATCH_EVENT = createWatchEvent();
-    public static final LockWatchStateUpdate.Snapshot LOCK_WATCH_SNAPSHOT = LockWatchStateUpdate.snapshot(
+    private static final LockWatchEvent UNLOCK_EVENT = createUnlockEvent();
+    private static final LockWatchStateUpdate.Snapshot LOCK_WATCH_SNAPSHOT = LockWatchStateUpdate.snapshot(
             LEADER,
             WATCH_EVENT.sequence(),
             ImmutableSet.of(),
             ImmutableSet.of(LockWatchReferences.entireTable(TABLE.getQualifiedName())));
-    private static final LockWatchEvent UNLOCK_EVENT = createUnlockEvent();
 
     private LockWatchEventCache eventCache;
     private LockWatchValueCache valueCache;
@@ -150,27 +135,38 @@ public final class LockWatchValueCacheImplTest {
     }
 
     @Test
-    public void lockUpdatesPreventCaching() {
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), LOCK_WATCH_SNAPSHOT);
-        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
+    public void lockUpdatesPreventCachingAndUnlockUpdatesAllowItAgain() {
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), LOCK_WATCH_SNAPSHOT);
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
 
         TransactionScopedCache scopedCache1 = valueCache.createTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_1, CELL_6);
-
+        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1, CELL_3);
         processCommitTimestamp(TIMESTAMP_1, 0L);
         valueCache.updateCacheOnCommit(scopedCache1.getDigest(), TIMESTAMP_1);
 
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), LOCK_WATCH_SUCCESS);
+        eventCache.processStartTransactionsUpdate(
+                ImmutableSet.of(TIMESTAMP_2), LockWatchStateUpdate.success(LEADER, 1L, ImmutableList.of(LOCK_EVENT)));
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
         TransactionScopedCache scopedCache2 = valueCache.createTransactionScopedCache(TIMESTAMP_2);
 
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_6))
+        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_3))
                 .containsExactlyInAnyOrder(CELL_1, CELL_2);
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_6))
+        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_3))
                 .containsExactlyInAnyOrder(CELL_1);
+        processCommitTimestamp(TIMESTAMP_2, 1L);
+        valueCache.updateCacheOnCommit(scopedCache2.getDigest(), TIMESTAMP_2);
 
-        assertThat(scopedCache2.getDigest().loadedValues())
-                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_2), VALUE_2));
+        eventCache.processStartTransactionsUpdate(
+                ImmutableSet.of(TIMESTAMP_3), LockWatchStateUpdate.success(LEADER, 2L, ImmutableList.of(UNLOCK_EVENT)));
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_3));
+
+        TransactionScopedCache scopedCache3 = valueCache.createTransactionScopedCache(TIMESTAMP_3);
+        assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_3))
+                .containsExactlyInAnyOrder(CELL_1);
+        assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_3))
+                .isEmpty();
+        assertThat(scopedCache3.getDigest().loadedValues())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_1), VALUE_1));
     }
 
     @Test
