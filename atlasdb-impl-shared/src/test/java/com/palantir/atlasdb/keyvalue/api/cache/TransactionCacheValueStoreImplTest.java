@@ -24,29 +24,18 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.AtlasCellLockDescriptor;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.UnlockEvent;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
-import java.util.UUID;
+import java.util.Map;
 import org.junit.Test;
 
 public final class TransactionCacheValueStoreImplTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table");
-    private static final Cell CELL_1 = createCell(1);
-    private static final Cell CELL_2 = createCell(3);
-    private static final CellReference TABLE_CELL = CellReference.of(TABLE, CELL_1);
+    private static final Cell CELL = Cell.create(createBytes(1), createBytes(1 + 100));
+    private static final CellReference TABLE_CELL = CellReference.of(TABLE, CELL);
     private static final CacheValue VALUE_1 = createValue(10);
     private static final CacheValue VALUE_2 = createValue(20);
-    private static final CacheValue VALUE_3 = createValue(30);
-    private static final LockWatchEvent LOCK_EVENT = createLockEvent();
-    private static final LockWatchEvent WATCH_EVENT = createWatchEvent();
-    private static final LockWatchEvent UNLOCK_EVENT = createUnlockEvent();
+    private static final CacheValue VALUE_EMPTY = CacheValue.empty();
 
     @Test
     public void snapshotValuesAreRead() {
@@ -59,12 +48,11 @@ public final class TransactionCacheValueStoreImplTest {
         TransactionCacheValueStore valueStore = emptyCache();
         assertThat(valueStore.getCachedValues(ImmutableSet.of(TABLE_CELL))).isEmpty();
 
-        valueStore.updateLocalReads(
-                TABLE, ImmutableMap.of(CELL_1, VALUE_1.value().get()));
+        valueStore.updateLocalReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
 
         assertCacheContainsValue(valueStore, VALUE_1);
 
-        assertThat(valueStore.getTransactionDigest()).containsExactly(Maps.immutableEntry(TABLE_CELL, VALUE_1));
+        assertDigestContainsEntries(valueStore, ImmutableMap.of(TABLE_CELL, VALUE_1));
     }
 
     @Test
@@ -72,51 +60,44 @@ public final class TransactionCacheValueStoreImplTest {
         TransactionCacheValueStore valueStore = cacheWithSingleValue();
         assertCacheContainsValue(valueStore, VALUE_1);
 
-        valueStore.cacheLocalWrite(TABLE, CELL_1, VALUE_2);
+        valueStore.cacheLocalWrite(TABLE, CELL, VALUE_2);
 
         assertCacheContainsValue(valueStore, VALUE_2);
+        assertDigestContainsEntries(valueStore, ImmutableMap.of());
     }
 
-    private void assertCacheContainsValue(TransactionCacheValueStore valueStore, CacheValue value) {
+    @Test
+    public void emptyReadsAreCached() {
+        TransactionCacheValueStore valueStore = emptyCache();
+        assertThat(valueStore.getCachedValues(ImmutableSet.of(TABLE_CELL))).isEmpty();
+
+        valueStore.updateEmptyReads(TABLE, ImmutableSet.of(TABLE_CELL));
+        assertCacheContainsValue(valueStore, VALUE_EMPTY);
+
+        assertDigestContainsEntries(valueStore, ImmutableMap.of(TABLE_CELL, VALUE_EMPTY));
+    }
+
+    private static void assertCacheContainsValue(TransactionCacheValueStore valueStore, CacheValue value) {
         assertThat(valueStore.getCachedValues(ImmutableSet.of(TABLE_CELL)))
                 .containsExactly(Maps.immutableEntry(TABLE_CELL, value));
     }
 
-    private TransactionCacheValueStoreImpl emptyCache() {
+    private static TransactionCacheValueStoreImpl emptyCache() {
         return new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.of(TABLE)));
     }
 
-    private TransactionCacheValueStoreImpl cacheWithSingleValue() {
+    private static TransactionCacheValueStoreImpl cacheWithSingleValue() {
         return new TransactionCacheValueStoreImpl(
                 ValueCacheSnapshotImpl.of(HashMap.of(TABLE_CELL, CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE)));
     }
 
-    private static LockWatchEvent createWatchEvent() {
-        return LockWatchCreatedEvent.builder(
-                        ImmutableSet.of(LockWatchReferences.entireTable(TABLE.getQualifiedName())), ImmutableSet.of())
-                .build(0L);
-    }
-
-    private static LockWatchEvent createLockEvent() {
-        return LockEvent.builder(
-                        ImmutableSet.of(AtlasCellLockDescriptor.of(
-                                TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())),
-                        LockToken.of(UUID.randomUUID()))
-                .build(1L);
-    }
-
-    private static LockWatchEvent createUnlockEvent() {
-        return UnlockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(
-                        TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())))
-                .build(1L);
+    private static void assertDigestContainsEntries(
+            TransactionCacheValueStore valueStore, Map<CellReference, CacheValue> expectedValues) {
+        assertThat(valueStore.getTransactionDigest()).containsExactlyInAnyOrderEntriesOf(expectedValues);
     }
 
     private static CacheValue createValue(int value) {
         return CacheValue.of(createBytes(value));
-    }
-
-    private static Cell createCell(int value) {
-        return Cell.create(createBytes(value), createBytes(value + 100));
     }
 
     private static byte[] createBytes(int value) {
