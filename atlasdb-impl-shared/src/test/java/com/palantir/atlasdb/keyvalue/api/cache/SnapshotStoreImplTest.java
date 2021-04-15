@@ -92,6 +92,20 @@ public final class SnapshotStoreImplTest {
         assertThat(snapshotStore.getSnapshot(TIMESTAMP_1)).isEmpty();
 
         assertSnapshotsEqualForTimestamp(SNAPSHOT_2, TIMESTAMP_4);
+        assertThat(((SnapshotStoreImpl) snapshotStore).getSnapshotForSequence(SEQUENCE_1))
+                .isEmpty();
+    }
+
+    @Test
+    public void updateSnapshotOnlyUpdatesIfPresent() {
+        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_1, SNAPSHOT_1);
+
+        snapshotStore.updateSnapshot(SEQUENCE_1, SNAPSHOT_2);
+        assertThat(snapshotStore.getSnapshot(TIMESTAMP_1)).hasValue(SNAPSHOT_2);
+
+        snapshotStore.updateSnapshot(SEQUENCE_2, SNAPSHOT_1);
+        assertThat(((SnapshotStoreImpl) snapshotStore).getSnapshotForSequence(SEQUENCE_2))
+                .isEmpty();
     }
 
     private void assertSnapshotsEqualForTimestamp(ValueCacheSnapshot expectedValue, StartTimestamp... timestamps) {

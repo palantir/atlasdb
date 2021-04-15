@@ -34,14 +34,13 @@ import java.util.stream.Stream;
 import org.junit.Test;
 
 public final class TransactionScopedCacheImplTest {
-    private static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("t.table1");
+    private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table1");
     private static final Cell CELL_1 = createCell(1);
     private static final Cell CELL_2 = createCell(2);
     private static final Cell CELL_3 = createCell(3);
     private static final Cell CELL_4 = createCell(4);
     private static final Cell CELL_5 = createCell(5);
     private static final Cell CELL_6 = createCell(6);
-    private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_1, CELL_1);
     private static final CacheValue VALUE_1 = createValue(10);
     private static final CacheValue VALUE_2 = createValue(20);
     private static final CacheValue VALUE_3 = createValue(30);
@@ -60,10 +59,10 @@ public final class TransactionScopedCacheImplTest {
     public void getReadsCachedValuesBeforeReadingFromDb() {
         TransactionScopedCache cache = new TransactionScopedCacheImpl(snapshotWithSingleValue());
 
-        assertThat(getRemotelyReadCells(cache, TABLE_1, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_2);
-        cache.write(TABLE_1, CELL_3, VALUE_3);
+        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_2);
+        cache.write(TABLE, CELL_3, VALUE_3);
 
-        assertThat(getRemotelyReadCells(cache, TABLE_1, CELL_1, CELL_2, CELL_3, CELL_4, CELL_5))
+        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2, CELL_3, CELL_4, CELL_5))
                 .containsExactlyInAnyOrder(CELL_4, CELL_5);
     }
 
@@ -71,14 +70,14 @@ public final class TransactionScopedCacheImplTest {
     public void emptyValuesAreCachedButFilteredOutOfResults() {
         TransactionScopedCache cache = new TransactionScopedCacheImpl(snapshotWithSingleValue());
 
-        assertThat(getRemotelyReadCells(cache, TABLE_1, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_6);
-        assertThat(getRemotelyReadCells(cache, TABLE_1, CELL_1, CELL_6)).isEmpty();
+        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_6);
+        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_6)).isEmpty();
 
-        assertThat(cache.get(TABLE_1, ImmutableSet.of(CELL_1, CELL_6), (_unused, cells) -> remoteRead(cells)))
+        assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1, CELL_6), (_unused, cells) -> remoteRead(cells)))
                 .containsExactlyInAnyOrderEntriesOf(
                         ImmutableMap.of(CELL_1, VALUE_1.value().get()));
         assertThat(cache.getDigest().loadedValues())
-                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE_1, CELL_6), VALUE_EMPTY));
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_6), VALUE_EMPTY));
     }
 
     private static Set<Cell> getRemotelyReadCells(TransactionScopedCache cache, TableReference table, Cell... cells) {
@@ -100,7 +99,8 @@ public final class TransactionScopedCacheImplTest {
     }
 
     private static ValueCacheSnapshot snapshotWithSingleValue() {
-        return ValueCacheSnapshotImpl.of(HashMap.of(TABLE_CELL_1, CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE_1));
+        return ValueCacheSnapshotImpl.of(
+                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE));
     }
 
     private static CacheValue createValue(int value) {

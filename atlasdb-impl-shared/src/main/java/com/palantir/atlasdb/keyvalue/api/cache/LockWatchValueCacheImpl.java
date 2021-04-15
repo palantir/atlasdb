@@ -90,7 +90,15 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
                 }
             });
         } finally {
-            snapshotStore.removeTimestamp(StartTimestamp.of(startTs));
+            // Remove the timestamp, and if the sequence has not updated, update the snapshot with the reads from
+            // this transaction.
+            snapshotStore
+                    .removeTimestamp(StartTimestamp.of(startTs))
+                    .ifPresent(sequence -> currentVersion.ifPresent(current -> {
+                        if (sequence.value() == current.version()) {
+                            snapshotStore.updateSnapshot(sequence, valueStore.getSnapshot());
+                        }
+                    }));
         }
     }
 
