@@ -150,33 +150,34 @@ public final class LockWatchValueCacheImplTest {
     }
 
     @Test
-    public void descriptorsUpdateCacheAndFilterOutRemoteResults() {
+    public void lockUpdatesPreventCaching() {
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), LOCK_WATCH_SNAPSHOT);
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
 
         TransactionScopedCache scopedCache1 = valueCache.createTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_1, CELL_6);
 
         processCommitTimestamp(TIMESTAMP_1, 0L);
         valueCache.updateCacheOnCommit(scopedCache1.getDigest(), TIMESTAMP_1);
 
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), LOCK_WATCH_SUCCESS);
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
         TransactionScopedCache scopedCache2 = valueCache.createTransactionScopedCache(TIMESTAMP_2);
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_6);
 
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_3), LOCK_WATCH_SUCCESS);
-        processCommitTimestamp(TIMESTAMP_2, 1L);
-        valueCache.updateCacheOnCommit(scopedCache2.getDigest(), TIMESTAMP_2);
-
-        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_3));
-        TransactionScopedCache scopedCache3 = valueCache.createTransactionScopedCache(TIMESTAMP_3);
-
-        assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_6))
+        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_6))
                 .containsExactlyInAnyOrder(CELL_1, CELL_2);
-        assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_6))
+        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_6))
                 .containsExactlyInAnyOrder(CELL_1);
 
-        processCommitTimestamp(TIMESTAMP_3, 1L);
-        valueCache.updateCacheOnCommit(scopedCache3.getDigest(), TIMESTAMP_3);
+        assertThat(scopedCache2.getDigest().loadedValues())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_2), VALUE_2));
+    }
+
+    @Test
+    public void createTransactionScopedCacheWithoutProcessingTimestampThrows() {
+        assertThatThrownBy(() -> valueCache.createTransactionScopedCache(TIMESTAMP_1))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Snapshot missing for timestamp");
     }
 
     private void processCommitTimestamp(long startTimestamp, long sequence) {
