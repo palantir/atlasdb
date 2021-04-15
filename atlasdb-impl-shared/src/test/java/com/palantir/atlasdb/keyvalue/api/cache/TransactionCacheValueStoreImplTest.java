@@ -101,11 +101,11 @@ public final class TransactionCacheValueStoreImplTest {
                 .containsExactly(Maps.immutableEntry(TABLE_CELL, value));
     }
 
-    private static TransactionCacheValueStoreImpl emptyCache() {
+    private static TransactionCacheValueStore emptyCache() {
         return new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.of(TABLE)));
     }
 
-    private static TransactionCacheValueStoreImpl cacheWithSingleValue() {
+    private static TransactionCacheValueStore cacheWithSingleValue() {
         return new TransactionCacheValueStoreImpl(
                 ValueCacheSnapshotImpl.of(HashMap.of(TABLE_CELL, CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE)));
     }

@@ -18,10 +18,8 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -29,7 +27,7 @@ import com.palantir.common.streams.KeyedStream;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,26 +35,30 @@ import org.junit.Test;
 
 public final class TransactionScopedCacheImplTest {
     private static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("t.table1");
-    private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("t.table2");
     private static final Cell CELL_1 = createCell(1);
     private static final Cell CELL_2 = createCell(2);
     private static final Cell CELL_3 = createCell(3);
     private static final Cell CELL_4 = createCell(4);
     private static final Cell CELL_5 = createCell(5);
+    private static final Cell CELL_6 = createCell(6);
     private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_1, CELL_1);
     private static final CacheValue VALUE_1 = createValue(10);
     private static final CacheValue VALUE_2 = createValue(20);
     private static final CacheValue VALUE_3 = createValue(30);
     private static final CacheValue VALUE_4 = createValue(40);
     private static final CacheValue VALUE_5 = createValue(50);
-    private static final ImmutableList<CacheValue> VALUES =
-            ImmutableList.of(VALUE_1, VALUE_2, VALUE_3, VALUE_4, VALUE_5);
+    private static final ImmutableMap<Cell, byte[]> VALUES = ImmutableMap.<Cell, byte[]>builder()
+            .put(CELL_1, VALUE_1.value().get())
+            .put(CELL_2, VALUE_2.value().get())
+            .put(CELL_3, VALUE_3.value().get())
+            .put(CELL_4, VALUE_4.value().get())
+            .put(CELL_5, VALUE_5.value().get())
+            .build();
     private static final CacheValue VALUE_EMPTY = CacheValue.empty();
 
     @Test
     public void getReadsCachedValuesBeforeReadingFromDb() {
-        TransactionScopedCache cache = new TransactionScopedCacheImpl(
-                ValueCacheSnapshotImpl.of(HashMap.of(TABLE_CELL_1, CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE_1)));
+        TransactionScopedCache cache = new TransactionScopedCacheImpl(snapshotWithSingleValue());
 
         assertThat(getRemotelyReadCells(cache, TABLE_1, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_2);
         cache.write(TABLE_1, CELL_3, VALUE_3);
@@ -65,23 +67,40 @@ public final class TransactionScopedCacheImplTest {
                 .containsExactlyInAnyOrder(CELL_4, CELL_5);
     }
 
-    private static void assertCacheContainsValue(TransactionCacheValueStore valueStore, CacheValue value) {
-        assertThat(valueStore.getCachedValues(ImmutableSet.of(TABLE_CELL_1)))
-                .containsExactly(Maps.immutableEntry(TABLE_CELL_1, value));
+    @Test
+    public void emptyValuesAreCached() {
+        TransactionScopedCache cache = new TransactionScopedCacheImpl(snapshotWithSingleValue());
+
+        assertThat(getRemotelyReadCells(cache, TABLE_1, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_6);
+        assertThat(getRemotelyReadCells(cache, TABLE_1, CELL_1, CELL_6)).isEmpty();
+
+        assertThat(cache.get(TABLE_1, ImmutableSet.of(CELL_1, CELL_6), (_unused, cells) -> readFromDatabase(cells)))
+                .containsExactlyInAnyOrderEntriesOf(
+                        ImmutableMap.of(CELL_1, VALUE_1.value().get()));
+        assertThat(cache.getDigest().loadedValues())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE_1, CELL_6), VALUE_EMPTY));
     }
 
-    private static TransactionCacheValueStoreImpl emptyCache() {
-        return new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.of(TABLE_1)));
+    private static Set<Cell> getRemotelyReadCells(TransactionScopedCache cache, TableReference table, Cell... cells) {
+        Set<Cell> remoteReads = new java.util.HashSet<>();
+        cache.get(table, Stream.of(cells).collect(Collectors.toSet()), (_unused, cellsToRead) -> {
+            remoteReads.addAll(cellsToRead);
+            return readFromDatabase(cellsToRead);
+        });
+        return remoteReads;
     }
 
-    private static TransactionCacheValueStoreImpl cacheWithSingleValue() {
-        return new TransactionCacheValueStoreImpl(
-                ValueCacheSnapshotImpl.of(HashMap.of(TABLE_CELL_1, CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE_1)));
+    private static Map<Cell, byte[]> readFromDatabase(Set<Cell> cells) {
+        return KeyedStream.of(cells)
+                .map(VALUES::get)
+                .map(Optional::ofNullable)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collectToMap();
     }
 
-    private static void assertDigestContainsEntries(
-            TransactionCacheValueStore valueStore, Map<CellReference, CacheValue> expectedValues) {
-        assertThat(valueStore.getTransactionDigest()).containsExactlyInAnyOrderEntriesOf(expectedValues);
+    private static ValueCacheSnapshot snapshotWithSingleValue() {
+        return ValueCacheSnapshotImpl.of(HashMap.of(TABLE_CELL_1, CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE_1));
     }
 
     private static CacheValue createValue(int value) {
@@ -94,20 +113,5 @@ public final class TransactionScopedCacheImplTest {
 
     private static Cell createCell(int value) {
         return Cell.create(createBytes(value), createBytes(value + 100));
-    }
-
-    private static Set<Cell> getRemotelyReadCells(TransactionScopedCache cache, TableReference table, Cell... cells) {
-        Set<Cell> remoteReads = new java.util.HashSet<>();
-        cache.get(table, Stream.of(cells).collect(Collectors.toSet()), (_unused, cellsToRead) -> {
-            remoteReads.addAll(cellsToRead);
-            return KeyedStream.of(Streams.zip(
-                            cellsToRead.stream(),
-                            VALUES.stream(),
-                            (c, v) -> Maps.immutableEntry(c, v.value().get())))
-                    .mapKeys(Entry::getKey)
-                    .map(Entry::getValue)
-                    .collectToMap();
-        });
-        return remoteReads;
     }
 }
