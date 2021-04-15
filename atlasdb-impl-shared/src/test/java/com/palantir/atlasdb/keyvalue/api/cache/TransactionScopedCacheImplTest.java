@@ -68,7 +68,7 @@ public final class TransactionScopedCacheImplTest {
     }
 
     @Test
-    public void emptyValuesAreCached() {
+    public void emptyValuesAreCachedButFilteredOutOfResults() {
         TransactionScopedCache cache = new TransactionScopedCacheImpl(snapshotWithSingleValue());
 
         assertThat(getRemotelyReadCells(cache, TABLE_1, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_6);
