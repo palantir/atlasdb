@@ -30,14 +30,12 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
-import io.vavr.collection.Map;
-import io.vavr.collection.Set;
 import java.util.stream.Stream;
 
 public final class ValueStoreImpl implements ValueStore {
     // TODO(jshah): implement cache eviction based on cache size
-    private final StructureHolder<Map<CellReference, CacheEntry>> values;
-    private final StructureHolder<Set<TableReference>> watchedTables;
+    private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
+    private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
 
     public ValueStoreImpl() {
@@ -72,7 +70,7 @@ public final class ValueStoreImpl implements ValueStore {
 
     @Override
     public ValueCacheSnapshot getSnapshot() {
-        return ValueCacheSnapshotImpl.of(values.getStructure(), watchedTables.getStructure());
+        return ValueCacheSnapshotImpl.of(values.getSnapshot(), watchedTables.getSnapshot());
     }
 
     private void putLockedCell(CellReference cellReference) {

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import java.util.Collection;
 import java.util.Optional;
 
 /**
@@ -26,11 +27,15 @@ import java.util.Optional;
  * and and removes snapshots when they are no longer referenced by any live start timestamps.
  */
 public interface SnapshotStore {
-    void storeSnapshot(Sequence sequence, StartTimestamp timestamp, ValueCacheSnapshot snapshot);
+    void storeSnapshot(Sequence sequence, Collection<StartTimestamp> timestamps, ValueCacheSnapshot snapshot);
+
+    void updateSnapshot(Sequence sequence, ValueCacheSnapshot snapshot);
 
     Optional<ValueCacheSnapshot> getSnapshot(StartTimestamp timestamp);
 
-    void removeTimestamp(StartTimestamp timestamp);
+    Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence);
+
+    Optional<Sequence> removeTimestamp(StartTimestamp timestamp);
 
     void reset();
 }
