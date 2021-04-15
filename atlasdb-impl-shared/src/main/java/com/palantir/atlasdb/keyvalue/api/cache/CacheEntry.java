@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import org.immutables.value.Value;
+import org.derive4j.Data;
 
 /**
  * Represents either:
@@ -25,32 +25,17 @@ import org.immutables.value.Value;
  *  2. A value that is cached because the last seen event for it was an unlock event (or there was never a lock event in
  *     the first place). This has a status of UNLOCKED and a value which may be present or empty.
  */
-@Value.Immutable
+@Data
 public interface CacheEntry {
-    Status status();
+    interface Cases<R> {
+        R locked();
 
-    CacheValue value();
-
-    static CacheEntry locked() {
-        return ImmutableCacheEntry.builder()
-                .status(Status.LOCKED)
-                .value(CacheValue.empty())
-                .build();
+        R unlocked(CacheValue value);
     }
 
-    static CacheEntry unlocked(CacheValue value) {
-        return ImmutableCacheEntry.builder()
-                .status(Status.UNLOCKED)
-                .value(value)
-                .build();
-    }
+    <R> R match(Cases<R> cases);
 
-    enum Status {
-        LOCKED,
-        UNLOCKED;
-
-        public boolean isUnlocked() {
-            return this == Status.UNLOCKED;
-        }
+    default boolean isLocked() {
+        return CacheEntries.caseOf(this).locked_(true).unlocked_(false);
     }
 }
