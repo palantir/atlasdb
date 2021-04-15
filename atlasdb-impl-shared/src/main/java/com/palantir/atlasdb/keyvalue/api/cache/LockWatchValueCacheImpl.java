@@ -132,13 +132,30 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
                 .orElseGet(ImmutableList::of)
                 .forEach(timestamp -> snapshotStore.storeSnapshot(sequence, timestamp, valueStore.getSnapshot())));
 
-        updateForTransactions.events().forEach(event -> {
-            valueStore.applyEvent(event);
-            Sequence sequence = Sequence.of(event.sequence());
-            reversedMap
-                    .get(sequence)
-                    .forEach(timestamp -> snapshotStore.storeSnapshot(sequence, timestamp, valueStore.getSnapshot()));
-        });
+        updateForTransactions.events().stream()
+                .filter(event -> currentVersion
+                        .map(LockWatchVersion::version)
+                        .map(version -> version < event.sequence())
+                        .orElse(true))
+                .forEach(event -> {
+                    valueStore.applyEvent(event);
+                    Sequence sequence = Sequence.of(event.sequence());
+                    reversedMap
+                            .get(sequence)
+                            .forEach(timestamp ->
+                                    snapshotStore.storeSnapshot(sequence, timestamp, valueStore.getSnapshot()));
+                });
+
+        assertNoSnapshotsMissing(reversedMap.keySet());
+    }
+
+    private void assertNoSnapshotsMissing(Set<Sequence> sequences) {
+        if (sequences.stream()
+                .map(snapshotStore::getSnapshotForSequence)
+                .anyMatch(maybeSnapshot -> !maybeSnapshot.isPresent())) {
+            throw new TransactionLockWatchFailedException("snapshots were not taken for all sequences; this update "
+                    + "must have been lost and is now too old to process. Transactions should be retried.");
+        }
     }
 
     private Multimap<Sequence, StartTimestamp> createSequenceTimestampMultimap(

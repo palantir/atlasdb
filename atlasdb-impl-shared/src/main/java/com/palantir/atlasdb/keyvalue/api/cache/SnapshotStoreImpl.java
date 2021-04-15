@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
@@ -82,8 +81,8 @@ public final class SnapshotStoreImpl implements SnapshotStore {
         timestampMap.clear();
     }
 
-    @VisibleForTesting
-    Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence) {
+    @Override
+    public Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence) {
         return Optional.ofNullable(snapshotMap.get(sequence));
     }
 }

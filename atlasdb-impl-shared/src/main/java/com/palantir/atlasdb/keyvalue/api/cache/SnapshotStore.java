@@ -32,6 +32,8 @@ public interface SnapshotStore {
 
     Optional<ValueCacheSnapshot> getSnapshot(StartTimestamp timestamp);
 
+    Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence);
+
     Optional<Sequence> removeTimestamp(StartTimestamp timestamp);
 
     void reset();
