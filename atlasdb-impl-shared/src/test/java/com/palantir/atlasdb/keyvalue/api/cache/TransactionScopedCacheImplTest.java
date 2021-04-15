@@ -80,6 +80,18 @@ public final class TransactionScopedCacheImplTest {
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_6), VALUE_EMPTY));
     }
 
+    @Test
+    public void lockedCellsAreNeverCached() {
+        TransactionScopedCache cache = new TransactionScopedCacheImpl(ValueCacheSnapshotImpl.of(
+                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked()), HashSet.of(TABLE)));
+
+        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);
+        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
+
+        assertThat(cache.getDigest().loadedValues())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_2), VALUE_2));
+    }
+
     private static Set<Cell> getRemotelyReadCells(TransactionScopedCache cache, TableReference table, Cell... cells) {
         Set<Cell> remoteReads = new java.util.HashSet<>();
         cache.get(table, Stream.of(cells).collect(Collectors.toSet()), (_unused, cellsToRead) -> {
