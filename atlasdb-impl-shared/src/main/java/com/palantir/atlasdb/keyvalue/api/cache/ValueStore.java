@@ -24,6 +24,10 @@ public interface ValueStore {
 
     void applyEvent(LockWatchEvent event);
 
+    /**
+     * Stores a value in the central cache. Note that this will throw if there is currently an existing entry with a
+     * different value, or if the value is locked.
+     */
     void putValue(CellReference cellReference, CacheValue value);
 
     ValueCacheSnapshot getSnapshot();

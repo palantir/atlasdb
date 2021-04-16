@@ -17,12 +17,15 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.stream.Stream;
@@ -54,10 +57,8 @@ public final class SnapshotStoreImplTest {
 
     @Test
     public void singleSnapshotStoredForMultipleTimestamps() {
-        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_1, SNAPSHOT_1);
-        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_2, SNAPSHOT_1);
-        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_3, SNAPSHOT_1);
-        snapshotStore.storeSnapshot(SEQUENCE_2, TIMESTAMP_4, SNAPSHOT_2);
+        snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3), SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_2, ImmutableSet.of(TIMESTAMP_4), SNAPSHOT_2);
 
         assertSnapshotsEqualForTimestamp(SNAPSHOT_1, TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3);
         assertSnapshotsEqualForTimestamp(SNAPSHOT_2, TIMESTAMP_4);
@@ -65,18 +66,17 @@ public final class SnapshotStoreImplTest {
 
     @Test
     public void snapshotsNotOverwrittenForSameSequence() {
-        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_1, SNAPSHOT_1);
-        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_2, SNAPSHOT_2);
+        snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_1);
 
-        assertSnapshotsEqualForTimestamp(SNAPSHOT_1, TIMESTAMP_1, TIMESTAMP_2);
+        assertThatThrownBy(() -> snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_2), SNAPSHOT_2))
+                .isExactlyInstanceOf(SafeIllegalStateException.class)
+                .hasMessage("Attempted to store a snapshot where one already exists, and does not match");
     }
 
     @Test
     public void removeTimestampRemovesSnapshotWhenThereAreNoMoreLiveTimestampsForSequence() {
-        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_1, SNAPSHOT_1);
-        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_2, SNAPSHOT_1);
-        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_3, SNAPSHOT_1);
-        snapshotStore.storeSnapshot(SEQUENCE_2, TIMESTAMP_4, SNAPSHOT_2);
+        snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3), SNAPSHOT_1);
+        snapshotStore.storeSnapshot(SEQUENCE_2, ImmutableSet.of(TIMESTAMP_4), SNAPSHOT_2);
 
         assertSnapshotsEqualForTimestamp(SNAPSHOT_1, TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3);
 
@@ -98,6 +98,17 @@ public final class SnapshotStoreImplTest {
     @Test
     public void updateSnapshotOnlyUpdatesIfPresent() {
         snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_1, SNAPSHOT_1);
+
+        snapshotStore.updateSnapshot(SEQUENCE_1, SNAPSHOT_2);
+        assertThat(snapshotStore.getSnapshot(TIMESTAMP_1)).hasValue(SNAPSHOT_2);
+
+        snapshotStore.updateSnapshot(SEQUENCE_2, SNAPSHOT_1);
+        assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_2)).isEmpty();
+    }
+
+    @Test
+    public void updateSnapshotOnlyUpdatesIfPresent() {
+        snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_1);
 
         snapshotStore.updateSnapshot(SEQUENCE_1, SNAPSHOT_2);
         assertThat(snapshotStore.getSnapshot(TIMESTAMP_1)).hasValue(SNAPSHOT_2);

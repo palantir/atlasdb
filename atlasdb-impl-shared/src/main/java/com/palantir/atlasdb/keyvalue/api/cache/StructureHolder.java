@@ -36,7 +36,7 @@ final class StructureHolder<V> {
         structure = mutator.apply(structure);
     }
 
-    synchronized V getStructure() {
+    synchronized V getSnapshot() {
         return structure;
     }
 

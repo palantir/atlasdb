@@ -20,6 +20,8 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.logsafe.Preconditions;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -38,10 +40,30 @@ public final class SnapshotStoreImpl implements SnapshotStore {
     }
 
     @Override
-    public void storeSnapshot(Sequence sequence, StartTimestamp timestamp, ValueCacheSnapshot snapshot) {
-        snapshotMap.putIfAbsent(sequence, snapshot);
-        liveSequences.put(sequence, timestamp);
-        timestampMap.put(timestamp, sequence);
+    public void storeSnapshot(Sequence sequence, Collection<StartTimestamp> timestamps, ValueCacheSnapshot snapshot) {
+        if (!timestamps.isEmpty()) {
+            snapshotMap.compute(sequence, (_seq, currentSnapshot) -> {
+                Preconditions.checkState(
+                        currentSnapshot == null || snapshot.equals(currentSnapshot),
+                        "Attempted to store a snapshot where one already exists, and does not match");
+                return snapshot;
+            });
+            timestamps.forEach(timestamp -> {
+                liveSequences.put(sequence, timestamp);
+                timestampMap.put(timestamp, sequence);
+            });
+        }
+    }
+
+    /**
+     * If there are *very* infrequent updates, the cache may not progress the sequence at all. In this case, we want
+     * to update the latest snapshot so that subsequent transactions may benefit from the reads. However, if the
+     * transaction was the last for that sequence, the snapshot may have been removed, in which case we do not need
+     * to re-write the snapshot, as that will happen when the next transaction is started.
+     */
+    @Override
+    public void updateSnapshot(Sequence sequence, ValueCacheSnapshot snapshot) {
+        snapshotMap.computeIfPresent(sequence, (_sequence, _snapshot) -> snapshot);
     }
 
     /**

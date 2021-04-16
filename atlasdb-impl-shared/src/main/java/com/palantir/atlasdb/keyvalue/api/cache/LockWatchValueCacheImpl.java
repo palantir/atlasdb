@@ -28,6 +28,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
+import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
@@ -36,10 +37,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.concurrent.ThreadSafe;
 
-/**
- * The operations on this class *must* be synchronised to protect against concurrent modification of the cache.
- */
+@ThreadSafe
 public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private final LockWatchEventCache eventCache;
     private final ValueStore valueStore;
@@ -71,12 +71,10 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
             commitUpdate.accept(new Visitor<Void>() {
                 @Override
                 public Void invalidateAll() {
-                    // If this is an election, we should throw. If not and we are not a serialisable transaction, we are
-                    // *technically* ok to go on here. However, we cannot determine which of the two we are in, so we
-                    // throw anyway.
-                    throw new TransactionLockWatchFailedException("A Timelock leader election has occurred between the"
-                        + " start and commit time of this transaction, and thus all events have been invalidated. This"
-                        + " transaction will be retried");
+                    // This might happen due to an election or if we exceeded the maximum number of events held in
+                    // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
+                    // because of read-write conflicts, that is handled in the PreCommitCondition.
+                    return null;
                 }
 
                 @Override
@@ -129,24 +127,23 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         // There is an edge case where transactions on the current version will not have a snapshot stored.
         currentVersion.map(LockWatchVersion::version).map(Sequence::of).ifPresent(sequence -> Optional.ofNullable(
                         reversedMap.get(sequence))
-                .orElseGet(ImmutableList::of)
-                .forEach(timestamp -> snapshotStore.storeSnapshot(sequence, timestamp, valueStore.getSnapshot())));
+                .ifPresent(startTimestamps ->
+                        snapshotStore.storeSnapshot(sequence, startTimestamps, valueStore.getSnapshot())));
 
-        updateForTransactions.events().stream()
-                .filter(event -> currentVersion
-                        .map(LockWatchVersion::version)
-                        .map(version -> version < event.sequence())
-                        .orElse(true))
-                .forEach(event -> {
-                    valueStore.applyEvent(event);
-                    Sequence sequence = Sequence.of(event.sequence());
-                    reversedMap
-                            .get(sequence)
-                            .forEach(timestamp ->
-                                    snapshotStore.storeSnapshot(sequence, timestamp, valueStore.getSnapshot()));
-                });
+        updateForTransactions.events().stream().filter(this::isNewEvent).forEach(event -> {
+            valueStore.applyEvent(event);
+            Sequence sequence = Sequence.of(event.sequence());
+            snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
+        });
 
         assertNoSnapshotsMissing(reversedMap.keySet());
+    }
+
+    private boolean isNewEvent(LockWatchEvent event) {
+        return currentVersion
+                .map(LockWatchVersion::version)
+                .map(current -> current < event.sequence())
+                .orElse(true);
     }
 
     private void assertNoSnapshotsMissing(Set<Sequence> sequences) {
@@ -158,7 +155,43 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         }
     }
 
-    private Multimap<Sequence, StartTimestamp> createSequenceTimestampMultimap(
+    private void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
+        Optional<LockWatchVersion> maybeUpdateVersion = updateForTransactions.startTsToSequence().values().stream()
+                .max(Comparator.comparingLong(LockWatchVersion::version));
+
+        maybeUpdateVersion.ifPresent(updateVersion -> {
+            if (firstUpdateAfterCreation()) {
+                currentVersion = maybeUpdateVersion;
+            } else {
+                LockWatchVersion current = currentVersion.get();
+                if (leaderElection(current, updateVersion)) {
+                    clearCache();
+                    currentVersion = maybeUpdateVersion;
+                } else if (newUpdate(current, updateVersion)) {
+                    currentVersion = maybeUpdateVersion;
+                }
+            }
+        });
+    }
+
+    private boolean newUpdate(LockWatchVersion current, LockWatchVersion updateVersion) {
+        return current.version() < updateVersion.version();
+    }
+
+    private boolean leaderElection(LockWatchVersion current, LockWatchVersion updateVersion) {
+        return !current.id().equals(updateVersion.id());
+    }
+
+    private boolean firstUpdateAfterCreation() {
+        return !currentVersion.isPresent();
+    }
+
+    private void clearCache() {
+        valueStore.reset();
+        snapshotStore.reset();
+    }
+
+    private static Multimap<Sequence, StartTimestamp> createSequenceTimestampMultimap(
             TransactionsLockWatchUpdate updateForTransactions) {
         return KeyedStream.stream(updateForTransactions.startTsToSequence())
                 .mapKeys(StartTimestamp::of)
@@ -166,34 +199,6 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
                 .map(Sequence::of)
                 .mapEntries((timestamp, sequence) -> Maps.immutableEntry(sequence, timestamp))
                 .collectToSetMultimap();
-    }
-
-    private void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
-        Optional<LockWatchVersion> maybeLatestVersion = updateForTransactions.startTsToSequence().values().stream()
-                .max(Comparator.comparingLong(LockWatchVersion::version));
-
-        maybeLatestVersion.ifPresent(latestVersion -> {
-            if (!currentVersion.isPresent()) {
-                // first update after a snapshot or creation of cache
-                currentVersion = maybeLatestVersion;
-            } else {
-                LockWatchVersion current = currentVersion.get();
-
-                if (!current.id().equals(latestVersion.id())) {
-                    // leader election
-                    clearCache();
-                    currentVersion = maybeLatestVersion;
-                } else if (current.version() < latestVersion.version()) {
-                    // normal update
-                    currentVersion = maybeLatestVersion;
-                }
-            }
-        });
-    }
-
-    private void clearCache() {
-        valueStore.reset();
-        snapshotStore.reset();
     }
 
     private static Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
