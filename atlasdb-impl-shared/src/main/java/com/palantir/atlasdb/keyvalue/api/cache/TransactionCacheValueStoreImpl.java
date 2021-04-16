@@ -57,8 +57,8 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
         if (snapshot.isWatched(tableReference)) {
             KeyedStream.stream(remoteReadValues)
                     .mapKeys(cell -> CellReference.of(tableReference, cell))
-                    .map(CacheValue::of)
                     .filterKeys(snapshot::isUnlocked)
+                    .map(CacheValue::of)
                     .forEach((cell, value) -> localUpdates.put(cell, LocalCacheEntry.read(value)));
         }
     }
@@ -106,8 +106,8 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                 .collectToMap();
     }
 
-    private Map<CellReference, CacheValue> getSnapshotValues(Set<CellReference> thusFarUncachedValues) {
-        return KeyedStream.of(thusFarUncachedValues)
+    private Map<CellReference, CacheValue> getSnapshotValues(Set<CellReference> cellReferences) {
+        return KeyedStream.of(cellReferences)
                 .map(snapshot::getValue)
                 .filter(Optional::isPresent)
                 .map(Optional::get)

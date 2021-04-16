@@ -34,8 +34,8 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
         valueStore = new TransactionCacheValueStoreImpl(snapshot);
     }
 
-    // TODO(jshah): figure out how we can improve perf given that this is now synchronised. Maybe its fine, but maybe
-    //  we should instead autobatch?
+    // TODO(jshah): figure out how we can improve perf given that this is now synchronised (although maybe its fine
+    //  because this operation is fast?) If not, we could autobatch.
     @Override
     public synchronized void write(TableReference tableReference, Cell cell, CacheValue value) {
         valueStore.cacheLocalWrite(tableReference, cell, value);
@@ -48,7 +48,7 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
             TableReference tableReference,
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, Map<Cell, byte[]>> valueLoader) {
-        // We can potentially short-cut all the logic below if the table is not watched.
+        // Short-cut all the logic below if the table is not watched.
         if (!valueStore.isWatched(tableReference)) {
             return valueLoader.apply(tableReference, cells);
         }
@@ -60,13 +60,12 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
 
         // Now we need to read the remaining values from the DB
         Set<CellReference> uncachedCells = Sets.difference(cellReferences, cachedValues.keySet());
-
         Map<Cell, byte[]> remoteReadValues = valueLoader.apply(
                 tableReference, uncachedCells.stream().map(CellReference::cell).collect(Collectors.toSet()));
 
         valueStore.updateLocalReads(tableReference, remoteReadValues);
 
-        // The get method does not return an entry if a value is absent; we want to cache this fact.
+        // The get method does not return an entry if a value is absent; we want to cache this fact
         Set<CellReference> emptyCells = Sets.difference(
                 uncachedCells,
                 remoteReadValues.keySet().stream()
@@ -75,7 +74,6 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
 
         valueStore.updateEmptyReads(tableReference, emptyCells);
 
-        // Now we need to combine all the maps, filtering out empty values
         return ImmutableMap.<Cell, byte[]>builder()
                 .putAll(remoteReadValues)
                 .putAll(filterEmptyValues(cachedValues))
