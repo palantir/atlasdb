@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;

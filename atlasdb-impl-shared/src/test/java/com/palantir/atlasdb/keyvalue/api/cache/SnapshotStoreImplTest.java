@@ -97,17 +97,6 @@ public final class SnapshotStoreImplTest {
 
     @Test
     public void updateSnapshotOnlyUpdatesIfPresent() {
-        snapshotStore.storeSnapshot(SEQUENCE_1, TIMESTAMP_1, SNAPSHOT_1);
-
-        snapshotStore.updateSnapshot(SEQUENCE_1, SNAPSHOT_2);
-        assertThat(snapshotStore.getSnapshot(TIMESTAMP_1)).hasValue(SNAPSHOT_2);
-
-        snapshotStore.updateSnapshot(SEQUENCE_2, SNAPSHOT_1);
-        assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_2)).isEmpty();
-    }
-
-    @Test
-    public void updateSnapshotOnlyUpdatesIfPresent() {
         snapshotStore.storeSnapshot(SEQUENCE_1, ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_1);
 
         snapshotStore.updateSnapshot(SEQUENCE_1, SNAPSHOT_2);

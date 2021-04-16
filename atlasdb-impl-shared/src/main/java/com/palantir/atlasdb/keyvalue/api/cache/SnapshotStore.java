@@ -31,8 +31,6 @@ public interface SnapshotStore {
 
     void updateSnapshot(Sequence sequence, ValueCacheSnapshot snapshot);
 
-    void updateSnapshot(Sequence sequence, ValueCacheSnapshot snapshot);
-
     Optional<ValueCacheSnapshot> getSnapshot(StartTimestamp timestamp);
 
     Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence);

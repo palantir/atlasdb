@@ -66,17 +66,6 @@ public final class SnapshotStoreImpl implements SnapshotStore {
         snapshotMap.computeIfPresent(sequence, (_sequence, _snapshot) -> snapshot);
     }
 
-    /**
-     * If there are *very* infrequent updates, the cache may not progress the sequence at all. In this case, we want
-     * to update the latest snapshot so that subsequent transactions may benefit from the reads. However, if the
-     * transaction was the last for that sequence, the snapshot may have been removed, in which case we do not need
-     * to re-write the snapshot, as that will happen when the next transaction is started.
-     */
-    @Override
-    public void updateSnapshot(Sequence sequence, ValueCacheSnapshot snapshot) {
-        snapshotMap.computeIfPresent(sequence, (_sequence, _snapshot) -> snapshot);
-    }
-
     @Override
     public Optional<ValueCacheSnapshot> getSnapshot(StartTimestamp timestamp) {
         return Optional.ofNullable(timestampMap.get(timestamp)).flatMap(this::getSnapshotForSequence);
