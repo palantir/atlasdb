@@ -58,9 +58,9 @@ public final class ValueStoreImpl implements ValueStore {
 
     @Override
     public void putValue(CellReference cellReference, CacheValue value) {
-        values.with(map -> map.put(cellReference, CacheEntries.unlocked(value), (oldValue, newValue) -> {
+        values.with(map -> map.put(cellReference, CacheEntry.unlocked(value), (oldValue, newValue) -> {
             Preconditions.checkState(
-                    !oldValue.isLocked() && oldValue.equals(newValue),
+                    oldValue.status().isUnlocked() && oldValue.equals(newValue),
                     "Trying to cache a value which is either locked or is not equal to a currently cached value",
                     UnsafeArg.of("table", cellReference.tableRef()),
                     UnsafeArg.of("cell", cellReference.cell()),
@@ -76,13 +76,13 @@ public final class ValueStoreImpl implements ValueStore {
     }
 
     private void putLockedCell(CellReference cellReference) {
-        values.with(map -> map.put(cellReference, CacheEntries.locked()));
+        values.with(map -> map.put(cellReference, CacheEntry.locked()));
     }
 
     private void clearLockedCell(CellReference cellReference) {
         values.with(map -> map.get(cellReference)
                 .toJavaOptional()
-                .filter(CacheEntry::isLocked)
+                .filter(entry -> !entry.status().isUnlocked())
                 .map(_unused -> map.remove(cellReference))
                 .orElse(map));
     }

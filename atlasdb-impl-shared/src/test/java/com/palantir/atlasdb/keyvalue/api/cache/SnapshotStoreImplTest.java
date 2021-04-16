@@ -43,7 +43,7 @@ public final class SnapshotStoreImplTest {
                             CellReference.of(
                                     TableReference.createFromFullyQualifiedName("t.table"),
                                     Cell.create(new byte[] {1}, new byte[] {1})),
-                            CacheEntries.locked()),
+                            CacheEntry.locked()),
             HashSet.empty());
     private SnapshotStore snapshotStore;
 
