@@ -123,7 +123,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
-        // There is an edge case where transactions on the current version will not have a snapshot stored.
+        // Without this block, updates with no events would not store a snapshot.
         currentVersion.map(LockWatchVersion::version).map(Sequence::of).ifPresent(sequence -> Optional.ofNullable(
                         reversedMap.get(sequence))
                 .ifPresent(startTimestamps ->
