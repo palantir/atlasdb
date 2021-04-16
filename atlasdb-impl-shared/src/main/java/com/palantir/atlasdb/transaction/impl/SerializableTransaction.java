@@ -31,6 +31,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -101,6 +102,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -745,28 +747,31 @@ public class SerializableTransaction extends SnapshotTransaction {
             Iterator<Map.Entry<Cell, ByteBuffer>> readValues =
                     readSortedColumns(request.getTableRef(), rows, range, comparator);
 
-            Iterator<Map.Entry<Cell, ByteBuffer>> storedValues = Iterators.transform(
-                    readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range),
-                    this::getCellEntryWithByteBufferWrappedValue);
+            Iterator<Map.Entry<Cell, byte[]>> storedValues =
+                    readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range);
 
             // handles the case where (r1, c), (r2, c) exists and we read only up to (r1, c).
-            Iterator<Map.Entry<Cell, ByteBuffer>> truncatedStoredValues =
-                    new AbstractIterator<Map.Entry<Cell, ByteBuffer>>() {
-                        @Override
-                        protected Map.Entry<Cell, ByteBuffer> computeNext() {
-                            if (!storedValues.hasNext()) {
-                                return endOfData();
-                            }
+            Iterator<Map.Entry<Cell, byte[]>> truncatedStoredValues = new AbstractIterator<Map.Entry<Cell, byte[]>>() {
+                @Override
+                protected Map.Entry<Cell, byte[]> computeNext() {
+                    if (!storedValues.hasNext()) {
+                        return endOfData();
+                    }
 
-                            Map.Entry<Cell, ByteBuffer> ret = storedValues.next();
-                            if (comparator.compare(ret.getKey(), endOfRange) > 0) {
-                                return endOfData();
-                            }
-                            return ret;
-                        }
-                    };
+                    Map.Entry<Cell, byte[]> ret = storedValues.next();
+                    if (comparator.compare(ret.getKey(), endOfRange) > 0) {
+                        return endOfData();
+                    }
+                    return ret;
+                }
+            };
 
-            if (!Iterators.elementsEqual(readValues, truncatedStoredValues)) {
+            List<Map.Entry<Cell, ByteBuffer>> actualReadList =
+                    Streams.stream(readValues).collect(Collectors.toList());
+            List<Map.Entry<Cell, ByteBuffer>> storedValuesWithoutLocalWrites = filterWritesFromCells(
+                    Streams.stream(truncatedStoredValues).collect(Collectors.toList()), request.getTableRef());
+
+            if (!actualReadList.equals(storedValuesWithoutLocalWrites)) {
                 handleTransactionConflict(request.getTableRef());
             }
         });
