@@ -39,6 +39,7 @@ junit:junit = 4.13.2
 net.jcip:jcip-annotations = 1.0
 one.util:streamex = 0.7.3
 org.apache.commons:commons-pool2 = 2.9.0
+org.apache.commons:commons-lang3 = 3.9
 org.assertj:assertj-* = 3.19.0
 org.awaitility:awaitility = 4.0.3
 org.clojure:clojure = 1.8.0
