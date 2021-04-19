@@ -48,7 +48,7 @@ public final class TransactionCacheValueStoreImplTest {
         TransactionCacheValueStore valueStore = emptyCache();
         assertCacheIsEmpty(valueStore);
 
-        valueStore.updateLocalReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
+        valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
 
         assertCacheContainsValue(valueStore, VALUE_1);
 
@@ -60,7 +60,7 @@ public final class TransactionCacheValueStoreImplTest {
         TransactionCacheValueStore valueStore = cacheWithSingleValue();
         assertCacheContainsValue(valueStore, VALUE_1);
 
-        valueStore.cacheLocalWrite(TABLE, CELL, VALUE_2);
+        valueStore.cacheRemoteWrite(TABLE, CELL, VALUE_2);
 
         assertCacheContainsValue(valueStore, VALUE_2);
         assertDigestContainsEntries(valueStore, ImmutableMap.of());
@@ -71,7 +71,7 @@ public final class TransactionCacheValueStoreImplTest {
         TransactionCacheValueStore valueStore = emptyCache();
         assertCacheIsEmpty(valueStore);
 
-        valueStore.updateEmptyReads(TABLE, ImmutableSet.of(TABLE_CELL));
+        valueStore.cacheEmptyReads(TABLE, ImmutableSet.of(TABLE_CELL));
         assertCacheContainsValue(valueStore, VALUE_EMPTY);
 
         assertDigestContainsEntries(valueStore, ImmutableMap.of(TABLE_CELL, VALUE_EMPTY));
@@ -82,13 +82,13 @@ public final class TransactionCacheValueStoreImplTest {
         TransactionCacheValueStore valueStore =
                 new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty()));
 
-        valueStore.cacheLocalWrite(TABLE, CELL, VALUE_1);
+        valueStore.cacheRemoteWrite(TABLE, CELL, VALUE_1);
         assertCacheIsEmpty(valueStore);
 
-        valueStore.updateEmptyReads(TABLE, ImmutableSet.of(TABLE_CELL));
+        valueStore.cacheEmptyReads(TABLE, ImmutableSet.of(TABLE_CELL));
         assertCacheIsEmpty(valueStore);
 
-        valueStore.updateLocalReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
+        valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
         assertCacheIsEmpty(valueStore);
     }
 

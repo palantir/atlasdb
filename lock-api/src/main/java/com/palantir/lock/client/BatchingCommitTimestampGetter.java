@@ -24,7 +24,6 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
@@ -89,9 +88,7 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
                 .boxed()
                 .collect(Collectors.toList());
         List<TransactionUpdate> transactionUpdates = Streams.zip(
-                        timestamps.stream(),
-                        requests.stream(),
-                        (commitTs, batchElement) -> ImmutableTransactionUpdate.builder()
+                        timestamps.stream(), requests.stream(), (commitTs, batchElement) -> TransactionUpdate.builder()
                                 .startTs(batchElement.argument().startTs())
                                 .commitTs(commitTs)
                                 .writesToken(batchElement.argument().commitLocksToken())

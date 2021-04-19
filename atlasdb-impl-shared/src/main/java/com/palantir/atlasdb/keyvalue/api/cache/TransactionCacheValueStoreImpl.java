@@ -28,8 +28,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import javax.annotation.concurrent.NotThreadSafe;
 import org.immutables.value.Value;
 
+@NotThreadSafe
 final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore {
     private final ValueCacheSnapshot snapshot;
     private final Map<CellReference, LocalCacheEntry> localUpdates;
@@ -45,7 +47,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
-    public void cacheLocalWrite(TableReference tableReference, Cell cell, CacheValue value) {
+    public void cacheRemoteWrite(TableReference tableReference, Cell cell, CacheValue value) {
         CellReference cellReference = CellReference.of(tableReference, cell);
         if (snapshot.isWatched(tableReference) && snapshot.isUnlocked(cellReference)) {
             localUpdates.put(cellReference, LocalCacheEntry.write(value));
@@ -53,7 +55,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
-    public void updateLocalReads(TableReference tableReference, Map<Cell, byte[]> remoteReadValues) {
+    public void cacheRemoteReads(TableReference tableReference, Map<Cell, byte[]> remoteReadValues) {
         if (snapshot.isWatched(tableReference)) {
             KeyedStream.stream(remoteReadValues)
                     .mapKeys(cell -> CellReference.of(tableReference, cell))
@@ -64,7 +66,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
-    public void updateEmptyReads(TableReference tableReference, Set<CellReference> emptyCells) {
+    public void cacheEmptyReads(TableReference tableReference, Set<CellReference> emptyCells) {
         if (snapshot.isWatched(tableReference)) {
             emptyCells.stream()
                     .filter(snapshot::isUnlocked)

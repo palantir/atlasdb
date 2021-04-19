@@ -30,11 +30,11 @@ import java.util.Set;
 interface TransactionCacheValueStore {
     boolean isWatched(TableReference tableReference);
 
-    void cacheLocalWrite(TableReference tableReference, Cell cell, CacheValue value);
+    void cacheRemoteWrite(TableReference tableReference, Cell cell, CacheValue value);
 
-    void updateLocalReads(TableReference tableReference, Map<Cell, byte[]> remoteReadValues);
+    void cacheRemoteReads(TableReference tableReference, Map<Cell, byte[]> remoteReadValues);
 
-    void updateEmptyReads(TableReference tableReference, Set<CellReference> emptyCells);
+    void cacheEmptyReads(TableReference tableReference, Set<CellReference> emptyCells);
 
     Map<CellReference, CacheValue> getCachedValues(Set<CellReference> cellReferences);
 

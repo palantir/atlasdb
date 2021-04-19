@@ -40,6 +40,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -56,7 +57,7 @@ public final class LockWatchValueCacheImplTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table");
     private static final Cell CELL_1 = createCell(1);
     private static final Cell CELL_2 = createCell(2);
-    private static final Cell CELL_3 = createCell(6);
+    private static final Cell CELL_3 = createCell(3);
     private static final CacheValue VALUE_1 = createValue(10);
     private static final CacheValue VALUE_2 = createValue(20);
     private static final UUID LEADER = UUID.randomUUID();
@@ -206,7 +207,7 @@ public final class LockWatchValueCacheImplTest {
     }
 
     private static Set<Cell> getRemotelyReadCells(TransactionScopedCache cache, TableReference table, Cell... cells) {
-        Set<Cell> remoteReads = new java.util.HashSet<>();
+        Set<Cell> remoteReads = new HashSet<>();
         cache.get(table, Stream.of(cells).collect(Collectors.toSet()), (_unused, cellsToRead) -> {
             remoteReads.addAll(cellsToRead);
             return remoteRead(cellsToRead);

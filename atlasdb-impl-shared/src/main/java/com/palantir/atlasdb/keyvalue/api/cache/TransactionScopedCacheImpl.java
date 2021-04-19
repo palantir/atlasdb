@@ -38,7 +38,7 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
     //  because this operation is fast?) If not, we could autobatch.
     @Override
     public synchronized void write(TableReference tableReference, Cell cell, CacheValue value) {
-        valueStore.cacheLocalWrite(tableReference, cell, value);
+        valueStore.cacheRemoteWrite(tableReference, cell, value);
     }
 
     // TODO(jshah): as above. Equally, we should probably use the async value loader, then have it get afterwards,
@@ -63,7 +63,7 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
         Map<Cell, byte[]> remoteReadValues = valueLoader.apply(
                 tableReference, uncachedCells.stream().map(CellReference::cell).collect(Collectors.toSet()));
 
-        valueStore.updateLocalReads(tableReference, remoteReadValues);
+        valueStore.cacheRemoteReads(tableReference, remoteReadValues);
 
         // The get method does not return an entry if a value is absent; we want to cache this fact
         Set<CellReference> emptyCells = Sets.difference(
@@ -72,7 +72,7 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
                         .map(cell -> CellReference.of(tableReference, cell))
                         .collect(Collectors.toSet()));
 
-        valueStore.updateEmptyReads(tableReference, emptyCells);
+        valueStore.cacheEmptyReads(tableReference, emptyCells);
 
         return ImmutableMap.<Cell, byte[]>builder()
                 .putAll(remoteReadValues)
@@ -85,7 +85,7 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
         return TransactionDigest.of(valueStore.getTransactionDigest());
     }
 
-    private Map<Cell, byte[]> filterEmptyValues(Map<CellReference, CacheValue> snapshotCachedValues) {
+    private static Map<Cell, byte[]> filterEmptyValues(Map<CellReference, CacheValue> snapshotCachedValues) {
         return KeyedStream.stream(snapshotCachedValues)
                 .filter(value -> value.value().isPresent())
                 .map(value -> value.value().get())
