@@ -5,21 +5,21 @@ com.github.peterwippermann.junit4:parameterized-suite = 1.1.0
 com.github.rholder:guava-retrying = 2.0.0
 com.github.stefanbirkner:system-rules = 1.19.0
 com.github.tomakehurst:wiremock-standalone = 2.27.2
-com.google.auto:auto-common = 0.11
-com.google.auto.service:auto-service = 1.0-rc6
+com.google.auto:auto-common = 1.0
+com.google.auto.service:auto-service = 1.0
 com.google.code.findbugs:findbugs-annotations = 3.0.1
 com.google.code.findbugs:jsr305 = 3.0.2
-com.google.dagger:dagger = 2.33
+com.google.dagger:dagger = 2.34.1
 com.google.dagger:dagger-compiler = 2.29.1
 com.google.guava:* = 30.1.1-jre
-com.google.protobuf:protobuf-java = 3.15.7
+com.google.protobuf:protobuf-java = 3.15.8
 com.lmax:disruptor = 3.4.2
 com.oracle.database.jdbc:ojdbc8 = 21.1.0.0
 com.palantir.common:streams = 1.9.1
-com.palantir.config.crypto:encrypted-config-value-module = 2.1.0
+com.palantir.config.crypto:encrypted-config-value-module = 2.2.0
 com.palantir.conjure:conjure = 4.15.2
 com.palantir.conjure.java.api:* = 2.16.2
-com.palantir.conjure.java:* = 5.51.1
+com.palantir.conjure.java:* = 5.53.0
 com.palantir.conjure.java.runtime:* = 6.15.0
 com.palantir.dialogue:* = 1.109.0
 com.palantir.docker.compose:docker-compose-rule* = 1.5.0
@@ -40,6 +40,7 @@ junit:junit = 4.13.2
 net.jcip:jcip-annotations = 1.0
 one.util:streamex = 0.7.3
 org.apache.commons:commons-pool2 = 2.9.0
+org.apache.commons:commons-lang3 = 3.9
 org.assertj:assertj-* = 3.19.0
 org.awaitility:awaitility = 4.0.3
 org.clojure:clojure = 1.8.0
@@ -66,6 +67,7 @@ org.wildfly.common:wildfly-common = 1.5.4.Final
 # dependency-upgrader:OFF
 # Blocked on Java 11
 com.github.ben-manes.caffeine:caffeine = 2.9.0
+io.vavr:* = 0.10.3
 
 # Large internal product uses 2.x
 org.codehaus.groovy:* = 2.5.14
