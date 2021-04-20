@@ -92,6 +92,7 @@ public final class SnapshotStoreImplTest {
         assertThat(snapshotStore.getSnapshot(TIMESTAMP_1)).isEmpty();
 
         assertSnapshotsEqualForTimestamp(SNAPSHOT_2, TIMESTAMP_4);
+        assertThat(snapshotStore.getSnapshotForSequence(SEQUENCE_1)).isEmpty();
     }
 
     @Test

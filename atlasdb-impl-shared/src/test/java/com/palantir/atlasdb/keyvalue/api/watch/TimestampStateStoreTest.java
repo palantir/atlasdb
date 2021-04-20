@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -59,7 +58,7 @@ public final class TimestampStateStoreTest {
 
     @Test
     public void cannotPutCommitUpdateTwice() {
-        TransactionUpdate update = ImmutableTransactionUpdate.builder()
+        TransactionUpdate update = TransactionUpdate.builder()
                 .startTs(100L)
                 .commitTs(400L)
                 .writesToken(LockToken.of(UUID.randomUUID()))
@@ -74,7 +73,7 @@ public final class TimestampStateStoreTest {
 
     @Test
     public void cannotPutCommitUpdateBeforeStartUpdate() {
-        TransactionUpdate update = ImmutableTransactionUpdate.builder()
+        TransactionUpdate update = TransactionUpdate.builder()
                 .startTs(100L)
                 .commitTs(400L)
                 .writesToken(LockToken.of(UUID.randomUUID()))

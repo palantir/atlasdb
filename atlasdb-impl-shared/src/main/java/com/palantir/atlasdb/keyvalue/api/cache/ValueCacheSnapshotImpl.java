@@ -30,13 +30,19 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     Set<TableReference> enabledTables();
 
     @Override
-    default boolean isWatched(TableReference tableReference) {
-        return enabledTables().contains(tableReference);
+    default Optional<CacheEntry> getValue(CellReference tableAndCell) {
+        return values().get(tableAndCell).toJavaOptional();
     }
 
     @Override
-    default Optional<CacheEntry> getValue(CellReference tableAndCell) {
-        return values().get(tableAndCell).toJavaOptional();
+    default boolean isUnlocked(CellReference tableAndCell) {
+        return isWatched(tableAndCell.tableRef())
+                && getValue(tableAndCell).map(CacheEntry::isUnlocked).orElse(true);
+    }
+
+    @Override
+    default boolean isWatched(TableReference tableReference) {
+        return enabledTables().contains(tableReference);
     }
 
     static ValueCacheSnapshot of(Map<CellReference, CacheEntry> values, Set<TableReference> enabledTables) {
