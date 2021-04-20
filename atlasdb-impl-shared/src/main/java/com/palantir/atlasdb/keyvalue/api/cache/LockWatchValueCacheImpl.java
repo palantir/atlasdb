@@ -101,6 +101,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     }
 
     @Override
+    // TODO(jshah): Make this return a no-op cache if the start timestamp is missing.
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
         // Chances are that, instead of throwing, we should just return a no-op cache that doesn't cache anything;
         // however, this does retry, so maybe this is fine too (this should only happen around leader elections).
