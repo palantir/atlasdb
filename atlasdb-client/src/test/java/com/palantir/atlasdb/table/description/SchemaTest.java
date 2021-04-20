@@ -24,6 +24,9 @@ import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.lock.watch.LockWatchReferences;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -195,6 +198,78 @@ public class SchemaTest {
         });
 
         schema.validate();
+    }
+
+    @Test
+    public void cannotAddTableDefinitionWithCachingAndIncompatibleConflictDetection() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        TableDefinition tableDef = new TableDefinition() {
+            {
+                allSafeForLoggingByDefault();
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
+
+                rowName();
+                hashFirstRowComponent();
+                rowComponent("key", ValueType.BLOB);
+
+                columns();
+                column("value", "v", ValueType.BLOB);
+
+                enableCaching();
+                conflictHandler(ConflictHandler.SERIALIZABLE);
+            }
+        };
+        assertThatThrownBy(() -> schema.addTableDefinition(TEST_TABLE_NAME, tableDef))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void canAddTableDefinitionWithCaching() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
+        TableDefinition tableDef = new TableDefinition() {
+            {
+                allSafeForLoggingByDefault();
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
+
+                rowName();
+                hashFirstRowComponent();
+                rowComponent("key", ValueType.BLOB);
+
+                columns();
+                column("value", "v", ValueType.BLOB);
+
+                enableCaching();
+                conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
+            }
+        };
+        schema.addTableDefinition(TEST_TABLE_NAME, tableDef);
+
+        TableReference expected = TableReference.create(Namespace.DEFAULT_NAMESPACE, TEST_TABLE_NAME);
+        assertThat(schema.getLockWatches())
+                .containsExactly(LockWatchReferences.entireTable(expected.getQualifiedName()));
+    }
+
+    @Test
+    public void noCachingByDefault() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
+        TableDefinition tableDef = new TableDefinition() {
+            {
+                allSafeForLoggingByDefault();
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
+
+                rowName();
+                hashFirstRowComponent();
+                rowComponent("key", ValueType.BLOB);
+
+                columns();
+                column("value", "v", ValueType.BLOB);
+
+                conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
+            }
+        };
+        schema.addTableDefinition(TEST_TABLE_NAME, tableDef);
+
+        assertThat(schema.getLockWatches()).isEmpty();
     }
 
     private void checkIfFilesAreTheSame(List<String> generatedTestTables) {

@@ -38,6 +38,7 @@ abstract class AbstractDefinition {
     boolean rangeScanAllowed = false;
     boolean negativeLookups = false;
     boolean appendHeavyAndReadLight = false;
+    boolean enableCaching = false;
 
     public void cachePriority(CachePriority priority) {
         this.cachePriority = priority;
@@ -102,6 +103,10 @@ abstract class AbstractDefinition {
     }
 
     protected abstract ConflictHandler defaultConflictHandler();
+
+    public void enableCaching() {
+        this.enableCaching = true;
+    }
 
     void validateFirstRowComp(NameComponentDescription comp) {
         if (!ignoreHotspottingChecks && CRITICAL_ROW_TYPES.contains(comp.getType())) {
