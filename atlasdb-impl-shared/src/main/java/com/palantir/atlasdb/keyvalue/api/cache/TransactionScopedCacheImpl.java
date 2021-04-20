@@ -19,13 +19,12 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
@@ -53,30 +52,15 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
             return valueLoader.apply(tableReference, cells);
         }
 
-        Set<CellReference> cellReferences = cells.stream()
-                .map(cell -> CellReference.of(tableReference, cell))
-                .collect(Collectors.toSet());
-        Map<CellReference, CacheValue> cachedValues = valueStore.getCachedValues(cellReferences);
+        CacheLookupResult cacheLookup = cacheLookup(tableReference, cells);
 
-        // Now we need to read the remaining values from the DB
-        Set<CellReference> uncachedCells = Sets.difference(cellReferences, cachedValues.keySet());
-        Map<Cell, byte[]> remoteReadValues = valueLoader.apply(
-                tableReference, uncachedCells.stream().map(CellReference::cell).collect(Collectors.toSet()));
-
-        valueStore.cacheRemoteReads(tableReference, remoteReadValues);
-
-        // The get method does not return an entry if a value is absent; we want to cache this fact
-        Set<CellReference> emptyCells = Sets.difference(
-                uncachedCells,
-                remoteReadValues.keySet().stream()
-                        .map(cell -> CellReference.of(tableReference, cell))
-                        .collect(Collectors.toSet()));
-
-        valueStore.cacheEmptyReads(tableReference, emptyCells);
+        Map<Cell, byte[]> remoteReadValues =
+                getAndCacheRemoteReads(tableReference, cacheLookup.missedCells(), valueLoader);
+        cacheEmptyReads(tableReference, cacheLookup.missedCells(), remoteReadValues);
 
         return ImmutableMap.<Cell, byte[]>builder()
                 .putAll(remoteReadValues)
-                .putAll(filterEmptyValues(cachedValues))
+                .putAll(filterEmptyValues(cacheLookup.cacheHits()))
                 .build();
     }
 
@@ -85,11 +69,46 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
         return TransactionDigest.of(valueStore.getTransactionDigest());
     }
 
-    private static Map<Cell, byte[]> filterEmptyValues(Map<CellReference, CacheValue> snapshotCachedValues) {
+    private CacheLookupResult cacheLookup(TableReference table, Set<Cell> cells) {
+        Map<Cell, CacheValue> cachedValues = valueStore.getCachedValues(table, cells);
+        Set<Cell> uncachedCells = Sets.difference(cells, cachedValues.keySet());
+        return CacheLookupResult.of(cachedValues, uncachedCells);
+    }
+
+    private void cacheEmptyReads(
+            TableReference tableReference, Set<Cell> uncachedCells, Map<Cell, byte[]> remoteReadValues) {
+        // The get method does not return an entry if a value is absent; we want to cache this fact
+        Set<Cell> emptyCells = Sets.difference(uncachedCells, remoteReadValues.keySet());
+        valueStore.cacheEmptyReads(tableReference, emptyCells);
+    }
+
+    private Map<Cell, byte[]> getAndCacheRemoteReads(
+            TableReference tableReference,
+            Set<Cell> uncachedCells,
+            BiFunction<TableReference, Set<Cell>, Map<Cell, byte[]>> valueLoader) {
+        Map<Cell, byte[]> remoteReadValues = valueLoader.apply(tableReference, uncachedCells);
+        valueStore.cacheRemoteReads(tableReference, remoteReadValues);
+        return remoteReadValues;
+    }
+
+    private static Map<Cell, byte[]> filterEmptyValues(Map<Cell, CacheValue> snapshotCachedValues) {
         return KeyedStream.stream(snapshotCachedValues)
                 .filter(value -> value.value().isPresent())
                 .map(value -> value.value().get())
-                .mapKeys(CellReference::cell)
                 .collectToMap();
+    }
+
+    @Value.Immutable
+    interface CacheLookupResult {
+        Map<Cell, CacheValue> cacheHits();
+
+        Set<Cell> missedCells();
+
+        static CacheLookupResult of(Map<Cell, CacheValue> cachedValues, Set<Cell> missedCells) {
+            return ImmutableCacheLookupResult.builder()
+                    .cacheHits(cachedValues)
+                    .missedCells(missedCells)
+                    .build();
+        }
     }
 }

@@ -42,23 +42,23 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
-    public boolean isWatched(TableReference tableReference) {
-        return snapshot.isWatched(tableReference);
+    public boolean isWatched(TableReference table) {
+        return snapshot.isWatched(table);
     }
 
     @Override
-    public void cacheRemoteWrite(TableReference tableReference, Cell cell, CacheValue value) {
-        CellReference cellReference = CellReference.of(tableReference, cell);
-        if (snapshot.isWatched(tableReference) && snapshot.isUnlocked(cellReference)) {
+    public void cacheRemoteWrite(TableReference table, Cell cell, CacheValue value) {
+        CellReference cellReference = CellReference.of(table, cell);
+        if (snapshot.isWatched(table) && snapshot.isUnlocked(cellReference)) {
             localUpdates.put(cellReference, LocalCacheEntry.write(value));
         }
     }
 
     @Override
-    public void cacheRemoteReads(TableReference tableReference, Map<Cell, byte[]> remoteReadValues) {
-        if (snapshot.isWatched(tableReference)) {
+    public void cacheRemoteReads(TableReference table, Map<Cell, byte[]> remoteReadValues) {
+        if (snapshot.isWatched(table)) {
             KeyedStream.stream(remoteReadValues)
-                    .mapKeys(cell -> CellReference.of(tableReference, cell))
+                    .mapKeys(cell -> CellReference.of(table, cell))
                     .filterKeys(snapshot::isUnlocked)
                     .map(CacheValue::of)
                     .forEach((cell, value) -> localUpdates.put(cell, LocalCacheEntry.read(value)));
@@ -66,27 +66,28 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
-    public void cacheEmptyReads(TableReference tableReference, Set<CellReference> emptyCells) {
-        if (snapshot.isWatched(tableReference)) {
+    public void cacheEmptyReads(TableReference table, Set<Cell> emptyCells) {
+        if (snapshot.isWatched(table)) {
             emptyCells.stream()
+                    .map(cell -> CellReference.of(table, cell))
                     .filter(snapshot::isUnlocked)
                     .forEach(cell -> localUpdates.put(cell, LocalCacheEntry.read(CacheValue.empty())));
         }
     }
 
     @Override
-    public Map<CellReference, CacheValue> getCachedValues(Set<CellReference> cellReferences) {
-        Map<CellReference, CacheValue> locallyCachedValues = getLocallyCachedValues(cellReferences);
+    public Map<Cell, CacheValue> getCachedValues(TableReference table, Set<Cell> cells) {
+        Map<Cell, CacheValue> locallyCachedValues = getLocallyCachedValues(table, cells);
 
         // Filter out which values have not been read yet
-        Set<CellReference> remainingCells = Sets.difference(cellReferences, locallyCachedValues.keySet());
+        Set<Cell> remainingCells = Sets.difference(cells, locallyCachedValues.keySet());
 
         // Read values from the snapshot. For the hits, mark as hit in the local map.
-        Map<CellReference, CacheValue> snapshotCachedValues = getSnapshotValues(remainingCells);
+        Map<Cell, CacheValue> snapshotCachedValues = getSnapshotValues(table, remainingCells);
         snapshotCachedValues.forEach(
-                (cellReference, value) -> localUpdates.put(cellReference, LocalCacheEntry.hit(value)));
+                (cell, value) -> localUpdates.put(CellReference.of(table, cell), LocalCacheEntry.hit(value)));
 
-        return ImmutableMap.<CellReference, CacheValue>builder()
+        return ImmutableMap.<Cell, CacheValue>builder()
                 .putAll(locallyCachedValues)
                 .putAll(snapshotCachedValues)
                 .build();
@@ -100,17 +101,17 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                 .collectToMap();
     }
 
-    private Map<CellReference, CacheValue> getLocallyCachedValues(Set<CellReference> cellReferences) {
-        return KeyedStream.of(cellReferences)
-                .map(localUpdates::get)
+    private Map<Cell, CacheValue> getLocallyCachedValues(TableReference table, Set<Cell> cells) {
+        return KeyedStream.of(cells)
+                .map(cell -> localUpdates.get(CellReference.of(table, cell)))
                 .filter(Objects::nonNull)
                 .map(LocalCacheEntry::value)
                 .collectToMap();
     }
 
-    private Map<CellReference, CacheValue> getSnapshotValues(Set<CellReference> cellReferences) {
-        return KeyedStream.of(cellReferences)
-                .map(snapshot::getValue)
+    private Map<Cell, CacheValue> getSnapshotValues(TableReference table, Set<Cell> cells) {
+        return KeyedStream.of(cells)
+                .map(cell -> snapshot.getValue(CellReference.of(table, cell)))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .filter(CacheEntry::isUnlocked)

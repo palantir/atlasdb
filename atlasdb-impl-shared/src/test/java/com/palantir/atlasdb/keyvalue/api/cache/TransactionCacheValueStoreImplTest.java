@@ -71,7 +71,7 @@ public final class TransactionCacheValueStoreImplTest {
         TransactionCacheValueStore valueStore = emptyCache();
         assertCacheIsEmpty(valueStore);
 
-        valueStore.cacheEmptyReads(TABLE, ImmutableSet.of(TABLE_CELL));
+        valueStore.cacheEmptyReads(TABLE, ImmutableSet.of(CELL));
         assertCacheContainsValue(valueStore, VALUE_EMPTY);
 
         assertDigestContainsEntries(valueStore, ImmutableMap.of(TABLE_CELL, VALUE_EMPTY));
@@ -85,7 +85,7 @@ public final class TransactionCacheValueStoreImplTest {
         valueStore.cacheRemoteWrite(TABLE, CELL, VALUE_1);
         assertCacheIsEmpty(valueStore);
 
-        valueStore.cacheEmptyReads(TABLE, ImmutableSet.of(TABLE_CELL));
+        valueStore.cacheEmptyReads(TABLE, ImmutableSet.of(CELL));
         assertCacheIsEmpty(valueStore);
 
         valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
@@ -93,12 +93,12 @@ public final class TransactionCacheValueStoreImplTest {
     }
 
     private void assertCacheIsEmpty(TransactionCacheValueStore valueStore) {
-        assertThat(valueStore.getCachedValues(ImmutableSet.of(TABLE_CELL))).isEmpty();
+        assertThat(valueStore.getCachedValues(TABLE, ImmutableSet.of(CELL))).isEmpty();
     }
 
     private static void assertCacheContainsValue(TransactionCacheValueStore valueStore, CacheValue value) {
-        assertThat(valueStore.getCachedValues(ImmutableSet.of(TABLE_CELL)))
-                .containsExactly(Maps.immutableEntry(TABLE_CELL, value));
+        assertThat(valueStore.getCachedValues(TABLE, ImmutableSet.of(CELL)))
+                .containsExactly(Maps.immutableEntry(CELL, value));
     }
 
     private static TransactionCacheValueStore emptyCache() {
