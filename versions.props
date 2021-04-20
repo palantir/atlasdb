@@ -16,19 +16,18 @@ com.google.protobuf:protobuf-java = 3.15.8
 com.lmax:disruptor = 3.4.2
 com.oracle.database.jdbc:ojdbc8 = 21.1.0.0
 com.palantir.common:streams = 1.9.1
-com.palantir.config.crypto:encrypted-config-value-module = 2.2.0
+com.palantir.config.crypto:encrypted-config-value-module = 3.0.0
 com.palantir.conjure:conjure = 4.15.2
 com.palantir.conjure.java.api:* = 2.16.2
 com.palantir.conjure.java:* = 5.53.0
 com.palantir.conjure.java.runtime:* = 6.15.0
-com.palantir.dialogue:* = 1.109.0
+com.palantir.dialogue:* = 1.116.0
 com.palantir.docker.compose:docker-compose-rule* = 1.5.0
 com.palantir.docker.proxy:docker-proxy-rule* = 1.1.1
-com.palantir.refreshable:refreshable = 1.2.0
 com.palantir.remoting2:* = 2.6.3
 com.palantir.safe-logging:* = 1.14.0
 com.palantir.sls.versions:* = 0.14.0
-com.palantir.tracing:* = 4.13.0
+com.palantir.tracing:* = 4.16.0
 com.palantir.tritium:* = 0.18.8
 com.squareup:javapoet = 1.13.0
 com.zaxxer:HikariCP = 4.0.3
@@ -49,7 +48,7 @@ org.freemarker:freemarker = 2.3.31
 org.immutables:* = 2.8.8
 org.jdbi:* = 3.13.0
 org.jmock:jmock* = 2.12.0
-org.mockito:mockito-* = 3.8.0
+org.mockito:mockito-* = 3.9.0
 org.mortbay.jetty.alpn:jetty-alpn-agent = 2.0.10
 org.mindrot:jbcrypt = 0.3m
 org.rocksdb:rocksdbjni = 6.16.4
@@ -67,6 +66,7 @@ org.wildfly.common:wildfly-common = 1.5.4.Final
 # dependency-upgrader:OFF
 # Blocked on Java 11
 com.github.ben-manes.caffeine:caffeine = 2.9.0
+com.palantir.refreshable:refreshable = 1.2.0
 io.vavr:* = 0.10.3
 
 # Large internal product uses 2.x
