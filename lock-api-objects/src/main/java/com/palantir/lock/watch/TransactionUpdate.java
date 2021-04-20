@@ -35,4 +35,8 @@ public interface TransactionUpdate {
     long commitTs();
 
     LockToken writesToken();
+
+    static ImmutableTransactionUpdate.Builder builder() {
+        return ImmutableTransactionUpdate.builder();
+    }
 }

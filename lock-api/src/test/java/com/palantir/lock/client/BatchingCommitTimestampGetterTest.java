@@ -31,7 +31,6 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -124,7 +123,7 @@ public final class BatchingCommitTimestampGetterTest {
     }
 
     private TransactionUpdate transactionUpdate(BatchingCommitTimestampGetter.Request request, long commitTs) {
-        return ImmutableTransactionUpdate.builder()
+        return TransactionUpdate.builder()
                 .startTs(request.startTs())
                 .commitTs(commitTs)
                 .writesToken(request.commitLocksToken())

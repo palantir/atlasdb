@@ -29,7 +29,6 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -171,7 +170,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
             List<TransactionUpdate> transactionUpdates = Streams.zip(
                             timestamps.stream(),
                             pendingRequestQueue.stream(),
-                            (commitTs, batchElement) -> ImmutableTransactionUpdate.builder()
+                            (commitTs, batchElement) -> TransactionUpdate.builder()
                                     .startTs(batchElement.argument().startTs())
                                     .commitTs(commitTs)
                                     .writesToken(batchElement.argument().commitLocksToken())

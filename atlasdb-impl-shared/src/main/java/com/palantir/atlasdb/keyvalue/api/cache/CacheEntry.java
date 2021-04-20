@@ -45,12 +45,16 @@ public interface CacheEntry {
                 .build();
     }
 
+    default boolean isUnlocked() {
+        return status().isUnlocked();
+    }
+
     enum Status {
         LOCKED,
         UNLOCKED;
 
-        public boolean isUnlocked() {
-            return this == Status.UNLOCKED;
+        boolean isUnlocked() {
+            return this.equals(Status.UNLOCKED);
         }
     }
 }
