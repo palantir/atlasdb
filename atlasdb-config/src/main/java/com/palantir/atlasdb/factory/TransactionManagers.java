@@ -25,6 +25,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
+import com.palantir.async.initializer.CallbackInitializable;
 import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -59,6 +60,7 @@ import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.factory.timelock.LockWatchRegistrator;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -504,12 +506,6 @@ public abstract class TransactionManagers {
                         runtime.map(AtlasDbRuntimeConfig::targetedSweep)),
                 closeables);
 
-        Callback<TransactionManager> callbacks = new Callback.CallChain<>(
-                timelockConsistencyCheckCallback(config(), runtime.get(), lockAndTimestampServices),
-                targetedSweep.singleAttemptCallback(),
-                asyncInitializationCallback(),
-                createClearsTable());
-
         Supplier<TransactionConfig> transactionConfigSupplier =
                 runtime.map(AtlasDbRuntimeConfig::transaction).map(this::withConsolidatedGrabImmutableTsLockFlag);
 
@@ -521,6 +517,18 @@ public abstract class TransactionManagers {
                 .map(LockDiagnosticComponents::clientLockDiagnosticCollector)
                 .<ConflictTracer>map(Function.identity())
                 .orElse(ConflictTracer.NO_OP);
+
+        Optional<LockWatchRegistrator> lockWatchRegistrator =
+                initializeCloseable(LockWatchRegistrator.maybeCreate(schemas()), closeables);
+
+        Callback<TransactionManager> callbacks = new Callback.CallChain<>(
+                timelockConsistencyCheckCallback(config(), runtime.get(), lockAndTimestampServices),
+                targetedSweep.singleAttemptCallback(),
+                asyncInitializationCallback(),
+                createClearsTable(),
+                lockWatchRegistrator
+                        .map(CallbackInitializable::singleAttemptCallback)
+                        .orElse(Callback.noOp()));
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
@@ -567,6 +575,8 @@ public abstract class TransactionManagers {
                         metricsManager, persistentLockService, config().getSweepPersistentLockWaitMillis()),
                 closeables);
         transactionManager.registerClosingCallback(persistentLockManager::close);
+
+        lockWatchRegistrator.ifPresent(registrator -> transactionManager.registerClosingCallback(registrator::close));
 
         initializeCloseable(
                 () -> initializeSweepEndpointAndBackgroundProcess(
