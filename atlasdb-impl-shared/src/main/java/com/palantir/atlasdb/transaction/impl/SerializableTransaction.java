@@ -86,6 +86,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -768,11 +769,22 @@ public class SerializableTransaction extends SnapshotTransaction {
 
             List<Map.Entry<Cell, ByteBuffer>> actualReadList =
                     Streams.stream(readValues).collect(Collectors.toList());
-            List<Map.Entry<Cell, ByteBuffer>> storedValuesWithoutLocalWrites = filterWritesFromCells(
-                    Streams.stream(truncatedStoredValues).collect(Collectors.toList()), request.getTableRef());
+
+            List<Entry<Cell, byte[]>> truncatedValueList =
+                    Streams.stream(truncatedStoredValues).collect(Collectors.toList());
+            List<Map.Entry<Cell, ByteBuffer>> storedValuesWithoutLocalWrites =
+                    filterWritesFromCells(truncatedValueList, request.getTableRef());
+
+            List<Map.Entry<Cell, ByteBuffer>> storedValuesWithLocalWrites = truncatedValueList.stream()
+                    .map(cell -> Maps.immutableEntry(cell.getKey(), ByteBuffer.wrap(cell.getValue())))
+                    .collect(Collectors.toList());
 
             if (!actualReadList.equals(storedValuesWithoutLocalWrites)) {
                 handleTransactionConflict(request.getTableRef());
+            } else {
+                if (!actualReadList.equals(storedValuesWithLocalWrites)) {
+                    log.info("[GSC] | local writes do not cause conflict anymore");
+                }
             }
         });
     }
