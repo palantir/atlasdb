@@ -770,7 +770,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             List<Map.Entry<Cell, ByteBuffer>> actualReadList =
                     Streams.stream(readValues).collect(Collectors.toList());
 
-            List<Entry<Cell, byte[]>> truncatedValueList =
+            List<Map.Entry<Cell, byte[]>> truncatedValueList =
                     Streams.stream(truncatedStoredValues).collect(Collectors.toList());
             List<Map.Entry<Cell, ByteBuffer>> storedValuesWithoutLocalWrites =
                     filterWritesFromCells(truncatedValueList, request.getTableRef());
