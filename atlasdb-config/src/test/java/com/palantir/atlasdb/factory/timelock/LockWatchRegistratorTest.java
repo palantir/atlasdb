@@ -83,8 +83,8 @@ public class LockWatchRegistratorTest {
         Set<Schema> schemas = createSchemas();
         schemas.forEach(schema -> schema.addTableDefinition("no_caching", NO_CACHING_TABLE));
 
-        Iterator<Schema> schemaIterator = schemas.iterator();
         Set<LockWatchReference> expectedReferences = new HashSet<>();
+        Iterator<Schema> schemaIterator = schemas.iterator();
         Schema first = schemaIterator.next();
         first.addTableDefinition("caching", CACHING_TABLE);
         expectedReferences.add(LockWatchReferences.entireTable(getTableName(first, "caching")));
@@ -105,16 +105,16 @@ public class LockWatchRegistratorTest {
         }
     }
 
-    private String getTableName(Schema first, String tableName) {
-        return TableReference.create(first.getNamespace(), tableName).getQualifiedName();
-    }
-
     private static Set<Schema> createSchemas() {
         return IntStream.range(0, 3)
                 .mapToObj(Integer::toString)
                 .map(Namespace::create)
                 .map(Schema::new)
                 .collect(Collectors.toSet());
+    }
+
+    private static String getTableName(Schema first, String tableName) {
+        return TableReference.create(first.getNamespace(), tableName).getQualifiedName();
     }
 
     private boolean verifyExpectedLockWatchesRegistered(Set<LockWatchReference> lockWatchReferences) {

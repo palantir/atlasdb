@@ -528,7 +528,7 @@ public abstract class TransactionManagers {
                 createClearsTable(),
                 lockWatchRegistrator
                         .map(CallbackInitializable::singleAttemptCallback)
-                        .orElse(Callback.noOp()));
+                        .orElseGet(Callback::noOp));
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
