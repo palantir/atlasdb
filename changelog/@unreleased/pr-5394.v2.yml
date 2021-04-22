@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add log line for ease of verification.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5394
