@@ -120,7 +120,7 @@ public class Schema {
         Preconditions.checkArgument(Schemas.isTableNameValid(tableName), "Invalid table name %s", tableName);
         validateTableNameLength(tableName);
         if (definition.enableCaching) {
-            Preconditions.checkArgument(
+            com.palantir.logsafe.Preconditions.checkArgument(
                     definition.conflictHandler == ConflictHandler.SERIALIZABLE_CELL,
                     "Caching can only be enabled with the SERIALIZABLE_CELL conflict handler.");
             lockWatches.add(LockWatchReferences.entireTable(
