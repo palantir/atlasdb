@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class TimedRunner {
-    private static final Logger log = LoggerFactory.getLogger(SafeShutdownRunner.class);
+    private static final Logger log = LoggerFactory.getLogger(TimedRunner.class);
 
     private final ExecutorService executor;
     private final Duration timeoutDuration;
