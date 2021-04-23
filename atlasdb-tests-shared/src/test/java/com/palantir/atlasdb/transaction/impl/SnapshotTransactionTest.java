@@ -32,6 +32,50 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.SortedMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+import java.util.stream.StreamSupport;
+
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.Assertions;
+import org.assertj.core.api.HamcrestCondition;
+import org.hamcrest.Matchers;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.jmock.lib.concurrent.Synchroniser;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.mockito.ArgumentCaptor;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -42,7 +86,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
@@ -66,6 +109,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
@@ -114,50 +158,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampService;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.SortedMap;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.LongStream;
-import java.util.stream.StreamSupport;
-import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.tuple.Pair;
-import org.assertj.core.api.Assertions;
-import org.assertj.core.api.HamcrestCondition;
-import org.hamcrest.Matchers;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.Sequence;
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.jmock.lib.concurrent.Synchroniser;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("checkstyle:all")
 @RunWith(Parameterized.class)
@@ -412,6 +412,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
                         new LegacyTimelockService(timestampService, lock, lockClient),
                         NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
+                        new LockWatchValueCacheImpl(NoOpLockWatchEventCache.create()),
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         () -> transactionTs,
@@ -437,77 +438,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
         mockery.assertIsSatisfied();
-    }
-
-    @Ignore("Was ignored long ago, and now we need to fix the mocking logic.")
-    // This tests that uncommitted values are deleted and cleaned up
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testPutCleanup() throws Exception {
-        byte[] rowName = PtBytes.toBytes("1");
-        Mockery m = new Mockery();
-        final KeyValueService kvMock = m.mock(KeyValueService.class);
-        KeyValueService kv = MultiDelegateProxy.newProxyInstance(KeyValueService.class, keyValueService, kvMock);
-
-        final Cell cell = Cell.create(rowName, rowName);
-        timestampService.getFreshTimestamp();
-        final long startTs = timestampService.getFreshTimestamp();
-        final long transactionTs = timestampService.getFreshTimestamp();
-        keyValueService.put(TABLE, ImmutableMap.of(cell, rowName), startTs);
-
-        final Sequence seq = m.sequence("seq");
-        m.checking(new Expectations() {
-            {
-                oneOf(kvMock).getLatestTimestamps(TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
-                inSequence(seq);
-                oneOf(kvMock).get(with(TransactionConstants.TRANSACTION_TABLE), with(any(Map.class)));
-                inSequence(seq);
-                oneOf(kvMock).putUnlessExists(with(TransactionConstants.TRANSACTION_TABLE), with(any(Map.class)));
-                inSequence(seq);
-                oneOf(kvMock).delete(TABLE, Multimaps.forMap(ImmutableMap.of(cell, startTs)));
-                inSequence(seq);
-                oneOf(kvMock).getLatestTimestamps(TABLE, ImmutableMap.of(cell, startTs));
-                inSequence(seq);
-                oneOf(kvMock).multiPut(with(any(Map.class)), with(transactionTs));
-                inSequence(seq);
-                oneOf(kvMock).putUnlessExists(with(TransactionConstants.TRANSACTION_TABLE), with(any(Map.class)));
-                inSequence(seq);
-            }
-        });
-
-        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        Transaction snapshot = transactionWrapper.apply(
-                new SnapshotTransaction(
-                        metricsManager,
-                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
-                        null,
-                        null,
-                        transactionService,
-                        NoOpCleaner.INSTANCE,
-                        () -> transactionTs,
-                        ConflictDetectionManagers.create(keyValueService),
-                        SweepStrategyManagers.createDefault(keyValueService),
-                        transactionTs,
-                        Optional.empty(),
-                        PreCommitConditions.NO_OP,
-                        AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                        null,
-                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                        false,
-                        timestampCache,
-                        getRangesExecutor,
-                        defaultGetRangesConcurrency,
-                        MultiTableSweepQueueWriter.NO_OP,
-                        MoreExecutors.newDirectExecutorService(),
-                        true,
-                        () -> transactionConfig,
-                        ConflictTracer.NO_OP,
-                        tableLevelMetricsController),
-                pathTypeTracker);
-        snapshot.delete(TABLE, ImmutableSet.of(cell));
-        snapshot.commit();
-
-        m.assertIsSatisfied();
     }
 
     @Test
@@ -1985,6 +1915,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
                         NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
+                        new LockWatchValueCacheImpl(NoOpLockWatchEventCache.create()),
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         startTs,

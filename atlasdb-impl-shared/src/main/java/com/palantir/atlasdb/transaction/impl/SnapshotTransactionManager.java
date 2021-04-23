@@ -15,6 +15,23 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.validation.constraints.NotNull;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.Timer;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -28,6 +45,8 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCache;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -53,25 +72,13 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.SafeShutdownRunner;
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final Logger log = LoggerFactory.getLogger(SnapshotTransactionManager.class);
@@ -84,6 +91,7 @@ import org.slf4j.LoggerFactory;
     final TimelockService timelockService;
     final LockWatchManager lockWatchManager;
     final LockWatchEventCache lockWatchEventCache;
+    final LockWatchValueCache lockWatchValueCache;
     final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
@@ -130,6 +138,8 @@ import org.slf4j.LoggerFactory;
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         this.lockWatchEventCache = lockWatchEventCache;
+        // todo(gmaretic): this actually needs to be wired into things in TMs.create()
+        this.lockWatchValueCache = new LockWatchValueCacheImpl(lockWatchEventCache);
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -184,6 +194,10 @@ import org.slf4j.LoggerFactory;
                 timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
         Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
         try {
+            lockWatchValueCache.processStartTransactions(responses.stream()
+                    .map(StartIdentifiedAtlasDbTransactionResponse::startTimestampAndPartition)
+                    .map(TimestampAndPartition::timestamp)
+                    .collect(Collectors.toSet()));
             long immutableTs = responses.stream()
                     .mapToLong(response -> response.immutableTimestamp().getImmutableTimestamp())
                     .max()
@@ -279,6 +293,7 @@ import org.slf4j.LoggerFactory;
                 keyValueService,
                 timelockService,
                 lockWatchManager,
+                lockWatchValueCache,
                 transactionService,
                 cleaner,
                 startTimestampSupplier,
@@ -321,6 +336,9 @@ import org.slf4j.LoggerFactory;
                 keyValueService,
                 timelockService,
                 lockWatchManager,
+                // todo(gmaretic): this is not ideal, but I do not see how we can use caching when we do not talk to
+                // timelock
+                new LockWatchValueCacheImpl(NoOpLockWatchEventCache.create()),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 getStartTimestampSupplier(),
