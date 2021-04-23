@@ -59,8 +59,7 @@ public final class TimedRunner {
             failure = e;
         }
 
-        SafeRuntimeException exception = new SafeRuntimeException();
-        exception.addSuppressed(failure);
+        SafeRuntimeException exception = new SafeRuntimeException(failure);
         try {
             taskContext.taskFailureHandler().run();
         } catch (Throwable t) {

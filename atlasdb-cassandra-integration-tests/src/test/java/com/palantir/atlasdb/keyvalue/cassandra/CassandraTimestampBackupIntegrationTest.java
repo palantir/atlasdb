@@ -109,13 +109,13 @@ public class CassandraTimestampBackupIntegrationTest {
     @Test
     public void backupThrowsIfBothBoundsReadable() {
         setupTwoReadableBoundsInKv();
-        assertThatThrownBy(backupRunner::backupExistingTimestamp).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(backupRunner::backupExistingTimestamp).hasCauseInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void restoreThrowsIfBothBoundsReadable() {
         setupTwoReadableBoundsInKv();
-        assertThatThrownBy(backupRunner::restoreFromBackup).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(backupRunner::restoreFromBackup).hasCauseInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -195,13 +195,13 @@ public class CassandraTimestampBackupIntegrationTest {
     @Test
     public void backupThrowsIfTimestampTableDoesNotExist() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-        assertThatThrownBy(backupRunner::backupExistingTimestamp).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(backupRunner::backupExistingTimestamp).hasCauseInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void restoreThrowsIfTimestampTableDoesNotExist() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-        assertThatThrownBy(backupRunner::restoreFromBackup).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(backupRunner::restoreFromBackup).hasCauseInstanceOf(IllegalStateException.class);
     }
 
     private void assertBoundEquals(long timestampBound) {
@@ -209,7 +209,7 @@ public class CassandraTimestampBackupIntegrationTest {
     }
 
     private void assertBoundNotReadable() {
-        assertThatThrownBy(timestampBoundStore::getUpperLimit).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(timestampBoundStore::getUpperLimit).hasCauseInstanceOf(IllegalStateException.class);
     }
 
     private void setupTwoReadableBoundsInKv() {

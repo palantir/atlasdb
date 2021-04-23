@@ -63,7 +63,7 @@ public final class TimedRunnerTest {
 
         assertThatThrownBy(() -> runner.run(TaskContext.createRunnable(throwingRunnable, failureHandler)))
                 .isInstanceOf(SafeRuntimeException.class)
-                .hasSuppressedException(EXCEPTION_1);
+                .hasCause(EXCEPTION_1);
         verify(failureHandler).run();
     }
 
@@ -75,7 +75,7 @@ public final class TimedRunnerTest {
 
         assertThatThrownBy(() -> runner.run(TaskContext.createRunnable(throwingRunnable, failureHandler)))
                 .isInstanceOf(SafeRuntimeException.class)
-                .hasSuppressedException(EXCEPTION_1)
+                .hasCause(EXCEPTION_1)
                 .hasSuppressedException(EXCEPTION_2);
         verify(failureHandler).run();
     }
