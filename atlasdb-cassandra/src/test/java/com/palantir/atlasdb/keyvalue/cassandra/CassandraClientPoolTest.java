@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -450,6 +451,7 @@ public class CassandraClientPoolTest {
                         .addAllThriftHosts(servers)
                         .build());
         when(config.timeoutOnConnectionClose()).thenReturn(Duration.ofSeconds(10));
+        when(config.timeoutOnConnectionBorrow()).thenReturn(HumanReadableDuration.minutes(10));
 
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
