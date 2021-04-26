@@ -4,8 +4,6 @@ buildscript {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        maven { url 'https://palantir.bintray.com/releases' }
-        jcenter()
     }
 
     dependencies {
@@ -62,8 +60,6 @@ task printLastVersion {
 allprojects {
     repositories {
         mavenCentral()
-        maven { url 'https://palantir.bintray.com/releases' }
-        jcenter()
     }
 
     apply plugin: 'java-library'

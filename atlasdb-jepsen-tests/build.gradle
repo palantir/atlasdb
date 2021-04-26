@@ -4,8 +4,6 @@ buildscript {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        maven { url 'https://palantir.bintray.com/releases' }
-        jcenter()
     }
     dependencies {
         classpath 'com.avast.gradle:docker-compose-gradle-plugin:0.3.5'

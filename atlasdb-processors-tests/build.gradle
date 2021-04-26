@@ -1,11 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-repositories {
-    mavenCentral()
-    maven { url 'https://palantir.bintray.com/releases' }
-    jcenter()
-}
-
 dependencies {
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")

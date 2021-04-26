@@ -1,11 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-repositories {
-    mavenCentral()
-    maven { url 'https://palantir.bintray.com/releases' }
-    jcenter()
-}
-
 libsDirName = file('build/artifacts')
 
 // Do not add dependencies to this project. This project is used by
