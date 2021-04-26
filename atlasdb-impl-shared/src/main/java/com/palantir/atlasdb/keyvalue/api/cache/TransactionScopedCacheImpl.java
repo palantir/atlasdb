@@ -51,8 +51,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
             TableReference tableReference,
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        ListenableFuture<Map<Cell, byte[]>> internal = getInternal(tableReference, cells, valueLoader);
-        return AtlasFutures.getUnchecked(internal);
+        return AtlasFutures.getUnchecked(getInternal(tableReference, cells, valueLoader));
     }
 
     private synchronized ListenableFuture<Map<Cell, byte[]>> getInternal(
