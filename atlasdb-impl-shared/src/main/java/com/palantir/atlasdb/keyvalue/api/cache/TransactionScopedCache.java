@@ -43,6 +43,11 @@ import java.util.function.BiFunction;
 public interface TransactionScopedCache {
     void write(TableReference tableReference, Cell cell, CacheValue value);
 
+    /**
+     * This should be used for performing *synchronous* gets. The reason the value loader function returns a listenable
+     * future is to optimise parallel requests to the cache: only the code that directly affects the state of the
+     * cache is synchronised, while loads from the database are done outside synchronised blocks.
+     */
     Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cell,
