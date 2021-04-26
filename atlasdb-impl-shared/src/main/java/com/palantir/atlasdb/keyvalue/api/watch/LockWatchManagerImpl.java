@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
@@ -31,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +40,7 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
 
     private static final Logger log = LoggerFactory.getLogger(LockWatchManagerImpl.class);
 
+    private final Set<LockWatchReferences.LockWatchReference> referencesFromSchema;
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = ConcurrentHashMap.newKeySet();
     private final LockWatchEventCache lockWatchEventCache;
     private final NamespacedConjureLockWatchingService lockWatchingService;
@@ -45,9 +48,16 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
     private final ScheduledFuture<?> refreshTask;
 
     public LockWatchManagerImpl(
-            LockWatchEventCache lockWatchEventCache, NamespacedConjureLockWatchingService lockWatchingService) {
+            Set<Schema> schemas,
+            LockWatchEventCache lockWatchEventCache,
+            NamespacedConjureLockWatchingService lockWatchingService) {
+        this.referencesFromSchema = schemas.stream()
+                .map(Schema::getLockWatches)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
         this.lockWatchEventCache = lockWatchEventCache;
         this.lockWatchingService = lockWatchingService;
+        lockWatchReferences.addAll(referencesFromSchema);
         refreshTask = executorService.scheduleWithFixedDelay(this::registerWatchesWithTimelock, 0, 5, TimeUnit.SECONDS);
     }
 
@@ -71,6 +81,7 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
     @Override
     public void registerPreciselyWatches(Set<LockWatchReferences.LockWatchReference> newLockWatches) {
         lockWatchReferences.clear();
+        lockWatchReferences.addAll(referencesFromSchema);
         lockWatchReferences.addAll(newLockWatches);
         registerWatchesWithTimelock();
     }

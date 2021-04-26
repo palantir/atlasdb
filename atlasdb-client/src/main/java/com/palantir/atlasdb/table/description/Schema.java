@@ -39,12 +39,15 @@ import com.palantir.atlasdb.table.description.render.TableFactoryRenderer;
 import com.palantir.atlasdb.table.description.render.TableRenderer;
 import com.palantir.atlasdb.table.description.render.TableRendererV2;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,6 +80,7 @@ public class Schema {
     private final Map<String, TableDefinition> tableDefinitions = new HashMap<>();
     private final Map<String, IndexDefinition> indexDefinitions = new HashMap<>();
     private final List<StreamStoreRenderer> streamStoreRenderers = new ArrayList<>();
+    private final Set<LockWatchReference> lockWatches = new HashSet<>();
 
     // N.B., the following is a list multimap because we want to preserve order
     // for code generation purposes.
@@ -115,6 +119,13 @@ public class Schema {
                 tableName);
         Preconditions.checkArgument(Schemas.isTableNameValid(tableName), "Invalid table name %s", tableName);
         validateTableNameLength(tableName);
+        if (definition.enableCaching) {
+            com.palantir.logsafe.Preconditions.checkArgument(
+                    definition.conflictHandler == ConflictHandler.SERIALIZABLE_CELL,
+                    "Caching can only be enabled with the SERIALIZABLE_CELL conflict handler.");
+            lockWatches.add(LockWatchReferences.entireTable(
+                    TableReference.create(namespace, tableName).getQualifiedName()));
+        }
         tableDefinitions.put(tableName, definition);
     }
 
@@ -290,6 +301,10 @@ public class Schema {
     public Map<TableReference, TableDefinition> getTableDefinitions() {
         return tableDefinitions.entrySet().stream()
                 .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Map.Entry::getValue));
+    }
+
+    public Set<LockWatchReference> getLockWatches() {
+        return lockWatches;
     }
 
     public Map<TableReference, IndexDefinition> getIndexDefinitions() {

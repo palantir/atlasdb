@@ -24,6 +24,9 @@ import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -195,6 +198,58 @@ public class SchemaTest {
         });
 
         schema.validate();
+    }
+
+    @Test
+    public void cannotAddTableDefinitionWithCachingAndIncompatibleConflictDetection() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+        TableDefinition tableDef = new TableDefinition() {
+            {
+                rowName();
+                rowComponent("key", ValueType.BLOB);
+                noColumns();
+                enableCaching();
+            }
+        };
+        assertThatThrownBy(() -> schema.addTableDefinition(TEST_TABLE_NAME, tableDef))
+                .as("Jolyon loves this stuff")
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessage("Caching can only be enabled with the SERIALIZABLE_CELL conflict handler.");
+    }
+
+    @Test
+    public void canAddTableDefinitionWithCaching() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
+        TableDefinition tableDef = new TableDefinition() {
+            {
+                rowName();
+                rowComponent("key", ValueType.BLOB);
+                noColumns();
+                enableCaching();
+                conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
+            }
+        };
+        schema.addTableDefinition(TEST_TABLE_NAME, tableDef);
+
+        TableReference expected = TableReference.create(Namespace.DEFAULT_NAMESPACE, TEST_TABLE_NAME);
+        assertThat(schema.getLockWatches())
+                .containsExactly(LockWatchReferences.entireTable(expected.getQualifiedName()));
+    }
+
+    @Test
+    public void noCachingByDefault() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
+        TableDefinition tableDef = new TableDefinition() {
+            {
+                rowName();
+                rowComponent("key", ValueType.BLOB);
+                noColumns();
+                conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
+            }
+        };
+        schema.addTableDefinition(TEST_TABLE_NAME, tableDef);
+
+        assertThat(schema.getLockWatches()).isEmpty();
     }
 
     private void checkIfFilesAreTheSame(List<String> generatedTestTables) {

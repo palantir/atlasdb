@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -48,11 +49,18 @@ public final class LockWatchManagerImplTest {
     @Mock
     private LockWatchReference lockWatchReference2;
 
+    @Mock
+    private LockWatchReference fromSchema;
+
+    @Mock
+    private Schema schema;
+
     private LockWatchManager manager;
 
     @Before
     public void before() {
-        manager = new LockWatchManagerImpl(lockWatchEventCache, lockWatchingService);
+        when(schema.getLockWatches()).thenReturn(ImmutableSet.of(fromSchema));
+        manager = new LockWatchManagerImpl(ImmutableSet.of(schema), lockWatchEventCache, lockWatchingService);
     }
 
     @Test
@@ -68,12 +76,14 @@ public final class LockWatchManagerImplTest {
         // at least once as a background task also sends a startWatching request periodically, and this can race in the
         // test.
         verify(lockWatchingService, atLeastOnce())
-                .startWatching(
-                        LockWatchRequest.builder().references(firstReferences).build());
+                .startWatching(LockWatchRequest.builder()
+                        .references(fromSchema)
+                        .addAllReferences(firstReferences)
+                        .build());
         manager.registerPreciselyWatches(ImmutableSet.of(lockWatchReference1));
         verify(lockWatchingService, atLeastOnce())
                 .startWatching(LockWatchRequest.builder()
-                        .references(lockWatchReference1)
+                        .references(ImmutableSet.of(fromSchema, lockWatchReference1))
                         .build());
     }
 }
