@@ -4,6 +4,7 @@ buildscript {
     repositories {
         gradlePluginPortal()
         mavenCentral()
+        jcenter()
     }
     dependencies {
         classpath 'com.avast.gradle:docker-compose-gradle-plugin:0.3.5'
