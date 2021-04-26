@@ -32,13 +32,13 @@ import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.stream.Stream;
 
-public final class ValueStoreImpl implements ValueStore {
+final class ValueStoreImpl implements ValueStore {
     // TODO(jshah): implement cache eviction based on cache size
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
 
-    public ValueStoreImpl() {
+    ValueStoreImpl() {
         values = StructureHolder.create(HashMap::empty);
         watchedTables = StructureHolder.create(HashSet::empty);
     }
