@@ -131,7 +131,7 @@ public final class TransactionScopedCacheImplTest {
                     }));
 
             awaitLatch(latch);
-            // This not only confirms that the read is still going, but this is also a synchronised method, so it
+            // This not only confirms that the read has not finished, but this is also a synchronised method, so it
             // confirms that the cache is not currently locked
             assertThat(cache.getValueDigest().loadedValues()).isEmpty();
 

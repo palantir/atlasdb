@@ -204,6 +204,7 @@ public final class LockWatchValueCacheImplTest {
                 .containsExactlyInAnyOrder(CELL_1, CELL_2, CELL_3);
 
         assertThat(scopedCache.getValueDigest().loadedValues()).isEmpty();
+        assertThat(scopedCache.getHitDigest().hitCells()).isEmpty();
     }
 
     private void processCommitTimestamp(long startTimestamp, long sequence) {
