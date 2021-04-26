@@ -22,6 +22,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -223,13 +225,13 @@ public final class LockWatchValueCacheImplTest {
         return remoteReads;
     }
 
-    private static Map<Cell, byte[]> remoteRead(Set<Cell> cells) {
-        return KeyedStream.of(cells)
+    private static ListenableFuture<Map<Cell, byte[]>> remoteRead(Set<Cell> cells) {
+        return Futures.immediateFuture(KeyedStream.of(cells)
                 .map(VALUES::get)
                 .map(Optional::ofNullable)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collectToMap();
+                .collectToMap());
     }
 
     private static LockWatchEvent createWatchEvent() {

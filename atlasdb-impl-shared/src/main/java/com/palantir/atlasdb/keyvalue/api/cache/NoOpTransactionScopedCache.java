@@ -18,6 +18,8 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
@@ -37,8 +39,8 @@ final class NoOpTransactionScopedCache implements TransactionScopedCache {
     public Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cell,
-            BiFunction<TableReference, Set<Cell>, Map<Cell, byte[]>> valueLoader) {
-        return valueLoader.apply(tableReference, cell);
+            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        return AtlasFutures.getUnchecked(valueLoader.apply(tableReference, cell));
     }
 
     @Override

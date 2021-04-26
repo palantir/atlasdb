@@ -18,6 +18,10 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.streams.KeyedStream;
@@ -37,20 +41,24 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         return new TransactionScopedCacheImpl(snapshot);
     }
 
-    // TODO(jshah): figure out how we can improve perf given that this is now synchronised (although maybe its fine
-    //  because this operation is fast?) If not, we could autobatch.
     @Override
     public synchronized void write(TableReference tableReference, Cell cell, CacheValue value) {
         valueStore.cacheRemoteWrite(tableReference, cell, value);
     }
 
-    // TODO(jshah): as above. Equally, we should probably use the async value loader, then have it get afterwards,
-    //  thus reducing the time spent in this method.
     @Override
-    public synchronized Map<Cell, byte[]> get(
+    public Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cells,
-            BiFunction<TableReference, Set<Cell>, Map<Cell, byte[]>> valueLoader) {
+            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        ListenableFuture<Map<Cell, byte[]>> internal = getInternal(tableReference, cells, valueLoader);
+        return AtlasFutures.getUnchecked(internal);
+    }
+
+    private synchronized ListenableFuture<Map<Cell, byte[]>> getInternal(
+            TableReference tableReference,
+            Set<Cell> cells,
+            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         // Short-cut all the logic below if the table is not watched.
         if (!valueStore.isWatched(tableReference)) {
             return valueLoader.apply(tableReference, cells);
@@ -58,10 +66,20 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
 
         CacheLookupResult cacheLookup = cacheLookup(tableReference, cells);
 
-        Map<Cell, byte[]> remoteReadValues =
-                getAndCacheRemoteReads(tableReference, cacheLookup.missedCells(), valueLoader);
-        cacheEmptyReads(tableReference, cacheLookup.missedCells(), remoteReadValues);
+        if (cacheLookup.missedCells().isEmpty()) {
+            return Futures.immediateFuture(filterEmptyValues(cacheLookup.cacheHits()));
+        } else {
+            return Futures.transform(
+                    valueLoader.apply(tableReference, cacheLookup.missedCells()),
+                    remoteReadValues -> processRemoteRead(tableReference, cacheLookup, remoteReadValues),
+                    MoreExecutors.directExecutor());
+        }
+    }
 
+    private synchronized Map<Cell, byte[]> processRemoteRead(
+            TableReference tableReference, CacheLookupResult cacheLookup, Map<Cell, byte[]> remoteReadValues) {
+        valueStore.cacheRemoteReads(tableReference, remoteReadValues);
+        cacheEmptyReads(tableReference, cacheLookup.missedCells(), remoteReadValues);
         return ImmutableMap.<Cell, byte[]>builder()
                 .putAll(remoteReadValues)
                 .putAll(filterEmptyValues(cacheLookup.cacheHits()))
@@ -89,15 +107,6 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         // The get method does not return an entry if a value is absent; we want to cache this fact
         Set<Cell> emptyCells = Sets.difference(uncachedCells, remoteReadValues.keySet());
         valueStore.cacheEmptyReads(tableReference, emptyCells);
-    }
-
-    private Map<Cell, byte[]> getAndCacheRemoteReads(
-            TableReference tableReference,
-            Set<Cell> uncachedCells,
-            BiFunction<TableReference, Set<Cell>, Map<Cell, byte[]>> valueLoader) {
-        Map<Cell, byte[]> remoteReadValues = valueLoader.apply(tableReference, uncachedCells);
-        valueStore.cacheRemoteReads(tableReference, remoteReadValues);
-        return remoteReadValues;
     }
 
     private static Map<Cell, byte[]> filterEmptyValues(Map<Cell, CacheValue> snapshotCachedValues) {

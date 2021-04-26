@@ -17,9 +17,15 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -29,6 +35,11 @@ import io.vavr.collection.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
@@ -93,6 +104,59 @@ public final class TransactionScopedCacheImplTest {
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_2), VALUE_2));
     }
 
+    @Test
+    public void allValuesReadFromCachePreventsReadToDb() {
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+
+        BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader = mock(BiFunction.class);
+        assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1), valueLoader))
+                .containsExactlyInAnyOrderEntriesOf(
+                        ImmutableMap.of(CELL_1, VALUE_1.value().get()));
+        verifyNoInteractions(valueLoader);
+    }
+
+    @Test
+    public void loadFromDbDoesNotBlockCache() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        try {
+            TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+            SettableFuture<Map<Cell, byte[]>> remoteReads = SettableFuture.create();
+            CountDownLatch latch = new CountDownLatch(1);
+
+            Future<Map<Cell, byte[]>> slowRead =
+                    executor.submit(() -> cache.get(TABLE, ImmutableSet.of(CELL_2), (_table, _cells) -> {
+                        latch.countDown();
+                        return remoteReads;
+                    }));
+
+            awaitLatch(latch);
+            // This not only confirms that the read is still going, but this is also a synchronised method, so it
+            // confirms that the cache is not currently locked
+            assertThat(cache.getValueDigest().loadedValues()).isEmpty();
+
+            remoteReads.setFuture(remoteRead(ImmutableSet.of(CELL_2)));
+            Map<Cell, byte[]> reads = AtlasFutures.getUnchecked(slowRead);
+
+            assertThat(reads)
+                    .containsExactlyInAnyOrderEntriesOf(
+                            ImmutableMap.of(CELL_2, VALUE_2.value().get()));
+            assertThat(cache.getValueDigest().loadedValues())
+                    .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_2), VALUE_2));
+        } finally {
+            executor.shutdown();
+        }
+    }
+
+    private static void awaitLatch(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+    }
+
     private static Set<Cell> getRemotelyReadCells(TransactionScopedCache cache, TableReference table, Cell... cells) {
         Set<Cell> remoteReads = new java.util.HashSet<>();
         cache.get(table, Stream.of(cells).collect(Collectors.toSet()), (_unused, cellsToRead) -> {
@@ -102,13 +166,13 @@ public final class TransactionScopedCacheImplTest {
         return remoteReads;
     }
 
-    private static Map<Cell, byte[]> remoteRead(Set<Cell> cells) {
-        return KeyedStream.of(cells)
+    private static ListenableFuture<Map<Cell, byte[]>> remoteRead(Set<Cell> cells) {
+        return Futures.immediateFuture(KeyedStream.of(cells)
                 .map(VALUES::get)
                 .map(Optional::ofNullable)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collectToMap();
+                .collectToMap());
     }
 
     private static ValueCacheSnapshot snapshotWithSingleValue() {
