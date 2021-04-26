@@ -16,16 +16,8 @@
 
 package com.palantir.atlasdb.lock;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.immutables.value.Value;
-
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -41,8 +33,13 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+import org.immutables.value.Value;
 
 public final class SimpleEteLockWatchResource implements EteLockWatchResource {
     public static final Namespace NAMESPACE = Namespace.create("lock");
@@ -51,16 +48,13 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
 
     private final TransactionManager transactionManager;
     private final ExposedLockWatchManager lockWatchManager;
-    private final Set<LockWatchReference> lockWatchReferences;
     private final Map<TransactionId, TransactionAndCondition> activeTransactions = new ConcurrentHashMap<>();
 
     private String table = "watch";
     private TableReference lockWatchTable = TableReference.create(NAMESPACE, table);
 
-    public SimpleEteLockWatchResource(
-            TransactionManager transactionManager, Set<LockWatchReference> existingLockWatches) {
+    public SimpleEteLockWatchResource(TransactionManager transactionManager) {
         this.transactionManager = transactionManager;
-        this.lockWatchReferences = new HashSet<>(existingLockWatches);
         createTable();
         this.lockWatchManager = new ExposedLockWatchManager(transactionManager.getLockWatchManager());
     }
@@ -107,8 +101,10 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
     private void createTable() {
         KeyValueService keyValueService = transactionManager.getKeyValueService();
         keyValueService.createTable(lockWatchTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        lockWatchReferences.add(LockWatchReferences.entireTable(lockWatchTable.getQualifiedName()));
-        transactionManager.getLockWatchManager().registerPreciselyWatches(lockWatchReferences);
+        transactionManager
+                .getLockWatchManager()
+                .registerPreciselyWatches(
+                        ImmutableSet.of(LockWatchReferences.entireTable(lockWatchTable.getQualifiedName()))););
     }
 
     private Map<Cell, byte[]> getValueMap(Set<String> rows) {
