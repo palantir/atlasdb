@@ -29,7 +29,7 @@ import org.immutables.value.Value;
 final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
 
-    TransactionScopedCacheImpl(ValueCacheSnapshot snapshot) {
+    private TransactionScopedCacheImpl(ValueCacheSnapshot snapshot) {
         valueStore = new TransactionCacheValueStoreImpl(snapshot);
     }
 
@@ -70,7 +70,12 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
 
     @Override
     public synchronized ValueDigest getValueDigest() {
-        return ValueDigest.of(valueStore.getTransactionDigest());
+        return ValueDigest.of(valueStore.getValueDigest());
+    }
+
+    @Override
+    public synchronized HitDigest getHitDigest() {
+        return HitDigest.of(valueStore.getHitDigest());
     }
 
     private CacheLookupResult cacheLookup(TableReference table, Set<Cell> cells) {

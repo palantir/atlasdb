@@ -145,6 +145,7 @@ public final class LockWatchValueCacheImplTest {
         assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1, CELL_3);
         processCommitTimestamp(TIMESTAMP_1, 0L);
         valueCache.updateCacheOnCommit(scopedCache1.getValueDigest(), TIMESTAMP_1);
+        assertThat(scopedCache1.getHitDigest().hitCells()).isEmpty();
 
         eventCache.processStartTransactionsUpdate(
                 ImmutableSet.of(TIMESTAMP_2), LockWatchStateUpdate.success(LEADER, 1L, ImmutableList.of(LOCK_EVENT)));
@@ -157,6 +158,7 @@ public final class LockWatchValueCacheImplTest {
                 .containsExactlyInAnyOrder(CELL_1);
         processCommitTimestamp(TIMESTAMP_2, 1L);
         valueCache.updateCacheOnCommit(scopedCache2.getValueDigest(), TIMESTAMP_2);
+        assertThat(scopedCache2.getHitDigest().hitCells()).containsExactly(CellReference.of(TABLE, CELL_3));
 
         eventCache.processStartTransactionsUpdate(
                 ImmutableSet.of(TIMESTAMP_3), LockWatchStateUpdate.success(LEADER, 2L, ImmutableList.of(UNLOCK_EVENT)));
@@ -169,6 +171,8 @@ public final class LockWatchValueCacheImplTest {
                 .isEmpty();
         assertThat(scopedCache3.getValueDigest().loadedValues())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_1), VALUE_1));
+        assertThat(scopedCache3.getHitDigest().hitCells())
+                .containsExactly(CellReference.of(TABLE, CELL_2), CellReference.of(TABLE, CELL_3));
     }
 
     @Test

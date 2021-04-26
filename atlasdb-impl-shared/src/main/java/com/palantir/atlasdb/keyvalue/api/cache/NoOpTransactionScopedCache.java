@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
@@ -43,5 +44,10 @@ final class NoOpTransactionScopedCache implements TransactionScopedCache {
     @Override
     public ValueDigest getValueDigest() {
         return ValueDigest.of(ImmutableMap.of());
+    }
+
+    @Override
+    public HitDigest getHitDigest() {
+        return HitDigest.of(ImmutableSet.of());
     }
 }

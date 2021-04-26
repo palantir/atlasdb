@@ -57,7 +57,7 @@ public final class TransactionScopedCacheImplTest {
 
     @Test
     public void getReadsCachedValuesBeforeReadingFromDb() {
-        TransactionScopedCache cache = new TransactionScopedCacheImpl(snapshotWithSingleValue());
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
 
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_2);
         cache.write(TABLE, CELL_3, VALUE_3);
@@ -68,7 +68,7 @@ public final class TransactionScopedCacheImplTest {
 
     @Test
     public void emptyValuesAreCachedButFilteredOutOfResults() {
-        TransactionScopedCache cache = new TransactionScopedCacheImpl(snapshotWithSingleValue());
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
 
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_6);
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_6)).isEmpty();
@@ -78,11 +78,12 @@ public final class TransactionScopedCacheImplTest {
                         ImmutableMap.of(CELL_1, VALUE_1.value().get()));
         assertThat(cache.getValueDigest().loadedValues())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_6), VALUE_EMPTY));
+        assertThat(cache.getHitDigest().hitCells()).containsExactly(CellReference.of(TABLE, CELL_1));
     }
 
     @Test
     public void lockedCellsAreNeverCached() {
-        TransactionScopedCache cache = new TransactionScopedCacheImpl(ValueCacheSnapshotImpl.of(
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(ValueCacheSnapshotImpl.of(
                 HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked()), HashSet.of(TABLE)));
 
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);

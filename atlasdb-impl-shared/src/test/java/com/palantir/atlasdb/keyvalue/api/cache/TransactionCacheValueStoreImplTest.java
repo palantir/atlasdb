@@ -112,7 +112,7 @@ public final class TransactionCacheValueStoreImplTest {
 
     private static void assertDigestContainsEntries(
             TransactionCacheValueStore valueStore, Map<CellReference, CacheValue> expectedValues) {
-        assertThat(valueStore.getTransactionDigest()).containsExactlyInAnyOrderEntriesOf(expectedValues);
+        assertThat(valueStore.getValueDigest()).containsExactlyInAnyOrderEntriesOf(expectedValues);
     }
 
     private static CacheValue createValue(int value) {
