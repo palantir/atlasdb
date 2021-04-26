@@ -4,7 +4,6 @@ apply from: "../gradle/shared.gradle"
 
 repositories {
     mavenCentral()
-    maven { url 'https://palantir.bintray.com/releases' }
     jcenter()
 }
 
