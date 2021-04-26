@@ -104,7 +104,7 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
         transactionManager
                 .getLockWatchManager()
                 .registerPreciselyWatches(
-                        ImmutableSet.of(LockWatchReferences.entireTable(lockWatchTable.getQualifiedName()))););
+                        ImmutableSet.of(LockWatchReferences.entireTable(lockWatchTable.getQualifiedName())));
     }
 
     private Map<Cell, byte[]> getValueMap(Set<String> rows) {
