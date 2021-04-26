@@ -47,8 +47,7 @@ public interface TransactionScopedCache {
             Set<Cell> cell,
             BiFunction<TableReference, Set<Cell>, Map<Cell, byte[]>> valueLoader);
 
-    TransactionDigest getDigest();
+    ValueDigest getValueDigest();
 
-    // TODO(jshah): we need some form of digest that instead lists the hit values for the sake of serialisable
-    //  transactions.
+    HitDigest getHitDigest();
 }

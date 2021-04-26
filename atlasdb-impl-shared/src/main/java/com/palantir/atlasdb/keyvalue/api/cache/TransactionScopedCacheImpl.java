@@ -26,11 +26,15 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import org.immutables.value.Value;
 
-public final class TransactionScopedCacheImpl implements TransactionScopedCache {
+final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
 
-    public TransactionScopedCacheImpl(ValueCacheSnapshot snapshot) {
+    TransactionScopedCacheImpl(ValueCacheSnapshot snapshot) {
         valueStore = new TransactionCacheValueStoreImpl(snapshot);
+    }
+
+    static TransactionScopedCache create(ValueCacheSnapshot snapshot) {
+        return new TransactionScopedCacheImpl(snapshot);
     }
 
     // TODO(jshah): figure out how we can improve perf given that this is now synchronised (although maybe its fine
@@ -65,8 +69,8 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
     }
 
     @Override
-    public synchronized TransactionDigest getDigest() {
-        return TransactionDigest.of(valueStore.getTransactionDigest());
+    public synchronized ValueDigest getValueDigest() {
+        return ValueDigest.of(valueStore.getTransactionDigest());
     }
 
     private CacheLookupResult cacheLookup(TableReference table, Set<Cell> cells) {
