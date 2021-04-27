@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
-public final class InstrumentedTimelockService implements TimelockService {
+public final class InstrumentedTimelockService<T> implements TimelockService<T> {
     private static final MetricName SUCCESSFUL_REQUEST_METRIC_NAME = MetricName.builder()
             .safeName(AtlasDbMetricNames.TIMELOCK_SUCCESSFUL_REQUEST)
             .build();
@@ -40,21 +40,21 @@ public final class InstrumentedTimelockService implements TimelockService {
             .safeName(AtlasDbMetricNames.TIMELOCK_FAILED_REQUEST)
             .build();
 
-    private final TimelockService timelockService;
+    private final TimelockService<T> timelockService;
     private final Meter success;
     private final Meter fail;
 
-    private InstrumentedTimelockService(TimelockService timelockService, MetricsManager metricsManager) {
+    private InstrumentedTimelockService(TimelockService<T> timelockService, MetricsManager metricsManager) {
         this.timelockService = timelockService;
         this.success = metricsManager.getTaggedRegistry().meter(SUCCESSFUL_REQUEST_METRIC_NAME);
         this.fail = metricsManager.getTaggedRegistry().meter(FAILED_REQUEST_METRIC_NAME);
     }
 
-    public static TimelockService create(TimelockService timelockService, MetricsManager metricsManager) {
+    public static <T> TimelockService<T> create(TimelockService<T> timelockService, MetricsManager metricsManager) {
         // The instrumentation here is used primarily for the health check, not for external viewing.
         metricsManager.doNotPublish(SUCCESSFUL_REQUEST_METRIC_NAME);
         metricsManager.doNotPublish(FAILED_REQUEST_METRIC_NAME);
-        return new InstrumentedTimelockService(timelockService, metricsManager);
+        return new InstrumentedTimelockService<>(timelockService, metricsManager);
     }
 
     @Override
@@ -68,8 +68,9 @@ public final class InstrumentedTimelockService implements TimelockService {
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return executeWithRecord(() -> timelockService.getCommitTimestamp(startTs, commitLocksToken));
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken, T transactionDigest) {
+        return executeWithRecord(
+                () -> timelockService.getCommitTimestamp(startTs, commitLocksToken, transactionDigest));
     }
 
     @Override

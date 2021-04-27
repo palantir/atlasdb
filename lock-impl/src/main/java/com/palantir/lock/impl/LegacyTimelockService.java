@@ -48,7 +48,7 @@ import java.util.stream.IntStream;
 /**
  * A {@link TimelockService} implementation that delegates to a {@link LockService} and {@link TimestampService}.
  */
-public class LegacyTimelockService implements TimelockService {
+public class LegacyTimelockService implements TimelockService<Object> {
 
     private final TimestampService timestampService;
     private final LockService lockService;
@@ -72,7 +72,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken, Object ignore) {
         return getFreshTimestamp();
     }
 

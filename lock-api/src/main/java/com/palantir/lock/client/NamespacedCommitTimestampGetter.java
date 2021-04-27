@@ -17,26 +17,33 @@
 package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.lock.cache.AbstractLockWatchValueCache;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchEventCache;
 
-public class NamespacedCommitTimestampGetter implements CommitTimestampGetter {
+public class NamespacedCommitTimestampGetter<T> implements CommitTimestampGetter<T> {
     private final Namespace namespace;
-    private final LockWatchEventCache cache;
-    private final ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher;
+    private final LockWatchEventCache eventCache;
+    private final AbstractLockWatchValueCache<T, ?> lockWatchValueCache;
+    private final ReferenceTrackingWrapper<MultiClientCommitTimestampGetter<T>> referenceTrackingBatcher;
 
     public NamespacedCommitTimestampGetter(
             LockWatchEventCache cache,
             Namespace namespace,
-            ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher) {
+            AbstractLockWatchValueCache<T, ?> lockWatchValueCache,
+            ReferenceTrackingWrapper<MultiClientCommitTimestampGetter<T>> referenceTrackingBatcher) {
         this.namespace = namespace;
-        this.cache = cache;
+        this.eventCache = cache;
+        this.lockWatchValueCache = lockWatchValueCache;
         this.referenceTrackingBatcher = referenceTrackingBatcher;
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return referenceTrackingBatcher.getDelegate().getCommitTimestamp(namespace, startTs, commitLocksToken, cache);
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken, T transactionDigest) {
+        return referenceTrackingBatcher
+                .getDelegate()
+                .getCommitTimestamp(
+                        namespace, startTs, commitLocksToken, transactionDigest, eventCache, lockWatchValueCache);
     }
 
     @Override

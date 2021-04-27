@@ -1781,7 +1781,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // Timing is still useful, as this may perform operations pertaining to lock watches.
                 long commitTimestamp = timedAndTraced(
                         "getCommitTimestamp",
-                        () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
+                        // todo(gmaretic) actually wire in!
+                        () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken, null));
                 commitTsForScrubbing = commitTimestamp;
 
                 // Punch on commit so that if hard delete is the only thing happening on a system,

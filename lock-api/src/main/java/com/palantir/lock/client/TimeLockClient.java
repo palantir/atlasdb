@@ -40,7 +40,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
-public class TimeLockClient implements AutoCloseable, TimelockService {
+public class TimeLockClient<T> implements AutoCloseable, TimelockService<T> {
     private static final ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
 
     private static final long REFRESH_INTERVAL_MILLIS = 5_000;
@@ -87,8 +87,8 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return delegate.getCommitTimestamp(startTs, commitLocksToken);
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken, T transactionDigest) {
+        return delegate.getCommitTimestamp(startTs, commitLocksToken, transactionDigest);
     }
 
     @Override

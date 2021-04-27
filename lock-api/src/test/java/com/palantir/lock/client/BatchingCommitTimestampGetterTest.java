@@ -30,6 +30,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.cache.AbstractLockWatchValueCache;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -65,8 +66,9 @@ public final class BatchingCommitTimestampGetterTest {
 
     private final LockLeaseService lockLeaseService = mock(LockLeaseService.class);
     private final LockWatchEventCache cache = mock(LockWatchEventCache.class);
-    private final Consumer<List<BatchElement<BatchingCommitTimestampGetter.Request, Long>>> batchProcessor =
-            BatchingCommitTimestampGetter.consumer(lockLeaseService, cache);
+    private final AbstractLockWatchValueCache<Long, ?> lockWatchValueCache = mock(AbstractLockWatchValueCache.class);
+    private final Consumer<List<BatchElement<BatchingCommitTimestampGetter.Request<Long>, Long>>> batchProcessor =
+            BatchingCommitTimestampGetter.consumer(lockLeaseService, cache, lockWatchValueCache);
 
     @Test
     public void consumerFillsTheWholeBatch() {
@@ -104,9 +106,9 @@ public final class BatchingCommitTimestampGetterTest {
                         .build());
     }
 
-    private List<Long> processBatch(BatchingCommitTimestampGetter.Request... requests) {
-        List<BatchElement<BatchingCommitTimestampGetter.Request, Long>> elements = Arrays.stream(requests)
-                .map(request -> ImmutableTestBatchElement.<BatchingCommitTimestampGetter.Request, Long>builder()
+    private List<Long> processBatch(BatchingCommitTimestampGetter.Request<Long>... requests) {
+        List<BatchElement<BatchingCommitTimestampGetter.Request<Long>, Long>> elements = Arrays.stream(requests)
+                .map(request -> ImmutableTestBatchElement.<BatchingCommitTimestampGetter.Request<Long>, Long>builder()
                         .argument(request)
                         .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                         .build())
@@ -115,14 +117,14 @@ public final class BatchingCommitTimestampGetterTest {
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
     }
 
-    private BatchingCommitTimestampGetter.Request request(long startTs, UUID lockToken) {
-        return ImmutableRequest.builder()
+    private BatchingCommitTimestampGetter.Request<Long> request(long startTs, UUID lockToken) {
+        return ImmutableRequest.<Long>builder()
                 .startTs(startTs)
                 .commitLocksToken(LockToken.of(lockToken))
                 .build();
     }
 
-    private TransactionUpdate transactionUpdate(BatchingCommitTimestampGetter.Request request, long commitTs) {
+    private TransactionUpdate transactionUpdate(BatchingCommitTimestampGetter.Request<Long> request, long commitTs) {
         return TransactionUpdate.builder()
                 .startTs(request.startTs())
                 .commitTs(commitTs)

@@ -23,6 +23,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.lock.cache.AbstractLockWatchValueCache;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -38,39 +39,47 @@ import org.immutables.value.Value;
 /**
  * This class batches getCommitTimestamps requests to TimeLock server for a single client/namespace.
  * */
-final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
-    private final DisruptorAutobatcher<Request, Long> autobatcher;
+final class BatchingCommitTimestampGetter<T> implements CommitTimestampGetter<T> {
+    private final DisruptorAutobatcher<Request<T>, Long> autobatcher;
 
-    private BatchingCommitTimestampGetter(DisruptorAutobatcher<Request, Long> autobatcher) {
+    private BatchingCommitTimestampGetter(DisruptorAutobatcher<Request<T>, Long> autobatcher) {
         this.autobatcher = autobatcher;
     }
 
-    public static BatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchEventCache cache) {
-        DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(consumer(leaseService, cache))
+    public static <T> BatchingCommitTimestampGetter<T> create(
+            LockLeaseService leaseService,
+            LockWatchEventCache eventCache,
+            AbstractLockWatchValueCache<T, ?> valueCache) {
+        DisruptorAutobatcher<Request<T>, Long> autobatcher = Autobatchers.independent(
+                        consumer(leaseService, eventCache, valueCache))
                 .safeLoggablePurpose("get-commit-timestamp")
                 .build();
-        return new BatchingCommitTimestampGetter(autobatcher);
+        return new BatchingCommitTimestampGetter<T>(autobatcher);
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableRequest.builder()
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken, T transactionDigest) {
+        return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableRequest.<T>builder()
                 .startTs(startTs)
                 .commitLocksToken(commitLocksToken)
+                .transactionDigest(transactionDigest)
                 .build()));
     }
 
     @VisibleForTesting
-    static Consumer<List<BatchElement<Request, Long>>> consumer(
-            LockLeaseService leaseService, LockWatchEventCache cache) {
+    static <T> Consumer<List<BatchElement<Request<T>, Long>>> consumer(
+            LockLeaseService leaseService,
+            LockWatchEventCache eventCache,
+            AbstractLockWatchValueCache<T, ?> valueCache) {
         return batch -> {
             int count = batch.size();
             List<Long> commitTimestamps = new ArrayList<>();
             while (commitTimestamps.size() < count) {
-                Optional<LockWatchVersion> requestedVersion = cache.lastKnownVersion();
+                Optional<LockWatchVersion> requestedVersion = eventCache.lastKnownVersion();
                 GetCommitTimestampsResponse response =
                         leaseService.getCommitTimestamps(requestedVersion, count - commitTimestamps.size());
-                commitTimestamps.addAll(process(batch.subList(commitTimestamps.size(), count), response, cache));
+                commitTimestamps.addAll(
+                        process(batch.subList(commitTimestamps.size(), count), response, eventCache, valueCache));
                 LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
             }
 
@@ -80,10 +89,11 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
         };
     }
 
-    private static List<Long> process(
-            List<BatchElement<Request, Long>> requests,
+    private static <T> List<Long> process(
+            List<BatchElement<Request<T>, Long>> requests,
             GetCommitTimestampsResponse response,
-            LockWatchEventCache cache) {
+            LockWatchEventCache eventCache,
+            AbstractLockWatchValueCache<T, ?> valueCache) {
         List<Long> timestamps = LongStream.rangeClosed(response.getInclusiveLower(), response.getInclusiveUpper())
                 .boxed()
                 .collect(Collectors.toList());
@@ -94,7 +104,9 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
                                 .writesToken(batchElement.argument().commitLocksToken())
                                 .build())
                 .collect(Collectors.toList());
-        cache.processGetCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
+        eventCache.processGetCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
+        requests.forEach(request -> valueCache.updateCacheOnCommit(
+                request.argument().transactionDigest(), request.argument().startTs()));
         return timestamps;
     }
 
@@ -104,9 +116,11 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     }
 
     @Value.Immutable
-    interface Request {
+    interface Request<T> {
         long startTs();
 
         LockToken commitLocksToken();
+
+        T transactionDigest();
     }
 }

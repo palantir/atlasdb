@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionDigest;
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
@@ -35,24 +36,24 @@ import org.slf4j.LoggerFactory;
 /**
  * A timelock service decorator for introducing runtime validity checks on received timestamps.
  */
-public final class TimestampCorroboratingTimelockService implements AutoDelegate_TimelockService {
+public final class TimestampCorroboratingTimelockService implements AutoDelegate_TimelockService<TransactionDigest> {
     private static final Logger log = LoggerFactory.getLogger(TimestampCorroboratingTimelockService.class);
     private static final String CLOCKS_WENT_BACKWARDS_MESSAGE = "It appears that clocks went backwards!";
 
-    private final TimelockService delegate;
+    private final TimelockService<TransactionDigest> delegate;
     private final AtomicLong lowerBoundFromTimestamps = new AtomicLong(Long.MIN_VALUE);
     private final AtomicLong lowerBoundFromTransactions = new AtomicLong(Long.MIN_VALUE);
 
-    private TimestampCorroboratingTimelockService(TimelockService delegate) {
+    private TimestampCorroboratingTimelockService(TimelockService<TransactionDigest> delegate) {
         this.delegate = delegate;
     }
 
-    public static TimelockService create(TimelockService delegate) {
+    public static TimelockService<TransactionDigest> create(TimelockService<TransactionDigest> delegate) {
         return new TimestampCorroboratingTimelockService(delegate);
     }
 
     @Override
-    public TimelockService delegate() {
+    public TimelockService<TransactionDigest> delegate() {
         return delegate;
     }
 

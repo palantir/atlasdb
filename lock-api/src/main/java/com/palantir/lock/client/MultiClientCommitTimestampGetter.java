@@ -28,6 +28,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.cache.AbstractLockWatchValueCache;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -44,60 +45,69 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.immutables.value.Value;
 
-public final class MultiClientCommitTimestampGetter implements AutoCloseable {
-    private final DisruptorAutobatcher<NamespacedRequest, Long> autobatcher;
+public final class MultiClientCommitTimestampGetter<T> implements AutoCloseable {
+    private final DisruptorAutobatcher<NamespacedRequest<T>, Long> autobatcher;
 
-    private MultiClientCommitTimestampGetter(DisruptorAutobatcher<NamespacedRequest, Long> autobatcher) {
+    private MultiClientCommitTimestampGetter(DisruptorAutobatcher<NamespacedRequest<T>, Long> autobatcher) {
         this.autobatcher = autobatcher;
     }
 
-    public static MultiClientCommitTimestampGetter create(InternalMultiClientConjureTimelockService delegate) {
-        DisruptorAutobatcher<NamespacedRequest, Long> autobatcher = Autobatchers.independent(consumer(delegate))
-                .safeLoggablePurpose("multi-client-commit-timestamp-getter")
-                .build();
-        return new MultiClientCommitTimestampGetter(autobatcher);
+    public static <T> MultiClientCommitTimestampGetter<T> create(InternalMultiClientConjureTimelockService delegate) {
+        DisruptorAutobatcher<NamespacedRequest<T>, Long> autobatcher =
+                Autobatchers.<NamespacedRequest<T>, Long>independent(consumer(delegate))
+                        .safeLoggablePurpose("multi-client-commit-timestamp-getter")
+                        .build();
+        return new MultiClientCommitTimestampGetter<T>(autobatcher);
     }
 
     public long getCommitTimestamp(
-            Namespace namespace, long startTs, LockToken commitLocksToken, LockWatchEventCache cache) {
-        return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableNamespacedRequest.builder()
+            Namespace namespace,
+            long startTs,
+            LockToken commitLocksToken,
+            T transactionDigest,
+            LockWatchEventCache eventCache,
+            AbstractLockWatchValueCache<T, ?> valueCache) {
+        return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableNamespacedRequest.<T>builder()
                 .namespace(namespace)
                 .startTs(startTs)
+                .transactionDigest(transactionDigest)
                 .commitLocksToken(commitLocksToken)
-                .cache(cache)
+                .eventCache(eventCache)
+                .valueCache(valueCache)
                 .build()));
     }
 
     @VisibleForTesting
-    static Consumer<List<BatchElement<NamespacedRequest, Long>>> consumer(
+    static <T> Consumer<List<BatchElement<NamespacedRequest<T>, Long>>> consumer(
             InternalMultiClientConjureTimelockService delegate) {
         return batch -> {
-            BatchStateManager batchStateManager = BatchStateManager.createFromRequestBatch(batch);
+            BatchStateManager<T> batchStateManager = BatchStateManager.createFromRequestBatch(batch);
             while (batchStateManager.hasPendingRequests()) {
                 batchStateManager.processResponse(delegate.getCommitTimestamps(batchStateManager.getRequests()));
             }
         };
     }
 
-    private static final class BatchStateManager {
-        private final Map<Namespace, NamespacedBatchStateManager> requestMap;
+    private static final class BatchStateManager<T> {
+        private final Map<Namespace, NamespacedBatchStateManager<T>> requestMap;
 
-        private BatchStateManager(Map<Namespace, NamespacedBatchStateManager> requestMap) {
+        private BatchStateManager(Map<Namespace, NamespacedBatchStateManager<T>> requestMap) {
             this.requestMap = requestMap;
         }
 
-        static BatchStateManager createFromRequestBatch(List<BatchElement<NamespacedRequest, Long>> batch) {
-            Map<Namespace, NamespacedBatchStateManager> requestMap = new HashMap<>();
+        static <T> BatchStateManager<T> createFromRequestBatch(List<BatchElement<NamespacedRequest<T>, Long>> batch) {
+            Map<Namespace, NamespacedBatchStateManager<T>> requestMap = new HashMap<>();
 
-            for (BatchElement<NamespacedRequest, Long> elem : batch) {
-                NamespacedRequest argument = elem.argument();
+            for (BatchElement<NamespacedRequest<T>, Long> elem : batch) {
+                NamespacedRequest<T> argument = elem.argument();
                 Namespace namespace = argument.namespace();
-                NamespacedBatchStateManager namespacedBatchStateManager = requestMap.computeIfAbsent(
-                        namespace, _unused -> new NamespacedBatchStateManager(argument.cache()));
+                NamespacedBatchStateManager<T> namespacedBatchStateManager = requestMap.computeIfAbsent(
+                        namespace,
+                        _unused -> new NamespacedBatchStateManager<>(argument.eventCache(), argument.valueCache()));
                 namespacedBatchStateManager.addRequest(elem);
             }
 
-            return new BatchStateManager(requestMap);
+            return new BatchStateManager<>(requestMap);
         }
 
         private boolean hasPendingRequests() {
@@ -117,14 +127,16 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         }
     }
 
-    private static final class NamespacedBatchStateManager {
-        private final Queue<BatchElement<NamespacedRequest, Long>> pendingRequestQueue;
-        private final LockWatchEventCache cache;
+    private static final class NamespacedBatchStateManager<T> {
+        private final Queue<BatchElement<NamespacedRequest<T>, Long>> pendingRequestQueue;
+        private final LockWatchEventCache eventCache;
+        private final AbstractLockWatchValueCache<T, ?> valueCache;
         private Optional<LockWatchVersion> lastKnownVersion;
 
-        private NamespacedBatchStateManager(LockWatchEventCache cache) {
+        private NamespacedBatchStateManager(LockWatchEventCache cache, AbstractLockWatchValueCache<T, ?> valueCache) {
             this.pendingRequestQueue = new ArrayDeque<>();
-            this.cache = cache;
+            this.eventCache = cache;
+            this.valueCache = valueCache;
             this.lastKnownVersion = Optional.empty();
         }
 
@@ -132,7 +144,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
             return !pendingRequestQueue.isEmpty();
         }
 
-        private void addRequest(BatchElement<NamespacedRequest, Long> elem) {
+        private void addRequest(BatchElement<NamespacedRequest<T>, Long> elem) {
             pendingRequestQueue.add(elem);
         }
 
@@ -144,7 +156,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         }
 
         private Optional<LockWatchVersion> updateAndGetLastKnownVersion() {
-            lastKnownVersion = cache.lastKnownVersion();
+            lastKnownVersion = eventCache.lastKnownVersion();
             return lastKnownVersion;
         }
 
@@ -176,7 +188,10 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
                                     .writesToken(batchElement.argument().commitLocksToken())
                                     .build())
                     .collect(Collectors.toList());
-            cache.processGetCommitTimestampsUpdate(transactionUpdates, lockWatchUpdate);
+            eventCache.processGetCommitTimestampsUpdate(transactionUpdates, lockWatchUpdate);
+            pendingRequestQueue.stream()
+                    .map(BatchElement::argument)
+                    .forEach(request -> valueCache.updateCacheOnCommit(request.transactionDigest(), request.startTs()));
         }
     }
 
@@ -186,13 +201,17 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
     }
 
     @Value.Immutable
-    interface NamespacedRequest {
+    interface NamespacedRequest<T> {
         Namespace namespace();
 
         long startTs();
 
+        T transactionDigest();
+
         LockToken commitLocksToken();
 
-        LockWatchEventCache cache();
+        LockWatchEventCache eventCache();
+
+        AbstractLockWatchValueCache<T, ?> valueCache();
     }
 }

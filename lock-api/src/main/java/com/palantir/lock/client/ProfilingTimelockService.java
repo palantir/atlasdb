@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  * to reflect the impact of timelock operations and cluster state changes (e.g. leader elections, rolling bounces) on
  * clients.
  */
-public class ProfilingTimelockService implements AutoCloseable, TimelockService {
+public class ProfilingTimelockService<T> implements AutoCloseable, TimelockService<T> {
     private static final Logger log = LoggerFactory.getLogger(ProfilingTimelockService.class);
 
     @VisibleForTesting
@@ -75,7 +75,7 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     @VisibleForTesting
     ProfilingTimelockService(
             Logger logger,
-            TimelockService delegate,
+            TimelockService<T> delegate,
             Supplier<Stopwatch> stopwatchSupplier,
             BooleanSupplier loggingPermissionSupplier) {
         this.logger = logger;
@@ -84,9 +84,9 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
         this.loggingPermissionSupplier = loggingPermissionSupplier;
     }
 
-    public static ProfilingTimelockService create(TimelockService delegate) {
+    public static <T> ProfilingTimelockService<T> create(TimelockService<T> delegate) {
         RateLimiter rateLimiter = RateLimiter.create(1. / LOGGING_TIME_WINDOW.getSeconds());
-        return new ProfilingTimelockService(log, delegate, Stopwatch::createStarted, rateLimiter::tryAcquire);
+        return new ProfilingTimelockService<T>(log, delegate, Stopwatch::createStarted, rateLimiter::tryAcquire);
     }
 
     @Override
@@ -100,8 +100,9 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return runTaskTimed("getCommitTimestamp", () -> delegate.getCommitTimestamp(startTs, commitLocksToken));
+    public long getCommitTimestamp(long startTs, LockToken commitLocksToken, T transactionDigest) {
+        return runTaskTimed(
+                "getCommitTimestamp", () -> delegate.getCommitTimestamp(startTs, commitLocksToken, transactionDigest));
     }
 
     @Override

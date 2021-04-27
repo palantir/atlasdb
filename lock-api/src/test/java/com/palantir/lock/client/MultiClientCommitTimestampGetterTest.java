@@ -38,6 +38,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.cache.AbstractLockWatchValueCache;
 import com.palantir.lock.client.MultiClientCommitTimestampGetter.NamespacedRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -60,13 +61,14 @@ public class MultiClientCommitTimestampGetterTest {
 
     private final Map<Namespace, Long> lowestStartTsMap = new HashMap<>();
     private final Map<Namespace, LockWatchEventCache> lockWatchEventCacheMap = new HashMap<>();
+    private final Map<Namespace, AbstractLockWatchValueCache<Object, ?>> lockWatchValueCacheHashMap = new HashMap<>();
 
     private final LockToken lockToken = mock(LockToken.class);
     private final InternalMultiClientConjureTimelockService timelockService =
             mock(InternalMultiClientConjureTimelockService.class);
     private final LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
 
-    private final Consumer<List<BatchElement<NamespacedRequest, Long>>> consumer =
+    private final Consumer<List<BatchElement<NamespacedRequest<Object>, Long>>> consumer =
             MultiClientCommitTimestampGetter.consumer(timelockService);
 
     @Test
@@ -96,7 +98,8 @@ public class MultiClientCommitTimestampGetterTest {
     @Test
     public void updatesCacheWhileProcessingResponse() {
         Namespace client = Namespace.of("Kitty");
-        List<BatchElement<NamespacedRequest, Long>> batchElements = IntStream.range(0, COMMIT_TS_LIMIT_PER_REQUEST * 2)
+        List<BatchElement<NamespacedRequest<Object>, Long>> batchElements = IntStream.range(
+                        0, COMMIT_TS_LIMIT_PER_REQUEST * 2)
                 .mapToObj(ind -> batchElementForNamespace(client))
                 .collect(toList());
         setupServiceAndAssertSanityOfResponse(batchElements);
@@ -110,11 +113,12 @@ public class MultiClientCommitTimestampGetterTest {
         Namespace alpha = Namespace.of("alpha" + UUID.randomUUID());
         Namespace beta = Namespace.of("beta" + UUID.randomUUID());
 
-        BatchElement<NamespacedRequest, Long> requestForAlpha = batchElementForNamespace(alpha);
-        BatchElement<NamespacedRequest, Long> requestForBeta = batchElementForNamespace(beta);
+        BatchElement<NamespacedRequest<Object>, Long> requestForAlpha = batchElementForNamespace(alpha);
+        BatchElement<NamespacedRequest<Object>, Long> requestForBeta = batchElementForNamespace(beta);
 
-        List<BatchElement<NamespacedRequest, Long>> allRequests = ImmutableList.of(requestForAlpha, requestForBeta);
-        List<BatchElement<NamespacedRequest, Long>> alphaRequestList = ImmutableList.of(requestForAlpha);
+        List<BatchElement<NamespacedRequest<Object>, Long>> allRequests =
+                ImmutableList.of(requestForAlpha, requestForBeta);
+        List<BatchElement<NamespacedRequest<Object>, Long>> alphaRequestList = ImmutableList.of(requestForAlpha);
         Map<Namespace, GetCommitTimestampsResponse> responseMap = getCommitTimestamps(alphaRequestList);
 
         when(timelockService.getCommitTimestamps(any())).thenReturn(responseMap).thenThrow(EXCEPTION);
@@ -135,7 +139,7 @@ public class MultiClientCommitTimestampGetterTest {
         verify(betaCache, never()).processGetCommitTimestampsUpdate(any(), any());
     }
 
-    private void setupServiceAndAssertSanityOfResponse(List<BatchElement<NamespacedRequest, Long>> batch) {
+    private void setupServiceAndAssertSanityOfResponse(List<BatchElement<NamespacedRequest<Object>, Long>> batch) {
         Map<Namespace, List<GetCommitTimestampsResponse>> expectedResponseMap = new HashMap<>();
 
         when(timelockService.getCommitTimestamps(any())).thenAnswer(invocation -> {
@@ -154,7 +158,7 @@ public class MultiClientCommitTimestampGetterTest {
     }
 
     private void assertSanityOfResponse(
-            List<BatchElement<NamespacedRequest, Long>> batch,
+            List<BatchElement<NamespacedRequest<Object>, Long>> batch,
             Map<Namespace, List<GetCommitTimestampsResponse>> expectedResponseMap) {
         assertThat(batch.stream().filter(elem -> !elem.result().isDone()).collect(Collectors.toSet()))
                 .as("All requests must be served")
@@ -196,8 +200,8 @@ public class MultiClientCommitTimestampGetterTest {
     }
 
     private Map<Namespace, GetCommitTimestampsResponse> getCommitTimestamps(
-            List<BatchElement<NamespacedRequest, Long>> batch) {
-        Map<Namespace, List<BatchElement<NamespacedRequest, Long>>> partitionedRequests =
+            List<BatchElement<NamespacedRequest<Object>, Long>> batch) {
+        Map<Namespace, List<BatchElement<NamespacedRequest<Object>, Long>>> partitionedRequests =
                 batch.stream().collect(groupingBy(elem -> elem.argument().namespace(), toList()));
         return getCommitTimestampResponse(KeyedStream.stream(partitionedRequests)
                 .map(requestList -> GetCommitTimestampsRequest.builder()
@@ -233,22 +237,25 @@ public class MultiClientCommitTimestampGetterTest {
         lowestStartTsMap.put(namespace, lowestStartTsMap.getOrDefault(namespace, 1L) + numTimestamps);
     }
 
-    private List<BatchElement<NamespacedRequest, Long>> getCommitTimestampRequestsForClients(
+    private List<BatchElement<NamespacedRequest<Object>, Long>> getCommitTimestampRequestsForClients(
             int clientCount, int requestCount) {
-        List<BatchElement<NamespacedRequest, Long>> test = IntStream.range(0, requestCount)
+        List<BatchElement<NamespacedRequest<Object>, Long>> test = IntStream.range(0, requestCount)
                 .mapToObj(ind -> batchElementForNamespace(Namespace.of("Test_" + (ind % clientCount))))
                 .collect(Collectors.toList());
         return test;
     }
 
-    private BatchElement<NamespacedRequest, Long> batchElementForNamespace(Namespace namespace) {
+    private BatchElement<NamespacedRequest<Object>, Long> batchElementForNamespace(Namespace namespace) {
         return BatchElement.of(
                 ImmutableNamespacedRequest.builder()
                         .namespace(namespace)
                         .startTs(1)
-                        .cache(lockWatchEventCacheMap.computeIfAbsent(
+                        .eventCache(lockWatchEventCacheMap.computeIfAbsent(
                                 namespace, _unused -> mock(LockWatchEventCache.class)))
                         .commitLocksToken(lockToken)
+                        .valueCache(lockWatchValueCacheHashMap.computeIfAbsent(
+                                namespace, _unused -> mock(AbstractLockWatchValueCache.class)))
+                        .transactionDigest(new Object())
                         .build(),
                 new DisruptorFuture<Long>("test"));
     }

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.lock.cache.AbstractLockWatchValueCache;
 import java.util.Set;
 
 /**
@@ -31,10 +32,13 @@ import java.util.Set;
  * the central cache (taking in to account the since-locked descriptors), as well as checking for conflicts for
  * serializable transactions by adding a check in the {@link com.palantir.atlasdb.transaction.api.PreCommitCondition}.
  */
-public interface LockWatchValueCache {
+public interface LockWatchValueCache extends AbstractLockWatchValueCache<TransactionDigest, TransactionScopedCache> {
+    @Override
     void processStartTransactions(Set<Long> startTimestamps);
 
+    @Override
     void updateCacheOnCommit(TransactionDigest digest, long startTs);
 
+    @Override
     TransactionScopedCache createTransactionScopedCache(long startTs);
 }

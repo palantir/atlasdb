@@ -24,7 +24,7 @@ import java.util.Set;
 import javax.ws.rs.QueryParam;
 
 @AutoDelegate
-public interface TimelockService {
+public interface TimelockService<TD> {
     /**
      * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
      * {@link com.palantir.async.initializer.AsyncInitializer}; other TimelockServices can keep the default
@@ -39,7 +39,7 @@ public interface TimelockService {
 
     long getFreshTimestamp();
 
-    long getCommitTimestamp(long startTs, LockToken commitLocksToken);
+    long getCommitTimestamp(long startTs, LockToken commitLocksToken, TD transactionDigest);
 
     TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 

@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.client;
+package com.palantir.lock.cache;
 
-import com.palantir.lock.v2.LockToken;
+import java.util.Set;
 
-public interface CommitTimestampGetter<TD> extends AutoCloseable {
-    long getCommitTimestamp(long startTs, LockToken commitLocksToken, TD transactionDigest);
+public interface AbstractLockWatchValueCache<TD, TSC> {
+    void processStartTransactions(Set<Long> startTimestamps);
 
-    @Override
-    void close();
+    void updateCacheOnCommit(TD digest, long startTs);
+
+    TSC createTransactionScopedCache(long startTs);
 }
