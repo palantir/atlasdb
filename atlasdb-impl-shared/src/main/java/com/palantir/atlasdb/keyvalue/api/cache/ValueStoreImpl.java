@@ -16,7 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Weigher;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.LockDescriptor;
@@ -32,22 +37,41 @@ import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.NotThreadSafe;
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 @NotThreadSafe
 final class ValueStoreImpl implements ValueStore {
-    // TODO(jshah): implement cache eviction based on cache size
+    /**
+     * We introduce some overhead to storing each value. This makes caching numerous empty values with small cell
+     * names more costly.
+     */
+    private static final int CACHE_OVERHEAD = 128;
+
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
+    private final Cache<CellReference, Integer> loadedValues;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
 
-    ValueStoreImpl() {
+    ValueStoreImpl(long maxCacheSize) {
         values = StructureHolder.create(HashMap::empty);
         watchedTables = StructureHolder.create(HashSet::empty);
+        loadedValues = Caffeine.newBuilder()
+                .maximumWeight(maxCacheSize)
+                .weigher(EntryWeigher.INSTANCE)
+                .executor(MoreExecutors.directExecutor())
+                .removalListener((cellReference, value, cause) -> {
+                    if (cause.wasEvicted()) {
+                        values.with(map -> map.remove(cellReference));
+                    }
+                })
+                .build();
     }
 
     @Override
     public void reset() {
         values.resetToInitialValue();
+        loadedValues.invalidateAll();
         watchedTables.resetToInitialValue();
     }
 
@@ -68,6 +92,7 @@ final class ValueStoreImpl implements ValueStore {
                     UnsafeArg.of("newValue", newValue));
             return newValue;
         }));
+        loadedValues.put(cellReference, value.value().map(bytes -> bytes.length).orElse(0));
     }
 
     @Override
@@ -76,6 +101,11 @@ final class ValueStoreImpl implements ValueStore {
     }
 
     private void putLockedCell(CellReference cellReference) {
+        if (values.apply(map -> map.get(cellReference).toJavaOptional())
+                .filter(CacheEntry::isUnlocked)
+                .isPresent()) {
+            loadedValues.invalidate(cellReference);
+        }
         values.with(map -> map.put(cellReference, CacheEntry.locked()));
     }
 
@@ -121,6 +151,23 @@ final class ValueStoreImpl implements ValueStore {
                     .forEach(tableReference -> watchedTables.with(tables -> tables.add(tableReference)));
             applyLockedDescriptors(lockWatchCreatedEvent.lockDescriptors());
             return null;
+        }
+    }
+
+    private enum EntryWeigher implements Weigher<CellReference, Integer> {
+        INSTANCE;
+
+        @Override
+        public @NonNegative int weigh(@NonNull CellReference key, @NonNull Integer value) {
+            return CACHE_OVERHEAD + value + weighTable(key.tableRef()) + weighCell(key.cell());
+        }
+
+        private int weighTable(@NonNull TableReference table) {
+            return table.toString().length();
+        }
+
+        private int weighCell(@NonNull Cell cell) {
+            return cell.getRowName().length + cell.getColumnName().length;
         }
     }
 }

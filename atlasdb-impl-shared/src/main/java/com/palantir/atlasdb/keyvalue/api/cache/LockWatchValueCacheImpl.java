@@ -48,6 +48,9 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private static final Logger log = LoggerFactory.getLogger(LockWatchValueCacheImpl.class);
     private static final int CELL_BLOWUP_THRESHOLD = 100;
 
+    // TODO(jshah): this should be configurable.
+    private static final long MAX_CACHE_SIZE = 20_000;
+
     private final LockWatchEventCache eventCache;
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
@@ -56,7 +59,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
 
     public LockWatchValueCacheImpl(LockWatchEventCache eventCache) {
         this.eventCache = eventCache;
-        this.valueStore = new ValueStoreImpl();
+        this.valueStore = new ValueStoreImpl(MAX_CACHE_SIZE);
         this.snapshotStore = new SnapshotStoreImpl();
     }
 
