@@ -170,7 +170,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      */
     @Value.Default
     default HumanReadableDuration timeoutOnConnectionBorrow() {
-        return HumanReadableDuration.minutes(10);
+        return HumanReadableDuration.minutes(60);
     }
 
     @JsonIgnore
