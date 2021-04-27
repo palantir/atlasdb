@@ -100,12 +100,12 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
         if (!remoteReads.equals(cacheReads)) {
             log.error(
-                    "Reading from LW cache returned a different result to a remote read - this indicates there "
+                    "Reading from lock watch cache returned a different result to a remote read - this indicates there "
                             + "is a corruption bug in the caching logic",
                     UnsafeArg.of("table", tableReference),
                     UnsafeArg.of("remoteReads", remoteReads),
                     UnsafeArg.of("cacheReads", cacheReads));
-            throw new TransactionFailedNonRetriableException("Failed LW cache validation");
+            throw new TransactionFailedNonRetriableException("Failed lock watch cache validation");
         }
     }
 }
