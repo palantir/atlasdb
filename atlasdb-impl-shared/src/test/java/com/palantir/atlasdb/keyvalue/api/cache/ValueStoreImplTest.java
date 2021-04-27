@@ -52,7 +52,7 @@ public final class ValueStoreImplTest {
 
     @Before
     public void before() {
-        valueStore = new ValueStoreImpl();
+        valueStore = new ValueStoreImpl(maxCacheSize);
     }
 
     @Test

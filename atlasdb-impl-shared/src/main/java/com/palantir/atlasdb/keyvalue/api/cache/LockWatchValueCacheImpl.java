@@ -56,7 +56,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
 
     public LockWatchValueCacheImpl(LockWatchEventCache eventCache) {
         this.eventCache = eventCache;
-        this.valueStore = new ValueStoreImpl();
+        this.valueStore = new ValueStoreImpl(maxCacheSize);
         this.snapshotStore = new SnapshotStoreImpl();
     }
 
