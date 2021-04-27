@@ -1,10 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
 dependencies {
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")

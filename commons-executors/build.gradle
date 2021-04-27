@@ -1,10 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
 libsDirName = file('build/artifacts')
 dependencies {
     compile project(":commons-executors-api")

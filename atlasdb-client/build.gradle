@@ -1,10 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
 schemas = [
     'com.palantir.atlasdb.schema.CompactSchema',
     'com.palantir.atlasdb.schema.SweepSchema',

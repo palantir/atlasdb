@@ -2,11 +2,6 @@
 apply from: "../gradle/shared.gradle"
 apply plugin: 'com.palantir.metric-schema'
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
 libsDirName = file('build/artifacts')
 
 license {

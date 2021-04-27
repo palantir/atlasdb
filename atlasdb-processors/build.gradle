@@ -2,11 +2,6 @@ apply from: "../gradle/shared.gradle"
 
 apply plugin: 'java-library'
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
 dependencies {
     annotationProcessor group: 'com.google.auto.service', name: 'auto-service'
     compileOnly group: 'com.google.auto.service', name: 'auto-service'

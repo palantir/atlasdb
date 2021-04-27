@@ -10,11 +10,6 @@ conjure {
     }
 }
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
 subprojects {
     apply from: "../../gradle/shared.gradle"
     apply plugin: 'com.palantir.sls-recommended-dependencies'

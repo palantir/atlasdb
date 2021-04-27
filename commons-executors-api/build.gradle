@@ -1,10 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
 libsDirName = file('build/artifacts')
 
 // Do not add dependencies to this project. This project is used by
