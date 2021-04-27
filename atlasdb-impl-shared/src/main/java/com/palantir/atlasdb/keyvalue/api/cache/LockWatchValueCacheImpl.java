@@ -115,10 +115,10 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
         // Snapshots may be missing due to leader elections. In this case, the transaction will not read from the
         // cache or publish anything to the cache at commit time.
-        return snapshotStore
+        return ValidatingTransactionScopedCache.create(snapshotStore
                 .getSnapshot(StartTimestamp.of(startTs))
                 .map(TransactionScopedCacheImpl::create)
-                .orElseGet(NoOpTransactionScopedCache::create);
+                .orElseGet(NoOpTransactionScopedCache::create));
     }
 
     /**
