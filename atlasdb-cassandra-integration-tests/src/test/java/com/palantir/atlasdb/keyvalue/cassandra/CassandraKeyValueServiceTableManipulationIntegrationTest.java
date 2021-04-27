@@ -120,7 +120,7 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
     public void tableCreationWithDifferentCapitalizationFailsForDifferentMetadata() {
         kvs.createTable(LOWER_UPPER, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertThatThrownBy(() -> kvs.createTable(UPPER_UPPER, ORIGINAL_METADATA))
-                .hasCauseInstanceOf(RetryLimitReachedException.class);
+                .isInstanceOf(RetryLimitReachedException.class);
     }
 
     // todo(gmaretic): The following tests document unexpected behaviour. We should decide if and how to fix it.
@@ -175,16 +175,16 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
                 .contains(BYTE_ARRAY);
 
         assertThatThrownBy(() -> kvs.get(LOWER_LOWER, ImmutableMap.of(CELL, 2L)))
-                .hasCauseInstanceOf(RetryLimitReachedException.class);
+                .isInstanceOf(RetryLimitReachedException.class);
 
         assertThatThrownBy(() -> kvs.put(LOWER_LOWER, ImmutableMap.of(CELL, SECOND_BYTE_ARRAY), 1))
-                .hasCauseInstanceOf(RetryLimitReachedException.class);
+                .isInstanceOf(RetryLimitReachedException.class);
     }
 
     private void createTablesIgnoringException() {
         assertThatThrownBy(() -> kvs.createTables(TABLES.stream()
                         .collect(Collectors.toMap(x -> x, no -> AtlasDbConstants.GENERIC_TABLE_METADATA))))
-                .hasCauseInstanceOf(IllegalStateException.class);
+                .isInstanceOf(IllegalStateException.class);
     }
 
     private void insertMetadataIntoNewCell(TableReference tableRef) {

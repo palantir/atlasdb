@@ -72,7 +72,7 @@ public class CassandraTimestampIntegrationTest {
 
         ts.storeUpperLimit(limit + 20);
         assertThatThrownBy(() -> ts2.storeUpperLimit(limit + 20))
-                .hasCauseInstanceOf(MultipleRunningTimestampServiceError.class);
+                .isInstanceOf(MultipleRunningTimestampServiceError.class);
         assertThat(ts.getUpperLimit()).isEqualTo(limit + 20);
         assertThat(ts2.getUpperLimit()).isEqualTo(limit + 20);
 
@@ -80,6 +80,6 @@ public class CassandraTimestampIntegrationTest {
         assertThat(ts.getUpperLimit()).isEqualTo(limit + 30);
 
         assertThatThrownBy(() -> ts2.storeUpperLimit(limit + 40))
-                .hasCauseInstanceOf(MultipleRunningTimestampServiceError.class);
+                .isInstanceOf(MultipleRunningTimestampServiceError.class);
     }
 }

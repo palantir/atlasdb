@@ -17,7 +17,6 @@
 package com.palantir.util;
 
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -44,29 +43,28 @@ public final class TimedRunner {
         return new TimedRunner(PTExecutors.newCachedThreadPool("timed-runner"), timeoutDuration);
     }
 
-    public <T> T run(TaskContext<T> taskContext) {
+    public <T> T run(TaskContext<T> taskContext) throws Exception {
         Future<T> future = executor.submit(() -> taskContext.task().call());
-        final Throwable failure;
+        final Exception failure;
         try {
             return future.get(timeoutDuration.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             failure = e;
         } catch (ExecutionException e) {
-            failure = e.getCause();
+            failure = (Exception) e.getCause();
         } catch (TimeoutException e) {
             future.cancel(true);
             failure = e;
         }
 
-        SafeRuntimeException exception = new SafeRuntimeException(failure);
         try {
             taskContext.taskFailureHandler().run();
         } catch (Throwable t) {
             log.warn("Shutdown failure handler threw an exception itself!", t);
-            exception.addSuppressed(t);
+            failure.addSuppressed(t);
         }
-        throw exception;
+        throw failure;
     }
 
     @Value.Immutable

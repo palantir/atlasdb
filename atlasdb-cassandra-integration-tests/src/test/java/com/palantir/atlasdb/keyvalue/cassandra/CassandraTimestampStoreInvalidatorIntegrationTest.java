@@ -21,7 +21,6 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.flake.ShouldRetry;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 import java.util.Set;
@@ -132,10 +131,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
                 } else {
                     maxSuccessfulBound.accumulateAndGet(getBoundAfterTakingOutOneMillionTimestamps(), Math::max);
                 }
-            } catch (IllegalArgumentException
-                    | IllegalStateException
-                    | MultipleRunningTimestampServiceError
-                    | SafeRuntimeException error) {
+            } catch (IllegalArgumentException | IllegalStateException | MultipleRunningTimestampServiceError error) {
                 // Can arise if trying to manipulate the timestamp bound during/after an invalidation. This is fine.
             }
         });

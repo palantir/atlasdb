@@ -26,6 +26,7 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
 import java.io.IOException;
@@ -215,7 +216,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                         UnsafeArg.of("client", client),
                         SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
             }
-            throw t;
+            throw new SafeRuntimeException("Threw while attempting to close transport for client", t);
         }
         if (log.isDebugEnabled()) {
             log.debug(
