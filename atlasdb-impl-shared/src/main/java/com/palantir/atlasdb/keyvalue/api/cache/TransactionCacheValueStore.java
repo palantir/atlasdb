@@ -42,5 +42,7 @@ interface TransactionCacheValueStore {
      * Contains a map of all the values that were read remotely and stored locally (filtering out those that were
      * unable to be cached due to values being locked). Also note that writes do not appear in the digest.
      */
-    Map<CellReference, CacheValue> getTransactionDigest();
+    Map<CellReference, CacheValue> getValueDigest();
+
+    Set<CellReference> getHitDigest();
 }

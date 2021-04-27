@@ -21,10 +21,10 @@ import java.util.Map;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface TransactionDigest {
+public interface ValueDigest {
     Map<CellReference, CacheValue> loadedValues();
 
-    static TransactionDigest of(Map<CellReference, CacheValue> loadedValues) {
-        return ImmutableTransactionDigest.builder().loadedValues(loadedValues).build();
+    static ValueDigest of(Map<CellReference, CacheValue> loadedValues) {
+        return ImmutableValueDigest.builder().loadedValues(loadedValues).build();
     }
 }
