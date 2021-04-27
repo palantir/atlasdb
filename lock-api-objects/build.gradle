@@ -2,12 +2,6 @@ apply plugin: 'com.palantir.sls-recommended-dependencies'
 
 apply from: "../gradle/shared.gradle"
 
-repositories {
-    mavenCentral()
-    maven { url 'https://palantir.bintray.com/releases' }
-    jcenter()
-}
-
 libsDirName = file('build/artifacts')
 dependencies {
     compile project(":atlasdb-commons")
