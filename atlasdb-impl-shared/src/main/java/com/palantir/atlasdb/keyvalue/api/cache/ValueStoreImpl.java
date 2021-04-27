@@ -31,7 +31,9 @@ import com.palantir.logsafe.UnsafeArg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.stream.Stream;
+import javax.annotation.concurrent.NotThreadSafe;
 
+@NotThreadSafe
 final class ValueStoreImpl implements ValueStore {
     // TODO(jshah): implement cache eviction based on cache size
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;

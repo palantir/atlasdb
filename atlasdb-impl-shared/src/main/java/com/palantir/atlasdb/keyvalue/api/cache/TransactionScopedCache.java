@@ -41,7 +41,9 @@ import java.util.function.BiFunction;
  * values in the cache is just as safe as reading a snapshot of the database taken at the start timestamp.
  */
 public interface TransactionScopedCache {
-    void write(TableReference tableReference, Cell cell, CacheValue value);
+    void write(TableReference tableReference, Map<Cell, byte[]> values);
+
+    void delete(TableReference tableReference, Set<Cell> cells);
 
     /**
      * This should be used for performing *synchronous* gets. The reason the value loader function returns a listenable
