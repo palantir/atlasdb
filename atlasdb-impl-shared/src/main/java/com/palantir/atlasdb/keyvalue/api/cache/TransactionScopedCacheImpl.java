@@ -28,8 +28,10 @@ import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
 
+@ThreadSafe
 final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
 
