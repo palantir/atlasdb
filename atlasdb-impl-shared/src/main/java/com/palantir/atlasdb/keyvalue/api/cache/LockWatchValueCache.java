@@ -34,7 +34,7 @@ import java.util.Set;
 public interface LockWatchValueCache {
     void processStartTransactions(Set<Long> startTimestamps);
 
-    void updateCacheOnCommit(TransactionDigest digest, long startTs);
+    void updateCacheOnCommit(ValueDigest digest, long startTs);
 
     TransactionScopedCache createTransactionScopedCache(long startTs);
 }

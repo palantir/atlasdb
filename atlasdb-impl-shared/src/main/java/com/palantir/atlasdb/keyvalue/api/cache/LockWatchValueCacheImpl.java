@@ -31,15 +31,26 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public final class LockWatchValueCacheImpl implements LockWatchValueCache {
+    private static final Logger log = LoggerFactory.getLogger(LockWatchValueCacheImpl.class);
+    private static final int CELL_BLOWUP_THRESHOLD = 100;
+
+    // TODO(jshah): this should be configurable.
+    private static final long MAX_CACHE_SIZE = 20_000;
+
     private final LockWatchEventCache eventCache;
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
@@ -48,7 +59,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
 
     public LockWatchValueCacheImpl(LockWatchEventCache eventCache) {
         this.eventCache = eventCache;
-        this.valueStore = new ValueStoreImpl();
+        this.valueStore = new ValueStoreImpl(MAX_CACHE_SIZE);
         this.snapshotStore = new SnapshotStoreImpl();
     }
 
@@ -64,7 +75,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     //  issue. Chances are that this may need to be re-jigged to take a batch, and be connected to the batched commit
     //  timestamp call.
     @Override
-    public synchronized void updateCacheOnCommit(TransactionDigest digest, long startTs) {
+    public synchronized void updateCacheOnCommit(ValueDigest digest, long startTs) {
         try {
             CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTs);
             commitUpdate.accept(new Visitor<Void>() {
@@ -101,13 +112,13 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     }
 
     @Override
-    // TODO(jshah): Make this return a no-op cache if the start timestamp is missing.
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
-        // Chances are that, instead of throwing, we should just return a no-op cache that doesn't cache anything;
-        // however, this does retry, so maybe this is fine too (this should only happen around leader elections).
-        return new TransactionScopedCacheImpl(snapshotStore
+        // Snapshots may be missing due to leader elections. In this case, the transaction will not read from the
+        // cache or publish anything to the cache at commit time.
+        return snapshotStore
                 .getSnapshot(StartTimestamp.of(startTs))
-                .orElseThrow(() -> new TransactionLockWatchFailedException("Snapshot missing for timestamp")));
+                .map(TransactionScopedCacheImpl::create)
+                .orElseGet(NoOpTransactionScopedCache::create);
     }
 
     /**
@@ -202,8 +213,17 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     }
 
     private static Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
-        // TODO(jshah): this has potentially large blow-up for cells with lots of zero bytes. We should probably make
-        //  users opt-in or warn when this is the case.
-        return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
+        List<CellReference> candidateCells = AtlasLockDescriptorUtils.candidateCells(descriptor);
+
+        if (candidateCells.size() > CELL_BLOWUP_THRESHOLD) {
+            log.warn(
+                    "Lock descriptor produced a large number of candidate cells - this is due to the descriptor "
+                            + "containing many zero bytes. If this message is logged frequently, this table may be "
+                            + "inappropriate for caching",
+                    SafeArg.of("candidateCellSize", candidateCells.size()),
+                    UnsafeArg.of("lockDescriptor", descriptor));
+        }
+
+        return candidateCells.stream();
     }
 }

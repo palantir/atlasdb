@@ -4,7 +4,6 @@ buildscript {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        maven { url 'https://palantir.bintray.com/releases' }
         jcenter()
     }
 
@@ -15,7 +14,7 @@ buildscript {
         classpath 'com.palantir.baseline:gradle-baseline-java:3.74.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:5.2.0'
         classpath 'com.palantir.javaformat:gradle-palantir-java-format:1.0.1'
-        classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.21'
+        classpath 'com.palantir.metricschema:gradle-metric-schema:0.5.22'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:4.24.0'
         classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.15.0'
         classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
@@ -28,7 +27,7 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '6.1.0'
     id 'com.palantir.consistent-versions' version '1.28.0'
     id 'org.unbroken-dome.test-sets' version '3.0.1'
-    id 'com.google.protobuf' version '0.8.15'
+    id 'com.google.protobuf' version '0.8.16'
 }
 
 apply plugin: 'com.palantir.baseline'
@@ -62,7 +61,6 @@ task printLastVersion {
 allprojects {
     repositories {
         mavenCentral()
-        maven { url 'https://palantir.bintray.com/releases' }
         jcenter()
     }
 

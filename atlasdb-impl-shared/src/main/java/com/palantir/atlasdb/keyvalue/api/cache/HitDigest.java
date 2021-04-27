@@ -17,18 +17,14 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.CellReference;
-import com.palantir.lock.watch.LockWatchEvent;
+import java.util.Set;
+import org.immutables.value.Value;
 
-interface ValueStore {
-    void reset();
+@Value.Immutable
+public interface HitDigest {
+    Set<CellReference> hitCells();
 
-    void applyEvent(LockWatchEvent event);
-
-    /**
-     * Stores a value in the central cache. Note that this will throw if there is currently an existing entry with a
-     * different value, or if the value is locked.
-     */
-    void putValue(CellReference cellReference, CacheValue value);
-
-    ValueCacheSnapshot getSnapshot();
+    static HitDigest of(Set<CellReference> hitCells) {
+        return ImmutableHitDigest.builder().hitCells(hitCells).build();
+    }
 }
