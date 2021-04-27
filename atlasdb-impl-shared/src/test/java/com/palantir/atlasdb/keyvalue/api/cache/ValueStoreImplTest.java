@@ -39,7 +39,8 @@ import org.junit.Test;
 public final class ValueStoreImplTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table");
     private static final Cell CELL_1 = createCell(1);
-    private static final Cell CELL_2 = createCell(3);
+    private static final Cell CELL_2 = createCell(2);
+    private static final Cell CELL_3 = createCell(3);
     private static final CellReference TABLE_CELL = CellReference.of(TABLE, CELL_1);
     private static final CacheValue VALUE_1 = createValue(10);
     private static final CacheValue VALUE_2 = createValue(20);
@@ -52,7 +53,7 @@ public final class ValueStoreImplTest {
 
     @Before
     public void before() {
-        valueStore = new ValueStoreImpl(maxCacheSize);
+        valueStore = new ValueStoreImpl(1_000);
     }
 
     @Test
@@ -97,6 +98,33 @@ public final class ValueStoreImplTest {
         assertThat(valueStore.getSnapshot().isWatched(TABLE)).isFalse();
         valueStore.applyEvent(WATCH_EVENT);
         assertThat(valueStore.getSnapshot().isWatched(TABLE)).isTrue();
+    }
+
+    @Test
+    public void valuesEvictedOnceMaxSizeReached() {
+        // size is in bytes; with overhead, this should keep 2 but not three values
+        valueStore = new ValueStoreImpl(300);
+        CellReference tableCell2 = CellReference.of(TABLE, CELL_2);
+
+        valueStore.applyEvent(WATCH_EVENT);
+        valueStore.putValue(TABLE_CELL, VALUE_1);
+        valueStore.putValue(tableCell2, VALUE_2);
+        valueStore.putValue(CellReference.of(TABLE, CELL_3), VALUE_3);
+
+        // Caffeine explicitly does *not* implement simple LRU, so we cannot reason on the actual entries here.
+        assertThat(((ValueCacheSnapshotImpl) valueStore.getSnapshot()).values()).hasSize(2);
+    }
+
+    @Test
+    public void lockedValuesDoNotCountToCacheSize() {
+        valueStore = new ValueStoreImpl(300);
+        valueStore.applyEvent(WATCH_EVENT);
+        valueStore.applyEvent(LOCK_EVENT);
+
+        valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
+        valueStore.putValue(CellReference.of(TABLE, CELL_3), VALUE_3);
+        assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_2));
+        assertExpectedValue(CELL_3, CacheEntry.unlocked(VALUE_3));
     }
 
     private void assertPutThrows(CacheValue value) {
