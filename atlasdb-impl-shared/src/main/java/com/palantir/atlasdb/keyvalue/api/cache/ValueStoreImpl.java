@@ -44,9 +44,8 @@ final class ValueStoreImpl implements ValueStore {
      * We introduce some overhead to storing each value. This makes caching numerous empty values with small cell
      * names more costly.
      */
-    private static final long CACHE_OVERHEAD = 128;
+    private static final int CACHE_OVERHEAD = 128;
 
-    // TODO(jshah): implement cache eviction based on cache size
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
     private final Cache<CellReference, Integer> loadedValues;
@@ -100,6 +99,11 @@ final class ValueStoreImpl implements ValueStore {
     }
 
     private void putLockedCell(CellReference cellReference) {
+        if (values.apply(map -> map.get(cellReference).toJavaOptional())
+                .filter(CacheEntry::isUnlocked)
+                .isPresent()) {
+            loadedValues.invalidate(cellReference);
+        }
         values.with(map -> map.put(cellReference, CacheEntry.locked()));
     }
 
@@ -153,7 +157,7 @@ final class ValueStoreImpl implements ValueStore {
 
         @Override
         public @NonNegative int weigh(@NonNull CellReference key, @NonNull Integer value) {
-            return value + weighTable(key.tableRef()) + weighCell(key.cell());
+            return CACHE_OVERHEAD + value + weighTable(key.tableRef()) + weighCell(key.cell());
         }
 
         private int weighTable(@NonNull TableReference table) {
