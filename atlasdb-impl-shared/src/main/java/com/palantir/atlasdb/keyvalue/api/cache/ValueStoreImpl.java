@@ -36,9 +36,11 @@ import com.palantir.logsafe.UnsafeArg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.stream.Stream;
+import javax.annotation.concurrent.NotThreadSafe;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
+@NotThreadSafe
 final class ValueStoreImpl implements ValueStore {
     /**
      * We introduce some overhead to storing each value. This makes caching numerous empty values with small cell

@@ -33,7 +33,10 @@ final class NoOpTransactionScopedCache implements TransactionScopedCache {
     }
 
     @Override
-    public void write(TableReference tableReference, Cell cell, CacheValue value) {}
+    public void write(TableReference tableReference, Map<Cell, byte[]> values) {}
+
+    @Override
+    public void delete(TableReference tableReference, Set<Cell> cells) {}
 
     @Override
     public Map<Cell, byte[]> get(

@@ -28,8 +28,10 @@ import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
 
+@ThreadSafe
 final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
 
@@ -42,8 +44,15 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     }
 
     @Override
-    public synchronized void write(TableReference tableReference, Cell cell, CacheValue value) {
-        valueStore.cacheRemoteWrite(tableReference, cell, value);
+    public synchronized void write(TableReference tableReference, Map<Cell, byte[]> values) {
+        KeyedStream.stream(values)
+                .map(CacheValue::of)
+                .forEach((cell, value) -> valueStore.cacheRemoteWrite(tableReference, cell, value));
+    }
+
+    @Override
+    public synchronized void delete(TableReference tableReference, Set<Cell> cells) {
+        cells.forEach(cell -> valueStore.cacheRemoteWrite(tableReference, cell, CacheValue.empty()));
     }
 
     @Override
