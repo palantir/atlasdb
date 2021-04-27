@@ -24,7 +24,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.util.TimedRunner.TaskContext;
 import java.time.Duration;
 import java.util.concurrent.Callable;
@@ -62,8 +61,7 @@ public final class TimedRunnerTest {
         Runnable failureHandler = mock(Runnable.class);
 
         assertThatThrownBy(() -> runner.run(TaskContext.createRunnable(throwingRunnable, failureHandler)))
-                .isInstanceOf(SafeRuntimeException.class)
-                .hasCause(EXCEPTION_1);
+                .isEqualTo(EXCEPTION_1);
         verify(failureHandler).run();
     }
 
@@ -74,8 +72,7 @@ public final class TimedRunnerTest {
         doThrow(EXCEPTION_2).when(failureHandler).run();
 
         assertThatThrownBy(() -> runner.run(TaskContext.createRunnable(throwingRunnable, failureHandler)))
-                .isInstanceOf(SafeRuntimeException.class)
-                .hasCause(EXCEPTION_1)
+                .isEqualTo(EXCEPTION_1)
                 .hasSuppressedException(EXCEPTION_2);
         verify(failureHandler).run();
     }
