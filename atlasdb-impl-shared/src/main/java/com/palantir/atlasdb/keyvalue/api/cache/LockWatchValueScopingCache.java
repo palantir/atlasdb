@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import java.util.Set;
+import com.palantir.lock.watch.LockWatchValueCache;
 
 /**
  * The idea here is to keep a map of {@link com.palantir.atlasdb.keyvalue.api.CellReference} -> value for each table.
@@ -31,10 +31,6 @@ import java.util.Set;
  * the central cache (taking in to account the since-locked descriptors), as well as checking for conflicts for
  * serializable transactions by adding a check in the {@link com.palantir.atlasdb.transaction.api.PreCommitCondition}.
  */
-public interface LockWatchValueCache {
-    void processStartTransactions(Set<Long> startTimestamps);
-
-    void updateCacheOnCommit(Set<Long> startTimestamps);
-
+public interface LockWatchValueScopingCache extends LockWatchValueCache {
     TransactionScopedCache createTransactionScopedCache(long startTs);
 }
