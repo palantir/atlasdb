@@ -17,26 +17,32 @@
 package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchEventCache;
 
 public class NamespacedCommitTimestampGetter implements CommitTimestampGetter {
     private final Namespace namespace;
-    private final LockWatchEventCache cache;
+    private final LockWatchEventCache eventCache;
+    private final ValueCacheUpdater valueCache;
     private final ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher;
 
     public NamespacedCommitTimestampGetter(
-            LockWatchEventCache cache,
+            LockWatchEventCache eventCache,
             Namespace namespace,
+            ValueCacheUpdater valueCache,
             ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher) {
         this.namespace = namespace;
-        this.cache = cache;
+        this.eventCache = eventCache;
+        this.valueCache = valueCache;
         this.referenceTrackingBatcher = referenceTrackingBatcher;
     }
 
     @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return referenceTrackingBatcher.getDelegate().getCommitTimestamp(namespace, startTs, commitLocksToken, cache);
+        return referenceTrackingBatcher
+                .getDelegate()
+                .getCommitTimestamp(namespace, startTs, commitLocksToken, eventCache, valueCache);
     }
 
     @Override

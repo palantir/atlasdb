@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.List;
@@ -25,16 +26,19 @@ public class NamespacedIdentifiedTransactionStarter implements IdentifiedAtlasDb
     private final Namespace namespace;
     private final ReferenceTrackingWrapper<MultiClientTransactionStarter> referenceTrackingBatcher;
     private final StartTransactionsLockWatchEventCache lockWatchEventCache;
+    private final ValueCacheUpdater valueCache;
     private final LockCleanupService lockCleanupService;
 
     public NamespacedIdentifiedTransactionStarter(
             Namespace namespace,
             ReferenceTrackingWrapper<MultiClientTransactionStarter> referenceTrackingBatcher,
             StartTransactionsLockWatchEventCache lockWatchEventCache,
+            ValueCacheUpdater valueCache,
             LockCleanupService lockCleanupService) {
         this.namespace = namespace;
         this.referenceTrackingBatcher = referenceTrackingBatcher;
         this.lockWatchEventCache = lockWatchEventCache;
+        this.valueCache = valueCache;
         this.lockCleanupService = lockCleanupService;
     }
 
@@ -42,7 +46,7 @@ public class NamespacedIdentifiedTransactionStarter implements IdentifiedAtlasDb
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         return referenceTrackingBatcher
                 .getDelegate()
-                .startTransactions(namespace, count, lockWatchEventCache, lockCleanupService);
+                .startTransactions(namespace, count, lockWatchEventCache, valueCache, lockCleanupService);
     }
 
     @Override

@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
@@ -128,10 +129,12 @@ public final class TransactionStarterHelper {
 
     static void updateCacheWithStartTransactionResponse(
             StartTransactionsLockWatchEventCache lockWatchEventCache,
+            ValueCacheUpdater valueCache,
             Optional<LockWatchVersion> requestedVersion,
             ConjureStartTransactionsResponse response) {
-        lockWatchEventCache.processStartTransactionsUpdate(
-                response.getTimestamps().stream().boxed().collect(Collectors.toSet()), response.getLockWatchUpdate());
+        Set<Long> startTimestamps = response.getTimestamps().stream().boxed().collect(Collectors.toSet());
+        lockWatchEventCache.processStartTransactionsUpdate(startTimestamps, response.getLockWatchUpdate());
+        valueCache.processStartTransactions(startTimestamps);
         LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
     }
 }

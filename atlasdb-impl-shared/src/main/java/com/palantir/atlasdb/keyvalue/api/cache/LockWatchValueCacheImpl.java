@@ -71,10 +71,14 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         updateCurrentVersion(updateForTransactions);
     }
 
+    @Override
+    public void updateCacheOnCommit(Set<Long> startTs) {
+        // out of scope of this PR
+    }
+
     // TODO(jshah): This needs to be *very* carefully wired to ensure that the synchronised aspect here is not an
     //  issue. Chances are that this may need to be re-jigged to take a batch, and be connected to the batched commit
     //  timestamp call.
-    @Override
     public synchronized void updateCacheOnCommit(ValueDigest digest, long startTs) {
         try {
             CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTs);

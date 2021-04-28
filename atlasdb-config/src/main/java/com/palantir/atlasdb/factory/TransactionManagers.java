@@ -71,6 +71,8 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCache;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchEventCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
@@ -530,6 +532,7 @@ public abstract class TransactionManagers {
                         lockAndTimestampServices.timelock(),
                         lockAndTimestampServices.lockWatcher(),
                         lockAndTimestampServices.eventCache(),
+                        lockAndTimestampServices.valueCache(),
                         lockAndTimestampServices.managedTimestampService(),
                         lockAndTimestampServices.lock(),
                         transactionService,
@@ -1223,6 +1226,7 @@ public abstract class TransactionManagers {
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
         LockWatchManagerImpl lockWatchManager =
                 new LockWatchManagerImpl(schemas, lockWatchEventCache, lockWatchingService);
+        LockWatchValueCache valueCache = new LockWatchValueCacheImpl(lockWatchEventCache);
 
         Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier =
                 getMultiClientTimelockServiceSupplier(serviceProvider);
@@ -1239,6 +1243,7 @@ public abstract class TransactionManagers {
                         timelockNamespace,
                         timelockRequestBatcherProviders,
                         lockWatchEventCache,
+                        valueCache,
                         multiClientTimelockServiceSupplier));
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
@@ -1250,6 +1255,7 @@ public abstract class TransactionManagers {
                 .timelock(remoteTimelockServiceAdapter)
                 .lockWatcher(lockWatchManager)
                 .eventCache(lockWatchEventCache)
+                .valueCache(valueCache)
                 .addResources(remoteTimelockServiceAdapter::close)
                 .addResources(lockWatchManager::close)
                 .build();
@@ -1259,9 +1265,11 @@ public abstract class TransactionManagers {
             String namespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             LockWatchEventCache lockWatchEventCache,
+            LockWatchValueCache lockWatchValueCache,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
         return RequestBatchersFactory.create(
                 lockWatchEventCache,
+                lockWatchValueCache,
                 Namespace.of(namespace),
                 timelockRequestBatcherProviders.map(batcherProviders -> ImmutableMultiClientRequestBatchers.of(
                         batcherProviders.commitTimestamps().getBatcher(multiClientTimelockServiceSupplier),
@@ -1521,6 +1529,11 @@ public abstract class TransactionManagers {
         @Value.Default
         default LockWatchEventCache eventCache() {
             return NoOpLockWatchEventCache.create();
+        }
+
+        @Value.Default
+        default LockWatchValueCache valueCache() {
+            return new LockWatchValueCacheImpl(eventCache());
         }
 
         @Value.Derived

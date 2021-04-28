@@ -20,6 +20,7 @@ import static com.palantir.lock.client.MultiClientTransactionStarter.processBatc
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -35,6 +36,7 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.client.MultiClientTransactionStarter.NamespaceAndRequestParams;
 import com.palantir.lock.client.MultiClientTransactionStarter.RequestParams;
 import com.palantir.lock.v2.LockToken;
@@ -57,6 +59,7 @@ import org.mockito.ArgumentCaptor;
 public class MultiClientTransactionStarterTest {
     private static final int PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL = 5;
     private static final Map<Namespace, StartTransactionsLockWatchEventCache> NAMESPACE_CACHE_MAP = new HashMap<>();
+    private static final Map<Namespace, ValueCacheUpdater> NAMESPACE_VALUE_CACHE_UPDATER_MAP = new HashMap<>();
     private static final Map<Namespace, LockCleanupService> LOCK_CLEANUP_SERVICE_MAP = new HashMap<>();
     private static final SafeIllegalStateException EXCEPTION = new SafeIllegalStateException("Something went wrong!");
 
@@ -103,6 +106,7 @@ public class MultiClientTransactionStarterTest {
         setupServiceAndAssertSanity(ImmutableList.of(
                 batchElementForNamespace(namespace, PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL - 1)));
         verify(getCache(namespace)).processStartTransactionsUpdate(any(), any());
+        verify(getValueCache(namespace)).processStartTransactions(anySet());
     }
 
     @Test
@@ -216,6 +220,7 @@ public class MultiClientTransactionStarterTest {
                         RequestParams.of(
                                 numTransactions,
                                 getCache(namespace),
+                                getValueCache(namespace),
                                 LOCK_CLEANUP_SERVICE_MAP.computeIfAbsent(
                                         namespace, _unused -> mock(LockCleanupService.class)))),
                 new DisruptorFuture<>("test"));
@@ -316,6 +321,10 @@ public class MultiClientTransactionStarterTest {
 
     private StartTransactionsLockWatchEventCache getCache(Namespace namespace) {
         return NAMESPACE_CACHE_MAP.computeIfAbsent(namespace, _u -> mock(StartTransactionsLockWatchEventCache.class));
+    }
+
+    private ValueCacheUpdater getValueCache(Namespace namespace) {
+        return NAMESPACE_VALUE_CACHE_UPDATER_MAP.computeIfAbsent(namespace, _u -> mock(ValueCacheUpdater.class));
     }
 
     public Map<Namespace, ConjureStartTransactionsResponse> startTransactions(

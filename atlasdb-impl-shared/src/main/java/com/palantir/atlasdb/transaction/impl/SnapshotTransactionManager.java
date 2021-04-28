@@ -115,6 +115,7 @@ import org.slf4j.LoggerFactory;
             TimelockService timelockService,
             LockWatchManager lockWatchManager,
             LockWatchEventCache lockWatchEventCache,
+            LockWatchValueCache lockWatchValueCache,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             @NotNull TransactionService transactionService,
@@ -135,9 +136,7 @@ import org.slf4j.LoggerFactory;
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         this.lockWatchEventCache = lockWatchEventCache;
-        // todo(gmaretic): this needs to actually be craeted in TMs, so that a hook for processing start transactions
-        // is passed into TStarter
-        this.lockWatchValueCache = new LockWatchValueCacheImpl(lockWatchEventCache);
+        this.lockWatchValueCache = lockWatchValueCache;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -220,6 +219,10 @@ import org.slf4j.LoggerFactory;
                     .collect(Collectors.toSet()));
             responses.forEach(response -> lockWatchEventCache.removeTransactionStateFromCache(
                     response.startTimestampAndPartition().timestamp()));
+            lockWatchValueCache.processFailedTransactions(responses.stream()
+                    .map(StartIdentifiedAtlasDbTransactionResponse::startTimestampAndPartition)
+                    .map(TimestampAndPartition::timestamp)
+                    .collect(Collectors.toSet()));
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }

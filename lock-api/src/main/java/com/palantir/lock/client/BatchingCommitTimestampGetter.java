@@ -23,6 +23,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -45,8 +46,10 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
         this.autobatcher = autobatcher;
     }
 
-    public static BatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchEventCache cache) {
-        DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(consumer(leaseService, cache))
+    public static BatchingCommitTimestampGetter create(
+            LockLeaseService leaseService, LockWatchEventCache eventCache, ValueCacheUpdater valueCache) {
+        DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(
+                        consumer(leaseService, eventCache, valueCache))
                 .safeLoggablePurpose("get-commit-timestamp")
                 .build();
         return new BatchingCommitTimestampGetter(autobatcher);
@@ -62,15 +65,16 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
 
     @VisibleForTesting
     static Consumer<List<BatchElement<Request, Long>>> consumer(
-            LockLeaseService leaseService, LockWatchEventCache cache) {
+            LockLeaseService leaseService, LockWatchEventCache eventCache, ValueCacheUpdater valueCache) {
         return batch -> {
             int count = batch.size();
             List<Long> commitTimestamps = new ArrayList<>();
             while (commitTimestamps.size() < count) {
-                Optional<LockWatchVersion> requestedVersion = cache.lastKnownVersion();
+                Optional<LockWatchVersion> requestedVersion = eventCache.lastKnownVersion();
                 GetCommitTimestampsResponse response =
                         leaseService.getCommitTimestamps(requestedVersion, count - commitTimestamps.size());
-                commitTimestamps.addAll(process(batch.subList(commitTimestamps.size(), count), response, cache));
+                commitTimestamps.addAll(
+                        process(batch.subList(commitTimestamps.size(), count), response, eventCache, valueCache));
                 LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
             }
 
@@ -83,7 +87,8 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     private static List<Long> process(
             List<BatchElement<Request, Long>> requests,
             GetCommitTimestampsResponse response,
-            LockWatchEventCache cache) {
+            LockWatchEventCache eventCache,
+            ValueCacheUpdater valueCache) {
         List<Long> timestamps = LongStream.rangeClosed(response.getInclusiveLower(), response.getInclusiveUpper())
                 .boxed()
                 .collect(Collectors.toList());
@@ -94,7 +99,9 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
                                 .writesToken(batchElement.argument().commitLocksToken())
                                 .build())
                 .collect(Collectors.toList());
-        cache.processGetCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
+        eventCache.processGetCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
+        valueCache.updateCacheOnCommit(
+                transactionUpdates.stream().map(TransactionUpdate::startTs).collect(Collectors.toSet()));
         return timestamps;
     }
 

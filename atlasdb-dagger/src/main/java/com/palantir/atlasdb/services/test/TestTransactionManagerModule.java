@@ -107,6 +107,7 @@ public class TestTransactionManagerModule {
                 lts.timelock(),
                 lts.lockWatcher(),
                 lts.eventCache(),
+                lts.valueCache(),
                 lts.managedTimestampService(),
                 lts.lock(),
                 transactionService,

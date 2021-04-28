@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,6 +35,7 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
@@ -55,6 +57,7 @@ public class TransactionStarterTest {
 
     private final StartTransactionsLockWatchEventCache lockWatchEventCache =
             spy(StartTransactionsLockWatchEventCache.createForTests());
+    private final ValueCacheUpdater valueCache = mock(ValueCacheUpdater.class);
     private final Optional<LockWatchVersion> version = lockWatchEventCache.lastKnownVersion();
     private TransactionStarter transactionStarter;
 
@@ -149,7 +152,7 @@ public class TransactionStarterTest {
                                 .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
                                 .build())
                 .collect(toList());
-        BatchingIdentifiedAtlasDbTransactionStarter.consumer(lockLeaseService, lockWatchEventCache)
+        BatchingIdentifiedAtlasDbTransactionStarter.consumer(lockLeaseService, lockWatchEventCache, valueCache)
                 .accept(elements);
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
     }

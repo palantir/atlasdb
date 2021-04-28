@@ -69,7 +69,6 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
@@ -782,8 +781,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return cache.get(
                 tableRef,
                 cells,
-                (table, uncached) -> AtlasFutures.getUnchecked(
-                        getInternal("get", tableRef, cells, immediateKeyValueService, immediateTransactionService)));
+                (table, uncached) ->
+                        getInternal("get", tableRef, cells, immediateKeyValueService, immediateTransactionService));
     }
 
     @Override
@@ -1581,14 +1580,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
         putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
-        cells.forEach(cell -> cache.write(tableRef, cell, CacheValue.empty()));
+        cache.delete(tableRef, cells);
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         ensureNoEmptyValues(values);
         putInternal(tableRef, values);
-        values.forEach((cell, value) -> cache.write(tableRef, cell, CacheValue.of(value)));
+        cache.write(tableRef, values);
     }
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
@@ -1827,8 +1826,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 traced(
                         "commitPutCommitTs",
                         () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
-
-                lockWatchValueCache.updateCacheOnCommit(cache.getDigest(), getStartTimestamp());
 
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);

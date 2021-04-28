@@ -30,6 +30,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -65,8 +66,9 @@ public final class BatchingCommitTimestampGetterTest {
 
     private final LockLeaseService lockLeaseService = mock(LockLeaseService.class);
     private final LockWatchEventCache cache = mock(LockWatchEventCache.class);
+    private final ValueCacheUpdater updater = mock(ValueCacheUpdater.class);
     private final Consumer<List<BatchElement<BatchingCommitTimestampGetter.Request, Long>>> batchProcessor =
-            BatchingCommitTimestampGetter.consumer(lockLeaseService, cache);
+            BatchingCommitTimestampGetter.consumer(lockLeaseService, cache, updater);
 
     @Test
     public void consumerFillsTheWholeBatch() {

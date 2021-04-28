@@ -78,7 +78,7 @@ public final class LockWatchValueCacheImplTest {
             ImmutableSet.of(LockWatchReferences.entireTable(TABLE.getQualifiedName())));
 
     private LockWatchEventCache eventCache;
-    private LockWatchValueCache valueCache;
+    private LockWatchValueCacheImpl valueCache;
 
     @Before
     public void before() {
