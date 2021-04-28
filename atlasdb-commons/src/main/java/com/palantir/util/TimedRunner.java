@@ -79,7 +79,7 @@ public final class TimedRunner {
         Callable<T> task();
 
         /**
-         * Executed only if the shutdownCallback times out or otherwise has an exception.
+         * Executed only if the task times out or otherwise has an exception.
          */
         Runnable taskFailureHandler();
 
