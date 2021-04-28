@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServi
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -162,6 +163,14 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Value.Default
     default Duration timeoutOnConnectionClose() {
         return Duration.ofSeconds(10);
+    }
+
+    /**
+     * Times out after the provided duration when borrowing objects from the Cassandra client pool.
+     */
+    @Value.Default
+    default HumanReadableDuration timeoutOnConnectionBorrow() {
+        return HumanReadableDuration.minutes(60);
     }
 
     @JsonIgnore
