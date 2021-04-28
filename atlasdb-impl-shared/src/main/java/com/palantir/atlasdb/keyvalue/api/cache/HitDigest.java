@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package org.apache.commons.pool2.impl;
+package com.palantir.atlasdb.keyvalue.api.cache;
 
-/**
- * This class exists solely to expose package-private methods on {@link EvictionTimer}; this should be removed once
- * the internal investigation into the missing eviction problem is resolved.
- */
-public final class ExposedEvictionTimer {
-    private ExposedEvictionTimer() {
-        // no-op
-    }
+import com.palantir.atlasdb.keyvalue.api.CellReference;
+import java.util.Set;
+import org.immutables.value.Value;
 
-    public static long getNumTasks() {
-        return EvictionTimer.getNumTasks();
+@Value.Immutable
+public interface HitDigest {
+    Set<CellReference> hitCells();
+
+    static HitDigest of(Set<CellReference> hitCells) {
+        return ImmutableHitDigest.builder().hitCells(hitCells).build();
     }
 }

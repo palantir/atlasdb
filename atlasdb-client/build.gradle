@@ -1,11 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-repositories {
-    mavenCentral()
-    maven { url 'https://palantir.bintray.com/releases' }
-    jcenter()
-}
-
 schemas = [
     'com.palantir.atlasdb.schema.CompactSchema',
     'com.palantir.atlasdb.schema.SweepSchema',

@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Time out after a default time of ten minutes when borrowing objects from the Cassandra client pooling container.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5396

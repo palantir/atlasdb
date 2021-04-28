@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.immutables.value.Value;
 
@@ -94,11 +95,19 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
-    public Map<CellReference, CacheValue> getTransactionDigest() {
+    public Map<CellReference, CacheValue> getValueDigest() {
         return KeyedStream.stream(localUpdates)
                 .filter(entry -> entry.status().equals(Status.READ))
                 .map(LocalCacheEntry::value)
                 .collectToMap();
+    }
+
+    @Override
+    public Set<CellReference> getHitDigest() {
+        return KeyedStream.stream(localUpdates)
+                .filter(entry -> entry.status().equals(Status.HIT))
+                .keys()
+                .collect(Collectors.toSet());
     }
 
     private Map<Cell, CacheValue> getLocallyCachedValues(TableReference table, Set<Cell> cells) {

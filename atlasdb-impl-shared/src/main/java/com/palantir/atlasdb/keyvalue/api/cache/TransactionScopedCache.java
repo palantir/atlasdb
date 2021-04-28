@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
@@ -40,15 +41,21 @@ import java.util.function.BiFunction;
  * values in the cache is just as safe as reading a snapshot of the database taken at the start timestamp.
  */
 public interface TransactionScopedCache {
-    void write(TableReference tableReference, Cell cell, CacheValue value);
+    void write(TableReference tableReference, Map<Cell, byte[]> values);
 
+    void delete(TableReference tableReference, Set<Cell> cells);
+
+    /**
+     * This should be used for performing *synchronous* gets. The reason the value loader function returns a listenable
+     * future is to optimise parallel requests to the cache: only the code that directly affects the state of the
+     * cache is synchronised, while loads from the database are done outside synchronised blocks.
+     */
     Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cell,
-            BiFunction<TableReference, Set<Cell>, Map<Cell, byte[]>> valueLoader);
+            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
 
-    TransactionDigest getDigest();
+    ValueDigest getValueDigest();
 
-    // TODO(jshah): we need some form of digest that instead lists the hit values for the sake of serialisable
-    //  transactions.
+    HitDigest getHitDigest();
 }
