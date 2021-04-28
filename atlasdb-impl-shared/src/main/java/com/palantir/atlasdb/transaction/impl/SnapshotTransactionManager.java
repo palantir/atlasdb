@@ -191,10 +191,6 @@ import org.slf4j.LoggerFactory;
                 timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
         Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
         try {
-            lockWatchValueCache.processStartTransactions(responses.stream()
-                    .map(StartIdentifiedAtlasDbTransactionResponse::startTimestampAndPartition)
-                    .map(TimestampAndPartition::timestamp)
-                    .collect(Collectors.toSet()));
             long immutableTs = responses.stream()
                     .mapToLong(response -> response.immutableTimestamp().getImmutableTimestamp())
                     .max()
