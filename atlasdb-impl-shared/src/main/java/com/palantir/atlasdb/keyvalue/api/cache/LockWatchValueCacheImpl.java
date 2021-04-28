@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
@@ -35,8 +36,10 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
@@ -54,6 +57,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     private final LockWatchEventCache eventCache;
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
+    private final Map<StartTimestamp, TransactionScopedCache> caches;
 
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
@@ -61,6 +65,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         this.eventCache = eventCache;
         this.valueStore = new ValueStoreImpl(MAX_CACHE_SIZE);
         this.snapshotStore = new SnapshotStoreImpl();
+        this.caches = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -75,39 +80,47 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     //  issue. Chances are that this may need to be re-jigged to take a batch, and be connected to the batched commit
     //  timestamp call.
     @Override
-    public synchronized void updateCacheOnCommit(ValueDigest digest, long startTs) {
+    public synchronized void updateCacheOnCommit(Set<Long> startTimestamps) {
         try {
-            CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTs);
-            commitUpdate.accept(new Visitor<Void>() {
-                @Override
-                public Void invalidateAll() {
-                    // This might happen due to an election or if we exceeded the maximum number of events held in
-                    // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
-                    // because of read-write conflicts, that is handled in the PreCommitCondition.
-                    return null;
-                }
+            startTimestamps.forEach(startTs -> {
+                CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTs);
+                commitUpdate.accept(new Visitor<Void>() {
+                    @Override
+                    public Void invalidateAll() {
+                        // This might happen due to an election or if we exceeded the maximum number of events held in
+                        // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
+                        // because of read-write conflicts, that is handled in the PreCommitCondition.
+                        return null;
+                    }
 
-                @Override
-                public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-                    Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                            .flatMap(LockWatchValueCacheImpl::extractTableAndCell)
-                            .collect(Collectors.toSet());
-                    KeyedStream.stream(digest.loadedValues())
-                            .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
-                            .forEach(valueStore::putValue);
-                    return null;
-                }
+                    @Override
+                    public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                        Set<CellReference> invalidatedCells = invalidatedLocks.stream()
+                                .flatMap(LockWatchValueCacheImpl::extractTableAndCell)
+                                .collect(Collectors.toSet());
+                        KeyedStream.stream(Optional.ofNullable(caches.get(StartTimestamp.of(startTs)))
+                                        .map(TransactionScopedCache::getValueDigest)
+                                        .map(ValueDigest::loadedValues)
+                                        .orElseGet(ImmutableMap::of))
+                                .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
+                                .forEach(valueStore::putValue);
+                        return null;
+                    }
+                });
             });
         } finally {
-            // Remove the timestamp, and if the sequence has not updated, update the snapshot with the reads from
-            // this transaction.
-            snapshotStore
-                    .removeTimestamp(StartTimestamp.of(startTs))
-                    .ifPresent(sequence -> currentVersion.ifPresent(current -> {
-                        if (sequence.value() == current.version()) {
-                            snapshotStore.updateSnapshot(sequence, valueStore.getSnapshot());
-                        }
-                    }));
+            // Remove the timestamps, and if the sequence has not updated, update the snapshot with the reads from
+            // these transactions (there is no guarantee that all the start timestamps have the same sequence).
+            startTimestamps.stream().map(StartTimestamp::of).forEach(startTs -> {
+                snapshotStore
+                        .removeTimestamp(startTs)
+                        .ifPresent(sequence -> currentVersion.ifPresent(current -> {
+                            if (sequence.value() == current.version()) {
+                                snapshotStore.updateSnapshot(sequence, valueStore.getSnapshot());
+                            }
+                        }));
+                caches.remove(startTs);
+            });
         }
     }
 
@@ -115,9 +128,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
         // Snapshots may be missing due to leader elections. In this case, the transaction will not read from the
         // cache or publish anything to the cache at commit time.
-        return snapshotStore
-                .getSnapshot(StartTimestamp.of(startTs))
-                .map(TransactionScopedCacheImpl::create)
+        return Optional.ofNullable(caches.get(StartTimestamp.of(startTs)))
                 .orElseGet(NoOpTransactionScopedCache::create);
     }
 
@@ -148,6 +159,13 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         });
 
         assertNoSnapshotsMissing(reversedMap.keySet());
+
+        updateForTransactions.startTsToSequence().keySet().stream()
+                .map(StartTimestamp::of)
+                .forEach(startTs -> caches.put(
+                        startTs,
+                        TransactionScopedCacheImpl.create(
+                                snapshotStore.getSnapshot(startTs).get())));
     }
 
     private boolean isNewEvent(LockWatchEvent event) {

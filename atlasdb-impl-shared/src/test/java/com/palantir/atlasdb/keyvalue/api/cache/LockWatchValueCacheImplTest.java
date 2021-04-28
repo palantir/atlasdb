@@ -94,7 +94,7 @@ public final class LockWatchValueCacheImplTest {
         TransactionScopedCache scopedCache1 = valueCache.createTransactionScopedCache(TIMESTAMP_1);
         assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
         processCommitTimestamp(TIMESTAMP_1, 0L);
-        valueCache.updateCacheOnCommit(scopedCache1.getValueDigest(), TIMESTAMP_1);
+        valueCache.updateCacheOnCommit(startTimestamps);
 
         TransactionScopedCache scopedCache2 = valueCache.createTransactionScopedCache(TIMESTAMP_2);
         assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1)).isEmpty();
@@ -108,7 +108,7 @@ public final class LockWatchValueCacheImplTest {
         TransactionScopedCache scopedCache1 = valueCache.createTransactionScopedCache(TIMESTAMP_1);
         assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
         processCommitTimestamp(TIMESTAMP_1, 0L);
-        valueCache.updateCacheOnCommit(scopedCache1.getValueDigest(), TIMESTAMP_1);
+        valueCache.updateCacheOnCommit(startTimestamps);
 
         eventCache.processStartTransactionsUpdate(
                 ImmutableSet.of(TIMESTAMP_2), LockWatchStateUpdate.success(LEADER, 0L, ImmutableList.of()));
@@ -133,7 +133,7 @@ public final class LockWatchValueCacheImplTest {
 
         // Throws this message because the leader election cleared the info entirely (as opposed to us knowing that
         // there was an election)
-        assertThatThrownBy(() -> valueCache.updateCacheOnCommit(scopedCache1.getValueDigest(), TIMESTAMP_1))
+        assertThatThrownBy(() -> valueCache.updateCacheOnCommit(startTimestamps))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("start or commit info not processed for start timestamp");
     }
@@ -146,7 +146,7 @@ public final class LockWatchValueCacheImplTest {
         TransactionScopedCache scopedCache1 = valueCache.createTransactionScopedCache(TIMESTAMP_1);
         assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1, CELL_3);
         processCommitTimestamp(TIMESTAMP_1, 0L);
-        valueCache.updateCacheOnCommit(scopedCache1.getValueDigest(), TIMESTAMP_1);
+        valueCache.updateCacheOnCommit(startTimestamps);
         assertThat(scopedCache1.getHitDigest().hitCells()).isEmpty();
 
         eventCache.processStartTransactionsUpdate(
@@ -159,7 +159,7 @@ public final class LockWatchValueCacheImplTest {
         assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_3))
                 .containsExactlyInAnyOrder(CELL_1);
         processCommitTimestamp(TIMESTAMP_2, 1L);
-        valueCache.updateCacheOnCommit(scopedCache2.getValueDigest(), TIMESTAMP_2);
+        valueCache.updateCacheOnCommit(startTimestamps);
         assertThat(scopedCache2.getHitDigest().hitCells()).containsExactly(CellReference.of(TABLE, CELL_3));
 
         eventCache.processStartTransactionsUpdate(
