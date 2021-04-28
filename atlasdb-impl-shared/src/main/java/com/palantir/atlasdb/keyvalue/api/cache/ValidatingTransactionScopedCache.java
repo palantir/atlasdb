@@ -38,12 +38,12 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     private static final Logger log = LoggerFactory.getLogger(ValidatingTransactionScopedCache.class);
 
     private final TransactionScopedCache delegate;
-    private final Supplier<Boolean> validationSupplier;
+    private final Supplier<Boolean> shouldValidate;
 
     @VisibleForTesting
-    ValidatingTransactionScopedCache(TransactionScopedCache delegate, Supplier<Boolean> validationSupplier) {
+    ValidatingTransactionScopedCache(TransactionScopedCache delegate, Supplier<Boolean> shouldValidate) {
         this.delegate = delegate;
-        this.validationSupplier = validationSupplier;
+        this.shouldValidate = shouldValidate;
     }
 
     static ValidatingTransactionScopedCache create(TransactionScopedCache delegate, double validationProbability) {
@@ -66,7 +66,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             TableReference tableReference,
             Set<Cell> cell,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        if (validationSupplier.get()) {
+        if (shouldValidate.get()) {
             Map<Cell, byte[]> remoteReads = AtlasFutures.getUnchecked(valueLoader.apply(tableReference, cell));
             Map<Cell, byte[]> cacheReads =
                     delegate.get(tableReference, cell, (table, cells) -> getCells(remoteReads, cells));
@@ -98,6 +98,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     private static void validateCacheReads(
             TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
         if (!remoteReads.equals(cacheReads)) {
+            // TODO(jshah): make sure that this causes us to disable all caching until restart
             log.error(
                     "Reading from lock watch cache returned a different result to a remote read - this indicates there "
                             + "is a corruption bug in the caching logic",

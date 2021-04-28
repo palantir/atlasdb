@@ -93,6 +93,8 @@ public final class LockWatchValueCacheImplTest {
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
 
         TransactionScopedCache scopedCache = valueCache.createTransactionScopedCache(TIMESTAMP_1);
+
+        // This confirms that we always read from remote when validation is set to 1.0.
         assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
         assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
     }
