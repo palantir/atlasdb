@@ -17,10 +17,8 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
-import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -45,13 +43,14 @@ final class CacheStoreImpl implements CacheStore {
     }
 
     @Override
-    public void createCaches(Set<StartTimestamp> startTimestamps) {
-        KeyedStream.of(startTimestamps)
-                .map(snapshotStore::getSnapshot)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+    public Optional<TransactionScopedCache> createCache(StartTimestamp startTimestamp) {
+        return snapshotStore
+                .getSnapshot(startTimestamp)
                 .map(TransactionScopedCacheImpl::create)
-                .forEach(cacheMap::put);
+                .map(cache -> {
+                    cacheMap.put(startTimestamp, cache);
+                    return cache;
+                });
     }
 
     @Override

@@ -96,7 +96,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
         // Snapshots may be missing due to leader elections. In this case, the transaction will not read from the
         // cache or publish anything to the cache at commit time.
-        return cacheStore.getCache(StartTimestamp.of(startTs)).orElseGet(NoOpTransactionScopedCache::create);
+        return cacheStore.createCache(StartTimestamp.of(startTs)).orElseGet(NoOpTransactionScopedCache::create);
     }
 
     private synchronized void processCommitUpdate(long startTimestamp) {
@@ -154,10 +154,6 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         });
 
         assertNoSnapshotsMissing(reversedMap.keySet());
-
-        cacheStore.createCaches(updateForTransactions.startTsToSequence().keySet().stream()
-                .map(StartTimestamp::of)
-                .collect(Collectors.toSet()));
     }
 
     private boolean isNewEvent(LockWatchEvent event) {
