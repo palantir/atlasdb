@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 
 final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     private static final Logger log = LoggerFactory.getLogger(ValidatingTransactionScopedCache.class);
-    private static final double VALIDATION_PROBABILITY = 1.0;
 
     private final TransactionScopedCache delegate;
     private final Supplier<Boolean> validationSupplier;
@@ -47,9 +46,9 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
         this.validationSupplier = validationSupplier;
     }
 
-    static ValidatingTransactionScopedCache create(TransactionScopedCache delegate) {
+    static ValidatingTransactionScopedCache create(TransactionScopedCache delegate, double validationProbability) {
         return new ValidatingTransactionScopedCache(
-                delegate, () -> ThreadLocalRandom.current().nextDouble() < VALIDATION_PROBABILITY);
+                delegate, () -> ThreadLocalRandom.current().nextDouble() < validationProbability);
     }
 
     @Override

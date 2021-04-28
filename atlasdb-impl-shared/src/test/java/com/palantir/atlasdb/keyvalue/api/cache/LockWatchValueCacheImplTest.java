@@ -83,7 +83,7 @@ public final class LockWatchValueCacheImplTest {
     @Before
     public void before() {
         eventCache = LockWatchEventCacheImpl.create(MetricsManagers.createForTests());
-        valueCache = new LockWatchValueCacheImpl(eventCache);
+        valueCache = new LockWatchValueCacheImpl(eventCache, 20_000, 0.0);
     }
 
     @Test
