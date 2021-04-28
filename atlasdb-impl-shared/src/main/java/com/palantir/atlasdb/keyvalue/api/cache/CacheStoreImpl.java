@@ -33,6 +33,17 @@ final class CacheStoreImpl implements CacheStore {
     }
 
     @Override
+    public Optional<TransactionScopedCache> createCache(StartTimestamp timestamp) {
+        return snapshotStore
+                .getSnapshot(timestamp)
+                .map(TransactionScopedCacheImpl::create)
+                .map(cache -> {
+                    cacheMap.put(timestamp, cache);
+                    return cache;
+                });
+    }
+
+    @Override
     public Optional<TransactionScopedCache> getCache(StartTimestamp timestamp) {
         return Optional.ofNullable(cacheMap.get(timestamp));
     }
@@ -40,17 +51,6 @@ final class CacheStoreImpl implements CacheStore {
     @Override
     public void removeCache(StartTimestamp timestamp) {
         cacheMap.remove(timestamp);
-    }
-
-    @Override
-    public Optional<TransactionScopedCache> createCache(StartTimestamp startTimestamp) {
-        return snapshotStore
-                .getSnapshot(startTimestamp)
-                .map(TransactionScopedCacheImpl::create)
-                .map(cache -> {
-                    cacheMap.put(startTimestamp, cache);
-                    return cache;
-                });
     }
 
     @Override
