@@ -25,9 +25,17 @@ public final class StreamTestUtils {
     }
 
     public static void storeFiveStreams(TodoResource todoClient, int streamSize) {
+        storeStreams(todoClient, streamSize, 5);
+    }
+
+    public static void storeThreeStreams(TodoResource todoClient, int streamSize) {
+        storeStreams(todoClient, streamSize, 3);
+    }
+
+    private static void storeStreams(TodoResource todoClient, int streamSize, int streamsCount) {
         Random random = new Random();
         byte[] bytes = new byte[streamSize];
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < streamsCount; i++) {
             random.nextBytes(bytes);
             todoClient.storeSnapshot(PtBytes.toString(bytes));
         }
