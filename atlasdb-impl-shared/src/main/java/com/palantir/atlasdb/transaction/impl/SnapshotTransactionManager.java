@@ -54,7 +54,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -204,10 +203,8 @@ import org.slf4j.LoggerFactory;
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
                     .collect(Collectors.toSet()));
-            responses.forEach(response -> lockWatchManager
-                    .getCache()
-                    .removeTransactionStateFromCache(
-                            response.startTimestampAndPartition().timestamp()));
+            responses.forEach(response -> lockWatchManager.removeTransactionStateFromCache(
+                    response.startTimestampAndPartition().timestamp()));
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
@@ -240,7 +237,7 @@ import org.slf4j.LoggerFactory;
             try {
                 result = runTaskThrowOnConflict(wrappedTask, tx);
             } finally {
-                lockWatchManager.getCache().removeTransactionStateFromCache(getTimestamp());
+                lockWatchManager.removeTransactionStateFromCache(getTimestamp());
                 postTaskContext = postTaskTimer.time();
                 timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
             }
@@ -321,8 +318,6 @@ import org.slf4j.LoggerFactory;
                 keyValueService,
                 timelockService,
                 lockWatchManager,
-                // cannot use caching if we do not talk to timelock
-                new LockWatchValueCacheImpl(NoOpLockWatchEventCache.create()),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 getStartTimestampSupplier(),

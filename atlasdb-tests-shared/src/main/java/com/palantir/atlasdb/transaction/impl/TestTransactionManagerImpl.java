@@ -23,7 +23,6 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -41,7 +40,6 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.util.HashMap;
@@ -104,9 +102,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
-                NoOpLockWatchEventCache.create(),
-                new LockWatchValueCacheImpl(NoOpLockWatchEventCache.create()),
+                NoOpLockWatchManager.create(),
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -148,9 +144,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
-                NoOpLockWatchEventCache.create(),
-                new LockWatchValueCacheImpl(NoOpLockWatchEventCache.create()),
+                NoOpLockWatchManager.create(),
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -234,7 +228,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
                         lockWatchManager,
-                        lockWatchValueCache,
                         transactionService,
                         cleaner,
                         startTimestampSupplier,

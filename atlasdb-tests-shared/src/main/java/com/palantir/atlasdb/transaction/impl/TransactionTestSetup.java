@@ -47,7 +47,6 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -145,7 +144,7 @@ public abstract class TransactionTestSetup {
         timestampService = ts;
         timestampManagementService = ts;
         timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
-        lockWatchManager = NoOpLockWatchManager.create(NoOpLockWatchEventCache.create());
+        lockWatchManager = NoOpLockWatchManager.create();
         transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);

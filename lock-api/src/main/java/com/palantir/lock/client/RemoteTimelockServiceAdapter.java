@@ -19,7 +19,6 @@ package com.palantir.lock.client;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -29,7 +28,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
 import java.util.Optional;
@@ -58,13 +57,12 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             Namespace namespace,
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
-            LockWatchEventCache lockWatchEventCache) {
+            LockWatchCache lockWatchCache) {
         return create(
                 rpcClient,
                 conjureClient,
                 new LegacyLeaderTimeGetter(conjureClient),
-                RequestBatchersFactory.create(
-                        lockWatchEventCache, ValueCacheUpdater.NO_OP, namespace, Optional.empty()));
+                RequestBatchersFactory.create(lockWatchCache, namespace, Optional.empty()));
     }
 
     public static RemoteTimelockServiceAdapter create(

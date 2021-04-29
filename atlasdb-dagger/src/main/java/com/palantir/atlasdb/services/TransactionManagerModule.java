@@ -97,8 +97,6 @@ public class TransactionManagerModule {
                 kvs,
                 lts.timelock(),
                 lts.lockWatcher(),
-                lts.eventCache(),
-                lts.valueCache(),
                 lts.managedTimestampService(),
                 lts.lock(),
                 transactionService,

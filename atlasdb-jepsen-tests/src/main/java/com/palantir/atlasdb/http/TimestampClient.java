@@ -22,7 +22,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.timestamp.TimestampService;
 import java.util.List;
 
@@ -35,6 +35,6 @@ public final class TimestampClient {
                 Namespace.of(TimelockUtils.NAMESPACE),
                 new NamespacedTimelockRpcClient(provider.getTimelockRpcClient(), TimelockUtils.NAMESPACE),
                 new NamespacedConjureTimelockServiceImpl(provider.getConjureTimelockService(), TimelockUtils.NAMESPACE),
-                NoOpLockWatchEventCache.create()));
+                LockWatchCacheImpl.noop()));
     }
 }

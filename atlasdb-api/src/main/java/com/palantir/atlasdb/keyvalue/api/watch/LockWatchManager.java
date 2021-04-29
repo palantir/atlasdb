@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
@@ -53,6 +52,4 @@ public abstract class LockWatchManager {
      */
     abstract TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version);
-
-    abstract LockWatchCache getCache();
 }

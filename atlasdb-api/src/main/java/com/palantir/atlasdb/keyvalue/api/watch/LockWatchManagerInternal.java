@@ -16,9 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.lock.watch.LockWatchCache;
 
-public abstract class LockWatchManagerInternal extends LockWatchManager {
-    @Override
+public abstract class LockWatchManagerInternal extends LockWatchManager implements AutoCloseable {
     public abstract LockWatchCache getCache();
+
+    public abstract void removeTransactionStateFromCache(long startTs);
+
+    public abstract TransactionScopedCache createTransactionScopedCache(long startTs);
+
+    @Override
+    public abstract void close();
 }

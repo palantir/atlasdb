@@ -27,7 +27,6 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -45,7 +44,6 @@ import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Assume;
@@ -162,8 +160,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 MetricsManagers.createForTests(),
                 keyValueService,
                 timelockService,
-                NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
-                new LockWatchValueCacheImpl(NoOpLockWatchEventCache.create()),
+                NoOpLockWatchManager.create(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),

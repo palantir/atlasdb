@@ -19,7 +19,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -27,7 +27,6 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.AbstractExecutorService;
@@ -86,8 +85,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 metricsManager,
                 keyValueService,
                 null,
-                null,
-                new LockWatchValueCacheImpl(NoOpLockWatchEventCache.create()),
+                NoOpLockWatchManager.create(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimeStamp,

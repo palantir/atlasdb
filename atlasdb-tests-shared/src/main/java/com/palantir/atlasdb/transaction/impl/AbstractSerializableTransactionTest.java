@@ -47,7 +47,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
@@ -71,7 +70,6 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
 import java.util.Collections;
@@ -141,8 +139,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 MetricsManagers.createForTests(),
                 keyValueService,
                 timelockService,
-                NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
-                new LockWatchValueCacheImpl(NoOpLockWatchEventCache.create()),
+                NoOpLockWatchManager.create(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
