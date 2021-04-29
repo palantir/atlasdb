@@ -23,10 +23,14 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import java.time.Duration;
 import org.awaitility.Awaitility;
 import org.junit.After;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 public class TargetedSweepEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
@@ -40,6 +44,9 @@ public class TargetedSweepEteTest {
     private static final TableReference VALUES_TABLE =
             FACTORY.getSnapshotsStreamValueTable(null).getTableRef();
 
+    @Rule
+    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
+
     private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
     @After
@@ -48,7 +55,7 @@ public class TargetedSweepEteTest {
     }
 
     @Test
-    public void backgroundThoroughSweepDeletesOldVersion() throws InterruptedException {
+    public void backgroundThoroughSweepDeletesOldVersion() {
         long ts = todoClient.addTodoWithIdAndReturnTimestamp(100L, TODO);
         assertThat(todoClient.doesNotExistBeforeTimestamp(100L, ts)).isFalse();
 
@@ -59,39 +66,33 @@ public class TargetedSweepEteTest {
     }
 
     @Test
+    @ShouldRetry
     public void targetedSweepSmallStreamsTest() {
-        // store 5 streams, marking 4 as unused
-        StreamTestUtils.storeFiveStreams(todoClient, 20);
+        // store 3 streams, marking 2 as unused
+        StreamTestUtils.storeThreeStreams(todoClient, 20);
         // first iteration of sweep sweeps away the entries in the index table, and deletes the entries in the
         // other three tables, but does not sweep them yet
         todoClient.runIterationOfTargetedSweep();
-        assertDeleted(4, 4, 4, 4);
-        assertDeletedAndSwept(4, 0, 0, 0);
-
-        // store 5 more streams, marking 1 + 4 as unused
-        StreamTestUtils.storeFiveStreams(todoClient, 20);
-        // sweeps away the 5, 4, 4, 4 entries that were deleted, then deletes the rest
-        todoClient.runIterationOfTargetedSweep();
-        assertDeleted(9, 9, 9, 9);
-        assertDeletedAndSwept(9, 4, 4, 4);
+        assertDeleted(2, 2, 2, 2);
+        assertDeletedAndSwept(2, 0, 0, 0);
 
         // sweeps away the last remaining entries
         todoClient.runIterationOfTargetedSweep();
-        assertDeleted(9, 9, 9, 9);
-        assertDeletedAndSwept(9, 9, 9, 9);
+        assertDeleted(2, 2, 2, 2);
+        assertDeletedAndSwept(2, 2, 2, 2);
     }
 
     @Test
     public void targetedSweepLargeStreamsTest() {
         // same as above, except the stream is bigger, so each uses 4 cells in the values table
-        StreamTestUtils.storeFiveStreams(todoClient, 1500000);
+        StreamTestUtils.storeThreeStreams(todoClient, 1500000);
         todoClient.runIterationOfTargetedSweep();
-        assertDeleted(4, 4, 4, 4 * 4);
-        assertDeletedAndSwept(4, 0, 0, 0);
+        assertDeleted(2, 2, 2, 2 * 4);
+        assertDeletedAndSwept(2, 0, 0, 0);
 
         todoClient.runIterationOfTargetedSweep();
-        assertDeleted(4, 4, 4, 4 * 4);
-        assertDeletedAndSwept(4, 4, 4, 4 * 4);
+        assertDeleted(2, 2, 2, 2 * 4);
+        assertDeletedAndSwept(2, 2, 2, 2 * 4);
     }
 
     @Test
