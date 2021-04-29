@@ -95,10 +95,6 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
         }
     }
 
-    private boolean shouldValidate() {
-        return random.nextDouble() < validationProbability;
-    }
-
     @Override
     public void close() {
         delegate.close();
@@ -114,11 +110,8 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
         return delegate.getHitDigest();
     }
 
-    private static Map<Cell, byte[]> getCells(Map<Cell, byte[]> remoteReads, Set<Cell> cells) {
-        return KeyedStream.of(cells)
-                .map(remoteReads::get)
-                .filter(Objects::nonNull)
-                .collectToMap();
+    private boolean shouldValidate() {
+        return random.nextDouble() < validationProbability;
     }
 
     private void validateCacheReads(
@@ -133,5 +126,12 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
                     UnsafeArg.of("cacheReads", cacheReads));
             throw new TransactionFailedNonRetriableException("Failed lock watch cache validation");
         }
+    }
+
+    private static Map<Cell, byte[]> getCells(Map<Cell, byte[]> remoteReads, Set<Cell> cells) {
+        return KeyedStream.of(cells)
+                .map(remoteReads::get)
+                .filter(Objects::nonNull)
+                .collectToMap();
     }
 }
