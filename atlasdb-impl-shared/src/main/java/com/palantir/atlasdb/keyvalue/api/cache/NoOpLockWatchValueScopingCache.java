@@ -20,6 +20,9 @@ import com.palantir.lock.watch.NoOpLockWatchValueCache;
 
 public final class NoOpLockWatchValueScopingCache extends NoOpLockWatchValueCache
         implements LockWatchValueScopingCache {
+    public static LockWatchValueScopingCache create() {
+        return new NoOpLockWatchValueScopingCache();
+    }
 
     @Override
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
