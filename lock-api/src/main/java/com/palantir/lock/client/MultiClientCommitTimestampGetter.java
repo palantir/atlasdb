@@ -28,9 +28,8 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
@@ -60,17 +59,12 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
     }
 
     public long getCommitTimestamp(
-            Namespace namespace,
-            long startTs,
-            LockToken commitLocksToken,
-            LockWatchEventCache eventCache,
-            ValueCacheUpdater valueCache) {
+            Namespace namespace, long startTs, LockToken commitLocksToken, LockWatchCache cache) {
         return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableNamespacedRequest.builder()
                 .namespace(namespace)
                 .startTs(startTs)
                 .commitLocksToken(commitLocksToken)
-                .cache(eventCache)
-                .valueCache(valueCache)
+                .cache(cache)
                 .build()));
     }
 
@@ -99,7 +93,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
                 NamespacedRequest argument = elem.argument();
                 Namespace namespace = argument.namespace();
                 NamespacedBatchStateManager namespacedBatchStateManager = requestMap.computeIfAbsent(
-                        namespace, _unused -> new NamespacedBatchStateManager(argument.cache(), argument.valueCache()));
+                        namespace, _unused -> new NamespacedBatchStateManager(argument.cache()));
                 namespacedBatchStateManager.addRequest(elem);
             }
 
@@ -125,14 +119,12 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
 
     private static final class NamespacedBatchStateManager {
         private final Queue<BatchElement<NamespacedRequest, Long>> pendingRequestQueue;
-        private final LockWatchEventCache eventCache;
-        private final ValueCacheUpdater valueCache;
+        private final LockWatchCache cache;
         private Optional<LockWatchVersion> lastKnownVersion;
 
-        private NamespacedBatchStateManager(LockWatchEventCache eventCache, ValueCacheUpdater valueCache) {
+        private NamespacedBatchStateManager(LockWatchCache cache) {
             this.pendingRequestQueue = new ArrayDeque<>();
-            this.eventCache = eventCache;
-            this.valueCache = valueCache;
+            this.cache = cache;
             this.lastKnownVersion = Optional.empty();
         }
 
@@ -152,7 +144,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         }
 
         private Optional<LockWatchVersion> updateAndGetLastKnownVersion() {
-            lastKnownVersion = eventCache.lastKnownVersion();
+            lastKnownVersion = cache.getEventCache().lastKnownVersion();
             return lastKnownVersion;
         }
 
@@ -184,9 +176,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
                                     .writesToken(batchElement.argument().commitLocksToken())
                                     .build())
                     .collect(Collectors.toList());
-            eventCache.processGetCommitTimestampsUpdate(transactionUpdates, lockWatchUpdate);
-            valueCache.updateCacheOnCommit(
-                    transactionUpdates.stream().map(TransactionUpdate::startTs).collect(Collectors.toSet()));
+            cache.processCommitTimestampsUpdate(transactionUpdates, lockWatchUpdate);
         }
     }
 
@@ -203,8 +193,6 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
 
         LockToken commitLocksToken();
 
-        LockWatchEventCache cache();
-
-        ValueCacheUpdater valueCache();
+        LockWatchCache cache();
     }
 }

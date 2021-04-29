@@ -31,9 +31,8 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.List;
@@ -64,13 +63,9 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
     }
 
     public List<StartIdentifiedAtlasDbTransactionResponse> startTransactions(
-            Namespace namespace,
-            int request,
-            StartTransactionsLockWatchEventCache cache,
-            ValueCacheUpdater valueCache,
-            LockCleanupService lockCleanupService) {
-        return AtlasFutures.getUnchecked(autobatcher.apply(NamespaceAndRequestParams.of(
-                namespace, RequestParams.of(request, cache, valueCache, lockCleanupService))));
+            Namespace namespace, int request, LockWatchCache cache, LockCleanupService lockCleanupService) {
+        return AtlasFutures.getUnchecked(autobatcher.apply(
+                NamespaceAndRequestParams.of(namespace, RequestParams.of(request, cache, lockCleanupService))));
     }
 
     private static Consumer<
@@ -152,7 +147,6 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
             ConjureStartTransactionsResponse response = entry.getValue();
             TransactionStarterHelper.updateCacheWithStartTransactionResponse(
                     originalRequestMap.get(namespace).cache(),
-                    originalRequestMap.get(namespace).valueCache(),
                     fromConjure(requests.get(namespace).getLastKnownVersion()),
                     response);
             processedResult.put(namespace, TransactionStarterHelper.split(response));
@@ -174,7 +168,8 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
                 .requestorId(requestorId)
                 .requestId(UUID.randomUUID())
                 .numTransactions(requestParams.numTransactions())
-                .lastKnownVersion(toConjure(requestParams.cache().lastKnownVersion()))
+                .lastKnownVersion(
+                        toConjure(requestParams.cache().getEventCache().lastKnownVersion()))
                 .build();
     }
 
@@ -210,20 +205,13 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         Integer numTransactions();
 
         @Value.Parameter
-        StartTransactionsLockWatchEventCache cache();
-
-        @Value.Parameter
-        ValueCacheUpdater valueCache();
+        LockWatchCache cache();
 
         @Value.Parameter
         LockCleanupService lockCleanupService();
 
-        static RequestParams of(
-                int numTransactions,
-                StartTransactionsLockWatchEventCache cache,
-                ValueCacheUpdater valueCache,
-                LockCleanupService lockCleanupService) {
-            return ImmutableRequestParams.of(numTransactions, cache, valueCache, lockCleanupService);
+        static RequestParams of(int numTransactions, LockWatchCache cache, LockCleanupService lockCleanupService) {
+            return ImmutableRequestParams.of(numTransactions, cache, lockCleanupService);
         }
 
         static RequestParams merge(RequestParams params1, RequestParams params2) {

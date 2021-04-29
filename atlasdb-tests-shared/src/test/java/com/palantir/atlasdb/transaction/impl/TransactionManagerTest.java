@@ -28,7 +28,6 @@ import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
@@ -47,8 +46,8 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
-import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.util.UUID;
@@ -249,14 +248,13 @@ public class TransactionManagerTest extends TransactionTestSetup {
         TimelockService timelock = mock(TimelockService.class);
         TimestampManagementService timeManagement = mock(TimestampManagementService.class);
         LockService mockLockService = mock(LockService.class);
-        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
+        LockWatchCache lockWatchCache = LockWatchCacheImpl.noop();
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
                 timelock,
-                NoOpLockWatchManager.create(lockWatchEventCache),
-                lockWatchEventCache,
-                new LockWatchValueCacheImpl(lockWatchEventCache),
+                NoOpLockWatchManager.create(lockWatchCache.getEventCache()),
+                lockWatchCache,
                 timeManagement,
                 mockLockService,
                 transactionService,

@@ -28,7 +28,6 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCache;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
@@ -56,7 +55,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
-import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
@@ -87,8 +85,6 @@ import org.slf4j.LoggerFactory;
     final TransactionService transactionService;
     final TimelockService timelockService;
     final LockWatchManager lockWatchManager;
-    final LockWatchEventCache lockWatchEventCache;
-    final LockWatchValueCache lockWatchValueCache;
     final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
@@ -114,8 +110,6 @@ import org.slf4j.LoggerFactory;
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManager lockWatchManager,
-            LockWatchEventCache lockWatchEventCache,
-            LockWatchValueCache lockWatchValueCache,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             @NotNull TransactionService transactionService,
@@ -135,8 +129,6 @@ import org.slf4j.LoggerFactory;
             MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
-        this.lockWatchEventCache = lockWatchEventCache;
-        this.lockWatchValueCache = lockWatchValueCache;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -213,7 +205,7 @@ import org.slf4j.LoggerFactory;
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
                     .collect(Collectors.toSet()));
-            responses.forEach(response -> lockWatchEventCache.removeTransactionStateFromCache(
+            lockWatchManager.responses.forEach(response -> lockWatchEventCache.removeTransactionStateFromCache(
                     response.startTimestampAndPartition().timestamp()));
             lockWatchValueCache.processFailedTransactions(responses.stream()
                     .map(StartIdentifiedAtlasDbTransactionResponse::startTimestampAndPartition)

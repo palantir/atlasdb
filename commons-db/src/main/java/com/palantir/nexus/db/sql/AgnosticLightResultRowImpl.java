@@ -87,9 +87,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
         return ResultSets.getBytes(results, col);
     }
 
-    /* (non-Javadoc)
-     * @see com.palantir.nexus.db.AgnosticLightResultRowInterface#getBinaryInputStream(java.lang.String)
-     */
     @Override
     public InputStream getBinaryInputStream(final String colname) throws PalantirSqlException {
         return getBinaryInputStream(findColumn(colname));
@@ -209,9 +206,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
         return new DateTime(timestamp);
     }
 
-    /* (non-Javadoc)
-     * @see com.palantir.nexus.db.AgnosticLightResultRowInterface#getDateTime(java.lang.String)
-     */
     @Override
     public DateTime getDateTime(String colname) throws PalantirSqlException {
         return getDateTime(findColumn(colname));

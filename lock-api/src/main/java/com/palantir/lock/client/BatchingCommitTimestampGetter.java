@@ -23,9 +23,8 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
-import com.palantir.lock.cache.ValueCacheUpdater;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import java.util.ArrayList;
@@ -46,10 +45,8 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
         this.autobatcher = autobatcher;
     }
 
-    public static BatchingCommitTimestampGetter create(
-            LockLeaseService leaseService, LockWatchEventCache eventCache, ValueCacheUpdater valueCache) {
-        DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(
-                        consumer(leaseService, eventCache, valueCache))
+    public static BatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchCache cache) {
+        DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(consumer(leaseService, cache))
                 .safeLoggablePurpose("get-commit-timestamp")
                 .build();
         return new BatchingCommitTimestampGetter(autobatcher);
@@ -64,17 +61,16 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     }
 
     @VisibleForTesting
-    static Consumer<List<BatchElement<Request, Long>>> consumer(
-            LockLeaseService leaseService, LockWatchEventCache eventCache, ValueCacheUpdater valueCache) {
+    static Consumer<List<BatchElement<Request, Long>>> consumer(LockLeaseService leaseService, LockWatchCache cache) {
         return batch -> {
             int count = batch.size();
             List<Long> commitTimestamps = new ArrayList<>();
             while (commitTimestamps.size() < count) {
-                Optional<LockWatchVersion> requestedVersion = eventCache.lastKnownVersion();
+                Optional<LockWatchVersion> requestedVersion =
+                        cache.getEventCache().lastKnownVersion();
                 GetCommitTimestampsResponse response =
                         leaseService.getCommitTimestamps(requestedVersion, count - commitTimestamps.size());
-                commitTimestamps.addAll(
-                        process(batch.subList(commitTimestamps.size(), count), response, eventCache, valueCache));
+                commitTimestamps.addAll(process(batch.subList(commitTimestamps.size(), count), response, cache));
                 LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
             }
 
@@ -85,10 +81,7 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     }
 
     private static List<Long> process(
-            List<BatchElement<Request, Long>> requests,
-            GetCommitTimestampsResponse response,
-            LockWatchEventCache eventCache,
-            ValueCacheUpdater valueCache) {
+            List<BatchElement<Request, Long>> requests, GetCommitTimestampsResponse response, LockWatchCache cache) {
         List<Long> timestamps = LongStream.rangeClosed(response.getInclusiveLower(), response.getInclusiveUpper())
                 .boxed()
                 .collect(Collectors.toList());
@@ -99,9 +92,7 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
                                 .writesToken(batchElement.argument().commitLocksToken())
                                 .build())
                 .collect(Collectors.toList());
-        eventCache.processGetCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
-        valueCache.updateCacheOnCommit(
-                transactionUpdates.stream().map(TransactionUpdate::startTs).collect(Collectors.toSet()));
+        cache.processCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
         return timestamps;
     }
 

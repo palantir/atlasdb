@@ -21,7 +21,7 @@ import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
@@ -36,26 +36,26 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class LockWatchManagerImpl extends LockWatchManager implements AutoCloseable {
+public final class LockWatchManagerImpl extends InternalLockWatchManager implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(LockWatchManagerImpl.class);
 
     private final Set<LockWatchReferences.LockWatchReference> referencesFromSchema;
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = ConcurrentHashMap.newKeySet();
-    private final LockWatchEventCache lockWatchEventCache;
+    private final LockWatchCache lockWatchCache;
     private final NamespacedConjureLockWatchingService lockWatchingService;
     private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor();
     private final ScheduledFuture<?> refreshTask;
 
     public LockWatchManagerImpl(
             Set<Schema> schemas,
-            LockWatchEventCache lockWatchEventCache,
+            LockWatchCache lockWatchCache,
             NamespacedConjureLockWatchingService lockWatchingService) {
         this.referencesFromSchema = schemas.stream()
                 .map(Schema::getLockWatches)
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
-        this.lockWatchEventCache = lockWatchEventCache;
+        this.lockWatchCache = lockWatchCache;
         this.lockWatchingService = lockWatchingService;
         lockWatchReferences.addAll(referencesFromSchema);
         refreshTask = executorService.scheduleWithFixedDelay(this::registerWatchesWithTimelock, 0, 5, TimeUnit.SECONDS);
@@ -63,13 +63,13 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
 
     @Override
     CommitUpdate getCommitUpdate(long startTs) {
-        return lockWatchEventCache.getCommitUpdate(startTs);
+        return lockWatchCache.getEventCache().getCommitUpdate(startTs);
     }
 
     @Override
     TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
-        return lockWatchEventCache.getUpdateForTransactions(startTimestamps, version);
+        return lockWatchCache.getEventCache().getUpdateForTransactions(startTimestamps, version);
     }
 
     @Override
@@ -88,7 +88,12 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
 
     @Override
     boolean isEnabled() {
-        return lockWatchEventCache.isEnabled();
+        return lockWatchCache.getEventCache().isEnabled();
+    }
+
+    @Override
+    public LockWatchCache getCache() {
+        return lockWatchCache;
     }
 
     private void registerWatchesWithTimelock() {

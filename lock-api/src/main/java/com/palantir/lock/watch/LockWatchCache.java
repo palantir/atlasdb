@@ -14,24 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.cache;
+package com.palantir.lock.watch;
 
+import java.util.Collection;
 import java.util.Set;
 
-public interface ValueCacheUpdater {
-    ValueCacheUpdater NO_OP = new ValueCacheUpdater() {
-        @Override
-        public void processStartTransactions(Set<Long> startTimestamps) {
-            // noop
-        }
+public interface LockWatchCache {
+    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
 
-        @Override
-        public void updateCacheOnCommit(Set<Long> startTimestamps) {
-            // noop
-        }
-    };
+    void processCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update);
 
-    void processStartTransactions(Set<Long> startTimestamps);
+    void removeTransactionStateFromCache(long startTimestamp);
 
-    void updateCacheOnCommit(Set<Long> startTimestamps);
+    LockWatchEventCache getEventCache();
+
+    LockWatchValueCache getValueCache();
 }

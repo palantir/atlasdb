@@ -23,8 +23,6 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCache;
-import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -49,8 +47,8 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -229,8 +227,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManager lockWatchManager,
-            LockWatchEventCache lockWatchEventCache,
-            LockWatchValueCache lockWatchValueCache,
+            LockWatchCache lockWatchCache,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
@@ -256,8 +253,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 keyValueService,
                 timelockService,
                 lockWatchManager,
-                lockWatchEventCache,
-                lockWatchValueCache,
+                lockWatchCache,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -287,8 +283,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManager lockWatchManager,
-            LockWatchEventCache lockWatchEventCache,
-            LockWatchValueCache lockWatchValueCache,
+            LockWatchCache lockWatchCache,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
@@ -314,8 +309,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 keyValueService,
                 timelockService,
                 lockWatchManager,
-                lockWatchEventCache,
-                lockWatchValueCache,
+                lockWatchCache,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -344,8 +338,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManager lockWatchManager,
-            LockWatchEventCache lockWatchEventCache,
-            LockWatchValueCache lockWatchValueCache,
+            LockWatchCache lockWatchCache,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
@@ -371,8 +364,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 keyValueService,
                 timelockService,
                 lockWatchManager,
-                lockWatchEventCache,
-                lockWatchValueCache,
+                lockWatchCache,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -401,8 +393,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManager lockWatchManager,
-            LockWatchEventCache lockWatchEventCache,
-            LockWatchValueCache lockWatchValueCache,
+            LockWatchCache lockWatchCache,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
@@ -429,8 +420,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 keyValueService,
                 timelockService,
                 lockWatchManager,
-                lockWatchEventCache,
-                lockWatchValueCache,
+                lockWatchCache,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -478,14 +468,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue) {
-        LockWatchEventCache eventCache = NoOpLockWatchEventCache.create();
+        LockWatchCache lockWatchCache = LockWatchCacheImpl.noop();
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
-                NoOpLockWatchManager.create(eventCache),
-                eventCache,
-                new LockWatchValueCacheImpl(eventCache),
+                NoOpLockWatchManager.create(lockWatchCache.getEventCache()),
+                lockWatchCache,
                 timestampManagementService,
                 lockService,
                 transactionService,
@@ -510,8 +499,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManager lockWatchManager,
-            LockWatchEventCache lockWatchEventCache,
-            LockWatchValueCache lockWatchValueCache,
+            LockWatchCache lockWatchCache,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
@@ -534,8 +522,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 keyValueService,
                 timelockService,
                 lockWatchManager,
-                lockWatchEventCache,
-                lockWatchValueCache,
+                lockWatchCache,
                 timestampManagementService,
                 lockService,
                 transactionService,
