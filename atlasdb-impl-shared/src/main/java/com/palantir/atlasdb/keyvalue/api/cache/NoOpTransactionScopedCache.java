@@ -28,6 +28,8 @@ import java.util.function.BiFunction;
 
 final class NoOpTransactionScopedCache implements TransactionScopedCache {
 
+    private NoOpTransactionScopedCache() {}
+
     static TransactionScopedCache create() {
         return new NoOpTransactionScopedCache();
     }

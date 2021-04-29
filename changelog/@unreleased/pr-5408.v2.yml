@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Store a map of start timestamp to transaction cache within the lock watch value cache so that the digest can be obtained and processed internally.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5408

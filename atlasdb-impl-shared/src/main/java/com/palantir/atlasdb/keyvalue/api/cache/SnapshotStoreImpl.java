@@ -28,12 +28,12 @@ import java.util.Optional;
 import javax.annotation.concurrent.NotThreadSafe;
 
 @NotThreadSafe
-public final class SnapshotStoreImpl implements SnapshotStore {
+final class SnapshotStoreImpl implements SnapshotStore {
     private final Map<Sequence, ValueCacheSnapshot> snapshotMap;
     private final SetMultimap<Sequence, StartTimestamp> liveSequences;
     private final Map<StartTimestamp, Sequence> timestampMap;
 
-    public SnapshotStoreImpl() {
+    SnapshotStoreImpl() {
         snapshotMap = new HashMap<>();
         timestampMap = new HashMap<>();
         liveSequences = MultimapBuilder.hashKeys().hashSetValues().build();
