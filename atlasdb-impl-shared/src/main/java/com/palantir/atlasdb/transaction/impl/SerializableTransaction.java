@@ -70,6 +70,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.streams.KeyedStream;
@@ -97,6 +98,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -302,7 +304,15 @@ public class SerializableTransaction extends SnapshotTransaction {
     @Override
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        return super.get(tableRef, cells);
+        try {
+            return getWithLoader(
+                            tableRef,
+                            cells,
+                            (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead)))
+                    .get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
     }
 
     @Override

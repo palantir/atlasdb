@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -69,7 +70,7 @@ public final class BatchingCommitTimestampGetterTest {
     private final LockLeaseService lockLeaseService = mock(LockLeaseService.class);
     private final LockWatchEventCache eventCache = mock(LockWatchEventCache.class);
     private final LockWatchValueCache valueCache = mock(LockWatchValueCache.class);
-    private final LockWatchCache cache = new LockWatchCacheImpl(eventCache, valueCache);
+    private final LockWatchCache cache = spy(new LockWatchCacheImpl(eventCache, valueCache));
     private final Consumer<List<BatchElement<BatchingCommitTimestampGetter.Request, Long>>> batchProcessor =
             BatchingCommitTimestampGetter.consumer(lockLeaseService, cache);
 

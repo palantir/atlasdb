@@ -47,8 +47,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.LockWatchCache;
-import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -460,7 +458,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue) {
-        LockWatchCache lockWatchCache = LockWatchCacheImpl.noop();
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,

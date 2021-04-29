@@ -77,7 +77,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
             Set<Schema> schemas,
             NamespacedConjureLockWatchingService lockWatchingService) {
         LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metricsManager);
-        // todo(gmaretic): sane params
+        // todo(gmaretic): params should come from config
         LockWatchValueScopingCache valueCache = new LockWatchValueScopingCacheImpl(eventCache, 100000, 1.0);
         return new LockWatchManagerImpl(schemas, eventCache, valueCache, lockWatchingService);
     }
