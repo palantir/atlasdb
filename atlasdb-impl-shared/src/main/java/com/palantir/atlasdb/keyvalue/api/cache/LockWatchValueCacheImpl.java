@@ -32,36 +32,27 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public final class LockWatchValueCacheImpl implements LockWatchValueCache {
-    private static final Logger log = LoggerFactory.getLogger(LockWatchValueCacheImpl.class);
-    private static final int CELL_BLOWUP_THRESHOLD = 100;
-
-    // TODO(jshah): this should be configurable.
-    private static final long MAX_CACHE_SIZE = 20_000;
-
     private final LockWatchEventCache eventCache;
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
     private final CacheStore cacheStore;
+    private final double validationProbability;
 
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
-    public LockWatchValueCacheImpl(LockWatchEventCache eventCache) {
+    public LockWatchValueCacheImpl(LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
         this.eventCache = eventCache;
-        this.valueStore = new ValueStoreImpl(MAX_CACHE_SIZE);
+        this.valueStore = new ValueStoreImpl(maxCacheSize);
+        this.validationProbability = validationProbability;
         this.snapshotStore = new SnapshotStoreImpl();
         this.cacheStore = new CacheStoreImpl(snapshotStore);
     }
@@ -138,7 +129,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
      *     ever have new events, and that consecutive calls to this method will *always* have increasing sequences
      *     (without this last guarantee, we'd need to store snapshots for all sequences).
      */
-    private void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
+    private synchronized void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
         // Without this block, updates with no events would not store a snapshot.
@@ -156,14 +147,14 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         assertNoSnapshotsMissing(reversedMap.keySet());
     }
 
-    private boolean isNewEvent(LockWatchEvent event) {
+    private synchronized boolean isNewEvent(LockWatchEvent event) {
         return currentVersion
                 .map(LockWatchVersion::version)
                 .map(current -> current < event.sequence())
                 .orElse(true);
     }
 
-    private void assertNoSnapshotsMissing(Set<Sequence> sequences) {
+    private synchronized void assertNoSnapshotsMissing(Set<Sequence> sequences) {
         if (sequences.stream()
                 .map(snapshotStore::getSnapshotForSequence)
                 .anyMatch(maybeSnapshot -> !maybeSnapshot.isPresent())) {
@@ -172,7 +163,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         }
     }
 
-    private void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
+    private synchronized void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
         Optional<LockWatchVersion> maybeUpdateVersion = updateForTransactions.startTsToSequence().values().stream()
                 .max(Comparator.comparingLong(LockWatchVersion::version));
 
@@ -191,19 +182,19 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
         });
     }
 
-    private boolean newUpdate(LockWatchVersion current, LockWatchVersion updateVersion) {
+    private synchronized boolean newUpdate(LockWatchVersion current, LockWatchVersion updateVersion) {
         return current.version() < updateVersion.version();
     }
 
-    private boolean leaderElection(LockWatchVersion current, LockWatchVersion updateVersion) {
+    private synchronized boolean leaderElection(LockWatchVersion current, LockWatchVersion updateVersion) {
         return !current.id().equals(updateVersion.id());
     }
 
-    private boolean firstUpdateAfterCreation() {
+    private synchronized boolean firstUpdateAfterCreation() {
         return !currentVersion.isPresent();
     }
 
-    private void clearCache() {
+    private synchronized void clearCache() {
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();
@@ -220,17 +211,6 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     }
 
     private static Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
-        List<CellReference> candidateCells = AtlasLockDescriptorUtils.candidateCells(descriptor);
-
-        if (candidateCells.size() > CELL_BLOWUP_THRESHOLD) {
-            log.warn(
-                    "Lock descriptor produced a large number of candidate cells - this is due to the descriptor "
-                            + "containing many zero bytes. If this message is logged frequently, this table may be "
-                            + "inappropriate for caching",
-                    SafeArg.of("candidateCellSize", candidateCells.size()),
-                    UnsafeArg.of("lockDescriptor", descriptor));
-        }
-
-        return candidateCells.stream();
+        return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 }
