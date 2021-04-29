@@ -40,7 +40,7 @@ import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
-public final class LockWatchValueScopingCacheImpl implements LockWatchValueCache {
+public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
     private final LockWatchEventCache eventCache;
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
@@ -49,7 +49,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueCache
 
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
-    public LockWatchValueScopingCacheImpl(LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
+    public LockWatchValueScopingCacheImpl(
+            LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
         this.eventCache = eventCache;
         this.valueStore = new ValueStoreImpl(maxCacheSize);
         this.validationProbability = validationProbability;
@@ -94,7 +95,9 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueCache
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
         // Snapshots may be missing due to leader elections. In this case, the transaction will not read from the
         // cache or publish anything to the cache at commit time.
-        return cacheStore.createCache(StartTimestamp.of(startTs)).orElseGet(NoOpTransactionScopedCache::create);
+        return ValidatingTransactionScopedCache.create(
+                cacheStore.createCache(StartTimestamp.of(startTs)).orElseGet(NoOpTransactionScopedCache::create),
+                validationProbability);
     }
 
     private synchronized void processCommitUpdate(long startTimestamp) {
