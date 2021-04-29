@@ -83,7 +83,20 @@ public final class LockWatchValueScopingCacheImplTest {
     @Before
     public void before() {
         eventCache = LockWatchEventCacheImpl.create(MetricsManagers.createForTests());
-        valueCache = new LockWatchValueScopingCacheImpl(eventCache);
+        valueCache = new LockWatchValueScopingCacheImpl(eventCache, 20_000, 0.0);
+    }
+
+    @Test
+    public void valueCacheCreatesValidatingTransactionCaches() {
+        valueCache = new LockWatchValueCacheImpl(eventCache, 20_000, 1.0);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), LOCK_WATCH_SNAPSHOT);
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
+
+        TransactionScopedCache scopedCache = valueCache.createTransactionScopedCache(TIMESTAMP_1);
+
+        // This confirms that we always read from remote when validation is set to 1.0.
+        assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
     }
 
     @Test

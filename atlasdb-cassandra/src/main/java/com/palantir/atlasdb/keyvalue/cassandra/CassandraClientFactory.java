@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.codahale.metrics.Timer;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
@@ -27,9 +26,9 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.util.ImmutableSingletonShutdownContext;
-import com.palantir.util.SafeShutdownRunner;
-import com.palantir.util.SafeShutdownRunner.SingletonShutdownContext;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.util.TimedRunner;
+import com.palantir.util.TimedRunner.TaskContext;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
@@ -40,7 +39,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -71,8 +69,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private final InetSocketAddress addr;
     private final CassandraKeyValueServiceConfig config;
     private final SSLSocketFactory sslSocketFactory;
-    private final SafeShutdownRunner safeShutdownRunner;
-    private final Timer shutdownDurationTimer;
+    private final TimedRunner timedRunner;
 
     public CassandraClientFactory(
             MetricsManager metricsManager, InetSocketAddress addr, CassandraKeyValueServiceConfig config) {
@@ -80,11 +77,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.addr = addr;
         this.config = config;
         this.sslSocketFactory = createSslSocketFactory(config);
-        this.safeShutdownRunner =
-                SafeShutdownRunner.createWithSingleThreadpool(Optional.of(config.timeoutOnConnectionClose()));
-        // todo(jshah): Remove or refactor this after PDS-146088 is resolved
-        this.shutdownDurationTimer = metricsManager.registerOrGetTimer(
-                CassandraClientFactory.class, "cassandra-connection-shutdown-duration");
+        this.timedRunner = TimedRunner.create(config.timeoutOnConnectionClose());
     }
 
     @Override
@@ -212,12 +205,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     UnsafeArg.of("client", client),
                     SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
         }
-        try (Timer.Context context = shutdownDurationTimer.time()) {
-            SingletonShutdownContext shutdownContext = ImmutableSingletonShutdownContext.builder()
-                    .shutdownCallback(() -> client.getObject().close())
-                    .shutdownFailureHandler(SHUTDOWN_FAILURE_HANDLER)
-                    .build();
-            safeShutdownRunner.shutdownSingleton(shutdownContext);
+        try {
+            TaskContext<Void> taskContext =
+                    TaskContext.createRunnable(() -> client.getObject().close(), SHUTDOWN_FAILURE_HANDLER);
+            timedRunner.run(taskContext);
         } catch (Throwable t) {
             if (log.isDebugEnabled()) {
                 log.debug(
@@ -225,7 +216,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                         UnsafeArg.of("client", client),
                         SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
             }
-            throw t;
+            throw new SafeRuntimeException("Threw while attempting to close transport for client", t);
         }
         if (log.isDebugEnabled()) {
             log.debug(

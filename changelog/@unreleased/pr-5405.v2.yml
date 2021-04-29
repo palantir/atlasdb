@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add a validating transaction cache that compares cached reads against the remote, and throws if they are different.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5405
