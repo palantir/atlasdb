@@ -88,7 +88,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
     @Test
     public void valueCacheCreatesValidatingTransactionCaches() {
-        valueCache = new LockWatchValueCacheImpl(eventCache, 20_000, 1.0);
+        valueCache = new LockWatchValueScopingCacheImpl(eventCache, 20_000, 1.0);
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), LOCK_WATCH_SNAPSHOT);
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
 
