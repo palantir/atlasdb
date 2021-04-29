@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,7 +54,7 @@ public final class LockWatchManagerImplTest {
     @Mock
     private Schema schema;
 
-    private LockWatchManager manager;
+    private LockWatchManagerInternal manager;
 
     @Before
     public void before() {

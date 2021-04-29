@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.palantir.lock.watch.LockWatchCache;
 
-public abstract class InternalLockWatchManager extends LockWatchManager {
+public abstract class LockWatchManagerInternal extends LockWatchManager {
     @Override
     public abstract LockWatchCache getCache();
 }

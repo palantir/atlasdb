@@ -74,8 +74,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCache;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchEventCacheImpl;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -1522,7 +1522,7 @@ public abstract class TransactionManagers {
         Optional<TimeLockMigrator> migrator();
 
         @Value.Default
-        default LockWatchManager lockWatcher() {
+        default LockWatchManagerInternal lockWatcher() {
             return NoOpLockWatchManager.create(eventCache());
         }
 

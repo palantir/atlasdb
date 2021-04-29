@@ -69,9 +69,8 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
@@ -207,8 +206,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected final TimelockService timelockService;
-    protected final LockWatchManager lockWatchManager;
-    protected final LockWatchValueCache lockWatchValueCache;
+    protected final LockWatchManagerInternal lockWatchManager;
     protected final TransactionScopedCache cache;
     final KeyValueService keyValueService;
     final AsyncKeyValueService immediateKeyValueService;
@@ -264,8 +262,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
-            LockWatchManager lockWatchManager,
-            LockWatchValueCache lockWatchValueCache,
+            LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
             Cleaner cleaner,
             Supplier<Long> startTimeStamp,
@@ -289,8 +286,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableLevelMetricsController tableLevelMetricsController) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
-        this.lockWatchValueCache = lockWatchValueCache;
-        this.cache = lockWatchValueCache.createTransactionScopedCache(startTimeStamp.get());
+        this.cache = lockWatchManager.createTransactionScopedCache(startTimeStamp.get());
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;

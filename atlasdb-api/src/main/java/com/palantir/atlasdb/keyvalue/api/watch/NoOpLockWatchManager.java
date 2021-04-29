@@ -24,14 +24,14 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Optional;
 import java.util.Set;
 
-public final class NoOpLockWatchManager extends LockWatchManager {
+public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     private final LockWatchEventCache eventCache;
 
     private NoOpLockWatchManager(LockWatchEventCache eventCache) {
         this.eventCache = eventCache;
     }
 
-    public static LockWatchManager create(LockWatchEventCache eventCache) {
+    public static LockWatchManagerInternal create(LockWatchEventCache eventCache) {
         return new NoOpLockWatchManager(eventCache);
     }
 

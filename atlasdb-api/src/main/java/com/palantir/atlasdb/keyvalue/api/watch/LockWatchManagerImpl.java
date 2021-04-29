@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class LockWatchManagerImpl extends InternalLockWatchManager implements AutoCloseable {
+public final class LockWatchManagerImpl extends LockWatchManagerInternal implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(LockWatchManagerImpl.class);
 

@@ -26,7 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
@@ -93,7 +93,7 @@ public abstract class TransactionTestSetup {
     protected LockClient lockClient;
     protected LockServiceImpl lockService;
     protected TimelockService timelockService;
-    protected LockWatchManager lockWatchManager;
+    protected LockWatchManagerInternal lockWatchManager;
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService keyValueService;

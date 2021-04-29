@@ -197,7 +197,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
                         lockWatchManager,
-                        lockWatchValueCache,
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         () -> startTimestamp,

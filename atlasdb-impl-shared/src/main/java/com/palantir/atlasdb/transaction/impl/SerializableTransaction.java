@@ -51,8 +51,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueCache;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -136,7 +135,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
-            LockWatchManager lockWatchManager,
+            LockWatchManagerInternal lockWatchManager,
             LockWatchValueCache lockWatchValueCache,
             TransactionService transactionService,
             Cleaner cleaner,
@@ -164,7 +163,6 @@ public class SerializableTransaction extends SnapshotTransaction {
                 keyValueService,
                 timelockService,
                 lockWatchManager,
-                lockWatchValueCache,
                 transactionService,
                 cleaner,
                 startTimeStamp,
@@ -852,8 +850,6 @@ public class SerializableTransaction extends SnapshotTransaction {
                 keyValueService,
                 timelockService,
                 lockWatchManager,
-                lockWatchValueCache,
-                defaultTransactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(commitTs + 1),
                 ConflictDetectionManagers.createWithNoConflictDetection(),
