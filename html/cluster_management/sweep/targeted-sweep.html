@@ -280,6 +280,12 @@ in an attempt to increase parallelism will only work if the number of shards is 
 <p class="last">Consult with the AtlasDB team before changing the sweep strategy of a table. Doing this incorrectly can invalidate
 AtlasDB’s correctness guarantees.</p>
 </div>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last">Throughout this section, when distinct sequential steps are indicated to roll the cluster from one version to
+another, it is imperative that each roll is complete before the next roll begins, and also that rolls that skip any
+version in the sequence are not allowed. Failure to follow this may result in <strong>SEVERE DATA CORRUPTION</strong>(TM).</p>
+</div>
 <p>Whenever targeted sweep enqueues a write into the sweep queue, it does so using the latest known sweep strategy for the
 table. If the sweep strategy for that table later changes, <strong>targeted sweep does not recheck the strategy</strong>, and will
 therefore sweep those entries using the old strategy.</p>
@@ -295,10 +301,20 @@ correctness implications: any read-only transactions that may ever run concurren
 the immutable timestamp lock.</p>
 <div class="section" id="conservative-to-thorough">
 <h3>CONSERVATIVE to THOROUGH<a class="headerlink" href="#conservative-to-thorough" title="Permalink to this headline">¶</a></h3>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">You should not change user transactions from read-only to read-write and the sweep strategy from conservative to
+thorough in the same release. In this case, read-only transactions on old nodes may fail during any state where
+both old and new nodes are simultaneously operating (though there are no correctness implications).</p>
+</div>
 <dl class="docutils">
 <dt>Thus, a way of changing sweep strategy from CONSERVATIVE to THOROUGH while avoiding downtime is as follows:</dt>
 <dd><ol class="first last arabic simple">
-<li>Roll service nodes from a version with CONSERVATIVE sweep strategy to one with THOROUGH_MIGRATION.</li>
+<li>Roll service nodes from a version which uses read-only transactions (e.g. <code class="docutils literal notranslate"><span class="pre">runTaskReadOnly</span></code>) to one that uses
+only read-write transactions (e.g. <code class="docutils literal notranslate"><span class="pre">runTaskReadWrite</span></code>). Both versions should still use the CONSERVATIVE sweep
+strategy.</li>
+<li>Roll service nodes from a version that uses CONSERVATIVE sweep strategy AND only uses read-write transactions to
+one with THOROUGH_MIGRATION.</li>
 <li>Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with THOROUGH.
 During this roll, the queue to which cell references are enqueued will vary depending on the individual node.
 However, all read transactions will check the immutable timestamp lock, so it’s okay for some values to be
@@ -307,7 +323,8 @@ THOROUGH swept.</li>
 </dd>
 </dl>
 <p>This process may also be performed as a shutdown upgrade from CONSERVATIVE to THOROUGH (where ALL nodes are shut down
-before any is restarted with the new table metadata).</p>
+before any is restarted with the new table metadata). In this case, it is also permissible that this upgrade covers
+moving away from the use of read-only transactions.</p>
 </div>
 <div class="section" id="thorough-to-conservative">
 <h3>THOROUGH to CONSERVATIVE<a class="headerlink" href="#thorough-to-conservative" title="Permalink to this headline">¶</a></h3>
@@ -318,7 +335,8 @@ before any is restarted with the new table metadata).</p>
 This is safe; see step 2 above.</li>
 <li>Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade. This can be verified by
 consulting the <code class="docutils literal notranslate"><span class="pre">millisSinceLastSweptTs</span></code> targeted sweep metric.</li>
-<li>Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with CONSERVATIVE.</li>
+<li>Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with CONSERVATIVE. If desired,
+the CONSERVATIVE product version may immediately begin using read-only transactions.</li>
 </ol>
 </dd>
 <dt>This process may also be performed as a single shutdown upgrade from THOROUGH to CONSERVATIVE:</dt>
