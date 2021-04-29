@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -32,7 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * This class should only be used through {@link ResilientLockWatchEventCache} as a proxy; failure to do so will result
+ * This class should only be used through {@link ResilientLockWatchProxy} as a proxy; failure to do so will result
  * in concurrency issues and inconsistency in the cache state.
  */
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
@@ -44,7 +45,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final TimestampStateStore timestampStateStore;
 
     public static LockWatchEventCache create(MetricsManager metricsManager) {
-        return ResilientLockWatchEventCache.newProxyInstance(
+        return ResilientLockWatchProxy.newEventCacheProxy(
                 new LockWatchEventCacheImpl(LockWatchEventLog.create(MIN_EVENTS, MAX_EVENTS)),
                 NoOpLockWatchEventCache.create(),
                 metricsManager);

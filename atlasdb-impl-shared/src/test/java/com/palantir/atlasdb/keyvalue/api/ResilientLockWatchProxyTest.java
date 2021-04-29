@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,7 +37,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class ResilientLockWatchEventCacheTest {
+public final class ResilientLockWatchProxyTest {
 
     private final MetricsManager metricsManager =
             new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), unused -> false);
@@ -52,7 +52,7 @@ public final class ResilientLockWatchEventCacheTest {
 
     @Before
     public void before() {
-        proxyCache = ResilientLockWatchEventCache.newProxyInstance(defaultCache, fallbackCache, metricsManager);
+        proxyCache = ResilientLockWatchProxy.newEventCacheProxy(defaultCache, fallbackCache, metricsManager);
     }
 
     @Test

@@ -16,14 +16,17 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
@@ -37,9 +40,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.NotThreadSafe;
 
-@ThreadSafe
+/**
+ * This *must* be run through {@link ResilientLockWatchProxy} to ensure thread safety.
+ */
+@NotThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
     private final LockWatchEventCache eventCache;
     private final ValueStore valueStore;
@@ -49,8 +55,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
 
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
-    public LockWatchValueScopingCacheImpl(
-            LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
+    @VisibleForTesting
+    LockWatchValueScopingCacheImpl(LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
         this.eventCache = eventCache;
         this.valueStore = new ValueStoreImpl(maxCacheSize);
         this.validationProbability = validationProbability;
@@ -58,8 +64,19 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         this.cacheStore = new CacheStoreImpl(snapshotStore);
     }
 
+    public static LockWatchValueScopingCache create(
+            LockWatchEventCache eventCache,
+            MetricsManager metricsManager,
+            long maxCacheSize,
+            double validationProbability) {
+        return ResilientLockWatchProxy.newValueCacheProxy(
+                new LockWatchValueScopingCacheImpl(eventCache, maxCacheSize, validationProbability),
+                NoOpLockWatchValueScopingCache.create(),
+                metricsManager);
+    }
+
     @Override
-    public synchronized void processStartTransactions(Set<Long> startTimestamps) {
+    public void processStartTransactions(Set<Long> startTimestamps) {
         TransactionsLockWatchUpdate updateForTransactions =
                 eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
         updateStores(updateForTransactions);
@@ -67,7 +84,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public synchronized void updateCacheOnCommit(Set<Long> startTimestamps) {
+    public void updateCacheOnCommit(Set<Long> startTimestamps) {
         try {
             startTimestamps.forEach(this::processCommitUpdate);
         } finally {
@@ -85,7 +102,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public synchronized void removeTransactionStateFromCache(long startTimestamp) {
+    public void removeTransactionStateFromCache(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         snapshotStore.removeTimestamp(startTs);
         cacheStore.removeCache(startTs);
@@ -100,7 +117,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 validationProbability);
     }
 
-    private synchronized void processCommitUpdate(long startTimestamp) {
+    private void processCommitUpdate(long startTimestamp) {
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
         commitUpdate.accept(new Visitor<Void>() {
             @Override
@@ -139,7 +156,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
      *     ever have new events, and that consecutive calls to this method will *always* have increasing sequences
      *     (without this last guarantee, we'd need to store snapshots for all sequences).
      */
-    private synchronized void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
+    private void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
         // Without this block, updates with no events would not store a snapshot.
@@ -157,14 +174,14 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         assertNoSnapshotsMissing(reversedMap.keySet());
     }
 
-    private synchronized boolean isNewEvent(LockWatchEvent event) {
+    private boolean isNewEvent(LockWatchEvent event) {
         return currentVersion
                 .map(LockWatchVersion::version)
                 .map(current -> current < event.sequence())
                 .orElse(true);
     }
 
-    private synchronized void assertNoSnapshotsMissing(Set<Sequence> sequences) {
+    private void assertNoSnapshotsMissing(Set<Sequence> sequences) {
         if (sequences.stream()
                 .map(snapshotStore::getSnapshotForSequence)
                 .anyMatch(maybeSnapshot -> !maybeSnapshot.isPresent())) {
@@ -173,7 +190,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         }
     }
 
-    private synchronized void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
+    private void updateCurrentVersion(TransactionsLockWatchUpdate updateForTransactions) {
         Optional<LockWatchVersion> maybeUpdateVersion = updateForTransactions.startTsToSequence().values().stream()
                 .max(Comparator.comparingLong(LockWatchVersion::version));
 
@@ -192,19 +209,19 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         });
     }
 
-    private synchronized boolean newUpdate(LockWatchVersion current, LockWatchVersion updateVersion) {
+    private boolean newUpdate(LockWatchVersion current, LockWatchVersion updateVersion) {
         return current.version() < updateVersion.version();
     }
 
-    private synchronized boolean leaderElection(LockWatchVersion current, LockWatchVersion updateVersion) {
+    private boolean leaderElection(LockWatchVersion current, LockWatchVersion updateVersion) {
         return !current.id().equals(updateVersion.id());
     }
 
-    private synchronized boolean firstUpdateAfterCreation() {
+    private boolean firstUpdateAfterCreation() {
         return !currentVersion.isPresent();
     }
 
-    private synchronized void clearCache() {
+    private void clearCache() {
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();
