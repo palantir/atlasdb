@@ -66,10 +66,12 @@ public class MultiClientCommitTimestampGetterTest {
     private final LockToken lockToken = mock(LockToken.class);
     private final InternalMultiClientConjureTimelockService timelockService =
             mock(InternalMultiClientConjureTimelockService.class);
-    private final LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
 
     private final Consumer<List<BatchElement<NamespacedRequest, Long>>> consumer =
             MultiClientCommitTimestampGetter.consumer(timelockService);
+
+    private final LockWatchStateUpdate lockWatchStateUpdate =
+            LockWatchStateUpdate.success(UUID.randomUUID(), 5, ImmutableList.of());
 
     @Test
     public void canServiceOneClient() {
