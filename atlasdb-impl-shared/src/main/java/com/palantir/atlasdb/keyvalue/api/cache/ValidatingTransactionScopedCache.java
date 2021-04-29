@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,10 +28,9 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,17 +38,18 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     private static final Logger log = LoggerFactory.getLogger(ValidatingTransactionScopedCache.class);
 
     private final TransactionScopedCache delegate;
-    private final Supplier<Boolean> shouldValidate;
+    private double validationProbability;
+    private final Random random;
 
     @VisibleForTesting
-    ValidatingTransactionScopedCache(TransactionScopedCache delegate, Supplier<Boolean> shouldValidate) {
+    ValidatingTransactionScopedCache(TransactionScopedCache delegate, double validationProbability) {
         this.delegate = delegate;
-        this.shouldValidate = shouldValidate;
+        this.validationProbability = validationProbability;
+        this.random = new Random();
     }
 
     static ValidatingTransactionScopedCache create(TransactionScopedCache delegate, double validationProbability) {
-        return new ValidatingTransactionScopedCache(
-                delegate, () -> ThreadLocalRandom.current().nextDouble() < validationProbability);
+        return new ValidatingTransactionScopedCache(delegate, validationProbability);
     }
 
     @Override
@@ -64,18 +65,43 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     @Override
     public Map<Cell, byte[]> get(
             TableReference tableReference,
-            Set<Cell> cell,
+            Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        if (shouldValidate.get()) {
-            Map<Cell, byte[]> remoteReads = AtlasFutures.getUnchecked(valueLoader.apply(tableReference, cell));
-            Map<Cell, byte[]> cacheReads =
-                    delegate.get(tableReference, cell, (table, cells) -> getCells(remoteReads, cells));
+        return AtlasFutures.getUnchecked(getAsync(tableReference, cells, valueLoader));
+    }
 
-            validateCacheReads(tableReference, remoteReads, cacheReads);
-            return cacheReads;
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(
+            TableReference tableReference,
+            Set<Cell> cells,
+            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        if (shouldValidate()) {
+            ListenableFuture<Map<Cell, byte[]>> remoteReads = valueLoader.apply(tableReference, cells);
+            ListenableFuture<Map<Cell, byte[]>> cacheReads = delegate.getAsync(
+                    tableReference,
+                    cells,
+                    (table, cellsToRead) -> Futures.transform(
+                            remoteReads, reads -> getCells(reads, cellsToRead), MoreExecutors.directExecutor()));
+
+            return Futures.transform(
+                    cacheReads,
+                    reads -> {
+                        validateCacheReads(tableReference, AtlasFutures.getDone(remoteReads), reads);
+                        return reads;
+                    },
+                    MoreExecutors.directExecutor());
         } else {
-            return delegate.get(tableReference, cell, valueLoader);
+            return delegate.getAsync(tableReference, cells, valueLoader);
         }
+    }
+
+    private boolean shouldValidate() {
+        return random.nextDouble() < validationProbability;
+    }
+
+    @Override
+    public void close() {
+        delegate.close();
     }
 
     @Override
@@ -88,14 +114,14 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
         return delegate.getHitDigest();
     }
 
-    private static ListenableFuture<Map<Cell, byte[]>> getCells(Map<Cell, byte[]> remoteReads, Set<Cell> cells) {
-        return Futures.immediateFuture(KeyedStream.of(cells)
+    private static Map<Cell, byte[]> getCells(Map<Cell, byte[]> remoteReads, Set<Cell> cells) {
+        return KeyedStream.of(cells)
                 .map(remoteReads::get)
                 .filter(Objects::nonNull)
-                .collectToMap());
+                .collectToMap();
     }
 
-    private static void validateCacheReads(
+    private void validateCacheReads(
             TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
         if (!remoteReads.equals(cacheReads)) {
             // TODO(jshah): make sure that this causes us to disable all caching until restart
