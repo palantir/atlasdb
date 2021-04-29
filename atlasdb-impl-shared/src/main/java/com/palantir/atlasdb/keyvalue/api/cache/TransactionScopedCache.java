@@ -24,8 +24,8 @@ import java.util.Set;
 import java.util.function.BiFunction;
 
 /**
- * The {@link LockWatchValueScopingCache} will provide one of these to every (relevant) transaction, and this will contain a
- * view of the cache at the correct point in time, which is determined by the transaction's
+ * The {@link LockWatchValueScopingCache} will provide one of these to every (relevant) transaction, and this will
+ * contain a view of the cache at the correct point in time, which is determined by the transaction's
  * {@link com.palantir.lock.watch.LockWatchVersion}.
  *
  * The semantics of this cache are as follows:
