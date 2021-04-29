@@ -69,7 +69,7 @@ public class TracingKeyValueServiceBenchmark {
         }
     }
 
-    @Param({"SAMPLE", "DO_NOT_SAMPLE", "UNDECIDED"})
+    @Param({"UNDECIDED"})
     public BenchmarkObservability observability;
 
     @Setup
