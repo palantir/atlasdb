@@ -86,15 +86,26 @@ the immutable timestamp lock.
 CONSERVATIVE to THOROUGH
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   You should not change user transactions from read-only to read-write and the sweep strategy from conservative to
+   thorough in the same release. In this case, read-only transactions on old nodes may fail during any state where
+   both old and new nodes are simultaneously operating (though there are no correctness implications).
+
 Thus, a way of changing sweep strategy from CONSERVATIVE to THOROUGH while avoiding downtime is as follows:
-  1. Roll service nodes from a version with CONSERVATIVE sweep strategy to one with THOROUGH_MIGRATION.
-  2. Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with THOROUGH.
+  1. Roll service nodes from a version which uses read-only transactions (e.g. ``runTaskReadOnly``) to one that uses
+     only read-write transactions (e.g. ``runTaskReadWrite``). Both versions should still use the CONSERVATIVE sweep
+     strategy.
+  2. Roll service nodes from a version that uses CONSERVATIVE sweep strategy AND only uses read-write transactions to
+     one with THOROUGH_MIGRATION.
+  3. Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with THOROUGH.
      During this roll, the queue to which cell references are enqueued will vary depending on the individual node.
      However, all read transactions will check the immutable timestamp lock, so it's okay for some values to be
      THOROUGH swept.
 
 This process may also be performed as a shutdown upgrade from CONSERVATIVE to THOROUGH (where ALL nodes are shut down
-before any is restarted with the new table metadata).
+before any is restarted with the new table metadata). In this case, it is also permissible that this upgrade covers
+moving away from the use of read-only transactions.
 
 THOROUGH to CONSERVATIVE
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -104,7 +115,8 @@ The process here needs to account for the existence of old entries written to th
      This is safe; see step 2 above.
   2. Wait until targeted sweep for strategy THOROUGH has caught up to after the upgrade. This can be verified by
      consulting the ``millisSinceLastSweptTs`` targeted sweep metric.
-  3. Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with CONSERVATIVE.
+  3. Roll service nodes from a version with THOROUGH_MIGRATION sweep strategy to one with CONSERVATIVE. If desired,
+     the CONSERVATIVE product version may immediately begin using read-only transactions.
 
 This process may also be performed as a single shutdown upgrade from THOROUGH to CONSERVATIVE:
   1. Shut down all the nodes.
