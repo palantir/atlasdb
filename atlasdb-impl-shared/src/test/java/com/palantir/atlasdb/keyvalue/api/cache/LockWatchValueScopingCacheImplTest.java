@@ -52,7 +52,7 @@ import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 
-public final class LockWatchValueCacheImplTest {
+public final class LockWatchValueScopingCacheImplTest {
     private static final long TIMESTAMP_1 = 5L;
     private static final long TIMESTAMP_2 = 123123123L;
     private static final Long TIMESTAMP_3 = 88888888L;
@@ -78,17 +78,17 @@ public final class LockWatchValueCacheImplTest {
             ImmutableSet.of(LockWatchReferences.entireTable(TABLE.getQualifiedName())));
 
     private LockWatchEventCache eventCache;
-    private LockWatchValueCache valueCache;
+    private LockWatchValueScopingCache valueCache;
 
     @Before
     public void before() {
         eventCache = LockWatchEventCacheImpl.create(MetricsManagers.createForTests());
-        valueCache = new LockWatchValueCacheImpl(eventCache, 20_000, 0.0);
+        valueCache = new LockWatchValueScopingCacheImpl(eventCache, 20_000, 0.0);
     }
 
     @Test
     public void valueCacheCreatesValidatingTransactionCaches() {
-        valueCache = new LockWatchValueCacheImpl(eventCache, 20_000, 1.0);
+        valueCache = new LockWatchValueScopingCacheImpl(eventCache, 20_000, 1.0);
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), LOCK_WATCH_SNAPSHOT);
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
 

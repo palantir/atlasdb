@@ -40,7 +40,7 @@ import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
-public final class LockWatchValueCacheImpl implements LockWatchValueCache {
+public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
     private final LockWatchEventCache eventCache;
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
@@ -49,7 +49,8 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
 
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
-    public LockWatchValueCacheImpl(LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
+    public LockWatchValueScopingCacheImpl(
+            LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
         this.eventCache = eventCache;
         this.valueStore = new ValueStoreImpl(maxCacheSize);
         this.validationProbability = validationProbability;
@@ -84,6 +85,13 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
     }
 
     @Override
+    public synchronized void removeTransactionStateFromCache(long startTimestamp) {
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        snapshotStore.removeTimestamp(startTs);
+        cacheStore.removeCache(startTs);
+    }
+
+    @Override
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
         // Snapshots may be missing due to leader elections. In this case, the transaction will not read from the
         // cache or publish anything to the cache at commit time.
@@ -106,7 +114,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
             @Override
             public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
                 Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                        .flatMap(LockWatchValueCacheImpl::extractTableAndCell)
+                        .flatMap(LockWatchValueScopingCacheImpl::extractTableAndCell)
                         .collect(Collectors.toSet());
                 KeyedStream.stream(cacheStore
                                 .getCache(StartTimestamp.of(startTimestamp))
@@ -124,7 +132,7 @@ public final class LockWatchValueCacheImpl implements LockWatchValueCache {
      * In order to maintain the necessary invariants, we need to do the following:
      *
      *  1. For each new event, we apply it to the cache. The effects of this application is described in
-     *     {@link LockWatchValueCache}.
+     *     {@link LockWatchValueScopingCache}.
      *  2. For each transaction, we must ensure that we store a snapshot of the cache at the sequence corresponding
      *     to the transaction's start timestamp. Note that not every sequence will have a corresponding timestamp, so we
      *     don't bother storing a snapshot for those sequences. Also note that we know that each call here will only
