@@ -436,7 +436,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @MustBeClosed
-    private static CloseableTracer startLocalTrace(
+    public static CloseableTracer startLocalTrace(
             @CompileTimeConstant String operation, Consumer<BiConsumer<String, String>> tagTranslator) {
         return CloseableTracer.startSpan(
                 SERVICE_NAME + "." + operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
@@ -500,7 +500,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
-    private enum FunctionalTagTranslator implements TagTranslator<Consumer<BiConsumer<String, String>>> {
+    public enum FunctionalTagTranslator implements TagTranslator<Consumer<BiConsumer<String, String>>> {
         INSTANCE;
 
         @Override
