@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix some edge cases and defend against other cases in the lock watch value cache codepath.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5413
