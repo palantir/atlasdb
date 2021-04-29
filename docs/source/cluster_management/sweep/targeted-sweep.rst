@@ -71,7 +71,7 @@ Changing Sweep Strategy for a Table
 
    Throughout this section, when distinct sequential steps are indicated to roll the cluster from one version to
    another, it is imperative that each roll is complete before the next roll begins, and also that rolls that skip any
-   version in the sequence are not allowed.
+   version in the sequence are not allowed. Failure to follow this may result in **SEVERE DATA CORRUPTION**(TM).
 
 Whenever targeted sweep enqueues a write into the sweep queue, it does so using the latest known sweep strategy for the
 table. If the sweep strategy for that table later changes, **targeted sweep does not recheck the strategy**, and will
