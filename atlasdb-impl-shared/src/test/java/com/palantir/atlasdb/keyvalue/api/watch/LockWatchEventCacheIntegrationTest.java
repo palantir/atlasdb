@@ -156,6 +156,17 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
+    public void successUpdateWithNoEventsButLaterVersionThrowsRetryableException() {
+        LockWatchStateUpdate emptySuccess = LockWatchStateUpdate.success(LEADER, 4L, ImmutableList.of());
+        setupInitialState();
+        assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, emptySuccess))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage(
+                        "Success event has a later version than the current version, but has no events to bridge the "
+                                + "gap. The transaction should be tried, but this should only happen rarely.");
+    }
+
+    @Test
     public void emptySuccessesFollowingSnapshotsDoNotCauseAdditionalCacheClearance() {
         LockWatchStateUpdate snapshot =
                 LockWatchStateUpdate.snapshot(LEADER, 3L, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of());
