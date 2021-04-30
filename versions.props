@@ -30,7 +30,7 @@ com.palantir.sls.versions:* = 0.14.0
 com.palantir.tracing:* = 4.21.0
 com.palantir.tritium:* = 0.18.8
 com.squareup:javapoet = 1.13.0
-com.squareup.okio:okio:1.17.2
+com.squareup.okio:okio = 1.17.2
 com.zaxxer:HikariCP = 4.0.3
 io.airlift:airline = 0.9
 io.dropwizard:* = 2.0.2
