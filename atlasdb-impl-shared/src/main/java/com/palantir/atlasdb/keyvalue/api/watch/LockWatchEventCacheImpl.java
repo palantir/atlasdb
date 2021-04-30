@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -30,21 +31,23 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.ThreadSafe;
 
-/**
- * This class should only be used through {@link ResilientLockWatchEventCache} as a proxy; failure to do so will result
- * in concurrency issues and inconsistency in the cache state.
- */
+@ThreadSafe
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     // The minimum number of events should be the same as Timelocks' LockEventLogImpl.
     private static final int MIN_EVENTS = 1000;
     private static final int MAX_EVENTS = 10_000;
 
+    @GuardedBy("this")
     private final LockWatchEventLog eventLog;
+
+    @GuardedBy("this")
     private final TimestampStateStore timestampStateStore;
 
     public static LockWatchEventCache create(MetricsManager metricsManager) {
-        return ResilientLockWatchEventCache.newProxyInstance(
+        return ResilientLockWatchProxy.newEventCacheProxy(
                 new LockWatchEventCacheImpl(LockWatchEventLog.create(MIN_EVENTS, MAX_EVENTS)),
                 NoOpLockWatchEventCache.create(),
                 metricsManager);
@@ -53,7 +56,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @VisibleForTesting
     LockWatchEventCacheImpl(LockWatchEventLog eventLog) {
         this.eventLog = eventLog;
-        timestampStateStore = new TimestampStateStore();
+        this.timestampStateStore = new TimestampStateStore();
     }
 
     @Override
@@ -62,25 +65,25 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public Optional<LockWatchVersion> lastKnownVersion() {
+    public synchronized Optional<LockWatchVersion> lastKnownVersion() {
         return eventLog.getLatestKnownVersion();
     }
 
     @Override
-    public void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
+    public synchronized void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update) {
         Optional<LockWatchVersion> updateVersion = processEventLogUpdate(update);
         updateVersion.ifPresent(version -> timestampStateStore.putStartTimestamps(startTimestamps, version));
     }
 
     @Override
-    public void processGetCommitTimestampsUpdate(
+    public synchronized void processGetCommitTimestampsUpdate(
             Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update) {
         Optional<LockWatchVersion> updateVersion = processEventLogUpdate(update);
         updateVersion.ifPresent(version -> timestampStateStore.putCommitUpdates(transactionUpdates, version));
     }
 
     @Override
-    public CommitUpdate getCommitUpdate(long startTs) {
+    public synchronized CommitUpdate getCommitUpdate(long startTs) {
         Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
         Optional<CommitInfo> maybeCommitInfo = timestampStateStore.getCommitInfo(startTs);
 
@@ -99,7 +102,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public TransactionsLockWatchUpdate getUpdateForTransactions(
+    public synchronized TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
 
@@ -114,20 +117,20 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public void removeTransactionStateFromCache(long startTimestamp) {
+    public synchronized void removeTransactionStateFromCache(long startTimestamp) {
         timestampStateStore.remove(startTimestamp);
         retentionEvents();
     }
 
     @VisibleForTesting
-    LockWatchEventCacheState getStateForTesting() {
+    synchronized LockWatchEventCacheState getStateForTesting() {
         return ImmutableLockWatchEventCacheState.builder()
                 .timestampStoreState(timestampStateStore.getStateForTesting())
                 .logState(eventLog.getStateForTesting())
                 .build();
     }
 
-    private TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
+    private synchronized TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
         TimestampMapping.Builder mappingBuilder = new TimestampMapping.Builder();
         startTimestamps.forEach(timestamp -> {
             Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
@@ -137,7 +140,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         return mappingBuilder.build();
     }
 
-    private Optional<LockWatchVersion> processEventLogUpdate(LockWatchStateUpdate update) {
+    private synchronized Optional<LockWatchVersion> processEventLogUpdate(LockWatchStateUpdate update) {
         CacheUpdate cacheUpdate = eventLog.processUpdate(update);
 
         if (cacheUpdate.shouldClearCache()) {
@@ -148,7 +151,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         return cacheUpdate.getVersion();
     }
 
-    private void retentionEvents() {
+    private synchronized void retentionEvents() {
         eventLog.retentionEvents(timestampStateStore.getEarliestLiveSequence());
     }
 

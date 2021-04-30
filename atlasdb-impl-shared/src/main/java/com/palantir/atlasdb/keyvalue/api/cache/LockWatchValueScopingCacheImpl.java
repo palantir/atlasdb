@@ -16,14 +16,17 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
@@ -33,29 +36,46 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
     private final LockWatchEventCache eventCache;
-    private final ValueStore valueStore;
-    private final SnapshotStore snapshotStore;
-    private final CacheStore cacheStore;
     private final double validationProbability;
+    private final CacheStore cacheStore;
 
+    @GuardedBy("this")
+    private final ValueStore valueStore;
+
+    @GuardedBy("this")
+    private final SnapshotStore snapshotStore;
+
+    @GuardedBy("this")
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
-    public LockWatchValueScopingCacheImpl(
-            LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
+    @VisibleForTesting
+    LockWatchValueScopingCacheImpl(LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
         this.eventCache = eventCache;
         this.valueStore = new ValueStoreImpl(maxCacheSize);
         this.validationProbability = validationProbability;
         this.snapshotStore = new SnapshotStoreImpl();
         this.cacheStore = new CacheStoreImpl(snapshotStore);
+    }
+
+    public static LockWatchValueScopingCache create(
+            LockWatchEventCache eventCache,
+            MetricsManager metricsManager,
+            long maxCacheSize,
+            double validationProbability) {
+        return ResilientLockWatchProxy.newValueCacheProxy(
+                new LockWatchValueScopingCacheImpl(eventCache, maxCacheSize, validationProbability),
+                NoOpLockWatchValueScopingCache.create(),
+                metricsManager);
     }
 
     @Override
@@ -114,7 +134,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             @Override
             public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
                 Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                        .flatMap(LockWatchValueScopingCacheImpl::extractTableAndCell)
+                        .map(AtlasLockDescriptorUtils::candidateCells)
+                        .flatMap(List::stream)
                         .collect(Collectors.toSet());
                 KeyedStream.stream(cacheStore
                                 .getCache(StartTimestamp.of(startTimestamp))
@@ -218,9 +239,5 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .map(Sequence::of)
                 .mapEntries((timestamp, sequence) -> Maps.immutableEntry(sequence, timestamp))
                 .collectToSetMultimap();
-    }
-
-    private static Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
-        return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 }

@@ -26,7 +26,9 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
 import java.util.Optional;
+import javax.annotation.concurrent.NotThreadSafe;
 
+@NotThreadSafe
 final class LockWatchEventLog {
     private final ClientLockWatchSnapshot snapshot;
     private final VersionedEventStore eventStore;
@@ -55,7 +57,7 @@ final class LockWatchEventLog {
      *         this may begin with a snapshot if the latest version is too far behind, and this snapshot may be
      *         condensed.
      */
-    public ClientLogEvents getEventsBetweenVersions(VersionBounds versionBounds) {
+    ClientLogEvents getEventsBetweenVersions(VersionBounds versionBounds) {
         Optional<LockWatchVersion> startVersion = versionBounds.startVersion().map(this::createStartVersion);
         LockWatchVersion currentVersion = getLatestVersionAndVerify(versionBounds.endVersion());
 
