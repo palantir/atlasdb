@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -48,14 +47,9 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private final LockWatchEventCache eventCache;
     private final double validationProbability;
     private final CacheStore cacheStore;
-
-    @GuardedBy("this")
     private final ValueStore valueStore;
-
-    @GuardedBy("this")
     private final SnapshotStore snapshotStore;
 
-    @GuardedBy("this")
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     @VisibleForTesting

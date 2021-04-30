@@ -31,7 +31,6 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -40,10 +39,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private static final int MIN_EVENTS = 1000;
     private static final int MAX_EVENTS = 10_000;
 
-    @GuardedBy("this")
     private final LockWatchEventLog eventLog;
-
-    @GuardedBy("this")
     private final TimestampStateStore timestampStateStore;
 
     public static LockWatchEventCache create(MetricsManager metricsManager) {
