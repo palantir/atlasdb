@@ -108,7 +108,6 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private synchronized void processCommitUpdate(long startTimestamp) {
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
         Optional<TransactionScopedCache> cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
-        cache.ifPresent(TransactionScopedCache::close);
 
         commitUpdate.accept(new Visitor<Void>() {
             @Override
@@ -132,6 +131,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 return null;
             }
         });
+
+        cache.ifPresent(TransactionScopedCache::close);
     }
 
     /**
