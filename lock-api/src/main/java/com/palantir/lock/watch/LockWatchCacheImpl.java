@@ -18,7 +18,6 @@ package com.palantir.lock.watch;
 
 import java.util.Collection;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public final class LockWatchCacheImpl implements LockWatchCache {
     private final LockWatchEventCache eventCache;
@@ -43,8 +42,12 @@ public final class LockWatchCacheImpl implements LockWatchCache {
     public void processCommitTimestampsUpdate(
             Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update) {
         eventCache.processGetCommitTimestampsUpdate(transactionUpdates, update);
-        valueCache.updateCacheAndRemoveTransactionState(
-                transactionUpdates.stream().map(TransactionUpdate::startTs).collect(Collectors.toSet()));
+    }
+
+    @Override
+    public void updateCachesAndRemoveTransactionState(long startTimestamp) {
+        eventCache.removeTransactionStateFromCache(startTimestamp);
+        valueCache.updateCacheAndRemoveTransactionState(startTimestamp);
     }
 
     @Override

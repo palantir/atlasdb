@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.transaction.api;
 
-import java.util.Collection;
-import java.util.Set;
+public final class TransactionCacheConflictException extends TransactionFailedRetriableException {
+    public TransactionCacheConflictException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-public interface LockWatchCache {
-    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
-
-    void processCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update);
-
-    void updateCachesAndRemoveTransactionState(long startTimestamp);
-
-    void removeTransactionStateFromCache(long startTimestamp);
-
-    LockWatchEventCache getEventCache();
-
-    LockWatchValueCache getValueCache();
+    public TransactionCacheConflictException(String message) {
+        super(message);
+    }
 }

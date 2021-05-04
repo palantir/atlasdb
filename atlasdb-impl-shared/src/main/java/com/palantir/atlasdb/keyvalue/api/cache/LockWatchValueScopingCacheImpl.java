@@ -19,15 +19,14 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.cache.CellUpdate.Visitor;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.atlasdb.transaction.api.TransactionCacheConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -35,8 +34,6 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -45,6 +42,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
     private final CacheStore cacheStore;
+    private final UpdateStore updateStore;
     private final double validationProbability;
 
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
@@ -56,6 +54,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         this.validationProbability = validationProbability;
         this.snapshotStore = new SnapshotStoreImpl();
         this.cacheStore = new CacheStoreImpl(snapshotStore);
+        this.updateStore = new UpdateStoreImpl();
     }
 
     @Override
@@ -72,28 +71,23 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public synchronized void updateCacheAndRemoveTransactionState(Set<Long> startTimestamps) {
-        try {
-            startTimestamps.forEach(this::processCommitUpdate);
-        } finally {
-            // Remove the timestamps, and if the sequence has not updated, update the snapshot with the reads from
-            // these transactions (there is no guarantee that all the start timestamps have the same sequence).
-            startTimestamps.stream().map(StartTimestamp::of).forEach(startTs -> {
-                snapshotStore
-                        .removeTimestamp(startTs)
-                        .filter(sequence -> currentVersion.isPresent()
-                                && sequence.value() == currentVersion.get().version())
-                        .ifPresent(sequence -> snapshotStore.updateSnapshot(sequence, valueStore.getSnapshot()));
-                cacheStore.removeCache(startTs);
-            });
-        }
+    public synchronized void updateCacheAndRemoveTransactionState(long startTimestamp) {
+        processCommitUpdate(startTimestamp);
+        removeTransactionState(startTimestamp);
     }
 
     @Override
     public synchronized void removeTransactionState(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
-        snapshotStore.removeTimestamp(startTs);
+        // Remove the timestamps, and if the sequence has not updated, update the snapshot with the reads from
+        // these transactions (there is no guarantee that all the start timestamps have the same sequence).
+        snapshotStore
+                .removeTimestamp(startTs)
+                .filter(sequence -> currentVersion.isPresent()
+                        && sequence.value() == currentVersion.get().version())
+                .ifPresent(sequence -> snapshotStore.updateSnapshot(sequence, valueStore.getSnapshot()));
         cacheStore.removeCache(startTs);
+        updateStore.removeUpdate(startTs);
     }
 
     @Override
@@ -106,26 +100,50 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public void verifySerializableReads(long timestamp) {}
+    public void verifySerializableReads(long startTimestamp) {
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        TransactionScopedCache cache = cacheStore
+                .getCache(startTs)
+                .orElseThrow(() -> new TransactionLockWatchFailedException(
+                        "Cannot verify serializability of transaction if cache is missing"));
+        cache.close();
+
+        updateStore.getUpdate(eventCache, startTs).accept(new Visitor<Void>() {
+            @Override
+            public Void invalidateAll() {
+                throw new TransactionCacheConflictException("Cannot validate serializable conflicts due to a Timelock"
+                        + " leader election, or some other reason.");
+            }
+
+            @Override
+            public Void invalidateSome(Set<CellReference> invalidatedCells) {
+                if (!Sets.intersection(cache.getHitDigest().hitCells(), invalidatedCells)
+                        .isEmpty()) {
+                    throw new TransactionCacheConflictException(
+                            "Values read from the cache have conflicted with a remote write in a different "
+                                    + "transaction");
+                }
+                return null;
+            }
+        });
+    }
 
     private synchronized void processCommitUpdate(long startTimestamp) {
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
-        Optional<TransactionScopedCache> cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        Optional<TransactionScopedCache> cache = cacheStore.getCache(startTs);
+        cache.ifPresent(TransactionScopedCache::close);
 
-        commitUpdate.accept(new Visitor<Void>() {
+        updateStore.getUpdate(eventCache, startTs).accept(new Visitor<Void>() {
             @Override
             public Void invalidateAll() {
                 // This might happen due to an election or if we exceeded the maximum number of events held in
-                // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
-                // because of read-write conflicts, that is handled in the PreCommitCondition.
+                // memory. Either way, the values are just not pushed to the central cache. Read-write conflict
+                // handling is managed separately.
                 return null;
             }
 
             @Override
-            public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-                Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                        .flatMap(LockWatchValueScopingCacheImpl::extractTableAndCell)
-                        .collect(Collectors.toSet());
+            public Void invalidateSome(Set<CellReference> invalidatedCells) {
                 KeyedStream.stream(cache.map(TransactionScopedCache::getValueDigest)
                                 .map(ValueDigest::loadedValues)
                                 .orElseGet(ImmutableMap::of))
@@ -134,8 +152,6 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 return null;
             }
         });
-
-        cache.ifPresent(TransactionScopedCache::close);
     }
 
     /**
@@ -200,6 +216,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();
+        updateStore.reset();
         currentVersion = Optional.empty();
     }
 
@@ -211,9 +228,5 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .map(Sequence::of)
                 .mapEntries((timestamp, sequence) -> Maps.immutableEntry(sequence, timestamp))
                 .collectToSetMultimap();
-    }
-
-    private static Stream<CellReference> extractTableAndCell(LockDescriptor descriptor) {
-        return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 }

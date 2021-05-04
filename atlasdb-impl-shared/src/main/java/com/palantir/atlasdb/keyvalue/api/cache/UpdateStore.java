@@ -14,21 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.watch;
+package com.palantir.atlasdb.keyvalue.api.cache;
 
-import java.util.Collection;
-import java.util.Set;
+import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.lock.watch.LockWatchEventCache;
 
-public interface LockWatchCache {
-    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
+interface UpdateStore {
+    CellUpdate getUpdate(LockWatchEventCache eventCache, StartTimestamp startTimestamp);
 
-    void processCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update);
+    void removeUpdate(StartTimestamp startTimestamp);
 
-    void updateCachesAndRemoveTransactionState(long startTimestamp);
-
-    void removeTransactionStateFromCache(long startTimestamp);
-
-    LockWatchEventCache getEventCache();
-
-    LockWatchValueCache getValueCache();
+    void reset();
 }

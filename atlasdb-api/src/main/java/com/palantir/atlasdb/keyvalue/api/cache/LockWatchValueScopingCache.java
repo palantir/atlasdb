@@ -36,13 +36,14 @@ public interface LockWatchValueScopingCache extends LockWatchValueCache {
     @Override
     void processStartTransactions(Set<Long> startTimestamps);
 
-    @Override
-    void updateCacheAndRemoveTransactionState(Set<Long> startTimestamps);
-
     /**
-     * This method should only be used when the transaction has failed and the state needs to be removed from the
-     * cache without updating the central value store.
+     * This method does **not** remove the transaction state from the cache; this **must** happen after commit by
+     * using {@link LockWatchValueCache#removeTransactionState(long)} - preferably at the same time as
+     * {@link com.palantir.lock.watch.LockWatchEventCache} has its state removed.
      */
+    @Override
+    void updateCacheAndRemoveTransactionState(long startTimestamp);
+
     @Override
     void removeTransactionState(long startTimestamp);
 

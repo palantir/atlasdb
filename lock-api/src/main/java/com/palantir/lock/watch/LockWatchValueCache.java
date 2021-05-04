@@ -21,7 +21,7 @@ import java.util.Set;
 public interface LockWatchValueCache {
     void processStartTransactions(Set<Long> startTimestamps);
 
-    void updateCacheAndRemoveTransactionState(Set<Long> startTimestamps);
+    void updateCacheAndRemoveTransactionState(long startTimestamps);
 
     void removeTransactionState(long startTimestamp);
 
