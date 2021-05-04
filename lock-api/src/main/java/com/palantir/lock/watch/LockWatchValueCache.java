@@ -24,4 +24,6 @@ public interface LockWatchValueCache {
     void updateCacheOnCommit(Set<Long> startTimestamps);
 
     void removeTransactionStateFromCache(long startTimestamp);
+
+    void verifySerializableReads(long timestamp);
 }

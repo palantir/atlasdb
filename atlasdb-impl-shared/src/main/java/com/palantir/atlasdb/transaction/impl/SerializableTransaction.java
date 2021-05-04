@@ -523,6 +523,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         verifyCells(ro);
         verifyRows(ro);
         verifyGetSortedColumns(ro);
+        lockWatchManager.getCache().getValueCache().verifySerializableReads(getTimestamp());
     }
 
     private void verifyRows(Transaction ro) {

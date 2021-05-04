@@ -100,6 +100,9 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 validationProbability);
     }
 
+    @Override
+    public void verifySerializableReads(long timestamp) {}
+
     private synchronized void processCommitUpdate(long startTimestamp) {
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
         commitUpdate.accept(new Visitor<Void>() {
