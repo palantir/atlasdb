@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Transaction now supports an `onSuccess(Runnable)` method, that can invoke a callback when a transaction is successful. Please read the javadocs of this method very carefully for more details of the semantics if you wish to use this method.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5421
