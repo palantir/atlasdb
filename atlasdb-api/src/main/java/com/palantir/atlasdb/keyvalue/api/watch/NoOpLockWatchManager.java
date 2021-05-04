@@ -29,15 +29,13 @@ import java.util.Set;
 
 public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     private final LockWatchCache cache;
-    private final TransactionScopedCache transactionScopedCache;
 
-    private NoOpLockWatchManager(LockWatchCache cache, TransactionScopedCache transactionScopedCache) {
+    private NoOpLockWatchManager(LockWatchCache cache) {
         this.cache = cache;
-        this.transactionScopedCache = transactionScopedCache;
     }
 
     public static LockWatchManagerInternal create() {
-        return new NoOpLockWatchManager(LockWatchCacheImpl.noop(), NoOpTransactionScopedCache.create());
+        return new NoOpLockWatchManager(LockWatchCacheImpl.noOp());
     }
 
     @Override
@@ -73,7 +71,7 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
 
     @Override
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
-        return transactionScopedCache;
+        return NoOpTransactionScopedCache.create();
     }
 
     @Override

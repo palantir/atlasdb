@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -90,5 +91,19 @@ public final class LockWatchManagerImplTest {
                 .startWatching(LockWatchRequest.builder()
                         .references(ImmutableSet.of(fromSchema, lockWatchReference1))
                         .build());
+    }
+
+    @Test
+    public void removeTransactionStateTest() {
+        manager.removeTransactionStateFromCache(1L);
+        verify(lockWatchEventCache).removeTransactionStateFromCache(1L);
+        verify(valueScopingCache).removeTransactionStateFromCache(1L);
+    }
+
+    @Test
+    public void createTransactionScopedCacheTest() {
+        manager.createTransactionScopedCache(1L);
+        verify(valueScopingCache).createTransactionScopedCache(1L);
+        verifyNoMoreInteractions(lockWatchEventCache);
     }
 }

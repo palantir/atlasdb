@@ -29,7 +29,7 @@ public final class LockWatchCacheImpl implements LockWatchCache {
         this.valueCache = valueCache;
     }
 
-    public static LockWatchCache noop() {
+    public static LockWatchCache noOp() {
         return new LockWatchCacheImpl(NoOpLockWatchEventCache.create(), NoOpLockWatchValueCache.create());
     }
 

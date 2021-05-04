@@ -40,7 +40,7 @@ public final class RequestBatchersFactory {
     }
 
     public static RequestBatchersFactory createForTests() {
-        return new RequestBatchersFactory(LockWatchCacheImpl.noop(), Namespace.of("test-client"), Optional.empty());
+        return new RequestBatchersFactory(LockWatchCacheImpl.noOp(), Namespace.of("test-client"), Optional.empty());
     }
 
     public IdentifiedAtlasDbTransactionStarter createBatchingTransactionStarter(LockLeaseService lockLeaseService) {

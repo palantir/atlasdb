@@ -54,7 +54,7 @@ public class TransactionStarterTest {
     @Mock
     private LockLeaseService lockLeaseService;
 
-    private final LockWatchCache cache = spy(LockWatchCacheImpl.noop());
+    private final LockWatchCache cache = spy(LockWatchCacheImpl.noOp());
     private final Optional<LockWatchVersion> version = Optional.empty();
     private TransactionStarter transactionStarter;
 

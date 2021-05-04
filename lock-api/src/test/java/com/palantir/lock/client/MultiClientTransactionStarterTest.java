@@ -317,7 +317,7 @@ public class MultiClientTransactionStarterTest {
     }
 
     private LockWatchCache getCache(Namespace namespace) {
-        return NAMESPACE_CACHE_MAP.computeIfAbsent(namespace, _u -> spy(LockWatchCacheImpl.noop()));
+        return NAMESPACE_CACHE_MAP.computeIfAbsent(namespace, _u -> spy(LockWatchCacheImpl.noOp()));
     }
 
     public Map<Namespace, ConjureStartTransactionsResponse> startTransactions(

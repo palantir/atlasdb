@@ -250,7 +250,7 @@ public class MultiClientCommitTimestampGetterTest {
                 ImmutableNamespacedRequest.builder()
                         .namespace(namespace)
                         .startTs(1)
-                        .cache(lockWatchCacheMap.computeIfAbsent(namespace, _unused -> spy(LockWatchCacheImpl.noop())))
+                        .cache(lockWatchCacheMap.computeIfAbsent(namespace, _unused -> spy(LockWatchCacheImpl.noOp())))
                         .commitLocksToken(lockToken)
                         .build(),
                 new DisruptorFuture<Long>("test"));
