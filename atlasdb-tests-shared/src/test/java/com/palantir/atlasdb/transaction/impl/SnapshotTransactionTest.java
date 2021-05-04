@@ -1938,6 +1938,17 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void callbacksOnlyRunOnceEvenOnMultipleCommits() {
+        Transaction transaction = txManager.createNewTransaction();
+        Runnable callback = mock(Runnable.class);
+        transaction.onSuccess(callback);
+        transaction.commit();
+        transaction.commit();
+
+        verify(callback, times(1)).run();
+    }
+
+    @Test
     public void transactionStillCommittedEvenIfCallbackThrows() {
         assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(txn -> {
                     txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
