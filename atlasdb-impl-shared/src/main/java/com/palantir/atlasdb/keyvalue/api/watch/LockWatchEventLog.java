@@ -163,7 +163,13 @@ final class LockWatchEventLog {
 
         if (success.lastKnownVersion() > latestVersion.get().version()) {
             LockWatchEvents events =
-                    LockWatchEvents.builder().addAllEvents(success.events()).build();
+                    LockWatchEvents.builder().events(success.events()).build();
+            if (events.events().isEmpty()) {
+                throw new TransactionLockWatchFailedException("Success event has a later version than the current "
+                        + "version, but has no events to bridge the gap. The transaction should be tried, but this "
+                        + "should only happen rarely.");
+            }
+
             events.assertNoEventsAreMissingAfterLatestVersion(latestVersion);
             latestVersion = Optional.of(LockWatchVersion.of(success.logId(), eventStore.putAll(events)));
         }
