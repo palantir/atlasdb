@@ -157,6 +157,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -251,6 +252,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
+    protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
 
     protected volatile boolean hasReads;
 
@@ -1678,6 +1680,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
+    /**
+     * Returns true iff the transaction is known to have successfully committed.
+     *
+     * Be careful when using this method! A transaction that the client thinks has failed could actually have
+     * committed as far as the key-value service is concerned.
+     */
+    private boolean isDefinitivelyCommitted() {
+        return state.get() == State.COMMITTED;
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     /// Committing
     ///////////////////////////////////////////////////////////////////////////
@@ -1729,6 +1741,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             if (success) {
                 state.set(State.COMMITTED);
                 transactionOutcomeMetrics.markSuccessfulCommit();
+                successCallbackManager.runCallbacks();
             } else {
                 state.set(State.FAILED);
                 transactionOutcomeMetrics.markFailedCommit();
@@ -2494,6 +2507,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         constraintsByTableName.put(tableRef, table);
     }
 
+    @Override
+    public void onSuccess(Runnable callback) {
+        Preconditions.checkNotNull(callback, "Callback cannot be null");
+        successCallbackManager.registerCallback(callback);
+    }
+
     /**
      * The similarly-named-and-intentioned useTable method is only called on writes. This one is more comprehensive and
      * covers read paths as well (necessary because we wish to get the sweep strategies of tables in read-only
@@ -2585,5 +2604,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private enum SentinelType {
         DEFINITE_ORPHANED,
         INDETERMINATE;
+    }
+
+    private final class SuccessCallbackManager {
+        private final List<Runnable> callbacks = new CopyOnWriteArrayList<>();
+
+        public void registerCallback(Runnable runnable) {
+            ensureUncommitted();
+            callbacks.add(runnable);
+        }
+
+        public void runCallbacks() {
+            Preconditions.checkState(
+                    isDefinitivelyCommitted(),
+                    "Callbacks must not be run if it is not known that the transaction has definitively committed! "
+                            + "This is likely a bug in AtlasDB transaction code.");
+            callbacks.forEach(Runnable::run);
+        }
     }
 }
