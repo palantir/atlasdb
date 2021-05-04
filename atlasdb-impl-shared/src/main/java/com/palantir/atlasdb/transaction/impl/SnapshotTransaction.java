@@ -780,14 +780,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         tableRef,
                         cells,
                         (table, uncached) -> getInternal(
-                                "get", tableRef, cells, immediateKeyValueService, immediateTransactionService));
+                                "get", tableRef, uncached, immediateKeyValueService, immediateTransactionService));
     }
 
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        // todo(gmaretic): make this use cache as well?
-        return getInternal("getAsync", tableRef, cells, keyValueService, defaultTransactionService);
+        return cache.get()
+                .getAsync(
+                        tableRef,
+                        cells,
+                        (table, uncached) -> getInternal(
+                                "getAsync", tableRef, uncached, keyValueService, defaultTransactionService));
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getInternal(
