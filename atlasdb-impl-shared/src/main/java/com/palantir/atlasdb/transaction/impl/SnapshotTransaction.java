@@ -26,6 +26,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -207,7 +208,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final TimelockService timelockService;
     protected final LockWatchManagerInternal lockWatchManager;
-    protected final TransactionScopedCache cache;
+    protected final Supplier<TransactionScopedCache> cache;
     final KeyValueService keyValueService;
     final AsyncKeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
@@ -286,7 +287,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableLevelMetricsController tableLevelMetricsController) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
-        this.cache = lockWatchManager.createTransactionScopedCache(startTimeStamp.get());
+        this.cache = Suppliers.memoize(() -> lockWatchManager.createTransactionScopedCache(startTimeStamp.get()));
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -774,11 +775,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        return cache.get(
-                tableRef,
-                cells,
-                (table, uncached) ->
-                        getInternal("get", tableRef, cells, immediateKeyValueService, immediateTransactionService));
+        return cache.get()
+                .get(
+                        tableRef,
+                        cells,
+                        (table, uncached) -> getInternal(
+                                "get", tableRef, cells, immediateKeyValueService, immediateTransactionService));
     }
 
     @Override
@@ -1576,14 +1578,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
         putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
-        cache.delete(tableRef, cells);
+        cache.get().delete(tableRef, cells);
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         ensureNoEmptyValues(values);
         putInternal(tableRef, values);
-        cache.write(tableRef, values);
+        cache.get().write(tableRef, values);
     }
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
