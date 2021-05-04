@@ -42,7 +42,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
@@ -112,7 +111,6 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampService;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -149,11 +147,9 @@ import org.assertj.core.api.HamcrestCondition;
 import org.hamcrest.Matchers;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
-import org.jmock.Sequence;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.jmock.lib.concurrent.Synchroniser;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -411,7 +407,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         metricsManager,
                         keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
                         new LegacyTimelockService(timestampService, lock, lockClient),
-                        NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
+                        NoOpLockWatchManager.create(),
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         () -> transactionTs,
@@ -437,77 +433,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
         mockery.assertIsSatisfied();
-    }
-
-    @Ignore("Was ignored long ago, and now we need to fix the mocking logic.")
-    // This tests that uncommitted values are deleted and cleaned up
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testPutCleanup() throws Exception {
-        byte[] rowName = PtBytes.toBytes("1");
-        Mockery m = new Mockery();
-        final KeyValueService kvMock = m.mock(KeyValueService.class);
-        KeyValueService kv = MultiDelegateProxy.newProxyInstance(KeyValueService.class, keyValueService, kvMock);
-
-        final Cell cell = Cell.create(rowName, rowName);
-        timestampService.getFreshTimestamp();
-        final long startTs = timestampService.getFreshTimestamp();
-        final long transactionTs = timestampService.getFreshTimestamp();
-        keyValueService.put(TABLE, ImmutableMap.of(cell, rowName), startTs);
-
-        final Sequence seq = m.sequence("seq");
-        m.checking(new Expectations() {
-            {
-                oneOf(kvMock).getLatestTimestamps(TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
-                inSequence(seq);
-                oneOf(kvMock).get(with(TransactionConstants.TRANSACTION_TABLE), with(any(Map.class)));
-                inSequence(seq);
-                oneOf(kvMock).putUnlessExists(with(TransactionConstants.TRANSACTION_TABLE), with(any(Map.class)));
-                inSequence(seq);
-                oneOf(kvMock).delete(TABLE, Multimaps.forMap(ImmutableMap.of(cell, startTs)));
-                inSequence(seq);
-                oneOf(kvMock).getLatestTimestamps(TABLE, ImmutableMap.of(cell, startTs));
-                inSequence(seq);
-                oneOf(kvMock).multiPut(with(any(Map.class)), with(transactionTs));
-                inSequence(seq);
-                oneOf(kvMock).putUnlessExists(with(TransactionConstants.TRANSACTION_TABLE), with(any(Map.class)));
-                inSequence(seq);
-            }
-        });
-
-        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        Transaction snapshot = transactionWrapper.apply(
-                new SnapshotTransaction(
-                        metricsManager,
-                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
-                        null,
-                        null,
-                        transactionService,
-                        NoOpCleaner.INSTANCE,
-                        () -> transactionTs,
-                        ConflictDetectionManagers.create(keyValueService),
-                        SweepStrategyManagers.createDefault(keyValueService),
-                        transactionTs,
-                        Optional.empty(),
-                        PreCommitConditions.NO_OP,
-                        AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                        null,
-                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                        false,
-                        timestampCache,
-                        getRangesExecutor,
-                        defaultGetRangesConcurrency,
-                        MultiTableSweepQueueWriter.NO_OP,
-                        MoreExecutors.newDirectExecutorService(),
-                        true,
-                        () -> transactionConfig,
-                        ConflictTracer.NO_OP,
-                        tableLevelMetricsController),
-                pathTypeTracker);
-        snapshot.delete(TABLE, ImmutableSet.of(cell));
-        snapshot.commit();
-
-        m.assertIsSatisfied();
     }
 
     @Test
@@ -1984,7 +1909,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
-                        NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
+                        NoOpLockWatchManager.create(),
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         startTs,

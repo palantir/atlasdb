@@ -16,23 +16,26 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import com.palantir.atlasdb.keyvalue.api.cache.NoOpTransactionScopedCache;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Optional;
 import java.util.Set;
 
-public final class NoOpLockWatchManager extends LockWatchManager {
-    private final LockWatchEventCache eventCache;
+public final class NoOpLockWatchManager extends LockWatchManagerInternal {
+    private final LockWatchCache cache;
 
-    private NoOpLockWatchManager(LockWatchEventCache eventCache) {
-        this.eventCache = eventCache;
+    private NoOpLockWatchManager(LockWatchCache cache) {
+        this.cache = cache;
     }
 
-    public static LockWatchManager create(LockWatchEventCache eventCache) {
-        return new NoOpLockWatchManager(eventCache);
+    public static LockWatchManagerInternal create() {
+        return new NoOpLockWatchManager(LockWatchCacheImpl.noOp());
     }
 
     @Override
@@ -42,17 +45,37 @@ public final class NoOpLockWatchManager extends LockWatchManager {
 
     @Override
     boolean isEnabled() {
-        return eventCache.isEnabled();
+        return cache.getEventCache().isEnabled();
     }
 
     @Override
     CommitUpdate getCommitUpdate(long startTs) {
-        return eventCache.getCommitUpdate(startTs);
+        return cache.getEventCache().getCommitUpdate(startTs);
+    }
+
+    @Override
+    public LockWatchCache getCache() {
+        return cache;
+    }
+
+    @Override
+    public void removeTransactionStateFromCache(long startTs) {
+        cache.removeTransactionStateFromCache(startTs);
     }
 
     @Override
     TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
-        return eventCache.getUpdateForTransactions(startTimestamps, version);
+        return cache.getEventCache().getUpdateForTransactions(startTimestamps, version);
+    }
+
+    @Override
+    public TransactionScopedCache createTransactionScopedCache(long startTs) {
+        return NoOpTransactionScopedCache.create();
+    }
+
+    @Override
+    public void close() {
+        // cool story
     }
 }

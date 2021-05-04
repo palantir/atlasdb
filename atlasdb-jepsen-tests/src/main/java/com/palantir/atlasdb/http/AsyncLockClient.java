@@ -28,7 +28,7 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.logsafe.Preconditions;
 import java.util.List;
 import java.util.Set;
@@ -40,7 +40,7 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     private AsyncLockClient(
             NamespacedTimelockRpcClient timelockService, NamespacedConjureTimelockService conjureTimelockService) {
         this.timelockService = RemoteTimelockServiceAdapter.create(
-                Namespace.of(NAMESPACE), timelockService, conjureTimelockService, NoOpLockWatchEventCache.create());
+                Namespace.of(NAMESPACE), timelockService, conjureTimelockService, LockWatchCacheImpl.noOp());
     }
 
     public static AsyncLockClient create(MetricsManager metricsManager, List<String> hosts) {

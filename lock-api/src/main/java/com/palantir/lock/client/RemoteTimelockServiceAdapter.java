@@ -28,7 +28,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
 import java.util.Optional;
@@ -57,12 +57,12 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             Namespace namespace,
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
-            LockWatchEventCache lockWatchEventCache) {
+            LockWatchCache lockWatchCache) {
         return create(
                 rpcClient,
                 conjureClient,
                 new LegacyLeaderTimeGetter(conjureClient),
-                RequestBatchersFactory.create(lockWatchEventCache, namespace, Optional.empty()));
+                RequestBatchersFactory.create(lockWatchCache, namespace, Optional.empty()));
     }
 
     public static RemoteTimelockServiceAdapter create(

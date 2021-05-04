@@ -273,8 +273,7 @@ public class SerializableTransactionManagerTest {
                 MetricsManagers.createForTests(),
                 mockKvs,
                 mockTimelockService,
-                NoOpLockWatchManager.create(lockWatchEventCache),
-                lockWatchEventCache,
+                NoOpLockWatchManager.create(),
                 mockTimestampManagementService,
                 null, // lockService
                 mock(TransactionService.class),
