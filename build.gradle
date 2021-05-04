@@ -103,7 +103,7 @@ allprojects {
 
     tasks.withType(JavaCompile) {
         options.compilerArgs.removeAll {
-            it == '-parameter'
+            it == '-parameters'
         }
         options.compilerArgs += ['-Werror']
         // temporarily relax constraints until we can fix all violations
