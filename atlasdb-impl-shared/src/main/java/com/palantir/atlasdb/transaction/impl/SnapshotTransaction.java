@@ -2591,7 +2591,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         INDETERMINATE;
     }
 
-    private class SuccessCallbackManager {
+    private final class SuccessCallbackManager {
         private final List<Runnable> callbacks = new CopyOnWriteArrayList<>();
 
         public void registerCallback(Runnable runnable) {
