@@ -56,13 +56,13 @@ public class LockWatchCacheImplTest {
     public void commitTest() {
         cache.processCommitTimestampsUpdate(UPDATES, SUCCESS);
         verify(eventCache).processGetCommitTimestampsUpdate(UPDATES, SUCCESS);
-        verify(valueCache).updateCacheOnCommit(TIMESTAMPS);
+        verify(valueCache).updateCacheAndRemoveTransactionState(TIMESTAMPS);
     }
 
     @Test
     public void removeTest() {
         cache.removeTransactionStateFromCache(1L);
         verify(eventCache).removeTransactionStateFromCache(1L);
-        verify(valueCache).removeTransactionStateFromCache(1L);
+        verify(valueCache).removeTransactionState(1L);
     }
 }
