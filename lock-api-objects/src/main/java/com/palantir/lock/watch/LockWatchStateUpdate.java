@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.errorprone.annotations.DoNotMock;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.immutables.value.Value;
     @JsonSubTypes.Type(value = LockWatchStateUpdate.Success.class, name = LockWatchStateUpdate.Success.TYPE),
     @JsonSubTypes.Type(value = LockWatchStateUpdate.Snapshot.class, name = LockWatchStateUpdate.Snapshot.TYPE)
 })
+@DoNotMock
 public interface LockWatchStateUpdate {
     UUID logId();
 

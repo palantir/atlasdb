@@ -17,66 +17,54 @@
 package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
-import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 public final class RequestBatchersFactory {
-    private final LockWatchEventCache lockWatchEventCache;
-    private final StartTransactionsLockWatchEventCache startTransactionsLockWatchEventCache;
+    private final LockWatchCache cache;
     private final Namespace namespace;
     private final Optional<MultiClientRequestBatchers> maybeRequestBatchers;
 
     private RequestBatchersFactory(
-            LockWatchEventCache lockWatchEventCache,
-            Namespace namespace,
-            Optional<MultiClientRequestBatchers> maybeRequestBatchers) {
-        this.lockWatchEventCache = lockWatchEventCache;
-        this.startTransactionsLockWatchEventCache = StartTransactionsLockWatchEventCache.create(lockWatchEventCache);
+            LockWatchCache cache, Namespace namespace, Optional<MultiClientRequestBatchers> maybeRequestBatchers) {
+        this.cache = cache;
         this.namespace = namespace;
         this.maybeRequestBatchers = maybeRequestBatchers;
     }
 
     public static RequestBatchersFactory create(
-            LockWatchEventCache lockWatchEventCache,
-            Namespace namespace,
-            Optional<MultiClientRequestBatchers> maybeRequestBatchers) {
-        return new RequestBatchersFactory(lockWatchEventCache, namespace, maybeRequestBatchers);
+            LockWatchCache cache, Namespace namespace, Optional<MultiClientRequestBatchers> maybeRequestBatchers) {
+        return new RequestBatchersFactory(cache, namespace, maybeRequestBatchers);
     }
 
     public static RequestBatchersFactory createForTests() {
-        return new RequestBatchersFactory(
-                NoOpLockWatchEventCache.create(), Namespace.of("test-client"), Optional.empty());
+        return new RequestBatchersFactory(LockWatchCacheImpl.noOp(), Namespace.of("test-client"), Optional.empty());
     }
 
     public IdentifiedAtlasDbTransactionStarter createBatchingTransactionStarter(LockLeaseService lockLeaseService) {
         Optional<ReferenceTrackingWrapper<MultiClientTransactionStarter>> transactionStarter =
                 maybeRequestBatchers.map(MultiClientRequestBatchers::transactionStarter);
         if (!transactionStarter.isPresent()) {
-            return BatchingIdentifiedAtlasDbTransactionStarter.create(
-                    lockLeaseService, startTransactionsLockWatchEventCache);
+            return BatchingIdentifiedAtlasDbTransactionStarter.create(lockLeaseService, cache);
         }
         ReferenceTrackingWrapper<MultiClientTransactionStarter> referenceTrackingBatcher = transactionStarter.get();
         referenceTrackingBatcher.recordReference();
         return new NamespacedIdentifiedTransactionStarter(
-                namespace,
-                referenceTrackingBatcher,
-                startTransactionsLockWatchEventCache,
-                new LockCleanupService(lockLeaseService));
+                namespace, referenceTrackingBatcher, cache, new LockCleanupService(lockLeaseService));
     }
 
     public CommitTimestampGetter createBatchingCommitTimestampGetter(LockLeaseService lockLeaseService) {
         Optional<ReferenceTrackingWrapper<MultiClientCommitTimestampGetter>> commitTimestampGetter =
                 maybeRequestBatchers.map(MultiClientRequestBatchers::commitTimestampGetter);
         if (!commitTimestampGetter.isPresent()) {
-            return BatchingCommitTimestampGetter.create(lockLeaseService, lockWatchEventCache);
+            return BatchingCommitTimestampGetter.create(lockLeaseService, cache);
         }
         ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher =
                 commitTimestampGetter.get();
         referenceTrackingBatcher.recordReference();
-        return new NamespacedCommitTimestampGetter(lockWatchEventCache, namespace, referenceTrackingBatcher);
+        return new NamespacedCommitTimestampGetter(cache, namespace, referenceTrackingBatcher);
     }
 
     @Value.Immutable

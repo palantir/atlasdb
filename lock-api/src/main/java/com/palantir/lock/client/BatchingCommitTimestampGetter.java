@@ -24,7 +24,7 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import java.util.ArrayList;
@@ -45,7 +45,7 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
         this.autobatcher = autobatcher;
     }
 
-    public static BatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchEventCache cache) {
+    public static BatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchCache cache) {
         DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(consumer(leaseService, cache))
                 .safeLoggablePurpose("get-commit-timestamp")
                 .build();
@@ -61,13 +61,13 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     }
 
     @VisibleForTesting
-    static Consumer<List<BatchElement<Request, Long>>> consumer(
-            LockLeaseService leaseService, LockWatchEventCache cache) {
+    static Consumer<List<BatchElement<Request, Long>>> consumer(LockLeaseService leaseService, LockWatchCache cache) {
         return batch -> {
             int count = batch.size();
             List<Long> commitTimestamps = new ArrayList<>();
             while (commitTimestamps.size() < count) {
-                Optional<LockWatchVersion> requestedVersion = cache.lastKnownVersion();
+                Optional<LockWatchVersion> requestedVersion =
+                        cache.getEventCache().lastKnownVersion();
                 GetCommitTimestampsResponse response =
                         leaseService.getCommitTimestamps(requestedVersion, count - commitTimestamps.size());
                 commitTimestamps.addAll(process(batch.subList(commitTimestamps.size(), count), response, cache));
@@ -81,9 +81,7 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     }
 
     private static List<Long> process(
-            List<BatchElement<Request, Long>> requests,
-            GetCommitTimestampsResponse response,
-            LockWatchEventCache cache) {
+            List<BatchElement<Request, Long>> requests, GetCommitTimestampsResponse response, LockWatchCache cache) {
         List<Long> timestamps = LongStream.rangeClosed(response.getInclusiveLower(), response.getInclusiveUpper())
                 .boxed()
                 .collect(Collectors.toList());
@@ -94,7 +92,7 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
                                 .writesToken(batchElement.argument().commitLocksToken())
                                 .build())
                 .collect(Collectors.toList());
-        cache.processGetCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
+        cache.processCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
         return timestamps;
     }
 

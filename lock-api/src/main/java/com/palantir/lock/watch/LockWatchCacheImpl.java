@@ -14,13 +14,8 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api;
+package com.palantir.lock.watch;
 
-import com.palantir.lock.watch.LockWatchCache;
-import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.LockWatchValueCache;
-import com.palantir.lock.watch.TransactionUpdate;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -32,6 +27,10 @@ public final class LockWatchCacheImpl implements LockWatchCache {
     public LockWatchCacheImpl(LockWatchEventCache eventCache, LockWatchValueCache valueCache) {
         this.eventCache = eventCache;
         this.valueCache = valueCache;
+    }
+
+    public static LockWatchCache noOp() {
+        return new LockWatchCacheImpl(NoOpLockWatchEventCache.create(), NoOpLockWatchValueCache.create());
     }
 
     @Override

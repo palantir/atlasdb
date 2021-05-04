@@ -25,8 +25,8 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -127,11 +127,11 @@ public final class TransactionStarterHelper {
     }
 
     static void updateCacheWithStartTransactionResponse(
-            StartTransactionsLockWatchEventCache lockWatchEventCache,
+            LockWatchCache cache,
             Optional<LockWatchVersion> requestedVersion,
             ConjureStartTransactionsResponse response) {
-        lockWatchEventCache.processStartTransactionsUpdate(
-                response.getTimestamps().stream().boxed().collect(Collectors.toSet()), response.getLockWatchUpdate());
+        Set<Long> startTimestamps = response.getTimestamps().stream().boxed().collect(Collectors.toSet());
+        cache.processStartTransactionsUpdate(startTimestamps, response.getLockWatchUpdate());
         LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
     }
 }

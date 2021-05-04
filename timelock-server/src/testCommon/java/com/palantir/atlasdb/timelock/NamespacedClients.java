@@ -35,8 +35,8 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
@@ -77,8 +77,8 @@ public interface NamespacedClients {
     }
 
     @Value.Default
-    default LockWatchEventCache lockWatchEventCache() {
-        return NoOpLockWatchEventCache.create();
+    default LockWatchCache lockWatchEventCache() {
+        return LockWatchCacheImpl.noOp();
     }
 
     @Value.Derived

@@ -26,11 +26,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-final class NoOpTransactionScopedCache implements TransactionScopedCache {
+public final class NoOpTransactionScopedCache implements TransactionScopedCache {
 
     private NoOpTransactionScopedCache() {}
 
-    static TransactionScopedCache create() {
+    public static TransactionScopedCache create() {
         return new NoOpTransactionScopedCache();
     }
 
