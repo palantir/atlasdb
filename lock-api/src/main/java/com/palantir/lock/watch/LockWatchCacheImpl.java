@@ -46,8 +46,9 @@ public final class LockWatchCacheImpl implements LockWatchCache {
 
     @Override
     public void updateCacheAndRemoveTransactionState(long startTimestamp) {
-        eventCache.removeTransactionStateFromCache(startTimestamp);
+        // The value cache is depending on state existing in the event cache, so this order must not change
         valueCache.updateCacheAndRemoveTransactionState(startTimestamp);
+        eventCache.removeTransactionStateFromCache(startTimestamp);
     }
 
     @Override
