@@ -102,6 +102,9 @@ allprojects {
     }
 
     tasks.withType(JavaCompile) {
+        options.compilerArgs.removeAll {
+            it == '-parameter'
+        }
         options.compilerArgs += ['-Werror']
         // temporarily relax constraints until we can fix all violations
         options.errorprone.disable 'ArrayAsKeyOfSetOrMap',
