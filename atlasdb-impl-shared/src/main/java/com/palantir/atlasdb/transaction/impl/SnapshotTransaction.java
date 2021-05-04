@@ -2494,7 +2494,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public void onSuccess(Runnable callback) {
-        ensureUncommitted();
         Preconditions.checkNotNull(callback, "Callback cannot be null");
         successCallbackManager.registerCallback(callback);
     }

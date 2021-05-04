@@ -343,11 +343,10 @@ public interface Transaction {
     void useTable(TableReference tableRef, ConstraintCheckable table);
 
     /**
-     * Registers a callback that will be called after a successful commit of a transaction.
+     * Registers a callback that will be called after the AtlasDB client perceives a successful commit of a transaction.
      *
      * We guarantee that if the provided callback runs, the transaction has definitely committed successfully.
-     * The converse is NOT true: it is possible that the callback is NOT called even though the transaction was
-     * successful.
+     * The converse is NOT true: it is possible that the callback is NOT called even if the transaction was successful.
      *
      * The semantics of callbacks are as follows:
      * <ul>

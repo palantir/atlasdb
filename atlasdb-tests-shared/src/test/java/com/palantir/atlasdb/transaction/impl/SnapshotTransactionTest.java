@@ -1937,6 +1937,24 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         callbacks.forEach(callback -> verify(callback).run());
     }
 
+    @Test
+    public void transactionStillCommittedEvenIfCallbackThrows() {
+        assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(txn -> {
+                    txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
+                    txn.onSuccess(() -> {
+                        throw new RuntimeException("boom");
+                    });
+                    return null;
+                }))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("boom");
+        txManager.runTaskReadOnly(txn -> {
+            assertThat(txn.get(TABLE, ImmutableSet.of(TEST_CELL)))
+                    .containsExactly(Maps.immutableEntry(TEST_CELL, PtBytes.toBytes("tom")));
+            return null;
+        });
+    }
+
     private void verifyPrefetchValidations(
             List<byte[]> rows,
             List<Cell> cells,
