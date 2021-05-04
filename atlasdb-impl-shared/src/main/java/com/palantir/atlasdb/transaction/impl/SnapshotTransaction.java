@@ -2601,7 +2601,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         public void runCallbacks() {
-            Preconditions.checkState(isDefinitivelyCommitted(),
+            Preconditions.checkState(
+                    isDefinitivelyCommitted(),
                     "Callbacks must not be run if it is not known that the transaction has definitively committed! "
                             + "This is likely a bug in AtlasDB transaction code.");
             callbacks.forEach(Runnable::run);
