@@ -15,12 +15,15 @@
  */
 package com.palantir.processors;
 
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import javax.lang.model.element.Element;
 
 public class ProcessingException extends Exception {
     final Element element;
 
-    public ProcessingException(Element element, String msg, Object... args) {
+    @FormatMethod
+    public ProcessingException(Element element, @FormatString String msg, Object... args) {
         super(String.format(msg, args));
         this.element = element;
     }

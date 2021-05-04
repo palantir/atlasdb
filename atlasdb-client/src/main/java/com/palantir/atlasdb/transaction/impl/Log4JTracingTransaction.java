@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import org.slf4j.Logger;
 
@@ -32,7 +34,8 @@ public class Log4JTracingTransaction extends TracingTransaction {
     }
 
     @Override
-    protected void trace(String format, Object... args) {
+    @FormatMethod
+    protected void trace(@FormatString String format, Object... args) {
         logger.trace("Transaction trace: {}", String.format(format, args));
     }
 }
