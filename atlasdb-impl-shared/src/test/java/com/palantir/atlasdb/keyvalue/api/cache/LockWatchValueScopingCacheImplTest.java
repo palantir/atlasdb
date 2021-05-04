@@ -107,7 +107,7 @@ public final class LockWatchValueScopingCacheImplTest {
         TransactionScopedCache scopedCache1 = valueCache.createTransactionScopedCache(TIMESTAMP_1);
         assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
         processCommitTimestamp(TIMESTAMP_1, 0L);
-        valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_1));
+        valueCache.updateCacheAndRemoveTransactionState(ImmutableSet.of(TIMESTAMP_1));
 
         TransactionScopedCache scopedCache2 = valueCache.createTransactionScopedCache(TIMESTAMP_2);
         assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1)).isEmpty();
@@ -121,7 +121,7 @@ public final class LockWatchValueScopingCacheImplTest {
         TransactionScopedCache scopedCache1 = valueCache.createTransactionScopedCache(TIMESTAMP_1);
         assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
         processCommitTimestamp(TIMESTAMP_1, 0L);
-        valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_1));
+        valueCache.updateCacheAndRemoveTransactionState(ImmutableSet.of(TIMESTAMP_1));
 
         eventCache.processStartTransactionsUpdate(
                 ImmutableSet.of(TIMESTAMP_2), LockWatchStateUpdate.success(LEADER, 0L, ImmutableList.of()));
@@ -146,7 +146,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
         // Throws this message because the leader election cleared the info entirely (as opposed to us knowing that
         // there was an election)
-        assertThatThrownBy(() -> valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_1)))
+        assertThatThrownBy(() -> valueCache.updateCacheAndRemoveTransactionState(ImmutableSet.of(TIMESTAMP_1)))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("start or commit info not processed for start timestamp");
     }
@@ -159,7 +159,7 @@ public final class LockWatchValueScopingCacheImplTest {
         TransactionScopedCache scopedCache1 = valueCache.createTransactionScopedCache(TIMESTAMP_1);
         assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_3)).containsExactlyInAnyOrder(CELL_1, CELL_3);
         processCommitTimestamp(TIMESTAMP_1, 0L);
-        valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_1));
+        valueCache.updateCacheAndRemoveTransactionState(ImmutableSet.of(TIMESTAMP_1));
         assertThat(scopedCache1.getHitDigest().hitCells()).isEmpty();
 
         eventCache.processStartTransactionsUpdate(
@@ -172,7 +172,7 @@ public final class LockWatchValueScopingCacheImplTest {
         assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_3))
                 .containsExactlyInAnyOrder(CELL_1);
         processCommitTimestamp(TIMESTAMP_2, 1L);
-        valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_2));
+        valueCache.updateCacheAndRemoveTransactionState(ImmutableSet.of(TIMESTAMP_2));
         assertThat(scopedCache2.getHitDigest().hitCells()).containsExactly(CellReference.of(TABLE, CELL_3));
 
         eventCache.processStartTransactionsUpdate(
@@ -218,6 +218,46 @@ public final class LockWatchValueScopingCacheImplTest {
 
         assertThat(scopedCache.getValueDigest().loadedValues()).isEmpty();
         assertThat(scopedCache.getHitDigest().hitCells()).isEmpty();
+    }
+
+    @Test
+    public void leaderElectionCausesCacheToBeCleared() {
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), LOCK_WATCH_SNAPSHOT);
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
+
+        // Stores CELL_1 -> VALUE_1 in central cache
+        TransactionScopedCache scopedCache1 = valueCache.createTransactionScopedCache(TIMESTAMP_1);
+        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        processCommitTimestamp(TIMESTAMP_1, 0L);
+        valueCache.updateCacheAndRemoveTransactionState(ImmutableSet.of(TIMESTAMP_1));
+
+        eventCache.processStartTransactionsUpdate(
+                ImmutableSet.of(TIMESTAMP_2), LockWatchStateUpdate.success(LEADER, 0L, ImmutableList.of()));
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
+
+        // Confirms entry is present
+        TransactionScopedCache scopedCache2 = valueCache.createTransactionScopedCache(TIMESTAMP_2);
+        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1)).isEmpty();
+        processCommitTimestamp(TIMESTAMP_2, 0L);
+        valueCache.updateCacheAndRemoveTransactionState(ImmutableSet.of(TIMESTAMP_2));
+
+        UUID newLeader = UUID.randomUUID();
+        eventCache.processStartTransactionsUpdate(
+                ImmutableSet.of(TIMESTAMP_3),
+                LockWatchStateUpdate.snapshot(newLeader, -1L, ImmutableSet.of(), ImmutableSet.of()));
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_3));
+
+        // Confirms entry is no longer present
+        TransactionScopedCache scopedCache3 = valueCache.createTransactionScopedCache(TIMESTAMP_3);
+        assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        eventCache.processGetCommitTimestampsUpdate(
+                ImmutableList.of(TransactionUpdate.builder()
+                        .startTs(TIMESTAMP_3)
+                        .commitTs(999_999_999)
+                        .writesToken(LockToken.of(UUID.randomUUID()))
+                        .build()),
+                LockWatchStateUpdate.success(newLeader, -1L, ImmutableList.of()));
+        valueCache.updateCacheAndRemoveTransactionState(ImmutableSet.of(TIMESTAMP_3));
     }
 
     private void processCommitTimestamp(long startTimestamp, long sequence) {

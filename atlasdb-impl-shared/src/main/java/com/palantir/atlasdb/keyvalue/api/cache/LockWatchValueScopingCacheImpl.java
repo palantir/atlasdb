@@ -62,12 +62,17 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     public synchronized void processStartTransactions(Set<Long> startTimestamps) {
         TransactionsLockWatchUpdate updateForTransactions =
                 eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
+
+        if (updateForTransactions.clearCache()) {
+            clearCache();
+        }
+
         updateStores(updateForTransactions);
         updateCurrentVersion(updateForTransactions);
     }
 
     @Override
-    public synchronized void updateCacheOnCommit(Set<Long> startTimestamps) {
+    public synchronized void updateCacheAndRemoveTransactionState(Set<Long> startTimestamps) {
         try {
             startTimestamps.forEach(this::processCommitUpdate);
         } finally {
@@ -85,7 +90,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public synchronized void removeTransactionStateFromCache(long startTimestamp) {
+    public synchronized void removeTransactionState(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         snapshotStore.removeTimestamp(startTs);
         cacheStore.removeCache(startTs);
@@ -102,6 +107,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
 
     private synchronized void processCommitUpdate(long startTimestamp) {
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
+        Optional<TransactionScopedCache> cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
+
         commitUpdate.accept(new Visitor<Void>() {
             @Override
             public Void invalidateAll() {
@@ -116,9 +123,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 Set<CellReference> invalidatedCells = invalidatedLocks.stream()
                         .flatMap(LockWatchValueScopingCacheImpl::extractTableAndCell)
                         .collect(Collectors.toSet());
-                KeyedStream.stream(cacheStore
-                                .getCache(StartTimestamp.of(startTimestamp))
-                                .map(TransactionScopedCache::getValueDigest)
+                KeyedStream.stream(cache.map(TransactionScopedCache::getValueDigest)
                                 .map(ValueDigest::loadedValues)
                                 .orElseGet(ImmutableMap::of))
                         .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
@@ -126,6 +131,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 return null;
             }
         });
+
+        cache.ifPresent(TransactionScopedCache::close);
     }
 
     /**
@@ -177,37 +184,20 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         Optional<LockWatchVersion> maybeUpdateVersion = updateForTransactions.startTsToSequence().values().stream()
                 .max(Comparator.comparingLong(LockWatchVersion::version));
 
-        maybeUpdateVersion.ifPresent(updateVersion -> {
-            if (firstUpdateAfterCreation()) {
-                currentVersion = maybeUpdateVersion;
-            } else {
-                LockWatchVersion current = currentVersion.get();
-                if (leaderElection(current, updateVersion)) {
-                    clearCache();
-                    currentVersion = maybeUpdateVersion;
-                } else if (newUpdate(current, updateVersion)) {
-                    currentVersion = maybeUpdateVersion;
-                }
-            }
-        });
+        maybeUpdateVersion
+                .filter(this::shouldUpdateVersion)
+                .ifPresent(updateVersion -> currentVersion = Optional.of(updateVersion));
     }
 
-    private synchronized boolean newUpdate(LockWatchVersion current, LockWatchVersion updateVersion) {
-        return current.version() < updateVersion.version();
-    }
-
-    private synchronized boolean leaderElection(LockWatchVersion current, LockWatchVersion updateVersion) {
-        return !current.id().equals(updateVersion.id());
-    }
-
-    private synchronized boolean firstUpdateAfterCreation() {
-        return !currentVersion.isPresent();
+    private synchronized boolean shouldUpdateVersion(LockWatchVersion updateVersion) {
+        return !currentVersion.isPresent() || currentVersion.get().version() < updateVersion.version();
     }
 
     private synchronized void clearCache() {
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();
+        currentVersion = Optional.empty();
     }
 
     private static Multimap<Sequence, StartTimestamp> createSequenceTimestampMultimap(

@@ -64,7 +64,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void validationCausesAllCellsToBeReadRemotely() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, () -> true);
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0);
 
         when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
 
@@ -75,7 +75,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void validationDoesNotReadFromRemoteWhenItShouldNotValidate() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, () -> false);
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 0.0);
 
         validatingCache.get(TABLE, ImmutableSet.of(CELL_1), valueLoader);
         verify(valueLoader, never()).apply(any(), any());
@@ -84,10 +84,10 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void validationFailsWhenMismatchingValuesReturned() {
         TransactionScopedCache delegate = mock(TransactionScopedCache.class);
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, () -> true);
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0);
         when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
 
-        when(delegate.get(eq(TABLE), eq(CELLS), any())).thenReturn(ImmutableMap.of());
+        when(delegate.getAsync(eq(TABLE), eq(CELLS), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
         assertThatThrownBy(() -> validatingCache.get(TABLE, CELLS, valueLoader))
                 .isExactlyInstanceOf(TransactionFailedNonRetriableException.class)
                 .hasMessage("Failed lock watch cache validation");

@@ -24,6 +24,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +35,7 @@ import org.immutables.value.Value;
 @ThreadSafe
 final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
+    private volatile boolean closed = false;
 
     private TransactionScopedCacheImpl(ValueCacheSnapshot snapshot) {
         valueStore = new TransactionCacheValueStoreImpl(snapshot);
@@ -45,6 +47,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
 
     @Override
     public synchronized void write(TableReference tableReference, Map<Cell, byte[]> values) {
+        throwIfClosed();
         KeyedStream.stream(values)
                 .map(CacheValue::of)
                 .forEach((cell, value) -> valueStore.cacheRemoteWrite(tableReference, cell, value));
@@ -52,6 +55,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
 
     @Override
     public synchronized void delete(TableReference tableReference, Set<Cell> cells) {
+        throwIfClosed();
         cells.forEach(cell -> valueStore.cacheRemoteWrite(tableReference, cell, CacheValue.empty()));
     }
 
@@ -60,13 +64,16 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
             TableReference tableReference,
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        return AtlasFutures.getUnchecked(getInternal(tableReference, cells, valueLoader));
+        throwIfClosed();
+        return AtlasFutures.getUnchecked(getAsync(tableReference, cells, valueLoader));
     }
 
-    private synchronized ListenableFuture<Map<Cell, byte[]>> getInternal(
+    @Override
+    public synchronized ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        throwIfClosed();
         // Short-cut all the logic below if the table is not watched.
         if (!valueStore.isWatched(tableReference)) {
             return valueLoader.apply(tableReference, cells);
@@ -84,16 +91,6 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         }
     }
 
-    private synchronized Map<Cell, byte[]> processRemoteRead(
-            TableReference tableReference, CacheLookupResult cacheLookup, Map<Cell, byte[]> remoteReadValues) {
-        valueStore.cacheRemoteReads(tableReference, remoteReadValues);
-        cacheEmptyReads(tableReference, cacheLookup.missedCells(), remoteReadValues);
-        return ImmutableMap.<Cell, byte[]>builder()
-                .putAll(remoteReadValues)
-                .putAll(filterEmptyValues(cacheLookup.cacheHits()))
-                .build();
-    }
-
     @Override
     public synchronized ValueDigest getValueDigest() {
         return ValueDigest.of(valueStore.getValueDigest());
@@ -104,13 +101,35 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         return HitDigest.of(valueStore.getHitDigest());
     }
 
-    private CacheLookupResult cacheLookup(TableReference table, Set<Cell> cells) {
+    @Override
+    public void close() {
+        closed = true;
+    }
+
+    private void throwIfClosed() {
+        if (closed) {
+            throw new TransactionLockWatchFailedException(
+                    "Cannot get or write to a transaction scoped cache that has already been closed");
+        }
+    }
+
+    private synchronized Map<Cell, byte[]> processRemoteRead(
+            TableReference tableReference, CacheLookupResult cacheLookup, Map<Cell, byte[]> remoteReadValues) {
+        valueStore.cacheRemoteReads(tableReference, remoteReadValues);
+        cacheEmptyReads(tableReference, cacheLookup.missedCells(), remoteReadValues);
+        return ImmutableMap.<Cell, byte[]>builder()
+                .putAll(remoteReadValues)
+                .putAll(filterEmptyValues(cacheLookup.cacheHits()))
+                .build();
+    }
+
+    private synchronized CacheLookupResult cacheLookup(TableReference table, Set<Cell> cells) {
         Map<Cell, CacheValue> cachedValues = valueStore.getCachedValues(table, cells);
         Set<Cell> uncachedCells = Sets.difference(cells, cachedValues.keySet());
         return CacheLookupResult.of(cachedValues, uncachedCells);
     }
 
-    private void cacheEmptyReads(
+    private synchronized void cacheEmptyReads(
             TableReference tableReference, Set<Cell> uncachedCells, Map<Cell, byte[]> remoteReadValues) {
         // The get method does not return an entry if a value is absent; we want to cache this fact
         Set<Cell> emptyCells = Sets.difference(uncachedCells, remoteReadValues.keySet());
