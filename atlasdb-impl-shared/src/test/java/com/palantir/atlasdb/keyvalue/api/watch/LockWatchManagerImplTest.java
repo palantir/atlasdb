@@ -97,7 +97,7 @@ public final class LockWatchManagerImplTest {
     public void removeTransactionStateTest() {
         manager.removeTransactionStateFromCache(1L);
         verify(lockWatchEventCache).removeTransactionStateFromCache(1L);
-        verify(valueScopingCache).removeTransactionStateFromCache(1L);
+        verify(valueScopingCache).removeTransactionState(1L);
     }
 
     @Test
