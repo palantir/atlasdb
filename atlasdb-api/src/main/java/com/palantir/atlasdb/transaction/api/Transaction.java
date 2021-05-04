@@ -343,6 +343,25 @@ public interface Transaction {
     void useTable(TableReference tableRef, ConstraintCheckable table);
 
     /**
+     * Registers a callback that will be called after a successful commit of a transaction.
+     *
+     * We guarantee that if the provided callback runs, the transaction has definitely committed successfully.
+     * The converse is NOT true: it is possible that the callback is NOT called even though the transaction was
+     * successful.
+     *
+     * The semantics of callbacks are as follows:
+     * <ul>
+     *     <li>Callbacks must be registered before a transaction commits or aborts; registration of a callback once
+     *     either of the above is true will throw an exception.</li>
+     *     <li>Callbacks will run serially in the order they were registered.</li>
+     *     <li>Exceptions thrown from any callback will be propagated immediately, and cause callbacks registered
+     *     later to not run.</li>
+     *     <li>Exceptions thrown from any callback will not change the result of the transaction.</li>
+     * </ul>
+     */
+    void onSuccess(Runnable callback);
+
+    /**
      * Disables read-write conflict checking for this table for the duration of this transaction only.
      *
      * This method should be called before any reads are done on this table.
