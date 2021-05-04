@@ -118,6 +118,11 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     }
 
     @Override
+    public void updateCacheAndRemoveTransactionState(long startTs) {
+        lockWatchCache.updateCacheAndRemoveTransactionState(startTs);
+    }
+
+    @Override
     public void removeTransactionStateFromCache(long startTs) {
         lockWatchCache.removeTransactionStateFromCache(startTs);
     }

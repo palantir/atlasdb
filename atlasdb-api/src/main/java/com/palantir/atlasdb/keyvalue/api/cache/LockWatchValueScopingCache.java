@@ -37,7 +37,7 @@ public interface LockWatchValueScopingCache extends LockWatchValueCache {
     void processStartTransactions(Set<Long> startTimestamps);
 
     @Override
-    void updateCacheOnCommit(Set<Long> startTimestamps);
+    void updateCacheAndRemoveTransactionState(long startTimestamp);
 
     @Override
     void removeTransactionStateFromCache(long startTimestamp);

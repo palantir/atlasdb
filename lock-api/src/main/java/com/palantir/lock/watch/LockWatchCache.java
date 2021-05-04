@@ -24,6 +24,8 @@ public interface LockWatchCache {
 
     void processCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update);
 
+    void updateCacheAndRemoveTransactionState(long startTimestamp);
+
     void removeTransactionStateFromCache(long startTimestamp);
 
     LockWatchEventCache getEventCache();

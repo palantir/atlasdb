@@ -237,7 +237,7 @@ import org.slf4j.LoggerFactory;
             try {
                 result = runTaskThrowOnConflict(wrappedTask, tx);
             } finally {
-                lockWatchManager.removeTransactionStateFromCache(getTimestamp());
+                lockWatchManager.updateCacheAndRemoveTransactionState(getTimestamp());
                 postTaskContext = postTaskTimer.time();
                 timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
             }

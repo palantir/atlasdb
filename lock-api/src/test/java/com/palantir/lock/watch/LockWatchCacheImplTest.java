@@ -56,7 +56,7 @@ public class LockWatchCacheImplTest {
     public void commitTest() {
         cache.processCommitTimestampsUpdate(UPDATES, SUCCESS);
         verify(eventCache).processGetCommitTimestampsUpdate(UPDATES, SUCCESS);
-        verify(valueCache).updateCacheOnCommit(TIMESTAMPS);
+        verify(valueCache).updateCacheAndRemoveTransactionState(TIMESTAMPS);
     }
 
     @Test
