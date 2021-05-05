@@ -32,7 +32,7 @@ import com.palantir.atlasdb.lock.SimpleEteLockWatchResource;
 import com.palantir.atlasdb.lock.TransactionId;
 import com.palantir.atlasdb.lock.WriteRequest;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.lock.AtlasRowLockDescriptor;
+import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
@@ -210,7 +210,10 @@ public final class LockWatchEteTest {
 
     private Set<LockDescriptor> getDescriptors(String... rows) {
         return Stream.of(rows)
-                .map(row -> AtlasRowLockDescriptor.of(this.tableReference.getQualifiedName(), PtBytes.toBytes(row)))
+                .map(row -> AtlasCellLockDescriptor.of(
+                        this.tableReference.getQualifiedName(),
+                        PtBytes.toBytes(row),
+                        SimpleEteLockWatchResource.COLUMN))
                 .collect(Collectors.toSet());
     }
 

@@ -34,7 +34,6 @@ import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
-import com.palantir.logsafe.SafeArg;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -47,14 +46,11 @@ import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // Important: Some internal tests depend on this class.
 // Please recompile Oracle internal tests if any breaking changes are made to the setup.
 // Please don't make the setup methods private.
 public abstract class EteSetup {
-    private static final Logger log = LoggerFactory.getLogger(EteSetup.class);
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Gradle TIMELOCK_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
 
@@ -159,29 +155,20 @@ public abstract class EteSetup {
             @Override
             protected void before() throws Throwable {
                 Awaitility.await()
+                        .ignoreExceptions()
                         .atMost(waitDuration)
                         .pollInterval(Duration.ofSeconds(1))
-                        .until(() -> {
-                            try {
-                                return serversAreReady().call();
-                            } catch (Throwable t) {
-                                log.error("Throwing!", t);
-                            }
-                            return false;
-                        });
+                        .until(serversAreReady());
             }
         };
     }
 
     private static Callable<Boolean> serversAreReady() {
         return () -> {
-            log.info("Available clients:", SafeArg.of("availableClients", availableClients));
             for (String client : availableClients) {
-                log.info("Waiting for client", SafeArg.of("client", client));
                 TodoResource todos = createClientFor(TodoResource.class, client, SERVER_PORT);
                 todos.isHealthy();
             }
-            log.info("All clients done");
             return true;
         };
     }

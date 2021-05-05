@@ -24,8 +24,8 @@ import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableWriteRequest.class)
-@JsonDeserialize(as = ImmutableWriteRequest.class)
+@JsonSerialize(as = ImmutableReadRequest.class)
+@JsonDeserialize(as = ImmutableReadRequest.class)
 public interface ReadRequest {
     TransactionId id();
 

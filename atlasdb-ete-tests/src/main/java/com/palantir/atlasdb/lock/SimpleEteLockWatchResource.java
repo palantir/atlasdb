@@ -49,7 +49,7 @@ import org.immutables.value.Value;
 
 public final class SimpleEteLockWatchResource implements EteLockWatchResource {
     public static final Namespace NAMESPACE = Namespace.create("lock");
-    private static final byte[] COLUMN = PtBytes.toBytes("b");
+    public static final byte[] COLUMN = PtBytes.toBytes("b");
     private static final TableMetadata TABLE_METADATA = TableMetadata.builder()
             .conflictHandler(ConflictHandler.RETRY_ON_WRITE_WRITE_CELL)
             .nameLogSafety(LogSafety.SAFE)
