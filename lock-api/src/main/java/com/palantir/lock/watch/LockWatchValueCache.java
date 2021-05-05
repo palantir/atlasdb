@@ -23,5 +23,5 @@ public interface LockWatchValueCache {
 
     void updateCacheAndRemoveTransactionState(long startTimestamp);
 
-    void removeTransactionStateFromCache(long startTimestamp);
+    void removeTransactionState(long startTimestamp);
 }

@@ -188,6 +188,11 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
+    public void onSuccess(Runnable callback) {
+        delegate().onSuccess(callback);
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
         return delegate().getAsync(tableRef, cells);
     }

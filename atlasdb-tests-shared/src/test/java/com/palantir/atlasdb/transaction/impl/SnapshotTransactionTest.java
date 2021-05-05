@@ -26,7 +26,9 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -154,6 +156,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 @SuppressWarnings("checkstyle:all")
 @RunWith(Parameterized.class)
@@ -1790,6 +1794,101 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         int numColumns = 101;
 
         verifyLoadOnKvs(numColumns, numRows, SnapshotTransaction.MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD);
+    }
+
+    @Test
+    public void runsCallbacksInRegistrationOrder() {
+        Transaction transaction = txManager.createNewTransaction();
+        Runnable firstCallback = mock(Runnable.class);
+        Runnable secondCallback = mock(Runnable.class);
+        transaction.onSuccess(firstCallback);
+        transaction.onSuccess(secondCallback);
+        transaction.commit();
+
+        InOrder inOrder = Mockito.inOrder(firstCallback, secondCallback);
+        inOrder.verify(firstCallback).run();
+        inOrder.verify(secondCallback).run();
+    }
+
+    @Test
+    public void cannotRegisterCallbackAfterTransactionCloses() {
+        Transaction committingTransaction = txManager.createNewTransaction();
+        committingTransaction.commit();
+        Transaction abortingTransaction = txManager.createNewTransaction();
+        abortingTransaction.abort();
+
+        assertThatThrownBy(() -> committingTransaction.onSuccess(() -> {}))
+                .isInstanceOf(CommittedTransactionException.class)
+                .hasMessageContaining("Transaction must be uncommitted");
+        assertThatThrownBy(() -> abortingTransaction.onSuccess(() -> {}))
+                .isInstanceOf(CommittedTransactionException.class)
+                .hasMessageContaining("Transaction must be uncommitted");
+    }
+
+    @Test
+    public void cannotRegisterNullCallback() {
+        Transaction transaction = txManager.createNewTransaction();
+        assertThatThrownBy(() -> transaction.onSuccess(null)).isInstanceOf(NullPointerException.class);
+        transaction.abort();
+    }
+
+    @Test
+    public void exceptionThrownFromCallbackStopsChain() {
+        Transaction transaction = txManager.createNewTransaction();
+        List<Runnable> callbacks =
+                IntStream.range(0, 3).mapToObj(_unused -> mock(Runnable.class)).collect(Collectors.toList());
+        callbacks.forEach(transaction::onSuccess);
+
+        doThrow(RuntimeException.class).when(callbacks.get(1)).run();
+
+        assertThatThrownBy(transaction::commit).isInstanceOf(RuntimeException.class);
+        verify(callbacks.get(0)).run();
+        verify(callbacks.get(1)).run();
+        verify(callbacks.get(2), never()).run();
+    }
+
+    @Test
+    public void canRegisterCallbacksFromManyThreads() {
+        Transaction transaction = txManager.createNewTransaction();
+        List<Runnable> callbacks = IntStream.range(0, 1000)
+                .mapToObj(_unused -> mock(Runnable.class))
+                .collect(Collectors.toList());
+        ExecutorService executorService = PTExecutors.newFixedThreadPool(8);
+        List<Future<?>> futures = callbacks.stream()
+                .map(callback -> executorService.submit(() -> transaction.onSuccess(callback)))
+                .collect(Collectors.toList());
+        futures.forEach(Futures::getUnchecked);
+        transaction.commit();
+        callbacks.forEach(callback -> verify(callback).run());
+    }
+
+    @Test
+    public void callbacksOnlyRunOnceEvenOnMultipleCommits() {
+        Transaction transaction = txManager.createNewTransaction();
+        Runnable callback = mock(Runnable.class);
+        transaction.onSuccess(callback);
+        transaction.commit();
+        transaction.commit();
+
+        verify(callback, times(1)).run();
+    }
+
+    @Test
+    public void transactionStillCommittedEvenIfCallbackThrows() {
+        assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(txn -> {
+                    txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
+                    txn.onSuccess(() -> {
+                        throw new RuntimeException("boom");
+                    });
+                    return null;
+                }))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("boom");
+        txManager.runTaskReadOnly(txn -> {
+            assertThat(txn.get(TABLE, ImmutableSet.of(TEST_CELL)))
+                    .containsExactly(Maps.immutableEntry(TEST_CELL, PtBytes.toBytes("tom")));
+            return null;
+        });
     }
 
     private void verifyPrefetchValidations(
