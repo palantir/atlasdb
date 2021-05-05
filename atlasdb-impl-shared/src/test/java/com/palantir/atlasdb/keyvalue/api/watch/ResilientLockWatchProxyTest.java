@@ -18,18 +18,24 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
+import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,10 +43,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class ResilientLockWatchEventCacheTest {
-
-    private final MetricsManager metricsManager =
-            new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), unused -> false);
+public final class ResilientLockWatchProxyTest {
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Mock
     private LockWatchEventCache defaultCache;
@@ -48,11 +52,39 @@ public final class ResilientLockWatchEventCacheTest {
     @Mock
     private LockWatchEventCache fallbackCache;
 
-    private LockWatchEventCache proxyCache;
+    private LockWatchEventCache proxyEventCache;
 
     @Before
     public void before() {
-        proxyCache = ResilientLockWatchEventCache.newProxyInstance(defaultCache, fallbackCache, metricsManager);
+        proxyEventCache = ResilientLockWatchProxy.newEventCacheProxy(defaultCache, fallbackCache, metricsManager);
+    }
+
+    @Test
+    public void valueCacheProxyAlsoFallsBackOnException() {
+        LockWatchValueScopingCache defaultCache = mock(LockWatchValueScopingCache.class);
+        LockWatchValueScopingCache fallbackCache = mock(LockWatchValueScopingCache.class);
+        LockWatchValueScopingCache proxyCache =
+                ResilientLockWatchProxy.newValueCacheProxy(defaultCache, fallbackCache, metricsManager);
+
+        // Normal operation
+        long timestamp = 1L;
+        Set<Long> timestamps = ImmutableSet.of(timestamp);
+        proxyCache.updateCacheOnCommit(timestamps);
+        verify(defaultCache).updateCacheOnCommit(timestamps);
+        verify(fallbackCache, never()).updateCacheOnCommit(any());
+
+        // Failure
+        when(defaultCache.createTransactionScopedCache(timestamp))
+                .thenThrow(new TransactionFailedNonRetriableException(""));
+        assertThatThrownBy(() -> proxyCache.createTransactionScopedCache(timestamp))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
+        verify(defaultCache).createTransactionScopedCache(timestamp);
+
+        // Fallback operation
+        proxyCache.processStartTransactions(timestamps);
+        verify(fallbackCache).processStartTransactions(timestamps);
+        verifyNoMoreInteractions(defaultCache);
+        verifyNoMoreInteractions(fallbackCache);
     }
 
     @Test
@@ -60,16 +92,16 @@ public final class ResilientLockWatchEventCacheTest {
         when(defaultCache.isEnabled()).thenReturn(true);
         when(fallbackCache.isEnabled()).thenReturn(false);
 
-        assertThat(proxyCache.isEnabled()).isTrue();
+        assertThat(proxyEventCache.isEnabled()).isTrue();
         verify(defaultCache).isEnabled();
 
         RuntimeException runtimeException = new RuntimeException();
         when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
-        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L))
+        assertThatThrownBy(() -> proxyEventCache.getCommitUpdate(0L))
                 .hasCause(runtimeException)
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
 
-        assertThat(proxyCache.isEnabled()).isFalse();
+        assertThat(proxyEventCache.isEnabled()).isFalse();
         verify(fallbackCache).isEnabled();
 
         verify(defaultCache).getCommitUpdate(0L);
@@ -80,11 +112,11 @@ public final class ResilientLockWatchEventCacheTest {
     public void failCausesFallbackCacheToBeUsed() {
         RuntimeException runtimeException = new RuntimeException();
         when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
-        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L))
+        assertThatThrownBy(() -> proxyEventCache.getCommitUpdate(0L))
                 .hasCause(runtimeException)
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
 
-        proxyCache.lastKnownVersion();
+        proxyEventCache.lastKnownVersion();
         verify(fallbackCache).lastKnownVersion();
         verify(defaultCache, never()).lastKnownVersion();
     }
@@ -93,9 +125,9 @@ public final class ResilientLockWatchEventCacheTest {
     public void lockWatchFailedExceptionDoesNotCauseFallbackToBeUsed() {
         TransactionLockWatchFailedException lockWatchFailedException = new TransactionLockWatchFailedException("fail");
         when(defaultCache.getCommitUpdate(anyLong())).thenThrow(lockWatchFailedException);
-        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L)).isEqualTo(lockWatchFailedException);
+        assertThatThrownBy(() -> proxyEventCache.getCommitUpdate(0L)).isEqualTo(lockWatchFailedException);
 
-        proxyCache.lastKnownVersion();
+        proxyEventCache.lastKnownVersion();
         verify(defaultCache).lastKnownVersion();
         verify(fallbackCache, never()).lastKnownVersion();
     }
@@ -105,10 +137,10 @@ public final class ResilientLockWatchEventCacheTest {
         RuntimeException runtimeException = new RuntimeException();
         when(defaultCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
         when(fallbackCache.getCommitUpdate(anyLong())).thenThrow(runtimeException);
-        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L))
+        assertThatThrownBy(() -> proxyEventCache.getCommitUpdate(0L))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasCause(runtimeException);
-        assertThatThrownBy(() -> proxyCache.getCommitUpdate(0L))
+        assertThatThrownBy(() -> proxyEventCache.getCommitUpdate(0L))
                 .isExactlyInstanceOf(SafeRuntimeException.class)
                 .hasCause(runtimeException)
                 .hasMessage("Fallback cache threw an exception");
