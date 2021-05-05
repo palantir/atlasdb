@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -71,7 +70,7 @@ public final class ResilientLockWatchProxyTest {
         Set<Long> timestamps = ImmutableSet.of(timestamp);
         proxyCache.updateCacheAndRemoveTransactionState(timestamp);
         verify(defaultCache).updateCacheAndRemoveTransactionState(timestamp);
-        verify(fallbackCache, never()).updateCacheAndRemoveTransactionState(any());
+        verify(fallbackCache, never()).updateCacheAndRemoveTransactionState(anyLong());
 
         // Failure
         when(defaultCache.createTransactionScopedCache(timestamp))
