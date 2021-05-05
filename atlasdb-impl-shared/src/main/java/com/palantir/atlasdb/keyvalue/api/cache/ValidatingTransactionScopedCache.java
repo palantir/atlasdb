@@ -105,6 +105,11 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
         return delegate.getValueDigest();
     }
 
+    @Override
+    public HitDigest getHitDigest() {
+        return delegate.getHitDigest();
+    }
+
     private boolean shouldValidate() {
         return random.nextDouble() < validationProbability;
     }

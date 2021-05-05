@@ -65,4 +65,6 @@ public interface TransactionScopedCache extends Closeable {
     void close();
 
     ValueDigest getValueDigest();
+
+    HitDigest getHitDigest();
 }
