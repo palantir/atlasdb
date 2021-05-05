@@ -99,7 +99,6 @@ public final class TransactionScopedCacheImplTest {
                         ImmutableMap.of(CELL_1, VALUE_1.value().get()));
         assertThat(cache.getValueDigest().loadedValues())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_6), VALUE_EMPTY));
-        assertThat(cache.getHitDigest().hitCells()).containsExactly(CellReference.of(TABLE, CELL_1));
     }
 
     @Test

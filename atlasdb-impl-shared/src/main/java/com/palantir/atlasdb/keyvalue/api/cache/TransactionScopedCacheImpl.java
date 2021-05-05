@@ -97,11 +97,6 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     }
 
     @Override
-    public synchronized HitDigest getHitDigest() {
-        return HitDigest.of(valueStore.getHitDigest());
-    }
-
-    @Override
     public void close() {
         closed = true;
     }
