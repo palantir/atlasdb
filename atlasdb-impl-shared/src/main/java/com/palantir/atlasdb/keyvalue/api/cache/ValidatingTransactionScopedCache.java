@@ -117,7 +117,6 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     private void validateCacheReads(
             TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
         if (!remoteReads.equals(cacheReads)) {
-            // TODO(jshah): make sure that this causes us to disable all caching until restart
             log.error(
                     "Reading from lock watch cache returned a different result to a remote read - this indicates there "
                             + "is a corruption bug in the caching logic",

@@ -18,15 +18,20 @@ package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.cache.HitDigest;
 import com.palantir.atlasdb.lock.EteLockWatchResource;
 import com.palantir.atlasdb.lock.GetLockWatchUpdateRequest;
+import com.palantir.atlasdb.lock.ReadRequest;
 import com.palantir.atlasdb.lock.SimpleEteLockWatchResource;
 import com.palantir.atlasdb.lock.TransactionId;
 import com.palantir.atlasdb.lock.WriteRequest;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
@@ -38,6 +43,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -126,6 +132,28 @@ public final class LockWatchEteTest {
         assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
         assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(row(3)));
         assertThat(watchDescriptors(update.events())).isEmpty();
+    }
+
+    @Test
+    public void readValuesAreCached() {
+        TransactionId txn1 = lockWatcher.startTransaction();
+        Map<String, String> values = ImmutableMap.of("row1", "value1", "row2", "value2");
+        lockWatcher.write(WriteRequest.of(txn1, values));
+        lockWatcher.endTransaction(txn1);
+
+        TransactionId txn2 = lockWatcher.startTransaction();
+        Map<Cell, byte[]> readValues = lockWatcher.read(ReadRequest.of(txn2, values.keySet()));
+
+        Map<String, String> results = KeyedStream.stream(readValues)
+                .mapKeys(Cell::getRowName)
+                .mapKeys(PtBytes::toString)
+                .map(PtBytes::toString)
+                .collectToMap();
+
+        assertThat(values).containsExactlyInAnyOrderEntriesOf(results);
+
+        HitDigest hitDigest = lockWatcher.endTransactionWithDigest(txn2);
+        assertThat(hitDigest.hitCells()).hasSize(2);
     }
 
     private void writeValues(String... rows) {

@@ -49,7 +49,7 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     }
 
     @Override
-    CommitUpdate getCommitUpdate(long startTs) {
+    public CommitUpdate getCommitUpdate(long startTs) {
         return cache.getEventCache().getCommitUpdate(startTs);
     }
 
@@ -69,7 +69,7 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     }
 
     @Override
-    TransactionsLockWatchUpdate getUpdateForTransactions(
+    public TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return cache.getEventCache().getUpdateForTransactions(startTimestamps, version);
     }

@@ -19,13 +19,18 @@ package com.palantir.atlasdb.lock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.ExposedLockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.cache.HitDigest;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -39,15 +44,19 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 public final class SimpleEteLockWatchResource implements EteLockWatchResource {
     public static final Namespace NAMESPACE = Namespace.create("lock");
-    private static final byte[] VALUE = PtBytes.toBytes("value");
     private static final byte[] COLUMN = PtBytes.toBytes("b");
+    private static final TableMetadata TABLE_METADATA = TableMetadata.builder()
+            .conflictHandler(ConflictHandler.RETRY_ON_WRITE_WRITE_CELL)
+            .nameLogSafety(LogSafety.SAFE)
+            .build();
 
     private final TransactionManager transactionManager;
-    private final ExposedLockWatchManager lockWatchManager;
+    private final LockWatchManagerInternal lockWatchManager;
     private final Map<TransactionId, TransactionAndCondition> activeTransactions = new ConcurrentHashMap<>();
 
     private String table = "watch";
@@ -56,7 +65,7 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
     public SimpleEteLockWatchResource(TransactionManager transactionManager) {
         this.transactionManager = transactionManager;
         createTable();
-        this.lockWatchManager = new ExposedLockWatchManager(transactionManager.getLockWatchManager());
+        this.lockWatchManager = (LockWatchManagerInternal) transactionManager.getLockWatchManager();
     }
 
     @Override
@@ -80,10 +89,27 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
     }
 
     @Override
+    public HitDigest endTransactionWithDigest(TransactionId transactionId) {
+        Transaction transaction = activeTransactions.get(transactionId).transaction();
+        TransactionScopedCache transactionScopedCache = ((LockWatchValueScopingCache)
+                        lockWatchManager.getCache().getValueCache())
+                .createTransactionScopedCache(transaction.getTimestamp());
+        HitDigest hitDigest = transactionScopedCache.getHitDigest();
+        endTransaction(transactionId);
+        return hitDigest;
+    }
+
+    @Override
     public void write(WriteRequest writeRequest) {
         Transaction transaction = activeTransactions.get(writeRequest.id()).transaction();
         Map<Cell, byte[]> byteValues = getValueMap(writeRequest.rows());
         transaction.put(lockWatchTable, byteValues);
+    }
+
+    @Override
+    public Map<Cell, byte[]> read(ReadRequest readRequest) {
+        Transaction transaction = activeTransactions.get(readRequest.id()).transaction();
+        return transaction.get(lockWatchTable, getCells(readRequest.rows()));
     }
 
     @Override
@@ -100,18 +126,25 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
 
     private void createTable() {
         KeyValueService keyValueService = transactionManager.getKeyValueService();
-        keyValueService.createTable(lockWatchTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(lockWatchTable, TABLE_METADATA.persistToBytes());
         transactionManager
                 .getLockWatchManager()
                 .registerPreciselyWatches(
                         ImmutableSet.of(LockWatchReferences.entireTable(lockWatchTable.getQualifiedName())));
     }
 
-    private Map<Cell, byte[]> getValueMap(Set<String> rows) {
-        return KeyedStream.of(rows)
+    private Set<Cell> getCells(Set<String> rows) {
+        return rows.stream()
+                .map(PtBytes::toBytes)
+                .map(row -> Cell.create(row, COLUMN))
+                .collect(Collectors.toSet());
+    }
+
+    private Map<Cell, byte[]> getValueMap(Map<String, String> rows) {
+        return KeyedStream.stream(rows)
                 .mapKeys(PtBytes::toBytes)
                 .mapKeys(row -> Cell.create(row, COLUMN))
-                .map(unused -> VALUE)
+                .map(PtBytes::toBytes)
                 .collectToMap();
     }
 
@@ -128,7 +161,7 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
         }
     }
 
-    class CommitUpdateCondition implements PreCommitCondition {
+    final class CommitUpdateCondition implements PreCommitCondition {
         private final AtomicReference<CommitUpdate> commitUpdate = new AtomicReference<>();
         private Optional<Long> startTs = Optional.empty();
 

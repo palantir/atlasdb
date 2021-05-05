@@ -84,12 +84,12 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     }
 
     @Override
-    CommitUpdate getCommitUpdate(long startTs) {
+    public CommitUpdate getCommitUpdate(long startTs) {
         return lockWatchCache.getEventCache().getCommitUpdate(startTs);
     }
 
     @Override
-    TransactionsLockWatchUpdate getUpdateForTransactions(
+    public TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return lockWatchCache.getEventCache().getUpdateForTransactions(startTimestamps, version);
     }

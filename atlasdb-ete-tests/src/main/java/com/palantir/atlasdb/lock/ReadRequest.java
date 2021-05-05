@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,27 +18,24 @@ package com.palantir.atlasdb.lock;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.common.streams.KeyedStream;
-import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableWriteRequest.class)
 @JsonDeserialize(as = ImmutableWriteRequest.class)
-public interface WriteRequest {
+public interface ReadRequest {
     TransactionId id();
 
-    Map<String, String> rows();
+    Set<String> rows();
 
-    static WriteRequest of(TransactionId id, String... rows) {
-        return ImmutableWriteRequest.builder()
-                .id(id)
-                .rows(KeyedStream.of(Stream.of(rows)).collectToMap())
-                .build();
+    static ReadRequest of(TransactionId id, String... rows) {
+        return of(id, Stream.of(rows).collect(Collectors.toSet()));
     }
 
-    static WriteRequest of(TransactionId id, Map<String, String> rows) {
-        return ImmutableWriteRequest.builder().id(id).rows(rows).build();
+    static ReadRequest of(TransactionId id, Set<String> rows) {
+        return ImmutableReadRequest.builder().id(id).rows(rows).build();
     }
 }
