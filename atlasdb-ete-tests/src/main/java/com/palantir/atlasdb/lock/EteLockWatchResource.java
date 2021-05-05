@@ -16,11 +16,9 @@
 
 package com.palantir.atlasdb.lock;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.cache.HitDigest;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import java.util.Map;
 import java.util.Optional;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -56,7 +54,7 @@ public interface EteLockWatchResource {
     @Path("read")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Map<Cell, byte[]> read(ReadRequest readRequest);
+    ReadResponse read(ReadRequest readRequest);
 
     @POST
     @Path("get-update")

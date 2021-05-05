@@ -14,21 +14,29 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.cache;
+package com.palantir.atlasdb.lock;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import java.util.Set;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableHitDigest.class)
-@JsonDeserialize(as = ImmutableHitDigest.class)
-public interface HitDigest {
-    Set<CellReference> hitCells();
+@JsonSerialize(as = ImmutableReadResponse.class)
+@JsonDeserialize(as = ImmutableReadResponse.class)
+public interface ReadResponse {
+    @Value.Parameter
+    Set<Result> reads();
 
-    static HitDigest of(Set<CellReference> hitCells) {
-        return ImmutableHitDigest.builder().hitCells(hitCells).build();
+    @Value.Immutable
+    @JsonSerialize(as = ImmutableResult.class)
+    @JsonDeserialize(as = ImmutableResult.class)
+    interface Result {
+        @Value.Parameter
+        Cell cell();
+
+        @Value.Parameter
+        byte[] value();
     }
 }

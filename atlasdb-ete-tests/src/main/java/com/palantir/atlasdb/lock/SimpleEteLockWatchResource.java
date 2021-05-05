@@ -107,9 +107,13 @@ public final class SimpleEteLockWatchResource implements EteLockWatchResource {
     }
 
     @Override
-    public Map<Cell, byte[]> read(ReadRequest readRequest) {
+    public ReadResponse read(ReadRequest readRequest) {
         Transaction transaction = activeTransactions.get(readRequest.id()).transaction();
-        return transaction.get(lockWatchTable, getCells(readRequest.rows()));
+        return ImmutableReadResponse.of(
+                KeyedStream.stream(transaction.get(lockWatchTable, getCells(readRequest.rows())))
+                        .map(ImmutableResult::of)
+                        .values()
+                        .collect(Collectors.toSet()));
     }
 
     @Override

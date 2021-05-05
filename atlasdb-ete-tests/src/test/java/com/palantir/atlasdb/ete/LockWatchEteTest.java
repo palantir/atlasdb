@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.cache.HitDigest;
 import com.palantir.atlasdb.lock.EteLockWatchResource;
 import com.palantir.atlasdb.lock.GetLockWatchUpdateRequest;
 import com.palantir.atlasdb.lock.ReadRequest;
+import com.palantir.atlasdb.lock.ReadResponse.Result;
 import com.palantir.atlasdb.lock.SimpleEteLockWatchResource;
 import com.palantir.atlasdb.lock.TransactionId;
 import com.palantir.atlasdb.lock.WriteRequest;
@@ -142,7 +143,11 @@ public final class LockWatchEteTest {
         lockWatcher.endTransaction(txn1);
 
         TransactionId txn2 = lockWatcher.startTransaction();
-        Map<Cell, byte[]> readValues = lockWatcher.read(ReadRequest.of(txn2, values.keySet()));
+        Map<Cell, byte[]> readValues = KeyedStream.of(
+                        lockWatcher.read(ReadRequest.of(txn2, values.keySet())).reads())
+                .mapKeys(Result::cell)
+                .map(Result::value)
+                .collectToMap();
 
         Map<String, String> results = KeyedStream.stream(readValues)
                 .mapKeys(Cell::getRowName)
