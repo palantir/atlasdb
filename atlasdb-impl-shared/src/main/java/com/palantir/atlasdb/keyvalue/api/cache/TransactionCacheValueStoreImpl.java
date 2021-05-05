@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.immutables.value.Value;
 
@@ -83,10 +82,8 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
         // Filter out which values have not been read yet
         Set<Cell> remainingCells = Sets.difference(cells, locallyCachedValues.keySet());
 
-        // Read values from the snapshot. For the hits, mark as hit in the local map.
+        // Read values from the snapshot.
         Map<Cell, CacheValue> snapshotCachedValues = getSnapshotValues(table, remainingCells);
-        snapshotCachedValues.forEach(
-                (cell, value) -> localUpdates.put(CellReference.of(table, cell), LocalCacheEntry.hit(value)));
 
         return ImmutableMap.<Cell, CacheValue>builder()
                 .putAll(locallyCachedValues)
@@ -100,14 +97,6 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                 .filter(entry -> entry.status().equals(Status.READ))
                 .map(LocalCacheEntry::value)
                 .collectToMap();
-    }
-
-    @Override
-    public Set<CellReference> getHitDigest() {
-        return KeyedStream.stream(localUpdates)
-                .filter(entry -> entry.status().equals(Status.HIT))
-                .keys()
-                .collect(Collectors.toSet());
     }
 
     private Map<Cell, CacheValue> getLocallyCachedValues(TableReference table, Set<Cell> cells) {
@@ -148,17 +137,9 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                     .build();
         }
 
-        static LocalCacheEntry hit(CacheValue value) {
-            return ImmutableLocalCacheEntry.builder()
-                    .status(Status.HIT)
-                    .value(value)
-                    .build();
-        }
-
         enum Status {
             READ,
             WRITE,
-            HIT;
         }
     }
 }

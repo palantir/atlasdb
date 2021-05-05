@@ -43,6 +43,4 @@ interface TransactionCacheValueStore {
      * unable to be cached due to values being locked). Also note that writes do not appear in the digest.
      */
     Map<CellReference, CacheValue> getValueDigest();
-
-    Set<CellReference> getHitDigest();
 }
