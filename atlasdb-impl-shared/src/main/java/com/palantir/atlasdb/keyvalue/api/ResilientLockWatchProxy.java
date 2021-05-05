@@ -39,7 +39,7 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
         return (LockWatchEventCache) Proxy.newProxyInstance(
                 LockWatchEventCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchEventCache.class},
-                new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager));
+                new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager, "eventCacheFallbackCount"));
     }
 
     public static LockWatchValueScopingCache newValueCacheProxy(
@@ -49,7 +49,7 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
         return (LockWatchValueScopingCache) Proxy.newProxyInstance(
                 LockWatchValueScopingCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchValueScopingCache.class},
-                new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager));
+                new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager, "valueCacheFallbackCount"));
     }
 
     private final T fallbackCache;
@@ -57,11 +57,11 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
 
     private volatile T delegate;
 
-    private ResilientLockWatchProxy(T defaultCache, T fallbackCache, MetricsManager metricsManager) {
+    private ResilientLockWatchProxy(T defaultCache, T fallbackCache, MetricsManager metricsManager, String metricName) {
         this.delegate = defaultCache;
         this.fallbackCache = fallbackCache;
         this.fallbackCacheSelectedCounter =
-                metricsManager.registerOrGetCounter(ResilientLockWatchProxy.class, "fallbackCacheSelectedCounter");
+                metricsManager.registerOrGetCounter(ResilientLockWatchProxy.class, metricName);
     }
 
     @Override
