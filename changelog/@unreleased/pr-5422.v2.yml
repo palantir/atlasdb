@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: The lock watch value cache will now only update the central cache once a commit has finished successfully, instead of at the point of retrieving the commit timestamp.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5422
