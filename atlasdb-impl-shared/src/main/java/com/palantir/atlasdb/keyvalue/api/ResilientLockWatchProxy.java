@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.watch;
+package com.palantir.atlasdb.keyvalue.api;
 
 import com.codahale.metrics.Counter;
 import com.google.common.reflect.AbstractInvocationHandler;
-import com.google.errorprone.annotations.concurrent.GuardedBy;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -26,38 +26,46 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
+@ThreadSafe
+public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler {
+    private static final Logger log = LoggerFactory.getLogger(ResilientLockWatchProxy.class);
 
-    private static final Logger log = LoggerFactory.getLogger(ResilientLockWatchEventCache.class);
-
-    static LockWatchEventCache newProxyInstance(
+    public static LockWatchEventCache newEventCacheProxy(
             LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache, MetricsManager metricsManager) {
         return (LockWatchEventCache) Proxy.newProxyInstance(
                 LockWatchEventCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchEventCache.class},
-                new ResilientLockWatchEventCache(defaultCache, fallbackCache, metricsManager));
+                new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager, "eventCacheFallbackCount"));
     }
 
-    private final LockWatchEventCache fallbackCache;
+    public static LockWatchValueScopingCache newValueCacheProxy(
+            LockWatchValueScopingCache defaultCache,
+            LockWatchValueScopingCache fallbackCache,
+            MetricsManager metricsManager) {
+        return (LockWatchValueScopingCache) Proxy.newProxyInstance(
+                LockWatchValueScopingCache.class.getClassLoader(),
+                new Class<?>[] {LockWatchValueScopingCache.class},
+                new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager, "valueCacheFallbackCount"));
+    }
+
+    private final T fallbackCache;
     private final Counter fallbackCacheSelectedCounter;
 
-    @GuardedBy("this")
-    private LockWatchEventCache delegate;
+    private volatile T delegate;
 
-    private ResilientLockWatchEventCache(
-            LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache, MetricsManager metricsManager) {
+    private ResilientLockWatchProxy(T defaultCache, T fallbackCache, MetricsManager metricsManager, String metricName) {
         this.delegate = defaultCache;
         this.fallbackCache = fallbackCache;
         this.fallbackCacheSelectedCounter =
-                metricsManager.registerOrGetCounter(ResilientLockWatchEventCache.class, "fallbackCacheSelectedCounter");
+                metricsManager.registerOrGetCounter(ResilientLockWatchProxy.class, metricName);
     }
 
     @Override
-    protected synchronized Object handleInvocation(Object proxy, Method method, Object[] args)
-            throws IllegalAccessException {
+    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws IllegalAccessException {
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
@@ -65,7 +73,7 @@ final class ResilientLockWatchEventCache extends AbstractInvocationHandler {
         }
     }
 
-    synchronized RuntimeException handleException(InvocationTargetException rethrow) {
+    private synchronized RuntimeException handleException(InvocationTargetException rethrow) {
         try {
             throw rethrow.getCause();
         } catch (TransactionLockWatchFailedException e) {

@@ -31,8 +31,10 @@ import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
+import javax.annotation.concurrent.NotThreadSafe;
 import org.immutables.value.Value;
 
+@NotThreadSafe
 final class TimestampStateStore {
     private final NavigableMap<StartTimestamp, MapEntry> timestampMap = new TreeMap<>();
     private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions = TreeMultimap.create();
