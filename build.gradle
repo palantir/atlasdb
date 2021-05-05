@@ -98,13 +98,9 @@ allprojects {
             it.substitute it.module('jakarta.el:jakarta.el-api') with it.module('org.glassfish:jakarta.el:3.0.3')
             it.substitute it.module('org.glassfish:javax.el') with it.module('org.glassfish:jakarta.el:3.0.3')
             it.substitute it.module('org.glassfish.web:javax.el') with it.module('org.glassfish:jakarta.el:3.0.3')
-        }
     }
 
     tasks.withType(JavaCompile) {
-        options.compilerArgs.removeAll {
-            it == '-parameters'
-        }
         options.compilerArgs += ['-Werror']
         // temporarily relax constraints until we can fix all violations
         options.errorprone.disable 'ArrayAsKeyOfSetOrMap',
