@@ -36,6 +36,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.Application;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.lifecycle.Managed;
+import io.dropwizard.logging.ConsoleAppenderFactory;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import java.util.Optional;
@@ -71,6 +72,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.setObjectMapper(ObjectMappers.newServerObjectMapper());
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
+        bootstrap.getObjectMapper().registerSubtypes(ConsoleAppenderFactory.class);
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
         super.initialize(bootstrap);
     }
