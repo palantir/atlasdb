@@ -39,8 +39,12 @@ public interface LockWatchValueScopingCache extends LockWatchValueCache {
     @Override
     void updateCacheAndRemoveTransactionState(long startTimestamp);
 
+    /**
+     * This method should only be used when the transaction has failed and the state needs to be removed from the
+     * cache without updating the central value store.
+     */
     @Override
-    void removeTransactionStateFromCache(long startTimestamp);
+    void removeTransactionState(long startTimestamp);
 
     TransactionScopedCache createTransactionScopedCache(long startTs);
 }

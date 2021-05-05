@@ -16,8 +16,11 @@
 
 package com.palantir.lock.watch;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -27,7 +30,8 @@ import java.util.UUID;
 import org.junit.Test;
 
 public class LockWatchCacheImplTest {
-    private static final ImmutableSet<Long> TIMESTAMPS = ImmutableSet.of(1L, 2L);
+    private static final long TIMESTAMP = 1L;
+    private static final ImmutableSet<Long> TIMESTAMPS = ImmutableSet.of(TIMESTAMP, 2L);
     private static final Success SUCCESS = LockWatchStateUpdate.success(UUID.randomUUID(), 2L, ImmutableList.of());
     private static final TransactionUpdate UPDATE_1 = ImmutableTransactionUpdate.builder()
             .startTs(1L)
@@ -56,7 +60,14 @@ public class LockWatchCacheImplTest {
     public void commitTest() {
         cache.processCommitTimestampsUpdate(UPDATES, SUCCESS);
         verify(eventCache).processGetCommitTimestampsUpdate(UPDATES, SUCCESS);
-        verify(valueCache).updateCacheAndRemoveTransactionState(TIMESTAMPS);
+        verify(valueCache, never()).updateCacheAndRemoveTransactionState(anyLong());
+        verify(valueCache, never()).removeTransactionState(anyLong());
+
+        cache.updateCacheAndRemoveTransactionState(TIMESTAMP);
+        verify(eventCache).removeTransactionStateFromCache(TIMESTAMP);
+        verify(valueCache).updateCacheAndRemoveTransactionState(TIMESTAMP);
+        verifyNoMoreInteractions(eventCache);
+        verifyNoMoreInteractions(valueCache);
     }
 
     @Test

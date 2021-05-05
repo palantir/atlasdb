@@ -74,11 +74,11 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     @Override
     public synchronized void updateCacheAndRemoveTransactionState(long startTimestamp) {
         processCommitUpdate(startTimestamp);
-        removeTransactionStateFromCache(startTimestamp);
+        removeTransactionState(startTimestamp);
     }
 
     @Override
-    public synchronized void removeTransactionStateFromCache(long startTimestamp) {
+    public synchronized void removeTransactionState(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         snapshotStore
                 .removeTimestamp(startTs)
