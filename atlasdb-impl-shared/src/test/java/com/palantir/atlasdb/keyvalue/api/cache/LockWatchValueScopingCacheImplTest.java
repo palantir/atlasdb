@@ -184,6 +184,8 @@ public final class LockWatchValueScopingCacheImplTest {
                 .containsExactlyInAnyOrder(CELL_1);
         assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_3))
                 .isEmpty();
+
+        scopedCache3.finalise();
         assertThat(scopedCache3.getValueDigest().loadedValues())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_1), VALUE_1));
         assertThat(scopedCache3.getHitDigest().hitCells())
