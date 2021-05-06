@@ -81,5 +81,9 @@ public final class LockWatchValueIntegrationTest {
 
         assertThat(result).containsEntry(CELL, DATA);
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
+
+        // ((LockWatchValueScopingCache) ((LockWatchManagerInternal)
+        // txnManager.getLockWatchManager()).getCache().getValueCache())
+        //         .createTransactionScopedCache()
     }
 }
