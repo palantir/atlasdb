@@ -77,6 +77,12 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
+    public void updateLocallyCachedValues(Map<CellReference, CacheValue> values) {
+        localUpdates.putAll(
+                KeyedStream.stream(values).map(LocalCacheEntry::write).collectToMap());
+    }
+
+    @Override
     public Map<Cell, CacheValue> getCachedValues(TableReference table, Set<Cell> cells) {
         Map<Cell, CacheValue> locallyCachedValues = getLocallyCachedValues(table, cells);
 
@@ -108,6 +114,11 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                 .filter(entry -> entry.status().equals(Status.HIT))
                 .keys()
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    public ValueCacheSnapshot getSnapshot() {
+        return snapshot;
     }
 
     private Map<Cell, CacheValue> getLocallyCachedValues(TableReference table, Set<Cell> cells) {

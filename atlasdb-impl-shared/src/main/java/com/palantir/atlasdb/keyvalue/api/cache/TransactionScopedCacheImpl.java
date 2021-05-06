@@ -17,18 +17,27 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.CommitUpdate.Visitor;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
 
@@ -104,8 +113,73 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     }
 
     @Override
+    public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
+        ValueDigest valueDigest = getValueDigest();
+        ValueCacheSnapshot delegateSnapshot = valueStore.getSnapshot();
+
+        LockedCells lockedCells = commitUpdate.accept(new Visitor<>() {
+            @Override
+            public LockedCells invalidateAll() {
+                return ImmutableLockedCells.of(true, ImmutableSet.of());
+            }
+
+            @Override
+            public LockedCells invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                return ImmutableLockedCells.of(
+                        false,
+                        invalidatedLocks.stream()
+                                .map(AtlasLockDescriptorUtils::candidateCells)
+                                .flatMap(List::stream)
+                                .collect(Collectors.toSet()));
+            }
+        });
+
+        ValueCacheSnapshot snapshot = new ValueCacheSnapshot() {
+            @Override
+            public Optional<CacheEntry> getValue(CellReference cellReference) {
+                return delegateSnapshot.getValue(cellReference);
+            }
+
+            @Override
+            public boolean isUnlocked(CellReference cellReference) {
+                return lockedCells.isUnlocked(cellReference) && delegateSnapshot.isUnlocked(cellReference);
+            }
+
+            @Override
+            public boolean isWatched(TableReference tableReference) {
+                return delegateSnapshot.isWatched(tableReference);
+            }
+        };
+
+        TransactionScopedCacheImpl delegateCache = new TransactionScopedCacheImpl(snapshot);
+        KeyedStream.stream(valueDigest.loadedValues())
+                .filter(value -> value.value().isPresent())
+                .map(value -> value.value().get())
+                .forEach(((cellReference, value) ->
+                        delegateCache.write(cellReference.tableRef(), ImmutableMap.of(cellReference.cell(), value))));
+        return new ReadOnlyTransactionScopedCache(delegateCache);
+    }
+
+    @Value.Immutable
+    interface LockedCells {
+        @Value.Parameter
+        boolean allLocked();
+
+        @Value.Parameter
+        Set<CellReference> lockedCells();
+
+        default boolean isUnlocked(CellReference cellReference) {
+            return !allLocked() && !lockedCells().contains(cellReference);
+        }
+    }
+
+    @Override
     public void finalise() {
         finalised = true;
+    }
+
+    private void updateLocallyCachedValues(ValueDigest digest) {
+        valueStore.updateLocallyCachedValues(digest.loadedValues());
     }
 
     private void ensureFinalised() {

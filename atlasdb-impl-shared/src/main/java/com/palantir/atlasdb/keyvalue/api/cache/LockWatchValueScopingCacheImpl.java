@@ -87,26 +87,19 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
 
     @Override
     public synchronized void updateCacheAndRemoveTransactionState(Set<Long> startTimestamps) {
-        try {
-            startTimestamps.forEach(this::processCommitUpdate);
-        } finally {
-            // Remove the timestamps, and if the sequence has not updated, update the snapshot with the reads from
-            // these transactions (there is no guarantee that all the start timestamps have the same sequence).
-            startTimestamps.stream().map(StartTimestamp::of).forEach(startTs -> {
-                snapshotStore
-                        .removeTimestamp(startTs)
-                        .filter(sequence -> currentVersion.isPresent()
-                                && sequence.value() == currentVersion.get().version())
-                        .ifPresent(sequence -> snapshotStore.updateSnapshot(sequence, valueStore.getSnapshot()));
-                cacheStore.removeCache(startTs);
-            });
-        }
+        startTimestamps.forEach(this::processCommitUpdate);
     }
 
     @Override
     public synchronized void removeTransactionState(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
-        snapshotStore.removeTimestamp(startTs);
+        // Remove the timestamps, and if the sequence has not updated, update the snapshot with the reads from
+        // these transactions (there is no guarantee that all the start timestamps have the same sequence).
+        snapshotStore
+                .removeTimestamp(startTs)
+                .filter(sequence -> currentVersion.isPresent()
+                        && sequence.value() == currentVersion.get().version())
+                .ifPresent(sequence -> snapshotStore.updateSnapshot(sequence, valueStore.getSnapshot()));
         cacheStore.removeCache(startTs);
     }
 

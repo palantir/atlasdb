@@ -36,6 +36,8 @@ interface TransactionCacheValueStore {
 
     void cacheEmptyReads(TableReference tableReference, Set<Cell> emptyCells);
 
+    void updateLocallyCachedValues(Map<CellReference, CacheValue> values);
+
     Map<Cell, CacheValue> getCachedValues(TableReference table, Set<Cell> cells);
 
     /**
@@ -45,4 +47,6 @@ interface TransactionCacheValueStore {
     Map<CellReference, CacheValue> getValueDigest();
 
     Set<CellReference> getHitDigest();
+
+    ValueCacheSnapshot getSnapshot();
 }
