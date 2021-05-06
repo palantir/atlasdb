@@ -67,6 +67,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.cache.NoOpTransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
@@ -412,6 +413,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
                         new LegacyTimelockService(timestampService, lock, lockClient),
                         NoOpLockWatchManager.create(),
+                        NoOpTransactionScopedCache::create,
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         () -> transactionTs,
@@ -2009,6 +2011,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
                         NoOpLockWatchManager.create(),
+                        NoOpTransactionScopedCache::create,
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         startTs,

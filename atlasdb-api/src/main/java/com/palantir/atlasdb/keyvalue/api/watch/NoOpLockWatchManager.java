@@ -18,12 +18,14 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.palantir.atlasdb.keyvalue.api.cache.NoOpTransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache.Type;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.logsafe.Preconditions;
 import java.util.Optional;
 import java.util.Set;
 
@@ -71,6 +73,15 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
 
     @Override
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
+        return NoOpTransactionScopedCache.create();
+    }
+
+    @Override
+    public TransactionScopedCache createThrowawayCache(TransactionScopedCache baseCache) {
+        Preconditions.checkArgument(
+                baseCache.getCacheType().equals(Type.NOOP),
+                "No-op lock watch manager cannot create a cache that is not no-op");
+
         return NoOpTransactionScopedCache.create();
     }
 

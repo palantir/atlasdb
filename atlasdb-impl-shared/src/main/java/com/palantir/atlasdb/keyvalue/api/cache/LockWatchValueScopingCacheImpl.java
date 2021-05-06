@@ -34,6 +34,8 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -117,6 +119,21 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         return ValidatingTransactionScopedCache.create(
                 cacheStore.createCache(StartTimestamp.of(startTs)).orElseGet(NoOpTransactionScopedCache::create),
                 validationProbability);
+    }
+
+    @Override
+    public TransactionScopedCache createThrowawayCache(TransactionScopedCache baseCache) {
+        switch (baseCache.getCacheType()) {
+            case NOOP:
+                return ValidatingTransactionScopedCache.create(
+                        NoOpTransactionScopedCache.create(), validationProbability);
+            case VALUE:
+                return ValidatingTransactionScopedCache.create(
+                        TransactionScopedCacheImpl.create(valueStore.getSnapshot()), validationProbability);
+            default:
+                throw new SafeIllegalArgumentException(
+                        "Unrecognised scoped cache type", SafeArg.of("cacheType", baseCache.getCacheType()));
+        }
     }
 
     private synchronized void processCommitUpdate(long startTimestamp) {

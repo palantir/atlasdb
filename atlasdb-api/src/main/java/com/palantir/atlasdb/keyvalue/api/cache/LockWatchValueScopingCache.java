@@ -47,4 +47,11 @@ public interface LockWatchValueScopingCache extends LockWatchValueCache {
     void removeTransactionState(long startTimestamp);
 
     TransactionScopedCache createTransactionScopedCache(long startTs);
+
+    /**
+     * Creates a transaction scoped cache with the same type as the provided (e.g. no-op if the provided is no-op).
+     * This cache is not stored in the cache store as the values will never be flushed to the central cache - the
+     * purpose is solely for the throwaway transaction created in serializable transactions.
+     */
+    TransactionScopedCache createThrowawayCache(TransactionScopedCache baseCache);
 }

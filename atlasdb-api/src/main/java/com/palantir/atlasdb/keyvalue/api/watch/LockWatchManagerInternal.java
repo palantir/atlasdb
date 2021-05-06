@@ -26,6 +26,8 @@ public abstract class LockWatchManagerInternal extends LockWatchManager implemen
 
     public abstract TransactionScopedCache createTransactionScopedCache(long startTs);
 
+    public abstract TransactionScopedCache createThrowawayCache(TransactionScopedCache baseCache);
+
     @Override
     public abstract void close();
 }

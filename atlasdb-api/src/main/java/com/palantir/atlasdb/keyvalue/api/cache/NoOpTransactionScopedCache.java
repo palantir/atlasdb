@@ -60,6 +60,11 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
     public void finalise() {}
 
     @Override
+    public Type getCacheType() {
+        return Type.NOOP;
+    }
+
+    @Override
     public ValueDigest getValueDigest() {
         return ValueDigest.of(ImmutableMap.of());
     }

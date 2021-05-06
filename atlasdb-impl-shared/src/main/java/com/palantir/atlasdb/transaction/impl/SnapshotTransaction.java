@@ -257,6 +257,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected volatile boolean hasReads;
 
     /**
+     * @param transactionScopedCache
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
      *                           lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
@@ -266,6 +267,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
+            Supplier<TransactionScopedCache> transactionScopedCache,
             TransactionService transactionService,
             Cleaner cleaner,
             Supplier<Long> startTimeStamp,
@@ -289,7 +291,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableLevelMetricsController tableLevelMetricsController) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
-        this.cache = Suppliers.memoize(() -> lockWatchManager.createTransactionScopedCache(startTimeStamp.get()));
+        this.cache = Suppliers.memoize(transactionScopedCache::get);
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;

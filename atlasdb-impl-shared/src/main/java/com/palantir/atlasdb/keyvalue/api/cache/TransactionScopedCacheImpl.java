@@ -108,6 +108,11 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         finalised = true;
     }
 
+    @Override
+    public Type getCacheType() {
+        return Type.VALUE;
+    }
+
     private void ensureFinalised() {
         if (!finalised) {
             throw new TransactionLockWatchFailedException(

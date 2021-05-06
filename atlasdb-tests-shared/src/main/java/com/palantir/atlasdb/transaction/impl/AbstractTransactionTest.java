@@ -47,6 +47,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.cache.NoOpTransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
@@ -133,6 +134,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
                 NoOpLockWatchManager.create(),
+                NoOpTransactionScopedCache::create,
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 () -> startTimestamp,

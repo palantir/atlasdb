@@ -101,6 +101,11 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     }
 
     @Override
+    public Type getCacheType() {
+        return delegate.getCacheType();
+    }
+
+    @Override
     public ValueDigest getValueDigest() {
         return delegate.getValueDigest();
     }

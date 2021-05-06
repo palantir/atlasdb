@@ -16,7 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache.Type;
 import com.palantir.lock.watch.NoOpLockWatchValueCache;
+import com.palantir.logsafe.Preconditions;
 
 public final class NoOpLockWatchValueScopingCache extends NoOpLockWatchValueCache
         implements LockWatchValueScopingCache {
@@ -26,6 +28,15 @@ public final class NoOpLockWatchValueScopingCache extends NoOpLockWatchValueCach
 
     @Override
     public TransactionScopedCache createTransactionScopedCache(long startTs) {
+        return NoOpTransactionScopedCache.create();
+    }
+
+    @Override
+    public TransactionScopedCache createThrowawayCache(TransactionScopedCache baseCache) {
+        Preconditions.checkArgument(
+                baseCache.getCacheType().equals(Type.NOOP),
+                "No-op value scoping cache cannot create a cache that is not no-op");
+
         return NoOpTransactionScopedCache.create();
     }
 }

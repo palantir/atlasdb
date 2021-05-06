@@ -276,6 +276,7 @@ import org.slf4j.LoggerFactory;
                 keyValueService,
                 timelockService,
                 lockWatchManager,
+                () -> lockWatchManager.createTransactionScopedCache(startTimestampSupplier.get()),
                 transactionService,
                 cleaner,
                 startTimestampSupplier,
@@ -313,14 +314,16 @@ import org.slf4j.LoggerFactory;
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
+        Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
                 keyValueService,
                 timelockService,
                 lockWatchManager,
+                () -> lockWatchManager.createTransactionScopedCache(startTimestampSupplier.get()),
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                getStartTimestampSupplier(),
+                startTimestampSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTs,

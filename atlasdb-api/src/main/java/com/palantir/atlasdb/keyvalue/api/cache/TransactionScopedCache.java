@@ -66,7 +66,19 @@ public interface TransactionScopedCache {
      */
     void finalise();
 
+    /**
+     * Returns whether this value cache actually caches values, or is a no-op cache. This is critical for
+     * serializable transactions: the throwaway read-only transaction must use a cache of the same type as the base
+     * transaction.
+     */
+    Type getCacheType();
+
     ValueDigest getValueDigest();
 
     HitDigest getHitDigest();
+
+    enum Type {
+        NOOP,
+        VALUE
+    }
 }
