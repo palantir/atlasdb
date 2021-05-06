@@ -17,11 +17,10 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
 import com.google.common.io.CharStreams;
 import com.palantir.logsafe.Preconditions;
-import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.function.Supplier;
