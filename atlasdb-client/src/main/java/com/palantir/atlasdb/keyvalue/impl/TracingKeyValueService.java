@@ -45,8 +45,6 @@ import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tracing.DetachedSpan;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
@@ -432,11 +430,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
         try (CloseableTrace trace = startLocalTrace(
-                "getRowKeysInRange({}, {}, {}, {})",
-                LoggingArgs.safeTableOrPlaceholder(tableRef),
-                UnsafeArg.of("startRow", startRow),
-                UnsafeArg.of("endRow", endRow),
-                SafeArg.of("maxResults", maxResults))) {
+                "getRowKeysInRange({}, {})", LoggingArgs.safeTableOrPlaceholder(tableRef), maxResults)) {
             return delegate().getRowKeysInRange(tableRef, startRow, endRow, maxResults);
         }
     }
