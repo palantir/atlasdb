@@ -61,6 +61,13 @@ public class ConjureResourceExceptionHandler {
                         tooManyRequests -> {
                             throw QosException.throttle();
                         },
+                        MoreExecutors.directExecutor())
+                .catching(
+                        InterruptedException.class,
+                        interrupted -> {
+                            Thread.currentThread().interrupt();
+                            throw QosException.unavailable(interrupted);
+                        },
                         MoreExecutors.directExecutor());
     }
 }
