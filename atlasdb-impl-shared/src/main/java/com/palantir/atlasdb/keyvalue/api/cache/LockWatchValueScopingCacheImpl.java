@@ -29,7 +29,6 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -37,6 +36,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -120,10 +120,18 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     private synchronized void processCommitUpdate(long startTimestamp) {
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
         Optional<TransactionScopedCache> cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
+        cache.ifPresent(TransactionScopedCache::finalise);
 
-        commitUpdate.accept(new Visitor<Void>() {
+        Map<CellReference, CacheValue> cachedValues = cache.map(TransactionScopedCache::getValueDigest)
+                .map(ValueDigest::loadedValues)
+                .orElseGet(ImmutableMap::of);
+
+        if (cachedValues.isEmpty()) {
+            return;
+        }
+
+        eventCache.getCommitUpdate(startTimestamp).accept(new Visitor<Void>() {
             @Override
             public Void invalidateAll() {
                 // This might happen due to an election or if we exceeded the maximum number of events held in
@@ -138,16 +146,12 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                         .map(AtlasLockDescriptorUtils::candidateCells)
                         .flatMap(List::stream)
                         .collect(Collectors.toSet());
-                KeyedStream.stream(cache.map(TransactionScopedCache::getValueDigest)
-                                .map(ValueDigest::loadedValues)
-                                .orElseGet(ImmutableMap::of))
+                KeyedStream.stream(cachedValues)
                         .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
                         .forEach(valueStore::putValue);
                 return null;
             }
         });
-
-        cache.ifPresent(TransactionScopedCache::close);
     }
 
     /**

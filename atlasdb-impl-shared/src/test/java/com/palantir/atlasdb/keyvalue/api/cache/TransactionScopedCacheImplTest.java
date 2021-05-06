@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
@@ -97,6 +99,8 @@ public final class TransactionScopedCacheImplTest {
         assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1, CELL_6), (_unused, cells) -> remoteRead(cells)))
                 .containsExactlyInAnyOrderEntriesOf(
                         ImmutableMap.of(CELL_1, VALUE_1.value().get()));
+
+        cache.finalise();
         assertThat(cache.getValueDigest().loadedValues())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_6), VALUE_EMPTY));
         assertThat(cache.getHitDigest().hitCells()).containsExactly(CellReference.of(TABLE, CELL_1));
@@ -110,6 +114,7 @@ public final class TransactionScopedCacheImplTest {
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
 
+        cache.finalise();
         assertThat(cache.getValueDigest().loadedValues())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CellReference.of(TABLE, CELL_2), VALUE_2));
     }
@@ -123,6 +128,43 @@ public final class TransactionScopedCacheImplTest {
                 .containsExactlyInAnyOrderEntriesOf(
                         ImmutableMap.of(CELL_1, VALUE_1.value().get()));
         verifyNoInteractions(valueLoader);
+    }
+
+    @Test
+    public void cacheThrowsIfReadingAfterFinalising() {
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+
+        cache.finalise();
+        assertThatThrownBy(() -> cache.write(TABLE, ImmutableMap.of()))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Cannot get or write to a transaction scoped cache that has already been closed");
+
+        assertThatThrownBy(() -> cache.delete(TABLE, ImmutableSet.of()))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Cannot get or write to a transaction scoped cache that has already been closed");
+
+        BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> noOpLoader =
+                (_table, _cells) -> Futures.immediateFuture(ImmutableMap.of());
+        assertThatThrownBy(() -> cache.get(TABLE, ImmutableSet.of(), noOpLoader))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Cannot get or write to a transaction scoped cache that has already been closed");
+
+        assertThatThrownBy(() -> cache.getAsync(TABLE, ImmutableSet.of(), noOpLoader))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Cannot get or write to a transaction scoped cache that has already been closed");
+    }
+
+    @Test
+    public void cacheThrowsIfRetrievingDigestBeforeFinalising() {
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+
+        assertThatThrownBy(cache::getValueDigest)
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Cannot compute value or hit digest unless the cache has been finalised");
+
+        assertThatThrownBy(cache::getHitDigest)
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Cannot compute value or hit digest unless the cache has been finalised");
     }
 
     @Test
@@ -142,7 +184,9 @@ public final class TransactionScopedCacheImplTest {
 
             awaitLatch(latch);
             // This not only confirms that the read has not finished, but this is also a synchronised method, so it
-            // confirms that the cache is not currently locked
+            // confirms that the cache is not currently locked. Note that, currently, async values will be pushed to
+            // the digest even after finalising.
+            cache.finalise();
             assertThat(cache.getValueDigest().loadedValues()).isEmpty();
 
             remoteReads.setFuture(remoteRead(ImmutableSet.of(CELL_2)));
