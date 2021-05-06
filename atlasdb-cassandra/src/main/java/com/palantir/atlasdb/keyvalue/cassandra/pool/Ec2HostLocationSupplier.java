@@ -46,7 +46,7 @@ public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
             conn.setRequestMethod("GET");
             int responseCode = conn.getResponseCode();
             Preconditions.checkState(responseCode == 200, "Getting AWS host metadata was not successful");
-            try (InputStreamReader reader = new InputStreamReader(conn.getInputStream()) {
+            try (InputStreamReader reader = new InputStreamReader(conn.getInputStream())) {
                 return parseHostLocation(CharStreams.toString(reader));
             }
         } catch (IOException e) {
