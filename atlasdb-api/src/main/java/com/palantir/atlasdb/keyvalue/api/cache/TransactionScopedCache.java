@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import java.io.Closeable;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -41,7 +40,7 @@ import java.util.function.BiFunction;
  * the locked descriptors at commit time to validate whether we have read-write conflicts; otherwise, reading the
  * values in the cache is just as safe as reading a snapshot of the database taken at the start timestamp.
  */
-public interface TransactionScopedCache extends Closeable {
+public interface TransactionScopedCache {
     void write(TableReference tableReference, Map<Cell, byte[]> values);
 
     void delete(TableReference tableReference, Set<Cell> cells);
@@ -61,8 +60,11 @@ public interface TransactionScopedCache extends Closeable {
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
 
-    @Override
-    void close();
+    /**
+     * This method should be called before retrieving the value or hit digest, as it guarantees that no more reads or
+     * writes will be performed on the cache.
+     */
+    void finalise();
 
     ValueDigest getValueDigest();
 

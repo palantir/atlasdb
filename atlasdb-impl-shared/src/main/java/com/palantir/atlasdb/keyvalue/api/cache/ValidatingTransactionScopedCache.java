@@ -96,8 +96,8 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     }
 
     @Override
-    public void close() {
-        delegate.close();
+    public void finalise() {
+        delegate.finalise();
     }
 
     @Override
