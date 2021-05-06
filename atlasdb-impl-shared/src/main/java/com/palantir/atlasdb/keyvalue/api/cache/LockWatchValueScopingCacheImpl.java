@@ -29,6 +29,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -113,10 +114,11 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     private synchronized void processCommitUpdate(long startTimestamp) {
-        Optional<TransactionScopedCache> cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
-        cache.ifPresent(TransactionScopedCache::finalise);
+        Optional<TransactionScopedCache> maybeCache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
+        maybeCache.ifPresent(TransactionScopedCache::finalise);
 
-        Map<CellReference, CacheValue> cachedValues = cache.map(TransactionScopedCache::getValueDigest)
+        Map<CellReference, CacheValue> cachedValues = maybeCache
+                .map(TransactionScopedCache::getValueDigest)
                 .map(ValueDigest::loadedValues)
                 .orElseGet(ImmutableMap::of);
 
@@ -124,7 +126,12 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             return;
         }
 
-        eventCache.getCommitUpdate(startTimestamp).accept(new Visitor<Void>() {
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
+        TransactionScopedCache cache = maybeCache.get();
+        TransactionScopedCache readOnlyCache = cache.createReadOnlyCache(commitUpdate);
+        cacheStore.createReadOnlyCache(startTimestamp, commitUpdate);
+
+        commitUpdate.accept(new Visitor<Void>() {
             @Override
             public Void invalidateAll() {
                 // This might happen due to an election or if we exceeded the maximum number of events held in

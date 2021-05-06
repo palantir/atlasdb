@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,10 +27,12 @@ import javax.annotation.concurrent.ThreadSafe;
 final class CacheStoreImpl implements CacheStore {
     private final SnapshotStore snapshotStore;
     private final Map<StartTimestamp, TransactionScopedCache> cacheMap;
+    private final Map<StartTimestamp, TransactionScopedCache> readOnlyCacheMap;
 
     CacheStoreImpl(SnapshotStore snapshotStore) {
         this.snapshotStore = snapshotStore;
         this.cacheMap = new ConcurrentHashMap<>();
+        readOnlyCacheMap = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -56,5 +59,11 @@ final class CacheStoreImpl implements CacheStore {
     @Override
     public void reset() {
         cacheMap.clear();
+    }
+
+    @Override
+    public void createReadOnlyCache(StartTimestamp startTimestamp, CommitUpdate commitUpdate) {
+        Optional<TransactionScopedCache> transactionScopedCache =
+                getCache(startTimestamp).map(cache -> cache.createReadOnlyCache(commitUpdate));
     }
 }

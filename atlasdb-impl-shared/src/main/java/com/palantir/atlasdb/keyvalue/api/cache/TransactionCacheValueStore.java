@@ -36,8 +36,6 @@ interface TransactionCacheValueStore {
 
     void cacheEmptyReads(TableReference tableReference, Set<Cell> emptyCells);
 
-    void updateLocallyCachedValues(Map<CellReference, CacheValue> values);
-
     Map<Cell, CacheValue> getCachedValues(TableReference table, Set<Cell> cells);
 
     /**

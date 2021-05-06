@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.lock.watch.CommitUpdate;
 import java.util.Optional;
 
 interface CacheStore {
@@ -27,4 +28,6 @@ interface CacheStore {
     void removeCache(StartTimestamp timestamp);
 
     void reset();
+
+    void createReadOnlyCache(StartTimestamp startTimestamp, CommitUpdate commitUpdate);
 }

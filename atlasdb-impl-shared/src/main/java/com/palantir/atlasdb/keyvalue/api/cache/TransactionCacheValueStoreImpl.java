@@ -77,12 +77,6 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
-    public void updateLocallyCachedValues(Map<CellReference, CacheValue> values) {
-        localUpdates.putAll(
-                KeyedStream.stream(values).map(LocalCacheEntry::write).collectToMap());
-    }
-
-    @Override
     public Map<Cell, CacheValue> getCachedValues(TableReference table, Set<Cell> cells) {
         Map<Cell, CacheValue> locallyCachedValues = getLocallyCachedValues(table, cells);
 

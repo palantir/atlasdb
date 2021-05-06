@@ -178,10 +178,6 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         finalised = true;
     }
 
-    private void updateLocallyCachedValues(ValueDigest digest) {
-        valueStore.updateLocallyCachedValues(digest.loadedValues());
-    }
-
     private void ensureFinalised() {
         if (!finalised) {
             throw new TransactionLockWatchFailedException(
