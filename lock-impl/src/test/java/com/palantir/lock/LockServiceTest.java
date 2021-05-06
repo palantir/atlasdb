@@ -558,7 +558,7 @@ public abstract class LockServiceTest {
         barrier.await();
         Thread.sleep(500);
         LockState state2 = server.getLockState(lock1);
-        Assert.assertEquals(state2.requesters().size(), 1);
+        Assert.assertEquals(1, state2.requesters().size());
         Assert.assertEquals(Iterables.getOnlyElement(state2.requesters()).versionId(), Optional.of(100L));
     }
 
