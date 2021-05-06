@@ -23,6 +23,7 @@ import com.palantir.logsafe.Preconditions;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
