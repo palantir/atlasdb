@@ -57,7 +57,7 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
     }
 
     @Override
-    public void close() {}
+    public void finalise() {}
 
     @Override
     public ValueDigest getValueDigest() {

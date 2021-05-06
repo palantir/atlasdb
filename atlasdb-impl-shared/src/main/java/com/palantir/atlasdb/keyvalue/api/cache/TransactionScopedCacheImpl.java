@@ -35,7 +35,7 @@ import org.immutables.value.Value;
 @ThreadSafe
 final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
-    private volatile boolean closed = false;
+    private volatile boolean finalised = false;
 
     private TransactionScopedCacheImpl(ValueCacheSnapshot snapshot) {
         valueStore = new TransactionCacheValueStoreImpl(snapshot);
@@ -47,7 +47,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
 
     @Override
     public synchronized void write(TableReference tableReference, Map<Cell, byte[]> values) {
-        throwIfClosed();
+        ensureNotFinalised();
         KeyedStream.stream(values)
                 .map(CacheValue::of)
                 .forEach((cell, value) -> valueStore.cacheRemoteWrite(tableReference, cell, value));
@@ -55,7 +55,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
 
     @Override
     public synchronized void delete(TableReference tableReference, Set<Cell> cells) {
-        throwIfClosed();
+        ensureNotFinalised();
         cells.forEach(cell -> valueStore.cacheRemoteWrite(tableReference, cell, CacheValue.empty()));
     }
 
@@ -64,7 +64,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
             TableReference tableReference,
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        throwIfClosed();
+        ensureNotFinalised();
         return AtlasFutures.getUnchecked(getAsync(tableReference, cells, valueLoader));
     }
 
@@ -73,7 +73,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
             TableReference tableReference,
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        throwIfClosed();
+        ensureNotFinalised();
         // Short-cut all the logic below if the table is not watched.
         if (!valueStore.isWatched(tableReference)) {
             return valueLoader.apply(tableReference, cells);
@@ -93,21 +93,30 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
 
     @Override
     public synchronized ValueDigest getValueDigest() {
+        ensureFinalised();
         return ValueDigest.of(valueStore.getValueDigest());
     }
 
     @Override
     public synchronized HitDigest getHitDigest() {
+        ensureFinalised();
         return HitDigest.of(valueStore.getHitDigest());
     }
 
     @Override
-    public void close() {
-        closed = true;
+    public void finalise() {
+        finalised = true;
     }
 
-    private void throwIfClosed() {
-        if (closed) {
+    private void ensureFinalised() {
+        if (!finalised) {
+            throw new TransactionLockWatchFailedException(
+                    "Cannot compute value or hit digest unless the cache has been finalised");
+        }
+    }
+
+    private void ensureNotFinalised() {
+        if (finalised) {
             throw new TransactionLockWatchFailedException(
                     "Cannot get or write to a transaction scoped cache that has already been closed");
         }
