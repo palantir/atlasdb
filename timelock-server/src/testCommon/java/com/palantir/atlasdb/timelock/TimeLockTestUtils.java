@@ -52,11 +52,6 @@ public final class TimeLockTestUtils {
                 .transactionManager();
     }
 
-    /**
-     * TODO(fdesouza): Revert this once PDS-95791 is resolved.
-     * @deprecated Remove this once PDS-95791 is resolved.
-     */
-    @Deprecated
     static TransactionManagerContext createTransactionManager(
             TestableTimelockCluster cluster,
             String agent,

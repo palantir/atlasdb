@@ -22,7 +22,7 @@ runtime:
 
 server:
   applicationConnectors:
-  - type: h2
+  - type: https
     port: ${localServerPort?c}
     keyStorePath: var/security/keyStore.jks
     keyStorePassword: keystore
