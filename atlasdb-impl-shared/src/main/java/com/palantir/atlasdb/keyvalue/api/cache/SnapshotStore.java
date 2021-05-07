@@ -29,13 +29,11 @@ import java.util.Optional;
 public interface SnapshotStore {
     void storeSnapshot(Sequence sequence, Collection<StartTimestamp> timestamps, ValueCacheSnapshot snapshot);
 
-    void updateSnapshot(Sequence sequence, ValueCacheSnapshot snapshot);
-
     Optional<ValueCacheSnapshot> getSnapshot(StartTimestamp timestamp);
 
     Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence);
 
-    Optional<Sequence> removeTimestamp(StartTimestamp timestamp);
+    void removeTimestamp(StartTimestamp timestamp);
 
     void reset();
 }

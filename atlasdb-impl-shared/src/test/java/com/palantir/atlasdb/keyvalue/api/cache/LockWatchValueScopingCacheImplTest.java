@@ -100,20 +100,6 @@ public final class LockWatchValueScopingCacheImplTest {
     }
 
     @Test
-    public void updateCacheOnCommitFlushesValuesToLatestSequenceCache() {
-        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), LOCK_WATCH_SNAPSHOT);
-        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
-
-        TransactionScopedCache scopedCache1 = valueCache.createTransactionScopedCache(TIMESTAMP_1);
-        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
-        processCommitTimestamp(TIMESTAMP_1, 0L);
-        valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_1));
-
-        TransactionScopedCache scopedCache2 = valueCache.createTransactionScopedCache(TIMESTAMP_2);
-        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1)).isEmpty();
-    }
-
-    @Test
     public void updateCacheOnCommitFlushesValuesToCentralCache() {
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), LOCK_WATCH_SNAPSHOT);
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
