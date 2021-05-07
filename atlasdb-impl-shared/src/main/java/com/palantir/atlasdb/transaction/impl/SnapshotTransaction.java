@@ -2215,6 +2215,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 lockDescriptors,
                 lockAcquireTimeoutMillis,
                 Optional.ofNullable(getStartTimestampAsClientDescription(currentTransactionConfig)));
+
+        RuntimeException stackTraceSnapshot = new RuntimeException("I exist to show you the stack trace");
         LockResponse lockResponse = timelockService.lock(
                 request,
                 ClientLockingOptions.builder()
@@ -2226,7 +2228,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                         + " other transactions to proceed.",
                                 SafeArg.of("commitLockTenure", currentTransactionConfig.commitLockTenure()),
                                 UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)),
-                                new RuntimeException("I exist to show you the stack trace")))
+                                stackTraceSnapshot))
                         .build());
         if (!lockResponse.wasSuccessful()) {
             log.error(
