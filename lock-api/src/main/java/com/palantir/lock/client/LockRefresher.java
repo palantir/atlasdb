@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,7 @@ public class LockRefresher implements AutoCloseable {
 
     private final ScheduledExecutorService executor;
     private final TimelockService timelockService;
-    private final Map<LockToken, Instant> tokensToTenureDeadlines = new ConcurrentHashMap<>();
+    private final Map<LockToken, ClientLockingContext> tokensToClientContext = new ConcurrentHashMap<>();
 
     private ScheduledFuture<?> task;
 
@@ -65,7 +66,7 @@ public class LockRefresher implements AutoCloseable {
 
             Set<LockToken> successfullyRefreshedTokens = timelockService.refreshLockLeases(toRefresh);
             Set<LockToken> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
-            refreshFailures.forEach(tokensToTenureDeadlines::remove);
+            refreshFailures.forEach(tokensToClientContext::remove);
             if (!refreshFailures.isEmpty()) {
                 log.info(
                         "Successfully refreshed {}, but failed to refresh {} lock tokens, "
@@ -89,16 +90,17 @@ public class LockRefresher implements AutoCloseable {
     private Set<LockToken> getTokensToRefreshAndExpireStaleTokens() {
         Instant now = Instant.now();
         Set<LockToken> tokensToRefresh = new HashSet<>();
-        for (Map.Entry<LockToken, Instant> candidate : tokensToTenureDeadlines.entrySet()) {
-            Instant deadline = candidate.getValue();
+        for (Map.Entry<LockToken, ClientLockingContext> candidate : tokensToClientContext.entrySet()) {
+            Instant deadline = candidate.getValue().lockRefreshDeadline();
             if (now.isAfter(deadline)) {
                 log.info(
                         "A lock token has expired on the client, because it has exceeded its tenure: we will stop"
                                 + " refreshing it automatically. Some time may still be required (20 seconds by"
-                                + " default) before the server releases an unrefreshed token.",
+                                + " default) before the server releases the associated lock grants.",
                         SafeArg.of("lockToken", candidate.getKey()),
                         SafeArg.of("expiryDeadline", deadline),
                         SafeArg.of("now", now));
+                candidate.getValue().clientExpiryCallback().run();
             } else {
                 tokensToRefresh.add(candidate.getKey());
             }
@@ -111,16 +113,19 @@ public class LockRefresher implements AutoCloseable {
     }
 
     public void registerLocks(Collection<LockToken> tokens, ClientLockingOptions lockingOptions) {
-        tokens.forEach(token -> tokensToTenureDeadlines.put(
+        tokens.forEach(token -> tokensToClientContext.put(
                 token,
-                lockingOptions
-                        .maximumLockTenure()
-                        .map(tenure -> Instant.now().plus(tenure))
-                        .orElse(Instant.MAX)));
+                ImmutableClientLockingContext.builder()
+                        .lockRefreshDeadline(lockingOptions
+                                .maximumLockTenure()
+                                .map(tenure -> Instant.now().plus(tenure))
+                                .orElse(Instant.MAX))
+                        .clientExpiryCallback(lockingOptions.tenureExpirationCallback())
+                        .build()));
     }
 
     public void unregisterLocks(Collection<LockToken> tokens) {
-        tokens.forEach(tokensToTenureDeadlines::remove);
+        tokens.forEach(tokensToClientContext::remove);
     }
 
     @Override
@@ -128,5 +133,12 @@ public class LockRefresher implements AutoCloseable {
         if (task != null) {
             task.cancel(false);
         }
+    }
+
+    @Value.Immutable
+    interface ClientLockingContext {
+        Instant lockRefreshDeadline();
+
+        Runnable clientExpiryCallback();
     }
 }

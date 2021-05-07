@@ -26,11 +26,21 @@ import org.immutables.value.Value;
  */
 @Value.Immutable
 public interface ClientLockingOptions {
+    Runnable NO_OP_CALLBACK = () -> {};
+
     /**
      * After {@link ClientLockingOptions#maximumLockTenure()} has passed since the client acquired the lock, we will
      * not try to refresh the lock any longer. This is infinite by default.
      */
     Optional<Duration> maximumLockTenure();
+
+    /**
+     * Invoked if the lock tenure expired on the client. Must be cheap
+     */
+    @Value.Default
+    default Runnable tenureExpirationCallback() {
+        return NO_OP_CALLBACK;
+    }
 
     static ClientLockingOptions getDefault() {
         return builder().build();
