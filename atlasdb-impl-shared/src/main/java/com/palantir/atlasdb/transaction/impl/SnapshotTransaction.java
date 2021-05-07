@@ -2220,6 +2220,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 request,
                 ClientLockingOptions.builder()
                         .maximumLockTenure(Duration.ofMinutes(5))
+                        .tenureExpirationCallback(() -> log.warn(
+                                "This transaction held on to its commit locks for five minutes, which is"
+                                        + " suspicious. In the interest of liveness we will unlock this lock and allow"
+                                        + " other transactions to proceed.",
+                                UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)),
+                                new RuntimeException("I exist to show you the stack trace")))
                         .build());
         if (!lockResponse.wasSuccessful()) {
             log.error(
