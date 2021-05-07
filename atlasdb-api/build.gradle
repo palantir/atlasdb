@@ -8,6 +8,7 @@ dependencies {
   compile group: 'org.apache.commons', name: 'commons-lang3'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  compile group: 'com.squareup.okio', name: 'okio'
   compile group: 'jakarta.annotation', name: 'jakarta.annotation-api'
   compile group: 'jakarta.validation', name: 'jakarta.validation-api'
 
