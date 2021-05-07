@@ -118,7 +118,7 @@ public final class TransactionCacheValueStoreImplTest {
     }
 
     @Test
-    public void newlyLockedCellsAreNotTransfered() {
+    public void newlyLockedCellsAreNotTransferred() {
         TransactionCacheValueStore valueStore = cacheWithSingleValue();
 
         valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));

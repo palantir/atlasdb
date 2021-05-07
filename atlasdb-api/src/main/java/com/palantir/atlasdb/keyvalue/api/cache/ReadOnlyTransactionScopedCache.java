@@ -63,21 +63,21 @@ public final class ReadOnlyTransactionScopedCache implements TransactionScopedCa
 
     @Override
     public void finalise() {
-        delegate.finalise();
+        throw new UnsupportedOperationException("Cannot finalise the read only transaction cache");
     }
 
     @Override
     public ValueDigest getValueDigest() {
-        return delegate.getValueDigest();
+        throw new UnsupportedOperationException("Cannot get a value digest from the read only transaction cache");
     }
 
     @Override
     public HitDigest getHitDigest() {
-        return delegate.getHitDigest();
+        throw new UnsupportedOperationException("Cannot get a hit digest from the read only transaction cache");
     }
 
     @Override
     public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
-        return delegate.createReadOnlyCache(commitUpdate);
+        throw new UnsupportedOperationException("Cannot create a read only transaction cache from itself");
     }
 }

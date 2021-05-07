@@ -49,7 +49,7 @@ public final class ReadOnlyTransactionScopedCacheTest {
     public TransactionScopedCache delegate;
 
     @Test
-    public void writeAndDeleteThrows() {
+    public void nonReadMethodsThrow() {
         TransactionScopedCache readOnlyCache = ReadOnlyTransactionScopedCache.create(delegate);
 
         assertThatThrownBy(() -> readOnlyCache.write(TABLE, ImmutableMap.of(CELL, VALUE)))
@@ -59,10 +59,26 @@ public final class ReadOnlyTransactionScopedCacheTest {
         assertThatThrownBy(() -> readOnlyCache.delete(TABLE, ImmutableSet.of(CELL)))
                 .isExactlyInstanceOf(UnsupportedOperationException.class)
                 .hasMessage("Cannot delete via the read only transaction cache");
+
+        assertThatThrownBy(readOnlyCache::getValueDigest)
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Cannot get a value digest from the read only transaction cache");
+
+        assertThatThrownBy(readOnlyCache::getHitDigest)
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Cannot get a hit digest from the read only transaction cache");
+
+        assertThatThrownBy(readOnlyCache::finalise)
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Cannot finalise the read only transaction cache");
+
+        assertThatThrownBy(() -> readOnlyCache.createReadOnlyCache(COMMIT_UPDATE))
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Cannot create a read only transaction cache from itself");
     }
 
     @Test
-    public void nonWriteMethodsPassThrough() {
+    public void readMethodsPassThrough() {
         TransactionScopedCache readOnlyCache = ReadOnlyTransactionScopedCache.create(delegate);
 
         readOnlyCache.get(TABLE, CELLS, VALUE_LOADER);
@@ -70,17 +86,5 @@ public final class ReadOnlyTransactionScopedCacheTest {
 
         readOnlyCache.getAsync(TABLE, CELLS, VALUE_LOADER);
         verify(delegate).getAsync(TABLE, CELLS, VALUE_LOADER);
-
-        readOnlyCache.getHitDigest();
-        verify(delegate).getHitDigest();
-
-        readOnlyCache.getValueDigest();
-        verify(delegate).getValueDigest();
-
-        readOnlyCache.createReadOnlyCache(COMMIT_UPDATE);
-        verify(delegate).createReadOnlyCache(COMMIT_UPDATE);
-
-        readOnlyCache.finalise();
-        verify(delegate).finalise();
     }
 }
