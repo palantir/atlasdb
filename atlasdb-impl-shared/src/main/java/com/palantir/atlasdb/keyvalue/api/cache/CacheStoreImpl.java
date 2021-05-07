@@ -36,15 +36,11 @@ final class CacheStoreImpl implements CacheStore {
 
     @Override
     public TransactionScopedCache getOrCreateCache(StartTimestamp timestamp) {
-        return snapshotStore
-                .getSnapshot(timestamp)
+        return cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
+                .getSnapshot(key)
                 .map(TransactionScopedCacheImpl::create)
                 .map(cache -> ValidatingTransactionScopedCache.create(cache, validationProbability))
-                .map(cache -> {
-                    cacheMap.put(timestamp, cache);
-                    return cache;
-                })
-                .orElseGet(NoOpTransactionScopedCache::create);
+                .orElseGet(NoOpTransactionScopedCache::create));
     }
 
     @Override
