@@ -69,9 +69,9 @@ public final class ResilientLockWatchProxyTest {
         // Normal operation
         long timestamp = 1L;
         Set<Long> timestamps = ImmutableSet.of(timestamp);
-        proxyCache.updateCacheAndRemoveTransactionState(timestamps);
-        verify(defaultCache).updateCacheAndRemoveTransactionState(timestamps);
-        verify(fallbackCache, never()).updateCacheAndRemoveTransactionState(any());
+        proxyCache.updateCacheOnCommit(timestamps);
+        verify(defaultCache).updateCacheOnCommit(timestamps);
+        verify(fallbackCache, never()).updateCacheOnCommit(any());
 
         // Failure
         when(defaultCache.getOrCreateTransactionScopedCache(timestamp))
