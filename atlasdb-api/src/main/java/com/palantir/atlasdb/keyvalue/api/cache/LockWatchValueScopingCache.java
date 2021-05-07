@@ -46,7 +46,7 @@ public interface LockWatchValueScopingCache extends LockWatchValueCache {
     @Override
     void removeTransactionState(long startTimestamp);
 
-    TransactionScopedCache createTransactionScopedCache(long startTs);
+    TransactionScopedCache createOrGetTransactionScopedCache(long startTs);
 
     /**
      * Retrieves a read-only cache created at commit time that uses the same snapshot and locally cached values as

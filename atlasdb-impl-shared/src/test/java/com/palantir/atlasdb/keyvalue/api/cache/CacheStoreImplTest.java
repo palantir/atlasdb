@@ -32,14 +32,14 @@ public final class CacheStoreImplTest {
     @Test
     public void updatesToSnapshotStoreReflectedInCacheStore() {
         SnapshotStoreImpl snapshotStore = new SnapshotStoreImpl();
-        CacheStore cacheStore = new CacheStoreImpl(snapshotStore);
+        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, validationProbability);
 
-        assertThat(cacheStore.createCache(TIMESTAMP_1)).isEmpty();
+        assertThat(cacheStore.createOrGetCache(TIMESTAMP_1)).isEmpty();
 
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_2),
                 ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty()));
-        assertThat(cacheStore.createCache(TIMESTAMP_2)).isPresent();
+        assertThat(cacheStore.createOrGetCache(TIMESTAMP_2)).isPresent();
     }
 }

@@ -26,29 +26,33 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 final class CacheStoreImpl implements CacheStore {
     private final SnapshotStore snapshotStore;
+    private final double validationProbability;
     private final Map<StartTimestamp, TransactionScopedCache> cacheMap;
     private final Map<StartTimestamp, TransactionScopedCache> readOnlyCacheMap;
 
-    CacheStoreImpl(SnapshotStore snapshotStore) {
+    CacheStoreImpl(SnapshotStore snapshotStore, double validationProbability) {
         this.snapshotStore = snapshotStore;
+        this.validationProbability = validationProbability;
         this.cacheMap = new ConcurrentHashMap<>();
-        readOnlyCacheMap = new ConcurrentHashMap<>();
+        this.readOnlyCacheMap = new ConcurrentHashMap<>();
     }
 
     @Override
-    public Optional<TransactionScopedCache> createCache(StartTimestamp timestamp) {
+    public TransactionScopedCache createOrGetCache(StartTimestamp timestamp) {
         return snapshotStore
                 .getSnapshot(timestamp)
                 .map(TransactionScopedCacheImpl::create)
+                .map(cache -> ValidatingTransactionScopedCache.create(cache, validationProbability))
                 .map(cache -> {
                     cacheMap.put(timestamp, cache);
                     return cache;
-                });
+                })
+                .orElseGet(NoOpTransactionScopedCache::create);
     }
 
     @Override
-    public Optional<TransactionScopedCache> getCache(StartTimestamp timestamp) {
-        return Optional.ofNullable(cacheMap.get(timestamp));
+    public TransactionScopedCache getCache(StartTimestamp timestamp) {
+        return Optional.ofNullable(cacheMap.get(timestamp)).orElseGet(NoOpTransactionScopedCache::create);
     }
 
     @Override
@@ -65,13 +69,18 @@ final class CacheStoreImpl implements CacheStore {
 
     @Override
     public void createReadOnlyCache(StartTimestamp startTimestamp, CommitUpdate commitUpdate) {
-        getCache(startTimestamp)
+        getCacheInternal(startTimestamp)
                 .map(cache -> cache.createReadOnlyCache(commitUpdate))
+                .map(cache -> ValidatingTransactionScopedCache.create(cache, validationProbability))
                 .ifPresent(cache -> readOnlyCacheMap.put(startTimestamp, cache));
     }
 
     @Override
-    public Optional<TransactionScopedCache> getReadOnlyCache(StartTimestamp startTimestamp) {
-        return Optional.ofNullable(readOnlyCacheMap.get(startTimestamp));
+    public TransactionScopedCache getReadOnlyCache(StartTimestamp startTimestamp) {
+        return Optional.ofNullable(readOnlyCacheMap.get(startTimestamp)).orElseGet(NoOpTransactionScopedCache::create);
+    }
+
+    private Optional<TransactionScopedCache> getCacheInternal(StartTimestamp startTimestamp) {
+        return Optional.ofNullable(cacheMap.get(startTimestamp));
     }
 }

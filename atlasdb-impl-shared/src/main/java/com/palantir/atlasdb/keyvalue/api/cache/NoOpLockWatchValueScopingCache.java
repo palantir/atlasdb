@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.NoOpLockWatchValueCache;
 
 public final class NoOpLockWatchValueScopingCache extends NoOpLockWatchValueCache
@@ -25,7 +26,12 @@ public final class NoOpLockWatchValueScopingCache extends NoOpLockWatchValueCach
     }
 
     @Override
-    public TransactionScopedCache createTransactionScopedCache(long startTs) {
+    public TransactionScopedCache createOrGetTransactionScopedCache(long startTs) {
         return NoOpTransactionScopedCache.create();
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCache(long startTs) {
+        return NoOpTransactionScopedCache.create().createReadOnlyCache(CommitUpdate.invalidateAll());
     }
 }

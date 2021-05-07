@@ -36,6 +36,8 @@ interface TransactionCacheValueStore {
 
     void cacheEmptyReads(TableReference tableReference, Set<Cell> emptyCells);
 
+    TransactionCacheValueStore createWithNewSnapshot(ValueCacheSnapshot snapshot);
+
     Map<Cell, CacheValue> getCachedValues(TableReference table, Set<Cell> cells);
 
     /**

@@ -35,6 +35,10 @@ import org.immutables.value.Value;
 public interface CommitUpdate {
     <T> T accept(Visitor<T> visitor);
 
+    static CommitUpdate invalidateAll() {
+        return ImmutableInvalidateAll.builder().build();
+    }
+
     @Value.Immutable
     @JsonSerialize(as = ImmutableInvalidateAll.class)
     @JsonDeserialize(as = ImmutableInvalidateAll.class)
