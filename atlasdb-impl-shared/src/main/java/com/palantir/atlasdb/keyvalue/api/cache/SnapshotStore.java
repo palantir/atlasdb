@@ -27,6 +27,14 @@ import java.util.Optional;
  * and and removes snapshots when they are no longer referenced by any live start timestamps.
  */
 public interface SnapshotStore {
+    /**
+     * Stores a snapshot for a given sequence and set of timestamps. Calls with the same sequence but a different
+     * snapshot will overwrite the snapshot - this means that multiple calls to {@link #getSnapshot(StartTimestamp)}
+     * may return different snapshots over time for the same start timestamp. However, these newer snapshots should
+     * just be more complete versions of past snapshots, and thus maintains correctness (the timestamp could
+     * correctly receive any one of the snapshots, and the only factor that changes is how much is cached, not the
+     * values themselves).
+     */
     void storeSnapshot(Sequence sequence, Collection<StartTimestamp> timestamps, ValueCacheSnapshot snapshot);
 
     Optional<ValueCacheSnapshot> getSnapshot(StartTimestamp timestamp);
