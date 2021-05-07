@@ -21,6 +21,7 @@ import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashSet;
@@ -41,13 +42,23 @@ public class LockRefresher implements AutoCloseable {
     private final ScheduledExecutorService executor;
     private final TimelockService timelockService;
     private final Map<LockToken, ClientLockingContext> tokensToClientContext = new ConcurrentHashMap<>();
+    private final Clock clock;
 
     private ScheduledFuture<?> task;
 
     public LockRefresher(
             ScheduledExecutorService executor, TimelockService timelockService, long refreshIntervalMillis) {
+        this(executor, timelockService, refreshIntervalMillis, Clock.systemUTC());
+    }
+
+    public LockRefresher(
+            ScheduledExecutorService executor,
+            TimelockService timelockService,
+            long refreshIntervalMillis,
+            Clock clock) {
         this.executor = executor;
         this.timelockService = timelockService;
+        this.clock = clock;
 
         scheduleRefresh(refreshIntervalMillis);
     }
@@ -88,7 +99,7 @@ public class LockRefresher implements AutoCloseable {
     // and we need to serialise the entire structure when we refresh anyway, so I would not view the performance
     // differential as significant here.
     private Set<LockToken> getTokensToRefreshAndExpireStaleTokens() {
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         Set<LockToken> tokensToRefresh = new HashSet<>();
         for (Map.Entry<LockToken, ClientLockingContext> candidate : tokensToClientContext.entrySet()) {
             Instant deadline = candidate.getValue().lockRefreshDeadline();
@@ -118,7 +129,7 @@ public class LockRefresher implements AutoCloseable {
                 ImmutableClientLockingContext.builder()
                         .lockRefreshDeadline(lockingOptions
                                 .maximumLockTenure()
-                                .map(tenure -> Instant.now().plus(tenure))
+                                .map(tenure -> clock.instant().plus(tenure))
                                 .orElse(Instant.MAX))
                         .clientExpiryCallback(lockingOptions.tenureExpirationCallback())
                         .build()));
