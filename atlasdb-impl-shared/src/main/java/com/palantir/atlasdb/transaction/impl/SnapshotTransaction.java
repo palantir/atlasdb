@@ -137,7 +137,6 @@ import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2219,11 +2218,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         LockResponse lockResponse = timelockService.lock(
                 request,
                 ClientLockingOptions.builder()
-                        .maximumLockTenure(Duration.ofMinutes(5))
+                        .maximumLockTenure(
+                                currentTransactionConfig.commitLockTenure().toJavaDuration())
                         .tenureExpirationCallback(() -> log.warn(
-                                "This transaction held on to its commit locks for five minutes, which is"
+                                "This transaction held on to its commit locks for longer than its tenure, which is"
                                         + " suspicious. In the interest of liveness we will unlock this lock and allow"
                                         + " other transactions to proceed.",
+                                SafeArg.of("commitLockTenure", currentTransactionConfig.commitLockTenure()),
                                 UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)),
                                 new RuntimeException("I exist to show you the stack trace")))
                         .build());
