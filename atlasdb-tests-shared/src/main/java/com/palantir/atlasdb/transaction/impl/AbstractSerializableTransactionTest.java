@@ -1147,9 +1147,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t2.commit();
 
         assertThatCode(t1::commit).doesNotThrowAnyException();
-
-        List<Cell> cells = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
-        sanityCheckOnSortedCells(rows, cells, cellsWrittenOriginally);
     }
 
     @Test
