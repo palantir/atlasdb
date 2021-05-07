@@ -17,12 +17,11 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
-import java.util.Optional;
 
 interface CacheStore {
-    Optional<TransactionScopedCache> createCache(StartTimestamp timestamp);
+    TransactionScopedCache getOrCreateCache(StartTimestamp timestamp);
 
-    Optional<TransactionScopedCache> getCache(StartTimestamp timestamp);
+    TransactionScopedCache getCache(StartTimestamp timestamp);
 
     void removeCache(StartTimestamp timestamp);
 
