@@ -116,6 +116,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -1970,6 +1971,33 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
         });
         assertThatThrownBy(cellIterator::next).isInstanceOf(CommittedTransactionException.class);
+    }
+
+    @Test
+    public void cannotReadVisitablesFromGetRangesLazyAfterTransactionCommit() {
+        txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("peyton")));
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL_2, PtBytes.toBytes("eli")));
+            return null;
+        });
+
+        BatchingVisitable<RowResult<byte[]>> leakedVisitable =
+                txManager.runTaskThrowOnConflict(txn -> txn.getRangesLazy(
+                                TABLE,
+                                ImmutableList.of(
+                                        RangeRequest.builder()
+                                                .startRowInclusive(TEST_CELL.getRowName())
+                                                .endRowExclusive(TEST_CELL_2.getRowName())
+                                                .batchHint(1)
+                                                .build(),
+                                        RangeRequest.builder()
+                                                .startRowInclusive(TEST_CELL_2.getRowName())
+                                                .batchHint(1)
+                                                .build()))
+                        .findFirst()
+                        .orElseThrow(() -> new SafeIllegalStateException("expected at least one visitable!")));
+        assertThatThrownBy(() -> BatchingVisitables.copyToList(leakedVisitable))
+                .isInstanceOf(CommittedTransactionException.class);
     }
 
     private void verifyPrefetchValidations(
