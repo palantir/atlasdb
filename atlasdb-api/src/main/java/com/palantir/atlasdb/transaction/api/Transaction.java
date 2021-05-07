@@ -41,6 +41,12 @@ import java.util.stream.Stream;
  * they may be accessed via any byte array that is equivalent in terms of
  * {@link java.util.Arrays#equals(byte[], byte[])}.
  *
+ * Throughout this class, methods that return structures that may not perform all of their loading upfront (batching
+ * visitables, iterables, streams and futures, for instance) _must_ be used strictly within the scope of the
+ * transaction. Concretely, this means that results must be retrieved before exiting the transaction - in the case of
+ * streams and iterators, this means that you must collect the results before exiting; in the case of futures, you must
+ * await all asynchronous calls before returning from the transaction.
+ *
  * @see TransactionManager
  */
 public interface Transaction {
@@ -172,6 +178,8 @@ public interface Transaction {
     /**
      * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}. It is not
      * guaranteed that the actual implementations are in fact asynchronous.
+     *
+     * The future must be used strictly within the scope of the transaction.
      *
      * @param tableRef the table from which to get the values
      * @param cells the cells for which we want to get the values

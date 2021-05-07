@@ -128,7 +128,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.SortedMap;
@@ -1896,6 +1895,20 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     .containsExactly(Maps.immutableEntry(TEST_CELL, PtBytes.toBytes("tom")));
             return null;
         });
+    }
+
+    @Test
+    public void cannotUseCompletedFutureAfterTransactionCommit() throws Exception {
+        ListenableFuture<Map<Cell, byte[]>> getFuture = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("jolyon")));
+            ListenableFuture<Map<Cell, byte[]>> async = txn.getAsync(TABLE, ImmutableSet.of(TEST_CELL));
+            async.get();
+            return async;
+        });
+        // Although the future is done before the transaction ended, this is still a risky pattern, so we prefer to
+        // not allow it.
+        assertThatThrownBy(getFuture::get)
+                .isInstanceOf(TransactionConflictException.class);
     }
 
     @Test
