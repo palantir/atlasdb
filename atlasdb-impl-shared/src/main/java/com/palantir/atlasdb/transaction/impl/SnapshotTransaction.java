@@ -119,6 +119,7 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -136,6 +137,7 @@ import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2214,7 +2216,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 lockDescriptors,
                 lockAcquireTimeoutMillis,
                 Optional.ofNullable(getStartTimestampAsClientDescription(currentTransactionConfig)));
-        LockResponse lockResponse = timelockService.lock(request);
+        LockResponse lockResponse = timelockService.lock(
+                request,
+                ClientLockingOptions.builder()
+                        .maximumLockTenure(Duration.ofMinutes(5))
+                        .build());
         if (!lockResponse.wasSuccessful()) {
             log.error(
                     "Timed out waiting while acquiring commit locks. Timeout was {} ms. "

@@ -15,14 +15,16 @@
  */
 package com.palantir.lock.client;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import java.time.Instant;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,7 +39,7 @@ public class LockRefresher implements AutoCloseable {
 
     private final ScheduledExecutorService executor;
     private final TimelockService timelockService;
-    private final Set<LockToken> tokensToRefresh = ConcurrentHashMap.newKeySet();
+    private final Map<LockToken, Instant> tokensToTenureDeadlines = new ConcurrentHashMap<>();
 
     private ScheduledFuture<?> task;
 
@@ -56,14 +58,14 @@ public class LockRefresher implements AutoCloseable {
 
     private void refreshLocks() {
         try {
-            Set<LockToken> toRefresh = ImmutableSet.copyOf(tokensToRefresh);
+            Set<LockToken> toRefresh = getTokensToRefreshAndExpireStaleTokens();
             if (toRefresh.isEmpty()) {
                 return;
             }
 
             Set<LockToken> successfullyRefreshedTokens = timelockService.refreshLockLeases(toRefresh);
             Set<LockToken> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
-            tokensToRefresh.removeAll(refreshFailures);
+            refreshFailures.forEach(tokensToTenureDeadlines::remove);
             if (!refreshFailures.isEmpty()) {
                 log.info(
                         "Successfully refreshed {}, but failed to refresh {} lock tokens, "
@@ -80,16 +82,43 @@ public class LockRefresher implements AutoCloseable {
         }
     }
 
+    // We could use a parallel tree-set, sorted on deadlines to get O(log n) performance for this operation while
+    // preserving O(failure) time for removals. However, this is a background task that only runs once in a while,
+    // and we need to serialise the entire structure when we refresh anyway, so I would not view the performance
+    // differential as significant here.
+    private Set<LockToken> getTokensToRefreshAndExpireStaleTokens() {
+        Instant now = Instant.now();
+        Set<LockToken> tokensToRefresh = new HashSet<>();
+        for (Map.Entry<LockToken, Instant> candidate : tokensToTenureDeadlines.entrySet()) {
+            Instant deadline = candidate.getValue();
+            if (now.isAfter(deadline)) {
+                log.info(
+                        "A lock token has expired, because it has exceeded its tenure.",
+                        SafeArg.of("lockToken", candidate.getKey()),
+                        SafeArg.of("expiryDeadline", deadline),
+                        SafeArg.of("now", now));
+            } else {
+                tokensToRefresh.add(candidate.getKey());
+            }
+        }
+        return tokensToRefresh;
+    }
+
     public void registerLocks(Collection<LockToken> tokens) {
         registerLocks(tokens, ClientLockingOptions.getDefault());
     }
 
     public void registerLocks(Collection<LockToken> tokens, ClientLockingOptions lockingOptions) {
-        tokensToRefresh.addAll(tokens);
+        tokens.forEach(token -> tokensToTenureDeadlines.put(
+                token,
+                lockingOptions
+                        .maximumLockTenure()
+                        .map(tenure -> Instant.now().plus(tenure))
+                        .orElse(Instant.MAX)));
     }
 
     public void unregisterLocks(Collection<LockToken> tokens) {
-        tokensToRefresh.removeAll(tokens);
+        tokens.forEach(tokensToTenureDeadlines::remove);
     }
 
     @Override

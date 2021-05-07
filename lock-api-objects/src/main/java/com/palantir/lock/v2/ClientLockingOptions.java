@@ -33,6 +33,10 @@ public interface ClientLockingOptions {
     Optional<Duration> maximumLockTenure();
 
     static ClientLockingOptions getDefault() {
-        return ImmutableClientLockingOptions.builder().build();
+        return builder().build();
+    }
+
+    static ImmutableClientLockingOptions.Builder builder() {
+        return ImmutableClientLockingOptions.builder();
     }
 }

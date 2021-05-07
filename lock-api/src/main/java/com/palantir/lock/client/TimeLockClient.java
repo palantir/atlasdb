@@ -142,7 +142,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
         if (response.wasSuccessful()) {
             lockRefresher.registerLocks(ImmutableSet.of(response.getToken()), options);
         }
-        return null;
+        return response;
     }
 
     @Override
