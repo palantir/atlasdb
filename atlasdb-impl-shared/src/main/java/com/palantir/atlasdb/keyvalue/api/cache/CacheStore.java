@@ -30,4 +30,6 @@ interface CacheStore {
     void reset();
 
     void createReadOnlyCache(StartTimestamp startTimestamp, CommitUpdate commitUpdate);
+
+    Optional<TransactionScopedCache> getReadOnlyCache(StartTimestamp startTimestamp);
 }

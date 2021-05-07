@@ -87,7 +87,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public synchronized void updateCacheAndRemoveTransactionState(Set<Long> startTimestamps) {
+    public synchronized void updateCacheOnCommit(Set<Long> startTimestamps) {
         startTimestamps.forEach(this::processCommitUpdate);
     }
 
@@ -113,8 +113,16 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 validationProbability);
     }
 
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCache(long startTs) {
+        return ValidatingTransactionScopedCache.create(
+                cacheStore.getReadOnlyCache(StartTimestamp.of(startTs)).orElseGet(NoOpTransactionScopedCache::create),
+                validationProbability);
+    }
+
     private synchronized void processCommitUpdate(long startTimestamp) {
-        Optional<TransactionScopedCache> maybeCache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        Optional<TransactionScopedCache> maybeCache = cacheStore.getCache(startTs);
         maybeCache.ifPresent(TransactionScopedCache::finalise);
 
         Map<CellReference, CacheValue> cachedValues = maybeCache
@@ -127,9 +135,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         }
 
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
-        TransactionScopedCache cache = maybeCache.get();
-        TransactionScopedCache readOnlyCache = cache.createReadOnlyCache(commitUpdate);
-        cacheStore.createReadOnlyCache(startTimestamp, commitUpdate);
+        cacheStore.createReadOnlyCache(startTs, commitUpdate);
 
         commitUpdate.accept(new Visitor<Void>() {
             @Override

@@ -54,16 +54,24 @@ final class CacheStoreImpl implements CacheStore {
     @Override
     public void removeCache(StartTimestamp timestamp) {
         cacheMap.remove(timestamp);
+        readOnlyCacheMap.remove(timestamp);
     }
 
     @Override
     public void reset() {
         cacheMap.clear();
+        readOnlyCacheMap.clear();
     }
 
     @Override
     public void createReadOnlyCache(StartTimestamp startTimestamp, CommitUpdate commitUpdate) {
-        Optional<TransactionScopedCache> transactionScopedCache =
-                getCache(startTimestamp).map(cache -> cache.createReadOnlyCache(commitUpdate));
+        getCache(startTimestamp)
+                .map(cache -> cache.createReadOnlyCache(commitUpdate))
+                .ifPresent(cache -> readOnlyCacheMap.put(startTimestamp, cache));
+    }
+
+    @Override
+    public Optional<TransactionScopedCache> getReadOnlyCache(StartTimestamp startTimestamp) {
+        return Optional.ofNullable(readOnlyCacheMap.get(startTimestamp));
     }
 }
