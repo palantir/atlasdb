@@ -38,12 +38,12 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
     private volatile boolean finalised = false;
 
-    private TransactionScopedCacheImpl(ValueCacheSnapshot snapshot) {
-        valueStore = new TransactionCacheValueStoreImpl(snapshot);
+    private TransactionScopedCacheImpl(TransactionCacheValueStore valueStore) {
+        this.valueStore = valueStore;
     }
 
     static TransactionScopedCache create(ValueCacheSnapshot snapshot) {
-        return new TransactionScopedCacheImpl(snapshot);
+        return new TransactionScopedCacheImpl(new TransactionCacheValueStoreImpl(snapshot));
     }
 
     @Override
@@ -106,7 +106,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
 
     @Override
     public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
-        return null;
+        return new TransactionScopedCacheImpl(valueStore.createWithFilteredSnapshot(commitUpdate));
     }
 
     @Override
