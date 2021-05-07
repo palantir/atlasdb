@@ -87,6 +87,9 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                 case WRITE:
                     newStore.cacheRemoteWriteInternal(cell, cacheEntry.value());
                     break;
+                case HIT:
+                default:
+                    // no-op - hits contain the same values as stored in the snapshot
             }
         });
 
