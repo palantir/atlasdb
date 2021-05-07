@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: 'AtlasDB now fails more quickly on post-transaction iterator, stream and async computation usage. If you see `TransactionCommittedException` after upgrading to this version, please check your usage of these: iterators, streams and async computations should only run within the scope of a TransactionTask and should not be leaked.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5434
