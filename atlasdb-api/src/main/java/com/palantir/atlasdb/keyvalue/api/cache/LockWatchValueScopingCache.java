@@ -47,4 +47,6 @@ public interface LockWatchValueScopingCache extends LockWatchValueCache {
     void removeTransactionState(long startTimestamp);
 
     TransactionScopedCache getOrCreateTransactionScopedCache(long startTs);
+
+    TransactionScopedCache getReadOnlyTransactionScopedCache(long startTs);
 }

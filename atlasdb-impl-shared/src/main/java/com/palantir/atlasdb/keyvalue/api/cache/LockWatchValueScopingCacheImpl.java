@@ -28,6 +28,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -99,8 +100,14 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         return cacheStore.getOrCreateCache(StartTimestamp.of(startTs));
     }
 
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCache(long startTs) {
+        return cacheStore.getReadOnlyCache(StartTimestamp.of(startTs));
+    }
+
     private synchronized void processCommitUpdate(long startTimestamp) {
-        TransactionScopedCache cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        TransactionScopedCache cache = cacheStore.getCache(startTs);
         cache.finalise();
 
         Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
@@ -108,7 +115,10 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             return;
         }
 
-        eventCache.getCommitUpdate(startTimestamp).accept(new Visitor<Void>() {
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
+        cacheStore.createReadOnlyCache(startTs, commitUpdate);
+
+        commitUpdate.accept(new Visitor<Void>() {
             @Override
             public Void invalidateAll() {
                 // This might happen due to an election or if we exceeded the maximum number of events held in

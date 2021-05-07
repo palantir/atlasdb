@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,12 +27,14 @@ import javax.annotation.concurrent.ThreadSafe;
 final class CacheStoreImpl implements CacheStore {
     private final SnapshotStore snapshotStore;
     private final Map<StartTimestamp, TransactionScopedCache> cacheMap;
+    private final Map<StartTimestamp, TransactionScopedCache> readOnlyCacheMap;
     private final double validationProbability;
 
     CacheStoreImpl(SnapshotStore snapshotStore, double validationProbability) {
         this.snapshotStore = snapshotStore;
         this.cacheMap = new ConcurrentHashMap<>();
         this.validationProbability = validationProbability;
+        this.readOnlyCacheMap = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -45,16 +48,35 @@ final class CacheStoreImpl implements CacheStore {
 
     @Override
     public TransactionScopedCache getCache(StartTimestamp timestamp) {
-        return Optional.ofNullable(cacheMap.get(timestamp)).orElseGet(NoOpTransactionScopedCache::create);
+        return getCacheInternal(timestamp).orElseGet(NoOpTransactionScopedCache::create);
     }
 
     @Override
     public void removeCache(StartTimestamp timestamp) {
         cacheMap.remove(timestamp);
+        readOnlyCacheMap.remove(timestamp);
     }
 
     @Override
     public void reset() {
         cacheMap.clear();
+        readOnlyCacheMap.clear();
+    }
+
+    @Override
+    public void createReadOnlyCache(StartTimestamp timestamp, CommitUpdate commitUpdate) {
+        getCacheInternal(timestamp)
+                .map(cache -> cache.createReadOnlyCache(commitUpdate))
+                .ifPresent(cache -> readOnlyCacheMap.put(timestamp, cache));
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyCache(StartTimestamp timestamp) {
+        return Optional.ofNullable(readOnlyCacheMap.get(timestamp))
+                .orElseGet(() -> NoOpTransactionScopedCache.create().createReadOnlyCache(CommitUpdate.invalidateAll()));
+    }
+
+    private Optional<TransactionScopedCache> getCacheInternal(StartTimestamp timestamp) {
+        return Optional.ofNullable(cacheMap.get(timestamp));
     }
 }

@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -101,6 +102,11 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     public synchronized HitDigest getHitDigest() {
         ensureFinalised();
         return HitDigest.of(valueStore.getHitDigest());
+    }
+
+    @Override
+    public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
+        return null;
     }
 
     @Override
