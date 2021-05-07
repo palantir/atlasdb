@@ -17,12 +17,19 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.watch.CommitUpdate;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -32,7 +39,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 public final class ReadOnlyTransactionScopedCacheTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("sanity"));
+    private static final ImmutableSet<Cell> CELLS = ImmutableSet.of(CELL);
     private static final byte[] VALUE = PtBytes.toBytes("valuable");
+    private static final BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> VALUE_LOADER =
+            (_table, _cells) -> Futures.immediateFuture(ImmutableMap.of());
+    private static final CommitUpdate COMMIT_UPDATE = CommitUpdate.invalidateAll();
 
     @Mock
     public TransactionScopedCache delegate;
@@ -48,5 +59,28 @@ public final class ReadOnlyTransactionScopedCacheTest {
         assertThatThrownBy(() -> readOnlyCache.delete(TABLE, ImmutableSet.of(CELL)))
                 .isExactlyInstanceOf(UnsupportedOperationException.class)
                 .hasMessage("Cannot delete via the read only transaction cache");
+    }
+
+    @Test
+    public void nonWriteMethodsPassThrough() {
+        TransactionScopedCache readOnlyCache = ReadOnlyTransactionScopedCache.create(delegate);
+
+        readOnlyCache.get(TABLE, CELLS, VALUE_LOADER);
+        verify(delegate).get(TABLE, CELLS, VALUE_LOADER);
+
+        readOnlyCache.getAsync(TABLE, CELLS, VALUE_LOADER);
+        verify(delegate).getAsync(TABLE, CELLS, VALUE_LOADER);
+
+        readOnlyCache.getHitDigest();
+        verify(delegate).getHitDigest();
+
+        readOnlyCache.getValueDigest();
+        verify(delegate).getValueDigest();
+
+        readOnlyCache.createReadOnlyCache(COMMIT_UPDATE);
+        verify(delegate).createReadOnlyCache(COMMIT_UPDATE);
+
+        readOnlyCache.finalise();
+        verify(delegate).finalise();
     }
 }

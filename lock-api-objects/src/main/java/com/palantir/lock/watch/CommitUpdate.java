@@ -39,6 +39,10 @@ public interface CommitUpdate {
         return ImmutableInvalidateAll.builder().build();
     }
 
+    static CommitUpdate invalidateSome(Set<LockDescriptor> descriptors) {
+        return ImmutableInvalidateSome.builder().invalidatedLocks(descriptors).build();
+    }
+
     @Value.Immutable
     @JsonSerialize(as = ImmutableInvalidateAll.class)
     @JsonDeserialize(as = ImmutableInvalidateAll.class)

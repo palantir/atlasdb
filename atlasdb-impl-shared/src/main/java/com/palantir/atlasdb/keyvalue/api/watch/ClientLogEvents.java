@@ -24,7 +24,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.LeasedLockToken;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.ImmutableInvalidateSome;
 import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
@@ -94,7 +93,7 @@ interface ClientLogEvents {
         LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
         Set<LockDescriptor> locksTakenOut = new HashSet<>();
         events().events().forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
-        return ImmutableInvalidateSome.builder().invalidatedLocks(locksTakenOut).build();
+        return CommitUpdate.invalidateSome(locksTakenOut);
     }
 
     default void verifyReturnedEventsEnclosesTransactionVersions(long lowerBound, long upperBound) {
