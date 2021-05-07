@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Modified the lock watch value cache to update snapshots for a fixed sequence at start transaction time instead of commit transaction time.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5433
