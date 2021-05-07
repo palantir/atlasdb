@@ -18,6 +18,7 @@ package com.palantir.lock.client;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
@@ -80,6 +81,10 @@ public class LockRefresher implements AutoCloseable {
     }
 
     public void registerLocks(Collection<LockToken> tokens) {
+        registerLocks(tokens, ClientLockingOptions.getDefault());
+    }
+
+    public void registerLocks(Collection<LockToken> tokens, ClientLockingOptions lockingOptions) {
         tokensToRefresh.addAll(tokens);
     }
 
