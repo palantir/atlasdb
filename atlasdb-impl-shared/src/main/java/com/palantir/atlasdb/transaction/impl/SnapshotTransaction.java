@@ -2630,30 +2630,29 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-    private BatchingVisitable<Entry<Cell, byte[]>> scopeToTransaction(
-            BatchingVisitable<Entry<Cell, byte[]>> delegateVisitable) {
-        return new BatchingVisitable<Entry<Cell, byte[]>>() {
+    private <T> BatchingVisitable<T> scopeToTransaction(BatchingVisitable<T> delegateVisitable) {
+        return new BatchingVisitable<T>() {
             @Override
             public <K extends Exception> boolean batchAccept(
-                    int batchSize, AbortingVisitor<? super List<Entry<Cell, byte[]>>, K> visitor) throws K {
+                    int batchSize, AbortingVisitor<? super List<T>, K> visitor) throws K {
                 ensureStillRunning();
                 return delegateVisitable.batchAccept(batchSize, visitor);
             }
         };
     }
 
-    private Iterator<Entry<Cell, byte[]>> scopeToTransaction(Iterator<Entry<Cell, byte[]>> postFilteredIterator) {
-        return new Iterator<Entry<Cell, byte[]>>() {
+    private <T> Iterator<T> scopeToTransaction(Iterator<T> delegateIterator) {
+        return new Iterator<T>() {
             @Override
             public boolean hasNext() {
                 ensureStillRunning();
-                return postFilteredIterator.hasNext();
+                return delegateIterator.hasNext();
             }
 
             @Override
-            public Entry<Cell, byte[]> next() {
+            public T next() {
                 ensureStillRunning();
-                return postFilteredIterator.next();
+                return delegateIterator.next();
             }
         };
     }
