@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
@@ -45,7 +44,6 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
     private final LockWatchEventCache eventCache;
-    private final double validationProbability;
     private final CacheStore cacheStore;
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
@@ -56,9 +54,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     LockWatchValueScopingCacheImpl(LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
         this.eventCache = eventCache;
         this.valueStore = new ValueStoreImpl(maxCacheSize);
-        this.validationProbability = validationProbability;
         this.snapshotStore = new SnapshotStoreImpl();
-        this.cacheStore = new CacheStoreImpl(snapshotStore);
+        this.cacheStore = new CacheStoreImpl(snapshotStore, validationProbability);
     }
 
     public static LockWatchValueScopingCache create(
@@ -98,22 +95,15 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public TransactionScopedCache createTransactionScopedCache(long startTs) {
-        // Snapshots may be missing due to leader elections. In this case, the transaction will not read from the
-        // cache or publish anything to the cache at commit time.
-        return ValidatingTransactionScopedCache.create(
-                cacheStore.createCache(StartTimestamp.of(startTs)).orElseGet(NoOpTransactionScopedCache::create),
-                validationProbability);
+    public TransactionScopedCache getOrCreateTransactionScopedCache(long startTs) {
+        return cacheStore.getOrCreateCache(StartTimestamp.of(startTs));
     }
 
     private synchronized void processCommitUpdate(long startTimestamp) {
-        Optional<TransactionScopedCache> cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
-        cache.ifPresent(TransactionScopedCache::finalise);
+        TransactionScopedCache cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
+        cache.finalise();
 
-        Map<CellReference, CacheValue> cachedValues = cache.map(TransactionScopedCache::getValueDigest)
-                .map(ValueDigest::loadedValues)
-                .orElseGet(ImmutableMap::of);
-
+        Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
         if (cachedValues.isEmpty()) {
             return;
         }

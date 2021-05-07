@@ -26,26 +26,26 @@ import javax.annotation.concurrent.ThreadSafe;
 final class CacheStoreImpl implements CacheStore {
     private final SnapshotStore snapshotStore;
     private final Map<StartTimestamp, TransactionScopedCache> cacheMap;
+    private final double validationProbability;
 
-    CacheStoreImpl(SnapshotStore snapshotStore) {
+    CacheStoreImpl(SnapshotStore snapshotStore, double validationProbability) {
         this.snapshotStore = snapshotStore;
         this.cacheMap = new ConcurrentHashMap<>();
+        this.validationProbability = validationProbability;
     }
 
     @Override
-    public Optional<TransactionScopedCache> createCache(StartTimestamp timestamp) {
-        return snapshotStore
-                .getSnapshot(timestamp)
+    public TransactionScopedCache getOrCreateCache(StartTimestamp timestamp) {
+        return cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
+                .getSnapshot(key)
                 .map(TransactionScopedCacheImpl::create)
-                .map(cache -> {
-                    cacheMap.put(timestamp, cache);
-                    return cache;
-                });
+                .map(cache -> ValidatingTransactionScopedCache.create(cache, validationProbability))
+                .orElseGet(NoOpTransactionScopedCache::create));
     }
 
     @Override
-    public Optional<TransactionScopedCache> getCache(StartTimestamp timestamp) {
-        return Optional.ofNullable(cacheMap.get(timestamp));
+    public TransactionScopedCache getCache(StartTimestamp timestamp) {
+        return Optional.ofNullable(cacheMap.get(timestamp)).orElseGet(NoOpTransactionScopedCache::create);
     }
 
     @Override
