@@ -147,7 +147,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -789,12 +788,18 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return cache.get()
-                .getAsync(
-                        tableRef,
-                        cells,
-                        (table, uncached) -> getInternal(
-                                "getAsync", tableRef, uncached, keyValueService, defaultTransactionService));
+        return Futures.transform(
+                cache.get()
+                        .getAsync(
+                                tableRef,
+                                cells,
+                                (table, uncached) -> getInternal(
+                                        "getAsync", tableRef, uncached, keyValueService, defaultTransactionService)),
+                input -> {
+                    ensureStillRunning();
+                    return input;
+                },
+                MoreExecutors.directExecutor());
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getInternal(
@@ -2633,8 +2638,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private <T> BatchingVisitable<T> scopeToTransaction(BatchingVisitable<T> delegateVisitable) {
         return new BatchingVisitable<T>() {
             @Override
-            public <K extends Exception> boolean batchAccept(
-                    int batchSize, AbortingVisitor<? super List<T>, K> visitor) throws K {
+            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> visitor)
+                    throws K {
                 ensureStillRunning();
                 return delegateVisitable.batchAccept(batchSize, visitor);
             }
