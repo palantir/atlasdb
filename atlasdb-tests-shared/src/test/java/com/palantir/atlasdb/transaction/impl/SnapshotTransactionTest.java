@@ -1907,8 +1907,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         });
         // Although the future is done before the transaction ended, this is still a risky pattern, so we prefer to
         // not allow it.
-        assertThatThrownBy(getFuture::get)
-                .isInstanceOf(TransactionConflictException.class);
+        assertThatThrownBy(getFuture::get).isInstanceOf(TransactionConflictException.class);
     }
 
     @Test
