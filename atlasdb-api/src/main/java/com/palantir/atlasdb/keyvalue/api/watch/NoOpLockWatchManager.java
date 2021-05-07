@@ -70,7 +70,7 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     }
 
     @Override
-    public TransactionScopedCache createTransactionScopedCache(long startTs) {
+    public TransactionScopedCache getOrCreateTransactionScopedCache(long startTs) {
         return NoOpTransactionScopedCache.create();
     }
 

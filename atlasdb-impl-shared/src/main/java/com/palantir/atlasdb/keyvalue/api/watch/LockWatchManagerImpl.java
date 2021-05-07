@@ -124,7 +124,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     }
 
     @Override
-    public TransactionScopedCache createTransactionScopedCache(long startTs) {
+    public TransactionScopedCache getOrCreateTransactionScopedCache(long startTs) {
         return valueScopingCache.getOrCreateTransactionScopedCache(startTs);
     }
 
