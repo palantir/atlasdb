@@ -1934,7 +1934,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void cannotPerformUnmergedGetRowsColumnRangeAfterTransactionCommit() {
-        Map<byte[], BatchingVisitable<Entry<Cell, byte[]>>> visitables = txManager.runTaskThrowOnConflict(txn -> {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> visitables = txManager.runTaskThrowOnConflict(txn -> {
             txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("alice")));
             return txn.getRowsColumnRange(
                     TABLE,
@@ -1948,7 +1948,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void cannotPerformMergedGetRowsColumnRangeAfterTransactionCommit() {
-        Iterator<Entry<Cell, byte[]>> entryIterator = txManager.runTaskThrowOnConflict(txn -> {
+        Iterator<Map.Entry<Cell, byte[]>> entryIterator = txManager.runTaskThrowOnConflict(txn -> {
             txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("bob")));
             return txn.getRowsColumnRange(
                     TABLE,
@@ -1962,7 +1962,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void cannotReadSortedColumnsAfterTransactionCommit() {
-        Iterator<Entry<Cell, byte[]>> cellIterator = txManager.runTaskThrowOnConflict(txn -> {
+        Iterator<Map.Entry<Cell, byte[]>> cellIterator = txManager.runTaskThrowOnConflict(txn -> {
             txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("will")));
 
             return txn.getSortedColumns(
