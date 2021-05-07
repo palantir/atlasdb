@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionCacheValueStoreImpl.LocalCacheEntry.Status;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.watch.CommitUpdate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -74,8 +75,9 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
-    public TransactionCacheValueStore createWithNewSnapshot(ValueCacheSnapshot newSnapshot) {
-        TransactionCacheValueStoreImpl newStore = new TransactionCacheValueStoreImpl(newSnapshot);
+    public TransactionCacheValueStore createWithFilteredSnapshot(CommitUpdate commitUpdate) {
+        TransactionCacheValueStoreImpl newStore =
+                new TransactionCacheValueStoreImpl(FilteringValueCacheSnapshot.create(snapshot, commitUpdate));
 
         localUpdates.forEach((cell, cacheEntry) -> {
             switch (cacheEntry.status()) {
@@ -83,7 +85,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                     newStore.cacheRemoteReadInternal(cell, cacheEntry.value());
                     break;
                 case WRITE:
-                    newStore.cacheRemoteWrite(cell.tableRef(), cell.cell(), cacheEntry.value());
+                    newStore.cacheRemoteWriteInternal(cell, cacheEntry.value());
                     break;
             }
         });
@@ -123,11 +125,6 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                 .filter(entry -> entry.status().equals(Status.HIT))
                 .keys()
                 .collect(Collectors.toSet());
-    }
-
-    @Override
-    public ValueCacheSnapshot getSnapshot() {
-        return snapshot;
     }
 
     private Map<Cell, CacheValue> getLocallyCachedValues(TableReference table, Set<Cell> cells) {

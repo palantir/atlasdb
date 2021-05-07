@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,7 +37,7 @@ interface TransactionCacheValueStore {
 
     void cacheEmptyReads(TableReference tableReference, Set<Cell> emptyCells);
 
-    TransactionCacheValueStore createWithNewSnapshot(ValueCacheSnapshot snapshot);
+    TransactionCacheValueStore createWithFilteredSnapshot(CommitUpdate commitUpdate);
 
     Map<Cell, CacheValue> getCachedValues(TableReference table, Set<Cell> cells);
 
@@ -47,6 +48,4 @@ interface TransactionCacheValueStore {
     Map<CellReference, CacheValue> getValueDigest();
 
     Set<CellReference> getHitDigest();
-
-    ValueCacheSnapshot getSnapshot();
 }

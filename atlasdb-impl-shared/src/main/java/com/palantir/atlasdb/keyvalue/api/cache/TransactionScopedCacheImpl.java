@@ -106,9 +106,8 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
 
     @Override
     public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
-        ValueCacheSnapshot snapshot = FilteringValueCacheSnapshot.create(valueStore.getSnapshot(), commitUpdate);
-        TransactionCacheValueStore newValueStore = valueStore.createWithNewSnapshot(snapshot);
-        return new ReadOnlyTransactionScopedCache(new TransactionScopedCacheImpl(newValueStore));
+        return new ReadOnlyTransactionScopedCache(
+                new TransactionScopedCacheImpl(valueStore.createWithFilteredSnapshot(commitUpdate)));
     }
 
     @Override

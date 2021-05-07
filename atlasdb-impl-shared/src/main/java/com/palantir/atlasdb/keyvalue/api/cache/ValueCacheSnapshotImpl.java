@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.common.streams.KeyedStream;
 import io.vavr.collection.Map;
 import io.vavr.collection.Set;
 import java.util.Optional;
@@ -50,21 +49,6 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
         return ImmutableValueCacheSnapshotImpl.builder()
                 .values(values)
                 .enabledTables(enabledTables)
-                .build();
-    }
-
-    default ValueCacheSnapshot withLockedCells(java.util.Set<CellReference> lockedCells) {
-        java.util.Map<CellReference, CacheEntry> lockedValues =
-                KeyedStream.of(lockedCells).map(_unused -> CacheEntry.locked()).collectToMap();
-
-        Map<CellReference, CacheEntry> values = values();
-        for (java.util.Map.Entry<CellReference, CacheEntry> entry : lockedValues.entrySet()) {
-            values = values.put(entry.getKey(), entry.getValue());
-        }
-
-        return ImmutableValueCacheSnapshotImpl.builder()
-                .from(this)
-                .values(values)
                 .build();
     }
 }
