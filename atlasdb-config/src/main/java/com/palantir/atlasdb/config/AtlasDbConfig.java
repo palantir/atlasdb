@@ -17,7 +17,6 @@ package com.palantir.atlasdb.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -197,7 +196,6 @@ public abstract class AtlasDbConfig {
      * Install configuration for lock watch caching, including maximum cache size and validation probability.
      */
     @Value.Default
-    @JsonProperty("lock-watch-caching")
     public LockWatchCachingConfig lockWatchCaching() {
         return LockWatchCachingConfig.builder().build();
     }
