@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -116,7 +117,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
 
     private void validateCacheReads(
             TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
-        if (!remoteReads.equals(cacheReads)) {
+        if (!areMapsEqual(remoteReads, cacheReads)) {
             // TODO(jshah): make sure that this causes us to disable all caching until restart
             log.error(
                     "Reading from lock watch cache returned a different result to a remote read - this indicates there "
@@ -133,5 +134,20 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
                 .map(remoteReads::get)
                 .filter(Objects::nonNull)
                 .collectToMap();
+    }
+
+    private static boolean areMapsEqual(Map<Cell, byte[]> map1, Map<Cell, byte[]> map2) {
+        if (map1.size() != map2.size()) {
+            return false;
+        }
+        for (Map.Entry<Cell, byte[]> e : map1.entrySet()) {
+            if (!map2.containsKey(e.getKey())) {
+                return false;
+            }
+            if (UnsignedBytes.lexicographicalComparator().compare(e.getValue(), map2.get(e.getKey())) != 0) {
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -60,7 +60,7 @@ public final class LockWatchValueIntegrationTest {
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
     @Test
-    public void minimalTest() throws InterruptedException {
+    public void minimalTest() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         TableDefinition tableDef = new TableDefinition() {
             {
@@ -84,8 +84,6 @@ public final class LockWatchValueIntegrationTest {
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA));
             return null;
         });
-
-        Thread.sleep(500);
 
         Map<Cell, byte[]> result = txnManager.runTaskWithRetry(txn -> {
             Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
