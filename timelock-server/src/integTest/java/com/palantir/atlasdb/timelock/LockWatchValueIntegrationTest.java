@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 
 import static com.palantir.atlasdb.timelock.AbstractAsyncTimelockServiceIntegrationTest.DEFAULT_SINGLE_SERVER;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableMap;
@@ -60,9 +61,7 @@ public final class LockWatchValueIntegrationTest {
     private static final Cell CELL_1 = Cell.create("bar".getBytes(), "baz".getBytes());
     private static final Cell CELL_2 = Cell.create("eggs".getBytes(), "spam".getBytes());
     private static final String TABLE = "table";
-    private static final String TABLE_2 = "vesuvius";
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
-    private static final TableReference TABLE_REF_2 = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_REF, CELL_1);
     private static final CellReference TABLE_CELL_2 = CellReference.of(TABLE_REF, CELL_2);
     private static final TestableTimelockCluster CLUSTER =
@@ -151,6 +150,18 @@ public final class LockWatchValueIntegrationTest {
                 }))
                 .isExactlyInstanceOf(TransactionSerializableConflictException.class)
                 .hasMessageContaining("There was a read-write conflict on table");
+    }
+
+    @Test
+    public void serializableTransactionsDoNotThrowWhenOverwritingAPreviouslyCachedValue() {
+        putValue();
+
+        assertThatCode(() -> txnManager.runTaskThrowOnConflict(txn -> {
+                    txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+                    txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
+                    return null;
+                }))
+                .doesNotThrowAnyException();
     }
 
     private void putValue() {
