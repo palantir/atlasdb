@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Serializable transactions are now able to make use of the lock watch value cache when checking for read-write conflicts.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5443
