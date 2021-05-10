@@ -1898,19 +1898,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void cannotUseCompletedFutureAfterTransactionCommit() throws Exception {
-        ListenableFuture<Map<Cell, byte[]>> getFuture = txManager.runTaskThrowOnConflict(txn -> {
-            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("jolyon")));
-            ListenableFuture<Map<Cell, byte[]>> async = txn.getAsync(TABLE, ImmutableSet.of(TEST_CELL));
-            async.get();
-            return async;
-        });
-        // Although the future is done before the transaction ended, this is still a risky pattern, so we prefer to
-        // not allow it.
-        assertThatThrownBy(getFuture::get).isInstanceOf(TransactionConflictException.class);
-    }
-
-    @Test
     public void cannotCompleteFutureAfterTransactionCommit() {
         SettableFuture<Object> blocker = SettableFuture.create();
         ListenableFuture<Map<Cell, byte[]>> getFuture = txManager.runTaskThrowOnConflict(txn -> {
