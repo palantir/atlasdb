@@ -25,7 +25,6 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -39,9 +38,12 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.lock.watch.LockWatchVersion;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.awaitility.Awaitility;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -55,7 +57,6 @@ public final class LockWatchValueIntegrationTest {
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_REF, CELL_1);
     private static final CellReference TABLE_CELL_2 = CellReference.of(TABLE_REF, CELL_2);
-
     private static final TestableTimelockCluster CLUSTER =
             new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
 
@@ -63,38 +64,16 @@ public final class LockWatchValueIntegrationTest {
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
     @Test
-    public void minimalTest() throws InterruptedException {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
-        TableDefinition tableDef = new TableDefinition() {
-            {
-                rowName();
-                rowComponent("key", ValueType.BLOB);
-                noColumns();
-                enableCaching();
-                conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
-            }
-        };
-        schema.addTableDefinition(TABLE, tableDef);
-        TransactionManager txnManager = TimeLockTestUtils.createTransactionManager(
-                        CLUSTER,
-                        UUID.randomUUID().toString(),
-                        AtlasDbRuntimeConfig.defaultRuntimeConfig(),
-                        ImmutableAtlasDbConfig.builder()
-                                .lockWatchCaching(LockWatchCachingConfig.builder()
-                                        .validationProbability(0.0)
-                                        .build()),
-                        Optional.empty(),
-                        schema)
-                .transactionManager();
-
-        KeyValueService naughty = txnManager.getKeyValueService();
+    public void minimalTest() {
+        Schema schema = createSchema();
+        TransactionManager txnManager = createTransactionManager(schema, 0.0);
 
         txnManager.runTaskWithRetry(txn -> {
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA));
             return null;
         });
 
-        Thread.sleep(500);
+        awaitUnlock(txnManager);
 
         Map<Cell, byte[]> result = txnManager.runTaskWithRetry(txn -> {
             Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
@@ -111,7 +90,7 @@ public final class LockWatchValueIntegrationTest {
             return values;
         });
 
-        naughty.dropTable(TABLE_REF);
+        disableTable(txnManager);
 
         Map<Cell, byte[]> result2 = txnManager.runTaskWithRetry(txn -> {
             Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
@@ -126,10 +105,75 @@ public final class LockWatchValueIntegrationTest {
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
+    /**
+     * Drops the table directly via the key value service. In general, this operation *would* cause data corruption
+     * when used in conjunction with caching, as values in the cache would still be valid (Timelock does not know
+     * that the table has been dropped, and thus the cache believes that values are still legitimate). However, using
+     * this here allows us to determine whether the values have been read from the KVS or not.
+     */
+    private static void disableTable(TransactionManager transactionManager) {
+        transactionManager.getKeyValueService().dropTable(TABLE_REF);
+    }
+
+    private static TransactionManager createTransactionManager(Schema schema, double validationProbability) {
+        return TimeLockTestUtils.createTransactionManager(
+                        CLUSTER,
+                        UUID.randomUUID().toString(),
+                        AtlasDbRuntimeConfig.defaultRuntimeConfig(),
+                        ImmutableAtlasDbConfig.builder()
+                                .lockWatchCaching(LockWatchCachingConfig.builder()
+                                        .validationProbability(validationProbability)
+                                        .build()),
+                        Optional.empty(),
+                        schema)
+                .transactionManager();
+    }
+
+    private static Schema createSchema() {
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
+        TableDefinition tableDef = new TableDefinition() {
+            {
+                rowName();
+                rowComponent("key", ValueType.BLOB);
+                noColumns();
+                enableCaching();
+                conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
+            }
+        };
+        schema.addTableDefinition(TABLE, tableDef);
+        return schema;
+    }
+
+    /**
+     * Lock watch events tend to come in pairs - a lock and an unlock event. However, unlocks are asynchronous, and
+     * thus we need to wait until we have received the unlock event before proceeding for deterministic testing
+     * behaviour.
+     */
+    private static void awaitUnlock(TransactionManager transactionManager) {
+        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(transactionManager);
+        Awaitility.await("Unlock event recieved")
+                .atMost(Duration.ofSeconds(5))
+                .pollDelay(Duration.ofMillis(100))
+                .until(() -> {
+                    // Empty transaction will still get an update for lock watches
+                    transactionManager.runTaskThrowOnConflict(txn -> null);
+                    return lockWatchManager
+                            .getCache()
+                            .getEventCache()
+                            .lastKnownVersion()
+                            .map(LockWatchVersion::version)
+                            .filter(v -> (v % 2) == 0)
+                            .isPresent();
+                });
+    }
+
+    private static LockWatchManagerInternal extractInternalLockWatchManager(TransactionManager transactionManager) {
+        return (LockWatchManagerInternal) transactionManager.getLockWatchManager();
+    }
+
     private static LockWatchValueScopingCache extractValueCache(TransactionManager transactionManager) {
-        return (LockWatchValueScopingCache) ((LockWatchManagerInternal) transactionManager.getLockWatchManager())
-                .getCache()
-                .getValueCache();
+        return (LockWatchValueScopingCache)
+                extractInternalLockWatchManager(transactionManager).getCache().getValueCache();
     }
 
     private static TransactionScopedCache extractTransactionCache(TransactionManager txnManager, Transaction txn) {
