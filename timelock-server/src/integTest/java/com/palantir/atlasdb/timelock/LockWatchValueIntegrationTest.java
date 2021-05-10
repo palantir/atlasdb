@@ -25,6 +25,9 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -77,13 +80,19 @@ public final class LockWatchValueIntegrationTest {
         });
 
         Map<Cell, byte[]> result = txnManager.runTaskWithRetry(txn -> txn.get(TABLE_REF, ImmutableSet.of(CELL)));
-        Map<Cell, byte[]> result2 = txnManager.runTaskWithRetry(txn -> txn.get(TABLE_REF, ImmutableSet.of(CELL)));
+        Map<Cell, byte[]> result2 = txnManager.runTaskWithRetry(txn -> {
+            txn.get(TABLE_REF, ImmutableSet.of(CELL));
+            LockWatchValueScopingCache valueCache =
+                    (LockWatchValueScopingCache) ((LockWatchManagerInternal) txnManager.getLockWatchManager())
+                            .getCache()
+                            .getValueCache();
+            TransactionScopedCache cache = valueCache.getOrCreateTransactionScopedCache(txn.getTimestamp());
+            cache.finalise();
+            cache.getValueDigest();
+            cache.getHitDigest();
+        });
 
         assertThat(result).containsEntry(CELL, DATA);
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
-
-        // ((LockWatchValueScopingCache) ((LockWatchManagerInternal)
-        // txnManager.getLockWatchManager()).getCache().getValueCache())
-        //         .createTransactionScopedCache()
     }
 }
