@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
@@ -60,7 +61,7 @@ public final class LockWatchValueIntegrationTest {
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
     @Test
-    public void minimalTest() {
+    public void minimalTest() throws InterruptedException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         TableDefinition tableDef = new TableDefinition() {
             {
@@ -80,10 +81,14 @@ public final class LockWatchValueIntegrationTest {
                         schema)
                 .transactionManager();
 
+        KeyValueService naughty = txnManager.getKeyValueService();
+
         txnManager.runTaskWithRetry(txn -> {
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA));
             return null;
         });
+
+        Thread.sleep(500);
 
         Map<Cell, byte[]> result = txnManager.runTaskWithRetry(txn -> {
             Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
@@ -99,6 +104,8 @@ public final class LockWatchValueIntegrationTest {
             assertThat(valueDigest).containsExactlyInAnyOrderEntriesOf(expectedValues);
             return values;
         });
+
+        naughty.dropTable(TABLE_REF);
 
         Map<Cell, byte[]> result2 = txnManager.runTaskWithRetry(txn -> {
             Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));

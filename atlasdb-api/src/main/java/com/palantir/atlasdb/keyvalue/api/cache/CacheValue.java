@@ -44,6 +44,7 @@ public final class CacheValue {
         if (!(obj instanceof CacheValue)) {
             return false;
         }
+
         CacheValue other = (CacheValue) obj;
 
         if (value().isPresent()) {
