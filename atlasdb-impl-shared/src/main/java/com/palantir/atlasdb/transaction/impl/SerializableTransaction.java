@@ -51,6 +51,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -880,6 +881,11 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController) {
+            @Override
+            protected TransactionScopedCache getCache() {
+                return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());
+            }
+
             @Override
             protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
                     TableReference tableRef,
