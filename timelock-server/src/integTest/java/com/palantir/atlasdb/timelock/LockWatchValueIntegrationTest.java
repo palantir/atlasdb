@@ -22,9 +22,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
@@ -77,6 +79,10 @@ public final class LockWatchValueIntegrationTest {
                         CLUSTER,
                         UUID.randomUUID().toString(),
                         AtlasDbRuntimeConfig.defaultRuntimeConfig(),
+                        ImmutableAtlasDbConfig.builder()
+                                .lockWatchCaching(LockWatchCachingConfig.builder()
+                                        .validationProbability(0.0)
+                                        .build()),
                         Optional.empty(),
                         schema)
                 .transactionManager();

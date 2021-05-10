@@ -48,7 +48,12 @@ public final class TimeLockTestUtils {
     }
 
     static TransactionManager createTransactionManager(TestableTimelockCluster cluster, String agent) {
-        return createTransactionManager(cluster, agent, AtlasDbRuntimeConfig.defaultRuntimeConfig(), Optional.empty())
+        return createTransactionManager(
+                        cluster,
+                        agent,
+                        AtlasDbRuntimeConfig.defaultRuntimeConfig(),
+                        ImmutableAtlasDbConfig.builder(),
+                        Optional.empty())
                 .transactionManager();
     }
 
@@ -56,12 +61,13 @@ public final class TimeLockTestUtils {
             TestableTimelockCluster cluster,
             String agent,
             AtlasDbRuntimeConfig runtimeConfigTemplate,
+            ImmutableAtlasDbConfig.Builder installConfigTemplate,
             Optional<LockDiagnosticComponents> diagnosticComponents,
             Schema... schemas) {
         List<String> serverUris = cluster.servers().stream()
                 .map(server -> server.serverHolder().getTimelockUri())
                 .collect(Collectors.toList());
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+        AtlasDbConfig config = installConfigTemplate
                 .namespace(agent)
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .timelock(ImmutableTimeLockClientConfig.builder()
