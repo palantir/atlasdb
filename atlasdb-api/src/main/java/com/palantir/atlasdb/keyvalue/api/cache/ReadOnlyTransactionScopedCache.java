@@ -16,10 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.watch.CommitUpdate;
@@ -27,25 +24,33 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-public final class NoOpTransactionScopedCache implements TransactionScopedCache {
-    private NoOpTransactionScopedCache() {}
+public final class ReadOnlyTransactionScopedCache implements TransactionScopedCache {
+    private final TransactionScopedCache delegate;
 
-    public static TransactionScopedCache create() {
-        return new NoOpTransactionScopedCache();
+    private ReadOnlyTransactionScopedCache(TransactionScopedCache delegate) {
+        this.delegate = delegate;
+    }
+
+    public static TransactionScopedCache create(TransactionScopedCache delegate) {
+        return new ReadOnlyTransactionScopedCache(delegate);
     }
 
     @Override
-    public void write(TableReference tableReference, Map<Cell, byte[]> values) {}
+    public void write(TableReference tableReference, Map<Cell, byte[]> values) {
+        throw new UnsupportedOperationException("Cannot write via the read only transaction cache");
+    }
 
     @Override
-    public void delete(TableReference tableReference, Set<Cell> cells) {}
+    public void delete(TableReference tableReference, Set<Cell> cells) {
+        throw new UnsupportedOperationException("Cannot delete via the read only transaction cache");
+    }
 
     @Override
     public Map<Cell, byte[]> get(
             TableReference tableReference,
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        return AtlasFutures.getUnchecked(getAsync(tableReference, cells, valueLoader));
+        return delegate.get(tableReference, cells, valueLoader);
     }
 
     @Override
@@ -53,24 +58,26 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
             TableReference tableReference,
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        return valueLoader.apply(tableReference, cells);
+        return delegate.getAsync(tableReference, cells, valueLoader);
     }
 
     @Override
-    public void finalise() {}
+    public void finalise() {
+        throw new UnsupportedOperationException("Cannot finalise the read only transaction cache");
+    }
 
     @Override
     public ValueDigest getValueDigest() {
-        return ValueDigest.of(ImmutableMap.of());
+        throw new UnsupportedOperationException("Cannot get a value digest from the read only transaction cache");
     }
 
     @Override
     public HitDigest getHitDigest() {
-        return HitDigest.of(ImmutableSet.of());
+        throw new UnsupportedOperationException("Cannot get a hit digest from the read only transaction cache");
     }
 
     @Override
     public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
-        return ReadOnlyTransactionScopedCache.create(NoOpTransactionScopedCache.create());
+        throw new UnsupportedOperationException("Cannot create a read only transaction cache from itself");
     }
 }

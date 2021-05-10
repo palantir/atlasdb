@@ -47,4 +47,12 @@ public interface LockWatchValueScopingCache extends LockWatchValueCache {
     void removeTransactionState(long startTimestamp);
 
     TransactionScopedCache getOrCreateTransactionScopedCache(long startTs);
+
+    /**
+     * Returns a read-only view of the transaction cache at commit time (specifically, **after** getting the commit
+     * timestamp, but before ending the transaction). This view will contain the local updates stored during the
+     * transaction, but will filter out any cells that have been locked between the start and commit of this
+     * transaction. The primary purpose of this cache is for serializable conflict checking.
+     */
+    TransactionScopedCache getReadOnlyTransactionScopedCacheForCommit(long startTs);
 }

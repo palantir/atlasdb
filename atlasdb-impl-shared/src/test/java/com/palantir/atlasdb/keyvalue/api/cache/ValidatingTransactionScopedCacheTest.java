@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.watch.CommitUpdate;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.Map;
@@ -91,6 +93,22 @@ public final class ValidatingTransactionScopedCacheTest {
         assertThatThrownBy(() -> validatingCache.get(TABLE, CELLS, valueLoader))
                 .isExactlyInstanceOf(TransactionFailedNonRetriableException.class)
                 .hasMessage("Failed lock watch cache validation");
+    }
+
+    @Test
+    public void readOnlyCacheAlsoValidates() {
+        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0);
+
+        when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
+
+        validatingCache.get(TABLE, CELLS, valueLoader);
+        verify(valueLoader).apply(TABLE, CELLS);
+
+        TransactionScopedCache readOnlyCache =
+                validatingCache.createReadOnlyCache(CommitUpdate.invalidateSome(ImmutableSet.of()));
+        readOnlyCache.get(TABLE, CELLS, valueLoader);
+        verify(valueLoader, times(2)).apply(TABLE, CELLS);
     }
 
     private static ValueCacheSnapshot snapshotWithSingleValue() {
