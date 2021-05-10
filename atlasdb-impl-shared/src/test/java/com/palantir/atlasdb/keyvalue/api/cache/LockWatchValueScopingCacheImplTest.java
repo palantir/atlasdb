@@ -138,6 +138,32 @@ public final class LockWatchValueScopingCacheImplTest {
     }
 
     @Test
+    public void readOnlyTransactionCacheFiltersOutNewlyLockedValues() {
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), LOCK_WATCH_SNAPSHOT);
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
+
+        TransactionScopedCache scopedCache1 = valueCache.getOrCreateTransactionScopedCache(TIMESTAMP_1);
+        scopedCache1.write(TABLE, ImmutableMap.of(CELL_2, VALUE_2.value().get()));
+        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
+
+        // This update has a lock taken out for CELL_1: this means that all reads for it must be remote.
+        eventCache.processStartTransactionsUpdate(
+                ImmutableSet.of(TIMESTAMP_2), LockWatchStateUpdate.success(LEADER, 1L, ImmutableList.of(LOCK_EVENT)));
+        processCommitTimestamp(TIMESTAMP_1, 1L);
+        valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_1));
+
+        // The difference between the read only cache and the new scoped cache, despite being at the same sequence,
+        // is that the read-only cache contains all the locally cached values, including writes, whereas the fresh
+        // cache only contains those published values from the first cache - and since one was a write, and the other
+        // had a lock taken out during the transaction, none of the values were actually pushed centrally.
+        TransactionScopedCache readOnlyCache = valueCache.getReadOnlyTransactionScopedCacheForCommit(TIMESTAMP_1);
+        assertThat(getRemotelyReadCells(readOnlyCache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
+
+        TransactionScopedCache scopedCache2 = valueCache.getOrCreateTransactionScopedCache(TIMESTAMP_2);
+        assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);
+    }
+
+    @Test
     public void lockUpdatesPreventCachingAndUnlockUpdatesAllowItAgain() {
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), LOCK_WATCH_SNAPSHOT);
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));
