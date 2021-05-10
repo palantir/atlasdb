@@ -173,7 +173,7 @@ public final class TransactionScopedCacheImplTest {
     public void readOnlyCacheTransfersValues() {
         TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
 
-        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);
+        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_2);
 
         TransactionScopedCache readOnlyCache = cache.createReadOnlyCache(CommitUpdate.invalidateSome(ImmutableSet.of(
                 AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName()))));
