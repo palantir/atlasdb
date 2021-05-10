@@ -45,13 +45,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.awaitility.Awaitility;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 public final class LockWatchValueIntegrationTest {
     private static final String TEST_PACKAGE = "package";
-    private static final byte[] DATA = "foo".getBytes();
+    private static final byte[] DATA_1 = "foo".getBytes();
+    private static final byte[] DATA_2 = "Caecilius est in horto".getBytes();
     private static final Cell CELL_1 = Cell.create("bar".getBytes(), "baz".getBytes());
     private static final Cell CELL_2 = Cell.create("eggs".getBytes(), "spam".getBytes());
     private static final String TABLE = "table";
@@ -64,55 +66,86 @@ public final class LockWatchValueIntegrationTest {
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
-    @Test
-    public void minimalTest() {
-        Schema schema = createSchema();
-        TransactionManager txnManager = createTransactionManager(schema, 0.0);
+    private TransactionManager txnManager;
 
+    @Before
+    public void before() {
+        Schema schema = createSchema();
+        txnManager = createTransactionManager(schema, 0.0);
+    }
+
+    @Test
+    public void effectivelyReadOnlyTransactionsPublishValuesToCentralCache() {
         txnManager.runTaskWithRetry(txn -> {
-            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA));
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
             return null;
         });
 
-        awaitUnlock(txnManager);
+        awaitUnlock();
 
         Map<Cell, byte[]> result = txnManager.runTaskWithRetry(txn -> {
             Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
-            assertHitValues(txnManager, txn, ImmutableSet.of());
+            assertHitValues(txn, ImmutableSet.of());
             assertLoadedValues(
-                    txnManager,
                     txn,
                     ImmutableMap.of(
-                            TABLE_CELL_1, CacheValue.of(DATA),
+                            TABLE_CELL_1, CacheValue.of(DATA_1),
                             TABLE_CELL_2, CacheValue.empty()));
             return values;
         });
 
-        disableTable(txnManager);
+        disableTable();
 
         Map<Cell, byte[]> result2 = txnManager.runTaskWithRetry(txn -> {
             Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
-            assertHitValues(txnManager, txn, ImmutableSet.of(TABLE_CELL_1, TABLE_CELL_2));
-            assertLoadedValues(txnManager, txn, ImmutableMap.of());
+            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1, TABLE_CELL_2));
+            assertLoadedValues(txn, ImmutableMap.of());
             return values;
         });
 
-        assertThat(result).containsEntry(CELL_1, DATA);
+        assertThat(result).containsEntry(CELL_1, DATA_1);
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
-    private static void assertHitValues(
-            TransactionManager transactionManager, Transaction transaction, Set<CellReference> expectedCells) {
-        TransactionScopedCache cache = extractTransactionCache(transactionManager, transaction);
+    @Test
+    public void readWriteTransactionsPublishValuesToCentralCache() {
+        txnManager.runTaskWithRetry(txn -> {
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
+            return null;
+        });
+
+        awaitUnlock();
+
+        Map<Cell, byte[]> result = txnManager.runTaskWithRetry(txn -> {
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_2));
+            Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
+            assertHitValues(txn, ImmutableSet.of());
+            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.of(DATA_1)));
+            return values;
+        });
+
+        awaitUnlock();
+
+        Map<Cell, byte[]> result2 = txnManager.runTaskWithRetry(txn -> {
+            Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
+            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1));
+            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_2, CacheValue.of(DATA_2)));
+            return values;
+        });
+
+        assertThat(result).containsEntry(CELL_1, DATA_1);
+        assertThat(result).containsEntry(CELL_2, DATA_2);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
+    }
+
+    private void assertHitValues(Transaction transaction, Set<CellReference> expectedCells) {
+        TransactionScopedCache cache = extractTransactionCache(transaction);
         cache.finalise();
         assertThat(cache.getHitDigest().hitCells()).containsExactlyInAnyOrderElementsOf(expectedCells);
     }
 
-    private static void assertLoadedValues(
-            TransactionManager transactionManager,
-            Transaction transaction,
-            Map<CellReference, CacheValue> expectedValues) {
-        TransactionScopedCache cache = extractTransactionCache(transactionManager, transaction);
+    private void assertLoadedValues(Transaction transaction, Map<CellReference, CacheValue> expectedValues) {
+        TransactionScopedCache cache = extractTransactionCache(transaction);
         cache.finalise();
         assertThat(cache.getValueDigest().loadedValues()).containsExactlyInAnyOrderEntriesOf(expectedValues);
     }
@@ -123,8 +156,44 @@ public final class LockWatchValueIntegrationTest {
      * that the table has been dropped, and thus the cache believes that values are still legitimate). However, using
      * this here allows us to determine whether the values have been read from the KVS or not.
      */
-    private static void disableTable(TransactionManager transactionManager) {
-        transactionManager.getKeyValueService().dropTable(TABLE_REF);
+    private void disableTable() {
+        txnManager.getKeyValueService().dropTable(TABLE_REF);
+    }
+
+    /**
+     * Lock watch events tend to come in pairs - a lock and an unlock event. However, unlocks are asynchronous, and
+     * thus we need to wait until we have received the unlock event before proceeding for deterministic testing
+     * behaviour.
+     */
+    private void awaitUnlock() {
+        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager();
+        Awaitility.await("Unlock event recieved")
+                .atMost(Duration.ofSeconds(5))
+                .pollDelay(Duration.ofMillis(100))
+                .until(() -> {
+                    // Empty transaction will still get an update for lock watches
+                    txnManager.runTaskThrowOnConflict(txn -> null);
+                    return lockWatchManager
+                            .getCache()
+                            .getEventCache()
+                            .lastKnownVersion()
+                            .map(LockWatchVersion::version)
+                            .filter(v -> (v % 2) == 0)
+                            .isPresent();
+                });
+    }
+
+    private LockWatchManagerInternal extractInternalLockWatchManager() {
+        return (LockWatchManagerInternal) txnManager.getLockWatchManager();
+    }
+
+    private LockWatchValueScopingCache extractValueCache() {
+        return (LockWatchValueScopingCache)
+                extractInternalLockWatchManager().getCache().getValueCache();
+    }
+
+    private TransactionScopedCache extractTransactionCache(Transaction txn) {
+        return extractValueCache().getOrCreateTransactionScopedCache(txn.getTimestamp());
     }
 
     private static TransactionManager createTransactionManager(Schema schema, double validationProbability) {
@@ -154,41 +223,5 @@ public final class LockWatchValueIntegrationTest {
         };
         schema.addTableDefinition(TABLE, tableDef);
         return schema;
-    }
-
-    /**
-     * Lock watch events tend to come in pairs - a lock and an unlock event. However, unlocks are asynchronous, and
-     * thus we need to wait until we have received the unlock event before proceeding for deterministic testing
-     * behaviour.
-     */
-    private static void awaitUnlock(TransactionManager transactionManager) {
-        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(transactionManager);
-        Awaitility.await("Unlock event recieved")
-                .atMost(Duration.ofSeconds(5))
-                .pollDelay(Duration.ofMillis(100))
-                .until(() -> {
-                    // Empty transaction will still get an update for lock watches
-                    transactionManager.runTaskThrowOnConflict(txn -> null);
-                    return lockWatchManager
-                            .getCache()
-                            .getEventCache()
-                            .lastKnownVersion()
-                            .map(LockWatchVersion::version)
-                            .filter(v -> (v % 2) == 0)
-                            .isPresent();
-                });
-    }
-
-    private static LockWatchManagerInternal extractInternalLockWatchManager(TransactionManager transactionManager) {
-        return (LockWatchManagerInternal) transactionManager.getLockWatchManager();
-    }
-
-    private static LockWatchValueScopingCache extractValueCache(TransactionManager transactionManager) {
-        return (LockWatchValueScopingCache)
-                extractInternalLockWatchManager(transactionManager).getCache().getValueCache();
-    }
-
-    private static TransactionScopedCache extractTransactionCache(TransactionManager txnManager, Transaction txn) {
-        return extractValueCache(txnManager).getOrCreateTransactionScopedCache(txn.getTimestamp());
     }
 }
