@@ -156,7 +156,7 @@ public final class LockWatchValueScopingCacheImplTest {
         // is that the read-only cache contains all the locally cached values, including writes, whereas the fresh
         // cache only contains those published values from the first cache - and since one was a write, and the other
         // had a lock taken out during the transaction, none of the values were actually pushed centrally.
-        TransactionScopedCache readOnlyCache = valueCache.getReadOnlyTransactionScopedCache(TIMESTAMP_1);
+        TransactionScopedCache readOnlyCache = valueCache.getReadOnlyTransactionScopedCacheForCommit(TIMESTAMP_1);
         assertThat(getRemotelyReadCells(readOnlyCache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
 
         TransactionScopedCache scopedCache2 = valueCache.getOrCreateTransactionScopedCache(TIMESTAMP_2);

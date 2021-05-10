@@ -101,7 +101,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public TransactionScopedCache getReadOnlyTransactionScopedCache(long startTs) {
+    public TransactionScopedCache getReadOnlyTransactionScopedCacheForCommit(long startTs) {
         return cacheStore.getReadOnlyCache(StartTimestamp.of(startTs));
     }
 

@@ -18,65 +18,87 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.concurrent.ThreadSafe;
+import org.immutables.value.Value;
 
 @ThreadSafe
 final class CacheStoreImpl implements CacheStore {
     private final SnapshotStore snapshotStore;
-    private final Map<StartTimestamp, TransactionScopedCache> cacheMap;
-    private final Map<StartTimestamp, TransactionScopedCache> readOnlyCacheMap;
+    private final Map<StartTimestamp, Caches> cacheMap;
     private final double validationProbability;
 
     CacheStoreImpl(SnapshotStore snapshotStore, double validationProbability) {
         this.snapshotStore = snapshotStore;
         this.cacheMap = new ConcurrentHashMap<>();
         this.validationProbability = validationProbability;
-        this.readOnlyCacheMap = new ConcurrentHashMap<>();
     }
 
     @Override
     public TransactionScopedCache getOrCreateCache(StartTimestamp timestamp) {
         return cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
-                .getSnapshot(key)
-                .map(TransactionScopedCacheImpl::create)
-                .map(cache -> ValidatingTransactionScopedCache.create(cache, validationProbability))
-                .orElseGet(NoOpTransactionScopedCache::create));
+                        .getSnapshot(key)
+                        .map(TransactionScopedCacheImpl::create)
+                        .map(cache -> ValidatingTransactionScopedCache.create(cache, validationProbability))
+                        .map(Caches::create)
+                        .orElseGet(Caches::createNoOp))
+                .mainCache();
     }
 
     @Override
     public TransactionScopedCache getCache(StartTimestamp timestamp) {
-        return getCacheInternal(timestamp).orElseGet(NoOpTransactionScopedCache::create);
+        return getCacheInternal(timestamp).map(Caches::mainCache).orElseGet(NoOpTransactionScopedCache::create);
     }
 
     @Override
     public void removeCache(StartTimestamp timestamp) {
         cacheMap.remove(timestamp);
-        readOnlyCacheMap.remove(timestamp);
     }
 
     @Override
     public void reset() {
         cacheMap.clear();
-        readOnlyCacheMap.clear();
     }
 
     @Override
     public void createReadOnlyCache(StartTimestamp timestamp, CommitUpdate commitUpdate) {
-        getCacheInternal(timestamp)
-                .map(cache -> cache.createReadOnlyCache(commitUpdate))
-                .ifPresent(cache -> readOnlyCacheMap.put(timestamp, cache));
+        cacheMap.computeIfPresent(timestamp, (_startTs, cache) -> cache.withReadOnlyCache(commitUpdate));
     }
 
     @Override
     public TransactionScopedCache getReadOnlyCache(StartTimestamp timestamp) {
-        return Optional.ofNullable(readOnlyCacheMap.get(timestamp))
+        return getCacheInternal(timestamp)
+                .flatMap(Caches::readOnlyCache)
                 .orElseGet(() -> NoOpTransactionScopedCache.create().createReadOnlyCache(CommitUpdate.invalidateAll()));
     }
 
-    private Optional<TransactionScopedCache> getCacheInternal(StartTimestamp timestamp) {
+    private Optional<Caches> getCacheInternal(StartTimestamp timestamp) {
         return Optional.ofNullable(cacheMap.get(timestamp));
+    }
+
+    @Value.Immutable
+    interface Caches {
+        TransactionScopedCache mainCache();
+
+        Optional<TransactionScopedCache> readOnlyCache();
+
+        static Caches createNoOp() {
+            return create(NoOpTransactionScopedCache.create());
+        }
+
+        static Caches create(TransactionScopedCache mainCache) {
+            return ImmutableCaches.builder().mainCache(mainCache).build();
+        }
+
+        default Caches withReadOnlyCache(CommitUpdate commitUpdate) {
+            Preconditions.checkState(!readOnlyCache().isPresent(), "Read-only cache is already present");
+            return ImmutableCaches.builder()
+                    .from(this)
+                    .readOnlyCache(mainCache().createReadOnlyCache(commitUpdate))
+                    .build();
+        }
     }
 }
