@@ -42,6 +42,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.junit.ClassRule;
@@ -77,16 +78,13 @@ public final class LockWatchValueIntegrationTest {
 
         Map<Cell, byte[]> result = txnManager.runTaskWithRetry(txn -> {
             Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
-            TransactionScopedCache cache = extractTransactionCache(txnManager, txn);
-            cache.finalise();
-            assertThat(cache.getHitDigest().hitCells()).isEmpty();
-
-            Map<CellReference, CacheValue> valueDigest = cache.getValueDigest().loadedValues();
-            Map<CellReference, CacheValue> expectedValues = ImmutableMap.of(
-                    TABLE_CELL_1, CacheValue.of(DATA),
-                    TABLE_CELL_2, CacheValue.empty());
-
-            assertThat(valueDigest).containsExactlyInAnyOrderEntriesOf(expectedValues);
+            assertHitValues(txnManager, txn, ImmutableSet.of());
+            assertLoadedValues(
+                    txnManager,
+                    txn,
+                    ImmutableMap.of(
+                            TABLE_CELL_1, CacheValue.of(DATA),
+                            TABLE_CELL_2, CacheValue.empty()));
             return values;
         });
 
@@ -94,15 +92,29 @@ public final class LockWatchValueIntegrationTest {
 
         Map<Cell, byte[]> result2 = txnManager.runTaskWithRetry(txn -> {
             Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
-            TransactionScopedCache cache = extractTransactionCache(txnManager, txn);
-            cache.finalise();
-            assertThat(cache.getValueDigest().loadedValues()).isEmpty();
-            assertThat(cache.getHitDigest().hitCells()).containsExactlyInAnyOrder(TABLE_CELL_1, TABLE_CELL_2);
+            assertHitValues(txnManager, txn, ImmutableSet.of(TABLE_CELL_1, TABLE_CELL_2));
+            assertLoadedValues(txnManager, txn, ImmutableMap.of());
             return values;
         });
 
         assertThat(result).containsEntry(CELL_1, DATA);
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
+    }
+
+    private static void assertHitValues(
+            TransactionManager transactionManager, Transaction transaction, Set<CellReference> expectedCells) {
+        TransactionScopedCache cache = extractTransactionCache(transactionManager, transaction);
+        cache.finalise();
+        assertThat(cache.getHitDigest().hitCells()).containsExactlyInAnyOrderElementsOf(expectedCells);
+    }
+
+    private static void assertLoadedValues(
+            TransactionManager transactionManager,
+            Transaction transaction,
+            Map<CellReference, CacheValue> expectedValues) {
+        TransactionScopedCache cache = extractTransactionCache(transactionManager, transaction);
+        cache.finalise();
+        assertThat(cache.getValueDigest().loadedValues()).containsExactlyInAnyOrderEntriesOf(expectedValues);
     }
 
     /**
