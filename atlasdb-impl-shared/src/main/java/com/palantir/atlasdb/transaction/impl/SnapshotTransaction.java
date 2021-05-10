@@ -1782,7 +1782,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 // if the cache has been used, we must work out which values can be flushed to the central cache by
                 // obtaining a commit update, which is obtained via the get commit timestamp request.
-                if (cache.get().hasUpdates()) {
+                if (getCache().hasUpdates()) {
                     timedAndTraced(
                             "getCommitTimestamp",
                             () -> timelockService.getCommitTimestamp(
