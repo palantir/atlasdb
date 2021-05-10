@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
@@ -189,6 +190,14 @@ public abstract class AtlasDbConfig {
     public boolean runBackgroundSweepProcess() {
         // TODO (jkong): Confirm with large internal product owner that this is generally safe to set to false.
         return true;
+    }
+
+    /**
+     * Install configuration for lock watch caching, including maximum cache size and validation probability.
+     */
+    @Value.Default
+    public LockWatchCachingConfig lockWatchCaching() {
+        return LockWatchCachingConfig.builder().build();
     }
 
     /**
