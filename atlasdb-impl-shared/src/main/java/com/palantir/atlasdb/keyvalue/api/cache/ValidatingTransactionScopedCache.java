@@ -48,7 +48,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
         this.random = new Random();
     }
 
-    static ValidatingTransactionScopedCache create(TransactionScopedCache delegate, double validationProbability) {
+    static TransactionScopedCache create(TransactionScopedCache delegate, double validationProbability) {
         return new ValidatingTransactionScopedCache(delegate, validationProbability);
     }
 

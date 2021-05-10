@@ -43,6 +43,8 @@ dependencies {
   explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'keystores'
   explicitShadow group: 'com.palantir.tracing', name: 'tracing'
 
+  explicitShadow group: 'com.squareup.okio', name: 'okio'
+
   // does shadowing statically analysed annotations really buy us anything?
   explicitShadow group: 'com.google.code.findbugs', name: 'findbugs-annotations'
   explicitShadow group: 'com.google.code.findbugs', name: 'jsr305'

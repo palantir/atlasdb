@@ -28,18 +28,35 @@ import org.junit.Test;
 public final class CacheStoreImplTest {
     private static final StartTimestamp TIMESTAMP_1 = StartTimestamp.of(1L);
     private static final StartTimestamp TIMESTAMP_2 = StartTimestamp.of(22L);
+    private static final double VALIDATION_PROBABILITY = 1.0;
 
     @Test
     public void updatesToSnapshotStoreReflectedInCacheStore() {
         SnapshotStoreImpl snapshotStore = new SnapshotStoreImpl();
-        CacheStore cacheStore = new CacheStoreImpl(snapshotStore);
+        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY);
 
-        assertThat(cacheStore.createCache(TIMESTAMP_1)).isEmpty();
+        assertThat(cacheStore.getOrCreateCache(TIMESTAMP_1)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
 
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_2),
                 ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty()));
-        assertThat(cacheStore.createCache(TIMESTAMP_2)).isPresent();
+        assertThat(cacheStore.getOrCreateCache(TIMESTAMP_2))
+                .isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
+    }
+
+    @Test
+    public void multipleCallsToGetOrCreateReturnsTheSameCache() {
+        SnapshotStoreImpl snapshotStore = new SnapshotStoreImpl();
+        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY);
+        snapshotStore.storeSnapshot(
+                Sequence.of(5L),
+                ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2),
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty()));
+
+        TransactionScopedCache cache1 = cacheStore.getOrCreateCache(TIMESTAMP_1);
+        TransactionScopedCache cache2 = cacheStore.getOrCreateCache(TIMESTAMP_2);
+
+        assertThat(cacheStore.getOrCreateCache(TIMESTAMP_1)).isEqualTo(cache1).isNotEqualTo(cache2);
     }
 }

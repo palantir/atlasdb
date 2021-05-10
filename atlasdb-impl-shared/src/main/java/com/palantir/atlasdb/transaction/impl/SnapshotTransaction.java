@@ -289,7 +289,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableLevelMetricsController tableLevelMetricsController) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
-        this.cache = Suppliers.memoize(() -> lockWatchManager.createTransactionScopedCache(startTimeStamp.get()));
+        this.cache = Suppliers.memoize(() -> lockWatchManager.getOrCreateTransactionScopedCache(startTimeStamp.get()));
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
