@@ -70,7 +70,13 @@ public interface TransactionScopedCache {
 
     HitDigest getHitDigest();
 
+    /**
+     * Checks if any values have been read remotely and stored locally for later flushing to the central cache. Note
+     * that this method **will** finalise the cache in order to retrieve the digest; no further reads or writes may
+     * be performed once this is called.
+     */
     default boolean hasUpdates() {
+        finalise();
         return !getValueDigest().loadedValues().isEmpty();
     }
 }
