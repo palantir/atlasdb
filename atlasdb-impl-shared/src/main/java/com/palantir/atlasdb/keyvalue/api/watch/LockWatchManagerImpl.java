@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
@@ -75,11 +76,11 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     public static LockWatchManagerInternal create(
             MetricsManager metricsManager,
             Set<Schema> schemas,
-            NamespacedConjureLockWatchingService lockWatchingService) {
+            NamespacedConjureLockWatchingService lockWatchingService,
+            LockWatchCachingConfig config) {
         LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metricsManager);
-        // todo(gmaretic): params should come from config
-        LockWatchValueScopingCache valueCache =
-                LockWatchValueScopingCacheImpl.create(eventCache, metricsManager, 100000, 1.0);
+        LockWatchValueScopingCache valueCache = LockWatchValueScopingCacheImpl.create(
+                eventCache, metricsManager, config.cacheSize(), config.validationProbability());
         return new LockWatchManagerImpl(schemas, eventCache, valueCache, lockWatchingService);
     }
 

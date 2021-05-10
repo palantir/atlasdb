@@ -17,6 +17,7 @@
 package com.palantir.util;
 
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -49,15 +50,18 @@ public final class TimedRunner {
         try {
             return future.get(timeoutDuration.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
+            log.warn("Execution failed with exception", e);
             Thread.currentThread().interrupt();
             failure = e;
         } catch (ExecutionException e) {
+            log.warn("Execution failed with exception", e);
             if (e.getCause() instanceof Error) {
                 throw (Error) e.getCause();
             } else {
                 failure = (Exception) e.getCause();
             }
         } catch (TimeoutException e) {
+            log.warn("Execution timed out", SafeArg.of("timeoutDuration", timeoutDuration), e);
             future.cancel(true);
             failure = e;
         }
