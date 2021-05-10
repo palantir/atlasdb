@@ -152,6 +152,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -1777,6 +1778,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
                 if (validationNecessaryForInvolvedTablesOnCommit()) {
                     throwIfImmutableTsOrCommitLocksExpired(null);
+                }
+
+                // if the cache has been used, we must work out which values can be flushed to the central cache by
+                // obtaining a commit update, which is obtained via the get commit timestamp request.
+                if (getCache().hasUpdates()) {
+                    timedAndTraced(
+                            "getCommitTimestampForCaching",
+                            () -> timelockService.getCommitTimestamp(
+                                    getStartTimestamp(), LockToken.of(UUID.randomUUID())));
                 }
                 return;
             }
