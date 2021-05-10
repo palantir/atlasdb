@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.Map;
 import java.util.Objects;
@@ -109,6 +110,11 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     @Override
     public HitDigest getHitDigest() {
         return delegate.getHitDigest();
+    }
+
+    @Override
+    public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
+        return create(delegate.createReadOnlyCache(commitUpdate), validationProbability);
     }
 
     private boolean shouldValidate() {

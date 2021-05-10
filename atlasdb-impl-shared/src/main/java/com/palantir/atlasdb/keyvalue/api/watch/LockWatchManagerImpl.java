@@ -45,7 +45,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class LockWatchManagerImpl extends LockWatchManagerInternal {
-
     private static final Logger log = LoggerFactory.getLogger(LockWatchManagerImpl.class);
 
     private final Set<LockWatchReferences.LockWatchReference> referencesFromSchema;
@@ -127,6 +126,11 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     @Override
     public TransactionScopedCache getOrCreateTransactionScopedCache(long startTs) {
         return valueScopingCache.getOrCreateTransactionScopedCache(startTs);
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCache(long startTs) {
+        return valueScopingCache.getReadOnlyTransactionScopedCacheForCommit(startTs);
     }
 
     private void registerWatchesWithTimelock() {

@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -27,9 +26,8 @@ public interface LockWatchCachingConfig {
      * should be correct within an order of magnitude.
      */
     @Value.Default
-    @JsonProperty("max-cache-size")
-    default int cacheSize() {
-        return 100_000;
+    default long cacheSize() {
+        return 20_000_000;
     }
 
     /**
@@ -39,7 +37,6 @@ public interface LockWatchCachingConfig {
      * should probably be set to 0.01.
      */
     @Value.Default
-    @JsonProperty("validation-probability")
     default double validationProbability() {
         return 1.0;
     }
