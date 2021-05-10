@@ -69,4 +69,8 @@ public interface TransactionScopedCache {
     ValueDigest getValueDigest();
 
     HitDigest getHitDigest();
+
+    default boolean hasUpdates() {
+        return !getValueDigest().loadedValues().isEmpty();
+    }
 }
