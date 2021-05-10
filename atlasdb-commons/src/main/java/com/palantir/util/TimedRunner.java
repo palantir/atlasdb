@@ -61,7 +61,7 @@ public final class TimedRunner {
                 failure = (Exception) e.getCause();
             }
         } catch (TimeoutException e) {
-            log.warn("Execution timed out", SafeArg.of("timeoutDuration", timeoutDuration));
+            log.warn("Execution timed out", SafeArg.of("timeoutDuration", timeoutDuration), e);
             future.cancel(true);
             failure = e;
         }
