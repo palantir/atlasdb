@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
@@ -162,6 +163,23 @@ public final class LockWatchValueIntegrationTest {
                     return null;
                 }))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void serializableTransactionsReadViaTheCacheWherePossible() {
+        putValue();
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_2));
+
+            // This is technically corruption, but also confirms that the conflict checking goes through the cache,
+            // not the KVS.
+            txnManager
+                    .getKeyValueService()
+                    .put(TABLE_REF, ImmutableMap.of(CELL_1, PtBytes.EMPTY_BYTE_ARRAY), txn.getTimestamp());
+            return null;
+        });
     }
 
     private void putValue() {
