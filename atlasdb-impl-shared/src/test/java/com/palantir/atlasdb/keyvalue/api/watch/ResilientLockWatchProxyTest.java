@@ -34,6 +34,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Set;
 import org.junit.Before;
@@ -60,11 +61,24 @@ public final class ResilientLockWatchProxyTest {
     }
 
     @Test
+    public void valueCacheProxyThrowsIfDelegateNotSet() {
+        LockWatchValueScopingCache fallbackCache = mock(LockWatchValueScopingCache.class);
+        ResilientLockWatchProxy<LockWatchValueScopingCache> proxyFactory =
+                ResilientLockWatchProxy.newValueCacheProxyFactory(fallbackCache, metricsManager);
+
+        assertThatThrownBy(proxyFactory::newValueCacheProxy)
+                .isExactlyInstanceOf(SafeNullPointerException.class)
+                .hasMessage("Delegate cache must be set before creating proxy");
+    }
+
+    @Test
     public void valueCacheProxyAlsoFallsBackOnException() {
         LockWatchValueScopingCache defaultCache = mock(LockWatchValueScopingCache.class);
         LockWatchValueScopingCache fallbackCache = mock(LockWatchValueScopingCache.class);
-        LockWatchValueScopingCache proxyCache =
-                ResilientLockWatchProxy.newValueCacheProxy(defaultCache, fallbackCache, metricsManager);
+        ResilientLockWatchProxy<LockWatchValueScopingCache> proxyFactory =
+                ResilientLockWatchProxy.newValueCacheProxyFactory(fallbackCache, metricsManager);
+        proxyFactory.setDelegate(defaultCache);
+        LockWatchValueScopingCache proxyCache = proxyFactory.newValueCacheProxy();
 
         // Normal operation
         long timestamp = 1L;
