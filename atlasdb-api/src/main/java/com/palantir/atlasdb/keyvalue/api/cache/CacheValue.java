@@ -16,19 +16,52 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import java.util.Arrays;
 import java.util.Optional;
-import org.immutables.value.Value;
 
-@Value.Immutable
-public interface CacheValue {
-    // This is optional as we also want to cache reads where there is no value present.
-    Optional<byte[]> value();
+public final class CacheValue {
+    private final Optional<byte[]> value;
 
-    static CacheValue of(byte[] value) {
-        return ImmutableCacheValue.builder().value(value).build();
+    private CacheValue(Optional<byte[]> value) {
+        this.value = value;
     }
 
-    static CacheValue empty() {
-        return ImmutableCacheValue.builder().build();
+    // This is optional as we also want to cache reads where there is no value present.
+    public Optional<byte[]> value() {
+        return value;
+    }
+
+    public static CacheValue of(byte[] value) {
+        return new CacheValue(Optional.of(value));
+    }
+
+    public static CacheValue empty() {
+        return new CacheValue(Optional.empty());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof CacheValue)) {
+            return false;
+        }
+
+        CacheValue other = (CacheValue) obj;
+
+        if (value().isPresent()) {
+            if (other.value().isPresent()) {
+                return Arrays.equals(value().get(), other.value().get());
+            } else {
+                return false;
+            }
+        } else {
+            return !other.value().isPresent();
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        // Optionals do return 0 for empty values, but the hash code uses Object, which bases array hash codes on the
+        // reference, not the values.
+        return value.map(Arrays::hashCode).orElse(0);
     }
 }
