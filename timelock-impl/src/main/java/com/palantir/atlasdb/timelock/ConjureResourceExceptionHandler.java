@@ -65,7 +65,8 @@ public class ConjureResourceExceptionHandler {
                 .catching(
                         InterruptedException.class,
                         interrupted -> {
-                            Thread.currentThread().interrupt();
+                            // Just because the underlying job was cancelled does not mean that we want to ourselves
+                            // cancel operations. While this looks dodgy, it's intentional.
                             throw QosException.unavailable(interrupted);
                         },
                         MoreExecutors.directExecutor());
