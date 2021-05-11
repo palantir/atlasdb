@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -44,10 +45,14 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
 
     public static ResilientLockWatchProxy<LockWatchValueScopingCache> newValueCacheProxyFactory(
             LockWatchValueScopingCache fallbackCache, MetricsManager metricsManager) {
-        return new ResilientLockWatchProxy<>(fallbackCache, fallbackCache, metricsManager, "valueCacheFallbackCount");
+        return new ResilientLockWatchProxy<>(null, fallbackCache, metricsManager, "valueCacheFallbackCount");
     }
 
+    /**
+     * {@link #setDelegate(Object)} must be called with the desired delegate before creating this proxy.
+     */
     public LockWatchValueScopingCache newValueCacheProxy() {
+        Preconditions.checkNotNull(delegate, "Delegate cache must be set before creating proxy");
         return (LockWatchValueScopingCache) Proxy.newProxyInstance(
                 LockWatchValueScopingCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchValueScopingCache.class},

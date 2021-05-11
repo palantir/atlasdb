@@ -34,6 +34,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Set;
 import org.junit.Before;
@@ -57,6 +58,17 @@ public final class ResilientLockWatchProxyTest {
     @Before
     public void before() {
         proxyEventCache = ResilientLockWatchProxy.newEventCacheProxy(defaultCache, fallbackCache, metricsManager);
+    }
+
+    @Test
+    public void valueCacheProxyThrowsIfDelegateNotSet() {
+        LockWatchValueScopingCache fallbackCache = mock(LockWatchValueScopingCache.class);
+        ResilientLockWatchProxy<LockWatchValueScopingCache> proxyFactory =
+                ResilientLockWatchProxy.newValueCacheProxyFactory(fallbackCache, metricsManager);
+
+        assertThatThrownBy(proxyFactory::newValueCacheProxy)
+                .isExactlyInstanceOf(SafeNullPointerException.class)
+                .hasMessage("Delegate cache must be set before creating proxy");
     }
 
     @Test
