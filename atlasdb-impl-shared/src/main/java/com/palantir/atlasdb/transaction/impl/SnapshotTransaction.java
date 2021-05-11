@@ -788,7 +788,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return scopeToTransaction(                cache.get()
+        return scopeToTransaction(cache.get()
                 .getAsync(
                         tableRef,
                         cells,
@@ -2657,10 +2657,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private <T> ListenableFuture<T> scopeToTransaction(ListenableFuture<T> transactionFuture) {
-        return Futures.transform(transactionFuture,
+        return Futures.transform(
+                transactionFuture,
                 txnTaskResult -> {
-            ensureStillRunning();
-            return txnTaskResult;
+                    ensureStillRunning();
+                    return txnTaskResult;
                 },
                 MoreExecutors.directExecutor());
     }
