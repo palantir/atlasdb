@@ -136,7 +136,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
                     UnsafeArg.of("cacheReads", cacheReads));
             failureCallback.run();
             throw new TransactionLockWatchFailedException(
-                    "Failed lock watch cache validation - will retry with a no-op cache");
+                    "Failed lock watch cache validation - will retry without caching");
         }
     }
 

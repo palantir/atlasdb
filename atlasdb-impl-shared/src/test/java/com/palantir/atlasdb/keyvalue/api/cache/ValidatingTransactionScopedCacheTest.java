@@ -94,7 +94,7 @@ public final class ValidatingTransactionScopedCacheTest {
         when(delegate.getAsync(eq(TABLE), eq(CELLS), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
         assertThatThrownBy(() -> validatingCache.get(TABLE, CELLS, valueLoader))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
-                .hasMessage("Failed lock watch cache validation - will retry with a no-op cache");
+                .hasMessage("Failed lock watch cache validation - will retry without caching");
         verify(failureCallback).run();
     }
 

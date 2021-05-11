@@ -288,6 +288,27 @@ public final class LockWatchValueScopingCacheImplTest {
         valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_3));
     }
 
+    @Test
+    public void failedValidationCausesCacheToFallback() {
+        valueCache = LockWatchValueScopingCacheImpl.create(
+                eventCache, MetricsManagers.createForTests(), 20_000, 1.0, ImmutableSet.of(TABLE));
+
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), LOCK_WATCH_SNAPSHOT);
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
+
+        TransactionScopedCache scopedCache1 = valueCache.getOrCreateTransactionScopedCache(TIMESTAMP_1);
+        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThatThrownBy(() -> scopedCache1.get(
+                        TABLE, ImmutableSet.of(CELL_1), (_table, _cells) -> Futures.immediateFuture(ImmutableMap.of())))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Failed lock watch cache validation - will retry without caching");
+
+        TransactionScopedCache scopedCache2 = valueCache.getOrCreateTransactionScopedCache(TIMESTAMP_2);
+        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThat(scopedCache2).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
+    }
+
     private void processCommitTimestamp(long startTimestamp, long sequence) {
         eventCache.processGetCommitTimestampsUpdate(
                 ImmutableList.of(TransactionUpdate.builder()
