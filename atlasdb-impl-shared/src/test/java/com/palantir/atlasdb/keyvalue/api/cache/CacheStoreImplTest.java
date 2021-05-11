@@ -33,7 +33,7 @@ public final class CacheStoreImplTest {
     @Test
     public void updatesToSnapshotStoreReflectedInCacheStore() {
         SnapshotStoreImpl snapshotStore = new SnapshotStoreImpl();
-        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY);
+        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {});
 
         assertThat(cacheStore.getOrCreateCache(TIMESTAMP_1)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
 
@@ -48,7 +48,7 @@ public final class CacheStoreImplTest {
     @Test
     public void multipleCallsToGetOrCreateReturnsTheSameCache() {
         SnapshotStoreImpl snapshotStore = new SnapshotStoreImpl();
-        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY);
+        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {});
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2),

@@ -33,7 +33,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
 import io.vavr.collection.HashMap;
@@ -67,7 +67,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void validationCausesAllCellsToBeReadRemotely() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0);
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
         when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
 
@@ -78,7 +78,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void validationDoesNotReadFromRemoteWhenItShouldNotValidate() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 0.0);
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 0.0, () -> {});
 
         validatingCache.get(TABLE, ImmutableSet.of(CELL_1), valueLoader);
         verify(valueLoader, never()).apply(any(), any());
@@ -87,19 +87,21 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void validationFailsWhenMismatchingValuesReturned() {
         TransactionScopedCache delegate = mock(TransactionScopedCache.class);
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0);
+        Runnable failureCallback = mock(Runnable.class);
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, failureCallback);
         when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
 
         when(delegate.getAsync(eq(TABLE), eq(CELLS), any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
         assertThatThrownBy(() -> validatingCache.get(TABLE, CELLS, valueLoader))
-                .isExactlyInstanceOf(TransactionFailedNonRetriableException.class)
-                .hasMessage("Failed lock watch cache validation");
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Failed lock watch cache validation - will retry with a no-op cache");
+        verify(failureCallback).run();
     }
 
     @Test
     public void readOnlyCacheAlsoValidates() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0);
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
         when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
 
@@ -115,7 +117,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void differentByteArrayReferencesDoNotCauseValidationToFail() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
-        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0);
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
         when(valueLoader.apply(TABLE, CELLS))
                 .thenReturn(Futures.immediateFuture(ImmutableMap.of(

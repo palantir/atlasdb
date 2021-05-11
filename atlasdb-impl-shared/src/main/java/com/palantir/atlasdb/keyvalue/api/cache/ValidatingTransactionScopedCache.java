@@ -23,7 +23,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
@@ -40,18 +40,22 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     private static final Logger log = LoggerFactory.getLogger(ValidatingTransactionScopedCache.class);
 
     private final TransactionScopedCache delegate;
-    private double validationProbability;
     private final Random random;
+    private final double validationProbability;
+    private final Runnable failureCallback;
 
     @VisibleForTesting
-    ValidatingTransactionScopedCache(TransactionScopedCache delegate, double validationProbability) {
+    ValidatingTransactionScopedCache(
+            TransactionScopedCache delegate, double validationProbability, Runnable failureCallback) {
         this.delegate = delegate;
         this.validationProbability = validationProbability;
+        this.failureCallback = failureCallback;
         this.random = new Random();
     }
 
-    static TransactionScopedCache create(TransactionScopedCache delegate, double validationProbability) {
-        return new ValidatingTransactionScopedCache(delegate, validationProbability);
+    static TransactionScopedCache create(
+            TransactionScopedCache delegate, double validationProbability, Runnable failureCallback) {
+        return new ValidatingTransactionScopedCache(delegate, validationProbability, failureCallback);
     }
 
     @Override
@@ -114,7 +118,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
 
     @Override
     public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
-        return create(delegate.createReadOnlyCache(commitUpdate), validationProbability);
+        return create(delegate.createReadOnlyCache(commitUpdate), validationProbability, failureCallback);
     }
 
     private boolean shouldValidate() {
@@ -124,14 +128,15 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     private void validateCacheReads(
             TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
         if (!ByteArrayUtilities.areMapsEqual(remoteReads, cacheReads)) {
-            // TODO(jshah): make sure that this causes us to disable all caching until restart
             log.error(
                     "Reading from lock watch cache returned a different result to a remote read - this indicates there "
                             + "is a corruption bug in the caching logic",
                     UnsafeArg.of("table", tableReference),
                     UnsafeArg.of("remoteReads", remoteReads),
                     UnsafeArg.of("cacheReads", cacheReads));
-            throw new TransactionFailedNonRetriableException("Failed lock watch cache validation");
+            failureCallback.run();
+            throw new TransactionLockWatchFailedException(
+                    "Failed lock watch cache validation - will retry with a no-op cache");
         }
     }
 

@@ -57,11 +57,12 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             LockWatchEventCache eventCache,
             long maxCacheSize,
             double validationProbability,
-            Set<TableReference> watchedTablesFromSchema) {
+            Set<TableReference> watchedTablesFromSchema,
+            Runnable failureCallback) {
         this.eventCache = eventCache;
         this.valueStore = new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize);
         this.snapshotStore = new SnapshotStoreImpl();
-        this.cacheStore = new CacheStoreImpl(snapshotStore, validationProbability);
+        this.cacheStore = new CacheStoreImpl(snapshotStore, validationProbability, failureCallback);
     }
 
     public static LockWatchValueScopingCache create(
@@ -70,11 +71,13 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             long maxCacheSize,
             double validationProbability,
             Set<TableReference> watchedTablesFromSchema) {
-        return ResilientLockWatchProxy.newValueCacheProxy(
-                new LockWatchValueScopingCacheImpl(
-                        eventCache, maxCacheSize, validationProbability, watchedTablesFromSchema),
-                NoOpLockWatchValueScopingCache.create(),
-                metricsManager);
+        ResilientLockWatchProxy<LockWatchValueScopingCache> proxyFactory =
+                ResilientLockWatchProxy.newValueCacheProxyFactory(
+                        NoOpLockWatchValueScopingCache.create(), metricsManager);
+        LockWatchValueScopingCache defaultCache = new LockWatchValueScopingCacheImpl(
+                eventCache, maxCacheSize, validationProbability, watchedTablesFromSchema, proxyFactory::fallback);
+        proxyFactory.setDelegate(defaultCache);
+        return proxyFactory.newValueCacheProxy();
     }
 
     @Override

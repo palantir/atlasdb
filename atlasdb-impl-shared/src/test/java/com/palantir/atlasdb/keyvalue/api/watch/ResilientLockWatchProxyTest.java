@@ -63,8 +63,10 @@ public final class ResilientLockWatchProxyTest {
     public void valueCacheProxyAlsoFallsBackOnException() {
         LockWatchValueScopingCache defaultCache = mock(LockWatchValueScopingCache.class);
         LockWatchValueScopingCache fallbackCache = mock(LockWatchValueScopingCache.class);
-        LockWatchValueScopingCache proxyCache =
-                ResilientLockWatchProxy.newValueCacheProxy(defaultCache, fallbackCache, metricsManager);
+        ResilientLockWatchProxy<LockWatchValueScopingCache> proxyFactory =
+                ResilientLockWatchProxy.newValueCacheProxyFactory(fallbackCache, metricsManager);
+        proxyFactory.setDelegate(defaultCache);
+        LockWatchValueScopingCache proxyCache = proxyFactory.newValueCacheProxy();
 
         // Normal operation
         long timestamp = 1L;

@@ -42,14 +42,16 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
                 new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager, "eventCacheFallbackCount"));
     }
 
-    public static LockWatchValueScopingCache newValueCacheProxy(
-            LockWatchValueScopingCache defaultCache,
-            LockWatchValueScopingCache fallbackCache,
-            MetricsManager metricsManager) {
+    public static ResilientLockWatchProxy<LockWatchValueScopingCache> newValueCacheProxyFactory(
+            LockWatchValueScopingCache fallbackCache, MetricsManager metricsManager) {
+        return new ResilientLockWatchProxy<>(fallbackCache, fallbackCache, metricsManager, "valueCacheFallbackCount");
+    }
+
+    public LockWatchValueScopingCache newValueCacheProxy() {
         return (LockWatchValueScopingCache) Proxy.newProxyInstance(
                 LockWatchValueScopingCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchValueScopingCache.class},
-                new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager, "valueCacheFallbackCount"));
+                this);
     }
 
     private final T fallbackCache;
@@ -86,10 +88,18 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
                         "Unexpected failure occurred when trying to use the default cache. "
                                 + "Switching to the fallback implementation",
                         t);
-                fallbackCacheSelectedCounter.inc();
-                delegate = fallbackCache;
+                fallback();
                 throw new TransactionLockWatchFailedException("Unexpected failure in the default lock watch cache", t);
             }
         }
+    }
+
+    public void fallback() {
+        fallbackCacheSelectedCounter.inc();
+        delegate = fallbackCache;
+    }
+
+    public void setDelegate(T delegate) {
+        this.delegate = delegate;
     }
 }
