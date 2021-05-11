@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.codahale.metrics.Counter;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -60,15 +59,13 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
     }
 
     private final T fallbackCache;
-    private final Counter fallbackCacheSelectedCounter;
-
+    private volatile boolean hasFallenBack;
     private volatile T delegate;
 
     private ResilientLockWatchProxy(T defaultCache, T fallbackCache, MetricsManager metricsManager, String metricName) {
         this.delegate = defaultCache;
         this.fallbackCache = fallbackCache;
-        this.fallbackCacheSelectedCounter =
-                metricsManager.registerOrGetCounter(ResilientLockWatchProxy.class, metricName);
+        metricsManager.registerOrGetGauge(ResilientLockWatchProxy.class, metricName, () -> () -> hasFallenBack ? 1 : 0);
     }
 
     @Override
@@ -100,7 +97,7 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
     }
 
     public void fallback() {
-        fallbackCacheSelectedCounter.inc();
+        hasFallenBack = true;
         delegate = fallbackCache;
     }
 
