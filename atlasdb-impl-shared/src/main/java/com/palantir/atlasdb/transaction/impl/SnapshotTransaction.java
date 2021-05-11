@@ -344,9 +344,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
 
-        if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
-            throw new CommittedTransactionException();
-        }
+        ensureStillRunning();
     }
 
     @Override
@@ -400,7 +398,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return KeyedStream.stream(getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection))
-                .map((row, iterator) -> BatchingVisitableFromIterable.create(iterator))
+                .map(BatchingVisitableFromIterable::create)
+                .map(this::scopeToTransaction)
                 .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
@@ -421,7 +420,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         BatchColumnRangeSelection batchColumnRangeSelection =
                 BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
-        return getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults);
+        return scopeToTransaction(getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults));
     }
 
     @Override
@@ -441,7 +440,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             RowColumnRangeIterator rawIterator = e.getValue();
             Iterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
                     getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
-            postFilteredResultsBuilder.put(row, postFilteredIterator);
+            postFilteredResultsBuilder.put(row, scopeToTransaction(postFilteredIterator));
         }
         SortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = postFilteredResultsBuilder.build();
         // validate requirements here as the first batch for each of the above iterators will not check
@@ -466,7 +465,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<byte[], RowColumnRangeIterator> rawResults =
                 keyValueService.getRowsColumnRange(tableRef, distinctRows, perBatchSelection, getStartTimestamp());
 
-        return getPostFilteredSortedColumns(tableRef, batchColumnRangeSelection, distinctRows, rawResults);
+        return scopeToTransaction(
+                getPostFilteredSortedColumns(tableRef, batchColumnRangeSelection, distinctRows, rawResults));
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredSortedColumns(
@@ -790,12 +790,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return getCache()
+        return scopeToTransaction(getCache()
                 .getAsync(
                         tableRef,
                         cells,
                         (table, uncached) -> getInternal(
-                                "getAsync", tableRef, uncached, keyValueService, defaultTransactionService));
+                                "getAsync", tableRef, uncached, keyValueService, defaultTransactionService)));
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getInternal(
@@ -1678,6 +1678,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void ensureUncommitted() {
         if (!isUncommitted()) {
+            throw new CommittedTransactionException();
+        }
+    }
+
+    private void ensureStillRunning() {
+        if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
             throw new CommittedTransactionException();
         }
     }
@@ -2632,5 +2638,42 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                             + "This is likely a bug in AtlasDB transaction code.");
             callbacks.forEach(Runnable::run);
         }
+    }
+
+    private <T> BatchingVisitable<T> scopeToTransaction(BatchingVisitable<T> delegateVisitable) {
+        return new BatchingVisitable<T>() {
+            @Override
+            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> visitor)
+                    throws K {
+                ensureStillRunning();
+                return delegateVisitable.batchAccept(batchSize, visitor);
+            }
+        };
+    }
+
+    private <T> Iterator<T> scopeToTransaction(Iterator<T> delegateIterator) {
+        return new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                ensureStillRunning();
+                return delegateIterator.hasNext();
+            }
+
+            @Override
+            public T next() {
+                ensureStillRunning();
+                return delegateIterator.next();
+            }
+        };
+    }
+
+    private <T> ListenableFuture<T> scopeToTransaction(ListenableFuture<T> transactionFuture) {
+        return Futures.transform(
+                transactionFuture,
+                txnTaskResult -> {
+                    ensureStillRunning();
+                    return txnTaskResult;
+                },
+                MoreExecutors.directExecutor());
     }
 }

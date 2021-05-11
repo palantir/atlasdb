@@ -49,6 +49,7 @@ import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -77,6 +78,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -96,6 +98,7 @@ import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
+import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.MultiDelegateProxy;
@@ -113,6 +116,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -136,10 +140,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -1889,6 +1895,108 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     .containsExactly(Maps.immutableEntry(TEST_CELL, PtBytes.toBytes("tom")));
             return null;
         });
+    }
+
+    @Test
+    public void cannotCompleteFutureAfterTransactionCommit() {
+        SettableFuture<Object> blocker = SettableFuture.create();
+        ListenableFuture<Map<Cell, byte[]>> getFuture = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("jeremy")));
+            return Futures.transformAsync(
+                    blocker,
+                    _unused -> txn.getAsync(TABLE, ImmutableSet.of(TEST_CELL)),
+                    MoreExecutors.directExecutor());
+        });
+        blocker.set(new Object());
+        assertThatThrownBy(getFuture::get)
+                .isInstanceOf(ExecutionException.class)
+                .satisfies(exception ->
+                        assertThat(exception.getCause()).isInstanceOf(CommittedTransactionException.class));
+    }
+
+    @Test
+    public void cannotReadStreamAfterTransactionCommit() {
+        Stream<byte[]> values = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
+
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, byte[]> singleValueExtractor =
+                    ($, visitable) -> Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable))
+                            .getOnlyColumnValue();
+            return txn.getRanges(ImmutableGetRangesQuery.<byte[]>builder()
+                    .tableRef(TABLE)
+                    .rangeRequests(ImmutableList.of(RangeRequest.all()))
+                    .visitableProcessor(singleValueExtractor)
+                    .build());
+        });
+        assertThatThrownBy(() -> values.collect(Collectors.toList())).isInstanceOf(CommittedTransactionException.class);
+    }
+
+    @Test
+    public void cannotPerformUnmergedGetRowsColumnRangeAfterTransactionCommit() {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> visitables = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("alice")));
+            return txn.getRowsColumnRange(
+                    TABLE,
+                    ImmutableList.of(TEST_CELL.getRowName()),
+                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+        });
+
+        assertThatThrownBy(() -> BatchingVisitables.copyToList(visitables.get(TEST_CELL.getRowName())))
+                .isInstanceOf(CommittedTransactionException.class);
+    }
+
+    @Test
+    public void cannotPerformMergedGetRowsColumnRangeAfterTransactionCommit() {
+        Iterator<Map.Entry<Cell, byte[]>> entryIterator = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("bob")));
+            return txn.getRowsColumnRange(
+                    TABLE,
+                    ImmutableList.of(TEST_CELL.getRowName()),
+                    new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                    100);
+        });
+
+        assertThatThrownBy(entryIterator::next).isInstanceOf(CommittedTransactionException.class);
+    }
+
+    @Test
+    public void cannotReadSortedColumnsAfterTransactionCommit() {
+        Iterator<Map.Entry<Cell, byte[]>> cellIterator = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("will")));
+
+            return txn.getSortedColumns(
+                    TABLE,
+                    ImmutableList.of(TEST_CELL.getRowName()),
+                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+        });
+        assertThatThrownBy(cellIterator::next).isInstanceOf(CommittedTransactionException.class);
+    }
+
+    @Test
+    public void cannotReadVisitablesFromGetRangesLazyAfterTransactionCommit() {
+        txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("peyton")));
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL_2, PtBytes.toBytes("eli")));
+            return null;
+        });
+
+        BatchingVisitable<RowResult<byte[]>> leakedVisitable =
+                txManager.runTaskThrowOnConflict(txn -> txn.getRangesLazy(
+                                TABLE,
+                                ImmutableList.of(
+                                        RangeRequest.builder()
+                                                .startRowInclusive(TEST_CELL.getRowName())
+                                                .endRowExclusive(TEST_CELL_2.getRowName())
+                                                .batchHint(1)
+                                                .build(),
+                                        RangeRequest.builder()
+                                                .startRowInclusive(TEST_CELL_2.getRowName())
+                                                .batchHint(1)
+                                                .build()))
+                        .findFirst()
+                        .orElseThrow(() -> new SafeIllegalStateException("expected at least one visitable!")));
+        assertThatThrownBy(() -> BatchingVisitables.copyToList(leakedVisitable))
+                .isInstanceOf(CommittedTransactionException.class);
     }
 
     private void verifyPrefetchValidations(

@@ -41,6 +41,12 @@ import java.util.stream.Stream;
  * they may be accessed via any byte array that is equivalent in terms of
  * {@link java.util.Arrays#equals(byte[], byte[])}.
  *
+ * Throughout this class, methods that return structures that may not perform all of their loading upfront (batching
+ * visitables, iterables, streams and futures, for instance) _must_ be used strictly within the scope of the
+ * transaction. Concretely, this means that results must be retrieved before exiting the transaction - in the case of
+ * streams and iterators, this means that you must collect the results before exiting; in the case of futures, you must
+ * await all asynchronous calls before returning from the transaction.
+ *
  * @see TransactionManager
  */
 public interface Transaction {
@@ -78,6 +84,8 @@ public interface Transaction {
      * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
      * input {@code rows}, even if there are rows where no columns match the predicate.
      *
+     * Batching visitables must be used strictly within the scope of the transaction.
+     *
      * @param tableRef table to load values from
      * @param rows unique rows to apply the column range selection to
      * @param columnRangeSelection range of columns and batch size to load for each of the rows provided
@@ -97,6 +105,8 @@ public interface Transaction {
      * If the {@link Iterable} does not have a stable ordering (i.e. iteration order can change across iterators
      * returned) then the returned iterator is sorted lexicographically with columns sorted on byte ordering, but
      * the ordering of rows is undefined.
+     *
+     * Iterators must be used strictly within the scope of the transaction.
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply the column range selection to
@@ -119,6 +129,8 @@ public interface Transaction {
      *
      * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
      * input {@code rows}, even if there are rows where no columns match the predicate.
+     *
+     * Iterators must be used strictly within the scope of the transaction.
      *
      * @param tableRef table to load values from
      * @param rows unique rows to apply the column range selection to
@@ -143,6 +155,8 @@ public interface Transaction {
      * ordering of rows is undefined. In case of duplicate rows, the ordering is based on the first occurrence of
      * the row.
      *
+     * Iterators must be used strictly within the scope of the transaction.
+     *
      * @param tableRef table to load values from
      * @param rows unique rows to apply column range selection to
      * @param batchColumnRangeSelection range of columns and batch size to load for all rows provided
@@ -165,6 +179,8 @@ public interface Transaction {
      * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}. It is not
      * guaranteed that the actual implementations are in fact asynchronous.
      *
+     * The future must be used strictly within the scope of the transaction.
+     *
      * @param tableRef the table from which to get the values
      * @param cells the cells for which we want to get the values
      * @return a {@link Map} from {@link Cell} to {@code byte[]} representing cell/value pairs
@@ -174,6 +190,8 @@ public interface Transaction {
 
     /**
      * Creates a visitable that scans the provided range.
+     *
+     * Batching visitables must be used strictly within the scope of the transaction.
      *
      * @param tableRef the table to scan
      * @param rangeRequest the range of rows and columns to scan
@@ -190,6 +208,8 @@ public interface Transaction {
      * than you need and will be slower than it needs to be.  If the batchHint isn't specified it
      * will default to 1 for the first page in each range.
      *
+     * Batching visitables must be used strictly within the scope of the transaction.
+     *
      * @deprecated Should use either {@link #getRanges(TableReference, Iterable, int, BiFunction)} or
      * {@link #getRangesLazy(TableReference, Iterable)} to ensure you are using an appropriate level
      * of concurrency for your specific workflow.
@@ -205,6 +225,8 @@ public interface Transaction {
      *
      * It is guaranteed that the range requests seen by the provided visitable processor are equal to the provided
      * iterable of range requests, though no guarantees are made on the order they are encountered in.
+     *
+     * Streams must be read within the scope of the transaction.
      */
     @Idempotent
     <T> Stream<T> getRanges(
@@ -233,6 +255,8 @@ public interface Transaction {
     /**
      * Returns visitibles that scan the provided ranges. This does no pre-fetching so visiting the resulting
      * visitibles will incur database reads on first access.
+     *
+     * Streams and visitables must be read within the scope of this transaction.
      */
     @Idempotent
     Stream<BatchingVisitable<RowResult<byte[]>>> getRangesLazy(
