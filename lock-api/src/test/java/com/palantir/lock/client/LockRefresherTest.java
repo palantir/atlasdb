@@ -33,6 +33,7 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Before;
 import org.junit.Test;
 
 public class LockRefresherTest {
@@ -47,6 +48,11 @@ public class LockRefresherTest {
     private final TimelockService timelock = mock(TimelockService.class);
     private final Clock clock = mock(Clock.class);
     private final LockRefresher refresher = new LockRefresher(executor, timelock, REFRESH_INTERVAL_MILLIS, clock);
+
+    @Before
+    public void setUp() {
+        when(clock.instant()).thenReturn(Instant.EPOCH);
+    }
 
     @Test
     public void continuesRefreshingLocksThatAreReturned() {
@@ -142,7 +148,8 @@ public class LockRefresherTest {
         when(clock.instant()).thenReturn(Instant.EPOCH.plus(Duration.ofMinutes(7)));
         tick();
         verify(timelock, times(2)).refreshLockLeases(TOKENS);
-        verify(callback).run();
+        // Callback ran once per expired token
+        verify(callback, times(TOKENS.size())).run();
     }
 
     private void registerLocks() {

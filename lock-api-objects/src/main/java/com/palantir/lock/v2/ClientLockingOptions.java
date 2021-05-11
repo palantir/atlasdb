@@ -35,7 +35,7 @@ public interface ClientLockingOptions {
     Optional<Duration> maximumLockTenure();
 
     /**
-     * Invoked if the lock tenure expired on the client. Must be cheap
+     * Invoked if the lock tenure expired on the client. Must be cheap to execute.
      */
     @Value.Default
     default Runnable tenureExpirationCallback() {
