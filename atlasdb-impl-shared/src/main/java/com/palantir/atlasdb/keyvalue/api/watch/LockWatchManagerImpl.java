@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
@@ -31,6 +32,8 @@ import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
@@ -57,14 +60,11 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
 
     @VisibleForTesting
     LockWatchManagerImpl(
-            Set<Schema> schemas,
+            Set<LockWatchReference> referencesFromSchema,
             LockWatchEventCache eventCache,
             LockWatchValueScopingCache valueCache,
             NamespacedConjureLockWatchingService lockWatchingService) {
-        this.referencesFromSchema = schemas.stream()
-                .map(Schema::getLockWatches)
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet());
+        this.referencesFromSchema = referencesFromSchema;
         this.lockWatchCache = new LockWatchCacheImpl(eventCache, valueCache);
         this.valueScopingCache = valueCache;
         this.lockWatchingService = lockWatchingService;
@@ -77,10 +77,21 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
             Set<Schema> schemas,
             NamespacedConjureLockWatchingService lockWatchingService,
             LockWatchCachingConfig config) {
+        Set<LockWatchReference> referencesFromSchema = schemas.stream()
+                .map(Schema::getLockWatches)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+        Set<TableReference> watchedTablesFromSchema = referencesFromSchema.stream()
+                .map(schema -> schema.accept(LockWatchReferencesVisitor.INSTANCE))
+                .collect(Collectors.toSet());
         LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metricsManager);
         LockWatchValueScopingCache valueCache = LockWatchValueScopingCacheImpl.create(
-                eventCache, metricsManager, config.cacheSize(), config.validationProbability());
-        return new LockWatchManagerImpl(schemas, eventCache, valueCache, lockWatchingService);
+                eventCache,
+                metricsManager,
+                config.cacheSize(),
+                config.validationProbability(),
+                watchedTablesFromSchema);
+        return new LockWatchManagerImpl(referencesFromSchema, eventCache, valueCache, lockWatchingService);
     }
 
     @Override

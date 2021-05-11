@@ -22,6 +22,7 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -52,9 +53,13 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     @VisibleForTesting
-    LockWatchValueScopingCacheImpl(LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
+    LockWatchValueScopingCacheImpl(
+            LockWatchEventCache eventCache,
+            long maxCacheSize,
+            double validationProbability,
+            Set<TableReference> watchedTablesFromSchema) {
         this.eventCache = eventCache;
-        this.valueStore = new ValueStoreImpl(maxCacheSize);
+        this.valueStore = new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize);
         this.snapshotStore = new SnapshotStoreImpl();
         this.cacheStore = new CacheStoreImpl(snapshotStore, validationProbability);
     }
@@ -63,9 +68,11 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             LockWatchEventCache eventCache,
             MetricsManager metricsManager,
             long maxCacheSize,
-            double validationProbability) {
+            double validationProbability,
+            Set<TableReference> watchedTablesFromSchema) {
         return ResilientLockWatchProxy.newValueCacheProxy(
-                new LockWatchValueScopingCacheImpl(eventCache, maxCacheSize, validationProbability),
+                new LockWatchValueScopingCacheImpl(
+                        eventCache, maxCacheSize, validationProbability, watchedTablesFromSchema),
                 NoOpLockWatchValueScopingCache.create(),
                 metricsManager);
     }

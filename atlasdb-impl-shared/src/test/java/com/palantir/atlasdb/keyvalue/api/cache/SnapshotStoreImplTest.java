@@ -37,7 +37,8 @@ public final class SnapshotStoreImplTest {
     private static final StartTimestamp TIMESTAMP_2 = StartTimestamp.of(31415925635L);
     private static final StartTimestamp TIMESTAMP_3 = StartTimestamp.of(404L);
     private static final StartTimestamp TIMESTAMP_4 = StartTimestamp.of(10110101L);
-    private static final ValueCacheSnapshot SNAPSHOT_1 = ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty());
+    private static final ValueCacheSnapshot SNAPSHOT_1 =
+            ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of());
     private static final ValueCacheSnapshot SNAPSHOT_2 = ValueCacheSnapshotImpl.of(
             HashMap.<CellReference, CacheEntry>empty()
                     .put(
@@ -45,7 +46,8 @@ public final class SnapshotStoreImplTest {
                                     TableReference.createFromFullyQualifiedName("t.table"),
                                     Cell.create(new byte[] {1}, new byte[] {1})),
                             CacheEntry.locked()),
-            HashSet.empty());
+            HashSet.empty(),
+            ImmutableSet.of());
     private SnapshotStore snapshotStore;
 
     @Before

@@ -128,7 +128,9 @@ public final class ValidatingTransactionScopedCacheTest {
 
     private static ValueCacheSnapshot snapshotWithSingleValue() {
         return ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE));
+                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)),
+                HashSet.of(TABLE),
+                ImmutableSet.of(TABLE));
     }
 
     private static ListenableFuture<Map<Cell, byte[]>> remoteRead(Set<Cell> cells) {

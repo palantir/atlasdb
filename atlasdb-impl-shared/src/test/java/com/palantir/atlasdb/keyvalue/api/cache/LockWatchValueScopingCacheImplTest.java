@@ -83,12 +83,26 @@ public final class LockWatchValueScopingCacheImplTest {
     @Before
     public void before() {
         eventCache = LockWatchEventCacheImpl.create(MetricsManagers.createForTests());
-        valueCache = new LockWatchValueScopingCacheImpl(eventCache, 20_000, 0.0);
+        valueCache = new LockWatchValueScopingCacheImpl(eventCache, 20_000, 0.0, ImmutableSet.of(TABLE));
+    }
+
+    @Test
+    public void tableNotWatchedInSchemaDoesNotCache() {
+        valueCache = new LockWatchValueScopingCacheImpl(eventCache, 20_000, 0.0, ImmutableSet.of());
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), LOCK_WATCH_SNAPSHOT);
+        valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
+
+        TransactionScopedCache scopedCache = valueCache.getOrCreateTransactionScopedCache(TIMESTAMP_1);
+        assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
+        scopedCache.finalise();
+        assertThat(scopedCache.getHitDigest().hitCells()).isEmpty();
+        assertThat(scopedCache.getValueDigest().loadedValues()).isEmpty();
     }
 
     @Test
     public void valueCacheCreatesValidatingTransactionCaches() {
-        valueCache = new LockWatchValueScopingCacheImpl(eventCache, 20_000, 1.0);
+        valueCache = new LockWatchValueScopingCacheImpl(eventCache, 20_000, 1.0, ImmutableSet.of(TABLE));
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), LOCK_WATCH_SNAPSHOT);
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2));
 
