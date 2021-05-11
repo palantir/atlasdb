@@ -36,7 +36,7 @@ public final class CacheValue {
     }
 
     public static CacheValue empty() {
-        return new CacheValue((Optional.empty()));
+        return new CacheValue(Optional.empty());
     }
 
     @Override

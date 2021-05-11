@@ -47,7 +47,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -71,11 +70,12 @@ public final class LockWatchValueIntegrationTest {
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
+    private NamespacedClients namespace;
     private TransactionManager txnManager;
 
     @Before
     public void before() {
-        txnManager = createTransactionManager(0.0);
+        createTransactionManager(0.0);
     }
 
     @Test
@@ -156,6 +156,7 @@ public final class LockWatchValueIntegrationTest {
     @Test
     public void serializableTransactionsDoNotThrowWhenOverwritingAPreviouslyCachedValue() {
         putValue();
+        loadValue();
 
         assertThatCode(() -> txnManager.runTaskThrowOnConflict(txn -> {
                     txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
@@ -166,7 +167,7 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Test
-    public void serializableTransactionsReadViaTheCacheWherePossible() {
+    public void serializableTransactionsReadViaTheCacheForConflictChecking() {
         putValue();
 
         txnManager.runTaskThrowOnConflict(txn -> {
@@ -175,9 +176,49 @@ public final class LockWatchValueIntegrationTest {
 
             // This is technically corruption, but also confirms that the conflict checking goes through the cache,
             // not the KVS.
-            txnManager
-                    .getKeyValueService()
-                    .put(TABLE_REF, ImmutableMap.of(CELL_1, PtBytes.EMPTY_BYTE_ARRAY), txn.getTimestamp());
+            overwriteValueViaKvs(txn, ImmutableMap.of(CELL_1, PtBytes.EMPTY_BYTE_ARRAY));
+            return null;
+        });
+    }
+
+    @Test
+    public void putsCauseInvalidationsInSubsequentTransactions() {
+        putValue();
+        loadValue();
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            // Read gives the old value due to it being cached; these direct KVS overwrites would be corruption normally
+            overwriteValueViaKvs(txn, ImmutableMap.of(CELL_1, DATA_2));
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
+            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1));
+            assertLoadedValues(txn, ImmutableMap.of());
+            return null;
+        });
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
+            return null;
+        });
+
+        awaitUnlock();
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_3);
+            assertHitValues(txn, ImmutableSet.of());
+            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.of(DATA_3)));
+            return null;
+        });
+    }
+
+    private void overwriteValueViaKvs(Transaction txn, Map<Cell, byte[]> values) {
+        txnManager.getKeyValueService().put(TABLE_REF, values, txn.getTimestamp());
+    }
+
+    private void loadValue() {
+        txnManager.runTaskThrowOnConflict(txn -> {
+            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            assertHitValues(txn, ImmutableSet.of());
+            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.of(DATA_1)));
             return null;
         });
     }
@@ -249,10 +290,11 @@ public final class LockWatchValueIntegrationTest {
         return extractValueCache().getOrCreateTransactionScopedCache(txn.getTimestamp());
     }
 
-    private static TransactionManager createTransactionManager(double validationProbability) {
-        return TimeLockTestUtils.createTransactionManager(
+    private void createTransactionManager(double validationProbability) {
+        namespace = CLUSTER.clientForRandomNamespace().throughWireMockProxy();
+        txnManager = TimeLockTestUtils.createTransactionManager(
                         CLUSTER,
-                        UUID.randomUUID().toString(),
+                        namespace.namespace(),
                         AtlasDbRuntimeConfig.defaultRuntimeConfig(),
                         ImmutableAtlasDbConfig.builder()
                                 .lockWatchCaching(LockWatchCachingConfig.builder()
