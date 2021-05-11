@@ -30,9 +30,11 @@ final class CacheStoreImpl implements CacheStore {
     private final SnapshotStore snapshotStore;
     private final Map<StartTimestamp, Caches> cacheMap;
     private final double validationProbability;
+    private final Runnable failureCallback;
 
-    CacheStoreImpl(SnapshotStore snapshotStore, double validationProbability) {
+    CacheStoreImpl(SnapshotStore snapshotStore, double validationProbability, Runnable failureCallback) {
         this.snapshotStore = snapshotStore;
+        this.failureCallback = failureCallback;
         this.cacheMap = new ConcurrentHashMap<>();
         this.validationProbability = validationProbability;
     }
@@ -42,7 +44,8 @@ final class CacheStoreImpl implements CacheStore {
         return cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
                         .getSnapshot(key)
                         .map(TransactionScopedCacheImpl::create)
-                        .map(cache -> ValidatingTransactionScopedCache.create(cache, validationProbability))
+                        .map(cache ->
+                                ValidatingTransactionScopedCache.create(cache, validationProbability, failureCallback))
                         .map(Caches::create)
                         .orElseGet(Caches::createNoOp))
                 .mainCache();

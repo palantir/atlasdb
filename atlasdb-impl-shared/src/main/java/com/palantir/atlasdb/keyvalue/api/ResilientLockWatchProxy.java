@@ -16,12 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.codahale.metrics.Counter;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -42,26 +42,30 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
                 new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager, "eventCacheFallbackCount"));
     }
 
-    public static LockWatchValueScopingCache newValueCacheProxy(
-            LockWatchValueScopingCache defaultCache,
-            LockWatchValueScopingCache fallbackCache,
-            MetricsManager metricsManager) {
+    public static ResilientLockWatchProxy<LockWatchValueScopingCache> newValueCacheProxyFactory(
+            LockWatchValueScopingCache fallbackCache, MetricsManager metricsManager) {
+        return new ResilientLockWatchProxy<>(null, fallbackCache, metricsManager, "valueCacheFallbackCount");
+    }
+
+    /**
+     * {@link #setDelegate(Object)} must be called with the desired delegate before creating this proxy.
+     */
+    public LockWatchValueScopingCache newValueCacheProxy() {
+        Preconditions.checkNotNull(delegate, "Delegate cache must be set before creating proxy");
         return (LockWatchValueScopingCache) Proxy.newProxyInstance(
                 LockWatchValueScopingCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchValueScopingCache.class},
-                new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager, "valueCacheFallbackCount"));
+                this);
     }
 
     private final T fallbackCache;
-    private final Counter fallbackCacheSelectedCounter;
-
+    private volatile boolean hasFallenBack;
     private volatile T delegate;
 
     private ResilientLockWatchProxy(T defaultCache, T fallbackCache, MetricsManager metricsManager, String metricName) {
         this.delegate = defaultCache;
         this.fallbackCache = fallbackCache;
-        this.fallbackCacheSelectedCounter =
-                metricsManager.registerOrGetCounter(ResilientLockWatchProxy.class, metricName);
+        metricsManager.registerOrGetGauge(ResilientLockWatchProxy.class, metricName, () -> () -> hasFallenBack ? 1 : 0);
     }
 
     @Override
@@ -86,10 +90,18 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
                         "Unexpected failure occurred when trying to use the default cache. "
                                 + "Switching to the fallback implementation",
                         t);
-                fallbackCacheSelectedCounter.inc();
-                delegate = fallbackCache;
+                fallback();
                 throw new TransactionLockWatchFailedException("Unexpected failure in the default lock watch cache", t);
             }
         }
+    }
+
+    public void fallback() {
+        hasFallenBack = true;
+        delegate = fallbackCache;
+    }
+
+    public void setDelegate(T delegate) {
+        this.delegate = delegate;
     }
 }
