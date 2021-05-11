@@ -1784,7 +1784,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // obtaining a commit update, which is obtained via the get commit timestamp request.
                 if (getCache().hasUpdates()) {
                     timedAndTraced(
-                            "getCommitTimestamp",
+                            "getCommitTimestampForCaching",
                             () -> timelockService.getCommitTimestamp(
                                     getStartTimestamp(), LockToken.of(UUID.randomUUID())));
                 }
