@@ -40,6 +40,7 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -210,8 +211,34 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    private void overwriteValueViaKvs(Transaction txn, Map<Cell, byte[]> values) {
-        txnManager.getKeyValueService().put(TABLE_REF, values, txn.getTimestamp());
+    @Test
+    public void failedValidationCausesNoOpCacheToBeUsed() {
+        createTransactionManager(1.0);
+
+        putValue();
+        loadValue();
+
+        assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
+                    overwriteValueViaKvs(txn, ImmutableMap.of(CELL_1, DATA_2));
+                    txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+                    return null;
+                }))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage("Failed lock watch cache validation - will retry without caching");
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_2);
+            assertHitValues(txn, ImmutableSet.of());
+            assertLoadedValues(txn, ImmutableMap.of());
+            return null;
+        });
+    }
+
+    private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {
+        txnManager.getKeyValueService().put(TABLE_REF, values, transaction.getTimestamp() - 2);
+        txnManager
+                .getTransactionService()
+                .putUnlessExists(transaction.getTimestamp() - 2, transaction.getTimestamp() - 1);
     }
 
     private void loadValue() {
