@@ -1134,7 +1134,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         writeCells(cellsWrittenOriginally);
 
         Transaction t1 = startTransactionWithSerializableConflictChecking();
-        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+        t1.getSortedColumns(
                 TEST_TABLE,
                 rows,
                 BatchColumnRangeSelection.create(
@@ -1147,6 +1147,15 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t2.commit();
 
         assertThatCode(t1::commit).doesNotThrowAnyException();
+
+        Transaction t3 = startTransaction();
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t3.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(
+                        PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
+        List<Cell> cells = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
+        sanityCheckOnSortedCells(rows, cells, cellsWrittenOriginally);
     }
 
     @Test

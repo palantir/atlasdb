@@ -788,18 +788,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return Futures.transform(
-                cache.get()
-                        .getAsync(
-                                tableRef,
-                                cells,
-                                (table, uncached) -> getInternal(
-                                        "getAsync", tableRef, uncached, keyValueService, defaultTransactionService)),
-                input -> {
-                    ensureStillRunning();
-                    return input;
-                },
-                MoreExecutors.directExecutor());
+        return scopeToTransaction(                cache.get()
+                .getAsync(
+                        tableRef,
+                        cells,
+                        (table, uncached) -> getInternal(
+                                "getAsync", tableRef, uncached, keyValueService, defaultTransactionService)));
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getInternal(
@@ -2660,5 +2654,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 return delegateIterator.next();
             }
         };
+    }
+
+    private <T> ListenableFuture<T> scopeToTransaction(ListenableFuture<T> transactionFuture) {
+        return Futures.transform(transactionFuture,
+                txnTaskResult -> {
+            ensureStillRunning();
+            return txnTaskResult;
+                },
+                MoreExecutors.directExecutor());
     }
 }
