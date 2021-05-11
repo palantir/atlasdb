@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static com.palantir.atlasdb.timelock.AbstractAsyncTimelockServiceIntegrationTest.DEFAULT_SINGLE_SERVER;
+import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,6 +43,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -64,8 +65,12 @@ public final class LockWatchValueIntegrationTest {
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_REF, CELL_1);
     private static final CellReference TABLE_CELL_2 = CellReference.of(TABLE_REF, CELL_2);
-    private static final TestableTimelockCluster CLUSTER =
-            new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
+    private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
+            "non-batched timestamp paxos single leader",
+            "paxosMultiServer.ftl",
+            generateThreeNodeTimelockCluster(9080, builder -> builder.clientPaxosBuilder(
+                            builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
+                    .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
@@ -207,6 +212,11 @@ public final class LockWatchValueIntegrationTest {
             assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.of(DATA_3)));
             return null;
         });
+    }
+
+    @Test
+    public void blah() {
+        System.out.println("la");
     }
 
     private void overwriteValueViaKvs(Transaction txn, Map<Cell, byte[]> values) {
