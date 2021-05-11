@@ -32,6 +32,8 @@ import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.AtlasCellLockDescriptor;
+import com.palantir.lock.watch.CommitUpdate;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.Map;
@@ -109,7 +111,9 @@ public final class TransactionScopedCacheImplTest {
     @Test
     public void lockedCellsAreNeverCached() {
         TransactionScopedCache cache = TransactionScopedCacheImpl.create(ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked()), HashSet.of(TABLE)));
+                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked()),
+                HashSet.of(TABLE),
+                ImmutableSet.of(TABLE)));
 
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
@@ -165,6 +169,21 @@ public final class TransactionScopedCacheImplTest {
         assertThatThrownBy(cache::getHitDigest)
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("Cannot compute value or hit digest unless the cache has been finalised");
+    }
+
+    @Test
+    public void readOnlyCacheTransfersValues() {
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+
+        assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_2);
+
+        TransactionScopedCache readOnlyCache = cache.createReadOnlyCache(CommitUpdate.invalidateSome(ImmutableSet.of(
+                AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName()))));
+
+        assertThat(getRemotelyReadCells(readOnlyCache, TABLE, CELL_1, CELL_2, CELL_3))
+                .containsExactlyInAnyOrder(CELL_1, CELL_3);
+        assertThat(getRemotelyReadCells(readOnlyCache, TABLE, CELL_1, CELL_2, CELL_3))
+                .containsExactlyInAnyOrder(CELL_1);
     }
 
     @Test
@@ -231,7 +250,9 @@ public final class TransactionScopedCacheImplTest {
 
     private static ValueCacheSnapshot snapshotWithSingleValue() {
         return ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE));
+                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)),
+                HashSet.of(TABLE),
+                ImmutableSet.of(TABLE));
     }
 
     private static CacheValue createValue(int value) {

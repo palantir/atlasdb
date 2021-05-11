@@ -35,6 +35,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
+import java.util.Set;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.checkerframework.checker.index.qual.NonNegative;
@@ -50,10 +51,12 @@ final class ValueStoreImpl implements ValueStore {
 
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
+    private final Set<TableReference> allowedTables;
     private final Cache<CellReference, Integer> loadedValues;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
 
-    ValueStoreImpl(long maxCacheSize) {
+    ValueStoreImpl(Set<TableReference> allowedTables, long maxCacheSize) {
+        this.allowedTables = allowedTables;
         values = StructureHolder.create(HashMap::empty);
         watchedTables = StructureHolder.create(HashSet::empty);
         loadedValues = Caffeine.newBuilder()
@@ -97,7 +100,7 @@ final class ValueStoreImpl implements ValueStore {
 
     @Override
     public ValueCacheSnapshot getSnapshot() {
-        return ValueCacheSnapshotImpl.of(values.getSnapshot(), watchedTables.getSnapshot());
+        return ValueCacheSnapshotImpl.of(values.getSnapshot(), watchedTables.getSnapshot(), allowedTables);
     }
 
     private void putLockedCell(CellReference cellReference) {
@@ -121,7 +124,7 @@ final class ValueStoreImpl implements ValueStore {
         return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 
-    private void applyLockedDescriptors(java.util.Set<LockDescriptor> lockDescriptors) {
+    private void applyLockedDescriptors(Set<LockDescriptor> lockDescriptors) {
         lockDescriptors.stream().flatMap(this::extractCandidateCells).forEach(this::putLockedCell);
     }
 

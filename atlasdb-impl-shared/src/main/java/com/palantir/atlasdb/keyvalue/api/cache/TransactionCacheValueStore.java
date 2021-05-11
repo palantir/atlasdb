@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,4 +46,6 @@ interface TransactionCacheValueStore {
     Map<CellReference, CacheValue> getValueDigest();
 
     Set<CellReference> getHitDigest();
+
+    TransactionCacheValueStore createWithFilteredSnapshot(CommitUpdate commitUpdate);
 }

@@ -24,6 +24,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.watch.CommitUpdate;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.Map;
@@ -79,8 +80,8 @@ public final class TransactionCacheValueStoreImplTest {
 
     @Test
     public void valuesNotCachedForUnwatchedTables() {
-        TransactionCacheValueStore valueStore =
-                new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty()));
+        TransactionCacheValueStore valueStore = new TransactionCacheValueStoreImpl(
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
 
         valueStore.cacheRemoteWrite(TABLE, CELL, VALUE_1);
         assertCacheIsEmpty(valueStore);
@@ -92,7 +93,43 @@ public final class TransactionCacheValueStoreImplTest {
         assertCacheIsEmpty(valueStore);
     }
 
-    private void assertCacheIsEmpty(TransactionCacheValueStore valueStore) {
+    @Test
+    public void createWithFilteredUpdateTransfersWrites() {
+        TransactionCacheValueStore valueStore = cacheWithSingleValue();
+
+        valueStore.cacheRemoteWrite(TABLE, CELL, VALUE_1);
+        assertCacheContainsValue(valueStore, VALUE_1);
+
+        TransactionCacheValueStore filteredValueStore =
+                valueStore.createWithFilteredSnapshot(CommitUpdate.invalidateSome(ImmutableSet.of()));
+        assertCacheContainsValue(filteredValueStore, VALUE_1);
+    }
+
+    @Test
+    public void createWithFilteredUpdateTransfersReads() {
+        TransactionCacheValueStore valueStore = cacheWithSingleValue();
+
+        valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
+        assertCacheContainsValue(valueStore, VALUE_1);
+
+        TransactionCacheValueStore filteredValueStore =
+                valueStore.createWithFilteredSnapshot(CommitUpdate.invalidateSome(ImmutableSet.of()));
+        assertCacheContainsValue(filteredValueStore, VALUE_1);
+    }
+
+    @Test
+    public void newlyLockedCellsAreNotTransferred() {
+        TransactionCacheValueStore valueStore = cacheWithSingleValue();
+
+        valueStore.cacheRemoteReads(TABLE, ImmutableMap.of(CELL, VALUE_1.value().get()));
+        assertCacheContainsValue(valueStore, VALUE_1);
+
+        TransactionCacheValueStore filteredValueStore =
+                valueStore.createWithFilteredSnapshot(CommitUpdate.invalidateAll());
+        assertCacheIsEmpty(filteredValueStore);
+    }
+
+    private static void assertCacheIsEmpty(TransactionCacheValueStore valueStore) {
         assertThat(valueStore.getCachedValues(TABLE, ImmutableSet.of(CELL))).isEmpty();
     }
 
@@ -102,12 +139,13 @@ public final class TransactionCacheValueStoreImplTest {
     }
 
     private static TransactionCacheValueStore emptyCache() {
-        return new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.of(TABLE)));
+        return new TransactionCacheValueStoreImpl(
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.of(TABLE), ImmutableSet.of(TABLE)));
     }
 
     private static TransactionCacheValueStore cacheWithSingleValue() {
-        return new TransactionCacheValueStoreImpl(
-                ValueCacheSnapshotImpl.of(HashMap.of(TABLE_CELL, CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE)));
+        return new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(
+                HashMap.of(TABLE_CELL, CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE), ImmutableSet.of(TABLE)));
     }
 
     private static void assertDigestContainsEntries(

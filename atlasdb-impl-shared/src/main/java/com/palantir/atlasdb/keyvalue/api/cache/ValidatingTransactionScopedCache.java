@@ -24,7 +24,9 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
+import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.Map;
 import java.util.Objects;
@@ -48,7 +50,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
         this.random = new Random();
     }
 
-    static ValidatingTransactionScopedCache create(TransactionScopedCache delegate, double validationProbability) {
+    static TransactionScopedCache create(TransactionScopedCache delegate, double validationProbability) {
         return new ValidatingTransactionScopedCache(delegate, validationProbability);
     }
 
@@ -110,13 +112,18 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
         return delegate.getHitDigest();
     }
 
+    @Override
+    public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
+        return create(delegate.createReadOnlyCache(commitUpdate), validationProbability);
+    }
+
     private boolean shouldValidate() {
         return random.nextDouble() < validationProbability;
     }
 
     private void validateCacheReads(
             TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
-        if (!remoteReads.equals(cacheReads)) {
+        if (!ByteArrayUtilities.areMapsEqual(remoteReads, cacheReads)) {
             // TODO(jshah): make sure that this causes us to disable all caching until restart
             log.error(
                     "Reading from lock watch cache returned a different result to a remote read - this indicates there "

@@ -17,18 +17,19 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -45,7 +46,6 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
     private final LockWatchEventCache eventCache;
-    private final double validationProbability;
     private final CacheStore cacheStore;
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
@@ -53,21 +53,26 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     @VisibleForTesting
-    LockWatchValueScopingCacheImpl(LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
+    LockWatchValueScopingCacheImpl(
+            LockWatchEventCache eventCache,
+            long maxCacheSize,
+            double validationProbability,
+            Set<TableReference> watchedTablesFromSchema) {
         this.eventCache = eventCache;
-        this.valueStore = new ValueStoreImpl(maxCacheSize);
-        this.validationProbability = validationProbability;
+        this.valueStore = new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize);
         this.snapshotStore = new SnapshotStoreImpl();
-        this.cacheStore = new CacheStoreImpl(snapshotStore);
+        this.cacheStore = new CacheStoreImpl(snapshotStore, validationProbability);
     }
 
     public static LockWatchValueScopingCache create(
             LockWatchEventCache eventCache,
             MetricsManager metricsManager,
             long maxCacheSize,
-            double validationProbability) {
+            double validationProbability,
+            Set<TableReference> watchedTablesFromSchema) {
         return ResilientLockWatchProxy.newValueCacheProxy(
-                new LockWatchValueScopingCacheImpl(eventCache, maxCacheSize, validationProbability),
+                new LockWatchValueScopingCacheImpl(
+                        eventCache, maxCacheSize, validationProbability, watchedTablesFromSchema),
                 NoOpLockWatchValueScopingCache.create(),
                 metricsManager);
     }
@@ -86,21 +91,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public synchronized void updateCacheAndRemoveTransactionState(Set<Long> startTimestamps) {
-        try {
-            startTimestamps.forEach(this::processCommitUpdate);
-        } finally {
-            // Remove the timestamps, and if the sequence has not updated, update the snapshot with the reads from
-            // these transactions (there is no guarantee that all the start timestamps have the same sequence).
-            startTimestamps.stream().map(StartTimestamp::of).forEach(startTs -> {
-                snapshotStore
-                        .removeTimestamp(startTs)
-                        .filter(sequence -> currentVersion.isPresent()
-                                && sequence.value() == currentVersion.get().version())
-                        .ifPresent(sequence -> snapshotStore.updateSnapshot(sequence, valueStore.getSnapshot()));
-                cacheStore.removeCache(startTs);
-            });
-        }
+    public synchronized void updateCacheOnCommit(Set<Long> startTimestamps) {
+        startTimestamps.forEach(this::processCommitUpdate);
     }
 
     @Override
@@ -111,27 +103,29 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public TransactionScopedCache createTransactionScopedCache(long startTs) {
-        // Snapshots may be missing due to leader elections. In this case, the transaction will not read from the
-        // cache or publish anything to the cache at commit time.
-        return ValidatingTransactionScopedCache.create(
-                cacheStore.createCache(StartTimestamp.of(startTs)).orElseGet(NoOpTransactionScopedCache::create),
-                validationProbability);
+    public TransactionScopedCache getOrCreateTransactionScopedCache(long startTs) {
+        return cacheStore.getOrCreateCache(StartTimestamp.of(startTs));
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCacheForCommit(long startTs) {
+        return cacheStore.getReadOnlyCache(StartTimestamp.of(startTs));
     }
 
     private synchronized void processCommitUpdate(long startTimestamp) {
-        Optional<TransactionScopedCache> cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
-        cache.ifPresent(TransactionScopedCache::finalise);
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        TransactionScopedCache cache = cacheStore.getCache(startTs);
+        cache.finalise();
 
-        Map<CellReference, CacheValue> cachedValues = cache.map(TransactionScopedCache::getValueDigest)
-                .map(ValueDigest::loadedValues)
-                .orElseGet(ImmutableMap::of);
-
+        Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
         if (cachedValues.isEmpty()) {
             return;
         }
 
-        eventCache.getCommitUpdate(startTimestamp).accept(new Visitor<Void>() {
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
+        cacheStore.createReadOnlyCache(startTs, commitUpdate);
+
+        commitUpdate.accept(new Visitor<Void>() {
             @Override
             public Void invalidateAll() {
                 // This might happen due to an election or if we exceeded the maximum number of events held in

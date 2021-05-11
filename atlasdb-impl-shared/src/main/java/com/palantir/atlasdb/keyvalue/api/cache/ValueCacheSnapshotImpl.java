@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import io.vavr.collection.Map;
@@ -27,7 +28,14 @@ import org.immutables.value.Value;
 public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     Map<CellReference, CacheEntry> values();
 
-    Set<TableReference> enabledTables();
+    Set<TableReference> lockWatchEnabledTables();
+
+    java.util.Set<TableReference> allowedTablesFromSchema();
+
+    @Value.Derived
+    default java.util.Set<TableReference> enabledTables() {
+        return Sets.intersection(lockWatchEnabledTables().toJavaSet(), allowedTablesFromSchema());
+    }
 
     @Override
     default Optional<CacheEntry> getValue(CellReference tableAndCell) {
@@ -45,10 +53,14 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
         return enabledTables().contains(tableReference);
     }
 
-    static ValueCacheSnapshot of(Map<CellReference, CacheEntry> values, Set<TableReference> enabledTables) {
+    static ValueCacheSnapshot of(
+            Map<CellReference, CacheEntry> values,
+            Set<TableReference> enabledTables,
+            java.util.Set<TableReference> allowedTables) {
         return ImmutableValueCacheSnapshotImpl.builder()
                 .values(values)
-                .enabledTables(enabledTables)
+                .lockWatchEnabledTables(enabledTables)
+                .allowedTablesFromSchema(allowedTables)
                 .build();
     }
 }

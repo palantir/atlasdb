@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -69,4 +70,16 @@ public interface TransactionScopedCache {
     ValueDigest getValueDigest();
 
     HitDigest getHitDigest();
+
+    TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate);
+
+    /**
+     * Checks if any values have been read remotely and stored locally for later flushing to the central cache. Note
+     * that this method **will** finalise the cache in order to retrieve the digest; no further reads or writes may
+     * be performed once this is called.
+     */
+    default boolean hasUpdates() {
+        finalise();
+        return !getValueDigest().loadedValues().isEmpty();
+    }
 }

@@ -26,7 +26,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -153,6 +152,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -209,7 +209,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final TimelockService timelockService;
     protected final LockWatchManagerInternal lockWatchManager;
-    protected final Supplier<TransactionScopedCache> cache;
     final KeyValueService keyValueService;
     final AsyncKeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
@@ -289,7 +288,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableLevelMetricsController tableLevelMetricsController) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
-        this.cache = Suppliers.memoize(() -> lockWatchManager.createTransactionScopedCache(startTimeStamp.get()));
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -318,6 +316,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.tableLevelMetricsController = tableLevelMetricsController;
+    }
+
+    protected TransactionScopedCache getCache() {
+        return lockWatchManager.getOrCreateTransactionScopedCache(getTimestamp());
     }
 
     @Override
@@ -777,7 +779,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        return cache.get()
+        return getCache()
                 .get(
                         tableRef,
                         cells,
@@ -788,7 +790,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return scopeToTransaction(cache.get()
+        return scopeToTransaction(getCache()
                 .getAsync(
                         tableRef,
                         cells,
@@ -1584,14 +1586,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
         putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
-        cache.get().delete(tableRef, cells);
+        getCache().delete(tableRef, cells);
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         ensureNoEmptyValues(values);
         putInternal(tableRef, values);
-        cache.get().write(tableRef, values);
+        getCache().write(tableRef, values);
     }
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
@@ -1782,6 +1784,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
                 if (validationNecessaryForInvolvedTablesOnCommit()) {
                     throwIfImmutableTsOrCommitLocksExpired(null);
+                }
+
+                // if the cache has been used, we must work out which values can be flushed to the central cache by
+                // obtaining a commit update, which is obtained via the get commit timestamp request.
+                if (getCache().hasUpdates()) {
+                    timedAndTraced(
+                            "getCommitTimestampForCaching",
+                            () -> timelockService.getCommitTimestamp(
+                                    getStartTimestamp(), LockToken.of(UUID.randomUUID())));
                 }
                 return;
             }

@@ -16,11 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.watch.CommitUpdate;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.Map;
@@ -93,9 +96,41 @@ public final class ValidatingTransactionScopedCacheTest {
                 .hasMessage("Failed lock watch cache validation");
     }
 
+    @Test
+    public void readOnlyCacheAlsoValidates() {
+        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0);
+
+        when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
+
+        validatingCache.get(TABLE, CELLS, valueLoader);
+        verify(valueLoader).apply(TABLE, CELLS);
+
+        TransactionScopedCache readOnlyCache =
+                validatingCache.createReadOnlyCache(CommitUpdate.invalidateSome(ImmutableSet.of()));
+        readOnlyCache.get(TABLE, CELLS, valueLoader);
+        verify(valueLoader, times(2)).apply(TABLE, CELLS);
+    }
+
+    @Test
+    public void differentByteArrayReferencesDoNotCauseValidationToFail() {
+        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0);
+
+        when(valueLoader.apply(TABLE, CELLS))
+                .thenReturn(Futures.immediateFuture(ImmutableMap.of(
+                        CELL_1,
+                        createValue(10).value().get(),
+                        CELL_2,
+                        createValue(20).value().get())));
+        assertThatCode(() -> validatingCache.get(TABLE, CELLS, valueLoader)).doesNotThrowAnyException();
+    }
+
     private static ValueCacheSnapshot snapshotWithSingleValue() {
         return ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE));
+                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)),
+                HashSet.of(TABLE),
+                ImmutableSet.of(TABLE));
     }
 
     private static ListenableFuture<Map<Cell, byte[]>> remoteRead(Set<Cell> cells) {
