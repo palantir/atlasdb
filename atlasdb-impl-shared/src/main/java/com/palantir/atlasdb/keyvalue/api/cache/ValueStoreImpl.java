@@ -124,7 +124,7 @@ final class ValueStoreImpl implements ValueStore {
         return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 
-    private void applyLockedDescriptors(java.util.Set<LockDescriptor> lockDescriptors) {
+    private void applyLockedDescriptors(Set<LockDescriptor> lockDescriptors) {
         lockDescriptors.stream().flatMap(this::extractCandidateCells).forEach(this::putLockedCell);
     }
 
