@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
-import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -57,16 +56,12 @@ public final class LockWatchManagerImplTest {
     @Mock
     private LockWatchReference fromSchema;
 
-    @Mock
-    private Schema schema;
-
     private LockWatchManagerInternal manager;
 
     @Before
     public void before() {
-        when(schema.getLockWatches()).thenReturn(ImmutableSet.of(fromSchema));
         manager = new LockWatchManagerImpl(
-                ImmutableSet.of(schema), lockWatchEventCache, valueScopingCache, lockWatchingService);
+                ImmutableSet.of(fromSchema), lockWatchEventCache, valueScopingCache, lockWatchingService);
     }
 
     @Test

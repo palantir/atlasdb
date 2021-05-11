@@ -40,7 +40,7 @@ public final class CacheStoreImplTest {
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_2),
-                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty()));
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
         assertThat(cacheStore.getOrCreateCache(TIMESTAMP_2))
                 .isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
     }
@@ -52,7 +52,7 @@ public final class CacheStoreImplTest {
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2),
-                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty()));
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
 
         TransactionScopedCache cache1 = cacheStore.getOrCreateCache(TIMESTAMP_1);
         TransactionScopedCache cache2 = cacheStore.getOrCreateCache(TIMESTAMP_2);

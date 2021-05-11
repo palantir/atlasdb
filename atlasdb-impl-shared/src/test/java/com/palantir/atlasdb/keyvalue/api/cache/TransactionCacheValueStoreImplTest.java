@@ -80,8 +80,8 @@ public final class TransactionCacheValueStoreImplTest {
 
     @Test
     public void valuesNotCachedForUnwatchedTables() {
-        TransactionCacheValueStore valueStore =
-                new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty()));
+        TransactionCacheValueStore valueStore = new TransactionCacheValueStoreImpl(
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
 
         valueStore.cacheRemoteWrite(TABLE, CELL, VALUE_1);
         assertCacheIsEmpty(valueStore);
@@ -139,12 +139,13 @@ public final class TransactionCacheValueStoreImplTest {
     }
 
     private static TransactionCacheValueStore emptyCache() {
-        return new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.of(TABLE)));
+        return new TransactionCacheValueStoreImpl(
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.of(TABLE), ImmutableSet.of(TABLE)));
     }
 
     private static TransactionCacheValueStore cacheWithSingleValue() {
-        return new TransactionCacheValueStoreImpl(
-                ValueCacheSnapshotImpl.of(HashMap.of(TABLE_CELL, CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE)));
+        return new TransactionCacheValueStoreImpl(ValueCacheSnapshotImpl.of(
+                HashMap.of(TABLE_CELL, CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE), ImmutableSet.of(TABLE)));
     }
 
     private static void assertDigestContainsEntries(

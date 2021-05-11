@@ -111,7 +111,9 @@ public final class TransactionScopedCacheImplTest {
     @Test
     public void lockedCellsAreNeverCached() {
         TransactionScopedCache cache = TransactionScopedCacheImpl.create(ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked()), HashSet.of(TABLE)));
+                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked()),
+                HashSet.of(TABLE),
+                ImmutableSet.of(TABLE)));
 
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
@@ -248,7 +250,9 @@ public final class TransactionScopedCacheImplTest {
 
     private static ValueCacheSnapshot snapshotWithSingleValue() {
         return ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)), HashSet.of(TABLE));
+                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)),
+                HashSet.of(TABLE),
+                ImmutableSet.of(TABLE));
     }
 
     private static CacheValue createValue(int value) {

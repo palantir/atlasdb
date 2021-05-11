@@ -53,7 +53,7 @@ public final class ValueStoreImplTest {
 
     @Before
     public void before() {
-        valueStore = new ValueStoreImpl(1_000);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 1_000);
     }
 
     @Test
@@ -103,7 +103,7 @@ public final class ValueStoreImplTest {
     @Test
     public void valuesEvictedOnceMaxSizeReached() {
         // size is in bytes; with overhead, this should keep 2 but not three values
-        valueStore = new ValueStoreImpl(300);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300);
         CellReference tableCell2 = CellReference.of(TABLE, CELL_2);
 
         valueStore.applyEvent(WATCH_EVENT);
@@ -117,7 +117,7 @@ public final class ValueStoreImplTest {
 
     @Test
     public void lockedValuesDoNotCountToCacheSize() {
-        valueStore = new ValueStoreImpl(300);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300);
         valueStore.applyEvent(WATCH_EVENT);
         valueStore.applyEvent(LOCK_EVENT);
 
