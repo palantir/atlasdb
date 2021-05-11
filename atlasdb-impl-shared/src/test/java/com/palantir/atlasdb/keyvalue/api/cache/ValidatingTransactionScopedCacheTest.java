@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -109,6 +110,20 @@ public final class ValidatingTransactionScopedCacheTest {
                 validatingCache.createReadOnlyCache(CommitUpdate.invalidateSome(ImmutableSet.of()));
         readOnlyCache.get(TABLE, CELLS, valueLoader);
         verify(valueLoader, times(2)).apply(TABLE, CELLS);
+    }
+
+    @Test
+    public void differentByteArrayReferencesDoNotCauseValidationToFail() {
+        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0);
+
+        when(valueLoader.apply(TABLE, CELLS))
+                .thenReturn(Futures.immediateFuture(ImmutableMap.of(
+                        CELL_1,
+                        createValue(10).value().get(),
+                        CELL_2,
+                        createValue(20).value().get())));
+        assertThatCode(() -> validatingCache.get(TABLE, CELLS, valueLoader)).doesNotThrowAnyException();
     }
 
     private static ValueCacheSnapshot snapshotWithSingleValue() {
