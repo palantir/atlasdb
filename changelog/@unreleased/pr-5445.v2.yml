@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Do not start caching tables via Atlas for tables that have had their watches registered externally (as opposed to via the schema).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5445
