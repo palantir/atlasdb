@@ -68,7 +68,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
         this.lockWatchCache = new LockWatchCacheImpl(eventCache, valueCache);
         this.valueScopingCache = valueCache;
         this.lockWatchingService = lockWatchingService;
-        lockWatchReferences.addAll(this.referencesFromSchema);
+        lockWatchReferences.addAll(referencesFromSchema);
         refreshTask = executorService.scheduleWithFixedDelay(this::registerWatchesWithTimelock, 0, 5, TimeUnit.SECONDS);
     }
 
