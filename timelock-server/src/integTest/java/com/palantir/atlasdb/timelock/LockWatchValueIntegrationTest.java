@@ -70,7 +70,6 @@ public final class LockWatchValueIntegrationTest {
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
-    private NamespacedClients namespace;
     private TransactionManager txnManager;
 
     @Before
@@ -291,10 +290,9 @@ public final class LockWatchValueIntegrationTest {
     }
 
     private void createTransactionManager(double validationProbability) {
-        namespace = CLUSTER.clientForRandomNamespace().throughWireMockProxy();
         txnManager = TimeLockTestUtils.createTransactionManager(
                         CLUSTER,
-                        namespace.namespace(),
+                        Namespace.DEFAULT_NAMESPACE.getName(),
                         AtlasDbRuntimeConfig.defaultRuntimeConfig(),
                         ImmutableAtlasDbConfig.builder()
                                 .lockWatchCaching(LockWatchCachingConfig.builder()
