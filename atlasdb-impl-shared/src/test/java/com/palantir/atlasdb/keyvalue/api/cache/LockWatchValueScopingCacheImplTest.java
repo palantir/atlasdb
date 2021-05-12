@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -33,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchEventCacheImpl;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -87,7 +85,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
     @Before
     public void before() {
-        eventCache = LockWatchEventCacheImpl.create(MetricsManagers.createForTests());
+        eventCache = LockWatchEventCacheImpl.create(metrics);
         valueCache =
                 new LockWatchValueScopingCacheImpl(eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), () -> {}, metrics);
     }
@@ -104,8 +102,6 @@ public final class LockWatchValueScopingCacheImplTest {
         scopedCache.finalise();
         assertThat(scopedCache.getHitDigest().hitCells()).isEmpty();
         assertThat(scopedCache.getValueDigest().loadedValues()).isEmpty();
-
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -121,12 +117,10 @@ public final class LockWatchValueScopingCacheImplTest {
         assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(1)).registerHits(0);
         verify(metrics, times(1)).registerMisses(1);
-        verifyNoMoreInteractions(metrics);
 
         assertThat(getRemotelyReadCells(scopedCache, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(1)).registerHits(1);
         verify(metrics, times(1)).registerMisses(0);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -138,7 +132,6 @@ public final class LockWatchValueScopingCacheImplTest {
         assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1)).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(1)).registerHits(0);
         verify(metrics, times(1)).registerMisses(1);
-        verifyNoMoreInteractions(metrics);
 
         processCommitTimestamp(TIMESTAMP_1, 0L);
         valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_1));
@@ -151,7 +144,6 @@ public final class LockWatchValueScopingCacheImplTest {
         assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1)).isEmpty();
         verify(metrics, times(1)).registerHits(1);
         verify(metrics, times(1)).registerMisses(0);
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -184,7 +176,6 @@ public final class LockWatchValueScopingCacheImplTest {
         assertThat(getRemotelyReadCells(scopedCache1, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(1)).registerHits(1);
         verify(metrics, times(1)).registerMisses(1);
-        verifyNoMoreInteractions(metrics);
 
         // This update has a lock taken out for CELL_1: this means that all reads for it must be remote.
         eventCache.processStartTransactionsUpdate(
@@ -200,12 +191,10 @@ public final class LockWatchValueScopingCacheImplTest {
         assertThat(getRemotelyReadCells(readOnlyCache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(2)).registerHits(1);
         verify(metrics, times(2)).registerMisses(1);
-        verifyNoMoreInteractions(metrics);
 
         TransactionScopedCache scopedCache2 = valueCache.getOrCreateTransactionScopedCache(TIMESTAMP_2);
         assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);
         // noop cache
-        verifyNoMoreInteractions(metrics);
     }
 
     @Test
@@ -220,7 +209,6 @@ public final class LockWatchValueScopingCacheImplTest {
         assertThat(scopedCache1.getHitDigest().hitCells()).isEmpty();
         verify(metrics, times(1)).registerHits(0);
         verify(metrics, times(1)).registerMisses(2);
-        verifyNoMoreInteractions(metrics);
 
         eventCache.processStartTransactionsUpdate(
                 ImmutableSet.of(TIMESTAMP_2), LockWatchStateUpdate.success(LEADER, 1L, ImmutableList.of(LOCK_EVENT)));
@@ -231,13 +219,11 @@ public final class LockWatchValueScopingCacheImplTest {
                 .containsExactlyInAnyOrder(CELL_1, CELL_2);
         verify(metrics, times(1)).registerHits(1);
         verify(metrics, times(2)).registerMisses(2);
-        verifyNoMoreInteractions(metrics);
 
         assertThat(getRemotelyReadCells(scopedCache2, TABLE, CELL_1, CELL_2, CELL_3))
                 .containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(1)).registerHits(2);
         verify(metrics, times(1)).registerMisses(1);
-        verifyNoMoreInteractions(metrics);
 
         processCommitTimestamp(TIMESTAMP_2, 1L);
         valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_2));
@@ -252,13 +238,11 @@ public final class LockWatchValueScopingCacheImplTest {
                 .containsExactlyInAnyOrder(CELL_1);
         verify(metrics, times(2)).registerHits(2);
         verify(metrics, times(2)).registerMisses(1);
-        verifyNoMoreInteractions(metrics);
 
         assertThat(getRemotelyReadCells(scopedCache3, TABLE, CELL_1, CELL_2, CELL_3))
                 .isEmpty();
         verify(metrics, times(1)).registerHits(3);
         verify(metrics, times(1)).registerMisses(0);
-        verifyNoMoreInteractions(metrics);
 
         scopedCache3.finalise();
         assertThat(scopedCache3.getValueDigest().loadedValues())
@@ -339,8 +323,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
     @Test
     public void failedValidationCausesCacheToFallback() {
-        valueCache = LockWatchValueScopingCacheImpl.create(
-                eventCache, MetricsManagers.createForTests(), 20_000, 1.0, ImmutableSet.of(TABLE));
+        valueCache = LockWatchValueScopingCacheImpl.create(eventCache, metrics, 20_000, 1.0, ImmutableSet.of(TABLE));
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2), LOCK_WATCH_SNAPSHOT);
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_1));

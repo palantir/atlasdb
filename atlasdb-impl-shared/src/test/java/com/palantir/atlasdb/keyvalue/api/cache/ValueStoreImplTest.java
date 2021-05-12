@@ -19,6 +19,10 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -49,11 +53,13 @@ public final class ValueStoreImplTest {
     private static final LockWatchEvent WATCH_EVENT = createWatchEvent();
     private static final LockWatchEvent UNLOCK_EVENT = createUnlockEvent();
 
+    private final CacheMetrics metrics = mock(CacheMetrics.class);
+
     private ValueStore valueStore;
 
     @Before
     public void before() {
-        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 1_000);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 1_000, metrics);
     }
 
     @Test
@@ -62,12 +68,16 @@ public final class ValueStoreImplTest {
         valueStore.putValue(TABLE_CELL, VALUE_1);
         valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_3);
 
+        verify(metrics, times(2)).increaseCacheSize(anyLong());
+
         assertExpectedValue(CELL_1, CacheEntry.unlocked(VALUE_1));
         assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_3));
 
         valueStore.applyEvent(LOCK_EVENT);
         assertExpectedValue(CELL_1, CacheEntry.locked());
         assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_3));
+
+        verify(metrics).decreaseCacheSize(anyLong());
     }
 
     @Test
@@ -103,13 +113,17 @@ public final class ValueStoreImplTest {
     @Test
     public void valuesEvictedOnceMaxSizeReached() {
         // size is in bytes; with overhead, this should keep 2 but not three values
-        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
         CellReference tableCell2 = CellReference.of(TABLE, CELL_2);
 
         valueStore.applyEvent(WATCH_EVENT);
         valueStore.putValue(TABLE_CELL, VALUE_1);
         valueStore.putValue(tableCell2, VALUE_2);
+        verify(metrics, times(2)).increaseCacheSize(anyLong());
+
         valueStore.putValue(CellReference.of(TABLE, CELL_3), VALUE_3);
+        verify(metrics, times(3)).increaseCacheSize(anyLong());
+        verify(metrics).decreaseCacheSize(anyLong());
 
         // Caffeine explicitly does *not* implement simple LRU, so we cannot reason on the actual entries here.
         assertThat(((ValueCacheSnapshotImpl) valueStore.getSnapshot()).values()).hasSize(2);
@@ -117,7 +131,7 @@ public final class ValueStoreImplTest {
 
     @Test
     public void lockedValuesDoNotCountToCacheSize() {
-        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
         valueStore.applyEvent(WATCH_EVENT);
         valueStore.applyEvent(LOCK_EVENT);
 
@@ -125,6 +139,19 @@ public final class ValueStoreImplTest {
         valueStore.putValue(CellReference.of(TABLE, CELL_3), VALUE_3);
         assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_2));
         assertExpectedValue(CELL_3, CacheEntry.unlocked(VALUE_3));
+
+        verify(metrics, times(2)).increaseCacheSize(anyLong());
+    }
+
+    @Test
+    public void metricsCorrectlyCountOverlappingPuts() {
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
+        valueStore.applyEvent(WATCH_EVENT);
+
+        valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
+        valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
+        verify(metrics, times(2)).increaseCacheSize(anyLong());
+        verify(metrics).decreaseCacheSize(anyLong());
     }
 
     private void assertPutThrows(CacheValue value) {

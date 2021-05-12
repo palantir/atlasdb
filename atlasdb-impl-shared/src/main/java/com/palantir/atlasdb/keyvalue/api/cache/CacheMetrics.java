@@ -18,15 +18,30 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.AccumulatingValueMetric;
+import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public final class CacheMetrics {
     private final AccumulatingValueMetric hits;
     private final AccumulatingValueMetric misses;
+    private final AccumulatingValueMetric cacheSize;
+    private final CurrentValueMetric<Integer> eventCacheValidationFailures;
+    private final CurrentValueMetric<Integer> valueCacheValidationFailures;
+    private final MetricsManager metricsManager;
 
-    private CacheMetrics(AccumulatingValueMetric hits, AccumulatingValueMetric misses) {
+    private CacheMetrics(
+            AccumulatingValueMetric hits,
+            AccumulatingValueMetric misses,
+            AccumulatingValueMetric cacheSize,
+            CurrentValueMetric<Integer> eventCacheValidationFailures,
+            CurrentValueMetric<Integer> valueCacheValidationFailures,
+            MetricsManager metricsManager) {
         this.hits = hits;
         this.misses = misses;
+        this.cacheSize = cacheSize;
+        this.eventCacheValidationFailures = eventCacheValidationFailures;
+        this.valueCacheValidationFailures = valueCacheValidationFailures;
+        this.metricsManager = metricsManager;
     }
 
     public static CacheMetrics create(MetricsManager metricsManager) {
@@ -34,7 +49,18 @@ public final class CacheMetrics {
                 metricsManager.registerOrGetGauge(
                         CacheMetrics.class, AtlasDbMetricNames.CACHE_HITS, AccumulatingValueMetric::new),
                 metricsManager.registerOrGetGauge(
-                        CacheMetrics.class, AtlasDbMetricNames.CACHE_MISSES, AccumulatingValueMetric::new));
+                        CacheMetrics.class, AtlasDbMetricNames.CACHE_MISSES, AccumulatingValueMetric::new),
+                metricsManager.registerOrGetGauge(
+                        CacheMetrics.class, AtlasDbMetricNames.CACHE_SIZE, AccumulatingValueMetric::new),
+                metricsManager.registerOrGetGauge(
+                        CacheMetrics.class,
+                        AtlasDbMetricNames.EVENT_CACHE_VALIDATION_FAILURES,
+                        CurrentValueMetric::new),
+                metricsManager.registerOrGetGauge(
+                        CacheMetrics.class,
+                        AtlasDbMetricNames.VALUE_CACHE_VALIDATION_FAILURES,
+                        CurrentValueMetric::new),
+                metricsManager);
     }
 
     public void registerHits(long number) {
@@ -43,5 +69,28 @@ public final class CacheMetrics {
 
     public void registerMisses(long number) {
         misses.accumulateValue(number);
+    }
+
+    public void increaseCacheSize(long added) {
+        cacheSize.accumulateValue(added);
+    }
+
+    public void decreaseCacheSize(long removed) {
+        cacheSize.accumulateValue(-removed);
+    }
+
+    public void registerEventCacheValidationFailure() {
+        eventCacheValidationFailures.setValue(1);
+    }
+
+    public void registerValueCacheValidationFailure() {
+        valueCacheValidationFailures.setValue(1);
+    }
+
+    public void setMaximumCacheSize(long maximumCacheSize) {
+        metricsManager.registerOrGetGauge(
+                CacheMetrics.class,
+                AtlasDbMetricNames.CACHE_RATIO_USED,
+                () -> () -> cacheSize.getValue() / (double) maximumCacheSize);
     }
 }

@@ -99,4 +99,8 @@ public final class AtlasDbMetricNames {
 
     public static final String CACHE_HITS = "lockWatchCacheHits";
     public static final String CACHE_MISSES = "lockWatchCacheMisses";
+    public static final String CACHE_SIZE = "lockWatchCacheSize";
+    public static final String CACHE_RATIO_USED = "lockWatchCacheRatioUsed";
+    public static final String EVENT_CACHE_VALIDATION_FAILURES = "eventCacheFallbackCount";
+    public static final String VALUE_CACHE_VALIDATION_FAILURES = "valueCacheFallbackCount";
 }

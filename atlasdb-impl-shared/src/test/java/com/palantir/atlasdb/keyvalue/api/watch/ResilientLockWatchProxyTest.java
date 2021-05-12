@@ -28,11 +28,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -45,26 +44,27 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class ResilientLockWatchProxyTest {
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
-
     @Mock
     private LockWatchEventCache defaultCache;
 
     @Mock
     private LockWatchEventCache fallbackCache;
 
+    @Mock
+    private CacheMetrics metrics;
+
     private LockWatchEventCache proxyEventCache;
 
     @Before
     public void before() {
-        proxyEventCache = ResilientLockWatchProxy.newEventCacheProxy(defaultCache, fallbackCache, metricsManager);
+        proxyEventCache = ResilientLockWatchProxy.newEventCacheProxy(defaultCache, fallbackCache, metrics);
     }
 
     @Test
     public void valueCacheProxyThrowsIfDelegateNotSet() {
         LockWatchValueScopingCache fallbackCache = mock(LockWatchValueScopingCache.class);
         ResilientLockWatchProxy<LockWatchValueScopingCache> proxyFactory =
-                ResilientLockWatchProxy.newValueCacheProxyFactory(fallbackCache, metricsManager);
+                ResilientLockWatchProxy.newValueCacheProxyFactory(fallbackCache, metrics);
 
         assertThatThrownBy(proxyFactory::newValueCacheProxy)
                 .isExactlyInstanceOf(SafeNullPointerException.class)
@@ -76,7 +76,7 @@ public final class ResilientLockWatchProxyTest {
         LockWatchValueScopingCache defaultCache = mock(LockWatchValueScopingCache.class);
         LockWatchValueScopingCache fallbackCache = mock(LockWatchValueScopingCache.class);
         ResilientLockWatchProxy<LockWatchValueScopingCache> proxyFactory =
-                ResilientLockWatchProxy.newValueCacheProxyFactory(fallbackCache, metricsManager);
+                ResilientLockWatchProxy.newValueCacheProxyFactory(fallbackCache, metrics);
         proxyFactory.setDelegate(defaultCache);
         LockWatchValueScopingCache proxyCache = proxyFactory.newValueCacheProxy();
 
