@@ -81,6 +81,7 @@ public final class LockWatchValueIntegrationTest {
     @Before
     public void before() {
         createTransactionManager(0.0);
+        awaitTableWatched();
     }
 
     @Test
@@ -221,6 +222,7 @@ public final class LockWatchValueIntegrationTest {
         loadValue();
 
         CLUSTER.failoverToNewLeader(Namespace.DEFAULT_NAMESPACE.getName());
+        awaitTableWatched();
 
         txnManager.runTaskThrowOnConflict(txn -> {
             assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
@@ -251,6 +253,24 @@ public final class LockWatchValueIntegrationTest {
             assertLoadedValues(txn, ImmutableMap.of());
             return null;
         });
+    }
+
+    private void awaitTableWatched() {
+        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager();
+        Awaitility.await("Watch event received")
+                .atMost(Duration.ofSeconds(5))
+                .pollDelay(Duration.ofMillis(100))
+                .until(() -> {
+                    // Empty transaction will still get an update for lock watches
+                    txnManager.runTaskThrowOnConflict(txn -> null);
+                    return lockWatchManager
+                            .getCache()
+                            .getEventCache()
+                            .lastKnownVersion()
+                            .map(LockWatchVersion::version)
+                            .filter(v -> v > -1)
+                            .isPresent();
+                });
     }
 
     private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {
