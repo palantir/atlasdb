@@ -49,6 +49,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -255,24 +256,6 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    private void awaitTableWatched() {
-        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager();
-        Awaitility.await("Watch event received")
-                .atMost(Duration.ofSeconds(5))
-                .pollDelay(Duration.ofMillis(100))
-                .until(() -> {
-                    // Empty transaction will still get an update for lock watches
-                    txnManager.runTaskThrowOnConflict(txn -> null);
-                    return lockWatchManager
-                            .getCache()
-                            .getEventCache()
-                            .lastKnownVersion()
-                            .map(LockWatchVersion::version)
-                            .filter(v -> v > -1)
-                            .isPresent();
-                });
-    }
-
     private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {
         txnManager.getKeyValueService().put(TABLE_REF, values, transaction.getTimestamp() - 2);
         txnManager
@@ -326,8 +309,20 @@ public final class LockWatchValueIntegrationTest {
      * behaviour.
      */
     private void awaitUnlock() {
+        awaitLockWatches(version -> version % 2 == 0);
+    }
+
+    /**
+     * The lock watch manager registers watch events every five seconds - therefore, tables may not be watched
+     * immediately after a Timelock leader election.
+     */
+    private void awaitTableWatched() {
+        awaitLockWatches(version -> version > -1);
+    }
+
+    private void awaitLockWatches(Predicate<Long> versionPredicate) {
         LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager();
-        Awaitility.await("Unlock event recieved")
+        Awaitility.await()
                 .atMost(Duration.ofSeconds(5))
                 .pollDelay(Duration.ofMillis(100))
                 .until(() -> {
@@ -338,7 +333,7 @@ public final class LockWatchValueIntegrationTest {
                             .getEventCache()
                             .lastKnownVersion()
                             .map(LockWatchVersion::version)
-                            .filter(v -> (v % 2) == 0)
+                            .filter(versionPredicate)
                             .isPresent();
                 });
     }
