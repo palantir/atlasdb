@@ -361,6 +361,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+        if (!columnSelection.allColumnsSelected()) {
+            Set<Cell> cells = Streams.stream(rows)
+                    .flatMap(
+                            row -> columnSelection.getSelectedColumns().stream().map(col -> Cell.create(row, col)))
+                    .collect(Collectors.toSet());
+            return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(get(tableRef, cells)));
+        }
+
         Timer.Context timer = getTimer("getRows").time();
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
@@ -368,6 +376,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         hasReads = true;
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
+
         Map<Cell, Value> rawResults =
                 new HashMap<>(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         NavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);
