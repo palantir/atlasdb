@@ -216,8 +216,18 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Test
-    public void blah() {
-        System.out.println("la");
+    public void leaderElectionFlushesCache() {
+        putValue();
+        loadValue();
+
+        CLUSTER.failoverToNewLeader(Namespace.DEFAULT_NAMESPACE.getName());
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
+            assertHitValues(txn, ImmutableSet.of());
+            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.of(DATA_1)));
+            return null;
+        });
     }
 
     @Test
