@@ -57,6 +57,7 @@ public final class ValidatingTransactionScopedCacheTest {
             .put(CELL_2, VALUE_2.value().get())
             .build();
 
+    private final CacheMetrics metrics = mock(CacheMetrics.class);
     private BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader;
 
     @Before
@@ -66,7 +67,7 @@ public final class ValidatingTransactionScopedCacheTest {
 
     @Test
     public void validationCausesAllCellsToBeReadRemotely() {
-        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
         when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
@@ -77,7 +78,7 @@ public final class ValidatingTransactionScopedCacheTest {
 
     @Test
     public void validationDoesNotReadFromRemoteWhenItShouldNotValidate() {
-        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 0.0, () -> {});
 
         validatingCache.get(TABLE, ImmutableSet.of(CELL_1), valueLoader);
@@ -100,7 +101,7 @@ public final class ValidatingTransactionScopedCacheTest {
 
     @Test
     public void readOnlyCacheAlsoValidates() {
-        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
         when(valueLoader.apply(TABLE, CELLS)).thenReturn(remoteRead(CELLS));
@@ -116,7 +117,7 @@ public final class ValidatingTransactionScopedCacheTest {
 
     @Test
     public void differentByteArrayReferencesDoNotCauseValidationToFail() {
-        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
         when(valueLoader.apply(TABLE, CELLS))

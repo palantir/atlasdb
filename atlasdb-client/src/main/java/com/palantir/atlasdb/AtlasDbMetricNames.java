@@ -96,4 +96,7 @@ public final class AtlasDbMetricNames {
 
     public static final String LEGACY_READ = "legacyRead";
     public static final String LEGACY_WRITE = "legacyWrite";
+
+    public static final String CACHE_HITS = "lockWatchCacheHits";
+    public static final String CACHE_MISSES = "lockWatchCacheMisses";
 }
