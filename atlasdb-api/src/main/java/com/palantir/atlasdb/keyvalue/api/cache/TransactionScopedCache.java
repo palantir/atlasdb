@@ -18,11 +18,15 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * The {@link LockWatchValueScopingCache} will provide one of these to every (relevant) transaction, and this will
@@ -60,6 +64,13 @@ public interface TransactionScopedCache {
             TableReference tableReference,
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
+
+    NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
+            Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader);
 
     /**
      * This method should be called before retrieving the value or hit digest, as it guarantees that no more reads or

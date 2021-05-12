@@ -361,14 +361,21 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
-        if (!columnSelection.allColumnsSelected()) {
-            Set<Cell> cells = Streams.stream(rows)
-                    .flatMap(
-                            row -> columnSelection.getSelectedColumns().stream().map(col -> Cell.create(row, col)))
-                    .collect(Collectors.toSet());
-            return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(get(tableRef, cells)));
+        if (columnSelection.allColumnsSelected()) {
+            return getRowsInternal(tableRef, rows, columnSelection);
         }
+        return getCache()
+                .getRows(
+                        tableRef,
+                        rows,
+                        columnSelection,
+                        cells -> AtlasFutures.getUnchecked(getInternal(
+                                "getRows", tableRef, cells, immediateKeyValueService, immediateTransactionService)),
+                        unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
+    }
 
+    private NavigableMap<byte[], RowResult<byte[]>> getRowsInternal(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
         Timer.Context timer = getTimer("getRows").time();
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
@@ -376,7 +383,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         hasReads = true;
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
-
         Map<Cell, Value> rawResults =
                 new HashMap<>(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         NavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);

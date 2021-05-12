@@ -18,11 +18,15 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public final class ReadOnlyTransactionScopedCache implements TransactionScopedCache {
     private final TransactionScopedCache delegate;
@@ -59,6 +63,16 @@ public final class ReadOnlyTransactionScopedCache implements TransactionScopedCa
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         return delegate.getAsync(tableReference, cells, valueLoader);
+    }
+
+    @Override
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
+            Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
+        return delegate.getRows(tableRef, rows, columnSelection, cellLoader, rowLoader);
     }
 
     @Override

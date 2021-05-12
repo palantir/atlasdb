@@ -17,11 +17,15 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
@@ -29,10 +33,14 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,6 +110,28 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     }
 
     @Override
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
+            Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
+        if (shouldValidate()) {
+            NavigableMap<byte[], RowResult<byte[]>> remoteReads = rowLoader.apply(rows);
+            NavigableMap<byte[], RowResult<byte[]>> cacheReads =
+                    delegate.getRows(tableRef, rows, columnSelection, cellLoader, rowsToRead -> {
+                        SortedSet<byte[]> toReadNavigable = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
+                        rowsToRead.forEach(toReadNavigable::add);
+                        return Maps.filterKeys(remoteReads, toReadNavigable::contains);
+                    });
+            validateCacheRowReads(tableRef, remoteReads, cacheReads);
+            return cacheReads;
+        } else {
+            return delegate.getRows(tableRef, rows, columnSelection, cellLoader, rowLoader);
+        }
+    }
+
+    @Override
     public void finalise() {
         delegate.finalise();
     }
@@ -134,6 +164,21 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
                     UnsafeArg.of("table", tableReference),
                     UnsafeArg.of("remoteReads", remoteReads),
                     UnsafeArg.of("cacheReads", cacheReads));
+            failureCallback.run();
+            throw new TransactionLockWatchFailedException(
+                    "Failed lock watch cache validation - will retry without caching");
+        }
+    }
+
+    private void validateCacheRowReads(
+            TableReference tableReference,
+            NavigableMap<byte[], RowResult<byte[]>> remoteReads,
+            NavigableMap<byte[], RowResult<byte[]>> cacheReads) {
+        if (!ByteArrayUtilities.areRowResultsEqual(remoteReads, cacheReads)) {
+            log.error(
+                    "Reading from lock watch cache returned a different result to a remote read - this indicates there "
+                            + "is a corruption bug in the caching logic",
+                    UnsafeArg.of("table", tableReference));
             failureCallback.run();
             throw new TransactionLockWatchFailedException(
                     "Failed lock watch cache validation - will retry without caching");
