@@ -17,9 +17,9 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -35,16 +35,17 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
     private static final Logger log = LoggerFactory.getLogger(ResilientLockWatchProxy.class);
 
     public static LockWatchEventCache newEventCacheProxy(
-            LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache, MetricsManager metricsManager) {
+            LockWatchEventCache defaultCache, LockWatchEventCache fallbackCache, CacheMetrics metrics) {
         return (LockWatchEventCache) Proxy.newProxyInstance(
                 LockWatchEventCache.class.getClassLoader(),
                 new Class<?>[] {LockWatchEventCache.class},
-                new ResilientLockWatchProxy<>(defaultCache, fallbackCache, metricsManager, "eventCacheFallbackCount"));
+                new ResilientLockWatchProxy<>(
+                        defaultCache, fallbackCache, metrics::registerEventCacheValidationFailure));
     }
 
     public static ResilientLockWatchProxy<LockWatchValueScopingCache> newValueCacheProxyFactory(
-            LockWatchValueScopingCache fallbackCache, MetricsManager metricsManager) {
-        return new ResilientLockWatchProxy<>(null, fallbackCache, metricsManager, "valueCacheFallbackCount");
+            LockWatchValueScopingCache fallbackCache, CacheMetrics metrics) {
+        return new ResilientLockWatchProxy<>(null, fallbackCache, metrics::registerValueCacheValidationFailure);
     }
 
     /**
@@ -59,13 +60,14 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
     }
 
     private final T fallbackCache;
+    private final Runnable failureCallback;
     private volatile boolean hasFallenBack;
     private volatile T delegate;
 
-    private ResilientLockWatchProxy(T defaultCache, T fallbackCache, MetricsManager metricsManager, String metricName) {
+    private ResilientLockWatchProxy(T defaultCache, T fallbackCache, Runnable failureCallback) {
         this.delegate = defaultCache;
         this.fallbackCache = fallbackCache;
-        metricsManager.registerOrGetGauge(ResilientLockWatchProxy.class, metricName, () -> () -> hasFallenBack ? 1 : 0);
+        this.failureCallback = failureCallback;
     }
 
     @Override
@@ -99,6 +101,7 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
     public void fallback() {
         hasFallenBack = true;
         delegate = fallbackCache;
+        failureCallback.run();
     }
 
     public void setDelegate(T delegate) {

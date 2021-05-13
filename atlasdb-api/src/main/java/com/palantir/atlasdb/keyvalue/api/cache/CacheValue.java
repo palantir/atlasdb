@@ -39,6 +39,10 @@ public final class CacheValue {
         return new CacheValue(Optional.empty());
     }
 
+    public int size() {
+        return value.map(bytes -> bytes.length).orElse(0);
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof CacheValue)) {

@@ -36,14 +36,16 @@ import org.immutables.value.Value;
 @ThreadSafe
 final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
+    private final CacheMetrics metrics;
     private volatile boolean finalised = false;
 
-    private TransactionScopedCacheImpl(TransactionCacheValueStore valueStore) {
+    private TransactionScopedCacheImpl(TransactionCacheValueStore valueStore, CacheMetrics metrics) {
         this.valueStore = valueStore;
+        this.metrics = metrics;
     }
 
-    static TransactionScopedCache create(ValueCacheSnapshot snapshot) {
-        return new TransactionScopedCacheImpl(new TransactionCacheValueStoreImpl(snapshot));
+    static TransactionScopedCache create(ValueCacheSnapshot snapshot, CacheMetrics metrics) {
+        return new TransactionScopedCacheImpl(new TransactionCacheValueStoreImpl(snapshot), metrics);
     }
 
     @Override
@@ -106,7 +108,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
 
     @Override
     public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
-        return new TransactionScopedCacheImpl(valueStore.createWithFilteredSnapshot(commitUpdate));
+        return new TransactionScopedCacheImpl(valueStore.createWithFilteredSnapshot(commitUpdate), metrics);
     }
 
     @Override
@@ -141,6 +143,8 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private synchronized CacheLookupResult cacheLookup(TableReference table, Set<Cell> cells) {
         Map<Cell, CacheValue> cachedValues = valueStore.getCachedValues(table, cells);
         Set<Cell> uncachedCells = Sets.difference(cells, cachedValues.keySet());
+        metrics.registerHits(cachedValues.size());
+        metrics.registerMisses(uncachedCells.size());
         return CacheLookupResult.of(cachedValues, uncachedCells);
     }
 

@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
@@ -84,13 +85,10 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
         Set<TableReference> watchedTablesFromSchema = referencesFromSchema.stream()
                 .map(schema -> schema.accept(LockWatchReferencesVisitor.INSTANCE))
                 .collect(Collectors.toSet());
-        LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metricsManager);
+        CacheMetrics metrics = CacheMetrics.create(metricsManager);
+        LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics);
         LockWatchValueScopingCache valueCache = LockWatchValueScopingCacheImpl.create(
-                eventCache,
-                metricsManager,
-                config.cacheSize(),
-                config.validationProbability(),
-                watchedTablesFromSchema);
+                eventCache, metrics, config.cacheSize(), config.validationProbability(), watchedTablesFromSchema);
         return new LockWatchManagerImpl(referencesFromSchema, eventCache, valueCache, lockWatchingService);
     }
 
