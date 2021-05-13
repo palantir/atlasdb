@@ -277,6 +277,7 @@ public final class LockWatchValueIntegrationTest {
             NavigableMap<byte[], RowResult<byte[]>> remoteRead = txn.getRows(TABLE_REF, rows, columns);
             txn.delete(TABLE_REF, ImmutableSet.of(CELL_1));
             assertHitValues(txn, ImmutableSet.of());
+            // we loaded all 4 values, but since w deleted one of them, it will not be in the digest
             assertLoadedValues(
                     txn,
                     ImmutableMap.of(
@@ -290,14 +291,17 @@ public final class LockWatchValueIntegrationTest {
         });
 
         awaitUnlock();
+        // truncate the table to verify we are really using the cached values
         truncateTable();
 
         txnManager.runTaskThrowOnConflict(txn -> {
             NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
+            // we read the values previously cached values
             assertHitValues(
                     txn,
                     ImmutableSet.of(
                             CellReference.of(TABLE_REF, CELL_2), CellReference.of(TABLE_REF, CELL_3), TABLE_CELL_4));
+            // we weren't able to cache our own write so we look this up
             assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
             return read;
         });
