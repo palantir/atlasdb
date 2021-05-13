@@ -164,7 +164,7 @@ public final class TransactionScopedCacheImplTest {
                         CacheEntry.unlocked(createValue(createCell(2, 1)))),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshot);
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshot, metrics);
 
         // add a pesky double row to make sure we do not lookup twice
         ImmutableList<byte[]> rowsAndCols =
@@ -220,7 +220,7 @@ public final class TransactionScopedCacheImplTest {
                         CacheEntry.unlocked(createValue(createCell(1, 3)))),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshot);
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshot, metrics);
 
         ImmutableList<byte[]> rowsAndCols = ImmutableList.of(createBytes(1), createBytes(2));
         ColumnSelection columns = ColumnSelection.create(rowsAndCols);
@@ -262,7 +262,7 @@ public final class TransactionScopedCacheImplTest {
                         CacheEntry.unlocked(CacheValue.empty())),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshot);
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshot, metrics);
 
         ImmutableList<byte[]> rowsAndCols = ImmutableList.of(createBytes(1), createBytes(2), createBytes(3));
         ColumnSelection columns = ColumnSelection.create(rowsAndCols);
@@ -285,7 +285,7 @@ public final class TransactionScopedCacheImplTest {
 
     @Test
     public void getRowsDoesNotBreakOnEmptyRowsAndCachesThemCorrectly() {
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
         ImmutableList<byte[]> rowsAndCols = ImmutableList.of(createBytes(2), createBytes(3));
         ColumnSelection columns = ColumnSelection.create(rowsAndCols);

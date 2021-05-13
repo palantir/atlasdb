@@ -144,7 +144,7 @@ public final class ValidatingTransactionScopedCacheTest {
                 HashMap.of(CellReference.of(TABLE, createCell(1, 1)), CacheEntry.unlocked(VALUE_1)),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
-        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshot);
+        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshot, metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
         ImmutableList<byte[]> rowsAndCols = ImmutableList.of(createBytes(1), createBytes(2));
@@ -173,7 +173,7 @@ public final class ValidatingTransactionScopedCacheTest {
                 HashMap.of(CellReference.of(TABLE, createCell(1, 1)), CacheEntry.unlocked(VALUE_1)),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
-        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshot);
+        TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshot, metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
 
         ImmutableList<byte[]> rowsAndCols = ImmutableList.of(createBytes(1));
