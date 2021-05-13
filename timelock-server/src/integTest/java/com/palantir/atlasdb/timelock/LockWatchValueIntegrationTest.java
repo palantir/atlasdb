@@ -280,8 +280,6 @@ public final class LockWatchValueIntegrationTest {
             assertLoadedValues(
                     txn,
                     ImmutableMap.of(
-                            TABLE_CELL_1,
-                            CacheValue.of(DATA_1),
                             CellReference.of(TABLE_REF, CELL_2),
                             CacheValue.of(DATA_2),
                             CellReference.of(TABLE_REF, CELL_3),
@@ -292,7 +290,7 @@ public final class LockWatchValueIntegrationTest {
         });
 
         awaitUnlock();
-        disableTable();
+        truncateTable();
 
         txnManager.runTaskThrowOnConflict(txn -> {
             NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
@@ -350,6 +348,10 @@ public final class LockWatchValueIntegrationTest {
      */
     private void disableTable() {
         txnManager.getKeyValueService().dropTable(TABLE_REF);
+    }
+
+    private void truncateTable() {
+        txnManager.getKeyValueService().truncateTable(TABLE_REF);
     }
 
     /**
