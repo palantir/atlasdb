@@ -138,10 +138,14 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
             }
         });
 
-        Map<Cell, byte[]> cellLookups =
-                processRemoteRead(tableRef, cached.cacheHits(), missedCells, cellLoader.apply(missedCells));
+        Map<Cell, byte[]> remoteDirectRead = missedCells.isEmpty() ? ImmutableMap.of() : cellLoader.apply(missedCells);
+        Map<Cell, byte[]> cellLookups = processRemoteRead(tableRef, cached.cacheHits(), missedCells, remoteDirectRead);
+
+        NavigableMap<byte[], RowResult<byte[]>> remoteRowRead = completelyMissedRows.isEmpty()
+                ? new TreeMap<>(UnsignedBytes.lexicographicalComparator())
+                : rowLoader.apply(completelyMissedRows);
         NavigableMap<byte[], RowResult<byte[]>> rowReads =
-                processRemoteReadRows(tableRef, completelyMissedRowsCells, rowLoader.apply(completelyMissedRows));
+                processRemoteReadRows(tableRef, completelyMissedRowsCells, remoteRowRead);
 
         rowReads.putAll(RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(cellLookups)));
         return rowReads;

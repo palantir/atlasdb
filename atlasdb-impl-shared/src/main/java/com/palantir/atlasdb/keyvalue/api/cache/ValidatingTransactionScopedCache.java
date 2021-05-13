@@ -35,6 +35,7 @@ import com.palantir.logsafe.UnsafeArg;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
@@ -123,10 +124,10 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
                     rows,
                     columnSelection,
                     cellsToRead -> KeyedStream.of(cellsToRead)
-                            .map(cell -> remoteReads
-                                    .get(cell.getRowName())
-                                    .getColumns()
-                                    .get(cell.getColumnName()))
+                            .map(cell -> Optional.ofNullable(remoteReads.get(cell.getRowName()))
+                                    .map(RowResult::getColumns)
+                                    .map(col -> col.get(cell.getColumnName()))
+                                    .orElse(null))
                             .filter(Objects::nonNull)
                             .collectToMap(),
                     rowsToRead -> {

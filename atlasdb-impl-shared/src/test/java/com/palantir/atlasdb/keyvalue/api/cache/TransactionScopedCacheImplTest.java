@@ -54,7 +54,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
@@ -183,6 +185,22 @@ public final class TransactionScopedCacheImplTest {
             assertThat(cols.size()).isEqualTo(3);
             cols.forEach((col, val) -> assertThat(val).containsExactly(EncodingUtils.add(row, col)));
         });
+
+        AtomicInteger additionalLookups = new AtomicInteger();
+        cache.getRows(
+                TABLE,
+                rowsAndCols,
+                columns,
+                cells -> {
+                    additionalLookups.incrementAndGet();
+                    return loadCells(cells, directLookups);
+                },
+                rows -> {
+                    additionalLookups.incrementAndGet();
+                    return loadRows(rows, columns, rowLookups);
+                });
+        // all reads were cached after first call
+        assertThat(additionalLookups).hasValue(0);
     }
 
     @Test
@@ -256,6 +274,29 @@ public final class TransactionScopedCacheImplTest {
         assertThat(rowLookups).isEmpty();
         assertThat(lookup.size()).isEqualTo(1);
         assertThat(lookup.get(createBytes(2)).getOnlyColumnValue()).containsExactly(createBytes(onlyCell));
+    }
+
+    @Test
+    public void getRowsDoesNotBreakOnEmptyRowsAndCachesThemCorrectly() {
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+
+        ImmutableList<byte[]> rowsAndCols = ImmutableList.of(createBytes(2), createBytes(3));
+        ColumnSelection columns = ColumnSelection.create(rowsAndCols);
+
+        Multiset<Cell> directLookups = HashMultiset.create();
+
+        AtomicInteger rowLookups = new AtomicInteger();
+        Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLookup = rows -> {
+            rowLookups.incrementAndGet();
+            return new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+        };
+        NavigableMap<byte[], RowResult<byte[]>> lookup =
+                cache.getRows(TABLE, rowsAndCols, columns, cells -> loadCells(cells, directLookups), rowLookup);
+        cache.getRows(TABLE, rowsAndCols, columns, cells -> loadCells(cells, directLookups), rowLookup);
+
+        assertThat(directLookups).isEmpty();
+        assertThat(lookup).isEmpty();
+        assertThat(rowLookups).hasValue(1);
     }
 
     private static Map<Cell, byte[]> loadCells(Set<Cell> cells, Multiset<Cell> directLookups) {
