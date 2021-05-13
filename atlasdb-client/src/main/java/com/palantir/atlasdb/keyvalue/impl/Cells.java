@@ -39,16 +39,13 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,15 +117,11 @@ public final class Cells {
         return breakCellsUpByRow(map.entrySet());
     }
 
-    public static NavigableMap<byte[], NavigableSet<Cell>> groupCellsByRow(Set<Cell> cells) {
-        NavigableMap<byte[], NavigableSet<Cell>> result = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+    public static NavigableMap<byte[], Set<Cell>> groupCellsByRow(Set<Cell> cells) {
+        NavigableMap<byte[], Set<Cell>> result = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         for (Cell cell : cells) {
             byte[] row = cell.getRowName();
-            result.computeIfAbsent(
-                            row,
-                            _row -> new TreeSet<>(Comparator.comparing(
-                                    Cell::getColumnName, UnsignedBytes.lexicographicalComparator())))
-                    .add(cell);
+            result.computeIfAbsent(row, _row -> new HashSet<>()).add(cell);
         }
         return result;
     }

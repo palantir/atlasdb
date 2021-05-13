@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -65,6 +66,16 @@ public interface TransactionScopedCache {
             Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
 
+    /**
+     * The cache will try to fulfil as much of the request as possible with cached values. In the case where some of the
+     * columns are present in the cache for a row, the cellLoader will be used to read the remaining cells remotely.
+     * For rows that have none of the columns present in the cache, the rowLoader will be used. Note that this may
+     * result in two KVS reads, but it is expected to be offset by not having to read the already cached values.
+     *
+     * The result map uses {@link UnsignedBytes#lexicographicalComparator()} on the keys, so there will be no
+     * duplicate rows, even if duplicates were specified in rows. Any row with no columns present will be absent in
+     * the result map, as long as the rowLoader behaves in the same way.
+     */
     NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef,
             Iterable<byte[]> rows,

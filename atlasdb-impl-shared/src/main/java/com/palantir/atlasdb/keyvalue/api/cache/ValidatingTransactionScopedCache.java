@@ -131,9 +131,9 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
                             .filter(Objects::nonNull)
                             .collectToMap(),
                     rowsToRead -> {
-                        SortedSet<byte[]> toReadNavigable = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
-                        rowsToRead.forEach(toReadNavigable::add);
-                        return Maps.filterKeys(remoteReads, toReadNavigable::contains);
+                        SortedSet<byte[]> toReadSorted = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
+                        rowsToRead.forEach(toReadSorted::add);
+                        return Maps.filterKeys(remoteReads, toReadSorted::contains);
                     });
             validateCacheRowReads(tableRef, remoteReads, cacheReads);
             return cacheReads;

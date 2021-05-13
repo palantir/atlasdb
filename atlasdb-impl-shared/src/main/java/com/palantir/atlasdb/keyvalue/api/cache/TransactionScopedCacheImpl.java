@@ -38,7 +38,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
@@ -108,7 +107,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     }
 
     @Override
-    public synchronized NavigableMap<byte[], RowResult<byte[]>> getRows(
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef,
             Iterable<byte[]> rows,
             ColumnSelection columnSelection,
@@ -120,11 +119,13 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
             return rowLoader.apply(rows);
         }
 
-        Set<Cell> cells = Streams.stream(rows)
-                .flatMap(row -> columnSelection.getSelectedColumns().stream().map(col -> Cell.create(row, col)))
-                .collect(Collectors.toSet());
-        CacheLookupResult cached = cacheLookup(tableRef, cells);
-        NavigableMap<byte[], NavigableSet<Cell>> cacheMisses = Cells.groupCellsByRow(cached.missedCells());
+        Set<Cell> cells = columnSelection.asCellsForRows(rows);
+        CacheLookupResult cached;
+        synchronized (this) {
+            cached = cacheLookup(tableRef, cells);
+        }
+
+        NavigableMap<byte[], Set<Cell>> cacheMisses = Cells.groupCellsByRow(cached.missedCells());
 
         List<byte[]> completelyMissedRows = new ArrayList<>();
         Set<Cell> completelyMissedRowsCells = new HashSet<>();

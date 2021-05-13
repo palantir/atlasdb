@@ -250,28 +250,31 @@ public final class TransactionScopedCacheImplTest {
                         CacheEntry.unlocked(CacheValue.empty()),
                         CellReference.of(TABLE, createCell(1, 2)),
                         CacheEntry.unlocked(CacheValue.empty()),
+                        CellReference.of(TABLE, createCell(1, 3)),
+                        CacheEntry.unlocked(CacheValue.empty()),
                         CellReference.of(TABLE, createCell(2, 1)),
+                        CacheEntry.unlocked(CacheValue.empty()),
+                        CellReference.of(TABLE, createCell(2, 3)),
                         CacheEntry.unlocked(CacheValue.empty())),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
         TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshot);
 
-        ImmutableList<byte[]> rowsAndCols = ImmutableList.of(createBytes(1), createBytes(2));
+        ImmutableList<byte[]> rowsAndCols = ImmutableList.of(createBytes(1), createBytes(2), createBytes(3));
         ColumnSelection columns = ColumnSelection.create(rowsAndCols);
 
         Multiset<Cell> directLookups = HashMultiset.create();
         NavigableSet<byte[]> rowLookups = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
 
-        NavigableMap<byte[], RowResult<byte[]>> lookup = cache.getRows(
-                TABLE,
-                rowsAndCols,
-                columns,
-                cells -> loadCells(cells, directLookups),
-                rows -> loadRows(rows, columns, rowLookups));
+        NavigableMap<byte[], RowResult<byte[]>> lookup =
+                cache.getRows(TABLE, rowsAndCols, columns, cells -> loadCells(cells, directLookups), rows -> {
+                    rows.forEach(rowLookups::add);
+                    return new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+                });
 
         Cell onlyCell = createCell(2, 2);
         assertThat(directLookups).containsExactly(onlyCell);
-        assertThat(rowLookups).isEmpty();
+        assertThat(rowLookups).containsExactly(createBytes(3));
         assertThat(lookup.size()).isEqualTo(1);
         assertThat(lookup.get(createBytes(2)).getOnlyColumnValue()).containsExactly(createBytes(onlyCell));
     }
