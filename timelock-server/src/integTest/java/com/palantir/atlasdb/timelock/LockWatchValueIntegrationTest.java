@@ -296,9 +296,11 @@ public final class LockWatchValueIntegrationTest {
 
         txnManager.runTaskThrowOnConflict(txn -> {
             NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
-            assertHitValues(txn, ImmutableSet.of(
-                    CellReference.of(TABLE_REF, CELL_2), CellReference.of(TABLE_REF, CELL_3), TABLE_CELL_4));
-            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty());
+            assertHitValues(
+                    txn,
+                    ImmutableSet.of(
+                            CellReference.of(TABLE_REF, CELL_2), CellReference.of(TABLE_REF, CELL_3), TABLE_CELL_4));
+            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
             return read;
         });
     }
