@@ -169,15 +169,10 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     private void validateCacheReads(
             TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
         if (!ByteArrayUtilities.areMapsEqual(remoteReads, cacheReads)) {
-            log.error(
-                    "Reading from lock watch cache returned a different result to a remote read - this indicates there "
-                            + "is a corruption bug in the caching logic",
+            failAndLog(
                     UnsafeArg.of("table", tableReference),
-                    UnsafeArg.of("remoteReads", remoteReads),
-                    UnsafeArg.of("cacheReads", cacheReads));
-            failureCallback.run();
-            throw new TransactionLockWatchFailedException(
-                    "Failed lock watch cache validation - will retry without caching");
+                    UnsafeArg.of("remoteReads", remoteReads.keySet()),
+                    UnsafeArg.of("cacheReads", cacheReads.keySet()));
         }
     }
 
@@ -186,14 +181,18 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             NavigableMap<byte[], RowResult<byte[]>> remoteReads,
             NavigableMap<byte[], RowResult<byte[]>> cacheReads) {
         if (!ByteArrayUtilities.areRowResultsEqual(remoteReads, cacheReads)) {
-            log.error(
-                    "Reading from lock watch cache returned a different result to a remote read - this indicates there "
-                            + "is a corruption bug in the caching logic",
-                    UnsafeArg.of("table", tableReference));
-            failureCallback.run();
-            throw new TransactionLockWatchFailedException(
-                    "Failed lock watch cache validation - will retry without caching");
+            failAndLog(UnsafeArg.of("table", tableReference));
         }
+    }
+
+    private void failAndLog(Object... args) {
+        log.error(
+                "Reading from lock watch cache returned a different result to a remote read - this indicates there "
+                        + "is a corruption bug in the caching logic",
+                args);
+        failureCallback.run();
+        throw new TransactionLockWatchFailedException(
+                "Failed lock watch cache validation - will retry without caching");
     }
 
     private static Map<Cell, byte[]> getCells(Map<Cell, byte[]> remoteReads, Set<Cell> cells) {
