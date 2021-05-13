@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.cache.ValueStoreImpl.EntryWeigher;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
@@ -52,6 +53,7 @@ public final class ValueStoreImplTest {
     private static final LockWatchEvent LOCK_EVENT = createLockEvent();
     private static final LockWatchEvent WATCH_EVENT = createWatchEvent();
     private static final LockWatchEvent UNLOCK_EVENT = createUnlockEvent();
+    private static final int EXPECTED_SIZE = EntryWeigher.INSTANCE.weigh(TABLE_CELL, 1);
 
     private final CacheMetrics metrics = mock(CacheMetrics.class);
 
@@ -68,7 +70,7 @@ public final class ValueStoreImplTest {
         valueStore.putValue(TABLE_CELL, VALUE_1);
         valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_3);
 
-        verify(metrics, times(2)).increaseCacheSize(anyLong());
+        verify(metrics, times(2)).increaseCacheSize(EXPECTED_SIZE);
 
         assertExpectedValue(CELL_1, CacheEntry.unlocked(VALUE_1));
         assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_3));
@@ -77,7 +79,7 @@ public final class ValueStoreImplTest {
         assertExpectedValue(CELL_1, CacheEntry.locked());
         assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_3));
 
-        verify(metrics).decreaseCacheSize(anyLong());
+        verify(metrics).decreaseCacheSize(EXPECTED_SIZE);
     }
 
     @Test
@@ -119,11 +121,11 @@ public final class ValueStoreImplTest {
         valueStore.applyEvent(WATCH_EVENT);
         valueStore.putValue(TABLE_CELL, VALUE_1);
         valueStore.putValue(tableCell2, VALUE_2);
-        verify(metrics, times(2)).increaseCacheSize(anyLong());
+        verify(metrics, times(2)).increaseCacheSize(EXPECTED_SIZE);
 
         valueStore.putValue(CellReference.of(TABLE, CELL_3), VALUE_3);
         verify(metrics, times(3)).increaseCacheSize(anyLong());
-        verify(metrics).decreaseCacheSize(anyLong());
+        verify(metrics).decreaseCacheSize(EXPECTED_SIZE);
 
         // Caffeine explicitly does *not* implement simple LRU, so we cannot reason on the actual entries here.
         assertThat(((ValueCacheSnapshotImpl) valueStore.getSnapshot()).values()).hasSize(2);
@@ -140,7 +142,7 @@ public final class ValueStoreImplTest {
         assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_2));
         assertExpectedValue(CELL_3, CacheEntry.unlocked(VALUE_3));
 
-        verify(metrics, times(2)).increaseCacheSize(anyLong());
+        verify(metrics, times(2)).increaseCacheSize(EXPECTED_SIZE);
     }
 
     @Test
@@ -150,8 +152,20 @@ public final class ValueStoreImplTest {
 
         valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
         valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
-        verify(metrics, times(2)).increaseCacheSize(anyLong());
-        verify(metrics).decreaseCacheSize(anyLong());
+        verify(metrics, times(2)).increaseCacheSize(EXPECTED_SIZE);
+        verify(metrics).decreaseCacheSize(EXPECTED_SIZE);
+    }
+
+    @Test
+    public void metricsCalculateSize() {
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
+        valueStore.applyEvent(WATCH_EVENT);
+
+        CellReference cellRef = CellReference.of(TABLE, Cell.create(new byte[] {1, 2}, new byte[] {3, 4, 5}));
+
+        valueStore.putValue(cellRef, CacheValue.of(new byte[] {1, 2, 3, 4, 5, 6, 7, 8}));
+        int expectedSize = ValueStoreImpl.CACHE_OVERHEAD + 7 + 2 + 3 + 8;
+        verify(metrics).increaseCacheSize(expectedSize);
     }
 
     private void assertPutThrows(CacheValue value) {

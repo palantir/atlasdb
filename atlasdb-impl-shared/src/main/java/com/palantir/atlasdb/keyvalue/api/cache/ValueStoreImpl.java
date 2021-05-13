@@ -47,7 +47,7 @@ final class ValueStoreImpl implements ValueStore {
      * We introduce some overhead to storing each value. This makes caching numerous empty values with small cell
      * names more costly.
      */
-    private static final int CACHE_OVERHEAD = 128;
+    static final int CACHE_OVERHEAD = 128;
 
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
@@ -164,7 +164,7 @@ final class ValueStoreImpl implements ValueStore {
         }
     }
 
-    private enum EntryWeigher implements Weigher<CellReference, Integer> {
+    enum EntryWeigher implements Weigher<CellReference, Integer> {
         INSTANCE;
 
         @Override
