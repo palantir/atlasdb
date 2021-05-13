@@ -140,6 +140,9 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
                 missedCells.addAll(cellsForRow);
             }
         });
+        metrics.increaseGetRowsHits(cached.cacheHits().size());
+        metrics.increaseGetRowsCellLookups(missedCells.size());
+        metrics.increaseGetRowsRowLookups(completelyMissedRows.size());
 
         Map<Cell, byte[]> remoteDirectRead = missedCells.isEmpty() ? ImmutableMap.of() : cellLoader.apply(missedCells);
         Map<Cell, byte[]> cellLookups = processRemoteRead(tableRef, cached.cacheHits(), missedCells, remoteDirectRead);

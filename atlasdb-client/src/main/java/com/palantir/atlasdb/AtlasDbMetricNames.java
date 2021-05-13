@@ -100,6 +100,9 @@ public final class AtlasDbMetricNames {
     public static final String LW_CACHE_HITS = "lockWatchCacheHits";
     public static final String LW_CACHE_MISSES = "lockWatchCacheMisses";
     public static final String LW_CACHE_SIZE = "lockWatchCacheSize";
+    public static final String LW_CACHE_GET_ROWS_HITS = "lockWatchCacheGetRowsHits";
+    public static final String LW_CACHE_GET_ROWS_CELLS_LOADED = "lockWatchGetRowsCellsLoaded";
+    public static final String LW_CACHE_GET_ROWS_ROWS_LOADED = "lockWatchCacheGetRowsRowsLoaded";
     public static final String LW_CACHE_RATIO_USED = "lockWatchCacheRatioUsed";
     public static final String LW_EVENT_CACHE_FALLBACK_COUNT = "lockWatchEventCacheFallbackCount";
     public static final String LW_VALUE_CACHE_FALLBACK_COUNT = "lockWatchValueCacheFallbackCount";

@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.google.common.collect.HashMultiset;
@@ -189,6 +190,10 @@ public final class TransactionScopedCacheImplTest {
             assertThat(cols.size()).isEqualTo(3);
             cols.forEach((col, val) -> assertThat(val).containsExactly(EncodingUtils.add(row, col)));
         });
+
+        verify(metrics).increaseGetRowsHits(3);
+        verify(metrics).increaseGetRowsCellLookups(3);
+        verify(metrics).increaseGetRowsRowLookups(1);
 
         AtomicInteger additionalLookups = new AtomicInteger();
         cache.getRows(
