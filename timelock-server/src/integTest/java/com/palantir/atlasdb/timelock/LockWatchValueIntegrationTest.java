@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static com.palantir.atlasdb.timelock.AbstractAsyncTimelockServiceIntegrationTest.DEFAULT_SINGLE_SERVER;
+import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,10 +44,12 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -65,18 +67,22 @@ public final class LockWatchValueIntegrationTest {
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_REF, CELL_1);
     private static final CellReference TABLE_CELL_2 = CellReference.of(TABLE_REF, CELL_2);
-    private static final TestableTimelockCluster CLUSTER =
-            new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
+    private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
+            "non-batched timestamp paxos single leader",
+            "paxosMultiServer.ftl",
+            generateThreeNodeTimelockCluster(9080, builder -> builder.clientPaxosBuilder(
+                            builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
+                    .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
-    private NamespacedClients namespace;
     private TransactionManager txnManager;
 
     @Before
     public void before() {
         createTransactionManager(0.0);
+        awaitTableWatched();
     }
 
     @Test
@@ -212,6 +218,22 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Test
+    public void leaderElectionFlushesCache() {
+        putValue();
+        loadValue();
+
+        CLUSTER.failoverToNewLeader(Namespace.DEFAULT_NAMESPACE.getName());
+        awaitTableWatched();
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_1))).containsEntry(CELL_1, DATA_1);
+            assertHitValues(txn, ImmutableSet.of());
+            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.of(DATA_1)));
+            return null;
+        });
+    }
+
+    @Test
     public void failedValidationCausesNoOpCacheToBeUsed() {
         createTransactionManager(1.0);
 
@@ -287,8 +309,20 @@ public final class LockWatchValueIntegrationTest {
      * behaviour.
      */
     private void awaitUnlock() {
+        awaitLockWatches(version -> version % 2 == 0);
+    }
+
+    /**
+     * The lock watch manager registers watch events every five seconds - therefore, tables may not be watched
+     * immediately after a Timelock leader election.
+     */
+    private void awaitTableWatched() {
+        awaitLockWatches(version -> version > -1);
+    }
+
+    private void awaitLockWatches(Predicate<Long> versionPredicate) {
         LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager();
-        Awaitility.await("Unlock event recieved")
+        Awaitility.await()
                 .atMost(Duration.ofSeconds(5))
                 .pollDelay(Duration.ofMillis(100))
                 .until(() -> {
@@ -299,7 +333,7 @@ public final class LockWatchValueIntegrationTest {
                             .getEventCache()
                             .lastKnownVersion()
                             .map(LockWatchVersion::version)
-                            .filter(v -> (v % 2) == 0)
+                            .filter(versionPredicate)
                             .isPresent();
                 });
     }
@@ -318,10 +352,9 @@ public final class LockWatchValueIntegrationTest {
     }
 
     private void createTransactionManager(double validationProbability) {
-        namespace = CLUSTER.clientForRandomNamespace().throughWireMockProxy();
         txnManager = TimeLockTestUtils.createTransactionManager(
                         CLUSTER,
-                        namespace.namespace(),
+                        Namespace.DEFAULT_NAMESPACE.getName(),
                         AtlasDbRuntimeConfig.defaultRuntimeConfig(),
                         ImmutableAtlasDbConfig.builder()
                                 .lockWatchCaching(LockWatchCachingConfig.builder()
