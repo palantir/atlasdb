@@ -118,8 +118,18 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
         if (shouldValidate()) {
             NavigableMap<byte[], RowResult<byte[]>> remoteReads = rowLoader.apply(rows);
-            NavigableMap<byte[], RowResult<byte[]>> cacheReads =
-                    delegate.getRows(tableRef, rows, columnSelection, cellLoader, rowsToRead -> {
+            NavigableMap<byte[], RowResult<byte[]>> cacheReads = delegate.getRows(
+                    tableRef,
+                    rows,
+                    columnSelection,
+                    cellsToRead -> KeyedStream.of(cellsToRead)
+                            .map(cell -> remoteReads
+                                    .get(cell.getRowName())
+                                    .getColumns()
+                                    .get(cell.getColumnName()))
+                            .filter(Objects::nonNull)
+                            .collectToMap(),
+                    rowsToRead -> {
                         SortedSet<byte[]> toReadNavigable = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
                         rowsToRead.forEach(toReadNavigable::add);
                         return Maps.filterKeys(remoteReads, toReadNavigable::contains);
