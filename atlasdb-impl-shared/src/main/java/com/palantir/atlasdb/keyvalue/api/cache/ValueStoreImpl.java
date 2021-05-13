@@ -47,19 +47,20 @@ final class ValueStoreImpl implements ValueStore {
      * We introduce some overhead to storing each value. This makes caching numerous empty values with small cell
      * names more costly.
      */
-    private static final int CACHE_OVERHEAD = 128;
+    static final int CACHE_OVERHEAD = 128;
 
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
     private final Set<TableReference> allowedTables;
     private final Cache<CellReference, Integer> loadedValues;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
+    private final CacheMetrics metrics;
 
-    ValueStoreImpl(Set<TableReference> allowedTables, long maxCacheSize) {
+    ValueStoreImpl(Set<TableReference> allowedTables, long maxCacheSize, CacheMetrics metrics) {
         this.allowedTables = allowedTables;
-        values = StructureHolder.create(HashMap::empty);
-        watchedTables = StructureHolder.create(HashSet::empty);
-        loadedValues = Caffeine.newBuilder()
+        this.values = StructureHolder.create(HashMap::empty);
+        this.watchedTables = StructureHolder.create(HashSet::empty);
+        this.loadedValues = Caffeine.newBuilder()
                 .maximumWeight(maxCacheSize)
                 .weigher(EntryWeigher.INSTANCE)
                 .executor(MoreExecutors.directExecutor())
@@ -67,8 +68,11 @@ final class ValueStoreImpl implements ValueStore {
                     if (cause.wasEvicted()) {
                         values.with(map -> map.remove(cellReference));
                     }
+                    metrics.decreaseCacheSize(EntryWeigher.INSTANCE.weigh(cellReference, value));
                 })
                 .build();
+        this.metrics = metrics;
+        metrics.setMaximumCacheSize(maxCacheSize);
     }
 
     @Override
@@ -93,9 +97,12 @@ final class ValueStoreImpl implements ValueStore {
                     UnsafeArg.of("cell", cellReference.cell()),
                     UnsafeArg.of("oldValue", oldValue),
                     UnsafeArg.of("newValue", newValue));
+            metrics.decreaseCacheSize(
+                    EntryWeigher.INSTANCE.weigh(cellReference, oldValue.value().size()));
             return newValue;
         }));
-        loadedValues.put(cellReference, value.value().map(bytes -> bytes.length).orElse(0));
+        loadedValues.put(cellReference, value.size());
+        metrics.increaseCacheSize(EntryWeigher.INSTANCE.weigh(cellReference, value.size()));
     }
 
     @Override
@@ -157,7 +164,7 @@ final class ValueStoreImpl implements ValueStore {
         }
     }
 
-    private enum EntryWeigher implements Weigher<CellReference, Integer> {
+    enum EntryWeigher implements Weigher<CellReference, Integer> {
         INSTANCE;
 
         @Override

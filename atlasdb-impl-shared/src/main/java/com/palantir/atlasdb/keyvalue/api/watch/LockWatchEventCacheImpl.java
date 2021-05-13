@@ -18,9 +18,9 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -42,11 +42,11 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
 
-    public static LockWatchEventCache create(MetricsManager metricsManager) {
+    public static LockWatchEventCache create(CacheMetrics metrics) {
         return ResilientLockWatchProxy.newEventCacheProxy(
                 new LockWatchEventCacheImpl(LockWatchEventLog.create(MIN_EVENTS, MAX_EVENTS)),
                 NoOpLockWatchEventCache.create(),
-                metricsManager);
+                metrics);
     }
 
     @VisibleForTesting

@@ -83,9 +83,11 @@ public final class TransactionScopedCacheImplTest {
             .build();
     private static final CacheValue VALUE_EMPTY = CacheValue.empty();
 
+    private final CacheMetrics metrics = mock(CacheMetrics.class);
+
     @Test
     public void getReadsCachedValuesBeforeReadingFromDb() {
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_2);
         cache.write(TABLE, ImmutableMap.of(CELL_3, VALUE_3.value().get()));
@@ -96,7 +98,7 @@ public final class TransactionScopedCacheImplTest {
 
     @Test
     public void deletesCacheResultLocally() {
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
         cache.delete(TABLE, ImmutableSet.of(CELL_1));
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactly(CELL_2);
@@ -106,7 +108,7 @@ public final class TransactionScopedCacheImplTest {
 
     @Test
     public void emptyValuesAreCachedButFilteredOutOfResults() {
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_6)).containsExactlyInAnyOrder(CELL_6);
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_6)).isEmpty();
@@ -123,10 +125,12 @@ public final class TransactionScopedCacheImplTest {
 
     @Test
     public void lockedCellsAreNeverCached() {
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked()),
-                HashSet.of(TABLE),
-                ImmutableSet.of(TABLE)));
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(
+                ValueCacheSnapshotImpl.of(
+                        HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked()),
+                        HashSet.of(TABLE),
+                        ImmutableSet.of(TABLE)),
+                metrics);
 
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1, CELL_2);
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_1);
@@ -138,7 +142,7 @@ public final class TransactionScopedCacheImplTest {
 
     @Test
     public void allValuesReadFromCachePreventsReadToDb() {
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
         BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader = mock(BiFunction.class);
         assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1), valueLoader))
@@ -325,7 +329,7 @@ public final class TransactionScopedCacheImplTest {
 
     @Test
     public void cacheThrowsIfReadingAfterFinalising() {
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
         cache.finalise();
         assertThatThrownBy(() -> cache.write(TABLE, ImmutableMap.of()))
@@ -349,7 +353,7 @@ public final class TransactionScopedCacheImplTest {
 
     @Test
     public void cacheThrowsIfRetrievingDigestBeforeFinalising() {
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
         assertThatThrownBy(cache::getValueDigest)
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
@@ -362,7 +366,7 @@ public final class TransactionScopedCacheImplTest {
 
     @Test
     public void readOnlyCacheTransfersValues() {
-        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+        TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
         assertThat(getRemotelyReadCells(cache, TABLE, CELL_1, CELL_2)).containsExactlyInAnyOrder(CELL_2);
 
@@ -380,7 +384,7 @@ public final class TransactionScopedCacheImplTest {
         ExecutorService executor = Executors.newSingleThreadExecutor();
 
         try {
-            TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue());
+            TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
             SettableFuture<Map<Cell, byte[]>> remoteReads = SettableFuture.create();
             CountDownLatch latch = new CountDownLatch(1);
 

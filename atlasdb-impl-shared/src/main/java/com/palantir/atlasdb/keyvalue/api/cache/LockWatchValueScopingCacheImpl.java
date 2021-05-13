@@ -26,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
@@ -58,24 +57,29 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             long maxCacheSize,
             double validationProbability,
             Set<TableReference> watchedTablesFromSchema,
-            Runnable failureCallback) {
+            Runnable failureCallback,
+            CacheMetrics metrics) {
         this.eventCache = eventCache;
-        this.valueStore = new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize);
+        this.valueStore = new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize, metrics);
         this.snapshotStore = new SnapshotStoreImpl();
-        this.cacheStore = new CacheStoreImpl(snapshotStore, validationProbability, failureCallback);
+        this.cacheStore = new CacheStoreImpl(snapshotStore, validationProbability, failureCallback, metrics);
     }
 
     public static LockWatchValueScopingCache create(
             LockWatchEventCache eventCache,
-            MetricsManager metricsManager,
+            CacheMetrics metrics,
             long maxCacheSize,
             double validationProbability,
             Set<TableReference> watchedTablesFromSchema) {
         ResilientLockWatchProxy<LockWatchValueScopingCache> proxyFactory =
-                ResilientLockWatchProxy.newValueCacheProxyFactory(
-                        NoOpLockWatchValueScopingCache.create(), metricsManager);
+                ResilientLockWatchProxy.newValueCacheProxyFactory(NoOpLockWatchValueScopingCache.create(), metrics);
         LockWatchValueScopingCache defaultCache = new LockWatchValueScopingCacheImpl(
-                eventCache, maxCacheSize, validationProbability, watchedTablesFromSchema, proxyFactory::fallback);
+                eventCache,
+                maxCacheSize,
+                validationProbability,
+                watchedTablesFromSchema,
+                proxyFactory::fallback,
+                metrics);
         proxyFactory.setDelegate(defaultCache);
         return proxyFactory.newValueCacheProxy();
     }

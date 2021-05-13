@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
@@ -30,10 +31,12 @@ public final class CacheStoreImplTest {
     private static final StartTimestamp TIMESTAMP_2 = StartTimestamp.of(22L);
     private static final double VALIDATION_PROBABILITY = 1.0;
 
+    private final CacheMetrics metrics = mock(CacheMetrics.class);
+
     @Test
     public void updatesToSnapshotStoreReflectedInCacheStore() {
         SnapshotStoreImpl snapshotStore = new SnapshotStoreImpl();
-        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {});
+        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics);
 
         assertThat(cacheStore.getOrCreateCache(TIMESTAMP_1)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
 
@@ -48,7 +51,7 @@ public final class CacheStoreImplTest {
     @Test
     public void multipleCallsToGetOrCreateReturnsTheSameCache() {
         SnapshotStoreImpl snapshotStore = new SnapshotStoreImpl();
-        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {});
+        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics);
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2),
