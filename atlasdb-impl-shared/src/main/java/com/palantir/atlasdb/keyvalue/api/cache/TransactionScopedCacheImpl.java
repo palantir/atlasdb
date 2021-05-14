@@ -18,18 +18,31 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
+import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
 
@@ -89,9 +102,56 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         } else {
             return Futures.transform(
                     valueLoader.apply(tableReference, cacheLookup.missedCells()),
-                    remoteReadValues -> processRemoteRead(tableReference, cacheLookup, remoteReadValues),
+                    remoteReadValues -> processRemoteRead(
+                            tableReference, cacheLookup.cacheHits(), cacheLookup.missedCells(), remoteReadValues),
                     MoreExecutors.directExecutor());
         }
+    }
+
+    @Override
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
+            Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
+        ensureNotFinalised();
+
+        if (!valueStore.isWatched(tableRef)) {
+            return rowLoader.apply(rows);
+        }
+
+        Set<Cell> cells = columnSelection.asCellsForRows(rows);
+        CacheLookupResult cached = cacheLookup(tableRef, cells);
+
+        NavigableMap<byte[], Set<Cell>> cacheMisses = Cells.groupCellsByRow(cached.missedCells());
+
+        List<byte[]> completelyMissedRows = new ArrayList<>();
+        Set<Cell> completelyMissedRowsCells = new HashSet<>();
+        Set<Cell> missedCells = new HashSet<>();
+        cacheMisses.forEach((row, cellsForRow) -> {
+            if (cellsForRow.size() == columnSelection.getSelectedColumns().size()) {
+                completelyMissedRows.add(row);
+                completelyMissedRowsCells.addAll(cellsForRow);
+            } else {
+                missedCells.addAll(cellsForRow);
+            }
+        });
+        metrics.increaseGetRowsHits(cached.cacheHits().size());
+        metrics.increaseGetRowsCellLookups(missedCells.size());
+        metrics.increaseGetRowsRowLookups(completelyMissedRows.size());
+
+        Map<Cell, byte[]> remoteDirectRead = missedCells.isEmpty() ? ImmutableMap.of() : cellLoader.apply(missedCells);
+        Map<Cell, byte[]> cellLookups = processRemoteRead(tableRef, cached.cacheHits(), missedCells, remoteDirectRead);
+
+        NavigableMap<byte[], RowResult<byte[]>> remoteRowRead = completelyMissedRows.isEmpty()
+                ? new TreeMap<>(UnsignedBytes.lexicographicalComparator())
+                : rowLoader.apply(completelyMissedRows);
+        NavigableMap<byte[], RowResult<byte[]>> rowReads =
+                processRemoteReadRows(tableRef, completelyMissedRowsCells, remoteRowRead);
+
+        rowReads.putAll(RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(cellLookups)));
+        return rowReads;
     }
 
     @Override
@@ -131,13 +191,29 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     }
 
     private synchronized Map<Cell, byte[]> processRemoteRead(
-            TableReference tableReference, CacheLookupResult cacheLookup, Map<Cell, byte[]> remoteReadValues) {
+            TableReference tableReference,
+            Map<Cell, CacheValue> cacheHits,
+            Set<Cell> cacheMisses,
+            Map<Cell, byte[]> remoteReadValues) {
         valueStore.cacheRemoteReads(tableReference, remoteReadValues);
-        cacheEmptyReads(tableReference, cacheLookup.missedCells(), remoteReadValues);
+        cacheEmptyReads(tableReference, cacheMisses, remoteReadValues);
         return ImmutableMap.<Cell, byte[]>builder()
                 .putAll(remoteReadValues)
-                .putAll(filterEmptyValues(cacheLookup.cacheHits()))
+                .putAll(filterEmptyValues(cacheHits))
                 .build();
+    }
+
+    private synchronized NavigableMap<byte[], RowResult<byte[]>> processRemoteReadRows(
+            TableReference tableReference, Set<Cell> cacheMisses, Map<byte[], RowResult<byte[]>> remoteReadValues) {
+        Map<Cell, byte[]> rowsReadAsCells = remoteReadValues.values().stream()
+                .map(RowResult::getCells)
+                .flatMap(Streams::stream)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        valueStore.cacheRemoteReads(tableReference, rowsReadAsCells);
+        cacheEmptyReads(tableReference, cacheMisses, rowsReadAsCells);
+        NavigableMap<byte[], RowResult<byte[]>> result = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+        result.putAll(remoteReadValues);
+        return result;
     }
 
     private synchronized CacheLookupResult cacheLookup(TableReference table, Set<Cell> cells) {

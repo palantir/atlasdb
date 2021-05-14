@@ -28,8 +28,10 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
@@ -47,6 +49,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.time.Duration;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -62,11 +65,13 @@ public final class LockWatchValueIntegrationTest {
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes();
     private static final byte[] DATA_3 = "canis est in via".getBytes();
     private static final Cell CELL_1 = Cell.create("bar".getBytes(), "baz".getBytes());
-    private static final Cell CELL_2 = Cell.create("eggs".getBytes(), "spam".getBytes());
+    private static final Cell CELL_2 = Cell.create("bar".getBytes(), "spam".getBytes());
+    private static final Cell CELL_3 = Cell.create("eggs".getBytes(), "baz".getBytes());
+    private static final Cell CELL_4 = Cell.create("eggs".getBytes(), "spam".getBytes());
     private static final String TABLE = "table";
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_REF, CELL_1);
-    private static final CellReference TABLE_CELL_2 = CellReference.of(TABLE_REF, CELL_2);
+    private static final CellReference TABLE_CELL_4 = CellReference.of(TABLE_REF, CELL_4);
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
@@ -90,21 +95,21 @@ public final class LockWatchValueIntegrationTest {
         putValue();
 
         Map<Cell, byte[]> result = txnManager.runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
+            Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_4));
             assertHitValues(txn, ImmutableSet.of());
             assertLoadedValues(
                     txn,
                     ImmutableMap.of(
                             TABLE_CELL_1, CacheValue.of(DATA_1),
-                            TABLE_CELL_2, CacheValue.empty()));
+                            TABLE_CELL_4, CacheValue.empty()));
             return values;
         });
 
         disableTable();
 
         Map<Cell, byte[]> result2 = txnManager.runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
-            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1, TABLE_CELL_2));
+            Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_4));
+            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1, TABLE_CELL_4));
             assertLoadedValues(txn, ImmutableMap.of());
             return values;
         });
@@ -118,8 +123,8 @@ public final class LockWatchValueIntegrationTest {
         putValue();
 
         Map<Cell, byte[]> result = txnManager.runTaskThrowOnConflict(txn -> {
-            txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_2));
-            Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_2));
+            Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_4));
             assertHitValues(txn, ImmutableSet.of());
             assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.of(DATA_1)));
             return values;
@@ -128,14 +133,14 @@ public final class LockWatchValueIntegrationTest {
         awaitUnlock();
 
         Map<Cell, byte[]> result2 = txnManager.runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2));
+            Map<Cell, byte[]> values = txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_4));
             assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1));
-            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_2, CacheValue.of(DATA_2)));
+            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_4, CacheValue.of(DATA_2)));
             return values;
         });
 
         assertThat(result).containsEntry(CELL_1, DATA_1);
-        assertThat(result).containsEntry(CELL_2, DATA_2);
+        assertThat(result).containsEntry(CELL_4, DATA_2);
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
@@ -147,7 +152,7 @@ public final class LockWatchValueIntegrationTest {
         // using executors, which is much more heavy-handed).
         assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
                     txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-                    txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_2));
+                    txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_2));
 
                     txnManager.runTaskThrowOnConflict(txn2 -> {
                         txn2.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
@@ -179,7 +184,7 @@ public final class LockWatchValueIntegrationTest {
 
         txnManager.runTaskThrowOnConflict(txn -> {
             txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-            txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_2));
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_2));
 
             // This is technically corruption, but also confirms that the conflict checking goes through the cache,
             // not the KVS.
@@ -256,6 +261,52 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
+    @Test
+    public void getRowsUsesCacheAsExpected() {
+        txnManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2, CELL_3, DATA_3));
+            return null;
+        });
+
+        awaitUnlock();
+
+        Set<byte[]> rows = ImmutableSet.of("bar".getBytes(), "eggs".getBytes());
+        ColumnSelection columns = ColumnSelection.create(ImmutableSet.of("baz".getBytes(), "spam".getBytes()));
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            NavigableMap<byte[], RowResult<byte[]>> remoteRead = txn.getRows(TABLE_REF, rows, columns);
+            txn.delete(TABLE_REF, ImmutableSet.of(CELL_1));
+            assertHitValues(txn, ImmutableSet.of());
+            // we loaded all 4 values, but since we deleted one of them, it will not be in the digest
+            assertLoadedValues(
+                    txn,
+                    ImmutableMap.of(
+                            CellReference.of(TABLE_REF, CELL_2),
+                            CacheValue.of(DATA_2),
+                            CellReference.of(TABLE_REF, CELL_3),
+                            CacheValue.of(DATA_3),
+                            TABLE_CELL_4,
+                            CacheValue.empty()));
+            return remoteRead;
+        });
+
+        awaitUnlock();
+        // truncate the table to verify we are really using the cached values
+        truncateTable();
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
+            // we read the values previously cached values
+            assertHitValues(
+                    txn,
+                    ImmutableSet.of(
+                            CellReference.of(TABLE_REF, CELL_2), CellReference.of(TABLE_REF, CELL_3), TABLE_CELL_4));
+            // we weren't able to cache our own write so we look this up
+            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
+            return read;
+        });
+    }
+
     private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {
         txnManager.getKeyValueService().put(TABLE_REF, values, transaction.getTimestamp() - 2);
         txnManager
@@ -301,6 +352,10 @@ public final class LockWatchValueIntegrationTest {
      */
     private void disableTable() {
         txnManager.getKeyValueService().dropTable(TABLE_REF);
+    }
+
+    private void truncateTable() {
+        txnManager.getKeyValueService().truncateTable(TABLE_REF);
     }
 
     /**

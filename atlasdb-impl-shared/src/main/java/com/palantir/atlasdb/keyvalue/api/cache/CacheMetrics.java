@@ -25,6 +25,9 @@ public final class CacheMetrics {
     private final Counter hits;
     private final Counter misses;
     private final Counter cacheSize;
+    private final Counter getRowsCellsHit;
+    private final Counter getRowsCellLookups;
+    private final Counter getRowsRowLookups;
     private final CurrentValueMetric<Integer> eventCacheValidationFailures;
     private final CurrentValueMetric<Integer> valueCacheValidationFailures;
     private final MetricsManager metricsManager;
@@ -33,12 +36,18 @@ public final class CacheMetrics {
             Counter hits,
             Counter misses,
             Counter cacheSize,
+            Counter getRowsCellsHit,
+            Counter getRowsCellLookups,
+            Counter getRowsRowLookups,
             CurrentValueMetric<Integer> eventCacheValidationFailures,
             CurrentValueMetric<Integer> valueCacheValidationFailures,
             MetricsManager metricsManager) {
         this.hits = hits;
         this.misses = misses;
         this.cacheSize = cacheSize;
+        this.getRowsCellsHit = getRowsCellsHit;
+        this.getRowsCellLookups = getRowsCellLookups;
+        this.getRowsRowLookups = getRowsRowLookups;
         this.eventCacheValidationFailures = eventCacheValidationFailures;
         this.valueCacheValidationFailures = valueCacheValidationFailures;
         this.metricsManager = metricsManager;
@@ -49,6 +58,11 @@ public final class CacheMetrics {
                 metricsManager.registerOrGetCounter(CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_HITS),
                 metricsManager.registerOrGetCounter(CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_MISSES),
                 metricsManager.registerOrGetCounter(CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_SIZE),
+                metricsManager.registerOrGetCounter(CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_GET_ROWS_HITS),
+                metricsManager.registerOrGetCounter(
+                        CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_GET_ROWS_CELLS_LOADED),
+                metricsManager.registerOrGetCounter(
+                        CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_GET_ROWS_ROWS_LOADED),
                 metricsManager.registerOrGetGauge(
                         CacheMetrics.class, AtlasDbMetricNames.LW_EVENT_CACHE_FALLBACK_COUNT, CurrentValueMetric::new),
                 metricsManager.registerOrGetGauge(
@@ -70,6 +84,18 @@ public final class CacheMetrics {
 
     public void decreaseCacheSize(long removed) {
         cacheSize.dec(removed);
+    }
+
+    public void increaseGetRowsHits(long number) {
+        getRowsCellsHit.inc(number);
+    }
+
+    public void increaseGetRowsCellLookups(long number) {
+        getRowsCellLookups.inc(number);
+    }
+
+    public void increaseGetRowsRowLookups(long number) {
+        getRowsRowLookups.inc(number);
     }
 
     public void registerEventCacheValidationFailure() {
