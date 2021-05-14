@@ -18,7 +18,9 @@ package com.palantir.atlasdb.util;
 
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import java.util.Map;
+import java.util.NavigableMap;
 
 public final class ByteArrayUtilities {
 
@@ -35,6 +37,23 @@ public final class ByteArrayUtilities {
                 return false;
             }
             if (UnsignedBytes.lexicographicalComparator().compare(e.getValue(), map2.get(e.getKey())) != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean areRowResultsEqual(
+            NavigableMap<byte[], RowResult<byte[]>> first, NavigableMap<byte[], RowResult<byte[]>> second) {
+        if (first.size() != second.size()) {
+            return false;
+        }
+
+        for (Map.Entry<byte[], RowResult<byte[]>> e : first.entrySet()) {
+            if (!second.containsKey(e.getKey())) {
+                return false;
+            }
+            if (!e.getValue().equals(second.get(e.getKey()))) {
                 return false;
             }
         }

@@ -122,10 +122,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         }
 
         Set<Cell> cells = columnSelection.asCellsForRows(rows);
-        CacheLookupResult cached;
-        synchronized (this) {
-            cached = cacheLookup(tableRef, cells);
-        }
+        CacheLookupResult cached = cacheLookup(tableRef, cells);
 
         NavigableMap<byte[], Set<Cell>> cacheMisses = Cells.groupCellsByRow(cached.missedCells());
 
