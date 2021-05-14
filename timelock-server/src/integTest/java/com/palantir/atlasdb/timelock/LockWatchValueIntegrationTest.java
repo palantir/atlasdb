@@ -277,7 +277,7 @@ public final class LockWatchValueIntegrationTest {
             NavigableMap<byte[], RowResult<byte[]>> remoteRead = txn.getRows(TABLE_REF, rows, columns);
             txn.delete(TABLE_REF, ImmutableSet.of(CELL_1));
             assertHitValues(txn, ImmutableSet.of());
-            // we loaded all 4 values, but since w deleted one of them, it will not be in the digest
+            // we loaded all 4 values, but since we deleted one of them, it will not be in the digest
             assertLoadedValues(
                     txn,
                     ImmutableMap.of(
