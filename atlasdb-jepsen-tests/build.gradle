@@ -35,6 +35,10 @@ dependencies {
     compile group: 'org.clojure', name: 'clojure'
     compile group: 'org.slf4j', name: 'slf4j-api'
 
+    testImplementation 'com.palantir.common:streams'
+    testImplementation project(':lock-api')
+    testImplementation project(':lock-api-objects')
+
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
 

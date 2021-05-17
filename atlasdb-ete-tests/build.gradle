@@ -18,6 +18,52 @@ dependencies {
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
+    implementation 'com.google.protobuf:protobuf-java'
+    implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.conjure.java.api:service-config'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.tritium:tritium-registry'
+    implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'io.dropwizard:dropwizard-configuration'
+    implementation 'io.dropwizard:dropwizard-jersey'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'org.slf4j:slf4j-api'
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-client-protobufs')
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':lock-api')
+    implementation project(':lock-api-objects')
+    implementation project(':timestamp-api')
+
+    testImplementation 'com.google.errorprone:error_prone_annotations'
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'com.palantir.conjure.java.api:ssl-config'
+    testImplementation 'com.palantir.conjure.java.runtime:keystores'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
+    testImplementation 'com.palantir.docker.proxy:docker-proxy-rule-junit4'
+    testImplementation 'com.palantir.safe-logging:preconditions'
+    testImplementation 'com.palantir.safe-logging:safe-logging'
+    testImplementation 'commons-io:commons-io'
+    testImplementation 'joda-time:joda-time'
+    testImplementation 'org.hamcrest:hamcrest'
+    testImplementation 'org.slf4j:slf4j-api'
+    testImplementation project(':atlasdb-api')
+    testImplementation project(':atlasdb-cassandra')
+    testImplementation project(':atlasdb-client')
+    testImplementation project(':atlasdb-remoting-api')
+    testImplementation project(':atlasdb-tests-shared')
+    testImplementation project(':lock-api-objects')
+    testImplementation project(':timestamp-api')
+
     runtime project(':atlasdb-dbkvs')
     runtime project(':atlasdb-cassandra')
 

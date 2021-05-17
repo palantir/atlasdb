@@ -10,5 +10,24 @@ dependencies {
   compile project(":atlasdb-client")
   compile project(":examples:profile-client-protobufs")
 
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.google.guava:guava'
+  implementation 'com.google.protobuf:protobuf-java'
+  implementation 'com.palantir.common:streams'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':atlasdb-api')
+  implementation project(':atlasdb-client-protobufs')
+  implementation project(':atlasdb-commons')
+
+  testImplementation 'com.google.guava:guava'
+  testImplementation 'com.palantir.tritium:tritium-registry'
+  testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation project(':atlasdb-api')
+  testImplementation project(':atlasdb-commons')
+  testImplementation project(':atlasdb-impl-shared')
+  testImplementation project(':atlasdb-remoting-api')
+
   testCompile project(":atlasdb-config")
 }

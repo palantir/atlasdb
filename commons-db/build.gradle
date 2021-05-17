@@ -23,6 +23,18 @@ dependencies {
   compile group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP
   compile group: 'joda-time', name: 'joda-time'
 
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':atlasdb-commons')
+  implementation project(':commons-executors')
+  implementation project(':commons-executors-api')
+
+  testImplementation 'com.google.guava:guava'
+  testImplementation 'org.slf4j:slf4j-api'
+  testImplementation project(':atlasdb-commons')
+
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'

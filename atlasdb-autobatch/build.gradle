@@ -8,6 +8,19 @@ dependencies {
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile group: 'com.palantir.tritium', name: 'tritium-registry'
 
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.tracing:tracing'
+    implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'org.slf4j:slf4j-api'
+    implementation project(':commons-executors')
+
+    testImplementation 'com.google.errorprone:error_prone_annotations'
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'com.palantir.tracing:tracing'
+    testImplementation 'io.dropwizard.metrics:metrics-core'
+
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")
     annotationProcessor group: 'org.immutables', name: 'value'

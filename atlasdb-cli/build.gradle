@@ -8,6 +8,38 @@ dependencies {
     compile 'io.airlift:airline'
     compile 'ch.qos.logback:logback-classic'
 
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'joda-time:joda-time'
+    implementation 'org.apache.commons:commons-lang3'
+    implementation 'org.slf4j:slf4j-api'
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':timestamp-api')
+
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'com.palantir.safe-logging:preconditions'
+    testImplementation 'com.palantir.safe-logging:safe-logging'
+    testImplementation 'commons-io:commons-io'
+    testImplementation 'joda-time:joda-time'
+    testImplementation 'org.apache.commons:commons-lang3'
+    testImplementation 'org.slf4j:slf4j-api'
+    testImplementation project(':atlasdb-api')
+    testImplementation project(':atlasdb-client')
+    testImplementation project(':atlasdb-client-protobufs')
+    testImplementation project(':atlasdb-commons')
+    testImplementation project(':atlasdb-config')
+    testImplementation project(':atlasdb-impl-shared')
+    testImplementation project(':lock-api')
+    testImplementation project(':lock-api-objects')
+    testImplementation project(':lock-impl')
+    testImplementation project(':timestamp-api')
+
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
     testCompileOnly 'org.immutables:value::annotations'

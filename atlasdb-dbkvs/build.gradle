@@ -11,6 +11,30 @@ dependencies {
   compile project(':commons-api')
   compile group: 'com.palantir.conjure.java.api', name: 'service-config'
 
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.google.auto.service:auto-service-annotations'
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.patches.sourceforge:trove3'
+  implementation 'com.palantir.refreshable:refreshable'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'commons-dbutils:commons-dbutils'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.postgresql:postgresql'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':atlasdb-commons')
+  implementation project(':commons-annotations')
+  implementation project(':commons-executors')
+  implementation project(':timestamp-api')
+
+  testImplementation 'com.google.guava:guava'
+  testImplementation 'com.palantir.safe-logging:safe-logging'
+  testImplementation 'com.zaxxer:HikariCP'
+  testImplementation 'org.hamcrest:hamcrest'
+  testImplementation 'org.slf4j:slf4j-api'
+  testImplementation project(':atlasdb-commons')
 
   testCompile project(':atlasdb-config')
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")

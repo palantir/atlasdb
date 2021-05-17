@@ -5,6 +5,28 @@ dependencies {
   compile project(":atlasdb-dbkvs")
   compile project(":atlasdb-tests-shared")
 
+    implementation 'com.google.guava:guava'
+    implementation 'junit:junit'
+    implementation 'org.assertj:assertj-core'
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-commons')
+
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'com.palantir.conjure.java.api:service-config'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    testImplementation 'com.palantir.refreshable:refreshable'
+    testImplementation 'com.palantir.safe-logging:preconditions'
+    testImplementation 'com.palantir.safe-logging:safe-logging'
+    testImplementation 'org.apache.commons:commons-lang3'
+    testImplementation 'org.awaitility:awaitility'
+    testImplementation project(':atlasdb-api')
+    testImplementation project(':atlasdb-client')
+    testImplementation project(':atlasdb-config')
+    testImplementation project(':atlasdb-dbkvs-hikari')
+    testImplementation project(':commons-db')
+    testImplementation project(':timestamp-api')
+
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
   testCompile group: 'junit', name: 'junit'

@@ -11,6 +11,25 @@ dependencies {
   compile group: 'joda-time', name: 'joda-time'
   compile group: 'org.yaml', name: 'snakeyaml'
 
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.common:streams'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':commons-executors')
+  implementation project(':lock-api-objects')
+  implementation project(':timestamp-api')
+
+  testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+  testImplementation 'com.google.guava:guava'
+  testImplementation 'com.palantir.safe-logging:preconditions'
+  testImplementation 'uk.org.lidalia:lidalia-slf4j-ext'
+  testImplementation project(':commons-executors')
+  testImplementation project(':lock-api-objects')
+  testImplementation project(':timestamp-api')
+
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'

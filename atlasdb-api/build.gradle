@@ -19,6 +19,25 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
 
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.common:streams'
+  implementation 'com.palantir.refreshable:refreshable'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'com.squareup.okio:okio'
+  implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':commons-annotations')
+  implementation project(':lock-api-objects')
+
+  testImplementation 'com.google.guava:guava'
+  testImplementation 'com.palantir.common:streams'
+  testImplementation 'com.palantir.refreshable:refreshable'
+  testImplementation 'com.squareup.okio:okio'
+  testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation project(':lock-api-objects')
+
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'

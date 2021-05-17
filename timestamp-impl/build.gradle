@@ -9,6 +9,15 @@ dependencies {
 
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':lock-api-objects')
+
+  testImplementation 'org.hamcrest:hamcrest'
+  testImplementation 'org.slf4j:slf4j-api'
+  testImplementation project(':lock-api-objects')
+
   annotationProcessor 'com.google.auto.service:auto-service'
   compileOnly 'com.google.auto.service:auto-service'
   annotationProcessor project(":atlasdb-processors")

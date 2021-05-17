@@ -11,7 +11,6 @@ conjure {
 
 dependencies {
     compile project(':atlasdb-api')
-
     compile project(":timelock-corruption-detection:timelock-corruption-detection-undertow")
     compile project(":timelock-corruption-detection:timelock-corruption-detection-jersey")
 
@@ -19,6 +18,35 @@ dependencies {
     compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.conjure.java.api', name: 'service-config'
     compile group: 'one.util', name: 'streamex'
+
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'com.palantir.conjure.java:conjure-undertow-lib'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'io.undertow:undertow-core'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'org.jdbi:jdbi3-core'
+    implementation 'org.jdbi:jdbi3-sqlobject'
+    implementation 'org.slf4j:slf4j-api'
+    implementation 'com.google.guava:guava'
+    implementation project(':atlasdb-commons')
+    implementation project(':commons-executors')
+    implementation project(':leader-election-api')
+    implementation project(':leader-election-impl')
+    implementation project(':timelock-corruption-detection:timelock-corruption-detection-objects')
+
+    testImplementation 'com.google.errorprone:error_prone_annotations'
+    testImplementation 'com.palantir.common:streams'
+    testImplementation 'com.palantir.safe-logging:preconditions'
+    testImplementation 'com.palantir.tokens:auth-tokens'
+    testImplementation project(':leader-election-api')
+    testImplementation project(':leader-election-impl')
+    testImplementation project(':timelock-corruption-detection:timelock-corruption-detection-objects')
 
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'

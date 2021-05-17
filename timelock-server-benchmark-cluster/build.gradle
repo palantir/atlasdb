@@ -8,6 +8,17 @@ apply from: "../gradle/non-client-dist.gradle"
 dependencies {
     compile project(':timelock-server')
     runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
+
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+    implementation 'com.palantir.conjure.java.api:service-config'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    implementation 'com.palantir.sls.versions:sls-versions'
+    implementation 'com.palantir.tritium:tritium-registry'
+    implementation 'io.dropwizard:dropwizard-core'
+    implementation 'io.dropwizard:dropwizard-jersey'
+    implementation project(':atlasdb-client')
+    implementation project(':timelock-agent')
 }
 
 distribution {

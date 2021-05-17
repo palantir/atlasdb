@@ -16,6 +16,31 @@ dependencies {
     compile group: 'junit', name: 'junit'
     compile group: 'org.assertj', name: 'assertj-core'
 
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.conjure.java.api:service-config'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.tritium:tritium-metrics'
+    implementation 'com.palantir.tritium:tritium-registry'
+    implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'io.dropwizard:dropwizard-core'
+    implementation 'io.dropwizard:dropwizard-jersey'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'org.apache.commons:commons-lang3'
+    implementation 'org.slf4j:slf4j-api'
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-remoting-api')
+    implementation project(':lock-api-objects')
+    implementation project(':timestamp-api')
+
     runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
 }
 

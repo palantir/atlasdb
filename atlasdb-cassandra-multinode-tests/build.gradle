@@ -2,6 +2,14 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'org.apache.thrift:libthrift'
+    testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.hamcrest:hamcrest'
+    testImplementation project(':atlasdb-api')
+    testImplementation project(':atlasdb-client')
+    testImplementation project(':atlasdb-commons')
+
     testCompile project(":atlasdb-cassandra")
     testCompile project(":atlasdb-tests-shared")
     testCompile project(":atlasdb-container-test-utils")

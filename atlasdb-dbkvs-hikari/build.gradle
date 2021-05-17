@@ -6,6 +6,22 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'io.dropwizard.metrics', name: 'metrics-core'
 
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.oracle.database.jdbc:ojdbc8'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'com.zaxxer:HikariCP'
+  implementation 'commons-io:commons-io'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.postgresql:postgresql'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':atlasdb-commons')
+
+  testImplementation 'com.google.guava:guava'
+  testImplementation 'com.palantir.safe-logging:preconditions'
+
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
 }

@@ -11,6 +11,18 @@ dependencies {
     compile group: 'com.palantir.common', name: 'streams'
     compile group: 'com.palantir.safe-logging', name: 'preconditions'
 
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.tracing:tracing'
+    implementation 'org.slf4j:slf4j-api'
+
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    testImplementation 'com.google.errorprone:error_prone_annotations'
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'org.hamcrest:hamcrest'
+
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
 

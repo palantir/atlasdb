@@ -24,6 +24,63 @@ dependencies {
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile group: 'com.palantir.safe-logging', name: 'preconditions'
 
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-core'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+  implementation 'com.fasterxml.jackson.module:jackson-module-afterburner'
+  implementation 'com.github.ben-manes.caffeine:caffeine'
+  implementation 'com.google.auto.service:auto-service-annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.refreshable:refreshable'
+  implementation 'com.palantir.tokens:auth-tokens'
+  implementation 'com.palantir.tracing:tracing'
+  implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'jakarta.validation:jakarta.validation-api'
+  implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.checkerframework:checker-qual'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':atlasdb-api')
+  implementation project(':atlasdb-autobatch')
+  implementation project(':atlasdb-client-protobufs')
+  implementation project(':commons-annotations')
+  implementation project(':commons-executors')
+  implementation project(':commons-executors-api')
+  implementation project(':lock-api')
+  implementation project(':lock-api-objects')
+  implementation project(':timelock-api:timelock-api-jersey')
+  implementation project(':timelock-api:timelock-api-objects')
+
+  testImplementation 'com.fasterxml.jackson.core:jackson-core'
+  testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+  testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
+  testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+  testImplementation 'com.google.code.findbugs:annotations'
+  testImplementation 'com.google.guava:guava'
+  testImplementation 'com.google.protobuf:protobuf-java'
+  testImplementation 'com.palantir.conjure.java.api:errors'
+  testImplementation 'com.palantir.conjure.java.api:service-config'
+  testImplementation 'com.palantir.conjure.java.api:ssl-config'
+  testImplementation 'com.palantir.conjure.java.runtime:okhttp-clients'
+  testImplementation 'com.palantir.refreshable:refreshable'
+  testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'io.dropwizard.metrics:metrics-healthchecks'
+  testImplementation 'io.dropwizard:dropwizard-core'
+  testImplementation 'io.dropwizard:dropwizard-jersey'
+  testImplementation 'io.dropwizard:dropwizard-jetty'
+  testImplementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+  testImplementation 'org.eclipse.jetty:jetty-util'
+  testImplementation 'org.slf4j:slf4j-api'
+  testImplementation project(':atlasdb-api')
+  testImplementation project(':atlasdb-autobatch')
+  testImplementation project(':atlasdb-client-protobufs')
+  testImplementation project(':commons-annotations')
+  testImplementation project(':commons-executors')
+  testImplementation project(':lock-api')
+  testImplementation project(':lock-api-objects')
+  testImplementation project(':timelock-api:timelock-api-objects')
+
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
   annotationProcessor 'com.google.auto.service:auto-service'

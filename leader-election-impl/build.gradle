@@ -21,6 +21,23 @@ dependencies {
   compile group: 'org.xerial', name: 'sqlite-jdbc'
 
   implementation group: 'com.palantir.common', name: 'streams'
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.tracing:tracing'
+  implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':commons-annotations')
+  implementation project(':commons-executors')
+  implementation project(':leader-election-api-protobufs')
+
+  testImplementation 'com.google.guava:guava'
+  testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'org.hamcrest:hamcrest'
+  testImplementation project(':commons-executors')
+  testImplementation project(':leader-election-api-protobufs')
+
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'

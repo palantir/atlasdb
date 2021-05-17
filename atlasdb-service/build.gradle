@@ -8,6 +8,26 @@ dependencies {
 
     testCompile group: 'org.mockito', name: 'mockito-core'
 
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.google.guava:guava'
+    implementation 'com.google.protobuf:protobuf-java'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-client-protobufs')
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':commons-annotations')
+
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    testImplementation 'com.google.guava:guava'
+    testImplementation project(':atlasdb-api')
+    testImplementation project(':atlasdb-client')
+
     // Needed for Jersey Response-based tests
     testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
 }
