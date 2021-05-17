@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.Preconditions;
 import java.util.Map;
@@ -27,6 +28,7 @@ import org.immutables.value.Value;
 
 @ThreadSafe
 final class CacheStoreImpl implements CacheStore {
+    private final int maxCacheCount;
     private final SnapshotStore snapshotStore;
     private final Map<StartTimestamp, Caches> cacheMap;
     private final double validationProbability;
@@ -34,24 +36,36 @@ final class CacheStoreImpl implements CacheStore {
     private final CacheMetrics metrics;
 
     CacheStoreImpl(
-            SnapshotStore snapshotStore, double validationProbability, Runnable failureCallback, CacheMetrics metrics) {
+            SnapshotStore snapshotStore,
+            double validationProbability,
+            Runnable failureCallback,
+            CacheMetrics metrics,
+            int maxCacheCount) {
         this.snapshotStore = snapshotStore;
         this.failureCallback = failureCallback;
         this.metrics = metrics;
+        this.maxCacheCount = maxCacheCount;
         this.cacheMap = new ConcurrentHashMap<>();
         this.validationProbability = validationProbability;
     }
 
     @Override
     public TransactionScopedCache getOrCreateCache(StartTimestamp timestamp) {
-        return cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
+        TransactionScopedCache cache = cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
                         .getSnapshot(key)
                         .map(snapshot -> TransactionScopedCacheImpl.create(snapshot, metrics))
-                        .map(cache ->
-                                ValidatingTransactionScopedCache.create(cache, validationProbability, failureCallback))
+                        .map(newCache -> ValidatingTransactionScopedCache.create(
+                                newCache, validationProbability, failureCallback))
                         .map(Caches::create)
                         .orElseGet(Caches::createNoOp))
                 .mainCache();
+
+        if (cacheMap.size() > maxCacheCount) {
+            throw new TransactionFailedRetriableException(
+                    "Exceeded maximum concurrent caches; transaction can be retried, but with caching disabled");
+        } else {
+            return cache;
+        }
     }
 
     @Override

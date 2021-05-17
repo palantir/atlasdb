@@ -17,11 +17,13 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import org.junit.Test;
@@ -35,8 +37,8 @@ public final class CacheStoreImplTest {
 
     @Test
     public void updatesToSnapshotStoreReflectedInCacheStore() {
-        SnapshotStoreImpl snapshotStore = new SnapshotStoreImpl();
-        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics);
+        SnapshotStore snapshotStore = new SnapshotStoreImpl();
+        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics, 100);
 
         assertThat(cacheStore.getOrCreateCache(TIMESTAMP_1)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
 
@@ -50,8 +52,8 @@ public final class CacheStoreImplTest {
 
     @Test
     public void multipleCallsToGetOrCreateReturnsTheSameCache() {
-        SnapshotStoreImpl snapshotStore = new SnapshotStoreImpl();
-        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics);
+        SnapshotStore snapshotStore = new SnapshotStoreImpl();
+        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics, 100);
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2),
@@ -61,5 +63,22 @@ public final class CacheStoreImplTest {
         TransactionScopedCache cache2 = cacheStore.getOrCreateCache(TIMESTAMP_2);
 
         assertThat(cacheStore.getOrCreateCache(TIMESTAMP_1)).isEqualTo(cache1).isNotEqualTo(cache2);
+    }
+
+    @Test
+    public void cachesExceedingMaximumCountThrows() {
+        SnapshotStore snapshotStore = new SnapshotStoreImpl();
+        CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics, 1);
+
+        snapshotStore.storeSnapshot(
+                Sequence.of(5L),
+                ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2),
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
+
+        cacheStore.getOrCreateCache(TIMESTAMP_1);
+        assertThatThrownBy(() -> cacheStore.getOrCreateCache(TIMESTAMP_2))
+                .isExactlyInstanceOf(TransactionFailedRetriableException.class)
+                .hasMessage("Exceeded maximum concurrent caches; transaction can be retried, but with caching "
+                        + "disabled");
     }
 }
