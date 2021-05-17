@@ -11,12 +11,6 @@ configurations {
 dependencies {
   explicitShadow group: 'com.palantir.safe-logging', name: 'safe-logging'
 
-  explicitShadow (group: 'de.jflex', name: 'jflex', version: '1.6.0') {
-    exclude(group: 'org.apache.ant', module: 'ant')
-  }
-  explicitShadow group: 'com.github.rholder', name: 'snowball-stemmer', version: '1.3.0.581.1'
-  explicitShadow group: 'com.carrotsearch', name: 'hppc', version: '0.5.4'
-
   explicitShadow project(":atlasdb-client")
   explicitShadow project(":atlasdb-processors")
   explicitShadow project(":atlasdb-api")
@@ -25,10 +19,6 @@ dependencies {
   explicitShadow project(":atlasdb-impl-shared")
 
   explicitShadow ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
-    exclude(group: 'de.jflex', module: 'jflex')
-    exclude(group: 'org.apache.ant', module: 'ant')
-    exclude(group: 'com.github.rholder', module: 'snowball-stemmer')
-    exclude(group: 'com.carrotsearch', module: 'hppc')
     exclude group: 'org.apache.httpcomponents'
   }
 
@@ -76,11 +66,6 @@ dependencies {
 shadowJar {
   mergeServiceFiles()
   classifier ''
-
-  relocate('jflex', atlasdb_shaded + 'jflex')
-  relocate('org.apache.tools.ant', atlasdb_shaded + 'ant')
-  relocate('org.tarturus.snowball', atlasdb_shaded + 'snowball')
-  relocate('com.carrotsearch.hppc',  atlasdb_shaded + 'hppc')
 
   dependencies {
       include(dependency { false })
