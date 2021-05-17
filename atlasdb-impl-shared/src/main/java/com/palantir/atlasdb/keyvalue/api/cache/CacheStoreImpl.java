@@ -20,14 +20,19 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 final class CacheStoreImpl implements CacheStore {
+    private static final Logger log = LoggerFactory.getLogger(CacheStoreImpl.class);
+
     private final int maxCacheCount;
     private final SnapshotStore snapshotStore;
     private final Map<StartTimestamp, Caches> cacheMap;
@@ -73,11 +78,18 @@ final class CacheStoreImpl implements CacheStore {
 
     @Override
     public void removeCache(StartTimestamp timestamp) {
-        cacheMap.remove(timestamp);
+        Optional<Caches> cache = Optional.ofNullable(cacheMap.remove(timestamp));
+
+        if (!cache.isPresent()) {
+            log.warn(
+                    "Attempted to remove cache state, but no cache was present for timestamp",
+                    SafeArg.of("timestamp", timestamp));
+        }
     }
 
     @Override
     public void reset() {
+        log.info("Clearing all cache state");
         cacheMap.clear();
     }
 
