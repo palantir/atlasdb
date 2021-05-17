@@ -51,7 +51,12 @@ final class CacheStoreImpl implements CacheStore {
 
     @Override
     public TransactionScopedCache getOrCreateCache(StartTimestamp timestamp) {
-        TransactionScopedCache cache = cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
+        if (cacheMap.size() > maxCacheCount) {
+            throw new TransactionFailedRetriableException(
+                    "Exceeded maximum concurrent caches; transaction can be retried, but with caching disabled");
+        }
+
+        return cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
                         .getSnapshot(key)
                         .map(snapshot -> TransactionScopedCacheImpl.create(snapshot, metrics))
                         .map(newCache -> ValidatingTransactionScopedCache.create(
@@ -59,13 +64,6 @@ final class CacheStoreImpl implements CacheStore {
                         .map(Caches::create)
                         .orElseGet(Caches::createNoOp))
                 .mainCache();
-
-        if (cacheMap.size() > maxCacheCount) {
-            throw new TransactionFailedRetriableException(
-                    "Exceeded maximum concurrent caches; transaction can be retried, but with caching disabled");
-        } else {
-            return cache;
-        }
     }
 
     @Override
