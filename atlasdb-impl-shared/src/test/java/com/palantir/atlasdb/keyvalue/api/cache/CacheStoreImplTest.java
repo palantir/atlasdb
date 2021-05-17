@@ -70,12 +70,14 @@ public final class CacheStoreImplTest {
         SnapshotStore snapshotStore = new SnapshotStoreImpl();
         CacheStore cacheStore = new CacheStoreImpl(snapshotStore, VALIDATION_PROBABILITY, () -> {}, metrics, 1);
 
+        StartTimestamp timestamp = StartTimestamp.of(22222L);
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
-                ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2),
+                ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2, timestamp),
                 ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
 
         cacheStore.getOrCreateCache(TIMESTAMP_1);
+        cacheStore.getOrCreateCache(timestamp);
         assertThatThrownBy(() -> cacheStore.getOrCreateCache(TIMESTAMP_2))
                 .isExactlyInstanceOf(TransactionFailedRetriableException.class)
                 .hasMessage("Exceeded maximum concurrent caches; transaction can be retried, but with caching "
