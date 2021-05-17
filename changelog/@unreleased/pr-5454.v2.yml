@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Throw if the internal cache store exceeds 100k caches stored.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5454
