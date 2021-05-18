@@ -29,7 +29,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
@@ -59,7 +59,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
     }
 
     public long getCommitTimestamp(
-            Namespace namespace, long startTs, LockToken commitLocksToken, LockWatchEventCache cache) {
+            Namespace namespace, long startTs, LockToken commitLocksToken, LockWatchCache cache) {
         return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableNamespacedRequest.builder()
                 .namespace(namespace)
                 .startTs(startTs)
@@ -119,10 +119,10 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
 
     private static final class NamespacedBatchStateManager {
         private final Queue<BatchElement<NamespacedRequest, Long>> pendingRequestQueue;
-        private final LockWatchEventCache cache;
+        private final LockWatchCache cache;
         private Optional<LockWatchVersion> lastKnownVersion;
 
-        private NamespacedBatchStateManager(LockWatchEventCache cache) {
+        private NamespacedBatchStateManager(LockWatchCache cache) {
             this.pendingRequestQueue = new ArrayDeque<>();
             this.cache = cache;
             this.lastKnownVersion = Optional.empty();
@@ -144,7 +144,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         }
 
         private Optional<LockWatchVersion> updateAndGetLastKnownVersion() {
-            lastKnownVersion = cache.lastKnownVersion();
+            lastKnownVersion = cache.getEventCache().lastKnownVersion();
             return lastKnownVersion;
         }
 
@@ -176,7 +176,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
                                     .writesToken(batchElement.argument().commitLocksToken())
                                     .build())
                     .collect(Collectors.toList());
-            cache.processGetCommitTimestampsUpdate(transactionUpdates, lockWatchUpdate);
+            cache.processCommitTimestampsUpdate(transactionUpdates, lockWatchUpdate);
         }
     }
 
@@ -193,6 +193,6 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
 
         LockToken commitLocksToken();
 
-        LockWatchEventCache cache();
+        LockWatchCache cache();
     }
 }

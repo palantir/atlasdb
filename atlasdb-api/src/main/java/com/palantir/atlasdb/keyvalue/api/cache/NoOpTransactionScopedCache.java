@@ -21,14 +21,20 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
-final class NoOpTransactionScopedCache implements TransactionScopedCache {
+public final class NoOpTransactionScopedCache implements TransactionScopedCache {
+    private NoOpTransactionScopedCache() {}
 
-    static TransactionScopedCache create() {
+    public static TransactionScopedCache create() {
         return new NoOpTransactionScopedCache();
     }
 
@@ -41,10 +47,31 @@ final class NoOpTransactionScopedCache implements TransactionScopedCache {
     @Override
     public Map<Cell, byte[]> get(
             TableReference tableReference,
-            Set<Cell> cell,
+            Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        return AtlasFutures.getUnchecked(valueLoader.apply(tableReference, cell));
+        return AtlasFutures.getUnchecked(getAsync(tableReference, cells, valueLoader));
     }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(
+            TableReference tableReference,
+            Set<Cell> cells,
+            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        return valueLoader.apply(tableReference, cells);
+    }
+
+    @Override
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
+            Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
+        return rowLoader.apply(rows);
+    }
+
+    @Override
+    public void finalise() {}
 
     @Override
     public ValueDigest getValueDigest() {
@@ -54,5 +81,10 @@ final class NoOpTransactionScopedCache implements TransactionScopedCache {
     @Override
     public HitDigest getHitDigest() {
         return HitDigest.of(ImmutableSet.of());
+    }
+
+    @Override
+    public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
+        return ReadOnlyTransactionScopedCache.create(NoOpTransactionScopedCache.create());
     }
 }

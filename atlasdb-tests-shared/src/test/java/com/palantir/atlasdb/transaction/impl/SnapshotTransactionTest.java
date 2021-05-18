@@ -26,7 +26,9 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -42,12 +44,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
@@ -76,6 +78,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -95,6 +98,7 @@ import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
+import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.MultiDelegateProxy;
@@ -112,7 +116,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -136,10 +140,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -149,15 +155,15 @@ import org.assertj.core.api.HamcrestCondition;
 import org.hamcrest.Matchers;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
-import org.jmock.Sequence;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.jmock.lib.concurrent.Synchroniser;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 @SuppressWarnings("checkstyle:all")
 @RunWith(Parameterized.class)
@@ -411,7 +417,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         metricsManager,
                         keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
                         new LegacyTimelockService(timestampService, lock, lockClient),
-                        NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
+                        NoOpLockWatchManager.create(),
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         () -> transactionTs,
@@ -437,77 +443,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
         mockery.assertIsSatisfied();
-    }
-
-    @Ignore("Was ignored long ago, and now we need to fix the mocking logic.")
-    // This tests that uncommitted values are deleted and cleaned up
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testPutCleanup() throws Exception {
-        byte[] rowName = PtBytes.toBytes("1");
-        Mockery m = new Mockery();
-        final KeyValueService kvMock = m.mock(KeyValueService.class);
-        KeyValueService kv = MultiDelegateProxy.newProxyInstance(KeyValueService.class, keyValueService, kvMock);
-
-        final Cell cell = Cell.create(rowName, rowName);
-        timestampService.getFreshTimestamp();
-        final long startTs = timestampService.getFreshTimestamp();
-        final long transactionTs = timestampService.getFreshTimestamp();
-        keyValueService.put(TABLE, ImmutableMap.of(cell, rowName), startTs);
-
-        final Sequence seq = m.sequence("seq");
-        m.checking(new Expectations() {
-            {
-                oneOf(kvMock).getLatestTimestamps(TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
-                inSequence(seq);
-                oneOf(kvMock).get(with(TransactionConstants.TRANSACTION_TABLE), with(any(Map.class)));
-                inSequence(seq);
-                oneOf(kvMock).putUnlessExists(with(TransactionConstants.TRANSACTION_TABLE), with(any(Map.class)));
-                inSequence(seq);
-                oneOf(kvMock).delete(TABLE, Multimaps.forMap(ImmutableMap.of(cell, startTs)));
-                inSequence(seq);
-                oneOf(kvMock).getLatestTimestamps(TABLE, ImmutableMap.of(cell, startTs));
-                inSequence(seq);
-                oneOf(kvMock).multiPut(with(any(Map.class)), with(transactionTs));
-                inSequence(seq);
-                oneOf(kvMock).putUnlessExists(with(TransactionConstants.TRANSACTION_TABLE), with(any(Map.class)));
-                inSequence(seq);
-            }
-        });
-
-        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        Transaction snapshot = transactionWrapper.apply(
-                new SnapshotTransaction(
-                        metricsManager,
-                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
-                        null,
-                        null,
-                        transactionService,
-                        NoOpCleaner.INSTANCE,
-                        () -> transactionTs,
-                        ConflictDetectionManagers.create(keyValueService),
-                        SweepStrategyManagers.createDefault(keyValueService),
-                        transactionTs,
-                        Optional.empty(),
-                        PreCommitConditions.NO_OP,
-                        AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                        null,
-                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                        false,
-                        timestampCache,
-                        getRangesExecutor,
-                        defaultGetRangesConcurrency,
-                        MultiTableSweepQueueWriter.NO_OP,
-                        MoreExecutors.newDirectExecutorService(),
-                        true,
-                        () -> transactionConfig,
-                        ConflictTracer.NO_OP,
-                        tableLevelMetricsController),
-                pathTypeTracker);
-        snapshot.delete(TABLE, ImmutableSet.of(cell));
-        snapshot.commit();
-
-        m.assertIsSatisfied();
     }
 
     @Test
@@ -1867,6 +1802,203 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         verifyLoadOnKvs(numColumns, numRows, SnapshotTransaction.MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD);
     }
 
+    @Test
+    public void runsCallbacksInRegistrationOrder() {
+        Transaction transaction = txManager.createNewTransaction();
+        Runnable firstCallback = mock(Runnable.class);
+        Runnable secondCallback = mock(Runnable.class);
+        transaction.onSuccess(firstCallback);
+        transaction.onSuccess(secondCallback);
+        transaction.commit();
+
+        InOrder inOrder = Mockito.inOrder(firstCallback, secondCallback);
+        inOrder.verify(firstCallback).run();
+        inOrder.verify(secondCallback).run();
+    }
+
+    @Test
+    public void cannotRegisterCallbackAfterTransactionCloses() {
+        Transaction committingTransaction = txManager.createNewTransaction();
+        committingTransaction.commit();
+        Transaction abortingTransaction = txManager.createNewTransaction();
+        abortingTransaction.abort();
+
+        assertThatThrownBy(() -> committingTransaction.onSuccess(() -> {}))
+                .isInstanceOf(CommittedTransactionException.class)
+                .hasMessageContaining("Transaction must be uncommitted");
+        assertThatThrownBy(() -> abortingTransaction.onSuccess(() -> {}))
+                .isInstanceOf(CommittedTransactionException.class)
+                .hasMessageContaining("Transaction must be uncommitted");
+    }
+
+    @Test
+    public void cannotRegisterNullCallback() {
+        Transaction transaction = txManager.createNewTransaction();
+        assertThatThrownBy(() -> transaction.onSuccess(null)).isInstanceOf(NullPointerException.class);
+        transaction.abort();
+    }
+
+    @Test
+    public void exceptionThrownFromCallbackStopsChain() {
+        Transaction transaction = txManager.createNewTransaction();
+        List<Runnable> callbacks =
+                IntStream.range(0, 3).mapToObj(_unused -> mock(Runnable.class)).collect(Collectors.toList());
+        callbacks.forEach(transaction::onSuccess);
+
+        doThrow(RuntimeException.class).when(callbacks.get(1)).run();
+
+        assertThatThrownBy(transaction::commit).isInstanceOf(RuntimeException.class);
+        verify(callbacks.get(0)).run();
+        verify(callbacks.get(1)).run();
+        verify(callbacks.get(2), never()).run();
+    }
+
+    @Test
+    public void canRegisterCallbacksFromManyThreads() {
+        Transaction transaction = txManager.createNewTransaction();
+        List<Runnable> callbacks = IntStream.range(0, 1000)
+                .mapToObj(_unused -> mock(Runnable.class))
+                .collect(Collectors.toList());
+        ExecutorService executorService = PTExecutors.newFixedThreadPool(8);
+        List<Future<?>> futures = callbacks.stream()
+                .map(callback -> executorService.submit(() -> transaction.onSuccess(callback)))
+                .collect(Collectors.toList());
+        futures.forEach(Futures::getUnchecked);
+        transaction.commit();
+        callbacks.forEach(callback -> verify(callback).run());
+    }
+
+    @Test
+    public void callbacksOnlyRunOnceEvenOnMultipleCommits() {
+        Transaction transaction = txManager.createNewTransaction();
+        Runnable callback = mock(Runnable.class);
+        transaction.onSuccess(callback);
+        transaction.commit();
+        transaction.commit();
+
+        verify(callback, times(1)).run();
+    }
+
+    @Test
+    public void transactionStillCommittedEvenIfCallbackThrows() {
+        assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(txn -> {
+                    txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
+                    txn.onSuccess(() -> {
+                        throw new RuntimeException("boom");
+                    });
+                    return null;
+                }))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("boom");
+        txManager.runTaskReadOnly(txn -> {
+            assertThat(txn.get(TABLE, ImmutableSet.of(TEST_CELL)))
+                    .containsExactly(Maps.immutableEntry(TEST_CELL, PtBytes.toBytes("tom")));
+            return null;
+        });
+    }
+
+    @Test
+    public void cannotCompleteFutureAfterTransactionCommit() {
+        SettableFuture<Object> blocker = SettableFuture.create();
+        ListenableFuture<Map<Cell, byte[]>> getFuture = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("jeremy")));
+            return Futures.transformAsync(
+                    blocker,
+                    _unused -> txn.getAsync(TABLE, ImmutableSet.of(TEST_CELL)),
+                    MoreExecutors.directExecutor());
+        });
+        blocker.set(new Object());
+        assertThatThrownBy(getFuture::get)
+                .isInstanceOf(ExecutionException.class)
+                .satisfies(exception ->
+                        assertThat(exception.getCause()).isInstanceOf(CommittedTransactionException.class));
+    }
+
+    @Test
+    public void cannotReadStreamAfterTransactionCommit() {
+        Stream<byte[]> values = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
+
+            BiFunction<RangeRequest, BatchingVisitable<RowResult<byte[]>>, byte[]> singleValueExtractor =
+                    ($, visitable) -> Iterables.getOnlyElement(BatchingVisitables.copyToList(visitable))
+                            .getOnlyColumnValue();
+            return txn.getRanges(ImmutableGetRangesQuery.<byte[]>builder()
+                    .tableRef(TABLE)
+                    .rangeRequests(ImmutableList.of(RangeRequest.all()))
+                    .visitableProcessor(singleValueExtractor)
+                    .build());
+        });
+        assertThatThrownBy(() -> values.collect(Collectors.toList())).isInstanceOf(CommittedTransactionException.class);
+    }
+
+    @Test
+    public void cannotPerformUnmergedGetRowsColumnRangeAfterTransactionCommit() {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> visitables = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("alice")));
+            return txn.getRowsColumnRange(
+                    TABLE,
+                    ImmutableList.of(TEST_CELL.getRowName()),
+                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+        });
+
+        assertThatThrownBy(() -> BatchingVisitables.copyToList(visitables.get(TEST_CELL.getRowName())))
+                .isInstanceOf(CommittedTransactionException.class);
+    }
+
+    @Test
+    public void cannotPerformMergedGetRowsColumnRangeAfterTransactionCommit() {
+        Iterator<Map.Entry<Cell, byte[]>> entryIterator = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("bob")));
+            return txn.getRowsColumnRange(
+                    TABLE,
+                    ImmutableList.of(TEST_CELL.getRowName()),
+                    new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                    100);
+        });
+
+        assertThatThrownBy(entryIterator::next).isInstanceOf(CommittedTransactionException.class);
+    }
+
+    @Test
+    public void cannotReadSortedColumnsAfterTransactionCommit() {
+        Iterator<Map.Entry<Cell, byte[]>> cellIterator = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("will")));
+
+            return txn.getSortedColumns(
+                    TABLE,
+                    ImmutableList.of(TEST_CELL.getRowName()),
+                    BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 100));
+        });
+        assertThatThrownBy(cellIterator::next).isInstanceOf(CommittedTransactionException.class);
+    }
+
+    @Test
+    public void cannotReadVisitablesFromGetRangesLazyAfterTransactionCommit() {
+        txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("peyton")));
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL_2, PtBytes.toBytes("eli")));
+            return null;
+        });
+
+        BatchingVisitable<RowResult<byte[]>> leakedVisitable =
+                txManager.runTaskThrowOnConflict(txn -> txn.getRangesLazy(
+                                TABLE,
+                                ImmutableList.of(
+                                        RangeRequest.builder()
+                                                .startRowInclusive(TEST_CELL.getRowName())
+                                                .endRowExclusive(TEST_CELL_2.getRowName())
+                                                .batchHint(1)
+                                                .build(),
+                                        RangeRequest.builder()
+                                                .startRowInclusive(TEST_CELL_2.getRowName())
+                                                .batchHint(1)
+                                                .build()))
+                        .findFirst()
+                        .orElseThrow(() -> new SafeIllegalStateException("expected at least one visitable!")));
+        assertThatThrownBy(() -> BatchingVisitables.copyToList(leakedVisitable))
+                .isInstanceOf(CommittedTransactionException.class);
+    }
+
     private void verifyPrefetchValidations(
             List<byte[]> rows,
             List<Cell> cells,
@@ -1984,7 +2116,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         metricsManager,
                         keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                         timelockService,
-                        NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
+                        NoOpLockWatchManager.create(),
                         transactionService,
                         NoOpCleaner.INSTANCE,
                         startTs,

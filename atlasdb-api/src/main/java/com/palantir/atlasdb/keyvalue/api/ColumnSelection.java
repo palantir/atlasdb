@@ -19,6 +19,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.Preconditions;
@@ -28,6 +29,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 public final class ColumnSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -94,6 +96,13 @@ public final class ColumnSelection implements Serializable {
     public Collection<byte[]> getSelectedColumns() {
         assert selectedColumns != null;
         return Collections.unmodifiableCollection(selectedColumns);
+    }
+
+    public Set<Cell> asCellsForRows(Iterable<byte[]> rows) {
+        Preconditions.checkState(!allColumnsSelected(), "Cannot create cells if columns are not explicitly set.");
+        return Streams.stream(rows)
+                .flatMap(row -> getSelectedColumns().stream().map(col -> Cell.create(row, col)))
+                .collect(Collectors.toSet());
     }
 
     /**

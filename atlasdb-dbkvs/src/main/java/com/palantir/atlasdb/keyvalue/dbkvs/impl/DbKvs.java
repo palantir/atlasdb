@@ -390,7 +390,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
                 Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length;
     }
 
-    /* (non-Javadoc)
+    /**
      * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
      */
     @Override

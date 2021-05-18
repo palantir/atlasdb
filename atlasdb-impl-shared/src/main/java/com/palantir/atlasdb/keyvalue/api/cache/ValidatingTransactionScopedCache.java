@@ -17,20 +17,31 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,17 +49,22 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     private static final Logger log = LoggerFactory.getLogger(ValidatingTransactionScopedCache.class);
 
     private final TransactionScopedCache delegate;
-    private final Supplier<Boolean> shouldValidate;
+    private final Random random;
+    private final double validationProbability;
+    private final Runnable failureCallback;
 
     @VisibleForTesting
-    ValidatingTransactionScopedCache(TransactionScopedCache delegate, Supplier<Boolean> shouldValidate) {
+    ValidatingTransactionScopedCache(
+            TransactionScopedCache delegate, double validationProbability, Runnable failureCallback) {
         this.delegate = delegate;
-        this.shouldValidate = shouldValidate;
+        this.validationProbability = validationProbability;
+        this.failureCallback = failureCallback;
+        this.random = new Random();
     }
 
-    static ValidatingTransactionScopedCache create(TransactionScopedCache delegate, double validationProbability) {
-        return new ValidatingTransactionScopedCache(
-                delegate, () -> ThreadLocalRandom.current().nextDouble() < validationProbability);
+    static TransactionScopedCache create(
+            TransactionScopedCache delegate, double validationProbability, Runnable failureCallback) {
+        return new ValidatingTransactionScopedCache(delegate, validationProbability, failureCallback);
     }
 
     @Override
@@ -64,18 +80,71 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     @Override
     public Map<Cell, byte[]> get(
             TableReference tableReference,
-            Set<Cell> cell,
+            Set<Cell> cells,
             BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
-        if (shouldValidate.get()) {
-            Map<Cell, byte[]> remoteReads = AtlasFutures.getUnchecked(valueLoader.apply(tableReference, cell));
-            Map<Cell, byte[]> cacheReads =
-                    delegate.get(tableReference, cell, (table, cells) -> getCells(remoteReads, cells));
+        return AtlasFutures.getUnchecked(getAsync(tableReference, cells, valueLoader));
+    }
 
-            validateCacheReads(tableReference, remoteReads, cacheReads);
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(
+            TableReference tableReference,
+            Set<Cell> cells,
+            BiFunction<TableReference, Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        if (shouldValidate()) {
+            ListenableFuture<Map<Cell, byte[]>> remoteReads = valueLoader.apply(tableReference, cells);
+            ListenableFuture<Map<Cell, byte[]>> cacheReads = delegate.getAsync(
+                    tableReference,
+                    cells,
+                    (table, cellsToRead) -> Futures.transform(
+                            remoteReads, reads -> getCells(reads, cellsToRead), MoreExecutors.directExecutor()));
+
+            return Futures.transform(
+                    cacheReads,
+                    reads -> {
+                        validateCacheReads(tableReference, AtlasFutures.getDone(remoteReads), reads);
+                        return reads;
+                    },
+                    MoreExecutors.directExecutor());
+        } else {
+            return delegate.getAsync(tableReference, cells, valueLoader);
+        }
+    }
+
+    @Override
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
+            Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
+        if (shouldValidate()) {
+            NavigableMap<byte[], RowResult<byte[]>> remoteReads = rowLoader.apply(rows);
+            NavigableMap<byte[], RowResult<byte[]>> cacheReads = delegate.getRows(
+                    tableRef,
+                    rows,
+                    columnSelection,
+                    cellsToRead -> KeyedStream.of(cellsToRead)
+                            .map(cell -> Optional.ofNullable(remoteReads.get(cell.getRowName()))
+                                    .map(RowResult::getColumns)
+                                    .map(col -> col.get(cell.getColumnName()))
+                                    .orElse(null))
+                            .filter(Objects::nonNull)
+                            .collectToMap(),
+                    rowsToRead -> {
+                        SortedSet<byte[]> toReadSorted = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
+                        rowsToRead.forEach(toReadSorted::add);
+                        return Maps.filterKeys(remoteReads, toReadSorted::contains);
+                    });
+            validateCacheRowReads(tableRef, remoteReads, cacheReads);
             return cacheReads;
         } else {
-            return delegate.get(tableReference, cell, valueLoader);
+            return delegate.getRows(tableRef, rows, columnSelection, cellLoader, rowLoader);
         }
+    }
+
+    @Override
+    public void finalise() {
+        delegate.finalise();
     }
 
     @Override
@@ -88,24 +157,48 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
         return delegate.getHitDigest();
     }
 
-    private static ListenableFuture<Map<Cell, byte[]>> getCells(Map<Cell, byte[]> remoteReads, Set<Cell> cells) {
-        return Futures.immediateFuture(KeyedStream.of(cells)
-                .map(remoteReads::get)
-                .filter(Objects::nonNull)
-                .collectToMap());
+    @Override
+    public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
+        return create(delegate.createReadOnlyCache(commitUpdate), validationProbability, failureCallback);
     }
 
-    private static void validateCacheReads(
+    private boolean shouldValidate() {
+        return random.nextDouble() < validationProbability;
+    }
+
+    private void validateCacheReads(
             TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
-        if (!remoteReads.equals(cacheReads)) {
-            // TODO(jshah): make sure that this causes us to disable all caching until restart
-            log.error(
-                    "Reading from lock watch cache returned a different result to a remote read - this indicates there "
-                            + "is a corruption bug in the caching logic",
+        if (!ByteArrayUtilities.areMapsEqual(remoteReads, cacheReads)) {
+            failAndLog(
                     UnsafeArg.of("table", tableReference),
-                    UnsafeArg.of("remoteReads", remoteReads),
-                    UnsafeArg.of("cacheReads", cacheReads));
-            throw new TransactionFailedNonRetriableException("Failed lock watch cache validation");
+                    UnsafeArg.of("remoteReads", remoteReads.keySet()),
+                    UnsafeArg.of("cacheReads", cacheReads.keySet()));
         }
+    }
+
+    private void validateCacheRowReads(
+            TableReference tableReference,
+            NavigableMap<byte[], RowResult<byte[]>> remoteReads,
+            NavigableMap<byte[], RowResult<byte[]>> cacheReads) {
+        if (!ByteArrayUtilities.areRowResultsEqual(remoteReads, cacheReads)) {
+            failAndLog(UnsafeArg.of("table", tableReference));
+        }
+    }
+
+    private void failAndLog(Object... args) {
+        log.error(
+                "Reading from lock watch cache returned a different result to a remote read - this indicates there "
+                        + "is a corruption bug in the caching logic",
+                args);
+        failureCallback.run();
+        throw new TransactionLockWatchFailedException(
+                "Failed lock watch cache validation - will retry without caching");
+    }
+
+    private static Map<Cell, byte[]> getCells(Map<Cell, byte[]> remoteReads, Set<Cell> cells) {
+        return KeyedStream.of(cells)
+                .map(remoteReads::get)
+                .filter(Objects::nonNull)
+                .collectToMap();
     }
 }

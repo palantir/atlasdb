@@ -88,6 +88,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("addGarbageCollectionSentinelValues", sink -> {
             sink.accept("table", LoggingArgs.safeTableOrPlaceholder(tableRef).toString());
             sink.accept("numCells", Integer.toString(Iterables.size(cells)));
@@ -98,6 +99,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("checkAndSet", checkAndSetRequest.table())) {
             delegate().checkAndSet(checkAndSetRequest);
         }
@@ -105,6 +107,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void close() {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("close")) {
             delegate().close();
         }
@@ -113,6 +116,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void compactInternally(TableReference tableRef) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("compactInternally", tableRef)) {
             delegate().compactInternally(tableRef);
         }
@@ -120,6 +124,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("getClusterAvailabilityStatus")) {
             return delegate().getClusterAvailabilityStatus();
         }
@@ -127,6 +132,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("compactInternally", tableRef)) {
             delegate().compactInternally(tableRef, inMaintenanceMode);
         }
@@ -139,6 +145,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("createTable", tableRef)) {
             delegate().createTable(tableRef, tableMetadata);
         }
@@ -146,6 +153,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void createTables(Map<TableReference, byte[]> tableNamesToTableMetadata) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("createTables", tableNamesToTableMetadata.keySet())) {
             delegate().createTables(tableNamesToTableMetadata);
         }
@@ -162,6 +170,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("deleteRange", tableRef)) {
             delegate().deleteRange(tableRef, range);
         }
@@ -169,6 +178,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("deleteRows({})", tableRef)) {
             delegate().deleteRows(tableRef, rows);
         }
@@ -176,6 +186,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("deleteAllTimestamps", tableRef)) {
             delegate().deleteAllTimestamps(tableRef, deletes);
         }
@@ -183,6 +194,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void dropTable(TableReference tableRef) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("dropTable", tableRef)) {
             delegate().dropTable(tableRef);
         }
@@ -190,6 +202,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void dropTables(Set<TableReference> tableRefs) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("dropTables", tableRefs)) {
             delegate().dropTables(tableRefs);
         }
@@ -197,6 +210,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("get({}, {} cells)", sink -> {
             sink.accept("table", LoggingArgs.safeTableOrPlaceholder(tableRef).toString());
             sink.accept("numCells", Integer.toString(timestampByCell.size()));
@@ -207,6 +221,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public Set<TableReference> getAllTableNames() {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("getAllTableNames")) {
             // Could add returned table references.
             return delegate().getAllTableNames();
@@ -215,6 +230,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("getAllTimestamps({}, {} keys, ts {})", sink -> {
             sink.accept("table", LoggingArgs.safeTableOrPlaceholder(tableRef).toString());
             sink.accept("keys", Integer.toString(keys.size()));
@@ -226,6 +242,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public Collection<? extends KeyValueService> getDelegates() {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("getDelegates")) {
             return ImmutableList.copyOf(
                     Iterables.concat(ImmutableList.of(delegate()), delegate().getDelegates()));
@@ -235,6 +252,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("getFirstBatchForRanges", sink -> {
             sink.accept("table", LoggingArgs.safeTableOrPlaceholder(tableRef).toString());
             sink.accept("ranges", Integer.toString(Iterables.size(rangeRequests)));
@@ -246,6 +264,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTrace trace = startLocalTrace(
                 "getLatestTimestamps({}, {} cells)",
                 LoggingArgs.safeTableOrPlaceholder(tableRef),
@@ -256,6 +275,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("getMetadataForTable({})", tableRef)) {
             return delegate().getMetadataForTable(tableRef);
         }
@@ -263,6 +283,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("getMetadataForTables")) {
             return delegate().getMetadataForTables();
         }
@@ -391,6 +412,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public void truncateTable(TableReference tableRef) {
+        //noinspection unused - try-with-resources closes trace
         try (CloseableTracer _trace = startLocalTrace("truncateTable({})", tableRef)) {
             delegate().truncateTable(tableRef);
         }
@@ -413,11 +435,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
         try (CloseableTrace trace = startLocalTrace(
-                "getRowKeysInRange({}, {}, {}, {})",
-                LoggingArgs.safeTableOrPlaceholder(tableRef),
-                UnsafeArg.of("startRow", startRow),
-                UnsafeArg.of("endRow", endRow),
-                SafeArg.of("maxResults", maxResults))) {
+                "getRowKeysInRange({}, {})", LoggingArgs.safeTableOrPlaceholder(tableRef), maxResults)) {
             return delegate().getRowKeysInRange(tableRef, startRow, endRow, maxResults);
         }
     }
@@ -431,12 +449,12 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         return attachDetachedSpanCompletion(detachedSpan, future, tracingExecutorService);
     }
 
-    static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
+    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
         return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
     }
 
     @MustBeClosed
-    public static CloseableTracer startLocalTrace(
+    private static CloseableTracer startLocalTrace(
             @CompileTimeConstant String operation, Consumer<BiConsumer<String, String>> tagTranslator) {
         return CloseableTracer.startSpan(
                 SERVICE_NAME + "." + operation, FunctionalTagTranslator.INSTANCE, tagTranslator);

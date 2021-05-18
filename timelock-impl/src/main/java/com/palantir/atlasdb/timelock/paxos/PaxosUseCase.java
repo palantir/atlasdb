@@ -62,10 +62,10 @@ public enum PaxosUseCase {
     private final String useCasePath;
     private final Path relativeLogDirectory;
 
-    /*
-       Although this has no compile time usages, this is used for serialisation/deserialisation via Jersey
-       {@link QueryParam}.
-    */
+    /**
+     * Although this has no compile time usages, this is used for serialisation/deserialisation via Jersey
+     * {@link javax.ws.rs.QueryParam}.
+     */
     public static PaxosUseCase fromString(String string) {
         switch (string) {
             case LEADER_PAXOS_NAMESPACE:

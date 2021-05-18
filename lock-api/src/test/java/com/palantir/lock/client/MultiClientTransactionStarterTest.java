@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,7 +40,8 @@ import com.palantir.lock.client.MultiClientTransactionStarter.NamespaceAndReques
 import com.palantir.lock.client.MultiClientTransactionStarter.RequestParams;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,7 +58,7 @@ import org.mockito.ArgumentCaptor;
 
 public class MultiClientTransactionStarterTest {
     private static final int PARTITIONED_TIMESTAMPS_LIMIT_PER_SERVER_CALL = 5;
-    private static final Map<Namespace, StartTransactionsLockWatchEventCache> NAMESPACE_CACHE_MAP = new HashMap<>();
+    private static final Map<Namespace, LockWatchCache> NAMESPACE_CACHE_MAP = new HashMap<>();
     private static final Map<Namespace, LockCleanupService> LOCK_CLEANUP_SERVICE_MAP = new HashMap<>();
     private static final SafeIllegalStateException EXCEPTION = new SafeIllegalStateException("Something went wrong!");
 
@@ -230,9 +232,9 @@ public class MultiClientTransactionStarterTest {
         when(timelockService.startTransactions(any())).thenAnswer(invocation -> {
             Map<Namespace, ConjureStartTransactionsResponse> responses =
                     startTransactions(invocation.getArgument(0), getLowestTs());
-            responses.forEach((namespace, response) -> {
-                responseMap.computeIfAbsent(namespace, _u -> new ArrayList()).add(response);
-            });
+            responses.forEach((namespace, response) -> responseMap
+                    .computeIfAbsent(namespace, _u -> new ArrayList<>())
+                    .add(response));
             return responses;
         });
 
@@ -314,8 +316,8 @@ public class MultiClientTransactionStarterTest {
                 .collect(Collectors.toList());
     }
 
-    private StartTransactionsLockWatchEventCache getCache(Namespace namespace) {
-        return NAMESPACE_CACHE_MAP.computeIfAbsent(namespace, _u -> mock(StartTransactionsLockWatchEventCache.class));
+    private LockWatchCache getCache(Namespace namespace) {
+        return NAMESPACE_CACHE_MAP.computeIfAbsent(namespace, _u -> spy(LockWatchCacheImpl.noOp()));
     }
 
     public Map<Namespace, ConjureStartTransactionsResponse> startTransactions(

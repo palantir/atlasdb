@@ -17,13 +17,13 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
+import com.google.common.io.CharStreams;
 import com.palantir.logsafe.Preconditions;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.function.Supplier;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,24 +35,18 @@ import org.slf4j.LoggerFactory;
  */
 public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
     private static final Logger log = LoggerFactory.getLogger(Ec2HostLocationSupplier.class);
-
-    /*
-       This is a supplier to avoid class loading races breaking downstream internal products.
-    */
-    private static final Supplier<OkHttpClient> client = Suppliers.memoize(() -> new OkHttpClient.Builder().build());
+    private static final String AZ_URL = "http://169.254.169.254/latest/meta-data/placement/availability-zone";
 
     @Override
     public HostLocation get() {
         try {
-            Response response = client.get()
-                    .newCall(new Request.Builder()
-                            .get()
-                            .url("http://169.254.169.254/latest/meta-data/placement/availability-zone")
-                            .build())
-                    .execute();
-            Preconditions.checkState(response.isSuccessful(), "Getting AWS host metadata was not successful");
-
-            return parseHostLocation(response.body().string());
+            URL url = new URL(AZ_URL);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            int responseCode = conn.getResponseCode();
+            Preconditions.checkState(responseCode == 200, "Getting AWS host metadata was not successful");
+            try (InputStreamReader reader = new InputStreamReader(conn.getInputStream())) {
+                return parseHostLocation(CharStreams.toString(reader));
+            }
         } catch (IOException e) {
             log.warn(
                     "Could not query AWS host metadata to retrieve the host location. "

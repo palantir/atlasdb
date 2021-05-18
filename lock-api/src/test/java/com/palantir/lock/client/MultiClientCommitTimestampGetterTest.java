@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,7 +41,8 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.client.MultiClientCommitTimestampGetter.NamespacedRequest;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.ArrayList;
@@ -59,15 +61,17 @@ public class MultiClientCommitTimestampGetterTest {
     private static final SafeIllegalStateException EXCEPTION = new SafeIllegalStateException("Something went wrong!");
 
     private final Map<Namespace, Long> lowestStartTsMap = new HashMap<>();
-    private final Map<Namespace, LockWatchEventCache> lockWatchEventCacheMap = new HashMap<>();
+    private final Map<Namespace, LockWatchCache> lockWatchCacheMap = new HashMap<>();
 
     private final LockToken lockToken = mock(LockToken.class);
     private final InternalMultiClientConjureTimelockService timelockService =
             mock(InternalMultiClientConjureTimelockService.class);
-    private final LockWatchStateUpdate lockWatchStateUpdate = mock(LockWatchStateUpdate.class);
 
     private final Consumer<List<BatchElement<NamespacedRequest, Long>>> consumer =
             MultiClientCommitTimestampGetter.consumer(timelockService);
+
+    private final LockWatchStateUpdate lockWatchStateUpdate =
+            LockWatchStateUpdate.success(UUID.randomUUID(), 5, ImmutableList.of());
 
     @Test
     public void canServiceOneClient() {
@@ -101,8 +105,8 @@ public class MultiClientCommitTimestampGetterTest {
                 .collect(toList());
         setupServiceAndAssertSanityOfResponse(batchElements);
 
-        LockWatchEventCache cache = lockWatchEventCacheMap.get(client);
-        verify(cache, times(2)).processGetCommitTimestampsUpdate(any(), any());
+        LockWatchCache cache = lockWatchCacheMap.get(client);
+        verify(cache, times(2)).processCommitTimestampsUpdate(any(), any());
     }
 
     @Test
@@ -124,15 +128,15 @@ public class MultiClientCommitTimestampGetterTest {
         // assert requests made by client alpha are served
         assertSanityOfResponse(alphaRequestList, ImmutableMap.of(alpha, ImmutableList.of(responseMap.get(alpha))));
 
-        LockWatchEventCache alphaCache = lockWatchEventCacheMap.get(alpha);
-        verify(alphaCache).processGetCommitTimestampsUpdate(any(), any());
+        LockWatchCache alphaCache = lockWatchCacheMap.get(alpha);
+        verify(alphaCache).processCommitTimestampsUpdate(any(), any());
 
         assertThat(requestForBeta.result().isDone())
                 .as("No requests made by client - beta were successful")
                 .isFalse();
 
-        LockWatchEventCache betaCache = lockWatchEventCacheMap.get(beta);
-        verify(betaCache, never()).processGetCommitTimestampsUpdate(any(), any());
+        LockWatchCache betaCache = lockWatchCacheMap.get(beta);
+        verify(betaCache, never()).processCommitTimestampsUpdate(any(), any());
     }
 
     private void setupServiceAndAssertSanityOfResponse(List<BatchElement<NamespacedRequest, Long>> batch) {
@@ -246,8 +250,7 @@ public class MultiClientCommitTimestampGetterTest {
                 ImmutableNamespacedRequest.builder()
                         .namespace(namespace)
                         .startTs(1)
-                        .cache(lockWatchEventCacheMap.computeIfAbsent(
-                                namespace, _unused -> mock(LockWatchEventCache.class)))
+                        .cache(lockWatchCacheMap.computeIfAbsent(namespace, _unused -> spy(LockWatchCacheImpl.noOp())))
                         .commitLocksToken(lockToken)
                         .build(),
                 new DisruptorFuture<Long>("test"));

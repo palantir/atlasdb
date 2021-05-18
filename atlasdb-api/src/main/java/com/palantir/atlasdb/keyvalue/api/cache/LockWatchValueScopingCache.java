@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.lock.watch.LockWatchValueCache;
 import java.util.Set;
 
 /**
@@ -31,10 +32,27 @@ import java.util.Set;
  * the central cache (taking in to account the since-locked descriptors), as well as checking for conflicts for
  * serializable transactions by adding a check in the {@link com.palantir.atlasdb.transaction.api.PreCommitCondition}.
  */
-public interface LockWatchValueCache {
+public interface LockWatchValueScopingCache extends LockWatchValueCache {
+    @Override
     void processStartTransactions(Set<Long> startTimestamps);
 
-    void updateCacheOnCommit(ValueDigest digest, long startTs);
+    /**
+     * This does *not* remove state from the cache - {@link #removeTransactionState(long)} must be called at the end
+     * of the transaction to do so, or else there will be a memory leak.
+     */
+    @Override
+    void updateCacheOnCommit(Set<Long> startTimestamps);
 
-    TransactionScopedCache createTransactionScopedCache(long startTs);
+    @Override
+    void removeTransactionState(long startTimestamp);
+
+    TransactionScopedCache getOrCreateTransactionScopedCache(long startTs);
+
+    /**
+     * Returns a read-only view of the transaction cache at commit time (specifically, **after** getting the commit
+     * timestamp, but before ending the transaction). This view will contain the local updates stored during the
+     * transaction, but will filter out any cells that have been locked between the start and commit of this
+     * transaction. The primary purpose of this cache is for serializable conflict checking.
+     */
+    TransactionScopedCache getReadOnlyTransactionScopedCacheForCommit(long startTs);
 }

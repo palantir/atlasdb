@@ -70,7 +70,6 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
 import java.util.Collections;
@@ -140,7 +139,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 MetricsManagers.createForTests(),
                 keyValueService,
                 timelockService,
-                NoOpLockWatchManager.create(NoOpLockWatchEventCache.create()),
+                NoOpLockWatchManager.create(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
@@ -1135,7 +1134,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         writeCells(cellsWrittenOriginally);
 
         Transaction t1 = startTransactionWithSerializableConflictChecking();
-        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t1.getSortedColumns(
+        t1.getSortedColumns(
                 TEST_TABLE,
                 rows,
                 BatchColumnRangeSelection.create(
@@ -1149,6 +1148,12 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         assertThatCode(t1::commit).doesNotThrowAnyException();
 
+        Transaction t3 = startTransaction();
+        Iterator<Map.Entry<Cell, byte[]>> sortedColumns = t3.getSortedColumns(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(
+                        PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, DEFAULT_BATCH_HINT));
         List<Cell> cells = Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         sanityCheckOnSortedCells(rows, cells, cellsWrittenOriginally);
     }

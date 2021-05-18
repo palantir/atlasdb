@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add a config block for the lock watch value cache.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5442

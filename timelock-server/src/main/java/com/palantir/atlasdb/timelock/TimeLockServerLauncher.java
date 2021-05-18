@@ -27,12 +27,14 @@ import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.Application;
+import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Bootstrap;
@@ -68,7 +70,10 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
         MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(
                 "AtlasDbTest" + UUID.randomUUID().toString());
         bootstrap.setMetricRegistry(metricRegistry);
+        bootstrap.setObjectMapper(ObjectMappers.newServerObjectMapper());
+
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
+        bootstrap.getObjectMapper().setSubtypeResolver(new DiscoverableSubtypeResolver());
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
         super.initialize(bootstrap);
     }

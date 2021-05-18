@@ -19,11 +19,15 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
@@ -41,6 +45,9 @@ public final class LockWatchManagerImplTest {
     private LockWatchEventCache lockWatchEventCache;
 
     @Mock
+    private LockWatchValueScopingCache valueScopingCache;
+
+    @Mock
     private NamespacedConjureLockWatchingService lockWatchingService;
 
     @Mock
@@ -55,12 +62,24 @@ public final class LockWatchManagerImplTest {
     @Mock
     private Schema schema;
 
-    private LockWatchManager manager;
+    private LockWatchManagerInternal manager;
 
     @Before
     public void before() {
+        manager = new LockWatchManagerImpl(
+                ImmutableSet.of(fromSchema), lockWatchEventCache, valueScopingCache, lockWatchingService);
+    }
+
+    @Test
+    public void createMethodParsesTablesFromSchema() {
         when(schema.getLockWatches()).thenReturn(ImmutableSet.of(fromSchema));
-        manager = new LockWatchManagerImpl(ImmutableSet.of(schema), lockWatchEventCache, lockWatchingService);
+        manager = LockWatchManagerImpl.create(
+                MetricsManagers.createForTests(),
+                ImmutableSet.of(schema),
+                lockWatchingService,
+                LockWatchCachingConfig.builder().build());
+        verify(lockWatchingService, atLeastOnce())
+                .startWatching(LockWatchRequest.builder().references(fromSchema).build());
     }
 
     @Test
@@ -85,5 +104,19 @@ public final class LockWatchManagerImplTest {
                 .startWatching(LockWatchRequest.builder()
                         .references(ImmutableSet.of(fromSchema, lockWatchReference1))
                         .build());
+    }
+
+    @Test
+    public void removeTransactionStateTest() {
+        manager.removeTransactionStateFromCache(1L);
+        verify(lockWatchEventCache).removeTransactionStateFromCache(1L);
+        verify(valueScopingCache).removeTransactionState(1L);
+    }
+
+    @Test
+    public void createTransactionScopedCacheTest() {
+        manager.getOrCreateTransactionScopedCache(1L);
+        verify(valueScopingCache).getOrCreateTransactionScopedCache(1L);
+        verifyNoMoreInteractions(lockWatchEventCache);
     }
 }

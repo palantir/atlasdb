@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,25 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
+import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCacheImpl;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
@@ -36,40 +48,59 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class LockWatchManagerImpl extends LockWatchManager implements AutoCloseable {
-
+public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     private static final Logger log = LoggerFactory.getLogger(LockWatchManagerImpl.class);
 
     private final Set<LockWatchReferences.LockWatchReference> referencesFromSchema;
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = ConcurrentHashMap.newKeySet();
-    private final LockWatchEventCache lockWatchEventCache;
+    private final LockWatchCache lockWatchCache;
+    private final LockWatchValueScopingCache valueScopingCache;
     private final NamespacedConjureLockWatchingService lockWatchingService;
     private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor();
     private final ScheduledFuture<?> refreshTask;
 
-    public LockWatchManagerImpl(
-            Set<Schema> schemas,
-            LockWatchEventCache lockWatchEventCache,
+    @VisibleForTesting
+    LockWatchManagerImpl(
+            Set<LockWatchReference> referencesFromSchema,
+            LockWatchEventCache eventCache,
+            LockWatchValueScopingCache valueCache,
             NamespacedConjureLockWatchingService lockWatchingService) {
-        this.referencesFromSchema = schemas.stream()
-                .map(Schema::getLockWatches)
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet());
-        this.lockWatchEventCache = lockWatchEventCache;
+        this.referencesFromSchema = referencesFromSchema;
+        this.lockWatchCache = new LockWatchCacheImpl(eventCache, valueCache);
+        this.valueScopingCache = valueCache;
         this.lockWatchingService = lockWatchingService;
         lockWatchReferences.addAll(referencesFromSchema);
         refreshTask = executorService.scheduleWithFixedDelay(this::registerWatchesWithTimelock, 0, 5, TimeUnit.SECONDS);
     }
 
+    public static LockWatchManagerInternal create(
+            MetricsManager metricsManager,
+            Set<Schema> schemas,
+            NamespacedConjureLockWatchingService lockWatchingService,
+            LockWatchCachingConfig config) {
+        Set<LockWatchReference> referencesFromSchema = schemas.stream()
+                .map(Schema::getLockWatches)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+        Set<TableReference> watchedTablesFromSchema = referencesFromSchema.stream()
+                .map(schema -> schema.accept(LockWatchReferencesVisitor.INSTANCE))
+                .collect(Collectors.toSet());
+        CacheMetrics metrics = CacheMetrics.create(metricsManager);
+        LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics);
+        LockWatchValueScopingCache valueCache = LockWatchValueScopingCacheImpl.create(
+                eventCache, metrics, config.cacheSize(), config.validationProbability(), watchedTablesFromSchema);
+        return new LockWatchManagerImpl(referencesFromSchema, eventCache, valueCache, lockWatchingService);
+    }
+
     @Override
     CommitUpdate getCommitUpdate(long startTs) {
-        return lockWatchEventCache.getCommitUpdate(startTs);
+        return lockWatchCache.getEventCache().getCommitUpdate(startTs);
     }
 
     @Override
     TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
-        return lockWatchEventCache.getUpdateForTransactions(startTimestamps, version);
+        return lockWatchCache.getEventCache().getUpdateForTransactions(startTimestamps, version);
     }
 
     @Override
@@ -88,7 +119,27 @@ public final class LockWatchManagerImpl extends LockWatchManager implements Auto
 
     @Override
     boolean isEnabled() {
-        return lockWatchEventCache.isEnabled();
+        return lockWatchCache.getEventCache().isEnabled();
+    }
+
+    @Override
+    public LockWatchCache getCache() {
+        return lockWatchCache;
+    }
+
+    @Override
+    public void removeTransactionStateFromCache(long startTs) {
+        lockWatchCache.removeTransactionStateFromCache(startTs);
+    }
+
+    @Override
+    public TransactionScopedCache getOrCreateTransactionScopedCache(long startTs) {
+        return valueScopingCache.getOrCreateTransactionScopedCache(startTs);
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCache(long startTs) {
+        return valueScopingCache.getReadOnlyTransactionScopedCacheForCommit(startTs);
     }
 
     private void registerWatchesWithTimelock() {

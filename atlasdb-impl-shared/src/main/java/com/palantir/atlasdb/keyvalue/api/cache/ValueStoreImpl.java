@@ -35,6 +35,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
+import java.util.Set;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.checkerframework.checker.index.qual.NonNegative;
@@ -46,17 +47,20 @@ final class ValueStoreImpl implements ValueStore {
      * We introduce some overhead to storing each value. This makes caching numerous empty values with small cell
      * names more costly.
      */
-    private static final int CACHE_OVERHEAD = 128;
+    static final int CACHE_OVERHEAD = 128;
 
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
+    private final Set<TableReference> allowedTables;
     private final Cache<CellReference, Integer> loadedValues;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
+    private final CacheMetrics metrics;
 
-    ValueStoreImpl(long maxCacheSize) {
-        values = StructureHolder.create(HashMap::empty);
-        watchedTables = StructureHolder.create(HashSet::empty);
-        loadedValues = Caffeine.newBuilder()
+    ValueStoreImpl(Set<TableReference> allowedTables, long maxCacheSize, CacheMetrics metrics) {
+        this.allowedTables = allowedTables;
+        this.values = StructureHolder.create(HashMap::empty);
+        this.watchedTables = StructureHolder.create(HashSet::empty);
+        this.loadedValues = Caffeine.newBuilder()
                 .maximumWeight(maxCacheSize)
                 .weigher(EntryWeigher.INSTANCE)
                 .executor(MoreExecutors.directExecutor())
@@ -64,8 +68,11 @@ final class ValueStoreImpl implements ValueStore {
                     if (cause.wasEvicted()) {
                         values.with(map -> map.remove(cellReference));
                     }
+                    metrics.decreaseCacheSize(EntryWeigher.INSTANCE.weigh(cellReference, value));
                 })
                 .build();
+        this.metrics = metrics;
+        metrics.setMaximumCacheSize(maxCacheSize);
     }
 
     @Override
@@ -90,14 +97,17 @@ final class ValueStoreImpl implements ValueStore {
                     UnsafeArg.of("cell", cellReference.cell()),
                     UnsafeArg.of("oldValue", oldValue),
                     UnsafeArg.of("newValue", newValue));
+            metrics.decreaseCacheSize(
+                    EntryWeigher.INSTANCE.weigh(cellReference, oldValue.value().size()));
             return newValue;
         }));
-        loadedValues.put(cellReference, value.value().map(bytes -> bytes.length).orElse(0));
+        loadedValues.put(cellReference, value.size());
+        metrics.increaseCacheSize(EntryWeigher.INSTANCE.weigh(cellReference, value.size()));
     }
 
     @Override
     public ValueCacheSnapshot getSnapshot() {
-        return ValueCacheSnapshotImpl.of(values.getSnapshot(), watchedTables.getSnapshot());
+        return ValueCacheSnapshotImpl.of(values.getSnapshot(), watchedTables.getSnapshot(), allowedTables);
     }
 
     private void putLockedCell(CellReference cellReference) {
@@ -121,7 +131,7 @@ final class ValueStoreImpl implements ValueStore {
         return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 
-    private void applyLockedDescriptors(java.util.Set<LockDescriptor> lockDescriptors) {
+    private void applyLockedDescriptors(Set<LockDescriptor> lockDescriptors) {
         lockDescriptors.stream().flatMap(this::extractCandidateCells).forEach(this::putLockedCell);
     }
 
@@ -154,7 +164,7 @@ final class ValueStoreImpl implements ValueStore {
         }
     }
 
-    private enum EntryWeigher implements Weigher<CellReference, Integer> {
+    enum EntryWeigher implements Weigher<CellReference, Integer> {
         INSTANCE;
 
         @Override

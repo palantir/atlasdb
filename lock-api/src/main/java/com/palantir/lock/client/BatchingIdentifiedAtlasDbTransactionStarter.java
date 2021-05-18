@@ -25,8 +25,8 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.StartTransactionsLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,10 +42,9 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
         this.autobatcher = autobatcher;
     }
 
-    static BatchingIdentifiedAtlasDbTransactionStarter create(
-            LockLeaseService lockLeaseService, StartTransactionsLockWatchEventCache lockWatchEventCache) {
+    static BatchingIdentifiedAtlasDbTransactionStarter create(LockLeaseService lockLeaseService, LockWatchCache cache) {
         DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher =
-                Autobatchers.independent(consumer(lockLeaseService, lockWatchEventCache))
+                Autobatchers.independent(consumer(lockLeaseService, cache))
                         .safeLoggablePurpose("transaction-starter")
                         .build();
         return new BatchingIdentifiedAtlasDbTransactionStarter(autobatcher);
@@ -59,13 +58,13 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
 
     @VisibleForTesting
     static Consumer<List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>>> consumer(
-            LockLeaseService lockLeaseService, StartTransactionsLockWatchEventCache lockWatchEventCache) {
+            LockLeaseService lockLeaseService, LockWatchCache cache) {
         return batch -> {
             int numTransactions =
                     batch.stream().mapToInt(BatchElement::argument).sum();
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
-                    getStartTransactionResponses(lockLeaseService, lockWatchEventCache, numTransactions);
+                    getStartTransactionResponses(lockLeaseService, cache, numTransactions);
 
             int start = 0;
             for (BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> batchElement : batch) {
@@ -77,17 +76,15 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
     }
 
     private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
-            LockLeaseService lockLeaseService,
-            StartTransactionsLockWatchEventCache lockWatchEventCache,
-            int numberOfTransactions) {
+            LockLeaseService lockLeaseService, LockWatchCache cache, int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
             try {
-                Optional<LockWatchVersion> requestedVersion = lockWatchEventCache.lastKnownVersion();
+                Optional<LockWatchVersion> requestedVersion =
+                        cache.getEventCache().lastKnownVersion();
                 ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
                         requestedVersion, numberOfTransactions - result.size());
-                TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                        lockWatchEventCache, requestedVersion, response);
+                TransactionStarterHelper.updateCacheWithStartTransactionResponse(cache, requestedVersion, response);
                 result.addAll(TransactionStarterHelper.split(response));
             } catch (Throwable t) {
                 TransactionStarterHelper.unlock(

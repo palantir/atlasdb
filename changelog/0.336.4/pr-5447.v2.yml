@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: TimeLock no longer interrupts the _exception handling_ thread when an underlying request is interrupted, which can happen when a V1 lock service request times out.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5447

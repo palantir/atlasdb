@@ -50,8 +50,6 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.InMemoryTimestampService;
 import java.io.IOException;
@@ -76,13 +74,11 @@ public class SnapshotTransactionManagerTest {
     private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
     private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
-    private final LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             metricsManager,
             keyValueService,
             new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")),
-            NoOpLockWatchManager.create(lockWatchEventCache),
-            lockWatchEventCache,
+            NoOpLockWatchManager.create(),
             timestampService,
             closeableLockService,
             mock(TransactionService.class),
@@ -133,13 +129,11 @@ public class SnapshotTransactionManagerTest {
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         InMemoryTimestampService ts = new InMemoryTimestampService();
-        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
                 new LegacyTimelockService(ts, closeableLockService, LockClient.of("lock")),
-                NoOpLockWatchManager.create(lockWatchEventCache),
-                lockWatchEventCache,
+                NoOpLockWatchManager.create(),
                 ts,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
@@ -265,13 +259,11 @@ public class SnapshotTransactionManagerTest {
 
     private SnapshotTransactionManager createSnapshotTransactionManager(
             TimelockService timelockService, boolean grabImmutableTsLockOnReads) {
-        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
         return new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
                 timelockService,
-                NoOpLockWatchManager.create(lockWatchEventCache),
-                lockWatchEventCache,
+                NoOpLockWatchManager.create(),
                 timestampService,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),

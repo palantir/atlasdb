@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.api.cache;
+package com.palantir.lock.watch;
 
-import java.util.Optional;
-import org.immutables.value.Value;
+import java.util.Collection;
+import java.util.Set;
 
-@Value.Immutable
-public interface CacheValue {
-    // This is optional as we also want to cache reads where there is no value present.
-    Optional<byte[]> value();
+public interface LockWatchCache {
+    void processStartTransactionsUpdate(Set<Long> startTimestamps, LockWatchStateUpdate update);
 
-    static CacheValue of(byte[] value) {
-        return ImmutableCacheValue.builder().value(value).build();
-    }
+    void processCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update);
 
-    static CacheValue empty() {
-        return ImmutableCacheValue.builder().build();
-    }
+    void removeTransactionStateFromCache(long startTimestamp);
+
+    LockWatchEventCache getEventCache();
+
+    LockWatchValueCache getValueCache();
 }
