@@ -144,12 +144,11 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfRowsMutated = mutation_map.size();
 
-        try (CloseableTracer trace =
-                startLocalTrace("client.batch_mutate(number of mutations {}, consistency {})" + " on kvs.{}", sink -> {
-                    sink.integer("numberOfRowsMutated", numberOfRowsMutated);
-                    sink.accept("consistency", consistency_level.name());
-                    sink.accept("kvs", kvsMethodName);
-                })) {
+        try (CloseableTracer trace = startLocalTrace("client.batch_mutate", sink -> {
+            sink.integer("numberOfRowsMutated", numberOfRowsMutated);
+            sink.accept("consistency", consistency_level.name());
+            sink.accept("kvs", kvsMethodName);
+        })) {
             client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
         }
     }
@@ -187,7 +186,7 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     public CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
                     TException {
-        try (CloseableTracer trace = startLocalTrace("cqlExecutor.execute_cql3_query(query {})", sink -> {
+        try (CloseableTracer trace = startLocalTrace("cqlExecutor.execute_cql3_query", sink -> {
             sink.accept("query", cqlQuery.getSafeLog());
         })) {
             return client.execute_cql3_query(cqlQuery, compression, consistency);
