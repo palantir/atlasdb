@@ -54,7 +54,8 @@ public abstract class TransactionConfig {
 
     /**
      * Indicates how long user transactions are allowed to take to commit, in terms of how long we'll refresh the
-     * commit locks for.
+     * commit locks for. Note that locks may still require more time before TimeLock realises that they are no longer
+     * actively held and releases them.
      */
     @Value.Default
     public HumanReadableDuration commitLockTenure() {

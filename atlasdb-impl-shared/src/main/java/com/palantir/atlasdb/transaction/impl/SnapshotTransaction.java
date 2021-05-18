@@ -2222,13 +2222,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 ClientLockingOptions.builder()
                         .maximumLockTenure(
                                 currentTransactionConfig.commitLockTenure().toJavaDuration())
-                        .tenureExpirationCallback(() -> log.warn(
-                                "This transaction held on to its commit locks for longer than its tenure, which is"
-                                        + " suspicious. In the interest of liveness we will unlock this lock and allow"
-                                        + " other transactions to proceed.",
-                                SafeArg.of("commitLockTenure", currentTransactionConfig.commitLockTenure()),
-                                UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)),
-                                stackTraceSnapshot))
+                        .tenureExpirationCallback(() -> logCommitLockTenureExceeded(
+                                lockDescriptors, currentTransactionConfig, stackTraceSnapshot))
                         .build());
         if (!lockResponse.wasSuccessful()) {
             log.error(
@@ -2239,6 +2234,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
         return lockResponse.getToken();
+    }
+
+    private void logCommitLockTenureExceeded(
+            Set<LockDescriptor> lockDescriptors,
+            TransactionConfig currentTransactionConfig,
+            RuntimeException stackTraceSnapshot) {
+        log.warn(
+                "This transaction held on to its commit locks for longer than its tenure, which is"
+                        + " suspicious. In the interest of liveness we will unlock this lock and allow"
+                        + " other transactions to proceed.",
+                SafeArg.of("commitLockTenure", currentTransactionConfig.commitLockTenure()),
+                UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)),
+                stackTraceSnapshot);
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {

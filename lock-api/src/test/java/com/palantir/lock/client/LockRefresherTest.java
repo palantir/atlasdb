@@ -150,6 +150,10 @@ public class LockRefresherTest {
         verify(timelock, times(2)).refreshLockLeases(TOKENS);
         // Callback ran once per expired token
         verify(callback, times(TOKENS.size())).run();
+
+        tick();
+        // No more
+        verify(callback, times(TOKENS.size())).run();
     }
 
     private void registerLocks() {

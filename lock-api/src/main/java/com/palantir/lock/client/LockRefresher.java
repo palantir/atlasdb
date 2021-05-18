@@ -15,6 +15,7 @@
  */
 package com.palantir.lock.client;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.ClientLockingOptions;
@@ -51,6 +52,7 @@ public class LockRefresher implements AutoCloseable {
         this(executor, timelockService, refreshIntervalMillis, Clock.systemUTC());
     }
 
+    @VisibleForTesting
     public LockRefresher(
             ScheduledExecutorService executor,
             TimelockService timelockService,
@@ -116,6 +118,8 @@ public class LockRefresher implements AutoCloseable {
                 tokensToRefresh.add(candidate.getKey());
             }
         }
+
+        Sets.difference(tokensToClientContext.keySet(), tokensToRefresh).forEach(tokensToClientContext::remove);
         return tokensToRefresh;
     }
 

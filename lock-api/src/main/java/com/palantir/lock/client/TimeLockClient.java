@@ -41,8 +41,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
-// TODO (jkong): This class almost shouldn't be a plain TimelockService, but the amount of effort that would be
-//  required to break the interface into two distinct components is large.
+// Ideally, this class shouldn't be a plain TimelockService, but the amount of effort that would be required to break
+// the interface into two distinct components is large.
 public class TimeLockClient implements AutoCloseable, TimelockService {
     private static final ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
 
@@ -129,11 +129,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LockResponse response = executeOnTimeLock(() -> delegate.lock(request));
-        if (response.wasSuccessful()) {
-            lockRefresher.registerLocks(ImmutableSet.of(response.getToken()));
-        }
-        return response;
+        return lock(request, ClientLockingOptions.getDefault());
     }
 
     @Override

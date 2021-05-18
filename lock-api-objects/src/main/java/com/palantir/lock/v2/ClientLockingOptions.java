@@ -35,7 +35,9 @@ public interface ClientLockingOptions {
     Optional<Duration> maximumLockTenure();
 
     /**
-     * Invoked if the lock tenure expired on the client. Must be cheap to execute.
+     * Invoked if the lock tenure expired on the client. Must be cheap to execute: in particular, explicitly unlocking
+     * the lock or making any other RPCs is not allowed. These callbacks may be executed serially for each lock that
+     * has expired, and may block general operation of the lock server, if they are too expensive.
      */
     @Value.Default
     default Runnable tenureExpirationCallback() {
