@@ -473,8 +473,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @MustBeClosed
     private static CloseableTracer startLocalTrace(
             @CompileTimeConstant String operation, Consumer<TagConsumer> tagTranslator) {
-        return CloseableTracer.startSpan(
-                getOperation(operation), FunctionalTagTranslator.INSTANCE, tagTranslator::accept);
+        return CloseableTracer.startSpan(getOperation(operation), FunctionalTagTranslator.INSTANCE, tagTranslator);
     }
 
     @MustBeClosed
