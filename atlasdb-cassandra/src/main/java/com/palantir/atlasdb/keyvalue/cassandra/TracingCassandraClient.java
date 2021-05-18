@@ -15,12 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.tracing.CloseableTrace;
+import com.palantir.atlasdb.tracing.Tracing.FunctionalTagTranslator;
+import com.palantir.atlasdb.tracing.Tracing.TagConsumer;
+import com.palantir.tracing.CloseableTracer;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -65,13 +68,13 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
         int numberOfKeys = keys.size();
         int numberOfColumns = predicate.slice_range.count;
 
-        try (CloseableTrace trace = startLocalTrace(
-                "client.multiget_slice(table {}, number of keys {}, number of columns {}, consistency {}) on kvs.{}",
-                LoggingArgs.safeTableOrPlaceholder(tableRef),
-                numberOfKeys,
-                numberOfColumns,
-                consistency_level,
-                kvsMethodName)) {
+        try (CloseableTracer trace = startLocalTrace("client.multiget_slice", sink -> {
+            sink.tableRef(tableRef);
+            sink.integer("keys", numberOfKeys);
+            sink.integer("columns", numberOfColumns);
+            sink.accept("consistency", consistency_level.name());
+            sink.accept("kvs", kvsMethodName);
+        })) {
             return client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level);
         }
     }
@@ -85,12 +88,12 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfKeyPredicates = keyPredicates.size();
 
-        try (CloseableTrace trace = startLocalTrace(
-                "client.multiget_slice(table {}, number of key-predicate pairs {}, consistency {}) on kvs.{}",
-                LoggingArgs.safeTableOrPlaceholder(tableRef),
-                keyPredicates.size(),
-                consistency_level,
-                kvsMethodName)) {
+        try (CloseableTracer trace = startLocalTrace("client.multiget_slice", sink -> {
+            sink.tableRef(tableRef);
+            sink.size("key_predicates", keyPredicates);
+            sink.accept("consistency", consistency_level.name());
+            sink.accept("kvs", kvsMethodName);
+        })) {
             return client.multiget_multislice(kvsMethodName, tableRef, keyPredicates, consistency_level);
         }
     }
@@ -106,13 +109,13 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
         int numberOfColumns = predicate.slice_range.count;
         int batchHint = range.count;
 
-        try (CloseableTrace trace = startLocalTrace(
-                "client.get_range_slices(table {}, number of columns {}, batch hint {}, consistency {}) on kvs.{}",
-                LoggingArgs.safeTableOrPlaceholder(tableRef),
-                numberOfColumns,
-                batchHint,
-                consistency_level,
-                kvsMethodName)) {
+        try (CloseableTracer trace = startLocalTrace("client.get_range_slices", sink -> {
+            sink.tableRef(tableRef);
+            sink.integer("columns", numberOfColumns);
+            sink.integer("batchHint", batchHint);
+            sink.accept("consistency", consistency_level.name());
+            sink.accept("kvs", kvsMethodName);
+        })) {
             return client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level);
         }
     }
@@ -125,8 +128,10 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             long timestamp,
             ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        try (CloseableTrace trace =
-                startLocalTrace("client.remove(consistency {}) on kvs.{}", consistency_level, kvsMethodName)) {
+        try (CloseableTracer trace = startLocalTrace("client.remove", sink -> {
+            sink.accept("consistency", consistency_level.name());
+            sink.accept("kvs", kvsMethodName);
+        })) {
             client.remove(kvsMethodName, tableRef, row, timestamp, consistency_level);
         }
     }
@@ -139,11 +144,12 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfRowsMutated = mutation_map.size();
 
-        try (CloseableTrace trace = startLocalTrace(
-                "client.batch_mutate(number of mutations {}, consistency {})" + " on kvs.{}",
-                numberOfRowsMutated,
-                consistency_level,
-                kvsMethodName)) {
+        try (CloseableTracer trace =
+                startLocalTrace("client.batch_mutate(number of mutations {}, consistency {})" + " on kvs.{}", sink -> {
+                    sink.integer("numberOfRowsMutated", numberOfRowsMutated);
+                    sink.accept("consistency", consistency_level.name());
+                    sink.accept("kvs", kvsMethodName);
+                })) {
             client.batch_mutate(kvsMethodName, mutation_map, consistency_level);
         }
     }
@@ -152,10 +158,10 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     public ColumnOrSuperColumn get(
             TableReference tableReference, ByteBuffer key, byte[] column, ConsistencyLevel consistency_level)
             throws InvalidRequestException, NotFoundException, UnavailableException, TimedOutException, TException {
-        try (CloseableTrace trace = startLocalTrace(
-                "client.get(table {}, consistency {})",
-                LoggingArgs.safeTableOrPlaceholder(tableReference),
-                consistency_level)) {
+        try (CloseableTracer trace = startLocalTrace("client.get", sink -> {
+            sink.tableRef(tableReference);
+            sink.accept("consistency", consistency_level.name());
+        })) {
             return client.get(tableReference, key, column, consistency_level);
         }
     }
@@ -169,8 +175,9 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             ConsistencyLevel serial_consistency_level,
             ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
-        try (CloseableTrace trace =
-                startLocalTrace("client.cas(table {})", LoggingArgs.safeTableOrPlaceholder(tableReference))) {
+        try (CloseableTracer trace = startLocalTrace("client.cas", sink -> {
+            sink.tableRef(tableReference);
+        })) {
             return client.cas(
                     tableReference, key, expected, updates, serial_consistency_level, commit_consistency_level);
         }
@@ -180,13 +187,19 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     public CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
                     TException {
-        try (CloseableTrace trace =
-                startLocalTrace("cqlExecutor.execute_cql3_query(query {})", cqlQuery.getLazySafeLoggableObject())) {
+        try (CloseableTracer trace = startLocalTrace("cqlExecutor.execute_cql3_query(query {})", sink -> {
+            sink.accept("query", cqlQuery.getSafeLog());
+        })) {
             return client.execute_cql3_query(cqlQuery, compression, consistency);
         }
     }
 
-    private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
-        return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
+    private static CloseableTracer startLocalTrace(
+            @CompileTimeConstant String operation, Consumer<TagConsumer> tagTranslator) {
+        return CloseableTracer.startSpan(getOperation(operation), FunctionalTagTranslator.INSTANCE, tagTranslator);
+    }
+
+    private static String getOperation(@CompileTimeConstant String operation) {
+        return SERVICE_NAME + "." + operation;
     }
 }

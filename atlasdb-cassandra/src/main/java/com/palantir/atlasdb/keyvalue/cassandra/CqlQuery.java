@@ -51,20 +51,13 @@ public abstract class CqlQuery {
     }
 
     /**
-     * Returns an object whose {@link #toString()} implementation returns a log-safe string, and does all formatting
-     * lazily. This is intended to be used for trace logging, where the {@link #toString()} method may never be called.
+     * Returns safe string representation of the query.
      */
-    public Object getLazySafeLoggableObject() {
-        return new Object() {
-            @Override
-            public String toString() {
-                String argsString = args().stream()
-                        .filter(Arg::isSafeForLogging)
-                        .map(arg -> String.format("%s = %s", arg.getName(), arg.getValue()))
-                        .collect(Collectors.joining(", "));
-
-                return safeQueryFormat() + ": " + argsString;
-            }
-        };
+    public String getSafeLog() {
+        String argsString = args().stream()
+                .filter(Arg::isSafeForLogging)
+                .map(arg -> String.format("%s = %s", arg.getName(), arg.getValue()))
+                .collect(Collectors.joining(", "));
+        return safeQueryFormat() + ": " + argsString;
     }
 }

@@ -43,6 +43,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.tracing.Tracing.FunctionalTagTranslator;
+import com.palantir.atlasdb.tracing.Tracing.TagConsumer;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
@@ -56,7 +58,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -483,10 +484,6 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
                 getOperation(operation), TableReferencesTagTranslator.INSTANCE, tableReferences);
     }
 
-    private static String getOperation(@CompileTimeConstant String operation) {
-        return SERVICE_NAME + "." + operation;
-    }
-
     private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
             DetachedSpan detachedSpan,
             ListenableFuture<V> future,
@@ -533,46 +530,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         }
     }
 
-    private enum FunctionalTagTranslator implements TagTranslator<Consumer<TagConsumer>> {
-        INSTANCE;
-
-        @Override
-        public <T> void translate(TagAdapter<T> adapter, T target, Consumer<TagConsumer> data) {
-            data.accept((key, value) -> adapter.tag(target, key, value));
-        }
-    }
-
-    interface TagConsumer extends BiConsumer<String, String> {
-        default void tableRef(TableReference tableReference) {
-            accept("table", LoggingArgs.safeTableOrPlaceholder(tableReference).toString());
-        }
-
-        default void timestamp(long ts) {
-            accept("ts", Long.toString(ts));
-        }
-
-        default void size(@CompileTimeConstant String name, Iterable<?> iterable) {
-            integer(name, Iterables.size(iterable));
-        }
-
-        default void size(@CompileTimeConstant String name, Collection<?> collection) {
-            integer(name, collection.size());
-        }
-
-        default void size(@CompileTimeConstant String name, Map<?, ?> map) {
-            integer(name, map.size());
-        }
-
-        default void size(@CompileTimeConstant String name, Multimap<?, ?> multiMap) {
-            integer(name, multiMap.size());
-        }
-
-        default void integer(@CompileTimeConstant String name, int value) {
-            accept(name, Integer.toString(value));
-        }
-    }
-
-    enum NoTagTranslator implements TagTranslator<Object> {
+    private enum NoTagTranslator implements TagTranslator<Object> {
         INSTANCE;
 
         @Override
@@ -582,5 +540,9 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         public boolean isEmpty(Object _data) {
             return true;
         }
+    }
+
+    private static String getOperation(@CompileTimeConstant String operation) {
+        return SERVICE_NAME + "." + operation;
     }
 }
