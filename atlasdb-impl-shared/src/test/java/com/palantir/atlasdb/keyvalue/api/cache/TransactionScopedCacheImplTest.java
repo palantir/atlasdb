@@ -213,7 +213,7 @@ public final class TransactionScopedCacheImplTest {
         Cell onlyCell = createCell(2, 2);
         assertDirectLookups(onlyCell);
         assertRowLookup(3);
-        assertThat(lookup.size()).isEqualTo(1);
+        assertThat(lookup).hasSize(1);
         assertThat(lookup.get(createBytes(2)).getOnlyColumnValue()).containsExactly(createBytes(onlyCell));
     }
 
@@ -249,10 +249,10 @@ public final class TransactionScopedCacheImplTest {
     }
 
     private void assertExpectedResult(NavigableMap<byte[], RowResult<byte[]>> lookup, int numberOfRowsAndColumns) {
-        assertThat(lookup.size()).isEqualTo(numberOfRowsAndColumns);
+        assertThat(lookup).hasSize(numberOfRowsAndColumns);
         lookup.forEach((row, rowResult) -> {
             NavigableMap<byte[], byte[]> cols = rowResult.getColumns();
-            assertThat(cols.size()).isEqualTo(numberOfRowsAndColumns);
+            assertThat(cols).hasSize(numberOfRowsAndColumns);
             cols.forEach((col, val) -> assertThat(val).containsExactly(EncodingUtils.add(row, col)));
         });
     }
