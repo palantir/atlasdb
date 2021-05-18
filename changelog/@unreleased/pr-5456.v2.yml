@@ -1,0 +1,15 @@
+type: improvement
+improvement:
+  description: |-
+    [DO NOT MERGE] RC ONLY | PDS-185998 | Need stack trace to root-cause.
+
+    **Goals (and why)**:
+    PDS-185998 | Need stack trace to root-cause.
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/5456
