@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: |-
+    Disable value cache by default
+
+    **Goals (and why)**:
+    Disabled LW value cache by default while we track down a resource leak
+  links:
+  - https://github.com/palantir/atlasdb/pull/5459
