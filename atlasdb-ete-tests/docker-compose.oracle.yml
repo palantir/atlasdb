@@ -25,7 +25,6 @@ services:
       - "3828"
     depends_on:
       - oracle
-      - timelock
     environment:
       - ME=ete1
 
