@@ -18,7 +18,6 @@ package com.palantir.atlasdb.ete;
 
 import com.google.common.collect.ImmutableList;
 import java.time.Duration;
-import java.util.List;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -27,7 +26,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses(TodoEteTest.class)
 public class OracleDbKvsEteTestSuite extends EteSetup {
-    private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
+    private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
