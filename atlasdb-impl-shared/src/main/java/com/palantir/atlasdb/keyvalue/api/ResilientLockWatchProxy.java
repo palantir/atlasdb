@@ -61,7 +61,6 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
 
     private final T fallbackCache;
     private final Runnable failureCallback;
-    private volatile boolean hasFallenBack;
     private volatile T delegate;
 
     private ResilientLockWatchProxy(T defaultCache, T fallbackCache, Runnable failureCallback) {
@@ -99,12 +98,12 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
     }
 
     public void fallback() {
-        hasFallenBack = true;
         delegate = fallbackCache;
         failureCallback.run();
     }
 
     public void setDelegate(T delegate) {
+        Preconditions.checkState(this.delegate == null, "delegate must be set exactly once, but it's already been set");
         this.delegate = delegate;
     }
 }

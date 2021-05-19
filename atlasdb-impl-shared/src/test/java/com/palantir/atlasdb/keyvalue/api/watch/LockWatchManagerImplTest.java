@@ -115,8 +115,8 @@ public final class LockWatchManagerImplTest {
 
     @Test
     public void createTransactionScopedCacheTest() {
-        manager.getOrCreateTransactionScopedCache(1L);
-        verify(valueScopingCache).getOrCreateTransactionScopedCache(1L);
+        manager.getTransactionScopedCache(1L);
+        verify(valueScopingCache).getTransactionScopedCache(1L);
         verifyNoMoreInteractions(lockWatchEventCache);
     }
 }

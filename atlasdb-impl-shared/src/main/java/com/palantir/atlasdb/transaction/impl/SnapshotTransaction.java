@@ -319,7 +319,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected TransactionScopedCache getCache() {
-        return lockWatchManager.getOrCreateTransactionScopedCache(getTimestamp());
+        return lockWatchManager.getTransactionScopedCache(getTimestamp());
     }
 
     @Override

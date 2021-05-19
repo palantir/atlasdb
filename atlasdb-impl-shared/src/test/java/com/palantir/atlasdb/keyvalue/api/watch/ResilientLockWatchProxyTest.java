@@ -88,11 +88,11 @@ public final class ResilientLockWatchProxyTest {
         verify(fallbackCache, never()).updateCacheOnCommit(any());
 
         // Failure
-        when(defaultCache.getOrCreateTransactionScopedCache(timestamp))
+        when(defaultCache.getTransactionScopedCache(timestamp))
                 .thenThrow(new TransactionFailedNonRetriableException(""));
-        assertThatThrownBy(() -> proxyCache.getOrCreateTransactionScopedCache(timestamp))
+        assertThatThrownBy(() -> proxyCache.getTransactionScopedCache(timestamp))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class);
-        verify(defaultCache).getOrCreateTransactionScopedCache(timestamp);
+        verify(defaultCache).getTransactionScopedCache(timestamp);
 
         // Fallback operation
         proxyCache.processStartTransactions(timestamps);
