@@ -196,7 +196,7 @@ import org.slf4j.LoggerFactory;
 
                         Transaction transaction =
                                 createTransaction(immutableTs, startTimestampSupplier, immutableTsLock, condition);
-                        return new OpenTransactionImpl(transaction, immutableTsLock);
+                        return new OpenTransactionImpl(transaction, Optional.of(immutableTsLock));
                     })
                     .collect(Collectors.toList());
         } catch (Throwable t) {
@@ -212,9 +212,9 @@ import org.slf4j.LoggerFactory;
     private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
 
         private final Transaction delegate;
-        private final LockToken immutableTsLock;
+        private final Optional<LockToken> immutableTsLock;
 
-        private OpenTransactionImpl(Transaction delegate, LockToken immutableTsLock) {
+        private OpenTransactionImpl(Transaction delegate, Optional<LockToken> immutableTsLock) {
             this.delegate = delegate;
             this.immutableTsLock = immutableTsLock;
         }
@@ -230,7 +230,8 @@ import org.slf4j.LoggerFactory;
             Timer postTaskTimer = getTimer("finishTask");
             Timer.Context postTaskContext;
 
-            TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, immutableTsLock);
+            TransactionTask<T, E> wrappedTask =
+                    immutableTsLock.map(lock -> wrapTaskIfNecessary(task, lock)).orElse(task);
 
             Transaction tx = delegate;
             T result;
@@ -239,7 +240,7 @@ import org.slf4j.LoggerFactory;
             } finally {
                 lockWatchManager.removeTransactionStateFromCache(getTimestamp());
                 postTaskContext = postTaskTimer.time();
-                timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
+                immutableTsLock.ifPresent(lock -> timelockService.tryUnlock(ImmutableSet.of(lock)));
             }
             scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
             postTaskContext.stop();
@@ -313,35 +314,36 @@ import org.slf4j.LoggerFactory;
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
-        SnapshotTransaction transaction = new SnapshotTransaction(
-                metricsManager,
-                keyValueService,
-                timelockService,
-                lockWatchManager,
-                transactionService,
-                NoOpCleaner.INSTANCE,
-                getStartTimestampSupplier(),
-                conflictDetectionManager,
-                sweepStrategyManager,
-                immutableTs,
-                Optional.empty(),
-                condition,
-                constraintModeSupplier.get(),
-                cleaner.getTransactionReadTimeoutMillis(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                allowHiddenTableAccess,
-                timestampValidationReadCache,
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                sweepQueueWriter,
-                deleteExecutor,
-                validateLocksOnReads,
-                transactionConfig,
-                conflictTracer,
-                tableLevelMetricsController);
+        OpenTransaction transaction = new OpenTransactionImpl(
+                new SnapshotTransaction(
+                        metricsManager,
+                        keyValueService,
+                        timelockService,
+                        lockWatchManager,
+                        transactionService,
+                        NoOpCleaner.INSTANCE,
+                        getStartTimestampSupplier(),
+                        conflictDetectionManager,
+                        sweepStrategyManager,
+                        immutableTs,
+                        Optional.empty(),
+                        condition,
+                        constraintModeSupplier.get(),
+                        cleaner.getTransactionReadTimeoutMillis(),
+                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                        allowHiddenTableAccess,
+                        timestampValidationReadCache,
+                        getRangesExecutor,
+                        defaultGetRangesConcurrency,
+                        sweepQueueWriter,
+                        deleteExecutor,
+                        validateLocksOnReads,
+                        transactionConfig,
+                        conflictTracer,
+                        tableLevelMetricsController),
+                Optional.empty());
         try {
-            return runTaskThrowOnConflict(
-                    txn -> task.execute(txn, condition), new ReadTransaction(transaction, sweepStrategyManager));
+            return transaction.finish(txn -> task.execute(new ReadTransaction(txn, sweepStrategyManager), condition));
         } finally {
             condition.cleanup();
         }

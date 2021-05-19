@@ -38,10 +38,10 @@ import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 public class ReadTransaction extends ForwardingTransaction {
-    private final AbstractTransaction delegate;
+    private final Transaction delegate;
     private final SweepStrategyManager sweepStrategies;
 
-    public ReadTransaction(AbstractTransaction delegate, SweepStrategyManager sweepStrategies) {
+    public ReadTransaction(Transaction delegate, SweepStrategyManager sweepStrategies) {
         this.delegate = delegate;
         this.sweepStrategies = sweepStrategies;
     }

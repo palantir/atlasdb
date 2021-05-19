@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
+import com.palantir.atlasdb.keyvalue.api.cache.NoOpLockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
@@ -75,7 +76,7 @@ public final class LockWatchValueIntegrationTest {
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9080, builder -> builder.clientPaxosBuilder(
+            generateThreeNodeTimelockCluster(9090, builder -> builder.clientPaxosBuilder(
                             builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                     .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
@@ -86,8 +87,39 @@ public final class LockWatchValueIntegrationTest {
 
     @Before
     public void before() {
-        createTransactionManager(0.0);
+        createTransactionManager(0.0, true);
         awaitTableWatched();
+    }
+
+    @Test
+    public void cachingDisabledCausesCacheToNotBeUsed() {
+        createTransactionManager(0.0, false);
+
+        putValue();
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            Map<Cell, byte[]> cellMap = txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            assertThat(cellMap).containsEntry(CELL_1, DATA_1);
+            assertHitValues(txn, ImmutableSet.of());
+            assertLoadedValues(txn, ImmutableMap.of());
+
+            return null;
+        });
+        assertThat(extractValueCache()).isExactlyInstanceOf(NoOpLockWatchValueScopingCache.class);
+    }
+
+    @Test
+    public void readOnlyTransactionsAlsoUseTheCache() {
+        putValue();
+        loadValue();
+
+        txnManager.runTaskReadOnly(txn -> {
+            Map<Cell, byte[]> cellMap = txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            assertThat(cellMap).containsEntry(CELL_1, DATA_1);
+            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1));
+            assertLoadedValues(txn, ImmutableMap.of());
+            return null;
+        });
     }
 
     @Test
@@ -240,7 +272,7 @@ public final class LockWatchValueIntegrationTest {
 
     @Test
     public void failedValidationCausesNoOpCacheToBeUsed() {
-        createTransactionManager(1.0);
+        createTransactionManager(1.0, true);
 
         putValue();
         loadValue();
@@ -406,7 +438,7 @@ public final class LockWatchValueIntegrationTest {
         return extractValueCache().getOrCreateTransactionScopedCache(txn.getTimestamp());
     }
 
-    private void createTransactionManager(double validationProbability) {
+    private void createTransactionManager(double validationProbability, boolean enabled) {
         txnManager = TimeLockTestUtils.createTransactionManager(
                         CLUSTER,
                         Namespace.DEFAULT_NAMESPACE.getName(),
@@ -414,7 +446,7 @@ public final class LockWatchValueIntegrationTest {
                         ImmutableAtlasDbConfig.builder()
                                 .lockWatchCaching(LockWatchCachingConfig.builder()
                                         .validationProbability(validationProbability)
-                                        .enabled(true)
+                                        .enabled(enabled)
                                         .build()),
                         Optional.empty(),
                         createSchema())

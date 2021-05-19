@@ -61,13 +61,14 @@ final class CacheStoreImpl implements CacheStore {
                     "Exceeded maximum concurrent caches; transaction can be retried, but with caching disabled");
         }
 
-        return cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
+        return Optional.ofNullable(cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
                         .getSnapshot(key)
                         .map(snapshot -> TransactionScopedCacheImpl.create(snapshot, metrics))
                         .map(newCache -> ValidatingTransactionScopedCache.create(
                                 newCache, validationProbability, failureCallback))
                         .map(Caches::create)
-                        .orElseGet(Caches::createNoOp))
+                        .orElse(null)))
+                .orElseGet(Caches::createNoOp)
                 .mainCache();
     }
 
