@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
+import org.slf4j.LoggerFactory;
 
 // Important: Some internal tests depend on this class.
 // Please recompile Oracle internal tests if any breaking changes are made to the setup.
@@ -166,8 +167,13 @@ public abstract class EteSetup {
     private static Callable<Boolean> serversAreReady() {
         return () -> {
             for (String client : availableClients) {
-                TodoResource todos = createClientFor(TodoResource.class, client, SERVER_PORT);
-                todos.isHealthy();
+                try {
+                    TodoResource todos = createClientFor(TodoResource.class, client, SERVER_PORT);
+                    todos.isHealthy();
+                } catch (Exception e) {
+                    LoggerFactory.getLogger(EteSetup.class).warn("bleh", e);
+                    throw e;
+                }
             }
             return true;
         };

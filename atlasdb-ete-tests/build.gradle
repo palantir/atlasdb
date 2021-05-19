@@ -67,7 +67,8 @@ task timeLockMigrationTest(type: Test) {
 
 task dbkvsTest(type: Test) {
     dependsOn prepareForEteTests
-    include '**/DbKvsTestSuite.class'
+    //include '**/DbKvsTestSuite.class'
+    include '**/OracleDbKvsEteTestSuite.class'
 }
 
 test {
@@ -80,6 +81,7 @@ test {
 
     exclude '**/*EteTest.class'
     exclude '**/DbKvsTestSuite.class'
+    exclude '**/OracleDbKvsEteTestSuite.class'
 }
 
 distribution {
