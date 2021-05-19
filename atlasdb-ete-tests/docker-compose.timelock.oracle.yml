@@ -8,10 +8,10 @@ services:
       - "8422"
 
   oracle:
-    image: palantirtechnologies/oracle-atlasdb:19.9.0.0-se
+    image: hub.docker.palantir.build/palantirtechnologies/oracle-atlasdb:19.9.0.0-se
     environment:
       SQLPLUS_INIT_00: startup nomount
-      SQLPLUS_INIT_01: alter system set processes=5000 scope=spfile
+      SQLPLUS_INIT_01: alter system set processes=1000 scope=spfile
       SQLPLUS_INIT_02: alter system set open_cursors=1000 scope=spfile
       SQLPLUS_INIT_03: alter system set sessions=1000 scope=spfile
       SQLPLUS_INIT_04: alter system set max_shared_servers=4000 scope=spfile
