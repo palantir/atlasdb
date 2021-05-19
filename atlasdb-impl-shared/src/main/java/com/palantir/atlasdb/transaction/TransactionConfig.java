@@ -59,7 +59,7 @@ public abstract class TransactionConfig {
      */
     @Value.Default
     public HumanReadableDuration commitLockTenure() {
-        return HumanReadableDuration.minutes(5);
+        return HumanReadableDuration.minutes(15);
     }
 
     /**
