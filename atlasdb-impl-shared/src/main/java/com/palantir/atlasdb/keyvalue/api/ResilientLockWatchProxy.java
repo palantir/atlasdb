@@ -103,7 +103,7 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
     }
 
     public void setDelegate(T delegate) {
-        Preconditions.checkState(delegate == null, "delegate must be set exactly once, but it's already been set");
+        Preconditions.checkState(this.delegate == null, "delegate must be set exactly once, but it's already been set");
         this.delegate = delegate;
     }
 }

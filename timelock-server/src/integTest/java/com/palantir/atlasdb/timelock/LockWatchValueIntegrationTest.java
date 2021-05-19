@@ -414,6 +414,7 @@ public final class LockWatchValueIntegrationTest {
                         ImmutableAtlasDbConfig.builder()
                                 .lockWatchCaching(LockWatchCachingConfig.builder()
                                         .validationProbability(validationProbability)
+                                        .enabled(true)
                                         .build()),
                         Optional.empty(),
                         createSchema())
