@@ -30,5 +30,5 @@ public class OracleDbKvsEteTestSuite extends EteSetup {
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            OracleDbKvsEteTestSuite.class, "docker-compose.timelock.oracle.yml", CLIENTS, Duration.ofMinutes(10));
+            OracleDbKvsEteTestSuite.class, "docker-compose.oracle.yml", CLIENTS, Duration.ofMinutes(10));
 }

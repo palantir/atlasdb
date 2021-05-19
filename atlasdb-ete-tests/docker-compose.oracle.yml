@@ -1,14 +1,8 @@
 version: '2'
 
 services:
-  timelock:
-    image: palantirtechnologies/timelock-server-distribution
-    ports:
-      - "8421"
-      - "8422"
-
   oracle:
-    image: hub.docker.palantir.build/palantirtechnologies/oracle-atlasdb:19.9.0.0-se
+    image: palantirtechnologies/oracle-atlasdb:19.9.0.0-se
     environment:
       SQLPLUS_INIT_00: startup nomount
       SQLPLUS_INIT_01: alter system set processes=1000 scope=spfile
@@ -26,7 +20,7 @@ services:
 
   ete1:
     build: .
-    command: [bash, -c, 'cp var/conf/atlasdb-ete.timelock.oracle.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://oracle:1521 && service/bin/init.sh console']
+    command: [bash, -c, 'cp var/conf/atlasdb-ete.oracle.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://oracle:1521 && service/bin/init.sh console']
     ports:
       - "3828"
     depends_on:
@@ -37,7 +31,7 @@ services:
 
   ete-cli:
     build: .
-    entrypoint: [bash, -c, 'cp var/conf/atlasdb-ete.timelock.oracle.yml var/conf/atlasdb-ete.yml && "$$@"', --]
+    entrypoint: [bash, -c, 'cp var/conf/atlasdb-ete.oracle.yml var/conf/atlasdb-ete.yml && "$$@"', --]
     command: exit
     depends_on:
       - ete1
