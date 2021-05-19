@@ -1,0 +1,38 @@
+server:
+  #rootPath: /api/*
+  #applicationContextPath: /
+  #adminContextPath: /
+  applicationConnectors:
+    - type: http
+      port: 3828
+  adminConnectors:
+    - type: http
+      port: 3829
+
+atlasdb:
+  keyValueService:
+    type: relational
+    ddl:
+      type: oracle
+      overflowMigrationState: FINISHED
+      jdbcHandler:
+        type: oracle
+    connection:
+      type: oracle
+      host: oracle
+      port: 1521
+      sid: palantir
+      dbLogin: palantir
+      dbPassword: palpal
+
+  namespace: atlasete
+
+  atlasDbRuntime:
+    timelockRuntime:
+      serversList:
+        servers:
+          - 'http://timelock:8421'
+        sslConfiguration:
+          keyStorePath: "var/security/keyStore.jks"
+          keyStorePassword: "keystore"
+          trustStorePath: "var/security/trustStore.jks"
