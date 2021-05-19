@@ -20,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,7 +77,13 @@ final class CacheStoreImpl implements CacheStore {
 
     @Override
     public void removeCache(StartTimestamp timestamp) {
-        cacheMap.remove(timestamp);
+        Optional<Caches> cache = Optional.ofNullable(cacheMap.remove(timestamp));
+
+        if (!cache.isPresent()) {
+            log.warn(
+                    "Attempted to remove cache state, but no cache was present for timestamp",
+                    SafeArg.of("timestamp", timestamp));
+        }
     }
 
     @Override
