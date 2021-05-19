@@ -417,7 +417,7 @@ public final class LockWatchValueIntegrationTest {
     }
 
     private TransactionScopedCache extractTransactionCache(Transaction txn) {
-        return extractValueCache().getOrCreateTransactionScopedCache(txn.getTimestamp());
+        return extractValueCache().getTransactionScopedCache(txn.getTimestamp());
     }
 
     private void createTransactionManager(double validationProbability) {

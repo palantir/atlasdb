@@ -112,8 +112,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public TransactionScopedCache getOrCreateTransactionScopedCache(long startTs) {
-        return cacheStore.getOrCreateCache(StartTimestamp.of(startTs));
+    public TransactionScopedCache getTransactionScopedCache(long startTs) {
+        return cacheStore.getCache(StartTimestamp.of(startTs));
     }
 
     @Override
@@ -167,6 +167,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
      *     don't bother storing a snapshot for those sequences. Also note that we know that each call here will only
      *     ever have new events, and that consecutive calls to this method will *always* have increasing sequences
      *     (without this last guarantee, we'd need to store snapshots for all sequences).
+     *  3. For each transaction, we must create a transaction scoped cache. We do this at start transaction time as we
+     *     have tighter guarantees around when the cache is created, and thus deleted.
      */
     private synchronized void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
@@ -182,6 +184,11 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             Sequence sequence = Sequence.of(event.sequence());
             snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
         });
+
+        updateForTransactions
+                .startTsToSequence()
+                .keySet()
+                .forEach(timestamp -> cacheStore.createCache(StartTimestamp.of(timestamp)));
 
         assertNoSnapshotsMissing(reversedMap.keySet());
     }

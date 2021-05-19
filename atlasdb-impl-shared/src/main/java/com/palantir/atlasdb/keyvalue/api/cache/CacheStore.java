@@ -20,7 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.lock.watch.CommitUpdate;
 
 interface CacheStore {
-    TransactionScopedCache getOrCreateCache(StartTimestamp timestamp);
+    void createCache(StartTimestamp timestamp);
 
     TransactionScopedCache getCache(StartTimestamp timestamp);
 
