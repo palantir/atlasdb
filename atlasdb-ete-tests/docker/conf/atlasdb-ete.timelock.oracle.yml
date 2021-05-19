@@ -22,17 +22,15 @@ atlasdb:
       host: oracle
       port: 1521
       sid: palantir
-      dbLogin: palantir
+      dbLogin: system
       dbPassword: palpal
 
-  namespace: atlasete
-
-  atlasDbRuntime:
-    timelockRuntime:
-      serversList:
-        servers:
-          - 'http://timelock:8421'
-        sslConfiguration:
-          keyStorePath: "var/security/keyStore.jks"
-          keyStorePassword: "keystore"
-          trustStorePath: "var/security/trustStore.jks"
+atlasDbRuntime:
+  timelockRuntime:
+    serversList:
+      servers:
+        - 'http://timelock:8421'
+      sslConfiguration:
+        keyStorePath: "var/security/keyStore.jks"
+        keyStorePassword: "keystore"
+        trustStorePath: "var/security/trustStore.jks"

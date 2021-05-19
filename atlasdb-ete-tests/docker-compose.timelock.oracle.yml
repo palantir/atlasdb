@@ -15,8 +15,8 @@ services:
       SQLPLUS_INIT_02: alter system set open_cursors=1000 scope=spfile
       SQLPLUS_INIT_03: alter system set sessions=1000 scope=spfile
       SQLPLUS_INIT_04: alter system set max_shared_servers=4000 scope=spfile
-      SQLPLUS_INIT_05: alter system set sga_max_size=1000M scope=spfile
-      SQLPLUS_INIT_06: alter system set sga_target=1000M scope=spfile
+      SQLPLUS_INIT_05: alter system set sga_max_size=500M scope=spfile
+      SQLPLUS_INIT_06: alter system set sga_target=500M scope=spfile
       SQLPLUS_INIT_08: alter system set pga_aggregate_target=160M scope=spfile
       SQLPLUS_INIT_09: shutdown immediate
       SQLPLUS_INIT_10: startup
@@ -26,7 +26,7 @@ services:
 
   ete1:
     build: .
-    command: [bash, -c, 'cp var/conf/atlasdb-ete.timelock.oracle.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://cassandra:9160 && service/bin/init.sh console']
+    command: [bash, -c, 'cp var/conf/atlasdb-ete.timelock.oracle.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://oracle:1521 && service/bin/init.sh console']
     ports:
       - "3828"
     depends_on:
