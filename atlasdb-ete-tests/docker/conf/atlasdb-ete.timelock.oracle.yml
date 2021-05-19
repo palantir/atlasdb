@@ -24,6 +24,7 @@ atlasdb:
       sid: palantir
       dbLogin: system
       dbPassword: palpal
+  namespace: palantir
 
 atlasDbRuntime:
   timelockRuntime:

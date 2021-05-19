@@ -26,7 +26,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses(TodoEteTest.class)
 public class OracleDbKvsEteTestSuite extends EteSetup {
-    private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
+    private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
