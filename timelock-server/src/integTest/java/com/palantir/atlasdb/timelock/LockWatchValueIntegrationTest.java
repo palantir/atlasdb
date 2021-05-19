@@ -91,6 +91,20 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Test
+    public void readOnlyTransactionsDoNotUseCaching() {
+        putValue();
+        loadValue();
+
+        txnManager.runTaskReadOnly(txn -> {
+            Map<Cell, byte[]> cellMap = txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            assertThat(cellMap).containsEntry(CELL_1, DATA_1);
+            assertHitValues(txn, ImmutableSet.of());
+            assertLoadedValues(txn, ImmutableMap.of());
+            return null;
+        });
+    }
+
+    @Test
     public void effectivelyReadOnlyTransactionsPublishValuesToCentralCache() {
         putValue();
 
