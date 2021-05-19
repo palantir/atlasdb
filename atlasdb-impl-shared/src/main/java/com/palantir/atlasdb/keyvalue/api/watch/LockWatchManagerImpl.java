@@ -17,11 +17,13 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCacheImpl;
+import com.palantir.atlasdb.keyvalue.api.cache.NoOpLockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
@@ -78,6 +80,12 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
             Set<Schema> schemas,
             NamespacedConjureLockWatchingService lockWatchingService,
             LockWatchCachingConfig config) {
+        CacheMetrics metrics = CacheMetrics.create(metricsManager);
+        LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics);
+        if (!config.enabled()) {
+            return new LockWatchManagerImpl(
+                    ImmutableSet.of(), eventCache, NoOpLockWatchValueScopingCache.create(), lockWatchingService);
+        }
         Set<LockWatchReference> referencesFromSchema = schemas.stream()
                 .map(Schema::getLockWatches)
                 .flatMap(Set::stream)
@@ -85,8 +93,6 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
         Set<TableReference> watchedTablesFromSchema = referencesFromSchema.stream()
                 .map(schema -> schema.accept(LockWatchReferencesVisitor.INSTANCE))
                 .collect(Collectors.toSet());
-        CacheMetrics metrics = CacheMetrics.create(metricsManager);
-        LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics);
         LockWatchValueScopingCache valueCache = LockWatchValueScopingCacheImpl.create(
                 eventCache, metrics, config.cacheSize(), config.validationProbability(), watchedTablesFromSchema);
         return new LockWatchManagerImpl(referencesFromSchema, eventCache, valueCache, lockWatchingService);

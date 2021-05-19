@@ -41,6 +41,11 @@ public interface LockWatchCachingConfig {
         return 1.0;
     }
 
+    @Value.Default
+    default boolean enabled() {
+        return false;
+    }
+
     static ImmutableLockWatchCachingConfig.Builder builder() {
         return ImmutableLockWatchCachingConfig.builder();
     }
