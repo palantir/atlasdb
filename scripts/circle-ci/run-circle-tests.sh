@@ -17,7 +17,7 @@ CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
 CONTAINER_2=(':atlasdb-ete-tests:check')
 
-CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server:integTest')
+CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server:integTest' ':atlasdb-ete-tests:oracleTest')
 
 CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
 
