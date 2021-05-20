@@ -117,8 +117,7 @@ public abstract class EteSetup {
                 .machine(machine)
                 .saveLogsTo(LogDirectory.circleAwareLogDirectory(logDirectory))
                 .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
-                .nativeServiceHealthCheckTimeout(
-                        org.joda.time.Duration.standardMinutes(5))
+                .nativeServiceHealthCheckTimeout(org.joda.time.Duration.standardMinutes(5))
                 .build();
 
         DockerProxyRule dockerProxyRule = DockerProxyRule.fromProjectName(docker.projectName(), eteClass);
