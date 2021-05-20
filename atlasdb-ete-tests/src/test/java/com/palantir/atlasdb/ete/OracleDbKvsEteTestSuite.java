@@ -26,10 +26,10 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        TodoEteTest.class,
-        TimestampManagementEteTest.class,
-        CoordinationEteTest.class,
-        LockWithoutTimelockEteTest.class
+    TodoEteTest.class,
+    TimestampManagementEteTest.class,
+    CoordinationEteTest.class,
+    LockWithoutTimelockEteTest.class
 })
 public class OracleDbKvsEteTestSuite extends EteSetup {
     private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
