@@ -82,5 +82,6 @@ case $CIRCLE_NODE_INDEX in
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
     7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
     8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} ;;
-    9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
+    9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} ;; 
+    10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
