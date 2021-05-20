@@ -180,6 +180,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 } else {
                     invalidateQuietly(resource);
                 }
+            } else {
+                log.warn("Failed to acquire Cassandra resource from object pool");
             }
         }
     }
@@ -217,6 +219,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             log.debug("Discarding resource of host {}", SafeArg.of("host", CassandraLogHelper.host(host)));
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
+            log.warn("Attempted to invalidate a non-reusable Cassandra resource, but failed to due an exception", e);
             // Ignore
         }
     }
