@@ -70,11 +70,6 @@ task dbkvsTest(type: Test) {
     include '**/DbKvsTestSuite.class'
 }
 
-task oracleTest(type: Test) {
-    dependsOn prepareForEteTests
-    include '**/OracleDbKvsEteTestSuite.class'
-}
-
 test {
     dependsOn longTest, prepareForEteTests, timeLockTest, dbkvsTest
     exclude '**/MultiCassandraTestSuite.class'
@@ -85,7 +80,6 @@ test {
 
     exclude '**/*EteTest.class'
     exclude '**/DbKvsTestSuite.class'
-    exclude '**/OracleDbKvsEteTestSuite.class'
 }
 
 distribution {
