@@ -62,7 +62,7 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:-TraceClassUnloading"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 
 # External builds have a 16gb limit.
-if [ "$CIRCLE_NODE_INDEX" -eq "9" ]; then
+if [ "$CIRCLE_NODE_INDEX" -eq "10" ]; then
     export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 else
     BASE_GRADLE_ARGS+=" --parallel"
@@ -82,6 +82,6 @@ case $CIRCLE_NODE_INDEX in
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
     7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
     8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} ;;
-    9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} ;; 
+    9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} ;;
     10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
