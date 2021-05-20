@@ -81,6 +81,7 @@ test {
 
     exclude '**/*EteTest.class'
     exclude '**/DbKvsTestSuite.class'
+    exclude '**/OracleDbKvsEteTestSuite.class'
 }
 
 distribution {
