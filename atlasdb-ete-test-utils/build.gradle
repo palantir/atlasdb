@@ -12,6 +12,13 @@ dependencies {
     compile group: 'org.hamcrest', name: 'hamcrest-core'
     compile group: 'commons-io', name: 'commons-io'
     implementation 'org.assertj:assertj-core'
+    implementation 'com.google.guava:guava'
+    implementation 'com.google.protobuf:protobuf-java'
+    implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'org.slf4j:slf4j-api'
+    implementation project(':atlasdb-client-protobufs')
+    implementation project(':atlasdb-commons')
 }
 
 sourceCompatibility = '1.8'

@@ -88,6 +88,7 @@ dependencies {
 
   integrationInputCompile project(":atlasdb-client")
 
+  implementation 'com.boundary:high-scale-lib'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'

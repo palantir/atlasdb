@@ -11,6 +11,7 @@ dependencies {
     compile group: 'com.palantir.common', name: 'streams'
     compile group: 'com.palantir.safe-logging', name: 'preconditions'
 
+    implementation 'com.boundary:high-scale-lib'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'

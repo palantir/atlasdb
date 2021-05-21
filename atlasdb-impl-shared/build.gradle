@@ -24,6 +24,7 @@ dependencies {
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile group: 'com.palantir.safe-logging', name: 'preconditions'
 
+  implementation 'com.boundary:high-scale-lib'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-core'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -52,6 +53,7 @@ dependencies {
   implementation project(':timelock-api:timelock-api-jersey')
   implementation project(':timelock-api:timelock-api-objects')
 
+  testImplementation 'com.boundary:high-scale-lib'
   testImplementation 'com.fasterxml.jackson.core:jackson-core'
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'

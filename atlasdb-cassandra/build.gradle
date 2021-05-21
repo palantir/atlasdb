@@ -60,6 +60,7 @@ dependencies {
       exclude group: 'org.hamcrest'
   }
 
+  implementation 'com.boundary:high-scale-lib'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'

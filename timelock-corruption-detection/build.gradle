@@ -19,6 +19,7 @@ dependencies {
     compile group: 'com.palantir.conjure.java.api', name: 'service-config'
     compile group: 'one.util', name: 'streamex'
 
+    implementation 'com.boundary:high-scale-lib'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.errorprone:error_prone_annotations'
@@ -34,6 +35,7 @@ dependencies {
     implementation 'org.jdbi:jdbi3-sqlobject'
     implementation 'org.slf4j:slf4j-api'
     implementation 'com.google.guava:guava'
+
     implementation project(':atlasdb-commons')
     implementation project(':commons-executors')
     implementation project(':leader-election-api')

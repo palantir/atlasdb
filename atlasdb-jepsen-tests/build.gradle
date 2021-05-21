@@ -35,6 +35,25 @@ dependencies {
     compile group: 'org.clojure', name: 'clojure'
     compile group: 'org.slf4j', name: 'slf4j-api'
 
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.conjure.java.api:service-config'
+    implementation 'com.palantir.conjure.java.api:ssl-config'
+    implementation 'com.palantir.dialogue:dialogue-clients'
+    implementation 'com.palantir.refreshable:refreshable'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':atlasdb-remoting-api')
+    implementation project(':commons-executors')
+    implementation project(':lock-api')
+    implementation project(':lock-api-objects')
+    implementation project(':timelock-api:timelock-api-objects')
+    implementation project(':timestamp-api')
+
     testImplementation 'com.palantir.common:streams'
     testImplementation project(':lock-api')
     testImplementation project(':lock-api-objects')

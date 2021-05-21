@@ -1,0 +1,5 @@
+dependencies {
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'io.undertow:undertow-core'
+}

@@ -6,6 +6,7 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'io.dropwizard.metrics', name: 'metrics-core'
 
+  implementation 'com.h2database:h2'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'

@@ -11,6 +11,7 @@ dependencies {
   compile group: 'joda-time', name: 'joda-time'
   compile group: 'org.yaml', name: 'snakeyaml'
 
+  implementation 'com.boundary:high-scale-lib'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.errorprone:error_prone_annotations'
