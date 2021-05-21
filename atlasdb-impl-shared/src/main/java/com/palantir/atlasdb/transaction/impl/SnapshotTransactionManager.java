@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -317,7 +318,7 @@ import org.slf4j.LoggerFactory;
                 metricsManager,
                 keyValueService,
                 timelockService,
-                lockWatchManager,
+                NoOpLockWatchManager.create(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 getStartTimestampSupplier(),

@@ -26,7 +26,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -153,6 +152,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -209,7 +209,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected final TimelockService timelockService;
     protected final LockWatchManagerInternal lockWatchManager;
-    protected final Supplier<TransactionScopedCache> cache;
     final KeyValueService keyValueService;
     final AsyncKeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
@@ -289,7 +288,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableLevelMetricsController tableLevelMetricsController) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
-        this.cache = Suppliers.memoize(() -> lockWatchManager.getOrCreateTransactionScopedCache(startTimeStamp.get()));
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -320,6 +318,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.tableLevelMetricsController = tableLevelMetricsController;
     }
 
+    protected TransactionScopedCache getCache() {
+        return lockWatchManager.getTransactionScopedCache(getTimestamp());
+    }
+
     @Override
     public long getTimestamp() {
         return getStartTimestamp();
@@ -342,9 +344,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
 
-        if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
-            throw new CommittedTransactionException();
-        }
+        ensureStillRunning();
     }
 
     @Override
@@ -360,6 +360,21 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+        if (columnSelection.allColumnsSelected()) {
+            return getRowsInternal(tableRef, rows, columnSelection);
+        }
+        return getCache()
+                .getRows(
+                        tableRef,
+                        rows,
+                        columnSelection,
+                        cells -> AtlasFutures.getUnchecked(getInternal(
+                                "getRows", tableRef, cells, immediateKeyValueService, immediateTransactionService)),
+                        unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
+    }
+
+    private NavigableMap<byte[], RowResult<byte[]>> getRowsInternal(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
         Timer.Context timer = getTimer("getRows").time();
         checkGetPreconditions(tableRef);
@@ -398,7 +413,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return KeyedStream.stream(getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection))
-                .map((row, iterator) -> BatchingVisitableFromIterable.create(iterator))
+                .map(BatchingVisitableFromIterable::create)
+                .map(this::scopeToTransaction)
                 .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
@@ -419,7 +435,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         BatchColumnRangeSelection batchColumnRangeSelection =
                 BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
-        return getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults);
+        return scopeToTransaction(getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults));
     }
 
     @Override
@@ -439,7 +455,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             RowColumnRangeIterator rawIterator = e.getValue();
             Iterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
                     getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
-            postFilteredResultsBuilder.put(row, postFilteredIterator);
+            postFilteredResultsBuilder.put(row, scopeToTransaction(postFilteredIterator));
         }
         SortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = postFilteredResultsBuilder.build();
         // validate requirements here as the first batch for each of the above iterators will not check
@@ -464,7 +480,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<byte[], RowColumnRangeIterator> rawResults =
                 keyValueService.getRowsColumnRange(tableRef, distinctRows, perBatchSelection, getStartTimestamp());
 
-        return getPostFilteredSortedColumns(tableRef, batchColumnRangeSelection, distinctRows, rawResults);
+        return scopeToTransaction(
+                getPostFilteredSortedColumns(tableRef, batchColumnRangeSelection, distinctRows, rawResults));
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredSortedColumns(
@@ -777,7 +794,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        return cache.get()
+        return getCache()
                 .get(
                         tableRef,
                         cells,
@@ -788,12 +805,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return cache.get()
+        return scopeToTransaction(getCache()
                 .getAsync(
                         tableRef,
                         cells,
                         (table, uncached) -> getInternal(
-                                "getAsync", tableRef, uncached, keyValueService, defaultTransactionService));
+                                "getAsync", tableRef, uncached, keyValueService, defaultTransactionService)));
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getInternal(
@@ -1584,14 +1601,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
         putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
-        cache.get().delete(tableRef, cells);
+        getCache().delete(tableRef, cells);
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         ensureNoEmptyValues(values);
         putInternal(tableRef, values);
-        cache.get().write(tableRef, values);
+        getCache().write(tableRef, values);
     }
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
@@ -1676,6 +1693,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void ensureUncommitted() {
         if (!isUncommitted()) {
+            throw new CommittedTransactionException();
+        }
+    }
+
+    private void ensureStillRunning() {
+        if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
             throw new CommittedTransactionException();
         }
     }
@@ -1776,6 +1799,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
                 if (validationNecessaryForInvolvedTablesOnCommit()) {
                     throwIfImmutableTsOrCommitLocksExpired(null);
+                }
+
+                // if the cache has been used, we must work out which values can be flushed to the central cache by
+                // obtaining a commit update, which is obtained via the get commit timestamp request.
+                if (getCache().hasUpdates()) {
+                    timedAndTraced(
+                            "getCommitTimestampForCaching",
+                            () -> timelockService.getCommitTimestamp(
+                                    getStartTimestamp(), LockToken.of(UUID.randomUUID())));
                 }
                 return;
             }
@@ -2621,5 +2653,42 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                             + "This is likely a bug in AtlasDB transaction code.");
             callbacks.forEach(Runnable::run);
         }
+    }
+
+    private <T> BatchingVisitable<T> scopeToTransaction(BatchingVisitable<T> delegateVisitable) {
+        return new BatchingVisitable<T>() {
+            @Override
+            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> visitor)
+                    throws K {
+                ensureStillRunning();
+                return delegateVisitable.batchAccept(batchSize, visitor);
+            }
+        };
+    }
+
+    private <T> Iterator<T> scopeToTransaction(Iterator<T> delegateIterator) {
+        return new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                ensureStillRunning();
+                return delegateIterator.hasNext();
+            }
+
+            @Override
+            public T next() {
+                ensureStillRunning();
+                return delegateIterator.next();
+            }
+        };
+    }
+
+    private <T> ListenableFuture<T> scopeToTransaction(ListenableFuture<T> transactionFuture) {
+        return Futures.transform(
+                transactionFuture,
+                txnTaskResult -> {
+                    ensureStillRunning();
+                    return txnTaskResult;
+                },
+                MoreExecutors.directExecutor());
     }
 }

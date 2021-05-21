@@ -21,13 +21,17 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.lock.watch.CommitUpdate;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public final class NoOpTransactionScopedCache implements TransactionScopedCache {
-
     private NoOpTransactionScopedCache() {}
 
     public static TransactionScopedCache create() {
@@ -57,6 +61,16 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
     }
 
     @Override
+    public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
+            Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
+        return rowLoader.apply(rows);
+    }
+
+    @Override
     public void finalise() {}
 
     @Override
@@ -67,5 +81,10 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
     @Override
     public HitDigest getHitDigest() {
         return HitDigest.of(ImmutableSet.of());
+    }
+
+    @Override
+    public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
+        return ReadOnlyTransactionScopedCache.create(NoOpTransactionScopedCache.create());
     }
 }

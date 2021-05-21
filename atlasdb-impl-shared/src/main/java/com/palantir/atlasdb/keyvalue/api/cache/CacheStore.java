@@ -17,13 +17,18 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.lock.watch.CommitUpdate;
 
 interface CacheStore {
-    TransactionScopedCache getOrCreateCache(StartTimestamp timestamp);
+    void createCache(StartTimestamp timestamp);
 
     TransactionScopedCache getCache(StartTimestamp timestamp);
 
     void removeCache(StartTimestamp timestamp);
 
     void reset();
+
+    void createReadOnlyCache(StartTimestamp timestamp, CommitUpdate commitUpdate);
+
+    TransactionScopedCache getReadOnlyCache(StartTimestamp timestamp);
 }

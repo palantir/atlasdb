@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollectorImpl;
 import com.palantir.atlasdb.debug.FullDiagnosticDigest;
@@ -79,6 +80,7 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
                 cluster,
                 TIMELOCK_CLIENT.value(),
                 runtimeConfig,
+                ImmutableAtlasDbConfig.builder(),
                 Optional.of(ImmutableLockDiagnosticComponents.builder()
                         .clientLockDiagnosticCollector(diagnosticCollector)
                         .localLockTracker(lockTracker)

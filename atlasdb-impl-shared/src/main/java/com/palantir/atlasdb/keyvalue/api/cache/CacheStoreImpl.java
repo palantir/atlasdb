@@ -17,35 +17,61 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
+import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.concurrent.ThreadSafe;
+import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 final class CacheStoreImpl implements CacheStore {
-    private final SnapshotStore snapshotStore;
-    private final Map<StartTimestamp, TransactionScopedCache> cacheMap;
-    private final double validationProbability;
+    private static final Logger log = LoggerFactory.getLogger(CacheStoreImpl.class);
 
-    CacheStoreImpl(SnapshotStore snapshotStore, double validationProbability) {
+    private final int maxCacheCount;
+    private final SnapshotStore snapshotStore;
+    private final Map<StartTimestamp, Caches> cacheMap;
+    private final double validationProbability;
+    private final Runnable failureCallback;
+    private final CacheMetrics metrics;
+
+    CacheStoreImpl(
+            SnapshotStore snapshotStore,
+            double validationProbability,
+            Runnable failureCallback,
+            CacheMetrics metrics,
+            int maxCacheCount) {
         this.snapshotStore = snapshotStore;
+        this.failureCallback = failureCallback;
+        this.metrics = metrics;
+        this.maxCacheCount = maxCacheCount;
         this.cacheMap = new ConcurrentHashMap<>();
         this.validationProbability = validationProbability;
     }
 
     @Override
-    public TransactionScopedCache getOrCreateCache(StartTimestamp timestamp) {
-        return cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
+    public void createCache(StartTimestamp timestamp) {
+        if (cacheMap.size() > maxCacheCount) {
+            throw new TransactionFailedRetriableException(
+                    "Exceeded maximum concurrent caches; transaction can be retried, but with caching disabled");
+        }
+
+        cacheMap.computeIfAbsent(timestamp, key -> snapshotStore
                 .getSnapshot(key)
-                .map(TransactionScopedCacheImpl::create)
-                .map(cache -> ValidatingTransactionScopedCache.create(cache, validationProbability))
-                .orElseGet(NoOpTransactionScopedCache::create));
+                .map(snapshot -> TransactionScopedCacheImpl.create(snapshot, metrics))
+                .map(newCache ->
+                        ValidatingTransactionScopedCache.create(newCache, validationProbability, failureCallback))
+                .map(Caches::create)
+                .orElse(null));
     }
 
     @Override
     public TransactionScopedCache getCache(StartTimestamp timestamp) {
-        return Optional.ofNullable(cacheMap.get(timestamp)).orElseGet(NoOpTransactionScopedCache::create);
+        return getCacheInternal(timestamp).map(Caches::mainCache).orElseGet(NoOpTransactionScopedCache::create);
     }
 
     @Override
@@ -55,6 +81,46 @@ final class CacheStoreImpl implements CacheStore {
 
     @Override
     public void reset() {
+        log.info("Clearing all cache state");
         cacheMap.clear();
+    }
+
+    @Override
+    public void createReadOnlyCache(StartTimestamp timestamp, CommitUpdate commitUpdate) {
+        cacheMap.computeIfPresent(timestamp, (_startTs, cache) -> cache.withReadOnlyCache(commitUpdate));
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyCache(StartTimestamp timestamp) {
+        return getCacheInternal(timestamp)
+                .flatMap(Caches::readOnlyCache)
+                .orElseGet(() -> NoOpTransactionScopedCache.create().createReadOnlyCache(CommitUpdate.invalidateAll()));
+    }
+
+    private Optional<Caches> getCacheInternal(StartTimestamp timestamp) {
+        return Optional.ofNullable(cacheMap.get(timestamp));
+    }
+
+    @Value.Immutable
+    interface Caches {
+        TransactionScopedCache mainCache();
+
+        Optional<TransactionScopedCache> readOnlyCache();
+
+        static Caches createNoOp() {
+            return create(NoOpTransactionScopedCache.create());
+        }
+
+        static Caches create(TransactionScopedCache mainCache) {
+            return ImmutableCaches.builder().mainCache(mainCache).build();
+        }
+
+        default Caches withReadOnlyCache(CommitUpdate commitUpdate) {
+            Preconditions.checkState(!readOnlyCache().isPresent(), "Read-only cache is already present");
+            return ImmutableCaches.builder()
+                    .from(this)
+                    .readOnlyCache(mainCache().createReadOnlyCache(commitUpdate))
+                    .build();
+        }
     }
 }

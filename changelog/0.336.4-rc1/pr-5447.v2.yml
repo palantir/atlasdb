@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: '[PDS-184114] Do not interrupt the exception handling thread, just because an underlying request was interrupted.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5447

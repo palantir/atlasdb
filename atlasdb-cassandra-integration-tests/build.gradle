@@ -28,19 +28,13 @@ dependencies {
     testCompile('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
         exclude module: 'junit'
 
-        // override ant to a newer one that is shared with the version in jmock-->cglib
-        exclude module: 'ant'
-        exclude group: 'org.apache.httpcomponents'
-        compile 'org.apache.ant:ant:' + libVersions.ant
-    }
-    testCompile('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
-        exclude module: 'junit'
+      exclude group: 'org.apache.httpcomponents'
+  }
+  testCompile ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+    exclude module: 'junit'
 
-        // override ant to a newer one that is shared with the version in jmock-->cglib
-        exclude module: 'ant'
-        exclude group: 'org.apache.httpcomponents'
-        compile 'org.apache.ant:ant:' + libVersions.ant
-    }
+    exclude group: 'org.apache.httpcomponents'
+  }
 
     testCompile project(':flake-rule')
 

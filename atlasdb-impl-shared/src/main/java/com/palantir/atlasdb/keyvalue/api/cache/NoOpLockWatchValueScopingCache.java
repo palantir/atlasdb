@@ -25,7 +25,12 @@ public final class NoOpLockWatchValueScopingCache extends NoOpLockWatchValueCach
     }
 
     @Override
-    public TransactionScopedCache getOrCreateTransactionScopedCache(long startTs) {
+    public TransactionScopedCache getTransactionScopedCache(long startTs) {
+        return NoOpTransactionScopedCache.create();
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCacheForCommit(long startTs) {
         return NoOpTransactionScopedCache.create();
     }
 }

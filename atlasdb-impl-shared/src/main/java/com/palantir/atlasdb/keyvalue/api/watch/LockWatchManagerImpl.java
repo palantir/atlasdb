@@ -17,6 +17,9 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
@@ -30,6 +33,8 @@ import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
@@ -44,7 +49,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class LockWatchManagerImpl extends LockWatchManagerInternal {
-
     private static final Logger log = LoggerFactory.getLogger(LockWatchManagerImpl.class);
 
     private final Set<LockWatchReferences.LockWatchReference> referencesFromSchema;
@@ -57,14 +61,11 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
 
     @VisibleForTesting
     LockWatchManagerImpl(
-            Set<Schema> schemas,
+            Set<LockWatchReference> referencesFromSchema,
             LockWatchEventCache eventCache,
             LockWatchValueScopingCache valueCache,
             NamespacedConjureLockWatchingService lockWatchingService) {
-        this.referencesFromSchema = schemas.stream()
-                .map(Schema::getLockWatches)
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet());
+        this.referencesFromSchema = referencesFromSchema;
         this.lockWatchCache = new LockWatchCacheImpl(eventCache, valueCache);
         this.valueScopingCache = valueCache;
         this.lockWatchingService = lockWatchingService;
@@ -75,12 +76,20 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     public static LockWatchManagerInternal create(
             MetricsManager metricsManager,
             Set<Schema> schemas,
-            NamespacedConjureLockWatchingService lockWatchingService) {
-        LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metricsManager);
-        // todo(gmaretic): params should come from config
-        LockWatchValueScopingCache valueCache =
-                LockWatchValueScopingCacheImpl.create(eventCache, metricsManager, 100000, 1.0);
-        return new LockWatchManagerImpl(schemas, eventCache, valueCache, lockWatchingService);
+            NamespacedConjureLockWatchingService lockWatchingService,
+            LockWatchCachingConfig config) {
+        Set<LockWatchReference> referencesFromSchema = schemas.stream()
+                .map(Schema::getLockWatches)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+        Set<TableReference> watchedTablesFromSchema = referencesFromSchema.stream()
+                .map(schema -> schema.accept(LockWatchReferencesVisitor.INSTANCE))
+                .collect(Collectors.toSet());
+        CacheMetrics metrics = CacheMetrics.create(metricsManager);
+        LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics);
+        LockWatchValueScopingCache valueCache = LockWatchValueScopingCacheImpl.create(
+                eventCache, metrics, config.cacheSize(), config.validationProbability(), watchedTablesFromSchema);
+        return new LockWatchManagerImpl(referencesFromSchema, eventCache, valueCache, lockWatchingService);
     }
 
     @Override
@@ -124,8 +133,13 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     }
 
     @Override
-    public TransactionScopedCache getOrCreateTransactionScopedCache(long startTs) {
-        return valueScopingCache.getOrCreateTransactionScopedCache(startTs);
+    public TransactionScopedCache getTransactionScopedCache(long startTs) {
+        return valueScopingCache.getTransactionScopedCache(startTs);
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCache(long startTs) {
+        return valueScopingCache.getReadOnlyTransactionScopedCacheForCommit(startTs);
     }
 
     private void registerWatchesWithTimelock() {

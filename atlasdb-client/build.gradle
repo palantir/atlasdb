@@ -67,6 +67,7 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
   compile group: 'com.squareup', name:'javapoet'
+  compile group: 'com.squareup.okio', name: 'okio'
   compile group: 'org.hdrhistogram', name: 'HdrHistogram'
   compile group: 'com.palantir.common', name: 'streams'
   compile group: 'com.github.rholder', name: 'guava-retrying'

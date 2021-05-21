@@ -51,6 +51,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -65,6 +66,7 @@ import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictExcep
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
@@ -589,26 +591,11 @@ public class SerializableTransaction extends SnapshotTransaction {
                             Predicates.not(
                                     Predicates.in(writesByTable.get(table).keySet())));
                 }
-                if (!areMapsEqual(originalReads, currentCells)) {
+                if (!ByteArrayUtilities.areMapsEqual(originalReads, currentCells)) {
                     handleTransactionConflict(table);
                 }
             }
         }
-    }
-
-    private static boolean areMapsEqual(Map<Cell, byte[]> map1, Map<Cell, byte[]> map2) {
-        if (map1.size() != map2.size()) {
-            return false;
-        }
-        for (Map.Entry<Cell, byte[]> e : map1.entrySet()) {
-            if (!map2.containsKey(e.getKey())) {
-                return false;
-            }
-            if (UnsignedBytes.lexicographicalComparator().compare(e.getValue(), map2.get(e.getKey())) != 0) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private void verifyCells(Transaction readOnlyTransaction) {
@@ -631,7 +618,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 ImmutableMap<Cell, byte[]> originalReads = Maps.toMap(
                         Sets.intersection(batchWithoutWritesSet, readsForTable.keySet()),
                         Functions.forMap(readsForTable));
-                if (!areMapsEqual(currentBatch, originalReads)) {
+                if (!ByteArrayUtilities.areMapsEqual(currentBatch, originalReads)) {
                     handleTransactionConflict(table);
                 }
             }
@@ -880,6 +867,11 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController) {
+            @Override
+            protected TransactionScopedCache getCache() {
+                return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());
+            }
+
             @Override
             protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
                     TableReference tableRef,

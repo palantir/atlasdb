@@ -22,12 +22,13 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -43,6 +44,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
+    private static final int MAX_CACHE_COUNT = 100_000;
     private final LockWatchEventCache eventCache;
     private final CacheStore cacheStore;
     private final ValueStore valueStore;
@@ -51,22 +53,37 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     @VisibleForTesting
-    LockWatchValueScopingCacheImpl(LockWatchEventCache eventCache, long maxCacheSize, double validationProbability) {
+    LockWatchValueScopingCacheImpl(
+            LockWatchEventCache eventCache,
+            long maxCacheSize,
+            double validationProbability,
+            Set<TableReference> watchedTablesFromSchema,
+            Runnable failureCallback,
+            CacheMetrics metrics) {
         this.eventCache = eventCache;
-        this.valueStore = new ValueStoreImpl(maxCacheSize);
+        this.valueStore = new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize, metrics);
         this.snapshotStore = new SnapshotStoreImpl();
-        this.cacheStore = new CacheStoreImpl(snapshotStore, validationProbability);
+        this.cacheStore =
+                new CacheStoreImpl(snapshotStore, validationProbability, failureCallback, metrics, MAX_CACHE_COUNT);
     }
 
     public static LockWatchValueScopingCache create(
             LockWatchEventCache eventCache,
-            MetricsManager metricsManager,
+            CacheMetrics metrics,
             long maxCacheSize,
-            double validationProbability) {
-        return ResilientLockWatchProxy.newValueCacheProxy(
-                new LockWatchValueScopingCacheImpl(eventCache, maxCacheSize, validationProbability),
-                NoOpLockWatchValueScopingCache.create(),
-                metricsManager);
+            double validationProbability,
+            Set<TableReference> watchedTablesFromSchema) {
+        ResilientLockWatchProxy<LockWatchValueScopingCache> proxyFactory =
+                ResilientLockWatchProxy.newValueCacheProxyFactory(NoOpLockWatchValueScopingCache.create(), metrics);
+        LockWatchValueScopingCache defaultCache = new LockWatchValueScopingCacheImpl(
+                eventCache,
+                maxCacheSize,
+                validationProbability,
+                watchedTablesFromSchema,
+                proxyFactory::fallback,
+                metrics);
+        proxyFactory.setDelegate(defaultCache);
+        return proxyFactory.newValueCacheProxy();
     }
 
     @Override
@@ -95,12 +112,18 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public TransactionScopedCache getOrCreateTransactionScopedCache(long startTs) {
-        return cacheStore.getOrCreateCache(StartTimestamp.of(startTs));
+    public TransactionScopedCache getTransactionScopedCache(long startTs) {
+        return cacheStore.getCache(StartTimestamp.of(startTs));
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCacheForCommit(long startTs) {
+        return cacheStore.getReadOnlyCache(StartTimestamp.of(startTs));
     }
 
     private synchronized void processCommitUpdate(long startTimestamp) {
-        TransactionScopedCache cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        TransactionScopedCache cache = cacheStore.getCache(startTs);
         cache.finalise();
 
         Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
@@ -108,7 +131,10 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             return;
         }
 
-        eventCache.getCommitUpdate(startTimestamp).accept(new Visitor<Void>() {
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
+        cacheStore.createReadOnlyCache(startTs, commitUpdate);
+
+        commitUpdate.accept(new Visitor<Void>() {
             @Override
             public Void invalidateAll() {
                 // This might happen due to an election or if we exceeded the maximum number of events held in
@@ -141,6 +167,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
      *     don't bother storing a snapshot for those sequences. Also note that we know that each call here will only
      *     ever have new events, and that consecutive calls to this method will *always* have increasing sequences
      *     (without this last guarantee, we'd need to store snapshots for all sequences).
+     *  3. For each transaction, we must create a transaction scoped cache. We do this at start transaction time as we
+     *     have tighter guarantees around when the cache is created, and thus deleted.
      */
     private synchronized void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
@@ -156,6 +184,11 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             Sequence sequence = Sequence.of(event.sequence());
             snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
         });
+
+        updateForTransactions
+                .startTsToSequence()
+                .keySet()
+                .forEach(timestamp -> cacheStore.createCache(StartTimestamp.of(timestamp)));
 
         assertNoSnapshotsMissing(reversedMap.keySet());
     }

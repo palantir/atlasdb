@@ -70,6 +70,7 @@ import com.palantir.atlasdb.internalschema.metrics.MetadataCoordinationServiceMe
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
@@ -1156,7 +1157,8 @@ public abstract class TransactionManagers {
                 reloadingFactory,
                 timeLockFeedbackBackgroundTask,
                 timelockRequestBatcherProviders,
-                schemas);
+                schemas,
+                config.lockWatchCaching());
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.managedTimestampService(), invalidator, config.initializeAsync());
@@ -1186,7 +1188,8 @@ public abstract class TransactionManagers {
             ReloadingFactory reloadingFactory,
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
-            Set<Schema> schemas) {
+            Set<Schema> schemas,
+            LockWatchCachingConfig cachingConfig) {
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
 
@@ -1219,7 +1222,7 @@ public abstract class TransactionManagers {
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
 
         LockWatchManagerInternal lockWatchManager =
-                LockWatchManagerImpl.create(metricsManager, schemas, lockWatchingService);
+                LockWatchManagerImpl.create(metricsManager, schemas, lockWatchingService, cachingConfig);
 
         Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier =
                 getMultiClientTimelockServiceSupplier(serviceProvider);
