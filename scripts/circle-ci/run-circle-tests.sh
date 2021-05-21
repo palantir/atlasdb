@@ -50,8 +50,9 @@ if ./scripts/circle-ci/check-only-docs-changes.sh; then
     exit 0
 fi
 
-# Naughty
-docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_PASSWORD"
+if [ $CIRCLE_NODE_INDEX -eq 9 ]; then
+    printenv DOCKERHUB_PASSWORD | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+fi
 
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+HeapDumpOnOutOfMemoryError"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -verbose:gc"
