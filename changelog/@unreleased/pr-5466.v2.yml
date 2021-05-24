@@ -1,28 +1,6 @@
 type: improvement
 improvement:
   description: |-
-    Add traces for kvs-get
-
-    **Goals (and why)**:
-    Improved visibility into kvs-get performance.
-
-
-    **Implementation Description (bullets)**:
-    Added a few spans to CellLoader#loadWithTs.
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-
-    **Concerns (what feedback would you like?)**:
-    A bit unsure about changes in TaskRunner
-
-    **Where should we start reviewing?**:
-
-    **Priority (whenever / two weeks / yesterday)**:
-
-    <!---
-    Please remember to:
-    - Add any necessary release notes (including breaking changes)
-    - Make sure the documentation is up to date for your change
-    --->
+    Add traces inside kvs-get to get more granular performance information.
   links:
   - https://github.com/palantir/atlasdb/pull/5466

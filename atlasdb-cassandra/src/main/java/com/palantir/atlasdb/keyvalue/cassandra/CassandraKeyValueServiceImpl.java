@@ -778,7 +778,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             ImmutableMap.Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, ts);
-                try(CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
+                try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
                     cellLoader.loadWithTs("get", tableRef, cellsByTs.get(ts), ts, false, collector, readConsistency);
                 }
                 builder.putAll(collector.getCollectedResults());
@@ -792,15 +792,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private Map<Cell, Value> get(
             String kvsMethodName, TableReference tableRef, Set<Cell> cells, long maxTimestampExclusive) {
         StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, maxTimestampExclusive);
-        try(CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
+        try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
             cellLoader.loadWithTs(
-                    kvsMethodName,
-                    tableRef,
-                    cells,
-                    maxTimestampExclusive,
-                    false,
-                    collector,
-                    readConsistency);
+                    kvsMethodName, tableRef, cells, maxTimestampExclusive, false, collector, readConsistency);
         }
         return collector.getCollectedResults();
     }

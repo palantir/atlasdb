@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
@@ -94,11 +96,20 @@ final class CellLoader {
             CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             ConsistencyLevel consistency) {
         Map<InetSocketAddress, List<Cell>> hostsAndCells;
-        try(CloseableTracer tracer = CloseableTracer.startSpan("partitionByHost")) {
+        try (CloseableTracer tracer = CloseableTracer.startSpan(
+                "partitionByHost",
+                ImmutableMap.of(
+                        "cells",
+                        String.valueOf(cells.size()),
+                        "tableRef",
+                        Objects.requireNonNull(LoggingArgs.tableRef(tableRef).getValue()),
+                        "timestampClause",
+                        loadAllTs ? "for all timestamps " : "",
+                        "startTs",
+                        String.valueOf(startTs)))) {
             hostsAndCells = HostPartitioner.partitionByHost(clientPool, cells, Cell::getRowName);
         }
         int totalPartitions = hostsAndCells.keySet().size();
-
 
         if (log.isTraceEnabled()) {
             log.trace(
@@ -122,7 +133,7 @@ final class CellLoader {
                         SafeArg.of("ipPort", hostAndCells.getKey()));
             }
 
-            try(CloseableTracer tracer = CloseableTracer.startSpan("getLoadWithTsTasksForSingleHost")) {
+            try (CloseableTracer tracer = CloseableTracer.startSpan("getLoadWithTsTasksForSingleHost")) {
                 tasks.addAll(getLoadWithTsTasksForSingleHost(
                         kvsMethodName,
                         hostAndCells.getKey(),
