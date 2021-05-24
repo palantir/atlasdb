@@ -29,8 +29,7 @@ import org.junit.runners.Suite;
     TodoEteTest.class,
     TimestampManagementEteTest.class,
     CoordinationEteTest.class,
-    LockWithoutTimelockEteTest.class,
-    LockWatchEteTest.class
+    LockWithoutTimelockEteTest.class
 })
 public class OracleDbKvsEteTestSuite extends EteSetup {
     private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
