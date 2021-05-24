@@ -29,6 +29,7 @@ import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tracing.CloseableTracer;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -92,9 +93,12 @@ final class CellLoader {
             boolean loadAllTs,
             CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             ConsistencyLevel consistency) {
-        Map<InetSocketAddress, List<Cell>> hostsAndCells =
-                HostPartitioner.partitionByHost(clientPool, cells, Cell::getRowName);
+        Map<InetSocketAddress, List<Cell>> hostsAndCells;
+        try(CloseableTracer tracer = CloseableTracer.startSpan("partitionByHost")) {
+            hostsAndCells = HostPartitioner.partitionByHost(clientPool, cells, Cell::getRowName);
+        }
         int totalPartitions = hostsAndCells.keySet().size();
+
 
         if (log.isTraceEnabled()) {
             log.trace(
@@ -118,15 +122,17 @@ final class CellLoader {
                         SafeArg.of("ipPort", hostAndCells.getKey()));
             }
 
-            tasks.addAll(getLoadWithTsTasksForSingleHost(
-                    kvsMethodName,
-                    hostAndCells.getKey(),
-                    tableRef,
-                    hostAndCells.getValue(),
-                    startTs,
-                    loadAllTs,
-                    visitor,
-                    consistency));
+            try(CloseableTracer tracer = CloseableTracer.startSpan("getLoadWithTsTasksForSingleHost")) {
+                tasks.addAll(getLoadWithTsTasksForSingleHost(
+                        kvsMethodName,
+                        hostAndCells.getKey(),
+                        tableRef,
+                        hostAndCells.getValue(),
+                        startTs,
+                        loadAllTs,
+                        visitor,
+                        consistency));
+            }
         }
 
         taskRunner.runAllTasksCancelOnFailure(tasks);

@@ -15,13 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.base.Throwables;
+import com.palantir.tracing.DetachedSpan;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 class TaskRunner {
     private ExecutorService executor;
@@ -44,22 +49,43 @@ class TaskRunner {
             }
         }
 
-        List<Future<V>> futures = new ArrayList<>(tasks.size());
+        List<ListenableFuture<V>> futures = new ArrayList<>(tasks.size());
         for (Callable<V> task : tasks) {
-            futures.add(executor.submit(task));
+            DetachedSpan detachedSpan = DetachedSpan.start("task");
+            ListenableFuture<V> future = MoreExecutors.listeningDecorator(executor).submit(task);
+            futures.add(attachDetachedSpanCompletion(detachedSpan, future, executor));
         }
         try {
             List<V> results = new ArrayList<>(tasks.size());
-            for (Future<V> future : futures) {
+            for (ListenableFuture<V> future : futures) {
                 results.add(future.get());
             }
             return results;
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         } finally {
-            for (Future<V> future : futures) {
+            for (ListenableFuture<V> future : futures) {
                 future.cancel(true);
             }
         }
+    }
+
+    private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
+            DetachedSpan detachedSpan, ListenableFuture<V> future, Executor tracingExecutorService) {
+        Futures.addCallback(
+                future,
+                new FutureCallback<V>() {
+                    @Override
+                    public void onSuccess(V result) {
+                        detachedSpan.complete();
+                    }
+
+                    @Override
+                    public void onFailure(Throwable throwable) {
+                        detachedSpan.complete();
+                    }
+                },
+                tracingExecutorService);
+        return future;
     }
 }
