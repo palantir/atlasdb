@@ -30,11 +30,9 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 class TaskRunner {
-    private ExecutorService executor;
-    private ListeningExecutorService listeningExecutor;
+    private final ListeningExecutorService listeningExecutor;
 
     TaskRunner(ExecutorService executor) {
-        this.executor = executor;
         this.listeningExecutor = MoreExecutors.listeningDecorator(executor);
     }
 
@@ -56,7 +54,7 @@ class TaskRunner {
         for (Callable<V> task : tasks) {
             DetachedSpan detachedSpan = DetachedSpan.start("task");
             ListenableFuture<V> future = listeningExecutor.submit(task);
-            futures.add(attachDetachedSpanCompletion(detachedSpan, future, executor));
+            futures.add(attachDetachedSpanCompletion(detachedSpan, future, listeningExecutor));
         }
         try {
             List<V> results = new ArrayList<>(tasks.size());
