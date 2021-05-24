@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    AtlasDB now by default releases the locks of transactions that are spending more than 5 minutes committing (note: this does not mean that an AtlasDB _transaction_ is bounded by 5 minutes, only the parts of the protocol during which the transaction locks need to be held) to allow forward progress. Transactions that have had their locks expired in this way may be aborted (note that atomicity is preserved: the commit either happens or not).
+
+    If this is a problem, consider configuring `transaction.commitLockTenure` in runtime config.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5438
