@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.base.Throwables;
 import com.palantir.tracing.DetachedSpan;
@@ -30,9 +31,11 @@ import java.util.concurrent.ExecutorService;
 
 class TaskRunner {
     private ExecutorService executor;
+    private ListeningExecutorService listeningExecutor;
 
     TaskRunner(ExecutorService executor) {
         this.executor = executor;
+        this.listeningExecutor = MoreExecutors.listeningDecorator(executor);
     }
 
     /*
@@ -52,7 +55,7 @@ class TaskRunner {
         List<ListenableFuture<V>> futures = new ArrayList<>(tasks.size());
         for (Callable<V> task : tasks) {
             DetachedSpan detachedSpan = DetachedSpan.start("task");
-            ListenableFuture<V> future = MoreExecutors.listeningDecorator(executor).submit(task);
+            ListenableFuture<V> future = listeningExecutor.submit(task);
             futures.add(attachDetachedSpanCompletion(detachedSpan, future, executor));
         }
         try {
