@@ -60,7 +60,9 @@ public abstract class CqlQuery {
         boolean first = true;
         for (Arg<?> arg : args()) {
             if (arg.isSafeForLogging()) {
-                if (!first) buffer.append(", ");
+                if (!first) {
+                    buffer.append(", ");
+                }
                 first = false;
                 buffer.append(arg.getName()).append(" = ").append(arg.getValue());
             }
