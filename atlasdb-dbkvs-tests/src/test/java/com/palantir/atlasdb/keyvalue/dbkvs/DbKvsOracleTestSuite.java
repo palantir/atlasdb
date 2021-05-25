@@ -23,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OverflowSequenceSupplierEteTest;
-import com.palantir.db.oracle.NativeOracleJdbcHandler;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
@@ -74,7 +73,7 @@ public final class DbKvsOracleTestSuite {
             .build();
 
     @BeforeClass
-    public static void waitUntilDbKvsIsUp() throws InterruptedException {
+    public static void waitUntilDbKvsIsUp() {
         Awaitility.await()
                 .atMost(Duration.ofMinutes(5))
                 .pollInterval(Duration.ofSeconds(1))
@@ -104,7 +103,6 @@ public final class DbKvsOracleTestSuite {
                 .connection(connectionConfig)
                 .ddl(ImmutableOracleDdlConfig.builder()
                         .overflowMigrationState(OverflowMigrationState.FINISHED)
-                        .jdbcHandler(new NativeOracleJdbcHandler())
                         .build())
                 .build();
     }

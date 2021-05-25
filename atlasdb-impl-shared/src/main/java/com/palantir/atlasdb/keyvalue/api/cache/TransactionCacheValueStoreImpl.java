@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
-import org.immutables.value.Value;
 
 @NotThreadSafe
 final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore {
@@ -160,7 +159,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                 .collectToMap();
     }
 
-    @Value.Immutable
+    @org.immutables.value.Value.Immutable
     public interface LocalCacheEntry {
         Status status();
 
