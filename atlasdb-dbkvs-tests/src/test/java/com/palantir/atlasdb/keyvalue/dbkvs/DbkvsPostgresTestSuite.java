@@ -62,7 +62,7 @@ public final class DbkvsPostgresTestSuite {
 
     @ClassRule
     public static final DockerComposeRule docker = DockerComposeRule.builder()
-            .file("src/test/resources/docker-compose.yml")
+            .file("src/test/resources/docker-compose.postgres.yml")
             .waitingForService("postgres-dbkvs", Container::areAllPortsOpen)
             .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbkvsPostgresTestSuite.class))
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
