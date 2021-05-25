@@ -58,7 +58,7 @@ public class OverflowSequenceSupplierEteTest {
             throws InterruptedException {
         final Set<Long> overflowIds = new HashSet<>();
         for (int i = 0; i < THREAD_COUNT; i++) {
-            executor.submit(() -> getMultipleOverflowIds(overflowIds));
+            executor.execute(() -> getMultipleOverflowIds(overflowIds));
         }
         waitForExecutorToFinish();
     }
