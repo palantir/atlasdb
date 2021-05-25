@@ -34,8 +34,8 @@ import org.junit.Test;
 
 public class OverflowSequenceSupplierEteTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(() ->
-            ConnectionManagerAwareDbKvs.create(DbKvsOracleTestSuite.getKvsConfig()));
+    public static final TestResourceManager TRM =
+            new TestResourceManager(() -> ConnectionManagerAwareDbKvs.create(DbKvsOracleTestSuite.getKvsConfig()));
 
     private ExecutorService executor = Executors.newFixedThreadPool(4);
     private static final int THREAD_COUNT = 3;
@@ -52,7 +52,6 @@ public class OverflowSequenceSupplierEteTest {
         connectionSupplier.close();
     }
 
-
     @Test
     public void getMonotonicallyIncreasingOverflowIdsFromOverflowSequenceSupplierMultiThread()
             throws InterruptedException {
@@ -65,8 +64,7 @@ public class OverflowSequenceSupplierEteTest {
 
     private void getMultipleOverflowIds(Set<Long> overflowIds) {
         final OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(
-                connectionSupplier,
-                DbKvsOracleTestSuite.getKvsConfig().ddl().tablePrefix());
+                connectionSupplier, DbKvsOracleTestSuite.getKvsConfig().ddl().tablePrefix());
 
         long previousOverflowId = -1;
         for (int j = 0; j < OVERFLOW_IDS_PER_THREAD; j++) {

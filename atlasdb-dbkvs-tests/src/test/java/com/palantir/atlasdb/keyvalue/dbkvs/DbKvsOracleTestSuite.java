@@ -1,5 +1,5 @@
-/**
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+/*
+ * (c) Copyright 2016 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,14 +49,14 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        // DbkvsOracleTargetedSweepIntegrationTest.class,
-        // DbKvsOracleKeyValueServiceTest.class,
-        // DbKvsOracleSerializableTransactionTest.class,
-        // DbKvsOracleSweepTaskRunnerTest.class,
-        // DbKvsOracleGetCandidateCellsForSweepingTest.class,
-        OverflowSequenceSupplierEteTest.class,
-        // OracleTableNameMapperEteTest.class,
-        // OracleDbTimestampBoundStoreTest.class
+    // DbkvsOracleTargetedSweepIntegrationTest.class,
+    // DbKvsOracleKeyValueServiceTest.class,
+    // DbKvsOracleSerializableTransactionTest.class,
+    // DbKvsOracleSweepTaskRunnerTest.class,
+    // DbKvsOracleGetCandidateCellsForSweepingTest.class,
+    OverflowSequenceSupplierEteTest.class,
+    // OracleTableNameMapperEteTest.class,
+    // OracleDbTimestampBoundStoreTest.class
 })
 public final class DbKvsOracleTestSuite {
     private static final int ORACLE_PORT_NUMBER = 1521;
@@ -85,9 +85,7 @@ public final class DbKvsOracleTestSuite {
     }
 
     public static DbKeyValueServiceConfig getKvsConfig() {
-        DockerPort port = docker.containers()
-                .container("oracle")
-                .port(ORACLE_PORT_NUMBER);
+        DockerPort port = docker.containers().container("oracle").port(ORACLE_PORT_NUMBER);
 
         InetSocketAddress oracleAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
 
@@ -131,9 +129,7 @@ public final class DbKvsOracleTestSuite {
                     }
 
                     protected Iterable<SqlTimer> getSqlTimers() {
-                        return ImmutableList.of(
-                                SqlTimers.createDurationSqlTimer(),
-                                SqlTimers.createSqlStatsSqlTimer());
+                        return ImmutableList.of(SqlTimers.createDurationSqlTimer(), SqlTimers.createSqlStatsSqlTimer());
                     }
 
                     @Override
