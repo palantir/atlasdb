@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Switch cassandra tracing to use tags, instead of putting values in
+    operation names.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5412
