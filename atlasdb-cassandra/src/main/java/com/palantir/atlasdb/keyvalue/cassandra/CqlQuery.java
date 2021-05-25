@@ -22,7 +22,6 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -54,9 +53,7 @@ public abstract class CqlQuery {
      * Returns safe string representation of the query.
      */
     public String getSafeLog() {
-        StringBuilder buffer = new StringBuilder()
-            .append(safeQueryFormat())
-            .append(": ");
+        StringBuilder buffer = new StringBuilder().append(safeQueryFormat()).append(": ");
         boolean first = true;
         for (Arg<?> arg : args()) {
             if (arg.isSafeForLogging()) {
