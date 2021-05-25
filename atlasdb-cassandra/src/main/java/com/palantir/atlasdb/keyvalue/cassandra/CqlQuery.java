@@ -54,10 +54,17 @@ public abstract class CqlQuery {
      * Returns safe string representation of the query.
      */
     public String getSafeLog() {
-        String argsString = args().stream()
-                .filter(Arg::isSafeForLogging)
-                .map(arg -> String.format("%s = %s", arg.getName(), arg.getValue()))
-                .collect(Collectors.joining(", "));
-        return safeQueryFormat() + ": " + argsString;
+        StringBuilder buffer = new StringBuilder()
+            .append(safeQueryFormat())
+            .append(": ");
+        boolean first = true;
+        for (Arg<?> arg : args()) {
+            if (arg.isSafeForLogging()) {
+                if (!first) buffer.append(", ");
+                first = false;
+                buffer.append(arg.getName()).append(" = ").append(arg.getValue());
+            }
+        }
+        return buffer.toString();
     }
 }
