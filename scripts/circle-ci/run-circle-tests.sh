@@ -50,7 +50,7 @@ if ./scripts/circle-ci/check-only-docs-changes.sh; then
     exit 0
 fi
 
-if [ $CIRCLE_NODE_INDEX -eq 9 ]; then
+if [ $CIRCLE_NODE_INDEX -eq 5 ] || [ $CIRCLE_NODE_INDEX -eq 9 ]; then
     printenv DOCKERHUB_PASSWORD | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 fi
 
