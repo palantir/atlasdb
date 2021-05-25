@@ -72,8 +72,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
+    public static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 300;
+
     private static final Logger log = LoggerFactory.getLogger(AtlasDbEteServer.class);
-    private static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 60;
     private static final long CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS = 5;
     private static final ImmutableSet<Schema> ETE_SCHEMAS =
             ImmutableSet.of(TodoSchema.getSchema(), BlobSchema.getSchema());

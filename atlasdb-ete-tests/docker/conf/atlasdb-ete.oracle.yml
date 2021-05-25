@@ -1,0 +1,27 @@
+server:
+  #rootPath: /api/*
+  #applicationContextPath: /
+  #adminContextPath: /
+  applicationConnectors:
+    - type: http
+      port: 3828
+  adminConnectors:
+    - type: http
+      port: 3829
+
+atlasdb:
+  keyValueService:
+    type: relational
+    ddl:
+      type: oracle
+      overflowMigrationState: FINISHED
+      jdbcHandler:
+        type: oracle
+    connection:
+      type: oracle
+      host: oracle
+      port: 1521
+      sid: palantir
+      dbLogin: system
+      dbPassword: palpal
+  namespace: palantir
