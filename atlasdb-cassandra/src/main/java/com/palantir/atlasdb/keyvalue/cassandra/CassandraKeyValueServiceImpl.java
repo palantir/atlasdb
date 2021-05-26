@@ -606,7 +606,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     ImmutableMetadata.builder()
                             .taskName("getRows")
                             .numCells(hostAndRows.getValue().size())
-                            .tableRef(LoggingArgs.tableRef(tableRef))
+                            .tableRefs(ImmutableSet.of(tableRef))
                             .host(hostAndRows.getKey().getHostName())
                             .build()));
         }
@@ -848,7 +848,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     ImmutableMetadata.builder()
                             .taskName("getRowsColumnRange")
                             .numCells(hostAndRows.getValue().size())
-                            .tableRef(LoggingArgs.tableRef(tableRef))
+                            .tableRefs(ImmutableSet.of(tableRef))
                             .host(hostAndRows.getKey().getHostName())
                             .build()));
         }
@@ -1180,6 +1180,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     ImmutableMetadata.builder()
                             .taskName("multiPut")
                             .numCells(batch.size())
+                            .tableRefs(tableRefs)
                             .host(host.getHostName())
                             .build()));
         }

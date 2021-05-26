@@ -26,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.CallableWithMetadata;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
@@ -97,7 +96,7 @@ public class CellValuePutter {
                     ImmutableMetadata.builder()
                             .taskName("put")
                             .numCells(entry.getValue().size())
-                            .tableRef(LoggingArgs.tableRef(tableRef))
+                            .tableRefs(ImmutableSet.of(tableRef))
                             .host(entry.getKey().getHostName())
                             .build()));
         }

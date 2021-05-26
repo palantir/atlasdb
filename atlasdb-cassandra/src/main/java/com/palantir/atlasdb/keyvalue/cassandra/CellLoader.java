@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -200,7 +201,7 @@ final class CellLoader {
                     ImmutableMetadata.builder()
                             .taskName("loadWithTs")
                             .numCells(partition.size())
-                            .tableRef(LoggingArgs.tableRef(tableRef))
+                            .tableRefs(ImmutableSet.of(tableRef))
                             .host(host.getHostName())
                             .build()));
         }

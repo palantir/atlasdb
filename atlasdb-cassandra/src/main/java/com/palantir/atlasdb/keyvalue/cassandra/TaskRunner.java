@@ -21,14 +21,16 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.CallableWithMetadata.Metadata;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.Throwables;
-import com.palantir.logsafe.Arg;
 import com.palantir.tracing.DetachedSpan;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -108,7 +110,7 @@ class TaskRunner {
             int numCells();
 
             @Value.Parameter
-            Arg<String> tableRef();
+            Set<TableReference> tableRefs();
 
             @Value.Parameter
             String host();
@@ -119,8 +121,8 @@ class TaskRunner {
                         taskName(),
                         "numCells",
                         String.valueOf(numCells()),
-                        "tableRef",
-                        tableRef().toString(),
+                        "tableRefs",
+                        LoggingArgs.tableRefs(tableRefs()).toString(),
                         "host",
                         host());
             }
