@@ -15,13 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbkvsOracleGetCandidateCellsForSweepingTest;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbkvsOracleKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableNameMapperEteTest;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OverflowSequenceSupplierEteTest;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
@@ -37,7 +39,6 @@ import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
 import java.net.InetSocketAddress;
-import java.sql.Connection;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
@@ -49,14 +50,14 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-    // DbkvsOracleTargetedSweepIntegrationTest.class,
-    // DbKvsOracleKeyValueServiceTest.class,
-    // DbKvsOracleSerializableTransactionTest.class,
-    // DbKvsOracleSweepTaskRunnerTest.class,
-    // DbKvsOracleGetCandidateCellsForSweepingTest.class,
+    DbkvsOracleTargetedSweepIntegrationTest.class,
+    DbkvsOracleKeyValueServiceTest.class,
+    DbkvsOracleSerializableTransactionTest.class,
+    DbkvsOracleSweepTaskRunnerTest.class,
+    DbkvsOracleGetCandidateCellsForSweepingTest.class,
     OverflowSequenceSupplierEteTest.class,
-    // OracleTableNameMapperEteTest.class,
-    // OracleDbTimestampBoundStoreTest.class
+    OracleTableNameMapperEteTest.class,
+    OracleEmbeddedDbTimestampBoundStoreTest.class
 })
 public final class DbKvsOracleTestSuite {
     private static final int ORACLE_PORT_NUMBER = 1521;
@@ -144,7 +145,7 @@ public final class DbKvsOracleTestSuite {
             @Override
             public SqlConnection get() {
                 return new ConnectionBackedSqlConnectionImpl(
-                        ((Supplier<Connection>) connectionSupplier).get(),
+                        connectionSupplier.get(),
                         () -> {
                             throw new UnsupportedOperationException(
                                     "This SQL connection does not provide reliable timestamp.");
