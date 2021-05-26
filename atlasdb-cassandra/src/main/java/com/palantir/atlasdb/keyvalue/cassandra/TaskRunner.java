@@ -15,19 +15,23 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Arg;
 import com.palantir.tracing.DetachedSpan;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import org.immutables.value.Value;
 
 class TaskRunner {
     private final ListeningExecutorService listeningExecutor;
@@ -40,7 +44,7 @@ class TaskRunner {
      * Similar to executor.invokeAll, but cancels all remaining tasks if one fails and doesn't spawn new threads if
      * there is only one task
      */
-    <V> List<V> runAllTasksCancelOnFailure(List<Callable<V>> tasks) {
+    <V> List<V> runAllTasksCancelOnFailure(List<CallableWithMetadata<V>> tasks) {
         if (tasks.size() == 1) {
             try {
                 // Callable<Void> returns null, so can't use immutable list
@@ -88,5 +92,43 @@ class TaskRunner {
                 },
                 tracingExecutorService);
         return future;
+    }
+
+    @Value.Immutable
+    interface CallableWithMetadata<V> {
+
+        @Value.Immutable
+        interface Metadata {
+
+            @Value.Parameter
+            String taskName();
+
+            @Value.Parameter
+            int numCells();
+
+            @Value.Parameter
+            Arg<String> tableRef();
+
+            @Value.Parameter
+            String host();
+
+            default Map<String, String> getMetadata() {
+                return ImmutableMap.of(
+                        "taskName",
+                        taskName(),
+                        "numCells",
+                        String.valueOf(numCells()),
+                        "tableRef",
+                        tableRef().toString(),
+                        "host",
+                        host());
+            }
+        }
+
+        @Value.Parameter
+        Callable<V> task();
+
+        @Value.Parameter
+        Metadata metadata();
     }
 }

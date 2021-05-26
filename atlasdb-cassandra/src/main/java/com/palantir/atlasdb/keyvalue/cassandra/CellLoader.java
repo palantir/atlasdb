@@ -24,6 +24,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.CallableWithMetadata;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
@@ -120,7 +121,7 @@ final class CellLoader {
                     SafeArg.of("totalPartitions", totalPartitions));
         }
 
-        List<Callable<Void>> tasks = new ArrayList<>();
+        List<CallableWithMetadata<Void>> tasks = new ArrayList<>();
         for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
             if (log.isTraceEnabled()) {
                 log.trace(
@@ -149,7 +150,7 @@ final class CellLoader {
     }
 
     // TODO(unknown): after cassandra api change: handle different column select per row
-    private List<Callable<Void>> getLoadWithTsTasksForSingleHost(
+    private List<CallableWithMetadata<Void>> getLoadWithTsTasksForSingleHost(
             final String kvsMethodName,
             final InetSocketAddress host,
             final TableReference tableRef,
@@ -159,7 +160,7 @@ final class CellLoader {
             final CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        List<Callable<Void>> tasks = new ArrayList<>();
+        List<CallableWithMetadata<Void>> tasks = new ArrayList<>();
         for (final List<Cell> partition : batcher.partitionIntoBatches(cells, host, tableRef)) {
             Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(
                     host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
@@ -191,10 +192,17 @@ final class CellLoader {
                                     + ")";
                         }
                     });
-            tasks.add(AnnotatedCallable.wrapWithThreadName(
-                    AnnotationType.PREPEND,
-                    "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
-                    multiGetCallable));
+            tasks.add(ImmutableCallableWithMetadata.of(
+                    AnnotatedCallable.wrapWithThreadName(
+                            AnnotationType.PREPEND,
+                            "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
+                            multiGetCallable),
+                    ImmutableMetadata.builder()
+                            .taskName("loadWithTs")
+                            .numCells(partition.size())
+                            .tableRef(LoggingArgs.tableRef(tableRef))
+                            .host(host.getHostName())
+                            .build()));
         }
         return tasks;
     }

@@ -22,9 +22,11 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.CallableWithMetadata;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
@@ -32,7 +34,6 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.function.LongSupplier;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -77,20 +78,28 @@ public class CellValuePutter {
             final Iterable<Map.Entry<Cell, Value>> values,
             boolean overwriteTimestamps) {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
-        List<Callable<Void>> tasks = new ArrayList<>(cellsByHost.size());
+        List<CallableWithMetadata<Void>> tasks = new ArrayList<>(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
-            tasks.add(AnnotatedCallable.wrapWithThreadName(
-                    AnnotationType.PREPEND,
-                    "Atlas put " + entry.getValue().size() + " cell values to " + tableRef + " on " + entry.getKey(),
-                    () -> {
-                        putForSingleHost(
-                                kvsMethodName,
-                                entry.getKey(),
-                                tableRef,
-                                entry.getValue().entrySet(),
-                                overwriteTimestamps);
-                        return null;
-                    }));
+            tasks.add(ImmutableCallableWithMetadata.of(
+                    AnnotatedCallable.wrapWithThreadName(
+                            AnnotationType.PREPEND,
+                            "Atlas put " + entry.getValue().size() + " cell values to " + tableRef + " on "
+                                    + entry.getKey(),
+                            () -> {
+                                putForSingleHost(
+                                        kvsMethodName,
+                                        entry.getKey(),
+                                        tableRef,
+                                        entry.getValue().entrySet(),
+                                        overwriteTimestamps);
+                                return null;
+                            }),
+                    ImmutableMetadata.builder()
+                            .taskName("put")
+                            .numCells(entry.getValue().size())
+                            .tableRef(LoggingArgs.tableRef(tableRef))
+                            .host(entry.getKey().getHostName())
+                            .build()));
         }
         taskRunner.runAllTasksCancelOnFailure(tasks);
     }
