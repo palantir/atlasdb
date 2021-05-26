@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.CallableWithMetadata.Metadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Arg;
 import com.palantir.tracing.DetachedSpan;
@@ -48,17 +49,17 @@ class TaskRunner {
         if (tasks.size() == 1) {
             try {
                 // Callable<Void> returns null, so can't use immutable list
-                return Collections.singletonList(tasks.get(0).call());
+                return Collections.singletonList(tasks.get(0).task().call());
             } catch (Exception e) {
                 throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }
         }
 
         List<ListenableFuture<V>> futures = new ArrayList<>(tasks.size());
-        for (Callable<V> task : tasks) {
+        for (CallableWithMetadata<V> task : tasks) {
             DetachedSpan detachedSpan = DetachedSpan.start("task");
-            ListenableFuture<V> future = listeningExecutor.submit(task);
-            futures.add(attachDetachedSpanCompletion(detachedSpan, future, listeningExecutor));
+            ListenableFuture<V> future = listeningExecutor.submit(task.task());
+            futures.add(attachDetachedSpanCompletion(detachedSpan, task.metadata(), future, listeningExecutor));
         }
         try {
             List<V> results = new ArrayList<>(tasks.size());
@@ -76,18 +77,18 @@ class TaskRunner {
     }
 
     private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
-            DetachedSpan detachedSpan, ListenableFuture<V> future, Executor tracingExecutorService) {
+            DetachedSpan detachedSpan, Metadata metadata, ListenableFuture<V> future, Executor tracingExecutorService) {
         Futures.addCallback(
                 future,
                 new FutureCallback<V>() {
                     @Override
                     public void onSuccess(V result) {
-                        detachedSpan.complete();
+                        detachedSpan.complete(metadata.getMetadata());
                     }
 
                     @Override
                     public void onFailure(Throwable throwable) {
-                        detachedSpan.complete();
+                        detachedSpan.complete(metadata.getMetadata());
                     }
                 },
                 tracingExecutorService);

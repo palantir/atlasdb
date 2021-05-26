@@ -119,7 +119,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -595,13 +594,21 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
-        List<Callable<Map<Cell, Value>>> tasks = new ArrayList<>(rowsByHost.size());
+        List<CallableWithMetadata<Map<Cell, Value>>> tasks = new ArrayList<>(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
-            tasks.add(AnnotatedCallable.wrapWithThreadName(
-                    AnnotationType.PREPEND,
-                    "Atlas getRows " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
-                            + hostAndRows.getKey(),
-                    () -> getRowsForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs)));
+            tasks.add(ImmutableCallableWithMetadata.of(
+                    AnnotatedCallable.wrapWithThreadName(
+                            AnnotationType.PREPEND,
+                            "Atlas getRows " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
+                                    + hostAndRows.getKey(),
+                            () -> getRowsForSingleHost(
+                                    hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs)),
+                    ImmutableMetadata.builder()
+                            .taskName("getRows")
+                            .numCells(hostAndRows.getValue().size())
+                            .tableRef(LoggingArgs.tableRef(tableRef))
+                            .host(hostAndRows.getKey().getHostName())
+                            .build()));
         }
         List<Map<Cell, Value>> perHostResults = taskRunner.runAllTasksCancelOnFailure(tasks);
         Map<Cell, Value> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
