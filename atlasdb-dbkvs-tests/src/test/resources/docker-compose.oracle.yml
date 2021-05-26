@@ -2,7 +2,7 @@ version: '2'
 
 services:
   oracle:
-    image: palantirtechnologies/oracle-atlasdb:19.9.0.0-se
+    image: hub.docker.palantir.build/palantirtechnologies/oracle-atlasdb:19.9.0.0-se
     environment:
       SQLPLUS_INIT_00: startup nomount
       SQLPLUS_INIT_01: alter system set processes=1000 scope=spfile

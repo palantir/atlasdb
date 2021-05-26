@@ -70,6 +70,7 @@ public final class DbKvsOracleTestSuite {
     public static final DockerComposeRule docker = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose.oracle.yml")
             .waitingForService("oracle", Container::areAllPortsOpen)
+            .nativeServiceHealthCheckTimeout(org.joda.time.Duration.standardMinutes(5))
             .saveLogsTo("container-logs")
             .build();
 

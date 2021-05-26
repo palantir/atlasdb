@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;

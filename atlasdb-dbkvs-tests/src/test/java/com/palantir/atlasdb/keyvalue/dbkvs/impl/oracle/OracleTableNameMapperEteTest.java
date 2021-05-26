@@ -36,8 +36,8 @@ import org.junit.Test;
 
 public class OracleTableNameMapperEteTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(() ->
-            ConnectionManagerAwareDbKvs.create(DbKvsOracleTestSuite.getKvsConfig()));
+    public static final TestResourceManager TRM =
+            new TestResourceManager(() -> ConnectionManagerAwareDbKvs.create(DbKvsOracleTestSuite.getKvsConfig()));
 
     private KeyValueService kvs;
     private ConnectionSupplier connectionSupplier;
@@ -119,9 +119,11 @@ public class OracleTableNameMapperEteTest {
 
     @Test
     public void shouldReturnValidTableNameWhenMultipleTablesExists() {
-        kvs.createTable(TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v1"),
+        kvs.createTable(
+                TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v1"),
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v2"),
+        kvs.createTable(
+                TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v2"),
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v3");
 
@@ -132,11 +134,14 @@ public class OracleTableNameMapperEteTest {
 
     @Test
     public void shouldReturnLatestTableNameWhenOneTableExistsButOutOfOrder() {
-        kvs.createTable(TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v1"),
+        kvs.createTable(
+                TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v1"),
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v2"),
+        kvs.createTable(
+                TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v2"),
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v3"),
+        kvs.createTable(
+                TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v3"),
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         kvs.dropTable(TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v1"));
@@ -150,11 +155,14 @@ public class OracleTableNameMapperEteTest {
 
     @Test
     public void shouldReturnLatestTableNameWhenMultipleTablesExistsButOutOfOrder() {
-        kvs.createTable(TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v1"),
+        kvs.createTable(
+                TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v1"),
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v2"),
+        kvs.createTable(
+                TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v2"),
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v3"),
+        kvs.createTable(
+                TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v3"),
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         kvs.dropTable(TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v2"));
