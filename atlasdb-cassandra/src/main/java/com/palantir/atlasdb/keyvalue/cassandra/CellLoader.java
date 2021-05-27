@@ -193,7 +193,7 @@ final class CellLoader {
                                     + ")";
                         }
                     });
-            tasks.add(ImmutableCallableWithMetadata.of(
+            tasks.add(ImmutableKvsLoadingTask.of(
                     AnnotatedCallable.wrapWithThreadName(
                             AnnotationType.PREPEND,
                             "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,

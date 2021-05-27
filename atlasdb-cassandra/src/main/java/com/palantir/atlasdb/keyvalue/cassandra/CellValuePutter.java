@@ -79,7 +79,7 @@ public class CellValuePutter {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
         List<KvsLoadingTask<Void>> tasks = new ArrayList<>(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
-            tasks.add(ImmutableCallableWithMetadata.of(
+            tasks.add(ImmutableKvsLoadingTask.of(
                     AnnotatedCallable.wrapWithThreadName(
                             AnnotationType.PREPEND,
                             "Atlas put " + entry.getValue().size() + " cell values to " + tableRef + " on "

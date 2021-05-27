@@ -596,7 +596,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .entrySet();
         List<KvsLoadingTask<Map<Cell, Value>>> tasks = new ArrayList<>(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
-            tasks.add(ImmutableCallableWithMetadata.of(
+            tasks.add(ImmutableKvsLoadingTask.of(
                     AnnotatedCallable.wrapWithThreadName(
                             AnnotationType.PREPEND,
                             "Atlas getRows " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
@@ -834,7 +834,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .entrySet();
         List<KvsLoadingTask<Map<byte[], RowColumnRangeIterator>>> tasks = new ArrayList<>(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
-            tasks.add(ImmutableCallableWithMetadata.of(
+            tasks.add(ImmutableKvsLoadingTask.of(
                     AnnotatedCallable.wrapWithThreadName(
                             AnnotationType.PREPEND,
                             "Atlas getRowsColumnRange " + hostAndRows.getValue().size() + " rows from " + tableRef
@@ -1172,7 +1172,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         List<KvsLoadingTask<Void>> tasks = new ArrayList<>();
         for (final List<TableCellAndValue> batch : partitioned) {
             final Set<TableReference> tableRefs = extractTableNames(batch);
-            tasks.add(ImmutableCallableWithMetadata.of(
+            tasks.add(ImmutableKvsLoadingTask.of(
                     AnnotatedCallable.wrapWithThreadName(
                             AnnotationType.PREPEND,
                             "Atlas multiPut of " + batch.size() + " cells into " + tableRefs + " on " + host,
