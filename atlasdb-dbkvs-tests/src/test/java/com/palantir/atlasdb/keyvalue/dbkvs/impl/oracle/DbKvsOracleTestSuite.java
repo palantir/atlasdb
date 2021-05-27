@@ -81,7 +81,7 @@ public final class DbKvsOracleTestSuite {
                 .until(canCreateKeyValueService());
     }
 
-    public static KeyValueService createKvs() {
+    public static ConnectionManagerAwareDbKvs createKvs() {
         return ConnectionManagerAwareDbKvs.create(getKvsConfig());
     }
 
