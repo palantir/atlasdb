@@ -17,11 +17,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -54,7 +54,7 @@ public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         delegate.batch_mutate(kvsMethodName, mutation_map, consistency_level);
 
-        Map<String, Long> tablesToCells = new HashMap<>(mutation_map.size());
+        Map<String, Long> tablesToCells = Maps.newHashMapWithExpectedSize(mutation_map.size());
 
         mutation_map.values().forEach(tableToCellsMap -> {
             tableToCellsMap.forEach((table, cells) -> {

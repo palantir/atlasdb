@@ -42,6 +42,7 @@ public final class ConflictDetectionManagers {
      * @deprecated use {@link #create(KeyValueService)} instead. This constructor will be removed in a future release.
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public static ConflictDetectionManager createDefault(KeyValueService kvs) {
         return create(kvs);
     }

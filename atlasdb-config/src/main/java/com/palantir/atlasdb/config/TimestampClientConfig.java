@@ -28,6 +28,7 @@ public abstract class TimestampClientConfig {
      */
     @Value.Parameter
     @Value.Default
+    @SuppressWarnings("InlineMeSuggester")
     @Deprecated
     public boolean enableTimestampBatching() {
         return true;
