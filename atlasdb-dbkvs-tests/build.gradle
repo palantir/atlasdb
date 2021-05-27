@@ -23,5 +23,6 @@ task oracleTest(type: Test) {
 }
 
 test {
-    exclude '**/*Suite.class'
+    // Tests should be included with the relevant flavoured task.
+    exclude '**/*.class'
 }
