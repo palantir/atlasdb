@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Refactor the resilient lock watch event proxy to be more generic and use it for the lock watch value cache.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5418

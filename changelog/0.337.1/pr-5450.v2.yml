@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: The Lock Watch cache is now also used for `getRows()` calls on cached tables. This can result in an additional KVS lookup when only partial results are present in the cache, but this should be offset by having to fetch fewer results.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5450

@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -47,7 +46,7 @@ public final class TimestampStateStoreTest {
         timestampStateStore.putStartTimestamps(ImmutableSet.of(100L, 200L), VERSION_1);
         timestampStateStore.putStartTimestamps(ImmutableSet.of(400L, 800L), VERSION_2);
 
-        assertThat(timestampStateStore.getEarliestLiveSequence()).hasValue(1L);
+        assertThat(timestampStateStore.getEarliestLiveSequence()).hasValue(Sequence.of(1L));
 
         removeAndCheckEarliestVersion(100L, 1L);
         removeAndCheckEarliestVersion(800L, 1L);
@@ -59,7 +58,7 @@ public final class TimestampStateStoreTest {
 
     @Test
     public void cannotPutCommitUpdateTwice() {
-        TransactionUpdate update = ImmutableTransactionUpdate.builder()
+        TransactionUpdate update = TransactionUpdate.builder()
                 .startTs(100L)
                 .commitTs(400L)
                 .writesToken(LockToken.of(UUID.randomUUID()))
@@ -74,7 +73,7 @@ public final class TimestampStateStoreTest {
 
     @Test
     public void cannotPutCommitUpdateBeforeStartUpdate() {
-        TransactionUpdate update = ImmutableTransactionUpdate.builder()
+        TransactionUpdate update = TransactionUpdate.builder()
                 .startTs(100L)
                 .commitTs(400L)
                 .writesToken(LockToken.of(UUID.randomUUID()))
@@ -87,6 +86,6 @@ public final class TimestampStateStoreTest {
 
     private void removeAndCheckEarliestVersion(long timestamp, long sequence) {
         timestampStateStore.remove(timestamp);
-        assertThat(timestampStateStore.getEarliestLiveSequence()).hasValue(sequence);
+        assertThat(timestampStateStore.getEarliestLiveSequence()).hasValue(Sequence.of(sequence));
     }
 }

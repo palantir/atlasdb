@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Handle a rare edge case where an empty success update causes the lock watch event cache to throw a non-retryable exception.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5417

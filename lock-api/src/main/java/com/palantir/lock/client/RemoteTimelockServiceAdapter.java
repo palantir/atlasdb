@@ -19,6 +19,7 @@ package com.palantir.lock.client;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -28,13 +29,17 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
+    private static final Logger log = LoggerFactory.getLogger(RemoteTimelockServiceAdapter.class);
+
     private final NamespacedTimelockRpcClient rpcClient;
     private final NamespacedConjureTimelockService conjureTimelockService;
     private final LockLeaseService lockLeaseService;
@@ -57,12 +62,12 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             Namespace namespace,
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
-            LockWatchEventCache lockWatchEventCache) {
+            LockWatchCache lockWatchCache) {
         return create(
                 rpcClient,
                 conjureClient,
                 new LegacyLeaderTimeGetter(conjureClient),
-                RequestBatchersFactory.create(lockWatchEventCache, namespace, Optional.empty()));
+                RequestBatchersFactory.create(lockWatchCache, namespace, Optional.empty()));
     }
 
     public static RemoteTimelockServiceAdapter create(
@@ -108,6 +113,15 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     @Override
     public LockResponse lock(LockRequest request) {
         return lockLeaseService.lock(request);
+    }
+
+    @Override
+    public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
+        log.warn(
+                "Locking with client options should not happen at the level of the remote adapter. We will perform a"
+                        + " normal lock, disregarding these options here.",
+                new RuntimeException("I exist to show you the stack trace"));
+        return lockLeaseService.lock(lockRequest);
     }
 
     @Override

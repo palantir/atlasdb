@@ -18,15 +18,15 @@ package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchCache;
 
 public class NamespacedCommitTimestampGetter implements CommitTimestampGetter {
     private final Namespace namespace;
-    private final LockWatchEventCache cache;
+    private final LockWatchCache cache;
     private final ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher;
 
     public NamespacedCommitTimestampGetter(
-            LockWatchEventCache cache,
+            LockWatchCache cache,
             Namespace namespace,
             ReferenceTrackingWrapper<MultiClientCommitTimestampGetter> referenceTrackingBatcher) {
         this.namespace = namespace;

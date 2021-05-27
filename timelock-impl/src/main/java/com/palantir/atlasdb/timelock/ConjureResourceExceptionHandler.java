@@ -61,6 +61,14 @@ public class ConjureResourceExceptionHandler {
                         tooManyRequests -> {
                             throw QosException.throttle();
                         },
+                        MoreExecutors.directExecutor())
+                .catching(
+                        InterruptedException.class,
+                        interrupted -> {
+                            // Just because the underlying job was cancelled does not mean that we want to ourselves
+                            // cancel operations. While this looks dodgy, it's intentional.
+                            throw QosException.unavailable(interrupted);
+                        },
                         MoreExecutors.directExecutor());
     }
 }

@@ -27,6 +27,8 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.util.TimedRunner;
+import com.palantir.util.TimedRunner.TaskContext;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
@@ -43,7 +45,6 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
 import org.apache.commons.pool2.impl.EvictionConfig;
 import org.apache.commons.pool2.impl.EvictionPolicy;
-import org.apache.commons.pool2.impl.ExposedEvictionTimer;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.transport.TFramedTransport;
@@ -64,6 +65,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private final GenericObjectPool<CassandraClient> clientPool;
     private final int poolNumber;
     private final CassandraClientPoolMetrics poolMetrics;
+    private final TimedRunner timedRunner;
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
@@ -77,6 +79,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.poolNumber = poolNumber;
         this.poolMetrics = poolMetrics;
         this.clientPool = createClientPool();
+        this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
     }
 
     public InetSocketAddress getHost() {
@@ -149,7 +152,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         CassandraClient resource = null;
         try {
             resource = clientPool.borrowObject();
-            return fn.apply(resource);
+            CassandraClient finalResource = resource;
+            TaskContext<V> taskContext = TaskContext.create(() -> fn.apply(finalResource), () -> {});
+            return timedRunner.run(taskContext);
         } catch (Exception e) {
             if (isInvalidClientConnection(resource)) {
                 log.warn(
@@ -175,6 +180,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 } else {
                     invalidateQuietly(resource);
                 }
+            } else {
+                log.warn("Failed to acquire Cassandra resource from object pool");
             }
         }
     }
@@ -212,6 +219,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             log.debug("Discarding resource of host {}", SafeArg.of("host", CassandraLogHelper.host(host)));
             clientPool.invalidateObject(resource);
         } catch (Exception e) {
+            log.warn("Attempted to invalidate a non-reusable Cassandra resource, but failed to due an exception", e);
             // Ignore
         }
     }
@@ -325,7 +333,6 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         registerPoolMetric(CassandraClientPoolHostLevelMetric.NUM_ACTIVE, () -> (long) pool.getNumActive());
         registerPoolMetric(CassandraClientPoolHostLevelMetric.CREATED, pool::getCreatedCount);
         registerPoolMetric(CassandraClientPoolHostLevelMetric.DESTROYED_BY_EVICTOR, pool::getDestroyedByEvictorCount);
-        registerPoolMetric(CassandraClientPoolHostLevelMetric.EVICTOR_TASK_SIZE, ExposedEvictionTimer::getNumTasks);
     }
 
     private void registerPoolMetric(CassandraClientPoolHostLevelMetric metric, Gauge<Long> gauge) {

@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: |-
+    Add missing jackson type name annotation to DbKeyValueServiceRuntimeConfig.
+    This makes the intended logical type name work when jackson is parsing config.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5374

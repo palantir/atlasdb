@@ -1,11 +1,5 @@
 apply from: "../gradle/shared.gradle"
 
-repositories {
-    mavenCentral()
-    maven { url 'https://palantir.bintray.com/releases' }
-    jcenter()
-}
-
 schemas = [
     'com.palantir.atlasdb.schema.CompactSchema',
     'com.palantir.atlasdb.schema.SweepSchema',
@@ -73,6 +67,7 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
   compile group: 'com.squareup', name:'javapoet'
+  compile group: 'com.squareup.okio', name: 'okio'
   compile group: 'org.hdrhistogram', name: 'HdrHistogram'
   compile group: 'com.palantir.common', name: 'streams'
   compile group: 'com.github.rholder', name: 'guava-retrying'

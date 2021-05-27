@@ -30,7 +30,7 @@ server:
   minThreads: 1
   maxThreads: 200
   applicationConnectors:
-    - type: h2
+    - type: https
       port: ${localServerPort?c}
       selectorThreads: 8
       acceptorThreads: 4

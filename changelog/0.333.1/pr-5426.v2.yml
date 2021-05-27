@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Make the lock watch per-transaction cache even more defensive, and resolve some semantic merge conflicts.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5426

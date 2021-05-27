@@ -31,6 +31,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -50,7 +51,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -64,6 +66,7 @@ import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictExcep
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.AbortingVisitor;
@@ -101,6 +104,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -135,7 +139,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
-            LockWatchManager lockWatchManager,
+            LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
             Cleaner cleaner,
             Supplier<Long> startTimeStamp,
@@ -587,26 +591,11 @@ public class SerializableTransaction extends SnapshotTransaction {
                             Predicates.not(
                                     Predicates.in(writesByTable.get(table).keySet())));
                 }
-                if (!areMapsEqual(originalReads, currentCells)) {
+                if (!ByteArrayUtilities.areMapsEqual(originalReads, currentCells)) {
                     handleTransactionConflict(table);
                 }
             }
         }
-    }
-
-    private static boolean areMapsEqual(Map<Cell, byte[]> map1, Map<Cell, byte[]> map2) {
-        if (map1.size() != map2.size()) {
-            return false;
-        }
-        for (Map.Entry<Cell, byte[]> e : map1.entrySet()) {
-            if (!map2.containsKey(e.getKey())) {
-                return false;
-            }
-            if (UnsignedBytes.lexicographicalComparator().compare(e.getValue(), map2.get(e.getKey())) != 0) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private void verifyCells(Transaction readOnlyTransaction) {
@@ -629,7 +618,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 ImmutableMap<Cell, byte[]> originalReads = Maps.toMap(
                         Sets.intersection(batchWithoutWritesSet, readsForTable.keySet()),
                         Functions.forMap(readsForTable));
-                if (!areMapsEqual(currentBatch, originalReads)) {
+                if (!ByteArrayUtilities.areMapsEqual(currentBatch, originalReads)) {
                     handleTransactionConflict(table);
                 }
             }
@@ -745,28 +734,31 @@ public class SerializableTransaction extends SnapshotTransaction {
             Iterator<Map.Entry<Cell, ByteBuffer>> readValues =
                     readSortedColumns(request.getTableRef(), rows, range, comparator);
 
-            Iterator<Map.Entry<Cell, ByteBuffer>> storedValues = Iterators.transform(
-                    readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range),
-                    this::getCellEntryWithByteBufferWrappedValue);
+            Iterator<Map.Entry<Cell, byte[]>> storedValues =
+                    readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range);
 
             // handles the case where (r1, c), (r2, c) exists and we read only up to (r1, c).
-            Iterator<Map.Entry<Cell, ByteBuffer>> truncatedStoredValues =
-                    new AbstractIterator<Map.Entry<Cell, ByteBuffer>>() {
-                        @Override
-                        protected Map.Entry<Cell, ByteBuffer> computeNext() {
-                            if (!storedValues.hasNext()) {
-                                return endOfData();
-                            }
+            Iterator<Map.Entry<Cell, byte[]>> truncatedStoredValues = new AbstractIterator<Map.Entry<Cell, byte[]>>() {
+                @Override
+                protected Map.Entry<Cell, byte[]> computeNext() {
+                    if (!storedValues.hasNext()) {
+                        return endOfData();
+                    }
 
-                            Map.Entry<Cell, ByteBuffer> ret = storedValues.next();
-                            if (comparator.compare(ret.getKey(), endOfRange) > 0) {
-                                return endOfData();
-                            }
-                            return ret;
-                        }
-                    };
+                    Map.Entry<Cell, byte[]> ret = storedValues.next();
+                    if (comparator.compare(ret.getKey(), endOfRange) > 0) {
+                        return endOfData();
+                    }
+                    return ret;
+                }
+            };
 
-            if (!Iterators.elementsEqual(readValues, truncatedStoredValues)) {
+            List<Map.Entry<Cell, ByteBuffer>> actualReadList =
+                    Streams.stream(readValues).collect(Collectors.toList());
+            List<Map.Entry<Cell, ByteBuffer>> storedValuesWithoutLocalWrites = filterWritesFromCells(
+                    Streams.stream(truncatedStoredValues).collect(Collectors.toList()), request.getTableRef());
+
+            if (!actualReadList.equals(storedValuesWithoutLocalWrites)) {
                 handleTransactionConflict(request.getTableRef());
             }
         });
@@ -875,6 +867,11 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController) {
+            @Override
+            protected TransactionScopedCache getCache() {
+                return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());
+            }
+
             @Override
             protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
                     TableReference tableRef,

@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class StdoutTracingTransaction extends TracingTransaction {
@@ -28,7 +30,8 @@ public class StdoutTracingTransaction extends TracingTransaction {
     }
 
     @Override
-    protected void trace(String format, Object... args) {
+    @FormatMethod
+    protected void trace(@FormatString String format, Object... args) {
         System.out.println(String.format(format, args)); // (authorized)
     }
 }

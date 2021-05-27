@@ -2,12 +2,6 @@
 apply from: "../gradle/shared.gradle"
 apply plugin: 'com.palantir.metric-schema'
 
-repositories {
-    mavenCentral()
-    maven { url 'https://palantir.bintray.com/releases' }
-    jcenter()
-}
-
 libsDirName = file('build/artifacts')
 
 license {
@@ -38,6 +32,8 @@ dependencies {
   compileOnly project(":atlasdb-processors")
   annotationProcessor 'org.derive4j:derive4j'
   compileOnly 'org.derive4j:derive4j-annotation'
+  implementation 'io.vavr:vavr'
+
 
   testAnnotationProcessor group: 'org.immutables', name: 'value'
   testCompileOnly 'org.immutables:value::annotations'

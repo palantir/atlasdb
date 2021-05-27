@@ -266,6 +266,8 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         MetricName metricName = MetricName.builder()
                 .safeName(metricNamespace + "." + name)
                 .safeTags(tag)
+                .putSafeTags("libraryName", "atlasdb")
+                .putSafeTags("libraryVersion", "unknown")
                 .build();
 
         return (Gauge<N>) metrics.getTaggedRegistry().getMetrics().get(metricName);

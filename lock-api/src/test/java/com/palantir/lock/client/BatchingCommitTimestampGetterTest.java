@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -31,10 +32,12 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchValueCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import java.util.Arrays;
@@ -65,7 +68,9 @@ public final class BatchingCommitTimestampGetterTest {
             Optional.of(LockWatchVersion.of(UUID.randomUUID(), -1));
 
     private final LockLeaseService lockLeaseService = mock(LockLeaseService.class);
-    private final LockWatchEventCache cache = mock(LockWatchEventCache.class);
+    private final LockWatchEventCache eventCache = mock(LockWatchEventCache.class);
+    private final LockWatchValueCache valueCache = mock(LockWatchValueCache.class);
+    private final LockWatchCache cache = spy(new LockWatchCacheImpl(eventCache, valueCache));
     private final Consumer<List<BatchElement<BatchingCommitTimestampGetter.Request, Long>>> batchProcessor =
             BatchingCommitTimestampGetter.consumer(lockLeaseService, cache);
 
@@ -76,7 +81,7 @@ public final class BatchingCommitTimestampGetterTest {
         BatchingCommitTimestampGetter.Request request3 = request(3, UUID.randomUUID());
         BatchingCommitTimestampGetter.Request request4 = request(4, UUID.randomUUID());
 
-        when(cache.lastKnownVersion()).thenReturn(IDENTIFIED_VERSION_1).thenReturn(IDENTIFIED_VERSION_2);
+        when(eventCache.lastKnownVersion()).thenReturn(IDENTIFIED_VERSION_1).thenReturn(IDENTIFIED_VERSION_2);
         whenGetCommitTimestamps(IDENTIFIED_VERSION_1, 4, 5, 6, UPDATE_1);
         whenGetCommitTimestamps(IDENTIFIED_VERSION_2, 2, 7, 8, UPDATE_2);
 
@@ -85,12 +90,12 @@ public final class BatchingCommitTimestampGetterTest {
         InOrder inOrder = Mockito.inOrder(lockLeaseService, cache);
         inOrder.verify(lockLeaseService).getCommitTimestamps(IDENTIFIED_VERSION_1, 4);
         inOrder.verify(cache)
-                .processGetCommitTimestampsUpdate(
+                .processCommitTimestampsUpdate(
                         eq(ImmutableList.of(transactionUpdate(request1, 5), transactionUpdate(request2, 6))),
                         eq(UPDATE_1));
         inOrder.verify(lockLeaseService).getCommitTimestamps(IDENTIFIED_VERSION_2, 2);
         inOrder.verify(cache)
-                .processGetCommitTimestampsUpdate(
+                .processCommitTimestampsUpdate(
                         eq(ImmutableList.of(transactionUpdate(request3, 7), transactionUpdate(request4, 8))),
                         eq(UPDATE_2));
     }
@@ -124,7 +129,7 @@ public final class BatchingCommitTimestampGetterTest {
     }
 
     private TransactionUpdate transactionUpdate(BatchingCommitTimestampGetter.Request request, long commitTs) {
-        return ImmutableTransactionUpdate.builder()
+        return TransactionUpdate.builder()
                 .startTs(request.startTs())
                 .commitTs(commitTs)
                 .writesToken(request.commitLocksToken())

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.ete;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.AtlasDbEteServer;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
@@ -116,6 +117,8 @@ public abstract class EteSetup {
                 .machine(machine)
                 .saveLogsTo(LogDirectory.circleAwareLogDirectory(logDirectory))
                 .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
+                .nativeServiceHealthCheckTimeout(org.joda.time.Duration.standardSeconds(
+                        AtlasDbEteServer.CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS))
                 .build();
 
         DockerProxyRule dockerProxyRule = DockerProxyRule.fromProjectName(docker.projectName(), eteClass);

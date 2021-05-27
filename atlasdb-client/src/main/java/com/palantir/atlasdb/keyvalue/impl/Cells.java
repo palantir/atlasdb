@@ -117,6 +117,15 @@ public final class Cells {
         return breakCellsUpByRow(map.entrySet());
     }
 
+    public static NavigableMap<byte[], Set<Cell>> groupCellsByRow(Set<Cell> cells) {
+        NavigableMap<byte[], Set<Cell>> result = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+        for (Cell cell : cells) {
+            byte[] row = cell.getRowName();
+            result.computeIfAbsent(row, _row -> new HashSet<>()).add(cell);
+        }
+        return result;
+    }
+
     /**
      * The Collection provided to this function has to be sorted and strictly increasing.
      */

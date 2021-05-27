@@ -18,14 +18,6 @@ package com.palantir.atlasdb.api;
 import com.palantir.logsafe.Preconditions;
 import javax.annotation.Nullable;
 
-/*
- * <pre>
- * {
- *   "data": &lt;results>,
- *   "next": &lt;nextRange>
- * }
- * </pre>
- */
 public class RangeToken {
     private final TableRowResult results;
     private final @Nullable TableRange nextRange;

@@ -19,14 +19,21 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Bytes;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import okio.ByteString;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AtlasLockDescriptorUtils {
+    private static final Logger log = LoggerFactory.getLogger(AtlasLockDescriptorUtils.class);
+    private static final int CELL_BLOWUP_THRESHOLD = 100;
+
     private AtlasLockDescriptorUtils() {
         // NOPE
     }
@@ -40,11 +47,22 @@ public final class AtlasLockDescriptorUtils {
         TableReference tableRef = tableRefAndRemainder.get().tableRef();
         ByteString remainingBytes = tableRefAndRemainder.get().remainder();
 
-        return IntStream.range(1, remainingBytes.size() - 2)
+        List<CellReference> candidateCells = IntStream.range(1, remainingBytes.size() - 1)
                 .filter(index -> isZeroDelimiterIndex(remainingBytes, index))
                 .mapToObj(index -> createCellFromByteString(remainingBytes, index))
                 .map(cell -> CellReference.of(tableRef, cell))
                 .collect(Collectors.toList());
+
+        if (candidateCells.size() > CELL_BLOWUP_THRESHOLD) {
+            log.warn(
+                    "Lock descriptor produced a large number of candidate cells - this is due to the descriptor "
+                            + "containing many zero bytes. If this message is logged frequently, this table may be "
+                            + "inappropriate for caching",
+                    SafeArg.of("candidateCellSize", candidateCells.size()),
+                    UnsafeArg.of("lockDescriptor", lockDescriptor));
+        }
+
+        return candidateCells;
     }
 
     public static Optional<TableRefAndRemainder> tryParseTableRef(LockDescriptor lockDescriptor) {

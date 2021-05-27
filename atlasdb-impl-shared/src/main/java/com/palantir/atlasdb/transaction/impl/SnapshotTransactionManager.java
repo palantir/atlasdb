@@ -29,6 +29,8 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -53,7 +55,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -82,8 +83,7 @@ import org.slf4j.LoggerFactory;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
-    final LockWatchManager lockWatchManager;
-    final LockWatchEventCache lockWatchEventCache;
+    final LockWatchManagerInternal lockWatchManager;
     final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
@@ -108,8 +108,7 @@ import org.slf4j.LoggerFactory;
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
-            LockWatchManager lockWatchManager,
-            LockWatchEventCache lockWatchEventCache,
+            LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
             LockService lockService,
             @NotNull TransactionService transactionService,
@@ -129,7 +128,6 @@ import org.slf4j.LoggerFactory;
             MetricsFilterEvaluationContext metricsFilterEvaluationContext) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
-        this.lockWatchEventCache = lockWatchEventCache;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -206,7 +204,7 @@ import org.slf4j.LoggerFactory;
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
                     .collect(Collectors.toSet()));
-            responses.forEach(response -> lockWatchEventCache.removeTransactionStateFromCache(
+            responses.forEach(response -> lockWatchManager.removeTransactionStateFromCache(
                     response.startTimestampAndPartition().timestamp()));
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
@@ -240,7 +238,7 @@ import org.slf4j.LoggerFactory;
             try {
                 result = runTaskThrowOnConflict(wrappedTask, tx);
             } finally {
-                lockWatchEventCache.removeTransactionStateFromCache(getTimestamp());
+                lockWatchManager.removeTransactionStateFromCache(getTimestamp());
                 postTaskContext = postTaskTimer.time();
                 timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
             }
@@ -320,7 +318,7 @@ import org.slf4j.LoggerFactory;
                 metricsManager,
                 keyValueService,
                 timelockService,
-                lockWatchManager,
+                NoOpLockWatchManager.create(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 getStartTimestampSupplier(),

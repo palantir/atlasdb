@@ -40,7 +40,6 @@ import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.ImmutableTransactionUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
@@ -101,12 +100,11 @@ public class LockWatchEventCacheIntegrationTest {
     private static final long START_TS_1 = 1L;
     private static final long START_TS_2 = 16L;
     private static final long START_TS_3 = 25L;
-    private static final ImmutableSet<TransactionUpdate> COMMIT_UPDATE =
-            ImmutableSet.of(ImmutableTransactionUpdate.builder()
-                    .startTs(START_TS_1)
-                    .commitTs(5L)
-                    .writesToken(COMMIT_TOKEN)
-                    .build());
+    private static final ImmutableSet<TransactionUpdate> COMMIT_UPDATE = ImmutableSet.of(TransactionUpdate.builder()
+            .startTs(START_TS_1)
+            .commitTs(5L)
+            .writesToken(COMMIT_TOKEN)
+            .build());
     private static final ImmutableSet<Long> TIMESTAMPS = ImmutableSet.of(START_TS_1);
     private static final ImmutableSet<Long> TIMESTAMPS_2 = ImmutableSet.of(START_TS_2);
     private static final String BASE = "src/test/resources/lockwatch-event-cache-output/";
@@ -155,6 +153,17 @@ public class LockWatchEventCacheIntegrationTest {
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
+    }
+
+    @Test
+    public void successUpdateWithNoEventsButLaterVersionThrowsRetryableException() {
+        LockWatchStateUpdate emptySuccess = LockWatchStateUpdate.success(LEADER, 4L, ImmutableList.of());
+        setupInitialState();
+        assertThatThrownBy(() -> eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, emptySuccess))
+                .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
+                .hasMessage(
+                        "Success event has a later version than the current version, but has no events to bridge the "
+                                + "gap. The transaction should be tried, but this should only happen rarely.");
     }
 
     @Test
@@ -577,7 +586,7 @@ public class LockWatchEventCacheIntegrationTest {
                 serverToken,
                 Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(1L)), Duration.ZERO));
         eventCache.processGetCommitTimestampsUpdate(
-                ImmutableSet.of(ImmutableTransactionUpdate.builder()
+                ImmutableSet.of(TransactionUpdate.builder()
                         .commitTs(5L)
                         .startTs(START_TS_1)
                         .writesToken(commitToken)

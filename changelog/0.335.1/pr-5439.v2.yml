@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Add further logging around the `TimedRunner`, warning when Cassandra client pool interactions time out.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5439

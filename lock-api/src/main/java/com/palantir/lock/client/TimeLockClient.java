@@ -21,6 +21,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -40,6 +41,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
+// Ideally, this class shouldn't be a plain TimelockService, but the amount of effort that would be required to break
+// the interface into two distinct components is large.
 public class TimeLockClient implements AutoCloseable, TimelockService {
     private static final ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
 
@@ -126,9 +129,14 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LockResponse response = executeOnTimeLock(() -> delegate.lock(request));
+        return lock(request, ClientLockingOptions.getDefault());
+    }
+
+    @Override
+    public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
+        LockResponse response = executeOnTimeLock(() -> delegate.lock(lockRequest));
         if (response.wasSuccessful()) {
-            lockRefresher.registerLocks(ImmutableSet.of(response.getToken()));
+            lockRefresher.registerLocks(ImmutableSet.of(response.getToken()), options);
         }
         return response;
     }

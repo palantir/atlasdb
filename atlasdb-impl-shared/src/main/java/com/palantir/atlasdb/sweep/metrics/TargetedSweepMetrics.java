@@ -215,6 +215,8 @@ public class TargetedSweepMetrics {
                     .map(operationName -> MetricName.builder()
                             .safeName("targetedSweepProgress." + operationName)
                             .putSafeTags("strategy", strategy)
+                            .putSafeTags("libraryName", "atlasdb")
+                            .putSafeTags("libraryVersion", "unknown")
                             .build())
                     .forEach(metricName -> manager.addMetricFilter(metricName, filter));
 
@@ -223,6 +225,8 @@ public class TargetedSweepMetrics {
                     .forEach(shard -> manager.addMetricFilter(
                             getProgressMetricNameBuilder(strategy)
                                     .putSafeTags("shard", shard)
+                                    .putSafeTags("libraryName", "atlasdb")
+                                    .putSafeTags("libraryVersion", "unknown")
                                     .build(),
                             filter));
 
@@ -300,8 +304,9 @@ public class TargetedSweepMetrics {
                 BiFunction<Long, MillisAndMaybeTimestamp, MillisAndMaybeTimestamp> tsToMillis) {
             if (shardAndTs == null) {
                 log.info(
-                        "Encountered null value for shard and last swept timestamp when recomputing sweep lag metric"
-                            + " for strategy {}. This is only expected before the first iteration of sweep completes.",
+                        "Encountered null value for shard and last swept timestamp when recomputing sweep lag metric "
+                                + "for strategy {}. This is only expected before the first iteration of sweep "
+                                + "completes.",
                         SafeArg.of("sweepStrategy", tag.get(AtlasDbMetricNames.TAG_STRATEGY)));
                 return null;
             }

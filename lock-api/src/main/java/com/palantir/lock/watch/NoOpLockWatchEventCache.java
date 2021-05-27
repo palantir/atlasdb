@@ -56,7 +56,7 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
 
     @Override
     public CommitUpdate getCommitUpdate(long startTs) {
-        return ImmutableInvalidateAll.builder().build();
+        return CommitUpdate.invalidateAll();
     }
 
     @Override

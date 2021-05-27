@@ -32,10 +32,11 @@ import java.util.stream.Collectors;
 
 final class VersionedEventStore {
     private static final boolean INCLUSIVE = true;
+    private static final Sequence MAX_VERSION = Sequence.of(Long.MAX_VALUE);
 
     private final int minEvents;
     private final int maxEvents;
-    private final NavigableMap<Long, LockWatchEvent> eventMap = new TreeMap<>();
+    private final NavigableMap<Sequence, LockWatchEvent> eventMap = new TreeMap<>();
 
     VersionedEventStore(int minEvents, int maxEvents) {
         Preconditions.checkArgument(minEvents > 0, "minEvents must be positive", SafeArg.of("minEvents", minEvents));
@@ -59,7 +60,7 @@ final class VersionedEventStore {
                 .orElseGet(ImmutableList::of);
     }
 
-    LockWatchEvents retentionEvents(Optional<Long> earliestSequenceToKeep) {
+    LockWatchEvents retentionEvents(Optional<Sequence> earliestSequenceToKeep) {
         if (eventMap.size() < minEvents) {
             return LockWatchEvents.builder().build();
         }
@@ -67,10 +68,9 @@ final class VersionedEventStore {
         // Guarantees that we remove some events while still also potentially performing further retention - note
         // that each call to retentionEventsInternal modifies eventMap.
         if (eventMap.size() > maxEvents) {
-            List<LockWatchEvent> overMaxSizeEvents =
-                    retentionEventsInternal(eventMap.size() - maxEvents, Long.MAX_VALUE);
+            List<LockWatchEvent> overMaxSizeEvents = retentionEventsInternal(eventMap.size() - maxEvents, MAX_VERSION);
             List<LockWatchEvent> restOfEvents =
-                    retentionEventsInternal(eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE));
+                    retentionEventsInternal(eventMap.size() - minEvents, earliestSequenceToKeep.orElse(MAX_VERSION));
             return ImmutableLockWatchEvents.builder()
                     .addAllEvents(overMaxSizeEvents)
                     .addAllEvents(restOfEvents)
@@ -78,18 +78,18 @@ final class VersionedEventStore {
         } else {
             return ImmutableLockWatchEvents.builder()
                     .addAllEvents(retentionEventsInternal(
-                            eventMap.size() - minEvents, earliestSequenceToKeep.orElse(Long.MAX_VALUE)))
+                            eventMap.size() - minEvents, earliestSequenceToKeep.orElse(MAX_VERSION)))
                     .build();
         }
     }
 
-    private List<LockWatchEvent> retentionEventsInternal(int numToRetention, long maxVersion) {
+    private List<LockWatchEvent> retentionEventsInternal(int numToRetention, Sequence maxVersion) {
         List<LockWatchEvent> events = new ArrayList<>(numToRetention);
 
         // The correctness of this depends upon eventMap's entrySet returning entries in ascending sorted order.
-        List<Map.Entry<Long, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
+        List<Map.Entry<Sequence, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
                 .limit(numToRetention)
-                .filter(entry -> entry.getKey() < maxVersion)
+                .filter(entry -> entry.getKey().value() < maxVersion.value())
                 .collect(Collectors.toList());
 
         eventsToClear.forEach(entry -> {
@@ -100,12 +100,12 @@ final class VersionedEventStore {
         return events;
     }
 
-    boolean containsEntryLessThanOrEqualTo(long key) {
-        return eventMap.floorKey(key) != null;
+    boolean containsEntryLessThanOrEqualTo(long version) {
+        return eventMap.floorKey(Sequence.of(version)) != null;
     }
 
     long putAll(LockWatchEvents events) {
-        events.events().forEach(event -> eventMap.put(event.sequence(), event));
+        events.events().forEach(event -> eventMap.put(Sequence.of(event.sequence()), event));
         return getLastKey();
     }
 
@@ -119,19 +119,20 @@ final class VersionedEventStore {
     }
 
     private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, long startVersion) {
-        return eventMap.subMap(startVersion, INCLUSIVE, endVersion, INCLUSIVE).values();
+        return eventMap.subMap(Sequence.of(startVersion), INCLUSIVE, Sequence.of(endVersion), INCLUSIVE)
+                .values();
     }
 
     private Optional<Long> getFirstKey() {
         if (eventMap.isEmpty()) {
             return Optional.empty();
         } else {
-            return Optional.of(eventMap.firstKey());
+            return Optional.of(eventMap.firstKey()).map(Sequence::value);
         }
     }
 
     private long getLastKey() {
         Preconditions.checkState(!eventMap.isEmpty(), "Cannot get last key from empty map");
-        return eventMap.lastKey();
+        return eventMap.lastKey().value();
     }
 }

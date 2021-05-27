@@ -51,7 +51,7 @@ server:
         logFormat: 'server-${localServerPort?c}       [%t{ISO8601,UTC}] %s %localPort %r %b "%i{User-Agent}" %D'
 
   applicationConnectors:
-  - type: h2
+  - type: https
     port: ${localServerPort?c}
     keyStorePath: var/security/keyStore.jks
     keyStorePassword: keystore

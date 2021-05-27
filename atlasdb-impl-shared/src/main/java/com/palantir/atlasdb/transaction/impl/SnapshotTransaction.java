@@ -69,7 +69,8 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
@@ -117,6 +118,7 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -151,10 +153,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -205,7 +209,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     protected final TimelockService timelockService;
-    protected final LockWatchManager lockWatchManager;
+    protected final LockWatchManagerInternal lockWatchManager;
     final KeyValueService keyValueService;
     final AsyncKeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
@@ -248,6 +252,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
+    protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
 
     protected volatile boolean hasReads;
 
@@ -260,7 +265,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
-            LockWatchManager lockWatchManager,
+            LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
             Cleaner cleaner,
             Supplier<Long> startTimeStamp,
@@ -314,6 +319,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.tableLevelMetricsController = tableLevelMetricsController;
     }
 
+    protected TransactionScopedCache getCache() {
+        return lockWatchManager.getTransactionScopedCache(getTimestamp());
+    }
+
     @Override
     public long getTimestamp() {
         return getStartTimestamp();
@@ -336,9 +345,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
 
-        if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
-            throw new CommittedTransactionException();
-        }
+        ensureStillRunning();
     }
 
     @Override
@@ -354,6 +361,21 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+        if (columnSelection.allColumnsSelected()) {
+            return getRowsInternal(tableRef, rows, columnSelection);
+        }
+        return getCache()
+                .getRows(
+                        tableRef,
+                        rows,
+                        columnSelection,
+                        cells -> AtlasFutures.getUnchecked(getInternal(
+                                "getRows", tableRef, cells, immediateKeyValueService, immediateTransactionService)),
+                        unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
+    }
+
+    private NavigableMap<byte[], RowResult<byte[]>> getRowsInternal(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
         Timer.Context timer = getTimer("getRows").time();
         checkGetPreconditions(tableRef);
@@ -392,7 +414,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return KeyedStream.stream(getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection))
-                .map((row, iterator) -> BatchingVisitableFromIterable.create(iterator))
+                .map(BatchingVisitableFromIterable::create)
+                .map(this::scopeToTransaction)
                 .collectTo(() -> new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
     }
 
@@ -413,7 +436,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         BatchColumnRangeSelection batchColumnRangeSelection =
                 BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
-        return getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults);
+        return scopeToTransaction(getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults));
     }
 
     @Override
@@ -433,7 +456,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             RowColumnRangeIterator rawIterator = e.getValue();
             Iterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
                     getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
-            postFilteredResultsBuilder.put(row, postFilteredIterator);
+            postFilteredResultsBuilder.put(row, scopeToTransaction(postFilteredIterator));
         }
         SortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = postFilteredResultsBuilder.build();
         // validate requirements here as the first batch for each of the above iterators will not check
@@ -458,7 +481,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<byte[], RowColumnRangeIterator> rawResults =
                 keyValueService.getRowsColumnRange(tableRef, distinctRows, perBatchSelection, getStartTimestamp());
 
-        return getPostFilteredSortedColumns(tableRef, batchColumnRangeSelection, distinctRows, rawResults);
+        return scopeToTransaction(
+                getPostFilteredSortedColumns(tableRef, batchColumnRangeSelection, distinctRows, rawResults));
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredSortedColumns(
@@ -771,14 +795,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        return AtlasFutures.getUnchecked(
-                getInternal("get", tableRef, cells, immediateKeyValueService, immediateTransactionService));
+        return getCache()
+                .get(
+                        tableRef,
+                        cells,
+                        (table, uncached) -> getInternal(
+                                "get", tableRef, uncached, immediateKeyValueService, immediateTransactionService));
     }
 
     @Override
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return getInternal("getAsync", tableRef, cells, keyValueService, defaultTransactionService);
+        return scopeToTransaction(getCache()
+                .getAsync(
+                        tableRef,
+                        cells,
+                        (table, uncached) -> getInternal(
+                                "getAsync", tableRef, uncached, keyValueService, defaultTransactionService)));
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getInternal(
@@ -1569,12 +1602,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
         putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
+        getCache().delete(tableRef, cells);
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
         ensureNoEmptyValues(values);
         putInternal(tableRef, values);
+        getCache().write(tableRef, values);
     }
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
@@ -1663,6 +1698,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
+    private void ensureStillRunning() {
+        if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
+            throw new CommittedTransactionException();
+        }
+    }
+
+    /**
+     * Returns true iff the transaction is known to have successfully committed.
+     *
+     * Be careful when using this method! A transaction that the client thinks has failed could actually have
+     * committed as far as the key-value service is concerned.
+     */
+    private boolean isDefinitivelyCommitted() {
+        return state.get() == State.COMMITTED;
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     /// Committing
     ///////////////////////////////////////////////////////////////////////////
@@ -1714,6 +1765,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             if (success) {
                 state.set(State.COMMITTED);
                 transactionOutcomeMetrics.markSuccessfulCommit();
+                successCallbackManager.runCallbacks();
             } else {
                 state.set(State.FAILED);
                 transactionOutcomeMetrics.markFailedCommit();
@@ -1748,6 +1800,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
                 if (validationNecessaryForInvolvedTablesOnCommit()) {
                     throwIfImmutableTsOrCommitLocksExpired(null);
+                }
+
+                // if the cache has been used, we must work out which values can be flushed to the central cache by
+                // obtaining a commit update, which is obtained via the get commit timestamp request.
+                if (getCache().hasUpdates()) {
+                    timedAndTraced(
+                            "getCommitTimestampForCaching",
+                            () -> timelockService.getCommitTimestamp(
+                                    getStartTimestamp(), LockToken.of(UUID.randomUUID())));
                 }
                 return;
             }
@@ -2186,7 +2247,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 lockDescriptors,
                 lockAcquireTimeoutMillis,
                 Optional.ofNullable(getStartTimestampAsClientDescription(currentTransactionConfig)));
-        LockResponse lockResponse = timelockService.lock(request);
+
+        RuntimeException stackTraceSnapshot = new RuntimeException("I exist to show you the stack trace");
+        LockResponse lockResponse = timelockService.lock(
+                request,
+                ClientLockingOptions.builder()
+                        .maximumLockTenure(
+                                currentTransactionConfig.commitLockTenure().toJavaDuration())
+                        .tenureExpirationCallback(() -> logCommitLockTenureExceeded(
+                                lockDescriptors, currentTransactionConfig, stackTraceSnapshot))
+                        .build());
         if (!lockResponse.wasSuccessful()) {
             log.error(
                     "Timed out waiting while acquiring commit locks. Timeout was {} ms. "
@@ -2196,6 +2266,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
         return lockResponse.getToken();
+    }
+
+    private void logCommitLockTenureExceeded(
+            Set<LockDescriptor> lockDescriptors,
+            TransactionConfig currentTransactionConfig,
+            RuntimeException stackTraceSnapshot) {
+        log.warn(
+                "This transaction held on to its commit locks for longer than its tenure, which is"
+                        + " suspicious. In the interest of liveness we will unlock this lock and allow"
+                        + " other transactions to proceed.",
+                SafeArg.of("commitLockTenure", currentTransactionConfig.commitLockTenure()),
+                UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)),
+                stackTraceSnapshot);
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {
@@ -2479,6 +2562,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         constraintsByTableName.put(tableRef, table);
     }
 
+    @Override
+    public void onSuccess(Runnable callback) {
+        Preconditions.checkNotNull(callback, "Callback cannot be null");
+        successCallbackManager.registerCallback(callback);
+    }
+
     /**
      * The similarly-named-and-intentioned useTable method is only called on writes. This one is more comprehensive and
      * covers read paths as well (necessary because we wish to get the sweep strategies of tables in read-only
@@ -2570,5 +2659,59 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private enum SentinelType {
         DEFINITE_ORPHANED,
         INDETERMINATE;
+    }
+
+    private final class SuccessCallbackManager {
+        private final List<Runnable> callbacks = new CopyOnWriteArrayList<>();
+
+        public void registerCallback(Runnable runnable) {
+            ensureUncommitted();
+            callbacks.add(runnable);
+        }
+
+        public void runCallbacks() {
+            Preconditions.checkState(
+                    isDefinitivelyCommitted(),
+                    "Callbacks must not be run if it is not known that the transaction has definitively committed! "
+                            + "This is likely a bug in AtlasDB transaction code.");
+            callbacks.forEach(Runnable::run);
+        }
+    }
+
+    private <T> BatchingVisitable<T> scopeToTransaction(BatchingVisitable<T> delegateVisitable) {
+        return new BatchingVisitable<T>() {
+            @Override
+            public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> visitor)
+                    throws K {
+                ensureStillRunning();
+                return delegateVisitable.batchAccept(batchSize, visitor);
+            }
+        };
+    }
+
+    private <T> Iterator<T> scopeToTransaction(Iterator<T> delegateIterator) {
+        return new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                ensureStillRunning();
+                return delegateIterator.hasNext();
+            }
+
+            @Override
+            public T next() {
+                ensureStillRunning();
+                return delegateIterator.next();
+            }
+        };
+    }
+
+    private <T> ListenableFuture<T> scopeToTransaction(ListenableFuture<T> transactionFuture) {
+        return Futures.transform(
+                transactionFuture,
+                txnTaskResult -> {
+                    ensureStillRunning();
+                    return txnTaskResult;
+                },
+                MoreExecutors.directExecutor());
     }
 }
