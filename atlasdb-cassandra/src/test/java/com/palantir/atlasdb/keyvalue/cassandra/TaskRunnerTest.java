@@ -94,7 +94,7 @@ public final class TaskRunnerTest {
                 .isEqualTo(ImmutableList.of(succeedingMetadata.getMetadata(), failingMetadata.getMetadata()));
     }
 
-    private final class TestSpanObserver implements SpanObserver {
+    private static final class TestSpanObserver implements SpanObserver {
         private final List<Map<String, String>> metadata = new ArrayList<>();
 
         @Override
