@@ -13,19 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-package com.palantir.atlasdb.keyvalue.dbkvs.impl;
-
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKvsOracleTestSuite;
-import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
 import org.junit.ClassRule;
 
-public class DbkvsOracleGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
+public class DbKvsSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
 
-    public DbkvsOracleGetCandidateCellsForSweepingTest() {
+    public DbKvsSweepProgressStoreIntegrationTest() {
         super(TRM);
     }
 }

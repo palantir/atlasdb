@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
+import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 import org.junit.ClassRule;
 
-public class DbkvsOracleTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
+public class DbKvsOracleSerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
 
-    public DbkvsOracleTargetedSweepIntegrationTest() {
+    public DbKvsOracleSerializableTransactionTest() {
         super(TRM, TRM);
     }
 }

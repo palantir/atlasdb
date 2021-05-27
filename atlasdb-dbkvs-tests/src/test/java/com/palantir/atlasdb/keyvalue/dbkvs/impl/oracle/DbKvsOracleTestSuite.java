@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2016 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbkvsOracleGetCandidateCellsForSweepingTest;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbkvsOracleKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableNameMapperEteTest;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OverflowSequenceSupplierEteTest;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
@@ -50,10 +49,10 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-    DbkvsOracleTargetedSweepIntegrationTest.class,
+    DbKvsOracleTargetedSweepIntegrationTest.class,
     DbkvsOracleKeyValueServiceTest.class,
-    DbkvsOracleSerializableTransactionTest.class,
-    DbkvsOracleSweepTaskRunnerTest.class,
+    DbKvsOracleSerializableTransactionTest.class,
+    DbKvsOracleSweepTaskRunnerTest.class,
     DbkvsOracleGetCandidateCellsForSweepingTest.class,
     OverflowSequenceSupplierEteTest.class,
     OracleTableNameMapperEteTest.class,

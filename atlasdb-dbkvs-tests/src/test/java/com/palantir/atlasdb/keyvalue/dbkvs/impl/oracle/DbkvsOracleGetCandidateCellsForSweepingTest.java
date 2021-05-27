@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.DbKvsOracleTestSuite;
+import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import org.junit.ClassRule;
 
-public class DbkvsOracleSweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
+public class DbkvsOracleGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
 
-    public DbkvsOracleSweepTaskRunnerTest() {
-        super(TRM, TRM);
+    public DbkvsOracleGetCandidateCellsForSweepingTest() {
+        super(TRM);
     }
 }

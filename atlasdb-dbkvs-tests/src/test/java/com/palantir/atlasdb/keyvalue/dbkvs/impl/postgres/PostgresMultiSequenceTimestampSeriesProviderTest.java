@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,7 +42,7 @@ public class PostgresMultiSequenceTimestampSeriesProviderTest {
 
     @Before
     public void createTimestampInterfaces() {
-        kvs = DbkvsPostgresTestSuite.createKvs();
+        kvs = DbKvsPostgresTestSuite.createKvs();
         boundStore = createDbTimestampBoundStore(kvs, DEFAULT_SERIES);
         seriesProvider = createTimestampSeriesProvider(kvs);
     }

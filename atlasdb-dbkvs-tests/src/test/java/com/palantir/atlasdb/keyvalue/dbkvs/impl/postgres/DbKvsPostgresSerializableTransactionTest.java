@@ -13,18 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 import org.junit.ClassRule;
 
-public class DbkvsOracleSerializableTransactionTest extends AbstractSerializableTransactionTest {
+public class DbKvsPostgresSerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
 
-    public DbkvsOracleSerializableTransactionTest() {
+    public DbKvsPostgresSerializableTransactionTest() {
         super(TRM, TRM);
     }
 }
