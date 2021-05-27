@@ -20,11 +20,11 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTe
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import org.junit.ClassRule;
 
-public class DbkvsOracleGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
+public class DbKvsOracleGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
 
-    public DbkvsOracleGetCandidateCellsForSweepingTest() {
+    public DbKvsOracleGetCandidateCellsForSweepingTest() {
         super(TRM);
     }
 }

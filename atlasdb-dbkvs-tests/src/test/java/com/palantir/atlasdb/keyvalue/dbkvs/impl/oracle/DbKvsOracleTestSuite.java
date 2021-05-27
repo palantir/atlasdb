@@ -50,10 +50,10 @@ import org.junit.runners.Suite.SuiteClasses;
 @RunWith(Suite.class)
 @SuiteClasses({
     DbKvsOracleTargetedSweepIntegrationTest.class,
-    DbkvsOracleKeyValueServiceTest.class,
+    DbKvsOracleKeyValueServiceTest.class,
     DbKvsOracleSerializableTransactionTest.class,
     DbKvsOracleSweepTaskRunnerTest.class,
-    DbkvsOracleGetCandidateCellsForSweepingTest.class,
+    DbKvsOracleGetCandidateCellsForSweepingTest.class,
     OverflowSequenceSupplierEteTest.class,
     OracleTableNameMapperEteTest.class,
     OracleEmbeddedDbTimestampBoundStoreTest.class

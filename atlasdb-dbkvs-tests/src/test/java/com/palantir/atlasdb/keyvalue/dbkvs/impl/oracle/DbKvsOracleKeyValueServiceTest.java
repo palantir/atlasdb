@@ -35,7 +35,7 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class DbkvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
+public class DbKvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
 
@@ -58,7 +58,7 @@ public class DbkvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueService
             .build()
             .persistToBytes();
 
-    public DbkvsOracleKeyValueServiceTest() {
+    public DbKvsOracleKeyValueServiceTest() {
         super(TRM);
     }
 
