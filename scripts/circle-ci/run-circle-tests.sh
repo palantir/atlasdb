@@ -19,7 +19,7 @@ CONTAINER_2=(':atlasdb-ete-tests:check')
 
 CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server:integTest')
 
-CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest' 'atlasdb-dbkvs-tests:oracleTest')
+CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
 
 CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:postgresTest' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
@@ -29,7 +29,7 @@ CONTAINER_7=(':timelock-server:stressTest')
 
 CONTAINER_8=(':atlasdb-ete-tests:timeLockMigrationTest')
 
-CONTAINER_9=(':atlasdb-ete-tests:oracleTest')
+CONTAINER_9=(':atlasdb-ete-tests:oracleTest' 'atlasdb-dbkvs-tests:oracleTest')
 
 CONTAINER_10=('compileJava' 'compileTestJava')
 
@@ -50,7 +50,7 @@ if ./scripts/circle-ci/check-only-docs-changes.sh; then
     exit 0
 fi
 
-if [ $CIRCLE_NODE_INDEX -eq 4 ] || [ $CIRCLE_NODE_INDEX -eq 9 ]; then
+if [ $CIRCLE_NODE_INDEX -eq 9 ]; then
     printenv DOCKERHUB_PASSWORD | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 fi
 
