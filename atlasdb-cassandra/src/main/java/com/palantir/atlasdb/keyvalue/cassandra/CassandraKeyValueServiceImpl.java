@@ -66,7 +66,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
-import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.CallableWithMetadata;
+import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.KvsLoadingTask;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -594,7 +594,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
-        List<CallableWithMetadata<Map<Cell, Value>>> tasks = new ArrayList<>(rowsByHost.size());
+        List<KvsLoadingTask<Map<Cell, Value>>> tasks = new ArrayList<>(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(ImmutableCallableWithMetadata.of(
                     AnnotatedCallable.wrapWithThreadName(
@@ -832,7 +832,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Set<Map.Entry<InetSocketAddress, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
                         clientPool, rows, Functions.identity())
                 .entrySet();
-        List<CallableWithMetadata<Map<byte[], RowColumnRangeIterator>>> tasks = new ArrayList<>(rowsByHost.size());
+        List<KvsLoadingTask<Map<byte[], RowColumnRangeIterator>>> tasks = new ArrayList<>(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(ImmutableCallableWithMetadata.of(
                     AnnotatedCallable.wrapWithThreadName(
@@ -1154,14 +1154,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Map<InetSocketAddress, List<TableCellAndValue>> partitionedByHost =
                 HostPartitioner.partitionByHost(clientPool, flattened, TableCellAndValue.EXTRACT_ROW_NAME_FUNCTION);
 
-        List<CallableWithMetadata<Void>> callables = new ArrayList<>();
+        List<KvsLoadingTask<Void>> callables = new ArrayList<>();
         for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
             callables.addAll(getMultiPutTasksForSingleHost(entry.getKey(), entry.getValue(), timestamp));
         }
         taskRunner.runAllTasksCancelOnFailure(callables);
     }
 
-    private List<CallableWithMetadata<Void>> getMultiPutTasksForSingleHost(
+    private List<KvsLoadingTask<Void>> getMultiPutTasksForSingleHost(
             final InetSocketAddress host, Collection<TableCellAndValue> values, final long timestamp) {
         Iterable<List<TableCellAndValue>> partitioned = IterablePartitioner.partitionByCountAndBytes(
                 values,
@@ -1169,7 +1169,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 getMultiPutBatchSizeBytes(),
                 extractTableNames(values).toString(),
                 TableCellAndValue.SIZING_FUNCTION);
-        List<CallableWithMetadata<Void>> tasks = new ArrayList<>();
+        List<KvsLoadingTask<Void>> tasks = new ArrayList<>();
         for (final List<TableCellAndValue> batch : partitioned) {
             final Set<TableReference> tableRefs = extractTableNames(batch);
             tasks.add(ImmutableCallableWithMetadata.of(

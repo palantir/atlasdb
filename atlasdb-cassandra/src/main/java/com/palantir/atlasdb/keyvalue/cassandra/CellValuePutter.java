@@ -22,7 +22,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.CallableWithMetadata;
+import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.KvsLoadingTask;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
@@ -77,7 +77,7 @@ public class CellValuePutter {
             final Iterable<Map.Entry<Cell, Value>> values,
             boolean overwriteTimestamps) {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
-        List<CallableWithMetadata<Void>> tasks = new ArrayList<>(cellsByHost.size());
+        List<KvsLoadingTask<Void>> tasks = new ArrayList<>(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
             tasks.add(ImmutableCallableWithMetadata.of(
                     AnnotatedCallable.wrapWithThreadName(

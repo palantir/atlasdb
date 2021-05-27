@@ -22,7 +22,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.CallableWithMetadata.Metadata;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.Throwables;
 import com.palantir.tracing.DetachedSpan;
@@ -34,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 class TaskRunner {
@@ -47,7 +47,7 @@ class TaskRunner {
      * Similar to executor.invokeAll, but cancels all remaining tasks if one fails and doesn't spawn new threads if
      * there is only one task
      */
-    <V> List<V> runAllTasksCancelOnFailure(List<CallableWithMetadata<V>> tasks) {
+    <V> List<V> runAllTasksCancelOnFailure(List<KvsLoadingTask<V>> tasks) {
         if (tasks.size() == 1) {
             try {
                 // Callable<Void> returns null, so can't use immutable list
@@ -58,7 +58,7 @@ class TaskRunner {
         }
 
         List<ListenableFuture<V>> futures = new ArrayList<>(tasks.size());
-        for (CallableWithMetadata<V> task : tasks) {
+        for (KvsLoadingTask<V> task : tasks) {
             DetachedSpan detachedSpan = DetachedSpan.start("task");
             ListenableFuture<V> future = listeningExecutor.submit(task.task());
             futures.add(attachDetachedSpanCompletion(detachedSpan, task.metadata(), future, listeningExecutor));
@@ -98,35 +98,34 @@ class TaskRunner {
     }
 
     @Value.Immutable
-    interface CallableWithMetadata<V> {
+    interface Metadata {
 
-        @Value.Immutable
-        interface Metadata {
+        String taskName();
 
-            @Value.Parameter
-            String taskName();
+        int numCells();
 
-            @Value.Parameter
-            int numCells();
+        Set<TableReference> tableRefs();
 
-            @Value.Parameter
-            Set<TableReference> tableRefs();
+        String host();
 
-            @Value.Parameter
-            String host();
-
-            default Map<String, String> getMetadata() {
-                return ImmutableMap.of(
-                        "taskName",
-                        taskName(),
-                        "numCells",
-                        String.valueOf(numCells()),
-                        "tableRefs",
-                        LoggingArgs.tableRefs(tableRefs()).toString(),
-                        "host",
-                        host());
-            }
+        default Map<String, String> getMetadata() {
+            return ImmutableMap.of(
+                    "taskName",
+                    taskName(),
+                    "numCells",
+                    String.valueOf(numCells()),
+                    "tableRefs",
+                    tableRefs().stream()
+                            .map(LoggingArgs::safeTableOrPlaceholder)
+                            .collect(Collectors.toList())
+                            .toString(),
+                    "host",
+                    host());
         }
+    }
+
+    @Value.Immutable
+    interface KvsLoadingTask<V> {
 
         @Value.Parameter
         Callable<V> task();
