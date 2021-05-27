@@ -67,6 +67,7 @@ public abstract class TransactionConfig {
      * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     @JsonProperty("do-not-use-attach-start-timestamp-to-locks-request")
     @Value.Default
     public boolean attachStartTimestampToLockRequestDescriptions() {

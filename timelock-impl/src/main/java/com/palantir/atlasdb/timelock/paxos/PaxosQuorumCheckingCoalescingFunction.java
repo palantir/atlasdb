@@ -34,7 +34,6 @@ import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosResponsesWithRemote;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,7 +99,7 @@ public class PaxosQuorumCheckingCoalescingFunction<
                     int quorumSize,
                     Function<SERVICE, F> functionFactory) {
         List<F> functions = new ArrayList<>(services.size());
-        Map<F, CheckedRejectionExecutorService> executorMap = new HashMap<>(services.size());
+        Map<F, CheckedRejectionExecutorService> executorMap = Maps.newHashMapWithExpectedSize(services.size());
         for (SERVICE service : services) {
             F function = functionFactory.apply(service);
             functions.add(function);
