@@ -79,6 +79,7 @@ public class LockServerOptions implements Serializable {
      * @deprecated this value is no longer used or respected.
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     @Value.Default
     public TimeDuration getMaxAllowedBlockingDuration() {
         return SimpleTimeDuration.of(60, TimeUnit.SECONDS);
@@ -100,6 +101,7 @@ public class LockServerOptions implements Serializable {
      * @deprecated this value is no longer used or respected
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     @Value.Default
     public int getRandomBitCount() {
         return Long.SIZE;
