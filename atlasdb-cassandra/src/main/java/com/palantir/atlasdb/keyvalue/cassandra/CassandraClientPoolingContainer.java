@@ -34,6 +34,8 @@ import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.NoSuchElementException;
@@ -66,6 +68,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private final int poolNumber;
     private final CassandraClientPoolMetrics poolMetrics;
     private final TimedRunner timedRunner;
+    private final Runnable evictionBasedPoolClearer;
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
@@ -78,8 +81,17 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.config = config;
         this.poolNumber = poolNumber;
         this.poolMetrics = poolMetrics;
-        this.clientPool = createClientPool();
+        TimingOutEvictionPolicy<CassandraClient> evictionPolicy = new TimingOutEvictionPolicy<>(
+                new NonEvictionLoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()), Clock.systemUTC());
+        this.clientPool = createClientPool(evictionPolicy);
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
+
+        Instant now = Instant.now();
+        evictionBasedPoolClearer = () -> {
+            if (Duration.between(evictionPolicy.getLastEviction(), now).abs().getSeconds() > 900) {
+                clientPool.clear();
+            }
+        };
     }
 
     public InetSocketAddress getHost() {
@@ -151,6 +163,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         boolean shouldReuse = true;
         CassandraClient resource = null;
         try {
+            evictionBasedPoolClearer.run();
             resource = clientPool.borrowObject();
             CassandraClient finalResource = resource;
             TaskContext<V> taskContext = TaskContext.create(() -> fn.apply(finalResource), () -> {});
@@ -265,7 +278,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
      *       while still keeping a minimum number of idle connections around for fast borrows.
      */
-    private GenericObjectPool<CassandraClient> createClientPool() {
+    private GenericObjectPool<CassandraClient> createClientPool(EvictionPolicy<CassandraClient> evictionPolicy) {
         CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(metricsManager, host, config);
         GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 
@@ -293,7 +306,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         poolConfig.setTestWhileIdle(true);
 
         poolConfig.setJmxNamePrefix(CassandraLogHelper.host(host));
-        poolConfig.setEvictionPolicy(new NonEvictionLoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()));
+
+        poolConfig.setEvictionPolicy(evictionPolicy);
         GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
         pool.setSwallowedExceptionListener(exception -> log.info("Swallowed exception within object pool", exception));
         registerMetrics(pool);
@@ -337,6 +351,28 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     private void registerPoolMetric(CassandraClientPoolHostLevelMetric metric, Gauge<Long> gauge) {
         poolMetrics.registerPoolMetric(metric, gauge, poolNumber);
+    }
+
+    private static final class TimingOutEvictionPolicy<T> implements EvictionPolicy<T> {
+        private final EvictionPolicy<T> delegate;
+        private final Clock clock;
+        private volatile Instant lastEviction;
+
+        private TimingOutEvictionPolicy(EvictionPolicy<T> delegate, Clock clock) {
+            this.delegate = delegate;
+            this.clock = clock;
+            this.lastEviction = clock.instant();
+        }
+
+        @Override
+        public boolean evict(EvictionConfig config, PooledObject<T> underTest, int idleCount) {
+            lastEviction = clock.instant();
+            return delegate.evict(config, underTest, idleCount);
+        }
+
+        public Instant getLastEviction() {
+            return lastEviction;
+        }
     }
 
     private static final class NonEvictionLoggingEvictionPolicy<T> implements EvictionPolicy<T> {
