@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.performance.benchmarks.table;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -25,7 +26,6 @@ import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
@@ -74,7 +74,7 @@ public abstract class AbstractWideRowsTable {
 
     private void storeData() {
         services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> values = new HashMap<>(numRows * numColumnsPerRow);
+            Map<Cell, byte[]> values = Maps.newHashMapWithExpectedSize(numRows * numColumnsPerRow);
             for (int i = 0; i < numRows; i++) {
                 for (int j = 0; j < numColumnsPerRow; j++) {
                     values.put(cell(i, j), Ints.toByteArray(i * numColumnsPerRow + j));

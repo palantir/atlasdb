@@ -56,6 +56,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
      * {@link #create(DbKeyValueServiceConfig, Refreshable, boolean)} instead.
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public static ConnectionManagerAwareDbKvs create(DbKeyValueServiceConfig config, boolean initializeAsync) {
         return create(config, Refreshable.only(Optional.empty()), initializeAsync);
     }

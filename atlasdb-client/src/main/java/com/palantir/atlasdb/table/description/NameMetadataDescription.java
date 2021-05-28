@@ -68,6 +68,7 @@ public class NameMetadataDescription {
     }
 
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public static NameMetadataDescription create(
             List<NameComponentDescription> components, boolean hasFirstComponentHash) {
 

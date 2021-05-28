@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -28,7 +29,6 @@ import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,7 +94,7 @@ class SweepPriorityCalculator {
         boolean shouldLog = decideWhetherToLogAllPriorities();
 
         // Compute priority for tables that do have a priority table.
-        Map<TableReference, Double> scores = new HashMap<>(oldPriorities.size());
+        Map<TableReference, Double> scores = Maps.newHashMapWithExpectedSize(oldPriorities.size());
         Collection<TableReference> toDelete = new ArrayList<>();
         for (SweepPriority oldPriority : oldPriorities) {
             TableReference tableReference = oldPriority.tableRef();
