@@ -330,7 +330,9 @@ public final class DbKvs extends AbstractKeyValueService {
                 AgnosticLightResultRow row = iter.next();
                 Cell cell = Cell.create(row.getBytes(ROW), row.getBytes(COL));
                 Long overflowId = hasOverflow ? row.getLongObject("overflow") : null;
-                if (overflowId == null) {
+                // PDS-189463: fixing botched rds migration + relying on the fact that overflow sequence numbers only
+                // begin from 1 (inclusive).
+                if (overflowId == null || overflowId == 0) {
                     Value value = Value.create(row.getBytes(VAL), row.getLong(TIMESTAMP));
                     Value oldValue = results.put(cell, value);
                     if (oldValue != null && oldValue.getTimestamp() > value.getTimestamp()) {
@@ -1042,7 +1044,9 @@ public final class DbKvs extends AbstractKeyValueService {
                 Sha256Hash rowHash = Sha256Hash.computeHash(cell.getRowName());
                 cellsByRow.get(rowHash).add(cell);
                 Long overflowId = hasOverflow ? row.getLongObject("overflow") : null;
-                if (overflowId == null) {
+                // PDS-189463: fixing botched rds migration + relying on the fact that overflow sequence numbers only
+                // begin from 1 (inclusive).
+                if (overflowId == null || overflowId == 0) {
                     Value value = Value.create(row.getBytes(VAL), row.getLong(TIMESTAMP));
                     Value oldValue = values.put(cell, value);
                     if (oldValue != null && oldValue.getTimestamp() > value.getTimestamp()) {
