@@ -9,6 +9,7 @@ buildscript {
         maven {
             url 'https://plugins.gradle.org/m2/'
         }
+        jcenter()
     }
 
     dependencies {
@@ -58,9 +59,7 @@ allprojects {
         maven {
             url 'https://dl.bintray.com/palantir/releases/'
         }
-        maven {
-            url 'https://dl.bintray.com/marshallpierce/maven/'
-        }
+        jcenter()
     }
 
     apply plugin: 'java-library'
