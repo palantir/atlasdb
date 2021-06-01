@@ -77,7 +77,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.addr = addr;
         this.config = config;
         this.sslSocketFactory = createSslSocketFactory(config);
-        this.timedRunner = TimedRunner.create(config.timeoutOnConnectionClose());
+        this.timedRunner =
+                TimedRunner.create(config.timeoutOnConnectionTerminate().toJavaDuration());
     }
 
     @Override

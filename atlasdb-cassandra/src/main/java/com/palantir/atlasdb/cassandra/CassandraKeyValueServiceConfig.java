@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cassandra;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -34,7 +35,6 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
-import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -45,6 +45,7 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
+@JsonIgnoreProperties("timeoutOnConnectionClose")
 @Value.Immutable
 public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
@@ -161,8 +162,8 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
      * memory.
      */
     @Value.Default
-    default Duration timeoutOnConnectionClose() {
-        return Duration.ofSeconds(10);
+    default HumanReadableDuration timeoutOnConnectionTerminate() {
+        return HumanReadableDuration.seconds(10);
     }
 
     /**
@@ -171,6 +172,16 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Value.Default
     default HumanReadableDuration timeoutOnConnectionBorrow() {
         return HumanReadableDuration.minutes(60);
+    }
+
+    /**
+     * There is an issue with currently no solid root cause whereby Cassandra restarts can cause the evictor to stop
+     * and thus the client pool to fill up but never empty of bad connections. This option force-clears the pool if
+     * no connection has even been considered for eviction in the provided time window.
+     */
+    @Value.Default
+    default HumanReadableDuration timeoutOnPoolEvictionFailure() {
+        return HumanReadableDuration.minutes(15);
     }
 
     @JsonIgnore

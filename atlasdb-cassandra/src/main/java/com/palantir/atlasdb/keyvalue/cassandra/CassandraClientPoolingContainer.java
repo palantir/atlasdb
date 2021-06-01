@@ -81,14 +81,16 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.config = config;
         this.poolNumber = poolNumber;
         this.poolMetrics = poolMetrics;
+        Clock clock = Clock.systemUTC();
         TimingOutEvictionPolicy<CassandraClient> evictionPolicy = new TimingOutEvictionPolicy<>(
-                new NonEvictionLoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()), Clock.systemUTC());
+                new NonEvictionLoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()), clock);
         this.clientPool = createClientPool(evictionPolicy);
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
 
-        Instant now = Instant.now();
         evictionBasedPoolClearer = () -> {
-            if (Duration.between(evictionPolicy.getLastEviction(), now).abs().getSeconds() > 900) {
+            Instant now = clock.instant();
+            if (Duration.between(evictionPolicy.getLastEviction(), now).abs().getSeconds()
+                    > config.timeoutOnPoolEvictionFailure().toSeconds()) {
                 clientPool.clear();
             }
         };
@@ -370,7 +372,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             return delegate.evict(config, underTest, idleCount);
         }
 
-        public Instant getLastEviction() {
+        Instant getLastEviction() {
             return lastEviction;
         }
     }

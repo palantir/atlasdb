@@ -18,9 +18,9 @@ package com.palantir.atlasdb.cassandra;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.net.InetSocketAddress;
-import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -91,8 +91,18 @@ abstract class ForwardingCassandraKeyValueServiceConfig implements CassandraKeyV
     }
 
     @Override
-    public Duration timeoutOnConnectionClose() {
-        return delegate().timeoutOnConnectionClose();
+    public HumanReadableDuration timeoutOnConnectionTerminate() {
+        return delegate().timeoutOnConnectionTerminate();
+    }
+
+    @Override
+    public HumanReadableDuration timeoutOnConnectionBorrow() {
+        return delegate().timeoutOnConnectionBorrow();
+    }
+
+    @Override
+    public HumanReadableDuration timeoutOnPoolEvictionFailure() {
+        return delegate().timeoutOnPoolEvictionFailure();
     }
 
     @Override
