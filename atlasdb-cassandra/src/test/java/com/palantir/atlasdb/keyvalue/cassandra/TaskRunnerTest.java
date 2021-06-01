@@ -45,19 +45,9 @@ public final class TaskRunnerTest {
     private final Callable<String> failingCallable = () -> {
         throw new SafeRuntimeException("Failed to run");
     };
-    private final Metadata succeedingMetadata = ImmutableMetadata.builder()
-            .taskName("successful task")
-            .numCells(10)
-            .tableRefs(ImmutableSet.of(TableReference.create(Namespace.create("namespace"), "tableRef")))
-            .host("host")
-            .build();
+    private final Metadata succeedingMetadata = setMetadata("successful task");
 
-    private final Metadata failingMetadata = ImmutableMetadata.builder()
-            .taskName("failing task")
-            .numCells(10)
-            .tableRefs(ImmutableSet.of(TableReference.create(Namespace.create("namespace"), "tableRef")))
-            .host("host")
-            .build();
+    private final Metadata failingMetadata = setMetadata("failing task");
 
     private final TestSpanObserver observer = new TestSpanObserver();
 
@@ -105,5 +95,14 @@ public final class TaskRunnerTest {
         public List<Map<String, String>> getMetadata() {
             return metadata;
         }
+    }
+
+    private ImmutableMetadata setMetadata(String s) {
+        return ImmutableMetadata.builder()
+                .taskName(s)
+                .numCells(10)
+                .tableRefs(ImmutableSet.of(TableReference.create(Namespace.create("namespace"), "tableRef")))
+                .host("host")
+                .build();
     }
 }
