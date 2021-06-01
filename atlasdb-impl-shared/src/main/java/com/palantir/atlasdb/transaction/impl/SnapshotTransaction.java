@@ -118,6 +118,7 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -2246,7 +2247,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 lockDescriptors,
                 lockAcquireTimeoutMillis,
                 Optional.ofNullable(getStartTimestampAsClientDescription(currentTransactionConfig)));
-        LockResponse lockResponse = timelockService.lock(request);
+
+        RuntimeException stackTraceSnapshot = new RuntimeException("I exist to show you the stack trace");
+        LockResponse lockResponse = timelockService.lock(
+                request,
+                ClientLockingOptions.builder()
+                        .maximumLockTenure(
+                                currentTransactionConfig.commitLockTenure().toJavaDuration())
+                        .tenureExpirationCallback(() -> logCommitLockTenureExceeded(
+                                lockDescriptors, currentTransactionConfig, stackTraceSnapshot))
+                        .build());
         if (!lockResponse.wasSuccessful()) {
             log.error(
                     "Timed out waiting while acquiring commit locks. Timeout was {} ms. "
@@ -2256,6 +2266,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
         return lockResponse.getToken();
+    }
+
+    private void logCommitLockTenureExceeded(
+            Set<LockDescriptor> lockDescriptors,
+            TransactionConfig currentTransactionConfig,
+            RuntimeException stackTraceSnapshot) {
+        log.warn(
+                "This transaction held on to its commit locks for longer than its tenure, which is"
+                        + " suspicious. In the interest of liveness we will unlock this lock and allow"
+                        + " other transactions to proceed.",
+                SafeArg.of("commitLockTenure", currentTransactionConfig.commitLockTenure()),
+                UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)),
+                stackTraceSnapshot);
     }
 
     protected Set<LockDescriptor> getLocksForWrites() {

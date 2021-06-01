@@ -17,11 +17,11 @@
 package com.palantir.atlasdb.metrics;
 
 import com.codahale.metrics.Metric;
+import com.google.common.collect.Maps;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricSet;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import org.slf4j.Logger;
@@ -47,7 +47,7 @@ public class DisjointUnionTaggedMetricSet implements TaggedMetricSet {
         Map<MetricName, Metric> firstMetrics = first.getMetrics();
         Map<MetricName, Metric> secondMetrics = second.getMetrics();
 
-        Map<MetricName, Metric> metrics = new HashMap<>(firstMetrics.size() + secondMetrics.size());
+        Map<MetricName, Metric> metrics = Maps.newHashMapWithExpectedSize(firstMetrics.size() + secondMetrics.size());
         firstMetrics.forEach(metrics::putIfAbsent);
         secondMetrics.forEach((metricName, metric) -> {
             if (metrics.putIfAbsent(metricName, metric) != null) {

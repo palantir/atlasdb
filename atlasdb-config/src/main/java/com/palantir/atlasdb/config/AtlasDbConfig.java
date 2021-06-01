@@ -207,6 +207,7 @@ public abstract class AtlasDbConfig {
      * live-reloadable.
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     @Value.Default
     public long getSweepPauseMillis() {
         return AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS;

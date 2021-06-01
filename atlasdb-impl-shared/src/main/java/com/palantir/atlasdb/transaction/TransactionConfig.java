@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionRetryStrategy;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableTransactionConfig.class)
@@ -52,10 +53,21 @@ public abstract class TransactionConfig {
     }
 
     /**
+     * Indicates how long user transactions are allowed to take to commit, in terms of how long we'll refresh the
+     * commit locks for. Note that locks may still require more time before TimeLock realises that they are no longer
+     * actively held and releases them.
+     */
+    @Value.Default
+    public HumanReadableDuration commitLockTenure() {
+        return HumanReadableDuration.minutes(15);
+    }
+
+    /**
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
      * @deprecated Remove this once PDS-95791 is resolved.
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     @JsonProperty("do-not-use-attach-start-timestamp-to-locks-request")
     @Value.Default
     public boolean attachStartTimestampToLockRequestDescriptions() {

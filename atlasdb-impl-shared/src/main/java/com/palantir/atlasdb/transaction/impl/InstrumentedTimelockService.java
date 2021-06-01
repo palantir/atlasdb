@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -95,6 +96,11 @@ public final class InstrumentedTimelockService implements TimelockService {
     @Override
     public LockResponse lock(LockRequest request) {
         return executeWithRecord(() -> timelockService.lock(request));
+    }
+
+    @Override
+    public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
+        return executeWithRecord(() -> timelockService.lock(lockRequest, options));
     }
 
     @Override

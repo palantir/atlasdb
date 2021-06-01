@@ -17,6 +17,7 @@ package com.palantir.util;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -76,7 +77,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      * @return
      */
     protected Map<K, CacheEntry<V>> createCache(int initialSize) {
-        return new HashMap<K, CacheEntry<V>>(initialSize);
+        return Maps.newHashMapWithExpectedSize(initialSize);
     }
 
     protected final ReferenceQueue<V> referenceQueue = new ReferenceQueue<V>();

@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.logsafe.Preconditions;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -52,7 +52,7 @@ public final class WeightedHosts {
     private static NavigableMap<Integer, InetSocketAddress> buildHostsWeightedByActiveConnections(
             Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
 
-        Map<InetSocketAddress, Integer> openRequestsByHost = new HashMap<>(pools.size());
+        Map<InetSocketAddress, Integer> openRequestsByHost = Maps.newHashMapWithExpectedSize(pools.size());
         int totalOpenRequests = 0;
         for (Map.Entry<InetSocketAddress, CassandraClientPoolingContainer> poolEntry : pools.entrySet()) {
             int openRequests = Math.max(poolEntry.getValue().getOpenRequests(), 0);

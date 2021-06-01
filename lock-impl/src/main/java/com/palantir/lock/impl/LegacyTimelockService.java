@@ -24,6 +24,7 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
+import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -151,6 +152,11 @@ public class LegacyTimelockService implements TimelockService {
         } else {
             return LockResponse.successful(LockTokenConverter.toTokenV2(legacyToken));
         }
+    }
+
+    @Override
+    public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
+        return lock(lockRequest);
     }
 
     @Override

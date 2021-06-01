@@ -47,6 +47,7 @@ public abstract class TimeLockClientConfig {
      * for connecting to TimeLock.
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     @Value.Default
     public ServerListConfig serversList() {
         return ImmutableServerListConfig.builder().build();

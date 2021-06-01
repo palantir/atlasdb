@@ -41,6 +41,7 @@ public class PalantirSqlException extends PalantirRuntimeException {
      * particular signatures being present.
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public PalantirSqlException(String message, Throwable t) {
         super(message, t);
     }
