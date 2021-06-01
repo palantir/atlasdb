@@ -79,7 +79,7 @@ public final class LockWatchValueIntegrationTest {
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9080, builder -> builder.clientPaxosBuilder(
+            generateThreeNodeTimelockCluster(9090, builder -> builder.clientPaxosBuilder(
                             builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                     .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
@@ -311,8 +311,12 @@ public final class LockWatchValueIntegrationTest {
             return read;
         });
 
+        // New set of rows and columns to force new references (to test every part of the equality checking)
+        Set<byte[]> rows2 = ImmutableSet.of("bar".getBytes(), "eggs".getBytes());
+        ColumnSelection columns2 = ColumnSelection.create(ImmutableSet.of("baz".getBytes(), "spam".getBytes()));
+
         NavigableMap<byte[], RowResult<byte[]>> cacheRead = txnManager.runTaskThrowOnConflict(txn -> {
-            NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
+            NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows2, columns2);
             assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1, TABLE_CELL_2, TABLE_CELL_3, TABLE_CELL_4));
             assertLoadedValues(txn, ImmutableMap.of());
             return read;
