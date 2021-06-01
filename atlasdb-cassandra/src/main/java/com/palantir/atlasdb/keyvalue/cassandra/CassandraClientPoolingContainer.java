@@ -91,6 +91,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             Instant now = clock.instant();
             if (Duration.between(evictionPolicy.getLastEviction(), now).abs().getSeconds()
                     > config.timeoutOnPoolEvictionFailure().toSeconds()) {
+                evictionPolicy.resetLastEviction();
                 clientPool.clear();
             }
         };
@@ -368,12 +369,16 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
         @Override
         public boolean evict(EvictionConfig config, PooledObject<T> underTest, int idleCount) {
-            lastEviction = clock.instant();
+            resetLastEviction();
             return delegate.evict(config, underTest, idleCount);
         }
 
         Instant getLastEviction() {
             return lastEviction;
+        }
+
+        void resetLastEviction() {
+            lastEviction = clock.instant();
         }
     }
 
