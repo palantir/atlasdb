@@ -43,6 +43,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
 import org.apache.commons.pool2.impl.EvictionConfig;
@@ -359,12 +360,12 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private static final class TimingOutEvictionPolicy<T> implements EvictionPolicy<T> {
         private final EvictionPolicy<T> delegate;
         private final Clock clock;
-        private volatile Instant lastEviction;
+        private final AtomicReference<Instant> lastEviction;
 
         private TimingOutEvictionPolicy(EvictionPolicy<T> delegate, Clock clock) {
             this.delegate = delegate;
             this.clock = clock;
-            this.lastEviction = clock.instant();
+            this.lastEviction = new AtomicReference<>(clock.instant());
         }
 
         @Override
@@ -374,11 +375,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         }
 
         Instant getLastEviction() {
-            return lastEviction;
+            return lastEviction.get();
         }
 
         void resetLastEviction() {
-            lastEviction = clock.instant();
+            lastEviction.set(clock.instant());
         }
     }
 
