@@ -177,11 +177,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     /**
      * There is an issue with currently no solid root cause whereby Cassandra restarts can cause the evictor to stop
      * and thus the client pool to fill up but never empty of bad connections. This option force-clears the pool if
-     * no connection has even been considered for eviction in the provided time window.
+     * no connection has even been considered for eviction in the provided time window. Defaults to
+     * 60 * {@link #timeBetweenConnectionEvictionRunsSeconds()}.
      */
     @Value.Default
     default HumanReadableDuration timeoutOnPoolEvictionFailure() {
-        return HumanReadableDuration.minutes(15);
+        return HumanReadableDuration.seconds(timeBetweenConnectionEvictionRunsSeconds() * 60);
     }
 
     @JsonIgnore
