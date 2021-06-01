@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.SortedMap;
 
 public final class ByteArrayUtilities {
 
@@ -45,7 +46,7 @@ public final class ByteArrayUtilities {
         return true;
     }
 
-    private static boolean areByteMapsEqual(Map<byte[], byte[]> map1, Map<byte[], byte[]> map2) {
+    private static boolean areByteMapsEqual(SortedMap<byte[], byte[]> map1, SortedMap<byte[], byte[]> map2) {
         if (map1.size() != map2.size()) {
             return false;
         }
