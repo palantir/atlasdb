@@ -66,9 +66,10 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 if [ "$CIRCLE_NODE_INDEX" -eq "10" ]; then
     export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 else
-    BASE_GRADLE_ARGS+=" --parallel"
     export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
-    BASE_GRADLE_ARGS+=" --parallel"
+    if [ "$CIRCLE_NODE_INDEX" -ne "9" ]; then
+        BASE_GRADLE_ARGS+=" --parallel"
+    fi
 fi
 export CASSANDRA_MAX_HEAP_SIZE=512m
 export CASSANDRA_HEAP_NEWSIZE=64m
