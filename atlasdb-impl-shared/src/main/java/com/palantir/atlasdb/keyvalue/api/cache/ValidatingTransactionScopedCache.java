@@ -181,7 +181,10 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             NavigableMap<byte[], RowResult<byte[]>> remoteReads,
             NavigableMap<byte[], RowResult<byte[]>> cacheReads) {
         if (!ByteArrayUtilities.areRowResultsEqual(remoteReads, cacheReads)) {
-            failAndLog(UnsafeArg.of("table", tableReference));
+            failAndLog(
+                    UnsafeArg.of("table", tableReference),
+                    UnsafeArg.of("remoteReads", remoteReads),
+                    UnsafeArg.of("cacheReads", cacheReads));
         }
     }
 
