@@ -79,7 +79,7 @@ public final class LockWatchValueIntegrationTest {
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9090, builder -> builder.clientPaxosBuilder(
+            generateThreeNodeTimelockCluster(9080, builder -> builder.clientPaxosBuilder(
                             builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                     .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
