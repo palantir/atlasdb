@@ -73,6 +73,8 @@ public final class LockWatchValueIntegrationTest {
     private static final String TABLE = "table";
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_REF, CELL_1);
+    private static final CellReference TABLE_CELL_2 = CellReference.of(TABLE_REF, CELL_2);
+    private static final CellReference TABLE_CELL_3 = CellReference.of(TABLE_REF, CELL_3);
     private static final CellReference TABLE_CELL_4 = CellReference.of(TABLE_REF, CELL_4);
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
@@ -278,7 +280,7 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Test
-    public void allRowsCached() {
+    public void getRowsCachedValidatesCorrectly() {
         createTransactionManager(1.0);
 
         txnManager.runTaskThrowOnConflict(txn -> {
@@ -292,30 +294,26 @@ public final class LockWatchValueIntegrationTest {
         ColumnSelection columns =
                 ColumnSelection.create(ImmutableSet.of(CELL_1.getColumnName(), CELL_2.getColumnName()));
 
-        CellReference tc1 = CellReference.of(TABLE_REF, CELL_1);
-        CellReference tc2 = CellReference.of(TABLE_REF, CELL_2);
-        CellReference tc3 = CellReference.of(TABLE_REF, CELL_3);
-        CellReference tc4 = CellReference.of(TABLE_REF, CELL_4);
         NavigableMap<byte[], RowResult<byte[]>> remoteRead = txnManager.runTaskThrowOnConflict(txn -> {
             NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
             assertHitValues(txn, ImmutableSet.of());
             assertLoadedValues(
                     txn,
                     ImmutableMap.of(
-                            tc1,
+                            TABLE_CELL_1,
                             CacheValue.of(DATA_1),
-                            tc2,
+                            TABLE_CELL_2,
                             CacheValue.of(DATA_2),
-                            tc3,
+                            TABLE_CELL_3,
                             CacheValue.of(DATA_3),
-                            tc4,
+                            TABLE_CELL_4,
                             CacheValue.of(DATA_4)));
             return read;
         });
 
         NavigableMap<byte[], RowResult<byte[]>> cacheRead = txnManager.runTaskThrowOnConflict(txn -> {
             NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
-            assertHitValues(txn, ImmutableSet.of(tc1, tc2, tc3, tc4));
+            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1, TABLE_CELL_2, TABLE_CELL_3, TABLE_CELL_4));
             assertLoadedValues(txn, ImmutableMap.of());
             return read;
         });
