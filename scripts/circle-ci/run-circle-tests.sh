@@ -29,12 +29,14 @@ CONTAINER_7=(':timelock-server:stressTest')
 
 CONTAINER_8=(':atlasdb-ete-tests:timeLockMigrationTest')
 
-CONTAINER_9=(':atlasdb-ete-tests:oracleTest' 'atlasdb-dbkvs-tests:oracleTest')
+CONTAINER_9=(':atlasdb-ete-tests:oracleTest')
 
-CONTAINER_10=('compileJava' 'compileTestJava')
+CONTAINER_10=('atlasdb-dbkvs-tests:oracleTest')
+
+CONTAINER_11=('compileJava' 'compileTestJava')
 
 # Container 0 - runs tasks not found in the below containers
-CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}")
+CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}" "${CONTAINER_10[@]}")
 
 for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
@@ -50,7 +52,7 @@ if ./scripts/circle-ci/check-only-docs-changes.sh; then
     exit 0
 fi
 
-if [ $CIRCLE_NODE_INDEX -eq 9 ]; then
+if [ $CIRCLE_NODE_INDEX -eq 9 ] || [ $CIRCLE_NODE_INDEX -eq 10 ]; then
     printenv DOCKERHUB_PASSWORD | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 fi
 
@@ -63,13 +65,11 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:-TraceClassUnloading"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 
 # External builds have a 16gb limit.
-if [ "$CIRCLE_NODE_INDEX" -eq "10" ]; then
+if [ "$CIRCLE_NODE_INDEX" -eq "11" ]; then
     export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 else
     export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
-    if [ "$CIRCLE_NODE_INDEX" -ne "9" ]; then
-        BASE_GRADLE_ARGS+=" --parallel"
-    fi
+    BASE_GRADLE_ARGS+=" --parallel"
 fi
 export CASSANDRA_MAX_HEAP_SIZE=512m
 export CASSANDRA_HEAP_NEWSIZE=64m
@@ -85,5 +85,6 @@ case $CIRCLE_NODE_INDEX in
     7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
     8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} ;;
     9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} ;;
-    10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
+    10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} ;;
+    11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
