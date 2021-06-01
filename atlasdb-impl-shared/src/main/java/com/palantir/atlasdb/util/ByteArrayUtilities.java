@@ -71,8 +71,8 @@ public final class ByteArrayUtilities {
             if (!second.containsKey(e.getKey())) {
                 return false;
             }
-            Map<byte[], byte[]> firstColumns = e.getValue().getColumns();
-            Map<byte[], byte[]> secondColumns = Optional.ofNullable(second.get(e.getKey()))
+            SortedMap<byte[], byte[]> firstColumns = e.getValue().getColumns();
+            SortedMap<byte[], byte[]> secondColumns = Optional.ofNullable(second.get(e.getKey()))
                     .map(RowResult::getColumns)
                     .orElseGet(ImmutableSortedMap::of);
 
