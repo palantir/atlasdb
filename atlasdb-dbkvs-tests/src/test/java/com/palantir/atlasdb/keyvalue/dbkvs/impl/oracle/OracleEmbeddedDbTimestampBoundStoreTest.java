@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,29 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
 import org.junit.After;
 
-public class PostgresEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
-    private ConnectionManagerAwareDbKvs kvs;
+public class OracleEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
+    private KeyValueService kvs;
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         kvs.close();
     }
 
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
-        kvs = DbkvsPostgresTestSuite.createKvs();
+        kvs = DbKvsOracleTestSuite.createKvs();
         return InDbTimestampBoundStore.create(
-                kvs.getConnectionManager(),
+                ((ConnectionManagerAwareDbKvs) kvs).getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,
-                DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+                DbKvsOracleTestSuite.getKvsConfig().ddl().tablePrefix());
     }
 }

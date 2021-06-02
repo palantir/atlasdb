@@ -10,8 +10,19 @@ dependencies {
   testCompile group: 'junit', name: 'junit'
 }
 
-test {
+task postgresTest(type: Test) {
     maxHeapSize = "1024m"
-    include '**/*Suite.class'
+    include '**/DbKvsPostgresTestSuite.class'
     maxParallelForks 2
+}
+
+task oracleTest(type: Test) {
+    maxHeapSize = "1024m"
+    include '**/DbKvsOracleTestSuite.class'
+    maxParallelForks 2
+}
+
+test {
+    // Tests should be included with the relevant flavoured task.
+    exclude '**/*.class'
 }

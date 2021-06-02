@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,28 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.AbstractDbKvsKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
+public class DbKvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
 
     private static final Namespace TEST_NAMESPACE = Namespace.create("ns");
     private static final String TEST_LONG_TABLE_NAME =
             "ThisShouldAlwaysBeAVeryLongTableNameThatExceedsPostgresLengthLimit";
     private static final int TWO_UNDERSCORES = 2;
 
-    public DbkvsPostgresKeyValueServiceTest() {
+    public DbKvsPostgresKeyValueServiceTest() {
         super(TRM);
     }
 
