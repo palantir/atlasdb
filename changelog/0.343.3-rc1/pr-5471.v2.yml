@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Force-evict the Cassandra client pool if no eviction has occurred for
+    a while (by default, 60 * `timeBetweenConnectionEvictionRunsSeconds`, which makes
+    this duration 20 minutes).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5471
