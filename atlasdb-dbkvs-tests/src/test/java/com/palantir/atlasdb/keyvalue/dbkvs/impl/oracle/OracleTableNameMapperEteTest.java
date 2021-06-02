@@ -16,9 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertThat;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -28,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import org.assertj.core.api.HamcrestCondition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -70,9 +70,10 @@ public class OracleTableNameMapperEteTest {
         String shortPrefixedTableName =
                 ORACLE_TABLE_NAME_MAPPER.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
 
-        assertThat(shortPrefixedTableName.length(), lessThan(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT));
+        assertThat(shortPrefixedTableName.length())
+                .is(new HamcrestCondition<>(lessThan(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT)));
         String expectedName = "a_ns__test_table_0000";
-        assertThat(shortPrefixedTableName, is(expectedName));
+        assertThat(shortPrefixedTableName).isEqualTo(expectedName);
     }
 
     @Test
@@ -82,9 +83,9 @@ public class OracleTableNameMapperEteTest {
         String shortPrefixedTableName =
                 ORACLE_TABLE_NAME_MAPPER.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
 
-        assertThat(shortPrefixedTableName.length(), is(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT));
+        assertThat(shortPrefixedTableName.length()).isEqualTo(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT);
         String expectedName = "a_ns__" + tableName + "_0000";
-        assertThat(shortPrefixedTableName, is(expectedName));
+        assertThat(shortPrefixedTableName).isEqualTo(expectedName);
     }
 
     @Test
@@ -173,9 +174,9 @@ public class OracleTableNameMapperEteTest {
     }
 
     private void assertLengthAndValueOfName(String shortPrefixedTableName, int tableNum) {
-        assertThat(shortPrefixedTableName.length(), is(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT));
+        assertThat(shortPrefixedTableName.length()).isEqualTo(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT);
         String expectedName = TEST_PREFIX + getTableRefWithNumber(tableNum).getTablename();
-        assertThat(shortPrefixedTableName, is(expectedName));
+        assertThat(shortPrefixedTableName).isEqualTo(expectedName);
     }
 
     private TableReference getTableRefWithNumber(int tableNum) {

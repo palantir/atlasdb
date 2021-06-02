@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.hasItems;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -78,7 +77,7 @@ public class DbKvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueService
     public void shouldCreateMultipleTablesWithAlmostSameHashName() {
         keyValueService.createTable(TABLE_1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE_2, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        assertThat(keyValueService.getAllTableNames(), hasItems(TABLE_1, TABLE_2));
+        assertThat(keyValueService.getAllTableNames()).contains(TABLE_1, TABLE_2);
     }
 
     @Test
