@@ -91,7 +91,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         evictionBasedPoolClearer = () -> {
             Instant now = clock.instant();
             if (Duration.between(evictionPolicy.getLastEviction(), now).abs().getSeconds()
-                    > config.timeoutOnPoolEvictionFailure().toSeconds()) {
+                            > config.timeoutOnPoolEvictionFailure().toSeconds()
+                    && clientPoolIsFull()) {
                 evictionPolicy.resetLastEviction();
                 clientPool.clear();
             }
@@ -159,6 +160,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     public <V> V runWithPooledResource(Function<CassandraClient, V> fn) {
         throw new UnsupportedOperationException("you should use FunctionCheckedException<?, ?, Exception> "
                 + "to ensure the TTransportException type is propagated correctly.");
+    }
+
+    private boolean clientPoolIsFull() {
+        int elements = clientPool.getNumActive() + clientPool.getNumIdle();
+        return elements >= 0.9 * config.maxConnectionBurstSize();
     }
 
     @SuppressWarnings("unchecked")
@@ -379,7 +385,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         }
 
         void resetLastEviction() {
-            lastEviction.set(clock.instant());
+            lastEviction.accumulateAndGet(clock.instant(), (first, second) -> first.isAfter(second) ? first : second);
         }
     }
 
