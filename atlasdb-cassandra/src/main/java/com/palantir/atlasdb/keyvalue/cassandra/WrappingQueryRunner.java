@@ -15,9 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.tracing.CloseableTracer;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +88,15 @@ class WrappingQueryRunner {
             List<KeyPredicate> request,
             ConsistencyLevel consistency)
             throws TException {
-        try {
+        try (CloseableTracer tracer = CloseableTracer.startSpan(
+                "multiget_multislice",
+                ImmutableMap.of(
+                        "kvsMethodName",
+                        kvsMethodName,
+                        "tableRef",
+                        LoggingArgs.safeInternalTableNameOrPlaceholder(tableRef.toString()),
+                        "request",
+                        request.toString()))) {
             return queryRunner.run(
                     client, tableRef, () -> client.multiget_multislice(kvsMethodName, tableRef, request, consistency));
         } catch (UnavailableException e) {
