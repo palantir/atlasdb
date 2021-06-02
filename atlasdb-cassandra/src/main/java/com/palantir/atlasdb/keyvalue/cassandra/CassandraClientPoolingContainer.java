@@ -376,8 +376,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
         @Override
         public boolean evict(EvictionConfig config, PooledObject<T> underTest, int idleCount) {
+            boolean evictionResult = delegate.evict(config, underTest, idleCount);
             resetLastEviction();
-            return delegate.evict(config, underTest, idleCount);
+            return evictionResult;
         }
 
         Instant getLastEviction() {
