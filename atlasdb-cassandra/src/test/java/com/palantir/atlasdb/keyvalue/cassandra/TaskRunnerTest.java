@@ -55,7 +55,7 @@ public final class TaskRunnerTest {
     public void before() {
         Tracer.initTraceWithSpan(Observability.SAMPLE, "trace-id-1", "task", SpanType.LOCAL);
         Tracer.subscribe(getClass().getName(), observer);
-        assertThat(observer.getMetadata()).isEqualTo(ImmutableList.of());
+        assertThat(observer.getMetadata()).isEmpty();
     }
 
     @After
