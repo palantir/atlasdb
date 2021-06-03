@@ -455,10 +455,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             int numberOfThriftHosts = config.servers().numberOfThriftHosts();
             int corePoolSize = config.poolSize() * numberOfThriftHosts;
             int maxPoolSize = config.maxConnectionBurstSize() * numberOfThriftHosts;
-            return Tracers.wrap(MetricRegistries.instrument(
-                    registry,
-                    createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
-                    "Atlas Cassandra KVS"));
+            return Tracers.wrap(
+                    "Atlas Cassandra KVS",
+                    MetricRegistries.instrument(
+                            registry,
+                            createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
+                            "Atlas Cassandra KVS"));
         };
     }
 
