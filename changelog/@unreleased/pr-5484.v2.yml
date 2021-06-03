@@ -1,24 +1,6 @@
 type: improvement
 improvement:
   description: |-
-    fix operation name
-
-    **Goals (and why)**:
-    We use the same operation name for multiget_slice and multiget_multislice
-    **Implementation Description (bullets)**:
-    Fix operation name for multiget_multislice.
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-
-    **Concerns (what feedback would you like?)**:
-
-    **Where should we start reviewing?**:
-
-    **Priority (whenever / two weeks / yesterday)**:
-
-    <!---
-    Please remember to:
-    - Add any necessary release notes (including breaking changes)
-    - Make sure the documentation is up to date for your change
-    --->
+    Fix operation name in TracingCassandraClient.
   links:
   - https://github.com/palantir/atlasdb/pull/5484

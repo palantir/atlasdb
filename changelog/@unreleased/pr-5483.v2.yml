@@ -1,5 +1,0 @@
-type: improvement
-fix:
-  description: Add operation names to traced calls to Cassandra.
-  links:
-  - https://github.com/palantir/atlasdb/pull/5483
