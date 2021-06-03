@@ -28,7 +28,6 @@ import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.TimedRunner;
-import com.palantir.util.TimedRunner.TaskContext;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
@@ -153,8 +152,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         try {
             resource = clientPool.borrowObject();
             CassandraClient finalResource = resource;
-            TaskContext<V> taskContext = TaskContext.create(() -> fn.apply(finalResource), () -> {});
-            return timedRunner.run(taskContext);
+            // TaskContext<V> taskContext = TaskContext.create(() -> fn.apply(finalResource), () -> {});
+            // return timedRunner.run(taskContext);
+            return fn.apply(finalResource);
         } catch (Exception e) {
             if (isInvalidClientConnection(resource)) {
                 log.warn(
