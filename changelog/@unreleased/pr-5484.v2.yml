@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    Fix operation name in TracingCassandraClient.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5484
