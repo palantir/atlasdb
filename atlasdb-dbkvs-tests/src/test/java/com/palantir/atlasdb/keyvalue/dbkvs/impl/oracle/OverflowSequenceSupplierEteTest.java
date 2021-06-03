@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
@@ -24,9 +26,9 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.HamcrestCondition;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -68,14 +70,12 @@ public class OverflowSequenceSupplierEteTest {
         long previousOverflowId = -1;
         for (int j = 0; j < OVERFLOW_IDS_PER_THREAD; j++) {
             long overflowId = sequenceSupplier.get();
-            Assert.assertThat(
-                    "OverflowIds must always be monotonically increasing.",
-                    overflowId,
-                    Matchers.greaterThan(previousOverflowId));
-            Assert.assertThat(
-                    "OverflowIDs must be different across threads.",
-                    overflowIds,
-                    Matchers.not(Matchers.hasItem(overflowId)));
+            assertThat(overflowId)
+                    .describedAs("OverflowIds must always be monotonically increasing.")
+                    .is(new HamcrestCondition<>(Matchers.greaterThan(previousOverflowId)));
+            assertThat(overflowIds)
+                    .describedAs("OverflowIDs must be different across threads.")
+                    .doesNotContain(overflowId);
             overflowIds.add(overflowId);
             previousOverflowId = overflowId;
         }
