@@ -83,7 +83,7 @@ public class OracleTableNameMapperEteTest {
         String shortPrefixedTableName =
                 ORACLE_TABLE_NAME_MAPPER.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
 
-        assertThat(shortPrefixedTableName.length()).isEqualTo(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT);
+        assertThat(shortPrefixedTableName).hasSize(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT);
         String expectedName = "a_ns__" + tableName + "_0000";
         assertThat(shortPrefixedTableName).isEqualTo(expectedName);
     }
@@ -174,7 +174,7 @@ public class OracleTableNameMapperEteTest {
     }
 
     private void assertLengthAndValueOfName(String shortPrefixedTableName, int tableNum) {
-        assertThat(shortPrefixedTableName.length()).isEqualTo(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT);
+        assertThat(shortPrefixedTableName).hasSize(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT);
         String expectedName = TEST_PREFIX + getTableRefWithNumber(tableNum).getTablename();
         assertThat(shortPrefixedTableName).isEqualTo(expectedName);
     }
