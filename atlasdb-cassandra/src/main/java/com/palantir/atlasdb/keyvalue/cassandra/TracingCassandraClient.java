@@ -213,7 +213,7 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
 
     private final void logTracingInfo(@CompileTimeConstant String message) {
         try {
-            Thread.sleep(10);
+            Thread.sleep(5);
         } catch (InterruptedException e) {
             log.warn("logTracingInfo threw InterruptedException", e);
         }

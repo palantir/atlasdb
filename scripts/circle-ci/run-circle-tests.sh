@@ -76,8 +76,8 @@ export CASSANDRA_HEAP_NEWSIZE=64m
 
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:check;;
-    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest -x :atlasdb-ete-tests:timeLockMigrationTest ;;
+    # 1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
+    # 2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest -x :atlasdb-ete-tests:timeLockMigrationTest ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
