@@ -20,6 +20,7 @@ import static com.palantir.atlasdb.tracing.Tracing.startLocalTrace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.CloseableTracer;
+import com.palantir.tracing.Tracer;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -74,12 +75,18 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             sink.integer("columns", numberOfColumns);
             sink.accept("consistency", consistency_level.name());
             sink.accept("kvs", kvsMethodName);
+            log.info("multiget_slice TagConsumer");
         })) {
             log.info(
                     "multiget_slice trace ",
                     SafeArg.of("class", trace.getClass()),
-                    SafeArg.of("trace", trace.toString()));
+                    SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()));
             return client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level);
+        } finally {
+            log.info(
+                    "multiget_slice trace finally ",
+                    SafeArg.of("traceId", Tracer.getTraceId()),
+                    SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()));
         }
     }
 
@@ -97,12 +104,18 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             sink.size("key_predicates", keyPredicates);
             sink.accept("consistency", consistency_level.name());
             sink.accept("kvs", kvsMethodName);
+            log.info("multiget_multislice TagConsumer");
         })) {
             log.info(
                     "multiget_multislice trace ",
                     SafeArg.of("class", trace.getClass()),
-                    SafeArg.of("trace", trace.toString()));
+                    SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()));
             return client.multiget_multislice(kvsMethodName, tableRef, keyPredicates, consistency_level);
+        } finally {
+            log.info(
+                    "multiget_multislice trace finally ",
+                    SafeArg.of("traceId", Tracer.getTraceId()),
+                    SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()));
         }
     }
 

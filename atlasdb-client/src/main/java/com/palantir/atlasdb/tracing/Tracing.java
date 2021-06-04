@@ -24,6 +24,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.TagTranslator;
+import com.palantir.tracing.Tracer;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -40,7 +41,7 @@ public interface Tracing {
                 "startLocalTrace",
                 SafeArg.of("operation", operation),
                 SafeArg.of("tracer class", tracer.getClass()),
-                SafeArg.of("trace", tracer.toString()));
+                SafeArg.of("tracer metadata", Tracer.maybeGetTraceMetadata()));
         return CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
     }
 
