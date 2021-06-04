@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings({"all"}) // thrift variable names.
 public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     private final CassandraClient client;
-    private final Logger log = LoggerFactory.getLogger(TracingCassandraClient.class);
+    private static final Logger log = LoggerFactory.getLogger(TracingCassandraClient.class);
 
     public TracingCassandraClient(CassandraClient client) {
         this.client = client;
