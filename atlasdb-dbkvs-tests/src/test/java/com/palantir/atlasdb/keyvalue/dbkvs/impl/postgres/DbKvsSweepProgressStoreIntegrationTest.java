@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
 import org.junit.ClassRule;
 
-public class DbKvsPostgresGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
+public class DbKvsSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
 
-    public DbKvsPostgresGetCandidateCellsForSweepingTest() {
+    public DbKvsSweepProgressStoreIntegrationTest() {
         super(TRM);
     }
 }

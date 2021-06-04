@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,6 +28,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.InvalidationRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
@@ -51,7 +52,7 @@ public class DbTimestampStoreInvalidatorCreationTest {
     private final Optional<LeaderConfig> leaderConfig = Optional.of(mock(LeaderConfig.class));
 
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
 
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
     private final TableReference otherTable = TableReference.createWithEmptyNamespace("fooBar");
@@ -59,7 +60,7 @@ public class DbTimestampStoreInvalidatorCreationTest {
 
     private final TimestampBoundStore defaultStore = getStore(
             AtlasDbConstants.TIMESTAMP_TABLE,
-            DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+            DbKvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
     private final TimestampBoundStore otherStore = getStore(otherTable, prefix);
 
     private final InvalidationRunner invalidationRunner =
@@ -113,7 +114,7 @@ public class DbTimestampStoreInvalidatorCreationTest {
         otherStore.storeUpperLimit(TIMESTAMP_1);
         otherStore.getUpperLimit();
         ServiceDiscoveringAtlasSupplier atlasSupplier =
-                createAtlasSupplier(DbkvsPostgresTestSuite.getKvsConfig(), tableReference);
+                createAtlasSupplier(DbKvsPostgresTestSuite.getKvsConfig(), tableReference);
         return atlasSupplier.getTimestampStoreInvalidator();
     }
 

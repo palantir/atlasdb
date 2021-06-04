@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
+import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
 import org.junit.ClassRule;
 
-public class DbKvsSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
+public class DbKvsOracleTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
 
-    public DbKvsSweepProgressStoreIntegrationTest() {
-        super(TRM);
+    public DbKvsOracleTargetedSweepIntegrationTest() {
+        super(TRM, TRM);
     }
 }

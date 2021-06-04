@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,7 +43,7 @@ public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTime
 
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
-        kvs = DbkvsPostgresTestSuite.createKvs();
+        kvs = DbKvsPostgresTestSuite.createKvs();
         return createDbTimestampBoundStore(DEFAULT_SERIES);
     }
 
@@ -69,7 +69,7 @@ public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTime
         TimestampBoundStore legacyStore = InDbTimestampBoundStore.create(
                 kvs.getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,
-                DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+                DbKvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
         long initialValue = store.getUpperLimit();
         legacyStore.storeUpperLimit(FIFTY_MILLION);
 

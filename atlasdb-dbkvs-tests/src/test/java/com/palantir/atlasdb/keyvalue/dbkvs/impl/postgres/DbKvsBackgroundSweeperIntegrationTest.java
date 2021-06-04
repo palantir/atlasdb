@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
 
-public class DbkvsBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
+public class DbKvsBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     @Override
     protected KeyValueService getKeyValueService() {
-        return DbkvsPostgresTestSuite.createKvs();
+        return DbKvsPostgresTestSuite.createKvs();
     }
 }
