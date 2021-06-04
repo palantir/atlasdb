@@ -79,7 +79,7 @@ case $CIRCLE_NODE_INDEX in
     # 1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
     # 2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest -x :atlasdb-ete-tests:timeLockMigrationTest ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
-    4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
+    # 4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
     7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
