@@ -77,16 +77,10 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             sink.accept("kvs", kvsMethodName);
             log.info("multiget_slice TagConsumer");
         })) {
-            log.info(
-                    "multiget_slice trace ",
-                    SafeArg.of("class", trace.getClass()),
-                    SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()));
+            logTracingInfo("multiget_slice trace");
             return client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level);
         } finally {
-            log.info(
-                    "multiget_slice trace finally ",
-                    SafeArg.of("traceId", Tracer.getTraceId()),
-                    SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()));
+            logTracingInfo("multiget_slice trace finally");
         }
     }
 
@@ -106,16 +100,10 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             sink.accept("kvs", kvsMethodName);
             log.info("multiget_multislice TagConsumer");
         })) {
-            log.info(
-                    "multiget_multislice trace ",
-                    SafeArg.of("class", trace.getClass()),
-                    SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()));
+            logTracingInfo("multiget_multislice trace");
             return client.multiget_multislice(kvsMethodName, tableRef, keyPredicates, consistency_level);
         } finally {
-            log.info(
-                    "multiget_multislice trace finally ",
-                    SafeArg.of("traceId", Tracer.getTraceId()),
-                    SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()));
+            logTracingInfo("multiget_multislice trace finally");
         }
     }
 
@@ -136,8 +124,12 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             sink.integer("batchHint", batchHint);
             sink.accept("consistency", consistency_level.name());
             sink.accept("kvs", kvsMethodName);
+            log.info("get_range_slices TagConsumer");
         })) {
+            logTracingInfo("get_range_slices trace");
             return client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level);
+        } finally {
+            logTracingInfo("get_range_slices trace finally");
         }
     }
 
@@ -152,8 +144,12 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
         try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.remove", sink -> {
             sink.accept("consistency", consistency_level.name());
             sink.accept("kvs", kvsMethodName);
+            log.info("remove TagConsumer");
         })) {
+            logTracingInfo("remove trace");
             client.remove(kvsMethodName, tableRef, row, timestamp, consistency_level);
+        } finally {
+            logTracingInfo("remove trace finally");
         }
     }
 
@@ -212,5 +208,12 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
         })) {
             return client.execute_cql3_query(cqlQuery, compression, consistency);
         }
+    }
+
+    private void logTracingInfo(String message) {
+        log.info(
+                message,
+                SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()),
+                SafeArg.of("observable", Tracer.isTraceObservable()));
     }
 }

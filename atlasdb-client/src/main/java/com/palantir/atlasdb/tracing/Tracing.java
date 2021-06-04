@@ -40,8 +40,8 @@ public interface Tracing {
         log.info(
                 "startLocalTrace",
                 SafeArg.of("operation", operation),
-                SafeArg.of("tracer class", tracer.getClass()),
-                SafeArg.of("tracer metadata", Tracer.maybeGetTraceMetadata()));
+                SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()),
+                SafeArg.of("observable", Tracer.isTraceObservable()));
         return CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
     }
 
