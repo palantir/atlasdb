@@ -37,6 +37,11 @@ public interface Tracing {
 
     static CloseableTracer startLocalTrace(@CompileTimeConstant String operation, Consumer<TagConsumer> tagTranslator) {
         CloseableTracer tracer = CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            log.warn("Interrupted exception in startLocalTrace", e);
+        }
         log.info(
                 "startLocalTrace",
                 SafeArg.of("operation", operation),

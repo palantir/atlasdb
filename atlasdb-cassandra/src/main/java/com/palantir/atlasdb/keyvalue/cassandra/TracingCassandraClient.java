@@ -211,7 +211,8 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
         }
     }
 
-    private final void logTracingInfo(@CompileTimeConstant String message) {
+    private final void logTracingInfo(@CompileTimeConstant String message) throws InterruptedException {
+        Thread.sleep(10);
         log.info(
                 message,
                 SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()),
