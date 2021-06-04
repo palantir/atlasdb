@@ -68,7 +68,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private final GenericObjectPool<CassandraClient> clientPool;
     private final int poolNumber;
     private final CassandraClientPoolMetrics poolMetrics;
-    private final TimedRunner timedRunner;
+    private final TimedRunner timedRunnerForTask;
+    private final TimedRunner timedRunnerForEviction;
     private final Runnable evictionBasedPoolClearer;
 
     public CassandraClientPoolingContainer(
@@ -82,11 +83,14 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.config = config;
         this.poolNumber = poolNumber;
         this.poolMetrics = poolMetrics;
+        this.timedRunnerForTask =
+                TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
+        this.timedRunnerForEviction =
+                TimedRunner.create(config.timeoutOnConnectionTerminate().toJavaDuration());
         Clock clock = Clock.systemUTC();
         TimingOutEvictionPolicy<CassandraClient> evictionPolicy = new TimingOutEvictionPolicy<>(
-                new NonEvictionLoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()), clock);
+                new NonEvictionLoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()), clock, timedRunnerForEviction);
         this.clientPool = createClientPool(evictionPolicy);
-        this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
 
         evictionBasedPoolClearer = () -> {
             Instant now = clock.instant();
@@ -177,7 +181,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             resource = clientPool.borrowObject();
             CassandraClient finalResource = resource;
             TaskContext<V> taskContext = TaskContext.create(() -> fn.apply(finalResource), () -> {});
-            return timedRunner.run(taskContext);
+            return timedRunnerForTask.run(taskContext);
         } catch (Exception e) {
             if (isInvalidClientConnection(resource)) {
                 log.warn(
@@ -367,16 +371,24 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         private final EvictionPolicy<T> delegate;
         private final Clock clock;
         private final AtomicReference<Instant> lastEviction;
+        private final TimedRunner timedRunnerForEviction;
 
-        private TimingOutEvictionPolicy(EvictionPolicy<T> delegate, Clock clock) {
+        private TimingOutEvictionPolicy(EvictionPolicy<T> delegate, Clock clock, TimedRunner timedRunnerForEviction) {
             this.delegate = delegate;
             this.clock = clock;
             this.lastEviction = new AtomicReference<>(clock.instant());
+            this.timedRunnerForEviction = timedRunnerForEviction;
         }
 
         @Override
         public boolean evict(EvictionConfig config, PooledObject<T> underTest, int idleCount) {
-            boolean evictionResult = delegate.evict(config, underTest, idleCount);
+            boolean evictionResult = false;
+            try {
+                evictionResult = timedRunnerForEviction.run(
+                        TaskContext.create(() -> delegate.evict(config, underTest, idleCount), () -> {}));
+            } catch (Throwable t) {
+                log.warn("Failed to run eviction due to an exception. Swallowing exception to guarantee progress", t);
+            }
             resetLastEviction();
             return evictionResult;
         }
