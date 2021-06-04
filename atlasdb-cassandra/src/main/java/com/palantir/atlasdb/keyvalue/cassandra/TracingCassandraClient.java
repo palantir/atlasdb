@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static com.palantir.atlasdb.tracing.Tracing.startLocalTrace;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.CloseableTracer;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -39,10 +40,13 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     private final CassandraClient client;
+    private final Logger log = LoggerFactory.getLogger(TracingCassandraClient.class);
 
     public TracingCassandraClient(CassandraClient client) {
         this.client = client;
@@ -71,6 +75,10 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             sink.accept("consistency", consistency_level.name());
             sink.accept("kvs", kvsMethodName);
         })) {
+            log.info(
+                    "multiget_slice trace ",
+                    SafeArg.of("class", trace.getClass()),
+                    SafeArg.of("trace", trace.toString()));
             return client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level);
         }
     }
@@ -90,6 +98,10 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             sink.accept("consistency", consistency_level.name());
             sink.accept("kvs", kvsMethodName);
         })) {
+            log.info(
+                    "multiget_multislice trace ",
+                    SafeArg.of("class", trace.getClass()),
+                    SafeArg.of("trace", trace.toString()));
             return client.multiget_multislice(kvsMethodName, tableRef, keyPredicates, consistency_level);
         }
     }

@@ -21,16 +21,26 @@ import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.TagTranslator;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface Tracing {
+    Logger log = LoggerFactory.getLogger(Tracing.class);
 
     static CloseableTracer startLocalTrace(@CompileTimeConstant String operation, Consumer<TagConsumer> tagTranslator) {
+        CloseableTracer tracer = CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
+        log.info(
+                "startLocalTrace",
+                SafeArg.of("operation", operation),
+                SafeArg.of("tracer class", tracer.getClass()),
+                SafeArg.of("trace", tracer.toString()));
         return CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
     }
 
