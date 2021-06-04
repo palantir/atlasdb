@@ -42,7 +42,7 @@ public interface Tracing {
                 SafeArg.of("operation", operation),
                 SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()),
                 SafeArg.of("observable", Tracer.isTraceObservable()));
-        return CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
+        return tracer;
     }
 
     interface TagConsumer extends BiConsumer<String, String> {
