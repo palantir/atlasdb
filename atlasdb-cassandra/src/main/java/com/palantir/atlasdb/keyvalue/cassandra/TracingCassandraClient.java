@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static com.palantir.atlasdb.tracing.Tracing.startLocalTrace;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.CloseableTracer;
@@ -210,7 +211,7 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
         }
     }
 
-    private void logTracingInfo(String message) {
+    private final void logTracingInfo(@CompileTimeConstant String message) {
         log.info(
                 message,
                 SafeArg.of("metadata", Tracer.maybeGetTraceMetadata()),
