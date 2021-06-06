@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: AtlasDB now runs pre-merge Oracle tests.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5469

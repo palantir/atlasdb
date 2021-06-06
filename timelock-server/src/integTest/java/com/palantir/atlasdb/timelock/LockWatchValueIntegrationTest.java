@@ -45,6 +45,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.time.Duration;
@@ -64,6 +65,7 @@ public final class LockWatchValueIntegrationTest {
     private static final byte[] DATA_1 = "foo".getBytes();
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes();
     private static final byte[] DATA_3 = "canis est in via".getBytes();
+    private static final byte[] DATA_4 = "Quintus Caecilius Iucundus".getBytes();
     private static final Cell CELL_1 = Cell.create("bar".getBytes(), "baz".getBytes());
     private static final Cell CELL_2 = Cell.create("bar".getBytes(), "spam".getBytes());
     private static final Cell CELL_3 = Cell.create("eggs".getBytes(), "baz".getBytes());
@@ -71,11 +73,13 @@ public final class LockWatchValueIntegrationTest {
     private static final String TABLE = "table";
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_REF, CELL_1);
+    private static final CellReference TABLE_CELL_2 = CellReference.of(TABLE_REF, CELL_2);
+    private static final CellReference TABLE_CELL_3 = CellReference.of(TABLE_REF, CELL_3);
     private static final CellReference TABLE_CELL_4 = CellReference.of(TABLE_REF, CELL_4);
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(9080, builder -> builder.clientPaxosBuilder(
+            generateThreeNodeTimelockCluster(9090, builder -> builder.clientPaxosBuilder(
                             builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                     .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
 
@@ -273,6 +277,52 @@ public final class LockWatchValueIntegrationTest {
             assertLoadedValues(txn, ImmutableMap.of());
             return null;
         });
+    }
+
+    @Test
+    public void getRowsCachedValidatesCorrectly() {
+        createTransactionManager(1.0);
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2, CELL_3, DATA_3, CELL_4, DATA_4));
+            return null;
+        });
+
+        awaitUnlock();
+
+        Set<byte[]> rows = ImmutableSet.of(CELL_1.getRowName(), CELL_3.getRowName());
+        ColumnSelection columns =
+                ColumnSelection.create(ImmutableSet.of(CELL_1.getColumnName(), CELL_2.getColumnName()));
+
+        NavigableMap<byte[], RowResult<byte[]>> remoteRead = txnManager.runTaskThrowOnConflict(txn -> {
+            NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
+            assertHitValues(txn, ImmutableSet.of());
+            assertLoadedValues(
+                    txn,
+                    ImmutableMap.of(
+                            TABLE_CELL_1,
+                            CacheValue.of(DATA_1),
+                            TABLE_CELL_2,
+                            CacheValue.of(DATA_2),
+                            TABLE_CELL_3,
+                            CacheValue.of(DATA_3),
+                            TABLE_CELL_4,
+                            CacheValue.of(DATA_4)));
+            return read;
+        });
+
+        // New set of rows and columns to force new references (to test every part of the equality checking)
+        Set<byte[]> rows2 = ImmutableSet.of("bar".getBytes(), "eggs".getBytes());
+        ColumnSelection columns2 = ColumnSelection.create(ImmutableSet.of("baz".getBytes(), "spam".getBytes()));
+
+        NavigableMap<byte[], RowResult<byte[]>> cacheRead = txnManager.runTaskThrowOnConflict(txn -> {
+            NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows2, columns2);
+            assertHitValues(txn, ImmutableSet.of(TABLE_CELL_1, TABLE_CELL_2, TABLE_CELL_3, TABLE_CELL_4));
+            assertLoadedValues(txn, ImmutableMap.of());
+            return read;
+        });
+
+        assertThat(ByteArrayUtilities.areRowResultsEqual(remoteRead, cacheRead)).isTrue();
     }
 
     @Test

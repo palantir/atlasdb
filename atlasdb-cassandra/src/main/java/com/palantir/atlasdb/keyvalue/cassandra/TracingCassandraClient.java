@@ -84,7 +84,7 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
             throws InvalidRequestException, UnavailableException, TimedOutException, TException {
         int numberOfKeyPredicates = keyPredicates.size();
 
-        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.multiget_slice", sink -> {
+        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.multiget_multislice", sink -> {
             sink.tableRef(tableRef);
             sink.size("key_predicates", keyPredicates);
             sink.accept("consistency", consistency_level.name());

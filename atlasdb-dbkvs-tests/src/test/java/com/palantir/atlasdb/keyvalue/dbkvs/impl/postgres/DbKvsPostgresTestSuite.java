@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbKvsPostgresGetCandidateCellsForSweepingTest;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
@@ -39,11 +41,11 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-    DbkvsPostgresTargetedSweepIntegrationTest.class,
-    DbkvsPostgresKeyValueServiceTest.class,
-    DbkvsPostgresSerializableTransactionTest.class,
-    DbkvsPostgresSweepTaskRunnerTest.class,
-    DbkvsBackgroundSweeperIntegrationTest.class,
+    DbKvsPostgresTargetedSweepIntegrationTest.class,
+    DbKvsPostgresKeyValueServiceTest.class,
+    DbKvsPostgresSerializableTransactionTest.class,
+    DbKvsPostgresSweepTaskRunnerTest.class,
+    DbKvsBackgroundSweeperIntegrationTest.class,
     PostgresEmbeddedDbTimestampBoundStoreTest.class,
     PostgresMultiSeriesDbTimestampBoundStoreTest.class,
     PostgresMultiSequenceTimestampSeriesProviderTest.class,
@@ -53,18 +55,18 @@ import org.junit.runners.Suite.SuiteClasses;
     DbTimestampStoreInvalidatorCreationTest.class,
     HikariCpConnectionManagerTest.class,
 })
-public final class DbkvsPostgresTestSuite {
+public final class DbKvsPostgresTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;
 
-    private DbkvsPostgresTestSuite() {
+    private DbKvsPostgresTestSuite() {
         // Test suite
     }
 
     @ClassRule
     public static final DockerComposeRule docker = DockerComposeRule.builder()
-            .file("src/test/resources/docker-compose.yml")
+            .file("src/test/resources/docker-compose.postgres.yml")
             .waitingForService("postgres-dbkvs", Container::areAllPortsOpen)
-            .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbkvsPostgresTestSuite.class))
+            .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbKvsPostgresTestSuite.class))
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
 

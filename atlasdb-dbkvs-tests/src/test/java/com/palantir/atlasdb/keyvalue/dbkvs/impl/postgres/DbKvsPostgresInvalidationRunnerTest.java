@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.dbkvs.InvalidationRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
@@ -36,14 +37,14 @@ import org.junit.Test;
 
 public class DbKvsPostgresInvalidationRunnerTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
 
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
     private final TimestampBoundStore store = getStore();
     private final InvalidationRunner invalidationRunner = new InvalidationRunner(
             kvs.getConnectionManager(),
             AtlasDbConstants.TIMESTAMP_TABLE,
-            DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+            DbKvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
     private static final long TIMESTAMP_1 = 12000;
 
     @Before
@@ -99,7 +100,7 @@ public class DbKvsPostgresInvalidationRunnerTest {
         return InDbTimestampBoundStore.create(
                 kvs.getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,
-                DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+                DbKvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
     }
 
     private void assertBoundNotReadableAfterBeingPoisoned() {

@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Fix a bug where lock watch caching would fail validation for `getRows`
+    even when the results are the same.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5475
