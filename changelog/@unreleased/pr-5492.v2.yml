@@ -1,0 +1,15 @@
+type: improvement
+improvement:
+  description: |-
+    Make maxConnectionAge default 888 seconds (a little less than 15min)
+
+    **Goals (and why)**:
+    This is required so products don't need to override this value to achieve compliance with STIG/Fedramp O121-C2-016500
+    which requires idle timeout at 15 min. Hikari cautions that this value should be set "a few seconds less
+    than any server side enforcement" hence 888.
+
+
+    **Concerns (what feedback would you like?)**:
+    None - the drop of this value should have no real consequence at either client or DB server, as it only applies to connections that are fulfilling the minConnections constraint (which we set to 8). The vast majority of our connections are actually closed as a results of the maxIdleTime configuration (600).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5492
