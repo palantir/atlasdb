@@ -134,6 +134,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.annotations.ImmutablesStyles.NoStagedBuilderStyle;
 import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.time.Clock;
@@ -1501,6 +1502,7 @@ public abstract class TransactionManagers {
     }
 
     @Value.Immutable
+    @NoStagedBuilderStyle
     public interface LockAndTimestampServices {
         LockService lock();
 
