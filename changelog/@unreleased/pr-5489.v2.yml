@@ -1,0 +1,22 @@
+type: improvement
+improvement:
+  description: |-
+    Improve utility of SQLException logging
+
+    **Goals:**
+
+    SQLExceptions currently provide details of all bind variables, however for binary arrays which are used for all columns except timestamps, we just print the array object number. This isn't actually useful.
+
+    **Implementation Description:**
+
+    - We'll now print first 64 bytes in hex notation (with ... indicating truncation)
+    - Oracle's HEXTORAW can use this representation (quoted)
+    - Postgres' notation '\x'
+
+    ** Testing (What was existing testing like? What have you done to improve it?): **
+    N/A, N/A
+
+    Priority (whenever / two weeks / yesterday):
+    Low
+  links:
+  - https://github.com/palantir/atlasdb/pull/5489
