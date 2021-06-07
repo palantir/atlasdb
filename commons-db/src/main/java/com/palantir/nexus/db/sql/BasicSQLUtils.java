@@ -25,7 +25,6 @@ import java.io.ByteArrayInputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -329,17 +328,33 @@ public class BasicSQLUtils {
                         ByteArrayInputStream bais = (ByteArrayInputStream) arg;
                         byte[] bytes = new byte[bais.available()];
                         bais.read(bytes, 0, bais.available());
-                        sb.append(Arrays.toString(bytes));
+                        prettyPrintByteArray(sb, bytes);
+                    } else if (arg instanceof byte[]) {
+                        prettyPrintByteArray(sb, (byte[]) arg);
                     } else {
-                        sb.append(arg.toString());
+                        sb.append(arg);
                     }
                     sb.append("'"); // $NON-NLS-1$
                 }
-                if (i != args.length - 1) {
+                if (i != 0 && i != args.length - 1) {
                     sb.append(", ");
                 }
             }
             sb.append(")\n"); // $NON-NLS-1$
+        }
+    }
+
+    private static final int MAX_ARRAY_PRINT_BYTES = 64;
+
+    // Oracle use HEXTORAW('0f1f') to create a 2 byte RAW literal
+    // Postgres use '\\x0f1f' to create a 2 byte bytea literal
+    private static void prettyPrintByteArray(final StringBuilder sb, byte[] args) {
+        int printLength = Math.min(args.length, MAX_ARRAY_PRINT_BYTES);
+        for (int i = 0; i < printLength; i++) {
+            sb.append(String.format("%02x", args[i] & 0xff));
+        }
+        if (args.length > MAX_ARRAY_PRINT_BYTES) {
+            sb.append("...");
         }
     }
 
