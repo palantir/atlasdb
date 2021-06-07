@@ -79,7 +79,7 @@ public abstract class ConnectionConfig {
 
     @Value.Default
     public Integer getMaxConnectionAge() {
-        return 1800;
+        return 888;
     }
 
     @Value.Default
