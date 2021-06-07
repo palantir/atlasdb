@@ -36,6 +36,7 @@ public interface ImmutablesStyles {
     @Target({ElementType.PACKAGE, ElementType.TYPE})
     @Retention(RetentionPolicy.SOURCE)
     @Value.Style(stagedBuilder = false) // Intentional: used for e.g. inner classes of staged builder public classes.
+    @SuppressWarnings("RedundantModifier") // 
     @interface NoStagedBuilderStyle {}
 
     @Target({ElementType.PACKAGE, ElementType.TYPE})
