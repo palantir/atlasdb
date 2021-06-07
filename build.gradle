@@ -105,7 +105,6 @@ allprojects {
         options.compilerArgs += ['-Werror']
         // temporarily relax constraints until we can fix all violations
         options.errorprone.disable 'ArrayAsKeyOfSetOrMap',
-                'AssertionFailureIgnored',
                 'CacheLoaderNull',
                 'CatchBlockLogException',
                 'CatchFail',
