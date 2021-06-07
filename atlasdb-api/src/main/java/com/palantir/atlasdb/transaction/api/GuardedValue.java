@@ -16,10 +16,11 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@PackageVisibleImmutablesStyle
 /**
  * A GuardedValue represents a value with a limited validity window.
  *

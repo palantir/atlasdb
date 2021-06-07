@@ -16,11 +16,12 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@PackageVisibleImmutablesStyle
 public interface ValueAndLockWatchStateUpdate<T> {
     @Value.Parameter
     LockWatchStateUpdate lockWatchStateUpdate();

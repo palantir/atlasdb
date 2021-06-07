@@ -18,11 +18,12 @@ package com.palantir.lock.v2;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@PackageVisibleImmutablesStyle
 @JsonSerialize(as = ImmutableStartTransactionWithWatchesResponse.class)
 @JsonDeserialize(as = ImmutableStartTransactionWithWatchesResponse.class)
 public interface StartTransactionWithWatchesResponse {

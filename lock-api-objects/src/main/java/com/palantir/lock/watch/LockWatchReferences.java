@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.Range;
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.lock.AtlasLockDescriptorRanges;
 import com.palantir.lock.LockDescriptor;
 import org.immutables.value.Value;
@@ -78,7 +79,7 @@ public final class LockWatchReferences {
     }
 
     @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @PackageVisibleImmutablesStyle
     @JsonDeserialize(as = ImmutableEntireTable.class)
     @JsonSerialize(as = ImmutableEntireTable.class)
     @JsonTypeName(EntireTable.TYPE)
@@ -95,7 +96,7 @@ public final class LockWatchReferences {
     }
 
     @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @PackageVisibleImmutablesStyle
     @JsonDeserialize(as = ImmutableRowPrefix.class)
     @JsonSerialize(as = ImmutableRowPrefix.class)
     @JsonTypeName(RowPrefix.TYPE)
@@ -115,7 +116,7 @@ public final class LockWatchReferences {
     }
 
     @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @PackageVisibleImmutablesStyle
     @JsonDeserialize(as = ImmutableRowRange.class)
     @JsonSerialize(as = ImmutableRowRange.class)
     @JsonTypeName(RowRange.TYPE)
@@ -138,7 +139,7 @@ public final class LockWatchReferences {
     }
 
     @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @PackageVisibleImmutablesStyle
     @JsonDeserialize(as = ImmutableExactRow.class)
     @JsonSerialize(as = ImmutableExactRow.class)
     @JsonTypeName(ExactRow.TYPE)
@@ -158,7 +159,7 @@ public final class LockWatchReferences {
     }
 
     @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @PackageVisibleImmutablesStyle
     @JsonDeserialize(as = ImmutableExactCell.class)
     @JsonSerialize(as = ImmutableExactCell.class)
     @JsonTypeName(ExactCell.TYPE)

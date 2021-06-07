@@ -16,13 +16,14 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.lock.LockDescriptor;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@PackageVisibleImmutablesStyle
 public abstract class RowLockDescriptorMapping {
     abstract Map<LockDescriptor, RowReference> mapping();
 

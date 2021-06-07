@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.DoNotMock;
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import java.util.List;
@@ -63,7 +64,7 @@ public interface LockWatchStateUpdate {
      * last known version.
      */
     @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @PackageVisibleImmutablesStyle
     @JsonSerialize(as = ImmutableSuccess.class)
     @JsonDeserialize(as = ImmutableSuccess.class)
     @JsonTypeName(Success.TYPE)
@@ -87,7 +88,7 @@ public interface LockWatchStateUpdate {
      * missed, but contains all of the current lock watch information as the state of the world moving forward.
      */
     @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @PackageVisibleImmutablesStyle
     @JsonSerialize(as = ImmutableSnapshot.class)
     @JsonDeserialize(as = ImmutableSnapshot.class)
     @JsonTypeName(Snapshot.TYPE)
