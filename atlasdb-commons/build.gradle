@@ -15,7 +15,6 @@ dependencies {
     compileOnly 'org.immutables:value::annotations'
 
     testAnnotationProcessor group: 'org.immutables', name: 'value'
-    testCompileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'
