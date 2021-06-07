@@ -1,5 +1,5 @@
 type: improvement
 improvement:
-  description: Immutables annotations now have source retention.
+  description: Immutables style annotations now have source retention.
   links:
   - https://github.com/palantir/atlasdb/pull/5494
