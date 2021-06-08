@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Print byte[]/ByteArrayInputStream SQL bind arg contents in SQLExceptions
+  links:
+  - https://github.com/palantir/atlasdb/pull/5489
