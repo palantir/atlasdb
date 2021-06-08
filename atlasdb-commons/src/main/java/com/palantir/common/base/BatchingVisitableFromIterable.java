@@ -18,9 +18,11 @@ package com.palantir.common.base;
 import com.google.common.collect.Iterables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
-import com.palantir.common.proxy.SingleCallProxy;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 public class BatchingVisitableFromIterable<T> extends AbstractBatchingVisitable<T> {
 
@@ -40,10 +42,8 @@ public class BatchingVisitableFromIterable<T> extends AbstractBatchingVisitable<
      * This creates a one time use visitable.  The only proper use of the returned class is to call
      * accept on it directly and never reference it again.
      */
-    @SuppressWarnings("unchecked")
     public static <T> BatchingVisitable<T> create(final Iterator<? extends T> iterator) {
-        return SingleCallProxy.newProxyInstance(
-                BatchingVisitable.class, create((Iterable<T>) () -> IteratorUtils.wrap(iterator)));
+        return new SingleCallBatchingVisitable<>(create(() -> IteratorUtils.wrap(iterator)));
     }
 
     @Override
@@ -57,6 +57,36 @@ public class BatchingVisitableFromIterable<T> extends AbstractBatchingVisitable<
             if (!v.visit(list)) {
                 return;
             }
+        }
+    }
+
+    private static final class SingleCallBatchingVisitable<T> implements BatchingVisitable<T> {
+
+        @SuppressWarnings("rawtypes")
+        private static final AtomicReferenceFieldUpdater<SingleCallBatchingVisitable, BatchingVisitable>
+                delegateUpdater = AtomicReferenceFieldUpdater.newUpdater(
+                        SingleCallBatchingVisitable.class, BatchingVisitable.class, "delegate");
+
+        private volatile BatchingVisitable<T> delegate;
+
+        SingleCallBatchingVisitable(BatchingVisitable<T> delegate) {
+            this.delegate = Preconditions.checkNotNull(delegate, "Delegate BatchingVisitable is required");
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> visitor)
+                throws K {
+            BatchingVisitable<T> current = (BatchingVisitable<T>) delegateUpdater.getAndSet(this, null);
+            if (current == null) {
+                throw new SafeIllegalStateException("This class has already been called once before");
+            }
+            return current.batchAccept(batchSize, visitor);
+        }
+
+        @Override
+        public String toString() {
+            return "SingleCallBatchingVisitable{" + delegate + '}';
         }
     }
 }
