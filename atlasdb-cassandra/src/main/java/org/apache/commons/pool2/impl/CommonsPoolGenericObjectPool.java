@@ -18,6 +18,8 @@
 // This file is originally from Apache Commons-Pool 2.9.0 and is copied here to allow us to inject additional telemetry.
 package org.apache.commons.pool2.impl;
 
+import com.palantir.atlasdb.AtlasDbObjectPoolLogging;
+import com.palantir.logsafe.SafeArg;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -87,7 +89,8 @@ import org.slf4j.LoggerFactory;
 public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
         implements ObjectPool<T>, GenericObjectPoolMXBean, UsageTracking<T> {
     // CHANGELOG: Added logger
-    private static final Logger log = LoggerFactory.getLogger(CommonsPoolGenericObjectPool.class);
+    // Intentional to avoid issues with unsafe origins. All usages of the logger in this class are controlled by us.
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbObjectPoolLogging.class);
 
     /**
      * Creates a new {@code GenericObjectPool} using defaults from
@@ -774,14 +777,31 @@ public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
                     } catch (final NoSuchElementException nsee) {
                         // Object was borrowed in another thread
                         // Don't count this as an eviction test so reduce i;
+                        // CHANGELOG: Additional logging
+                        if (log.isDebugEnabled()) {
+                            log.debug("Not counting an eviction candidate, because we believe it was borrowed in "
+                                    + "another thread", nsee);
+                        }
                         i--;
                         evictionIterator = null;
                         continue;
                     }
 
+                    // CHANGELOG: Declaration of a variable to check the object's state before starting eviction.
+                    PooledObjectState preTestState = underTest.getState();
+
                     if (!underTest.startEvictionTest()) {
                         // Object was borrowed in another thread
                         // Don't count this as an eviction test so reduce i;
+                        // CHANGELOG: Additional logging
+                        if (log.isDebugEnabled()) {
+                            log.debug("Not counting an eviction candidate, because we weren't able to start an "
+                                            + "eviction test as the object was not in the state we expected. Note "
+                                            + "that the  state read here may not be the state that was read when we "
+                                            + "attempted to start eviction.",
+                                    SafeArg.of("preTestState", preTestState),
+                                    SafeArg.of("postTestState", underTest.getState()));
+                        }
                         i--;
                         continue;
                     }
