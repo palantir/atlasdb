@@ -354,6 +354,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                         SafeArg.of("underTestState", underTest.getState()),
                         SafeArg.of("idleState", underTest.getIdleTimeMillis()));
             }
+
             boolean delegateResult = delegate.evict(config, underTest, idleCount);
             // PDS-146088: the issue manifests with failures to evict anything
             if (log.isDebugEnabled()) {

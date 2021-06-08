@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -756,6 +757,9 @@ public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
     public void evict() throws Exception {
         assertOpen();
 
+        // CHANGELOG: Have mechanism for identifying a single eviction call
+        UUID runUuid = UUID.randomUUID();
+
         if (idleObjects.size() > 0) {
 
             PooledObject<T> underTest = null;
@@ -786,7 +790,11 @@ public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
                         // CHANGELOG: Additional logging
                         if (log.isDebugEnabled()) {
                             log.debug("Not counting an eviction candidate, because we believe it was borrowed in "
-                                    + "another thread", nsee);
+                                    + "another thread",
+                                    SafeArg.of("runUuid", runUuid),
+                                    SafeArg.of("currentTest", i),
+                                    SafeArg.of("maxTests", m),
+                                    nsee);
                         }
                         i--;
                         evictionIterator = null;
@@ -803,8 +811,11 @@ public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
                         if (log.isDebugEnabled()) {
                             log.debug("Not counting an eviction candidate, because we weren't able to start an "
                                             + "eviction test as the object was not in the state we expected. Note "
-                                            + "that the  state read here may not be the state that was read when we "
+                                            + "that the state read here may not be the state that was read when we "
                                             + "attempted to start eviction.",
+                                    SafeArg.of("runUuid", runUuid),
+                                    SafeArg.of("currentTest", i),
+                                    SafeArg.of("maxTests", m),
                                     SafeArg.of("preTestState", preTestState),
                                     SafeArg.of("postTestState", underTest.getState()));
                         }
