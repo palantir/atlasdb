@@ -45,7 +45,7 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
 import org.apache.commons.pool2.impl.EvictionConfig;
 import org.apache.commons.pool2.impl.EvictionPolicy;
-import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.CommonsPoolGenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TMemoryInputTransport;
@@ -62,7 +62,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private final MetricsManager metricsManager;
     private final AtomicLong count = new AtomicLong();
     private final AtomicInteger openRequests = new AtomicInteger();
-    private final GenericObjectPool<CassandraClient> clientPool;
+    private final CommonsPoolGenericObjectPool<CassandraClient> clientPool;
     private final int poolNumber;
     private final CassandraClientPoolMetrics poolMetrics;
     private final TimedRunner timedRunner;
@@ -265,7 +265,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
      *       while still keeping a minimum number of idle connections around for fast borrows.
      */
-    private GenericObjectPool<CassandraClient> createClientPool() {
+    private CommonsPoolGenericObjectPool<CassandraClient> createClientPool() {
         CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(metricsManager, host, config);
         GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 
@@ -294,7 +294,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
         poolConfig.setJmxNamePrefix(CassandraLogHelper.host(host));
         poolConfig.setEvictionPolicy(new NonEvictionLoggingEvictionPolicy<>(new DefaultEvictionPolicy<>()));
-        GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
+        CommonsPoolGenericObjectPool<CassandraClient>
+                pool = new CommonsPoolGenericObjectPool<>(cassandraClientFactory, poolConfig);
         pool.setSwallowedExceptionListener(exception -> log.info("Swallowed exception within object pool", exception));
         registerMetrics(pool);
         log.info(
@@ -327,7 +328,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         }
     }
 
-    private void registerMetrics(GenericObjectPool<CassandraClient> pool) {
+    private void registerMetrics(CommonsPoolGenericObjectPool<CassandraClient> pool) {
         registerPoolMetric(CassandraClientPoolHostLevelMetric.MEAN_ACTIVE_TIME_MILLIS, pool::getMeanActiveTimeMillis);
         registerPoolMetric(CassandraClientPoolHostLevelMetric.NUM_IDLE, () -> (long) pool.getNumIdle());
         registerPoolMetric(CassandraClientPoolHostLevelMetric.NUM_ACTIVE, () -> (long) pool.getNumActive());
@@ -348,6 +349,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
         @Override
         public boolean evict(EvictionConfig config, PooledObject<T> underTest, int idleCount) {
+            if (log.isDebugEnabled()) {
+                log.debug("Beginning an eviction attempt from the Cassandra client pool",
+                        SafeArg.of("underTestState", underTest.getState()),
+                        SafeArg.of("idleState", underTest.getIdleTimeMillis()));
+            }
             boolean delegateResult = delegate.evict(config, underTest, idleCount);
             // PDS-146088: the issue manifests with failures to evict anything
             if (log.isDebugEnabled()) {
