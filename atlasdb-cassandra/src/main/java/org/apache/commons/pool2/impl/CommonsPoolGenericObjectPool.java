@@ -87,7 +87,7 @@ import org.slf4j.LoggerFactory;
  */
 // CHANGELOG: Class name changed.
 // CHANGELOG: Suppress linter.
-@SuppressWarnings("checkstyle:all") // No reason to impose internal style rules on external copied files.
+@SuppressWarnings("all") // No reason to impose internal rules or Werror on external copied things
 public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
         implements ObjectPool<T>, GenericObjectPoolMXBean, UsageTracking<T> {
     // CHANGELOG: Added logger
