@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock;
 
+import com.palantir.common.annotations.ImmutablesStyles.AttributeBuilderDetectionStyle;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -26,7 +27,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Enclosing
-@Value.Style(attributeBuilderDetection = true)
+@AttributeBuilderDetectionStyle
 public interface TemplateVariables {
     int PROXY_OFFSET = 100;
 

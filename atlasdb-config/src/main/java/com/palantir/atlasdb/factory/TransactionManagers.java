@@ -134,6 +134,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.annotations.ImmutablesStyles.NoStagedBuilderStyle;
+import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
@@ -210,7 +212,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Value.Immutable
-@Value.Style(stagedBuilder = true)
+@StagedBuilderStyle
 public abstract class TransactionManagers {
     private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
@@ -1500,7 +1502,7 @@ public abstract class TransactionManagers {
     }
 
     @Value.Immutable
-    @Value.Style(stagedBuilder = false)
+    @NoStagedBuilderStyle
     public interface LockAndTimestampServices {
         LockService lock();
 

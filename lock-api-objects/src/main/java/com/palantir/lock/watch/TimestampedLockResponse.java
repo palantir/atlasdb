@@ -18,12 +18,13 @@ package com.palantir.lock.watch;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.lock.v2.LockResponse;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@PackageVisibleImmutablesStyle
 @JsonSerialize(as = ImmutableTimestampedLockResponse.class)
 @JsonDeserialize(as = ImmutableTimestampedLockResponse.class)
 public interface TimestampedLockResponse {

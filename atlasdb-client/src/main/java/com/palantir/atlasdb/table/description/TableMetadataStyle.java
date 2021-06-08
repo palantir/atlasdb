@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.paxos;
+package com.palantir.atlasdb.table.description;
 
-import com.google.common.net.HostAndPort;
-import com.palantir.common.annotations.ImmutablesStyles.AllParametersStyle;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import org.immutables.value.Value;
 
-@Value.Immutable
-@AllParametersStyle
-public interface LeaderPingerContext<T> {
-    T pinger();
-
-    HostAndPort hostAndPort();
-}
+@Target({ElementType.PACKAGE, ElementType.TYPE})
+@Retention(RetentionPolicy.SOURCE)
+@Value.Style(get = {"get*", "is*", "has*"})
+public @interface TableMetadataStyle {}

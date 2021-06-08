@@ -28,6 +28,7 @@ import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -190,7 +191,7 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
     }
 
     @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @PackageVisibleImmutablesStyle
     interface CacheDescriptor {
         AtomicInteger currentSize();
 

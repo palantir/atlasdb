@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.persistent.api;
 
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,7 @@ public interface PersistentStore extends AutoCloseable {
      * PostgreSQL table or RocksdDb column family. Handle is linked with one underlying store space.
      */
     @Value.Immutable
-    @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+    @PackageVisibleImmutablesStyle
     interface Handle {
         UUID id();
 
