@@ -30,7 +30,7 @@ plugins {
     id 'com.google.protobuf' version '0.8.16'
 }
 
-apply plugin: 'com.palantir.baseline'
+// apply plugin: 'com.palantir.baseline'
 apply plugin: 'com.palantir.git-version'
 apply plugin: 'com.palantir.external-publish'
 
