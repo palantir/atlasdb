@@ -54,6 +54,9 @@ fi
 
 if [ $CIRCLE_NODE_INDEX -eq 9 ] || [ $CIRCLE_NODE_INDEX -eq 10 ]; then
     printenv DOCKERHUB_PASSWORD | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+    # The oracle container is very large and takes a long time to pull.
+    # If this image is not pulled here, the circle build usually times out.
+    docker-compose -f atlasdb-dbkvs-tests/src/test/resources/docker-compose.oracle.yml pull oracle
 fi
 
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+HeapDumpOnOutOfMemoryError"
