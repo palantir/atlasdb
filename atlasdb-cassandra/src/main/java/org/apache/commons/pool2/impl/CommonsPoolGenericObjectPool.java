@@ -86,8 +86,12 @@ import org.slf4j.LoggerFactory;
  * @since 2.0
  */
 // CHANGELOG: Class name changed.
-// CHANGELOG: Suppress linter.
-@SuppressWarnings("all") // No reason to impose internal rules or Werror on external copied things
+// CHANGELOG: Suppress warnings.
+@SuppressWarnings({
+        "LoggerEnclosingClass",
+        "UnnecessaryParentheses",
+        "CatchAndPrintStackTrace"
+}) // No reason to impose internal rules or Werror on external copied things
 public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
         implements ObjectPool<T>, GenericObjectPoolMXBean, UsageTracking<T> {
     // CHANGELOG: Added logger
