@@ -336,7 +336,7 @@ public class BasicSQLUtils {
                     }
                     sb.append("'"); // $NON-NLS-1$
                 }
-                if (i != 0 && i != args.length - 1) {
+                if (i != args.length - 1) {
                     sb.append(", ");
                 }
             }
@@ -348,12 +348,12 @@ public class BasicSQLUtils {
 
     // Oracle use HEXTORAW('0f1f') to create a 2 byte RAW literal
     // Postgres use '\\x0f1f' to create a 2 byte bytea literal
-    private static void prettyPrintByteArray(final StringBuilder sb, byte[] args) {
-        int printLength = Math.min(args.length, MAX_ARRAY_PRINT_BYTES);
+    private static void prettyPrintByteArray(final StringBuilder sb, byte[] arg) {
+        int printLength = Math.min(arg.length, MAX_ARRAY_PRINT_BYTES);
         for (int i = 0; i < printLength; i++) {
-            sb.append(String.format("%02x", args[i] & 0xff));
+            sb.append(String.format("%02x", arg[i] & 0xff));
         }
-        if (args.length > MAX_ARRAY_PRINT_BYTES) {
+        if (arg.length > MAX_ARRAY_PRINT_BYTES) {
             sb.append("...");
         }
     }
