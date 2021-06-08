@@ -92,3 +92,6 @@ recommendedProductDependencies {
         maximumVersion = '6.x.x'
     }
 }
+
+// Kind of crap, but this would mangle the license in CPGOP which isn't allowed.
+spotlessJavaCheck.enabled = false
