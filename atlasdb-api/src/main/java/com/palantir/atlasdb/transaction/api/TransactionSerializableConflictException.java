@@ -20,8 +20,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public class TransactionSerializableConflictException extends TransactionFailedRetriableException {
     private static final long serialVersionUID = 1L;
 
-    public TransactionSerializableConflictException(String message) {
+    private final TableReference conflictingTable;
+
+    public TransactionSerializableConflictException(String message, TableReference conflictingTable) {
         super(message);
+        this.conflictingTable = conflictingTable;
     }
 
     public static TransactionSerializableConflictException create(
@@ -31,6 +34,10 @@ public class TransactionSerializableConflictException extends TransactionFailedR
                         + " and another transaction wrote a different value than this transaction read.  startTs: %d "
                         + " elapsedMillis: %d",
                 tableRef.getQualifiedName(), timestamp, elapsedMillis);
-        return new TransactionSerializableConflictException(msg);
+        return new TransactionSerializableConflictException(msg, tableRef);
+    }
+
+    public TableReference getConflictingTable() {
+        return conflictingTable;
     }
 }
