@@ -3,7 +3,8 @@ apply from: "../../gradle/shared.gradle"
 dependencies {
     api 'org.apache.commons:commons-pool2'
 
-    testCompile group: 'org.assertj', name: 'assertj-core'
+    implementation group: 'org.slf4j', name: 'slf4j-api'
+    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
 }
 
 // This is required to avoid mangling the license while still being able to run this project-wide

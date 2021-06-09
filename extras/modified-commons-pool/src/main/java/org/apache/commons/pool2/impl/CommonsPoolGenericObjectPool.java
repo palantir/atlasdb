@@ -18,6 +18,7 @@
 // This file is originally from Apache Commons-Pool 2.9.0 and is copied here to allow us to inject additional telemetry.
 package org.apache.commons.pool2.impl;
 
+import com.palantir.logsafe.SafeArg;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,6 +37,8 @@ import org.apache.commons.pool2.PooledObjectState;
 import org.apache.commons.pool2.SwallowedExceptionListener;
 import org.apache.commons.pool2.TrackedUse;
 import org.apache.commons.pool2.UsageTracking;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A configurable {@link ObjectPool} implementation.
@@ -91,6 +94,8 @@ import org.apache.commons.pool2.UsageTracking;
 }) // No reason to impose internal rules or Werror on external copied things
 public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
         implements ObjectPool<T>, GenericObjectPoolMXBean, UsageTracking<T> {
+    // CHANGELOG: Added logger
+    private static final Logger log = LoggerFactory.getLogger(CommonsPoolGenericObjectPool.class);
 
     /**
      * Creates a new {@code GenericObjectPool} using defaults from
@@ -805,37 +810,66 @@ public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
                         evict = false;
                     }
 
-                    if (evict) {
-                        destroy(underTest, DestroyMode.NORMAL);
-                        destroyedByEvictorCount.incrementAndGet();
-                    } else {
-                        if (testWhileIdle) {
-                            boolean active = false;
-                            try {
-                                factory.activateObject(underTest);
-                                active = true;
-                            } catch (final Exception e) {
-                                destroy(underTest, DestroyMode.NORMAL);
-                                destroyedByEvictorCount.incrementAndGet();
-                            }
-                            if (active) {
-                                if (!factory.validateObject(underTest)) {
+                    // CHANGELOG: Be extremely defensive in this part - exception handling and logging added.
+                    try {
+                        if (evict) {
+                            destroy(underTest, DestroyMode.NORMAL);
+                            destroyedByEvictorCount.incrementAndGet();
+                        } else {
+                            if (testWhileIdle) {
+                                boolean active = false;
+                                try {
+                                    factory.activateObject(underTest);
+                                    active = true;
+                                } catch (final Exception e) {
                                     destroy(underTest, DestroyMode.NORMAL);
                                     destroyedByEvictorCount.incrementAndGet();
-                                } else {
+                                }
+                                if (active) {
+                                    // CHANGELOG: Catch user exceptions in validation and treat an object that throws in
+                                    // validation as needing to be destroyed. In the base version this will have caused
+                                    // an illegal state.
+                                    boolean objectValidated;
                                     try {
-                                        factory.passivateObject(underTest);
-                                    } catch (final Exception e) {
+                                        objectValidated = factory.validateObject(underTest);
+                                    } catch (Exception e) {
+                                        log.warn("Object threw an exception during validation. In the base version of "
+                                                        + "pool it appears this WILL have caused an illegal state.",
+                                                SafeArg.of("objectIdentity", System.identityHashCode(underTest)),
+                                                e);
+                                        objectValidated = false;
+                                    }
+                                    if (!objectValidated) {
                                         destroy(underTest, DestroyMode.NORMAL);
                                         destroyedByEvictorCount.incrementAndGet();
+                                    } else {
+                                        try {
+                                            factory.passivateObject(underTest);
+                                        } catch (final Exception e) {
+                                            destroy(underTest, DestroyMode.NORMAL);
+                                            destroyedByEvictorCount.incrementAndGet();
+                                        }
                                     }
                                 }
                             }
+                            if (!underTest.endEvictionTest(idleObjects)) {
+                                // TODO - May need to add code here once additional
+                                // states are used
+
+                                // CHANGELOG: Logging added
+                                log.info("An eviction test completed, but we weren't able to set the state back to "
+                                        + "IDLE.",
+                                        SafeArg.of("currentObjectState", underTest.getState()),
+                                        SafeArg.of("isObjectStillConsideredIdle",
+                                                idleObjects.contains(underTest)));
+                            }
                         }
-                        if (!underTest.endEvictionTest(idleObjects)) {
-                            // TODO - May need to add code here once additional
-                            // states are used
-                        }
+                    } catch (Exception e) {
+                        log.info("An exception was thrown on the main part of the evictor thread.",
+                                SafeArg.of("objectState", underTest.getState()),
+                                SafeArg.of("isObjectStillConsideredIdle", idleObjects.contains(underTest)),
+                                e);
+                        throw e;
                     }
                 }
             }
