@@ -38,6 +38,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -220,7 +221,7 @@ public class TestableTimelockCluster implements TestRule {
             leader.start();
 
             return !currentLeaderFor(namespace).equals(leader);
-        } catch (Throwable t) {
+        } catch (NoSuchElementException e) {
             return false;
         }
     }
