@@ -791,6 +791,14 @@ public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
                         // Object was borrowed in another thread
                         // Don't count this as an eviction test so reduce i;
                         i--;
+
+                        // CHANGELOG: Added logging.
+                        if (log.isDebugEnabled()) {
+                            log.debug("We couldn't start an eviction test, possibly because it was borrowed in "
+                                    + "another thread or because of an illegal state.",
+                                    SafeArg.of("objectIdentity", System.identityHashCode(underTest)),
+                                    SafeArg.of("currentObjectState", underTest.getState()));
+                        }
                         continue;
                     }
 
