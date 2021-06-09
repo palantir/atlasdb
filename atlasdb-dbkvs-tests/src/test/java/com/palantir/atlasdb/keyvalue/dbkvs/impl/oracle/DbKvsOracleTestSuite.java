@@ -38,6 +38,7 @@ import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
 import java.net.InetSocketAddress;
+import java.sql.Connection;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
@@ -162,16 +163,11 @@ public final class DbKvsOracleTestSuite {
 
     private static Callable<Boolean> canCreateKeyValueService() {
         return () -> {
-            ConnectionManagerAwareDbKvs kvs = null;
-            try {
-                kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
-                return kvs.getConnectionManager().getConnection().isValid(5);
+            try (ConnectionManagerAwareDbKvs kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
+                    Connection conn = kvs.getConnectionManager().getConnection()) {
+                return conn.isValid(5);
             } catch (Exception e) {
                 return false;
-            } finally {
-                if (kvs != null) {
-                    kvs.close();
-                }
             }
         };
     }

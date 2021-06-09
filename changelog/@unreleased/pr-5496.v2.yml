@@ -1,0 +1,10 @@
+type: fix
+fix:
+  description: |-
+    Removes unused docker environment variables and an unused port from the
+    oracle docker config. Also fixes a connection leak in the test setup
+    code (connections must be closed).
+
+    Also update to the latest patch version of oracle.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5496
