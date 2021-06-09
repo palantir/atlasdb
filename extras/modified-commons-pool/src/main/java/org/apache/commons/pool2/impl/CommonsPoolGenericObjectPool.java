@@ -836,6 +836,9 @@ public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
                                         log.warn("Object threw an exception during validation. In the base version of "
                                                         + "pool it appears this WILL have caused an illegal state.",
                                                 SafeArg.of("objectIdentity", System.identityHashCode(underTest)),
+                                                SafeArg.of("objectState", underTest.getState()),
+                                                SafeArg.of("isObjectStillConsideredIdle", idleObjects.contains(
+                                                        underTest)),
                                                 e);
                                         objectValidated = false;
                                     }
