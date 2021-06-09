@@ -14,9 +14,10 @@ dependencies {
   explicitShadow project(":atlasdb-client")
   explicitShadow project(":atlasdb-processors")
   explicitShadow project(":atlasdb-api")
-  explicitShadow project(":commons-api")
-  explicitShadow project(':timestamp-impl')
   explicitShadow project(":atlasdb-impl-shared")
+  explicitShadow project(":commons-api")
+  explicitShadow project(":extras:modified-commons-pool")
+  explicitShadow project(':timestamp-impl')
 
   explicitShadow ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
     exclude group: 'org.apache.httpcomponents'

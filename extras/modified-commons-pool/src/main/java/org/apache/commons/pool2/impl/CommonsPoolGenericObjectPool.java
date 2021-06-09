@@ -82,6 +82,13 @@ import org.apache.commons.pool2.UsageTracking;
  * @since 2.0
  */
 // CHANGELOG: Class name changed.
+// CHANGELOG: Suppress warnings.
+@SuppressWarnings({
+        "LoggerEnclosingClass",
+        "UnnecessaryParentheses",
+        "CatchAndPrintStackTrace",
+        "checkstyle:all"
+}) // No reason to impose internal rules or Werror on external copied things
 public class CommonsPoolGenericObjectPool<T> extends BaseGenericObjectPool<T>
         implements ObjectPool<T>, GenericObjectPoolMXBean, UsageTracking<T> {
 
