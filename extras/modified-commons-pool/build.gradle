@@ -5,3 +5,7 @@ dependencies {
 
     testCompile group: 'org.assertj', name: 'assertj-core'
 }
+
+// This is required to avoid mangling the license while still being able to run this project-wide
+spotlessApply.enabled = false
+spotlessJavaCheck.enabled = false
