@@ -80,6 +80,7 @@ public final class TransactionConflictException extends TransactionFailedRetriab
 
     private final ImmutableList<CellConflict> spanningWrites;
     private final ImmutableList<CellConflict> dominatingWrites;
+    private final TableReference conflictingTable;
 
     /**
      * These conflicts had a start timestamp before our start and a commit timestamp after our start.
@@ -94,6 +95,10 @@ public final class TransactionConflictException extends TransactionFailedRetriab
      */
     public Collection<CellConflict> getDominatingWrites() {
         return dominatingWrites;
+    }
+
+    public TableReference getConflictingTable() {
+        return conflictingTable;
     }
 
     public static TransactionConflictException create(
@@ -122,7 +127,7 @@ public final class TransactionConflictException extends TransactionFailedRetriab
             formatConflicts(dominatingWrites, sb);
             sb.append('\n');
         }
-        return new TransactionConflictException(sb.toString(), spanningWrites, dominatingWrites);
+        return new TransactionConflictException(sb.toString(), spanningWrites, dominatingWrites, tableRef);
     }
 
     private static void formatConflicts(Collection<CellConflict> conflicts, StringBuilder sb) {
@@ -136,9 +141,13 @@ public final class TransactionConflictException extends TransactionFailedRetriab
     }
 
     private TransactionConflictException(
-            String message, Collection<CellConflict> spanningWrites, Collection<CellConflict> dominatingWrites) {
+            String message,
+            Collection<CellConflict> spanningWrites,
+            Collection<CellConflict> dominatingWrites,
+            TableReference conflictingTable) {
         super(message);
         this.spanningWrites = ImmutableList.copyOf(spanningWrites);
         this.dominatingWrites = ImmutableList.copyOf(dominatingWrites);
+        this.conflictingTable = conflictingTable;
     }
 }

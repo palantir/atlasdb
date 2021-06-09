@@ -924,11 +924,13 @@ public class SerializableTransaction extends SnapshotTransaction {
                             // should just fail out early.  It may be the case that abort more transactions
                             // than needed to break the deadlock cycle, but this should be pretty rare.
                             transactionOutcomeMetrics.markReadWriteConflict(tableRef);
-                            throw new TransactionSerializableConflictException("An uncommitted conflicting read was "
-                                    + "written after our start timestamp for table "
-                                    + tableRef + ".  "
-                                    + "This case can cause deadlock and is very likely to be a "
-                                    + "read write conflict.");
+                            throw new TransactionSerializableConflictException(
+                                    "An uncommitted conflicting read was "
+                                            + "written after our start timestamp for table "
+                                            + tableRef + ".  "
+                                            + "This case can cause deadlock and is very likely to be a "
+                                            + "read write conflict.",
+                                    tableRef);
                         },
                         MoreExecutors.directExecutor());
             }
