@@ -1,0 +1,7 @@
+apply from: "../../gradle/shared.gradle"
+
+dependencies {
+    api 'org.apache.commons:commons-pool2'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+}

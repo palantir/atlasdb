@@ -180,7 +180,7 @@ subprojects {
 }
 
 afterEvaluate {
-    configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
+    configure(subprojects.findAll {!it.getPath().startsWith(":examples") && it.getPath() != ":extras"}) {
         if (!project.plugins.hasPlugin('com.palantir.external-publish-dist')) {
             apply from: "$rootDir/gradle/publish-jars.gradle"
         }
