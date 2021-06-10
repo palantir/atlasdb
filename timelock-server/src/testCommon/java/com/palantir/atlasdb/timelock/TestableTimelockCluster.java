@@ -38,6 +38,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -202,7 +203,7 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     void failoverToNewLeader(String namespace) {
-        int maxTries = 5;
+        int maxTries = 8;
         for (int i = 0; i < maxTries; i++) {
             if (tryFailoverToNewLeader(namespace)) {
                 return;
@@ -213,12 +214,16 @@ public class TestableTimelockCluster implements TestRule {
     }
 
     private boolean tryFailoverToNewLeader(String namespace) {
-        TestableTimelockServer leader = currentLeaderFor(namespace);
-        leader.killSync();
-        waitUntilLeaderIsElected(ImmutableList.of(namespace));
-        leader.start();
+        try {
+            TestableTimelockServer leader = currentLeaderFor(namespace);
+            leader.killSync();
+            waitUntilLeaderIsElected(ImmutableList.of(namespace));
+            leader.start();
 
-        return !currentLeaderFor(namespace).equals(leader);
+            return !currentLeaderFor(namespace).equals(leader);
+        } catch (NoSuchElementException e) {
+            return false;
+        }
     }
 
     Set<TestableTimelockServer> servers() {
