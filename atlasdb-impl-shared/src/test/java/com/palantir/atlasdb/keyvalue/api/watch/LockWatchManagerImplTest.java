@@ -31,7 +31,9 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import java.time.Duration;
 import java.util.Set;
+import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,8 +80,13 @@ public final class LockWatchManagerImplTest {
                 ImmutableSet.of(schema),
                 lockWatchingService,
                 LockWatchCachingConfig.builder().build());
-        verify(lockWatchingService, atLeastOnce())
-                .startWatching(LockWatchRequest.builder().references(fromSchema).build());
+        Awaitility.await("waiting for thread to start watching")
+                .atMost(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofMillis(100L))
+                .untilAsserted(() -> verify(lockWatchingService, atLeastOnce())
+                        .startWatching(LockWatchRequest.builder()
+                                .references(fromSchema)
+                                .build()));
     }
 
     @Test
