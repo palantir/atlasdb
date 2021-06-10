@@ -1,4 +1,4 @@
-FROM openjdk:8u131-jre
+FROM openjdk:11
 
 ENV DOCKERIZE_VERSION v0.2.0
 
