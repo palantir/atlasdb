@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add logging to the internal state machine of the Cassandra object pool.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5499
