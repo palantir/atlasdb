@@ -20,11 +20,24 @@ package org.apache.commons.pool2.impl;
 
 import com.palantir.atlasdb.ObjectPoolLogging;
 import com.palantir.logsafe.SafeArg;
-import org.apache.commons.pool2.*;
+import org.apache.commons.pool2.DestroyMode;
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.PoolUtils;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.PooledObjectFactory;
+import org.apache.commons.pool2.PooledObjectState;
+import org.apache.commons.pool2.SwallowedExceptionListener;
+import org.apache.commons.pool2.TrackedUse;
+import org.apache.commons.pool2.UsageTracking;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
