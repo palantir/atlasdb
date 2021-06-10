@@ -235,7 +235,6 @@ fi
 
 # GC logging options
 JVM_OPTS="$JVM_OPTS -XX:+PrintGCDetails"
-JVM_OPTS="$JVM_OPTS -XX:+PrintGCDateStamps"
 JVM_OPTS="$JVM_OPTS -XX:+PrintHeapAtGC"
 JVM_OPTS="$JVM_OPTS -XX:+PrintTenuringDistribution"
 JVM_OPTS="$JVM_OPTS -XX:+PrintGCApplicationStoppedTime"
