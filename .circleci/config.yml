@@ -3,7 +3,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/openjdk:11.0.10-node
+      - image: cimg/openjdk:11.0.10-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -63,7 +63,7 @@ jobs:
           name: Install Java
           command: |
               sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
-              curl https://cdn.azul.com/zulu/bin/zulu8.38.0.13-ca-jdk8.0.212-linux_x64.tar.gz | tar -xzf - -C /opt/java
+              curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
               sudo ln -s /opt/java/zulu*/ /opt/java8
       - run:
           command: ./scripts/circle-ci/run-circle-tests.sh
@@ -86,7 +86,7 @@ jobs:
 
   trial-publish:
     docker:
-      - image: circleci/openjdk:11.0.10-node
+      - image: cimg/openjdk:11.0.10-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -99,7 +99,7 @@ jobs:
 
   deploy:
     docker:
-      - image: circleci/openjdk:11.0.10-node
+      - image: cimg/openjdk:11.0.10-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
