@@ -3,11 +3,11 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/openjdk:8u212-jdk-stretch-node
+      - image: cimg/openjdk:11.0.10-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -Xlog:gc -Xlog:gc* -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
 
     steps:
       - checkout
@@ -39,7 +39,7 @@ jobs:
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       JAVA_HOME: /opt/java8
-      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -Xlog:gc -Xlog:gc* -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
       CIRCLE_TEST_REPORTS: /home/circleci/junit
       CIRCLE_ARTIFACTS: /home/circleci/artifacts
 
@@ -63,7 +63,7 @@ jobs:
           name: Install Java
           command: |
               sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
-              curl https://cdn.azul.com/zulu/bin/zulu8.38.0.13-ca-jdk8.0.212-linux_x64.tar.gz | tar -xzf - -C /opt/java
+              curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
               sudo ln -s /opt/java/zulu*/ /opt/java8
       - run:
           command: ./scripts/circle-ci/run-circle-tests.sh
@@ -86,11 +86,11 @@ jobs:
 
   trial-publish:
     docker:
-      - image: circleci/openjdk:8u212-jdk-stretch-node
+      - image: cimg/openjdk:11.0.10-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -Xlog:gc -Xlog:gc* -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
       CIRCLE_TEST_REPORTS: /tmp/test-reports
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
@@ -99,11 +99,11 @@ jobs:
 
   deploy:
     docker:
-      - image: circleci/openjdk:8u212-jdk-stretch-node
+      - image: cimg/openjdk:11.0.10-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -Xlog:gc -Xlog:gc* -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
       CIRCLE_TEST_REPORTS: /tmp/test-reports
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:

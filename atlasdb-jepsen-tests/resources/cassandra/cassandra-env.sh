@@ -235,17 +235,12 @@ fi
 
 # GC logging options
 JVM_OPTS="$JVM_OPTS -XX:+PrintGCDetails"
-JVM_OPTS="$JVM_OPTS -XX:+PrintGCDateStamps"
 JVM_OPTS="$JVM_OPTS -XX:+PrintHeapAtGC"
-JVM_OPTS="$JVM_OPTS -XX:+PrintTenuringDistribution"
 JVM_OPTS="$JVM_OPTS -XX:+PrintGCApplicationStoppedTime"
 JVM_OPTS="$JVM_OPTS -XX:+PrintPromotionFailure"
 #JVM_OPTS="$JVM_OPTS -XX:PrintFLSStatistics=1"
 
 JVM_OPTS="$JVM_OPTS -Xloggc:/var/log/cassandra/gc.log"
-JVM_OPTS="$JVM_OPTS -XX:+UseGCLogFileRotation"
-JVM_OPTS="$JVM_OPTS -XX:NumberOfGCLogFiles=10"
-JVM_OPTS="$JVM_OPTS -XX:GCLogFileSize=10M"
 # if using version before JDK 6u34 or 7u2 use this instead of log rotation
 # JVM_OPTS="$JVM_OPTS -Xloggc:/var/log/cassandra/gc-`date +%s`.log"
 

@@ -529,17 +529,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static Optional<byte[]> lookupClusterSideMetadata(
             Map<TableReference, byte[]> metadataForTables, TableReference tableRef) {
-        // TODO (jkong): Replace with or() once we can use Java 9
-        byte[] directMatch = metadataForTables.get(tableRef);
-        if (directMatch != null) {
-            return Optional.of(directMatch);
-        }
-
-        // No direct match but need to look for entries that match ignoring case.
-        return Maps.filterEntries(metadataForTables, entry -> matchingIgnoreCase(entry.getKey(), tableRef))
-                .values()
-                .stream()
-                .findAny();
+        return Optional.ofNullable(metadataForTables.get(tableRef))
+                .or(() -> Maps.filterEntries(metadataForTables, entry -> matchingIgnoreCase(entry.getKey(), tableRef))
+                        .values()
+                        .stream()
+                        .findAny());
     }
 
     private void lowerConsistencyWhenSafe() {

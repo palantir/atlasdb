@@ -1,0 +1,5 @@
+type: break
+break:
+  description: AtlasDB now requires Java 11, and builds with Java 11.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5501
