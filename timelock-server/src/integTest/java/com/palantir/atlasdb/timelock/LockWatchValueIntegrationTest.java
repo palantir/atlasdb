@@ -23,13 +23,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -51,7 +48,6 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.time.Duration;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.awaitility.Awaitility;
@@ -471,17 +467,17 @@ public final class LockWatchValueIntegrationTest {
     }
 
     private void createTransactionManager(double validationProbability) {
-        txnManager = TimeLockTestUtils.createTransactionManager(
-                        CLUSTER,
-                        Namespace.DEFAULT_NAMESPACE.getName(),
-                        AtlasDbRuntimeConfig.defaultRuntimeConfig(),
-                        ImmutableAtlasDbConfig.builder()
-                                .lockWatchCaching(LockWatchCachingConfig.builder()
-                                        .validationProbability(validationProbability)
-                                        .build()),
-                        Optional.empty(),
-                        createSchema())
-                .transactionManager();
+        // txnManager = TimeLockTestUtils.createTransactionManager(
+        //                 CLUSTER,
+        //                 Namespace.DEFAULT_NAMESPACE.getName(),
+        //                 AtlasDbRuntimeConfig.defaultRuntimeConfig(),
+        //                 ImmutableAtlasDbConfig.builder()
+        //                         .lockWatchCaching(LockWatchCachingConfig.builder()
+        //                                 .validationProbability(validationProbability)
+        //                                 .build()),
+        //                 Optional.empty(),
+        //                 createSchema())
+        //         .transactionManager();
     }
 
     private static Schema createSchema() {

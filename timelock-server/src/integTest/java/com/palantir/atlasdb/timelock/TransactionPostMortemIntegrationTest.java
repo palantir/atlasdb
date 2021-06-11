@@ -19,11 +19,9 @@ package com.palantir.atlasdb.timelock;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollectorImpl;
 import com.palantir.atlasdb.debug.FullDiagnosticDigest;
-import com.palantir.atlasdb.debug.ImmutableLockDiagnosticComponents;
 import com.palantir.atlasdb.debug.ImmutableLockDiagnosticConfig;
 import com.palantir.atlasdb.debug.LocalLockTracker;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
@@ -32,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.timelock.TimeLockTestUtils.TransactionManagerContext;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.conjure.java.serialization.ObjectMappers;
-import com.palantir.example.profile.schema.ProfileSchema;
 import com.palantir.example.profile.schema.generated.ProfileTableFactory;
 import com.palantir.example.profile.schema.generated.UserProfileTable;
 import com.palantir.example.profile.schema.generated.UserProfileTable.PhotoStreamId;
@@ -40,7 +37,6 @@ import com.palantir.example.profile.schema.generated.UserProfileTable.UserProfil
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.junit.Before;
@@ -76,16 +72,16 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
     public void setUp() {
         AtlasDbRuntimeConfig runtimeConfig =
                 AtlasDbRuntimeConfig.withSweepDisabled().withTransaction(TRANSACTION_CONFIG);
-        transactionManagerContext = TimeLockTestUtils.createTransactionManager(
-                cluster,
-                TIMELOCK_CLIENT.value(),
-                runtimeConfig,
-                ImmutableAtlasDbConfig.builder(),
-                Optional.of(ImmutableLockDiagnosticComponents.builder()
-                        .clientLockDiagnosticCollector(diagnosticCollector)
-                        .localLockTracker(lockTracker)
-                        .build()),
-                ProfileSchema.INSTANCE.getLatestSchema());
+        // transactionManagerContext = TimeLockTestUtils.createTransactionManager(
+        //         cluster,
+        //         TIMELOCK_CLIENT.value(),
+        //         runtimeConfig,
+        //         ImmutableAtlasDbConfig.builder(),
+        //         Optional.of(ImmutableLockDiagnosticComponents.builder()
+        //                 .clientLockDiagnosticCollector(diagnosticCollector)
+        //                 .localLockTracker(lockTracker)
+        //                 .build()),
+        //         ProfileSchema.INSTANCE.getLatestSchema());
         runner = new TransactionPostMortemRunner(
                 transactionManagerContext.transactionManager(),
                 TABLE_REFERENCE,
