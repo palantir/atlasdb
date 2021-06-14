@@ -195,6 +195,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             log.info(
                     "Failed when attempting to validate a Cassandra client in the Cassandra client pool."
                             + " Defensively believing that this object is NOT valid.",
+                    SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)),
                     t);
             return false;
         }
