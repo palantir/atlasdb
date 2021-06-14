@@ -1,0 +1,11 @@
+type: improvement
+improvement:
+  description: When priority tables are specified for background sweep, it will now
+    sweep *only* these tables. Previously, it begins one iteration of sweep for another
+    table, realises it shouldn't continue, and then begins one iteration for another
+    table and so on, ad infinitum.  This behaviour does not make sense, and furthermore
+    could mean that we can't "make background sweep run ONLY on table xyz", because
+    it might select other tables that are eligible in a larger deployment or if there
+    are more threads.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5506
