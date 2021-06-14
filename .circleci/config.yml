@@ -112,7 +112,7 @@ jobs:
           fingerprints:
             - "20:d7:2c:43:a2:d9:38:86:45:c0:70:cc:c9:87:95:5b"
       - run: sudo apt-get update
-      - run: sudo apt-get install python python-pip
+      - run: sudo apt-get install python python3-pip
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
