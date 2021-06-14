@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: '`validateObject()` no longer throws when Cassandra becomes or is unreachable.
+    This avoids a resource leak that could corrupt the Cassandra client pool''s internal
+    state-machine, which previously manifested as increased GC and CPU as the pool
+    code ran a tight loop that allocated an iterator.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/5503

@@ -189,7 +189,16 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     @Override
     public boolean validateObject(PooledObject<CassandraClient> client) {
-        return client.getObject().getOutputProtocol().getTransport().isOpen();
+        try {
+            return client.getObject().getOutputProtocol().getTransport().isOpen();
+        } catch (Throwable t) {
+            log.info(
+                    "Failed when attempting to validate a Cassandra client in the Cassandra client pool."
+                            + " Defensively believing that this object is NOT valid.",
+                    SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)),
+                    t);
+            return false;
+        }
     }
 
     @Override
