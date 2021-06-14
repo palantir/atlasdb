@@ -26,6 +26,8 @@ import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.leader.proxy.LeadershipCoordinator;
+import com.palantir.proxy.annotations.Proxy;
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +53,7 @@ import org.openjdk.jmh.annotations.Warmup;
 @OutputTimeUnit(TimeUnit.SECONDS)
 public class AwaitingLeadershipProxyBenchmark {
     private final LeaderAwareService service = AwaitingLeadershipProxy.newProxyInstance(
+            LeaderAwareServiceProxy::create,
             LeaderAwareService.class,
             () -> LeaderAwareImpl.INSTANCE,
             LeadershipCoordinator.create(FakeLeaderElectionService.INSTANCE));
@@ -74,7 +77,8 @@ public class AwaitingLeadershipProxyBenchmark {
         return Futures.getUnchecked(composition);
     }
 
-    public interface LeaderAwareService {
+    @Proxy
+    public interface LeaderAwareService extends Closeable {
         int somethingBlocking();
 
         ListenableFuture<?> somethingAsync();
@@ -92,6 +96,9 @@ public class AwaitingLeadershipProxyBenchmark {
         public ListenableFuture<?> somethingAsync() {
             return Futures.immediateFuture(somethingBlocking());
         }
+
+        @Override
+        public void close() {}
     }
 
     private enum SingletonLeadershipToken implements LeadershipToken {

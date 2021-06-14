@@ -35,12 +35,14 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.proxy.annotations.Proxy;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import java.io.Closeable;
 import java.util.Optional;
 import java.util.Set;
 
+@Proxy
 public interface AsyncTimelockService extends ManagedTimestampService, LockWatchingService, Closeable {
 
     long currentTimeMillis();

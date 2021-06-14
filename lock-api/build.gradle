@@ -22,6 +22,9 @@ dependencies {
     compile group: 'com.palantir.refreshable', name: 'refreshable'
     compile group: 'one.util', name: 'streamex'
 
+    compileOnly 'com.palantir.proxy.processor:proxy-annotations'
+    annotationProcessor 'com.palantir.proxy.processor:proxy-processor'
+
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")
     annotationProcessor group: 'org.immutables', name: 'value'

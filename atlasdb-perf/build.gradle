@@ -30,6 +30,8 @@ dependencies {
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
 
+  compileOnly 'com.palantir.proxy.processor:proxy-annotations'
+  annotationProcessor 'com.palantir.proxy.processor:proxy-processor'
   compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'

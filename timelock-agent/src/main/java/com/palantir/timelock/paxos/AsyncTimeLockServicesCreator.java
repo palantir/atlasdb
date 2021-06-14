@@ -21,6 +21,7 @@ import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
+import com.palantir.atlasdb.timelock.AsyncTimelockServiceProxy;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
@@ -70,6 +71,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
         AsyncTimelockService asyncTimelockService = leadershipComponents.wrapInLeadershipProxy(
                 client,
+                AsyncTimelockServiceProxy::create,
                 AsyncTimelockService.class,
                 () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
 

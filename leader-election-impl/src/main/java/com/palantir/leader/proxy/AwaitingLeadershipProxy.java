@@ -35,10 +35,12 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
 import java.io.Closeable;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,11 +63,13 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private final LeadershipCoordinator leadershipCoordinator;
     private final Class<T> interfaceClass;
 
-    private final LeadershipStateManager<T> leadershipStateManager;
+    private final LeadershipStateManager<? extends T> leadershipStateManager;
     private volatile boolean isClosed;
 
     private AwaitingLeadershipProxy(
-            LeadershipCoordinator leadershipCoordinator, Supplier<T> delegateSupplier, Class<T> interfaceClass) {
+            LeadershipCoordinator leadershipCoordinator,
+            Supplier<? extends T> delegateSupplier,
+            Class<T> interfaceClass) {
         Preconditions.checkNotNull(delegateSupplier, "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.leadershipCoordinator = leadershipCoordinator;
         this.interfaceClass = interfaceClass;
@@ -73,8 +77,18 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         this.isClosed = false;
     }
 
+    public static <U extends Closeable> U newProxyInstance(
+            Function<InvocationHandler, U> proxyFactory,
+            Class<U> interfaceClass,
+            Supplier<? extends U> delegateSupplier,
+            LeadershipCoordinator awaitingLeadership) {
+        AwaitingLeadershipProxy<U> proxy =
+                new AwaitingLeadershipProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
+        return proxyFactory.apply(proxy);
+    }
+
     public static <U> U newProxyInstance(
-            Class<U> interfaceClass, Supplier<U> delegateSupplier, LeadershipCoordinator awaitingLeadership) {
+            Class<U> interfaceClass, Supplier<? extends U> delegateSupplier, LeadershipCoordinator awaitingLeadership) {
         AwaitingLeadershipProxy<U> proxy =
                 new AwaitingLeadershipProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
         return (U) Proxy.newProxyInstance(
@@ -92,7 +106,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
         // The state must NEVER be cached, each request must fetch latest leadership state from the
         // leadershipStateManager
-        LeadershipState<T> leadershipState = leadershipStateManager.getLeadershipState();
+        LeadershipState<? extends T> leadershipState = leadershipStateManager.getLeadershipState();
 
         final LeadershipToken leadershipToken = leadershipState.leadershipToken();
         T maybeValidDelegate = leadershipState.delegate();

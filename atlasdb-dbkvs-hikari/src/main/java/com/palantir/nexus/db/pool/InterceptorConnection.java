@@ -21,7 +21,6 @@ import com.google.common.reflect.AbstractInvocationHandler;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -72,7 +71,6 @@ public final class InterceptorConnection extends AbstractInvocationHandler imple
 
     public static Connection wrapInterceptor(Connection delegate) {
         InterceptorConnection instance = new InterceptorConnection(delegate);
-        return (Connection) Proxy.newProxyInstance(
-                InterceptorConnection.class.getClassLoader(), new Class[] {Connection.class}, instance);
+        return ConnectionWrapperProxy.create(instance);
     }
 }

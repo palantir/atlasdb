@@ -21,6 +21,7 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.proxy.annotations.Proxy;
 import java.math.BigInteger;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -39,6 +40,7 @@ import javax.ws.rs.core.MediaType;
 @Path("/lock")
 @AutoDelegate
 @Beta
+@Proxy
 public interface LockService extends RemoteLockService {
     /**
      * Attempts to acquire the requested set of locks. The locks are

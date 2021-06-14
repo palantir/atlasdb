@@ -28,10 +28,12 @@ import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 import com.palantir.timelock.paxos.NamespaceTracker;
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.reflect.InvocationHandler;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -61,6 +63,21 @@ public class LeadershipComponents {
         // this is acceptable since the proxy returned implements Closeable and needs to be closed
         Closeable closeableInstance = (Closeable) instance;
         closer.register(closeableInstance);
+
+        return context.leadershipMetrics().instrument(clazz, instance);
+    }
+
+    public <T extends Closeable> T wrapInLeadershipProxy(
+            Client client,
+            Function<InvocationHandler, T> proxyFactory,
+            Class<T> clazz,
+            Supplier<? extends T> delegateSupplier) {
+        LeadershipContext context = getOrCreateNewLeadershipContext(client);
+        T instance = AwaitingLeadershipProxy.newProxyInstance(
+                proxyFactory, clazz, delegateSupplier, context.leadershipCoordinator());
+
+        // The proxy returned implements Closeable and needs to be closed
+        closer.register(instance);
 
         return context.leadershipMetrics().instrument(clazz, instance);
     }

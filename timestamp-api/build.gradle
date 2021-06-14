@@ -7,6 +7,8 @@ dependencies {
 
     annotationProcessor project(':atlasdb-processors')
     compileOnly project(':atlasdb-processors')
+    compileOnly 'com.palantir.proxy.processor:proxy-annotations'
+    annotationProcessor 'com.palantir.proxy.processor:proxy-processor'
 
     testCompile group: 'org.assertj', name: 'assertj-core'
 }

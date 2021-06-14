@@ -17,7 +17,6 @@ package com.palantir.nexus.db.pool;
 
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.nexus.db.DBType;
-import com.palantir.proxy.util.ProxyUtils;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -96,7 +95,7 @@ public final class ResourceTypes {
                             }
                         }
                     };
-                    return ProxyUtils.newProxy(Connection.class, Object.class, ih);
+                    return ConnectionWrapperProxy.create(ih);
                 }
 
                 @Override

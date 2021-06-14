@@ -23,6 +23,9 @@ dependencies {
   compile group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP
   compile group: 'joda-time', name: 'joda-time'
 
+  compileOnly 'com.palantir.proxy.processor:proxy-annotations'
+  annotationProcessor 'com.palantir.proxy.processor:proxy-processor'
+
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
