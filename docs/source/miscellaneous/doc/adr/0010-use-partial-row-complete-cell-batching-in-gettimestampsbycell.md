@@ -1,4 +1,5 @@
 # 10. Use partial row complete cell batching in getTimestampsByCell
+*******************************************************************
 
 Date: 10/03/2017
 
@@ -28,12 +29,12 @@ batch size is met. In that case:
 Example:
 Assuming a batch size of 10 and the following table
 
-                1          |          2         |     3     |
-      | ------------------ | ------------------ | --------- |
-    1 |     (1, 2, 3)      |      (4, 5, 6)     | (7, 8, 9) |
-    2 |    (1, 2, 3, 4)    |    (4, 5, 6, 7)    | (7, 8, 9) |
-    3 | (1, 2, 3, 4, 5, 6) | (4, 5, 6, 7, 8, 9) | (7, 8, 9) |
-    4 |     (1, 2, 3)      |                    |           |
+  |   |         1          |          2         |     3     |
+  |   | ------------------ | ------------------ | --------- |
+  | 1 |     (1, 2, 3)      |      (4, 5, 6)     | (7, 8, 9) |
+  | 2 |    (1, 2, 3, 4)    |    (4, 5, 6, 7)    | (7, 8, 9) |
+  | 3 | (1, 2, 3, 4, 5, 6) | (4, 5, 6, 7, 8, 9) | (7, 8, 9) |
+  | 4 |     (1, 2, 3)      |                    |           |
 
 The RowResults will be as follows:
 - (1 -> (1 -> (1, 2, 3); 2 -> (4, 5, 6); 3 -> (7, 8, 9)))
@@ -49,13 +50,13 @@ Other options considered:
 3. No batching, but throw an error when the block batch hint is reached
 
 - Option 1 was considered, but was replaced by the modified version above. This is because sweep must ensure that all blocks
-except for the most recent (before the immutable timestamp) are deleted. This can be achieved by repeating the last
-block from one batch in the next batch, or by keeping this last result in sweep's memory, so that it knows to remove it,
-if further blocks for the same cell are encountered. Neither option is compelling: the first is hard to reason about,
-and the second reduces the scope for parallelisation, and risks introducing a correctness bug.
+  except for the most recent (before the immutable timestamp) are deleted. This can be achieved by repeating the last
+  block from one batch in the next batch, or by keeping this last result in sweep's memory, so that it knows to remove it,
+  if further blocks for the same cell are encountered. Neither option is compelling: the first is hard to reason about,
+  and the second reduces the scope for parallelisation, and risks introducing a correctness bug.
 - Option 2 was not chosen, because it does not guard well against wide rows (many cells) that have many overwrites.
 - Option 3 was considered, but was ultimately discarded because it relies on properties of the code that calls getCellTimestamps.
-In particular, there needs to be retry logic that detects that an error was thrown, and reduces the batch size accordingly.
+  In particular, there needs to be retry logic that detects that an error was thrown, and reduces the batch size accordingly.
 
 ## Consequences
 

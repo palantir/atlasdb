@@ -1,4 +1,5 @@
 # 2. Prevent tables from being created simultaneously in cassandra via a locks table
+************************************************************************************
 
 Date: 18/05/2016
 
