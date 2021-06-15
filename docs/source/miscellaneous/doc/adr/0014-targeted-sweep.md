@@ -1,4 +1,5 @@
-# 14. Targeted Sweep
+14. Targeted Sweep
+******************
 
 Date: 18/06/2018
 
@@ -64,7 +65,7 @@ writes were performed, it is our understanding that Cassandra internally still l
 #### Legacy Sweep can Get Stuck
 
 For tables that regularly have new rows added in increasing lexicographical order (for example, tables keyed on steadily  increasing
-`FIXED` or `VAR_LONG`s), legacy sweep can end up sweeping the table indefinitely as each iteration will discover a new row, therefore
+`FIXED` or `VAR_LONG` s), legacy sweep can end up sweeping the table indefinitely as each iteration will discover a new row, therefore
 never declaring the table as fully swept. As a consequence, no other tables are swept at all until the issue is noticed and manually
 resolved.
 
@@ -92,19 +93,26 @@ On a high level, sweeping using the targeted sweep queue, i.e., **targeted sweep
 corresponding `WriteInfo` into the queue.
 2. Targeted sweep reads an entry from the front of the queue. Depending on the sweep strategy for the table specified by the entry, we
 acquire an appropriate *sweep timestamp*, and compare it to the *start timestamp* of the transaction.
+
   - If *sweep timestamp <= start timestamp*, we must pause and try later.
+
 3. Check the *commit timestamp* of the transaction.
+
   - If the transaction is not committed, abort it.
   - If the transaction is aborted, delete the write from the KVS and pop the queue and read the next entry.
   - If the transaction is committed at a timestamp greater or equal to the *sweep timestamp*, pause and try later.
+
 4. Otherwise, insert a ranged tombstone as follows:
+
   - If the strategy is conservative: write a garbage deletion sentinel, then put a ranged tombstone deleting all versions of the
-  cell between 0 and write timestamp - 1, not deleting the sentinel or the write.
+    cell between 0 and write timestamp - 1, not deleting the sentinel or the write.
   - If the strategy is thorough
+
     - If the write was a tombstone, then put a ranged tombstone deleting all versions of that cell between -1 and write timestamp,
-    deleting both a potentially existing sentinel and the write.
+      deleting both a potentially existing sentinel and the write.
     - Otherwise, put a ranged tombstone deleting all versions of that cell between -1 and write timestamp - 1, deleting a
-    potentially existing sentinel, but not the write.
+      potentially existing sentinel, but not the write.
+
 5. Pop the queue and read the next entry.
 
 For a detailed implementation of targeted sweep and the targeted sweep queue, refer to the implementation section below.
@@ -117,6 +125,7 @@ For a detailed implementation of targeted sweep and the targeted sweep queue, re
 - The order of sweeping is more fair and does not suffer from issues caused by frequently appending new rows to the end of a table.
 
 ### Drawbacks
+
 - Added overhead to committing transactions, as the information must be persisted to the sweep queue as part of the commit. Note
   that this has not caused significant regression in our benchmarks.
 
@@ -143,9 +152,11 @@ lowered again.
   used exclusively for the writes of this transaction and partition.
 
   **Row components**:
+
   - **timestamp_partition**: a `VAR_LONG` derived from the start timestamp of the writes in that row. For *non-dedicated* rows, this
     is the fine timestamp partition. For *dedicated rows*, this is the start timestamp itself.
   - **metadata**, a 4 byte `BLOB` encoding of a `TargetedSweepMetadata` as follows:
+
     - 1 bit for *sweep strategy*: 0 for thorough, and 1 for conservative.
     - 1 bit marking if this is a *dedicated row*: 0 for non-dedicated, 1 for dedicated.
     - 8 bits for *shard number*, between 0 and 255 inclusive.
@@ -155,6 +166,7 @@ lowered again.
   Note that the row components are hashed to avoid hot-spotting.
 
   **Column components**:
+
   - **timestamp_modulus**: a `VAR_LONG` storing the start timestamp of the write modulo 50_000.
   - **write_index**: a `VAR_SIGNED_LONG` whose purpose is overloaded. In case we are storing 50 or fewer writes into the same row,
     the *write_index* is a non-negative increasing number used to deduplicate multiple writes with the same start timestamp. If we
@@ -182,12 +194,14 @@ lowered again.
   by a single cell in this table.
 
   **Row components**:
+
   - **shard**: a `VAR_LONG` containing the shard for which the row has entries for.
   - **timestamp_partition**: a `VAR_LONG` corresponding to the *coarse timestamp partition* of all entries in the row.
   - **sweep_conservative**: a `boolean` (encoded as a `BLOB`) specifying if the row contains entries for thorough (`0x00`) or
     conservative sweep (`0x01`).
 
   **Column components**:
+
   - **timestamp_modulus** is the **fine timestamp partition** of a row in SweepableCells that falls into the coarse partition
     specified in the timestamp_partition row component.
 
@@ -203,11 +217,13 @@ lowered again.
   This table stores targeted sweep's progress, as well as the information about the number of shards the sweep queue is using.
 
   **Row components**:
+
   - **shard**: a `VAR_SIGNED_LONG` containing the shard for which we are tracking progress for.
   - **sweep_conservative**: a `boolean` (encoded as a `BLOB`) specifying if we are looking for conservative or thorough sweep as in
     *sweepableTimestamps*.
 
   **Named Column**:
+
   - **value**: a `VAR_LONG` containing the timestamp up to which targeted sweep has swept on that shard and strategy.
 
   To persist the number of shards sweep queue is using, we use a distinguished row of this table, with the row defined by
@@ -219,12 +235,13 @@ lowered again.
 Whenever a `SnapshotTransaction` is about to commit, before its writes are persisted into the KVS, it enqueues
 them to the sweep queue:
 
-1. The sweep queue creates a list of `WriteInfo`s containing the relevant information, partitions this list
+1. The sweep queue creates a list of `WriteInfo` s containing the relevant information, partitions this list
 according to the sweep strategies for the tables (this information is read from the table metadata and then cached), and into the
-number of shards that the sweep queue is using (the shard is determined from the hash of the `TableReference` and `Cell`).
+number of shards that the sweep queue is using (the shard is determined from the hash of the `TableReference` and `Cell` ).
 2. For each of the above partitions, we then put an entry into the *sweepableTimestamps* table for the start timestamp of the
 transaction.
-3. Finally, for each of the partitions, we put the `WriteInfo`s into the *sweepableCells* table.
+3. Finally, for each of the partitions, we put the `WriteInfo` s into the *sweepableCells* table.
+
   - If there are 50 or fewer entries in the list, write that many cells into the table where all the row and column components are
     calculated as described above, with the *write_index* starting at 0 and increasing by 1 for each entry.
   - If there are more than 50 entries in the list, put a single cell into the table acting as a reference to dedicated rows. The row
@@ -262,8 +279,10 @@ follows.
 
 1. Given a shard, strategy, and fine timestamp partition, delete all entries from *sweepableCells* for the corresponding row. Note
    that in Cassandra, an entire row can be deleted at once using a single tombstone.
+
     - First, we read through the non-dedicated row to find all the references to dedicated rows and delete them.
     - Then, delete the the non-dedicated row.
+
 2. Then, if necessary, given a coarse timestamp partition, also delete the row defined by the shard, strategy, and the coarse
    timestamp partition in *sweepableTimestamps*.
 
@@ -273,50 +292,58 @@ Targeted sweep reads the write metadata from the sweep queue instead of sequenti
 After an entry is read from the sweep queue, we check the commit timestamp of the transaction that performed the write.
 
 - If both the start timestamp and the commit timestamp are lower than the sweep timestamp, we can use a single ranged tombstone
-to delete all prior versions of the cell. Note that the Cassandra implementation of the `deleteAllTimestamps` method that writes
-this ranged tombstone does not require reading any information from the KVS and therefore provides a substantial improvement in
-comparison to legacy sweep that needs to find all the previous timestamps so they can be deleted one by one.
+  to delete all prior versions of the cell. Note that the Cassandra implementation of the `deleteAllTimestamps` method that writes
+  this ranged tombstone does not require reading any information from the KVS and therefore provides a substantial improvement in
+  comparison to legacy sweep that needs to find all the previous timestamps so they can be deleted one by one.
 
 - If the commit timestamp is greater than the sweep timestamp, targeted sweep must wait until the sweep timestamp increases
-enough so that the entry can be processed. This is generally not an issue since it is only likely to happen when targeted
-sweep is processing writes that were written within the last hour.
+  enough so that the entry can be processed. This is generally not an issue since it is only likely to happen when targeted
+  sweep is processing writes that were written within the last hour.
 
 Targeted Sweep has a number of background threads for each strategy (as controlled by the install config) continuously cycling
 through the shards. To find the next shard to sweep, the thread requests a TimeLock lock for the shard and strategy. If successful, it
 starts an iteration of targeted sweep; otherwise, it requests a lock for the next shard, finally giving up and pausing if it cycles
 unsuccessfully through all the shards. This mechanism ensures synchronization across multiple nodes of the service. Assuming the
 thread successfully acquired a lock, we do the following
+
   1. Calculate the *sweep timestamp* for the sweep strategy used and read the *last swept timestamp* for the shard and strategy
-    from *sweepProgressPerShard*.
-  2. Get a batch of `WriteInfo`s from the sweep queue: read from the sweep queue as described above, where *minTs* is the *last
-     swept timestamp* and *maxTs* is the *sweep timestamp*.
+  from *sweepProgressPerShard* .
+  2. Get a batch of `WriteInfo` s from the sweep queue: read from the sweep queue as described above, where *minTs* is the *last
+  swept timestamp* and *maxTs* is the *sweep timestamp* .
+
         - If we do not find any candidates, skip to step 6.
+
   3. For each of the start timestamps in the batch, we check if the transaction was committed; if not we must abort it (this is the
   same behaviour as legacy sweep). If a transaction was committed, but **after** the *sweep timestamp*, we must not progress
   targeted sweep past its start timestamp, so we remove it and all the writes with greater start timestamps from the batch.
   4. Delete all writes that are referenced to from aborted transactions. Note that these are direct deletes, not ranged tombstones.
   5. Partition the remaining `WriteInfo`s by `Cell` and `TableReference`, and then take the greatest start timestamp from each
-    partition. We only need one ranged tombstone per partition here, as all the other writes to that cell and table in this batch
-    are going to have a lower start timestamp and are therefore going to be deleted as well.
+  partition. We only need one ranged tombstone per partition here, as all the other writes to that cell and table in this batch
+  are going to have a lower start timestamp and are therefore going to be deleted as well.
+
        - If the strategy is conservative: write a garbage deletion sentinel, then put a ranged tombstone deleting all versions of that
          cell between 0 and write timestamp - 1, not deleting the sentinel or the write.
        - If the strategy is thorough
+
             - If the write was a tombstone, then put a ranged tombstone deleting all versions of that cell between -1 and write timestamp,
               deleting both a potentially existing sentinel and the write.
             - Otherwise, put a ranged tombstone deleting all versions of that cell between -1 and write timestamp - 1, deleting a
               potentially existing sentinel, but not the write.
+
   6. If the new sweep progress (described in greater detail below) guarantees that the minimum start timestamp swept in the future
-     will be in a greater fine, or coarse, partition than the previous *last swept timestamp*, then clean the sweep queue accordingly
-     as previously explained.
+  will be in a greater fine, or coarse, partition than the previous *last swept timestamp*, then clean the sweep queue accordingly
+  as previously explained.
   7. Persist the sweep progress in *sweepProgressPerShard* for the shard and strategy.
   8. Finally, regardless of the success or failure of the iteration, unlock the TimeLock lock for the shard and strategy and
-     schedule the next iteration of sweep for the thread after a delay of 5 seconds.
+  schedule the next iteration of sweep for the thread after a delay of 5 seconds.
 
 **Calculating Sweep Progress**:
 
 We wish to update progress to the greatest value we can guarantee we swept to. There are multiple cases to consider, in order:
+
 - If we do not find a candidate row of *sweepableCells* while reading from the sweep queue, we can update to *sweep timestamp - 1*.
 - If none of the timestamps from the batch were committed after the *sweep timestamp* and we have read all entries in
   *sweepableCells* up to *sweep timestamp*, then we can update to *ts - 1*, where *ts* is the minimum between
   the *sweep timestamp* and the first timestamp that would be written into the next row of *sweepableCells*.
+
 - Otherwise, update to *ts*, where *ts* is the greatest timestamp among the writes in the batch.

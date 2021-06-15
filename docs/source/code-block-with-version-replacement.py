@@ -1,5 +1,4 @@
-from docutils.parsers.rst import Directive
-from sphinx.directives import CodeBlock
+from sphinx.directives.code import CodeBlock
 
 
 def setup(app):
@@ -18,9 +17,6 @@ class CodeBlockWithVersion(CodeBlock):
     def _get_version_from_conf_py(self):
         env = self.state.document.settings.env
         config = env.config
-        # print type(config)
-        # print dir(config)
-        # print config.config_values
         return config['latest']
 
     def _transformed_content(self):
