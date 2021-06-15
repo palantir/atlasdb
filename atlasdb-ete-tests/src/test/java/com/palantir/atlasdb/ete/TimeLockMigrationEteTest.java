@@ -34,7 +34,6 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.awaitility.Awaitility;
 import org.immutables.value.Value;
@@ -184,7 +183,7 @@ public class TimeLockMigrationEteTest {
             // TODO (jkong): Be better.
             // Realistically, this is enough time for the server to start up, and we value the test signal here
             // if we're going to be doing these migrations...
-            Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
+            Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30));
         }
     }
 
