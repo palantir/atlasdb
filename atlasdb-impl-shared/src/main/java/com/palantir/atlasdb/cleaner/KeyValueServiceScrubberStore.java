@@ -17,7 +17,6 @@ package com.palantir.atlasdb.cleaner;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -114,14 +113,14 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
                 byte[] tableBytes = EncodingUtils.encodeVarString(tableRef.getQualifiedName());
                 byte[] col = EncodingUtils.add(tableBytes, cell.getColumnName());
                 values.put(Cell.create(cell.getRowName(), col), EMPTY_CONTENTS);
+                if (values.size() >= batchSize) {
+                    keyValueService.put(AtlasDbConstants.SCRUB_TABLE, values, scrubTimestamp);
+                    values.clear();
+                }
             }
         }
-        for (List<Map.Entry<Cell, byte[]>> batch : Iterables.partition(values.entrySet(), batchSize)) {
-            Map<Cell, byte[]> batchMap = new HashMap<>();
-            for (Map.Entry<Cell, byte[]> e : batch) {
-                batchMap.put(e.getKey(), e.getValue());
-            }
-            keyValueService.put(AtlasDbConstants.SCRUB_TABLE, batchMap, scrubTimestamp);
+        if (values.size() > 0) {
+            keyValueService.put(AtlasDbConstants.SCRUB_TABLE, values, scrubTimestamp);
         }
     }
 
