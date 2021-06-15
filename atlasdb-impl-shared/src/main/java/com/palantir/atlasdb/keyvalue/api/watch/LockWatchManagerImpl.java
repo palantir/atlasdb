@@ -150,7 +150,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
         try {
             lockWatchingService.startWatching(LockWatchRequest.of(lockWatchReferences));
         } catch (Throwable e) {
-            log.info("Failed to register lockwatches", UnsafeArg.of("lockwatches", lockWatchReferences));
+            log.info("Failed to register lockwatches", UnsafeArg.of("lockwatches", lockWatchReferences), e);
         }
     }
 }

@@ -83,7 +83,8 @@ public class AbortingCommitTsLoader implements CacheLoader<Long, Long> {
                     "Could not roll back transaction with start timestamp {}. Either it was already rolled back, or it"
                             + " committed successfully before we could roll it back. This isn't a bug but it should be"
                             + " very infrequent.",
-                    SafeArg.of("startTs", startTs));
+                    SafeArg.of("startTs", startTs),
+                    e);
             return Optional.empty();
         }
     }
