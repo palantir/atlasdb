@@ -82,7 +82,7 @@ public final class AutobatchingPingableLeaderFactory implements Closeable {
             try {
                 closeable.close();
             } catch (IOException e) {
-                log.error("could not close autobatcher for pingable leader");
+                log.error("could not close autobatcher for pingable leader", e);
             }
         }
         uuidToRemoteAutobatcher.close();
