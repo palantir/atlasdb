@@ -146,7 +146,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             thriftSocket.getSocket().setSoTimeout(config.socketQueryTimeoutMillis());
         } catch (SocketException e) {
             log.error(
-                    "Couldn't set socket keep alive for host {}", SafeArg.of("address", CassandraLogHelper.host(addr)));
+                    "Couldn't set socket keep alive for host {}",
+                    SafeArg.of("address", CassandraLogHelper.host(addr)),
+                    e);
         }
 
         if (config.usingSsl()) {
@@ -223,7 +225,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 log.debug(
                         "Failed to close transport for client {} of host {}",
                         UnsafeArg.of("client", client),
-                        SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
+                        SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)),
+                        t);
             }
             throw new SafeRuntimeException("Threw while attempting to close transport for client", t);
         }

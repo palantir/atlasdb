@@ -522,8 +522,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 log.info("No tables are being upgraded on startup. No updated table-related settings found.");
             }
         } catch (TException e) {
-            log.error("Couldn't upgrade from an older internal Cassandra schema."
-                    + " New table-related settings may not have taken effect.");
+            log.error(
+                    "Couldn't upgrade from an older internal Cassandra schema. New table-related settings may not have"
+                            + " taken effect.",
+                    e);
         }
     }
 

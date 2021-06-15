@@ -49,7 +49,7 @@ public final class TableValueStyleCache {
                         Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
             });
         } catch (ExecutionException e) {
-            log.error("TableValueStyle for the table {} could not be retrieved.", tableRef.getQualifiedName());
+            log.error("TableValueStyle for the table {} could not be retrieved.", tableRef.getQualifiedName(), e);
             throw Throwables.propagate(e);
         }
     }

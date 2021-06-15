@@ -91,7 +91,7 @@ class DiscoverableSubtypeResolver extends StdSubtypeResolver {
                         try {
                             serviceClasses.add(getClassLoader().loadClass(line.trim()));
                         } catch (ClassNotFoundException e) {
-                            log.info("Unable to load {}", line);
+                            log.info("Unable to load {}", line, e);
                         }
                     }
                 }

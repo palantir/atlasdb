@@ -151,7 +151,7 @@ public class CqlExecutorImpl implements CqlExecutor {
             // RejectedExecutionException are expected.
             // The executor is shutdown when we already fetched all the values we were interested
             // for the current iteration.
-            log.trace("Rejecting row {} because executor is closed", rows.get(rowIndex));
+            log.trace("Rejecting row {} because executor is closed", rows.get(rowIndex), e);
         }
     }
 
