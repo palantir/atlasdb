@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>8. Adding Heartbeat for Schema Lock Holders &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
@@ -200,16 +203,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="adding-heartbeat-for-schema-lock-holders">
+  <section id="adding-heartbeat-for-schema-lock-holders">
 <h1>8. Adding Heartbeat for Schema Lock Holders<a class="headerlink" href="#adding-heartbeat-for-schema-lock-holders" title="Permalink to this headline">¶</a></h1>
 <p>Date: 27/09/2016</p>
-<div class="section" id="status">
-<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>## Status</p>
 <p>Accepted</p>
-<p>Superseded by <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3620">PR #3620: Use CQL to create tables</a>.</p>
-</div>
-<div class="section" id="context">
-<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<p>Superseded by [PR #3620: Use CQL to create tables](<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3620">https://github.com/palantir/atlasdb/pull/3620</a>).</p>
+<p>## Context</p>
 <p>As of version 0.16.0, anyone trying to acquire the a schema mutation lock that is already held by someone else
 would keep trying to acquire the lock until a fixed timeout threshold. Once that threshold was reached, we would
 stop trying to acquire the lock and throw a timeout exception. This would effectively kill the client trying to grab
@@ -219,17 +219,15 @@ where the lock holder dies without releasing the lock.</p>
 avoid a lot of timeouts if we have some way of informing anyone trying to acquire the lock if the lock holder is alive
 or dead. Once we have that information, we can keep retrying as long as we know that the lock holder is alive without
 timing out needlessly.</p>
-</div>
-<div class="section" id="decision">
-<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<p>## Decision</p>
 <p>To inform anyone trying to acquire the lock if the lock holder is dead or alive, we decided to have the lock holder
 periodically update its lock (heartbeat) in the locks table while its still holding the lock. That way, anyone else
 trying to acquire the lock can see the updates to the lock and keep retrying as long as the updates continue.</p>
 <p>Currently, the lock value in the locks table consists of a randomly generated identifier. To incorporate the heartbeat
 updates into the same value, we decided to change the lock value to following format:
-<code class="docutils literal notranslate"><span class="pre">&lt;randomly</span> <span class="pre">generated</span> <span class="pre">id&gt;_&lt;heartbeat</span> <span class="pre">value&gt;</span></code>. The heartbeat value would essentially be incremented by 1 for every
+<cite>&lt;randomly generated id&gt;_&lt;heartbeat value&gt;</cite>. The heartbeat value would essentially be incremented by 1 for every
 “heartbeat” by the lock holder.</p>
-<p>For example, a lock with identifier <code class="docutils literal notranslate"><span class="pre">123456789</span></code> and heartbeat value <code class="docutils literal notranslate"><span class="pre">23</span></code> would have <code class="docutils literal notranslate"><span class="pre">123456789_23</span></code> as its lock value.</p>
+<p>For example, a lock with identifier <cite>123456789</cite> and heartbeat value <cite>23</cite> would have <cite>123456789_23</cite> as its lock value.</p>
 <p>Once we had the heartbeat mechanism in place, we needed to decide whether to allow someone waiting on a lock
 to override the lock and grab it once it detects that the lock holder is dead (via its heartbeat). Allowing locks
 that could be overridden weakened the guarantee provided by the lock and could cause corruption in rare situations.
@@ -239,18 +237,15 @@ have overridable locks for now and simply use the information about the health o
 the exception we throw when we timeout on the lock. This will still require manual intervention (truncating the locks
 table) when a lock holder dies without releasing the lock but provides a better picture of the situation
 to the human user.</p>
-</div>
-<div class="section" id="consequences">
-<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<p>## Consequences</p>
 <p>There should be significantly lower instances of schema mutation lock timeouts. The only cases where we should have
 timeouts should be:</p>
-<ol class="simple">
-<li>When someone holding the lock dies, we throw an informative exception mentioning that we suspect the lock holder
-is dead and recommend cleaning the locks table.</li>
-<li>When someone continues holding the lock for an <strong>unreasonable</strong> amount of time (default: 10 mins, is configurable)</li>
+<p>1. When someone holding the lock dies, we throw an informative exception mentioning that we suspect the lock holder
+is dead and recommend cleaning the locks table.</p>
+<ol class="arabic simple" start="2">
+<li><p>When someone continues holding the lock for an <strong>unreasonable</strong> amount of time (default: 10 mins, is configurable)</p></li>
 </ol>
-</div>
-</div>
+</section>
 
 
            </div>

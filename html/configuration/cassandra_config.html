@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Cassandra Configuration &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -184,9 +187,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="cassandra-configuration">
+  <section id="cassandra-configuration">
 <h1>Cassandra Configuration<a class="headerlink" href="#cassandra-configuration" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="overview">
+<section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>Make sure to run Cassandra with ByteOrderPartitioner (yes, I know
 everyone disagrees, read below) and batch commit. Without batch commit,
@@ -196,15 +199,15 @@ you must also bump up the <code class="docutils literal notranslate"><span class
 every single row being written on its own thread until the batch sync.
 This means you effectively need 1K threads to get any write throughput.</p>
 <p>Again, you should edit <code class="docutils literal notranslate"><span class="pre">conf/cassandra.yaml</span></code>:</p>
-<div class="code yaml highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">partitioner</span><span class="p">:</span> <span class="n">ByteOrderedPartitioner</span>
-<span class="n">commitlog_sync</span><span class="p">:</span> <span class="n">batch</span>
-<span class="n">commitlog_sync_batch_window_in_ms</span><span class="p">:</span> <span class="o">.</span><span class="mi">1</span>  <span class="c1"># .1 is only appropriate for SSDs.  Use 5 for HDDs.</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">partitioner</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ByteOrderedPartitioner</span>
+<span class="nt">commitlog_sync</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">batch</span>
+<span class="nt">commitlog_sync_batch_window_in_ms</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">.1</span>  <span class="c1"># .1 is only appropriate for SSDs.  Use 5 for HDDs.</span>
 <span class="c1"># If you use HDDs, make sure the commit log has its own disk because it will thrash it.</span>
-<span class="n">concurrent_writes</span><span class="p">:</span> <span class="mi">1024</span>
+<span class="nt">concurrent_writes</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1024</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="in-defense-of-byteorderedpartitioner">
+</section>
+<section id="in-defense-of-byteorderedpartitioner">
 <h2>In Defense of ByteOrderedPartitioner<a class="headerlink" href="#in-defense-of-byteorderedpartitioner" title="Permalink to this headline">¶</a></h2>
 <p>The Cassandra community has historically shunned the
 ByteOrderedPartitioner and with good reasons. However I think that all
@@ -245,8 +248,8 @@ bytes of a long so that the least significant byte is the first one.
 Assuming your keys are evenly distributed in the least significant
 bytes, this will get you good distribution even with the
 ByteOrderedPartitioner.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Timelock Server Configuration &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
@@ -190,34 +193,36 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="timelock-server-configuration">
+  <section id="timelock-server-configuration">
 <span id="id1"></span><h1>Timelock Server Configuration<a class="headerlink" href="#timelock-server-configuration" title="Permalink to this headline">¶</a></h1>
 <p>The Timelock Server configuration file is written in YAML and is located at <code class="docutils literal notranslate"><span class="pre">var/conf/timelock.yml</span></code>.
 It has three main configuration blocks: <code class="docutils literal notranslate"><span class="pre">clients</span></code>, <code class="docutils literal notranslate"><span class="pre">cluster</span></code>, and <code class="docutils literal notranslate"><span class="pre">algorithm</span></code>. We will discuss how each of
 these may be configured in turn, as well as additional configuration parameters.</p>
 <div class="contents local topic" id="contents">
 <ul class="simple">
-<li><a class="reference internal" href="#clients" id="id4">Clients</a></li>
-<li><a class="reference internal" href="#cluster" id="id5">Cluster</a></li>
-<li><a class="reference internal" href="#algorithm" id="id6">Algorithm</a><ul>
-<li><a class="reference internal" href="#paxos-configuration" id="id7">Paxos Configuration</a></li>
+<li><p><a class="reference internal" href="#clients" id="id4">Clients</a></p></li>
+<li><p><a class="reference internal" href="#cluster" id="id5">Cluster</a></p></li>
+<li><p><a class="reference internal" href="#algorithm" id="id6">Algorithm</a></p>
+<ul>
+<li><p><a class="reference internal" href="#paxos-configuration" id="id7">Paxos Configuration</a></p></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#time-limiting" id="id8">Time Limiting</a></li>
-<li><a class="reference internal" href="#async-lock-service" id="id9">Async Lock Service</a></li>
-<li><a class="reference internal" href="#further-configuration-parameters" id="id10">Further Configuration Parameters</a></li>
-<li><a class="reference internal" href="#dropwizard-configuration-parameters" id="id11">Dropwizard Configuration Parameters</a><ul>
-<li><a class="reference internal" href="#configuring-http-2" id="id12">Configuring HTTP/2</a></li>
-<li><a class="reference internal" href="#non-blocking-appender" id="id13">Non-Blocking Appender</a></li>
+<li><p><a class="reference internal" href="#time-limiting" id="id8">Time Limiting</a></p></li>
+<li><p><a class="reference internal" href="#async-lock-service" id="id9">Async Lock Service</a></p></li>
+<li><p><a class="reference internal" href="#further-configuration-parameters" id="id10">Further Configuration Parameters</a></p></li>
+<li><p><a class="reference internal" href="#dropwizard-configuration-parameters" id="id11">Dropwizard Configuration Parameters</a></p>
+<ul>
+<li><p><a class="reference internal" href="#configuring-http-2" id="id12">Configuring HTTP/2</a></p></li>
+<li><p><a class="reference internal" href="#non-blocking-appender" id="id13">Non-Blocking Appender</a></p></li>
 </ul>
 </li>
 </ul>
 </div>
-<div class="section" id="clients">
+<section id="clients">
 <span id="timelock-server-clients"></span><h2><a class="toc-backref" href="#id4">Clients</a><a class="headerlink" href="#clients" title="Permalink to this headline">¶</a></h2>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">TimeLock previously required users to explicitly configure the namespaces that it would allow to be used,
+<p class="admonition-title">Note</p>
+<p>TimeLock previously required users to explicitly configure the namespaces that it would allow to be used,
 returning 404s otherwise. From AtlasDB 0.54.0 onwards, though, TimeLock dynamically creates clients when a request
 is made for that client for the first time.</p>
 </div>
@@ -225,12 +230,12 @@ is made for that client for the first time.</p>
 Timelock Server, clients must supply a namespace for which they are requesting timestamps or locks in the form of a
 path variable. There are no guarantees of relationships between timestamps requested from different namespaces.</p>
 <blockquote>
-<div><div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">8421</span><span class="o">/</span><span class="n">timelock</span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">tl</span><span class="o">/</span><span class="n">ts</span><span class="o">/</span><span class="n">tom</span> \
-  <span class="o">--</span><span class="n">data</span> <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Authorization: Bearer q&quot;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST https://localhost:8421/timelock/api/tl/ts/tom <span class="se">\</span>
+  --data <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> -H <span class="s2">&quot;Authorization: Bearer q&quot;</span> -H <span class="s2">&quot;Content-Type: application/json&quot;</span>
 
 <span class="c1"># No guarantee of any relationship between the values</span>
-<span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">8421</span><span class="o">/</span><span class="n">timelock</span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">tl</span><span class="o">/</span><span class="n">ts</span><span class="o">/</span><span class="n">jerry</span> \
-  <span class="o">--</span><span class="n">data</span> <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Authorization: Bearer q&quot;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span>
+curl -XPOST https://localhost:8421/timelock/api/tl/ts/jerry <span class="se">\</span>
+  --data <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> -H <span class="s2">&quot;Authorization: Bearer q&quot;</span> -H <span class="s2">&quot;Content-Type: application/json&quot;</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -238,12 +243,12 @@ path variable. There are no guarantees of relationships between timestamps reque
 requests from each of these clients would need to all be synchronized.</p>
 <p>As far as the TimeLock Server is concerned, a client is created on the first request a user makes for the namespace
 in question.</p>
-</div>
-<div class="section" id="cluster">
+</section>
+<section id="cluster">
 <h2><a class="toc-backref" href="#id5">Cluster</a><a class="headerlink" href="#cluster" title="Permalink to this headline">¶</a></h2>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">You will probably want to use an odd number of servers; using an even number of servers increases the overhead
+<p class="admonition-title">Note</p>
+<p>You will probably want to use an odd number of servers; using an even number of servers increases the overhead
 of distributed consensus while not actually providing any additional fault tolerance as far as obtaining a quorum
 is concerned. Using more servers leads to improved fault tolerance at the expense of additional overhead incurred
 in leader election and consensus.</p>
@@ -251,99 +256,99 @@ in leader election and consensus.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">cluster</span></code> block is used to identify the servers which make up a Timelock Service cluster. An example is as
 follows:</p>
 <blockquote>
-<div><div class="code yaml highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cluster</span><span class="p">:</span>
-  <span class="n">localServer</span><span class="p">:</span> <span class="n">palantir</span><span class="o">-</span><span class="mf">1.</span><span class="n">com</span><span class="p">:</span><span class="mi">8080</span>
-  <span class="n">servers</span><span class="p">:</span>
-    <span class="o">-</span> <span class="n">palantir</span><span class="o">-</span><span class="mf">1.</span><span class="n">com</span><span class="p">:</span><span class="mi">8080</span>
-    <span class="o">-</span> <span class="n">palantir</span><span class="o">-</span><span class="mf">2.</span><span class="n">com</span><span class="p">:</span><span class="mi">8080</span>
-    <span class="o">-</span> <span class="n">palantir</span><span class="o">-</span><span class="mf">3.</span><span class="n">com</span><span class="p">:</span><span class="mi">8080</span>
+<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">cluster</span><span class="p">:</span>
+  <span class="nt">localServer</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span>
+  <span class="nt">servers</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-2.com:8080</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">palantir-3.com:8080</span>
 </pre></div>
 </div>
 </div></blockquote>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="11%" />
-<col width="89%" />
+<col style="width: 11%" />
+<col style="width: 89%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Property</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>localServer</td>
-<td>A string following the form <code class="docutils literal notranslate"><span class="pre">hostname:port</span></code> which matches the host on which this config exists.</td>
+<tbody>
+<tr class="row-even"><td><p>localServer</p></td>
+<td><p>A string following the form <code class="docutils literal notranslate"><span class="pre">hostname:port</span></code> which matches the host on which this config exists.</p></td>
 </tr>
-<tr class="row-odd"><td>servers</td>
-<td>A list of strings following the form <code class="docutils literal notranslate"><span class="pre">hostname:port</span></code> identifying the hosts in this Timelock
-Service cluster. Note that this list must include the <code class="docutils literal notranslate"><span class="pre">localServer</span></code>.</td>
+<tr class="row-odd"><td><p>servers</p></td>
+<td><p>A list of strings following the form <code class="docutils literal notranslate"><span class="pre">hostname:port</span></code> identifying the hosts in this Timelock
+Service cluster. Note that this list must include the <code class="docutils literal notranslate"><span class="pre">localServer</span></code>.</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="algorithm">
+</section>
+<section id="algorithm">
 <h2><a class="toc-backref" href="#id6">Algorithm</a><a class="headerlink" href="#algorithm" title="Permalink to this headline">¶</a></h2>
 <p>We have implemented the consensus algorithm required by the Timelock Server using the Paxos algorithm.
 Currently, this is the only supported implementation, though there may be more in the future.
 We identify an algorithm by its <code class="docutils literal notranslate"><span class="pre">type</span></code> field first; algorithms can have additional algorithmic-specific
 customisable parameters as well.</p>
-<div class="section" id="paxos-configuration">
+<section id="paxos-configuration">
 <h3><a class="toc-backref" href="#id7">Paxos Configuration</a><a class="headerlink" href="#paxos-configuration" title="Permalink to this headline">¶</a></h3>
 <p>The algorithm has several configurable parameters; all parameters (apart from <code class="docutils literal notranslate"><span class="pre">type</span></code>) are optional and have
 default values.</p>
 <blockquote>
-<div><div class="code yaml highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">algorithm</span><span class="p">:</span>
-  <span class="nb">type</span><span class="p">:</span> <span class="n">paxos</span>
-  <span class="n">paxosDataDir</span><span class="p">:</span> <span class="n">var</span><span class="o">/</span><span class="n">log</span><span class="o">/</span><span class="n">paxos</span>
-  <span class="n">sslConfiguration</span><span class="p">:</span>
-    <span class="n">trustStorePath</span><span class="p">:</span> <span class="n">var</span><span class="o">/</span><span class="n">security</span><span class="o">/</span><span class="n">trustStore</span><span class="o">.</span><span class="n">jks</span>
-  <span class="n">pingRateMs</span><span class="p">:</span> <span class="mi">5000</span>
-  <span class="n">maximumWaitBeforeProposalMs</span><span class="p">:</span> <span class="mi">1000</span>
-  <span class="n">leaderPingResponseWaitMs</span><span class="p">:</span> <span class="mi">5000</span>
+<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">algorithm</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">paxos</span>
+  <span class="nt">paxosDataDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/log/paxos</span>
+  <span class="nt">sslConfiguration</span><span class="p">:</span>
+    <span class="nt">trustStorePath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/trustStore.jks</span>
+  <span class="nt">pingRateMs</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">5000</span>
+  <span class="nt">maximumWaitBeforeProposalMs</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1000</span>
+  <span class="nt">leaderPingResponseWaitMs</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">5000</span>
 </pre></div>
 </div>
 </div></blockquote>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="11%" />
-<col width="89%" />
+<col style="width: 11%" />
+<col style="width: 89%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Property</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>type</td>
-<td>The type of algorithm to use; currently only <code class="docutils literal notranslate"><span class="pre">paxos</span></code> is supported.</td>
+<tbody>
+<tr class="row-even"><td><p>type</p></td>
+<td><p>The type of algorithm to use; currently only <code class="docutils literal notranslate"><span class="pre">paxos</span></code> is supported.</p></td>
 </tr>
-<tr class="row-odd"><td>paxosDataDir</td>
-<td>A path corresponding to the location in which Paxos will store its logs (of accepted promises and learned
+<tr class="row-odd"><td><p>paxosDataDir</p></td>
+<td><p>A path corresponding to the location in which Paxos will store its logs (of accepted promises and learned
 values) (default: <code class="docutils literal notranslate"><span class="pre">var/data/paxos</span></code>). The Timelock Server will fail to start if this directory does not
-exist and cannot be created.</td>
+exist and cannot be created.</p></td>
 </tr>
-<tr class="row-even"><td>sslConfiguration</td>
-<td>Security settings for communication between Timelock Servers, following the
+<tr class="row-even"><td><p>sslConfiguration</p></td>
+<td><p>Security settings for communication between Timelock Servers, following the
 <a class="reference external" href="https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting2/config/ssl/SslConfiguration.java">palantir/http-remoting</a>
-library (default: no SSL).</td>
+library (default: no SSL).</p></td>
 </tr>
-<tr class="row-odd"><td>pingRateMs</td>
-<td>The interval between followers pinging leaders to check if they are still alive, in ms (default: <code class="docutils literal notranslate"><span class="pre">5000</span></code>).
-The server will fail to start if this is not positive.</td>
+<tr class="row-odd"><td><p>pingRateMs</p></td>
+<td><p>The interval between followers pinging leaders to check if they are still alive, in ms (default: <code class="docutils literal notranslate"><span class="pre">5000</span></code>).
+The server will fail to start if this is not positive.</p></td>
 </tr>
-<tr class="row-even"><td>maximumWaitBeforeProposalMs</td>
-<td>The maximum wait before a follower proposes leadership if it believes the leader is down, or before
-a leader attempts to propose a value again if it couldn’t obtain a quorum, in ms (default: <code class="docutils literal notranslate"><span class="pre">1000</span></code>).</td>
+<tr class="row-even"><td><p>maximumWaitBeforeProposalMs</p></td>
+<td><p>The maximum wait before a follower proposes leadership if it believes the leader is down, or before
+a leader attempts to propose a value again if it couldn’t obtain a quorum, in ms (default: <code class="docutils literal notranslate"><span class="pre">1000</span></code>).</p></td>
 </tr>
-<tr class="row-odd"><td>leaderPingWaitResponseMs</td>
-<td>The length of time between a follower initiating a ping to a leader and, if it hasn’t received a response,
-believing the leader is down, in ms (default: <code class="docutils literal notranslate"><span class="pre">5000</span></code>).</td>
+<tr class="row-odd"><td><p>leaderPingWaitResponseMs</p></td>
+<td><p>The length of time between a follower initiating a ping to a leader and, if it hasn’t received a response,
+believing the leader is down, in ms (default: <code class="docutils literal notranslate"><span class="pre">5000</span></code>).</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-</div>
-<div class="section" id="time-limiting">
+</section>
+</section>
+<section id="time-limiting">
 <span id="timelock-server-time-limiting"></span><h2><a class="toc-backref" href="#id8">Time Limiting</a><a class="headerlink" href="#time-limiting" title="Permalink to this headline">¶</a></h2>
 <p>Clients that make long-running lock requests will block a thread on TimeLock for the duration of their request. More
 significantly, if these requests are blocked for longer than the idle timeout of the server’s application connector
@@ -360,40 +365,40 @@ over to non-leaders and they will redirect us back.</p>
 now if the blocking time is longer than the connection timeout, then it is possible for the locks to not behave
 fairly.</p>
 <blockquote>
-<div><div class="code yaml highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">timeLimiter</span><span class="p">:</span>
-  <span class="n">enableTimeLimiting</span><span class="p">:</span> <span class="n">true</span>
-  <span class="n">blockingTimeoutErrorMargin</span><span class="p">:</span> <span class="mf">0.03</span>
+<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">timeLimiter</span><span class="p">:</span>
+  <span class="nt">enableTimeLimiting</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="nt">blockingTimeoutErrorMargin</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.03</span>
 </pre></div>
 </div>
 </div></blockquote>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="11%" />
-<col width="89%" />
+<col style="width: 11%" />
+<col style="width: 89%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Property</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>enableTimeLimiting</td>
-<td>Whether to enable the time limiting mechanism or not (default: <code class="docutils literal notranslate"><span class="pre">false</span></code>).</td>
+<tbody>
+<tr class="row-even"><td><p>enableTimeLimiting</p></td>
+<td><p>Whether to enable the time limiting mechanism or not (default: <code class="docutils literal notranslate"><span class="pre">false</span></code>).</p></td>
 </tr>
-<tr class="row-odd"><td>blockingTimeoutErrorMargin</td>
-<td>A value indicating the margin of error we leave before interrupting a long running request,
+<tr class="row-odd"><td><p>blockingTimeoutErrorMargin</p></td>
+<td><p>A value indicating the margin of error we leave before interrupting a long running request,
 since we wish to perform this interruption and return a BlockingTimeoutException <em>before</em> Jetty closes the
 stream. This margin is specified as a ratio of the smallest idle timeout - hence it must be strictly between
-0 and 1 (default: <code class="docutils literal notranslate"><span class="pre">0.03</span></code>).</td>
+0 and 1 (default: <code class="docutils literal notranslate"><span class="pre">0.03</span></code>).</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="async-lock-service">
+</section>
+<section id="async-lock-service">
 <span id="id2"></span><h2><a class="toc-backref" href="#id9">Async Lock Service</a><a class="headerlink" href="#async-lock-service" title="Permalink to this headline">¶</a></h2>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">If disabling legacy safety checks, note that clients for each namespace <strong>MUST</strong> either use pre- or post-0.49.0
+<p class="admonition-title">Danger</p>
+<p>If disabling legacy safety checks, note that clients for each namespace <strong>MUST</strong> either use pre- or post-0.49.0
 versions of AtlasDB. This also precludes rolling upgrades of clients (as there is an intermediate state where some
 clients are using pre-0.49.0 and some using post-0.49.0). Failure to ensure this may result in
 <strong>SEVERE DATA CORRUPTION</strong> as transactions which would otherwise have run into a write-write conflict might
@@ -403,32 +408,32 @@ successfully commit.</p>
 This relies on new <code class="docutils literal notranslate"><span class="pre">/timelock</span></code> APIs (as opposed to the previous <code class="docutils literal notranslate"><span class="pre">/timestamp</span></code> and <code class="docutils literal notranslate"><span class="pre">/lock</span></code> APIs). Configuring
 the asynchronous lock service may be done as follows:</p>
 <blockquote>
-<div><div class="code yaml highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">asyncLock</span><span class="p">:</span>
-  <span class="n">useAsyncLockService</span><span class="p">:</span> <span class="n">true</span>
-  <span class="n">disableLegacySafetyChecksWarningPotentialDataCorruption</span><span class="p">:</span> <span class="n">false</span>
+<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">asyncLock</span><span class="p">:</span>
+  <span class="nt">useAsyncLockService</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="nt">disableLegacySafetyChecksWarningPotentialDataCorruption</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
 </pre></div>
 </div>
 </div></blockquote>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="11%" />
-<col width="89%" />
+<col style="width: 11%" />
+<col style="width: 89%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Property</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>useAsyncLockService</td>
-<td>Whether to enable the asynchronous lock service or not (default: <code class="docutils literal notranslate"><span class="pre">true</span></code>).</td>
+<tbody>
+<tr class="row-even"><td><p>useAsyncLockService</p></td>
+<td><p>Whether to enable the asynchronous lock service or not (default: <code class="docutils literal notranslate"><span class="pre">true</span></code>).</p></td>
 </tr>
-<tr class="row-odd"><td>disableLegacySafetyChecksWarningPotentialDataCorruption</td>
-<td>A value indicating whether safety checks to prohibit legacy lock services from participating in the AtlasDB
+<tr class="row-odd"><td><p>disableLegacySafetyChecksWarningPotentialDataCorruption</p></td>
+<td><p>A value indicating whether safety checks to prohibit legacy lock services from participating in the AtlasDB
 transaction protocol should be disabled. The safety checks are important for avoiding concurrency issues if
 clients for a given namespace may be running both pre- and post-0.49.0 versions of AtlasDB, but may need to be
 disabled if one is running clients for multiple namespaces that separately run both pre- and post-0.49.0
-versions of AtlasDB.</td>
+versions of AtlasDB.</p></td>
 </tr>
 </tbody>
 </table>
@@ -436,64 +441,64 @@ versions of AtlasDB.</td>
 <code class="docutils literal notranslate"><span class="pre">disableLegacySafetyChecksWarningPotentialDataCorruption</span></code> defaults to the complement of <code class="docutils literal notranslate"><span class="pre">useAsyncLockService</span></code>.
 Note that we do not support enabling safety checks whilst not using the async lock service (as there will be no way for
 client transactions to commit)!</p>
-</div>
-<div class="section" id="further-configuration-parameters">
+</section>
+<section id="further-configuration-parameters">
 <span id="timelock-server-further-config"></span><h2><a class="toc-backref" href="#id10">Further Configuration Parameters</a><a class="headerlink" href="#further-configuration-parameters" title="Permalink to this headline">¶</a></h2>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="11%" />
-<col width="89%" />
+<col style="width: 11%" />
+<col style="width: 89%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Property</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>slowLockLogTriggerMillis</td>
-<td>Log at INFO if a lock request receives a response after given duration in milliseconds (default: <code class="docutils literal notranslate"><span class="pre">10000</span></code> i.e. 10s).</td>
+<tbody>
+<tr class="row-even"><td><p>slowLockLogTriggerMillis</p></td>
+<td><p>Log at INFO if a lock request receives a response after given duration in milliseconds (default: <code class="docutils literal notranslate"><span class="pre">10000</span></code> i.e. 10s).</p></td>
 </tr>
-<tr class="row-odd"><td>useClientRequestLimit</td>
-<td>Limit the number of concurrent lock requests from a single client.
+<tr class="row-odd"><td><p>useClientRequestLimit</p></td>
+<td><p>Limit the number of concurrent lock requests from a single client.
 Each request consumes a thread on the server.
-When enabled, each client has a number of threads reserved for itself (default: <code class="docutils literal notranslate"><span class="pre">false</span></code>).</td>
+When enabled, each client has a number of threads reserved for itself (default: <code class="docutils literal notranslate"><span class="pre">false</span></code>).</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="dropwizard-configuration-parameters">
+</section>
+<section id="dropwizard-configuration-parameters">
 <h2><a class="toc-backref" href="#id11">Dropwizard Configuration Parameters</a><a class="headerlink" href="#dropwizard-configuration-parameters" title="Permalink to this headline">¶</a></h2>
 <p>The Timelock Server is implemented as a Dropwizard application, and may thus be suitably configured with a <code class="docutils literal notranslate"><span class="pre">server</span></code>
 block following <a class="reference external" href="http://www.dropwizard.io/1.0.6/docs/manual/configuration.html">Dropwizard’s configuration</a>. This
 may be useful if, for example, one needs to change the application and/or admin ports for the Timelock Server.</p>
-<div class="section" id="configuring-http-2">
+<section id="configuring-http-2">
 <span id="timelock-server-config-http2"></span><h3><a class="toc-backref" href="#id12">Configuring HTTP/2</a><a class="headerlink" href="#configuring-http-2" title="Permalink to this headline">¶</a></h3>
 <p><a class="reference external" href="https://http2.github.io/">HTTP/2</a> is a newer version of the HTTP protocol that supports, among other features, connection multiplexing. This is
 extremely useful in improving the latency of timestamp and lock requests, which are usually fairly small.
 Timelock Server is compatible with HTTP/2 as of AtlasDB v0.34.0; to configure this, one should change the protocol
 used by the Dropwizard application and admin connectors to <code class="docutils literal notranslate"><span class="pre">h2</span></code> instead of <code class="docutils literal notranslate"><span class="pre">https</span></code>. For example, this block can be
 added to the root of the Timelock server configuration:</p>
-<div class="code yaml highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">server</span><span class="p">:</span>
-  <span class="n">applicationConnectors</span><span class="p">:</span>
-    <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">h2</span>
-      <span class="n">port</span><span class="p">:</span> <span class="mi">8421</span>
-  <span class="n">adminConnectors</span><span class="p">:</span>
-    <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">h2</span>
-      <span class="n">port</span><span class="p">:</span> <span class="mi">8422</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">server</span><span class="p">:</span>
+  <span class="nt">applicationConnectors</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">h2</span>
+      <span class="nt">port</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8421</span>
+  <span class="nt">adminConnectors</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">h2</span>
+      <span class="nt">port</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8422</span>
 </pre></div>
 </div>
 <p>Note that because Timelock Server uses the OkHttp library, it is currently not compatible with HTTP/2 via cleartext
 (the <code class="docutils literal notranslate"><span class="pre">h2c</span></code> protocol).</p>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Although HTTP/2 does offer a performance boost with connection multiplexing, it also mandates that the Galois/Counter
+<p class="admonition-title">Warning</p>
+<p>Although HTTP/2 does offer a performance boost with connection multiplexing, it also mandates that the Galois/Counter
 Mode (GCM) cipher-suites are used, which suffer from a relatively unperformant implementation in the Oracle JDK.
 Thus, clients that are unable to use HTTP/2 may see a significant slowdown when the Timelock Server switches from an
 <code class="docutils literal notranslate"><span class="pre">https</span></code> connector to an <code class="docutils literal notranslate"><span class="pre">h2</span></code> connector. It may be possible to get around this by exposing multiple application
 connectors, though the AtlasDB team has not tested this approach.</p>
 </div>
-</div>
-<div class="section" id="non-blocking-appender">
+</section>
+<section id="non-blocking-appender">
 <span id="id3"></span><h3><a class="toc-backref" href="#id13">Non-Blocking Appender</a><a class="headerlink" href="#non-blocking-appender" title="Permalink to this headline">¶</a></h3>
 <p>We have experienced issues with Logback (the logging library which Dropwizard uses) under high load.
 This is because rolling of request logs required synchronization among threads that wanted to write logs; given high
@@ -503,20 +508,20 @@ rolled), though this could mean that a very small proportion of log lines may be
 <p>This is configured in the same way as a standard Dropwizard
 <a class="reference external" href="http://www.dropwizard.io/1.0.6/docs/manual/configuration.html#file">file</a> appender, except that the <code class="docutils literal notranslate"><span class="pre">type</span></code>
 should be <code class="docutils literal notranslate"><span class="pre">non-blocking-file</span></code> instead of just <code class="docutils literal notranslate"><span class="pre">file</span></code>.</p>
-<div class="code yaml highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">requestLog</span><span class="p">:</span>
-  <span class="n">appenders</span><span class="p">:</span>
-    <span class="o">-</span> <span class="n">archivedFileCount</span><span class="p">:</span> <span class="mi">10</span>
-      <span class="n">maxFileSize</span><span class="p">:</span> <span class="mi">1</span><span class="n">GB</span>
-      <span class="n">archivedLogFilenamePattern</span><span class="p">:</span> <span class="s2">&quot;var/log/timelock-server-request-</span><span class="si">%i</span><span class="s2">.log.gz&quot;</span>
-      <span class="n">currentLogFilename</span><span class="p">:</span> <span class="n">var</span><span class="o">/</span><span class="n">log</span><span class="o">/</span><span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="n">request</span><span class="o">.</span><span class="n">log</span>
-      <span class="n">threshold</span><span class="p">:</span> <span class="n">INFO</span>
-      <span class="n">timeZone</span><span class="p">:</span> <span class="n">UTC</span>
-      <span class="nb">type</span><span class="p">:</span> <span class="n">non</span><span class="o">-</span><span class="n">blocking</span><span class="o">-</span><span class="n">file</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">requestLog</span><span class="p">:</span>
+  <span class="nt">appenders</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">archivedFileCount</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10</span>
+      <span class="nt">maxFileSize</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1GB</span>
+      <span class="nt">archivedLogFilenamePattern</span><span class="p">:</span> <span class="s">&quot;var/log/timelock-server-request-%i.log.gz&quot;</span>
+      <span class="nt">currentLogFilename</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">var/log/timelock-server-request.log</span>
+      <span class="nt">threshold</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">INFO</span>
+      <span class="nt">timeZone</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">UTC</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">non-blocking-file</span>
 </pre></div>
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>13. Write Cassandra tombstones and sentinels with a fresh Cassandra timestamp &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
@@ -200,75 +203,66 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="write-cassandra-tombstones-and-sentinels-with-a-fresh-cassandra-timestamp">
+  <section id="write-cassandra-tombstones-and-sentinels-with-a-fresh-cassandra-timestamp">
 <h1>13. Write Cassandra tombstones and sentinels with a fresh Cassandra timestamp<a class="headerlink" href="#write-cassandra-tombstones-and-sentinels-with-a-fresh-cassandra-timestamp" title="Permalink to this headline">¶</a></h1>
 <p>Date: 12/06/2018</p>
-<div class="section" id="status">
-<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>## Status</p>
 <p>Accepted</p>
-</div>
-<div class="section" id="context">
-<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="mutations">
-<h3>Mutations<a class="headerlink" href="#mutations" title="Permalink to this headline">¶</a></h3>
+<p>## Context</p>
+<p>### Mutations</p>
 <p>Mutations in Cassandra take place at a Cassandra <em>writetime</em> or timestamp. In normal Cassandra operation, these times
 are the wall-clock times where a mutation took place. These are used to “resolve” conflicts when performing reads;
-for a given column, the most recently written value will be read (”last-write-wins”).</p>
-<p>AtlasDB columns take the form <code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">column1,</span> <span class="pre">column2,</span> <span class="pre">value)</span></code> where <code class="docutils literal notranslate"><span class="pre">column2</span></code> is the Atlas timestamp. These timestamps
+for a given column, the most recently written value will be read (“last-write-wins”).</p>
+<p>AtlasDB columns take the form <cite>(row, column1, column2, value)</cite> where <cite>column2</cite> is the Atlas timestamp. These timestamps
 are unique - thus, for transactional tables, no mutations to the same column should take place apart from deleting
 a cell that is no longer needed (e.g. because of sweep).</p>
 <p>In the context of AtlasDB, reliance on wall-clock time is generally considered unacceptable. Thus, Atlas uses its
 own timestamps:</p>
 <ul class="simple">
-<li>a cell written at a start timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code> is given the Cassandra timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code></li>
-<li>a sweep sentinel is given the Cassandra timestamp <code class="docutils literal notranslate"><span class="pre">-1</span></code></li>
-<li>a tombstone inserted by deleting a cell with start timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code> is given the Cassandra timestamp <code class="docutils literal notranslate"><span class="pre">TS</span> <span class="pre">+</span> <span class="pre">1</span></code></li>
-<li>a range tombstone from time <code class="docutils literal notranslate"><span class="pre">0</span></code> to <code class="docutils literal notranslate"><span class="pre">TS</span></code> exclusive is given the Cassandra timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code></li>
+<li><p>a cell written at a start timestamp <cite>TS</cite> is given the Cassandra timestamp <cite>TS</cite></p></li>
+<li><p>a sweep sentinel is given the Cassandra timestamp <cite>-1</cite></p></li>
+<li><p>a tombstone inserted by deleting a cell with start timestamp <cite>TS</cite> is given the Cassandra timestamp <cite>TS + 1</cite></p></li>
+<li><p>a range tombstone from time <cite>0</cite> to <cite>TS</cite> exclusive is given the Cassandra timestamp <cite>TS</cite></p></li>
 </ul>
 <p>For transactional tables, there are several key invariants to be preserved:</p>
 <ul class="simple">
-<li>a tombstone or range tombstone that covers a cell with the Cassandra timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code> must have a Cassandra timestamp
-greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code></li>
-<li>a tombstone or range tombstone that covers a sweep sentinel with Cassandra timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code> must have a Cassandra
-timestamp greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code></li>
-<li>the insertion of a fresh sweep sentinel after a tombstone that covers the sentinel, written at timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code>, must
-have a Cassandra timestamp greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code></li>
+<li><p>a tombstone or range tombstone that covers a cell with the Cassandra timestamp <cite>TS</cite> must have a Cassandra timestamp
+greater than <cite>TS</cite></p></li>
+<li><p>a tombstone or range tombstone that covers a sweep sentinel with Cassandra timestamp <cite>TS</cite> must have a Cassandra
+timestamp greater than <cite>TS</cite></p></li>
+<li><p>the insertion of a fresh sweep sentinel after a tombstone that covers the sentinel, written at timestamp <cite>TS</cite>, must
+have a Cassandra timestamp greater than <cite>TS</cite></p></li>
 </ul>
 <p>Notice that the existing system does not satisfy the third invariant.
-Switching from <code class="docutils literal notranslate"><span class="pre">CONSERVATIVE</span></code> sweep (writes a sentinel) to <code class="docutils literal notranslate"><span class="pre">THOROUGH</span></code> sweep
+Switching from <cite>CONSERVATIVE</cite> sweep (writes a sentinel) to <cite>THOROUGH</cite> sweep
 (which removes sentinels) and back is broken, in that the sentinels written by the conservative sweep after
 the reversion of the strategy will not be visible to readers.</p>
 <p>Things behave differently for non-transactional tables:</p>
 <ul class="simple">
-<li>most of these tables (<code class="docutils literal notranslate"><span class="pre">_timestamp</span></code>, backup lock, schema mutation lock, schema metadata) are written to at <code class="docutils literal notranslate"><span class="pre">0</span></code>.</li>
-<li>the <code class="docutils literal notranslate"><span class="pre">_metadata</span></code> table is written to and read from at wall-clock time.</li>
+<li><p>most of these tables (<cite>_timestamp</cite>, backup lock, schema mutation lock, schema metadata) are written to at <cite>0</cite>.</p></li>
+<li><p>the <cite>_metadata</cite> table is written to and read from at wall-clock time.</p></li>
 </ul>
-</div>
-<div class="section" id="compaction">
-<h3>Compaction<a class="headerlink" href="#compaction" title="Permalink to this headline">¶</a></h3>
+<p>### Compaction</p>
 <p>Cassandra stores its data in multiple SSTables which are periodically compacted together. Compactions can help to
 clear deleted data and reclaim disk space. This is when tombstones are reclaimed as well.</p>
 <p>When compacting SSTables together, if the most recent value is a tombstone then Cassandra needs to determine whether
 the tombstone can safely be reclaimed or not. Cassandra has a first check based on the real-time age of the tombstone
-and <code class="docutils literal notranslate"><span class="pre">gc_grace_seconds</span></code>, which gives us some protection against zombie data when a failed node recovers.
+and <cite>gc_grace_seconds</cite>, which gives us some protection against zombie data when a failed node recovers.
 Assuming that check passes, we then look at the minimum write timestamp of SSTables not involved in
 the compaction. More precisely, reclaimable tombstones are tombstones where the deletion timestamp is less than the
 lowest timestamp of</p>
-<ol class="simple">
-<li>all other SSTables that include the partition being deleted, and</li>
-<li>any cells within the same partition in memtables</li>
+<ol class="arabic simple">
+<li><p>all other SSTables that include the partition being deleted, and</p></li>
+<li><p>any cells within the same partition in memtables</p></li>
 </ol>
 <p>Otherwise, we may have live data that the tombstone was covering suddenly become visible again.</p>
-<p>Since Atlas writes its sweep sentinels at timestamp <code class="docutils literal notranslate"><span class="pre">-1</span></code>, some SSTables or memtables will have a minimum timestamp of
-<code class="docutils literal notranslate"><span class="pre">-1</span></code> which may prevent compactions on subsets of SSTables from dropping many legitimately reclaimable tombstones.</p>
-</div>
-</div>
-<div class="section" id="decision">
-<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<p>Since Atlas writes its sweep sentinels at timestamp <cite>-1</cite>, some SSTables or memtables will have a minimum timestamp of
+<cite>-1</cite> which may prevent compactions on subsets of SSTables from dropping many legitimately reclaimable tombstones.</p>
+<p>## Decision</p>
 <p>Change the timestamps at which sweep sentinels, tombstones and range tombstones are written to be a fresh timestamp
 from the timestamp service. In the case of sentinels and tombstones, a single API call to add a set of garbage
 collection sentinels or delete a set of cells makes one call for a fresh timestamp to the timestamp service. Cell write
-timestamps are unchanged (so a write at timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code> still receives a Cassandra timestamp of <code class="docutils literal notranslate"><span class="pre">TS</span></code>). Taking an RPC
+timestamps are unchanged (so a write at timestamp <cite>TS</cite> still receives a Cassandra timestamp of <cite>TS</cite>). Taking an RPC
 overhead here is fine, because these operations don’t happen on critical path operations (i.e. they don’t occur as part
 of normal client read/write transactions).</p>
 <p>The write pattern for the metadata table is unchanged (still uses wall-clock time). Some of this is because of a
@@ -276,55 +270,48 @@ chicken and egg problem with embedded users of the timestamp service; additional
 manipulate the metadata table but don’t have ready access to a timestamp service. Also, these tables receive minimal
 writes and deletes compared to actual transactional data tables, and are thus less of a concern from a Cassandra
 strain/performance perspective.</p>
-<div class="section" id="proof-of-correctness-safety">
-<h3>Proof of Correctness/Safety<a class="headerlink" href="#proof-of-correctness-safety" title="Permalink to this headline">¶</a></h3>
-<p>Recall the invariants we seek to preserve:</p>
-<ol class="simple">
-<li>a tombstone or range tombstone that covers a cell with the Cassandra timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code> must have a Cassandra timestamp
-greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code></li>
-<li>a tombstone or range tombstone that covers a sweep sentinel with Cassandra timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code> must have a Cassandra
-timestamp greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code></li>
-<li>the insertion of a fresh sweep sentinel after a tombstone that covers the sentinel, written at timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code>, must
-have a Cassandra timestamp greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code></li>
-</ol>
-<p>A cell being covered with Cassandra timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code> must also have Atlas start timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code>. Given that this cell is
-already written to the database, a fresh timestamp <code class="docutils literal notranslate"><span class="pre">TS'</span></code> is necessarily greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code>, giving us statement 1.</p>
+<p>### Proof of Correctness/Safety
+Recall the invariants we seek to preserve:</p>
+<p>1. a tombstone or range tombstone that covers a cell with the Cassandra timestamp <cite>TS</cite> must have a Cassandra timestamp
+greater than <cite>TS</cite>
+2. a tombstone or range tombstone that covers a sweep sentinel with Cassandra timestamp <cite>TS</cite> must have a Cassandra
+timestamp greater than <cite>TS</cite>
+3. the insertion of a fresh sweep sentinel after a tombstone that covers the sentinel, written at timestamp <cite>TS</cite>, must
+have a Cassandra timestamp greater than <cite>TS</cite></p>
+<p>A cell being covered with Cassandra timestamp <cite>TS</cite> must also have Atlas start timestamp <cite>TS</cite>. Given that this cell is
+already written to the database, a fresh timestamp <cite>TS’</cite> is necessarily greater than <cite>TS</cite>, giving us statement 1.</p>
 <p>Statements 2 and 3 follow from the guarantees of the timestamp service.</p>
-</div>
-<div class="section" id="migrations-cutover">
-<h3>Migrations/Cutover<a class="headerlink" href="#migrations-cutover" title="Permalink to this headline">¶</a></h3>
-<p>Notice that even in the presence of values written under the old scheme, our invariants are preserved.
+<p>### Migrations/Cutover
+Notice that even in the presence of values written under the old scheme, our invariants are preserved.
 Statement 1 holds because cell write timestamps haven’t changed (and we can re-use the proof above).
-For statements 2 and 3, the timestamps of values we are covering would be <code class="docutils literal notranslate"><span class="pre">-1</span></code> and <code class="docutils literal notranslate"><span class="pre">deletionTimestamp</span> <span class="pre">+</span> <span class="pre">1</span></code>;
+For statements 2 and 3, the timestamps of values we are covering would be <cite>-1</cite> and <cite>deletionTimestamp + 1</cite>;
 we know that a fresh timestamp will be at least that (since timestamps aren’t given out twice).</p>
 <p>Timestamps for existing values are not changed, so a major compaction may be necessary before one begins to
 reap the benefits of better tombstone droppability. This may be especially relevant for larger tables that are marked
-as <code class="docutils literal notranslate"><span class="pre">appendHeavyAndReadLight()</span></code> (because these use the <code class="docutils literal notranslate"><span class="pre">SizeTieredCompactionStrategy</span></code>) and also for heavier users in
-general (there may be several <code class="docutils literal notranslate"><span class="pre">-1</span></code> timestamps in SSTables that are not frequently compacted, and thus an issue).</p>
-</div>
-</div>
-<div class="section" id="consequences">
-<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+as <cite>appendHeavyAndReadLight()</cite> (because these use the <cite>SizeTieredCompactionStrategy</cite>) and also for heavier users in
+general (there may be several <cite>-1</cite> timestamps in SSTables that are not frequently compacted, and thus an issue).</p>
+<p>## Consequences</p>
 <ul class="simple">
-<li>Key-value services now need a fresh timestamp supplier for initialisation.<ul>
-<li>An alternative approach where this was optional was considered (and if not provided we would use the legacy mode).
-We decided to mandate providing the supplier as the benefits of better tombstone droppability are significant.</li>
-<li>The fresh timestamp supplier is unused by key value services other than Cassandra.</li>
+<li><p>Key-value services now need a fresh timestamp supplier for initialisation.</p>
+<ul>
+<li><p>An alternative approach where this was optional was considered (and if not provided we would use the legacy mode).
+We decided to mandate providing the supplier as the benefits of better tombstone droppability are significant.</p></li>
+<li><p>The fresh timestamp supplier is unused by key value services other than Cassandra.</p></li>
 </ul>
 </li>
-<li>Inserting sentinels or writing tombstones/range tombstones requires one additional RPC.<ul>
-<li>These operations do not occur on critical paths (i.e. normal read/write transactions for clients) and may thus be
-less performance-sensitive. Reads and writes on critical paths do not suffer from any extra RPC overhead here.</li>
-<li>A memoisation approach was considered, but naïve memoisation is wrong - there is a risk where if you write a value
+<li><p>Inserting sentinels or writing tombstones/range tombstones requires one additional RPC.</p>
+<ul>
+<li><p>These operations do not occur on critical paths (i.e. normal read/write transactions for clients) and may thus be
+less performance-sensitive. Reads and writes on critical paths do not suffer from any extra RPC overhead here.</p></li>
+<li><p>A memoisation approach was considered, but naïve memoisation is wrong - there is a risk where if you write a value
 and then delete it shortly after, the memoized timestamp given to the tombstone could be less than the fresh
-timestamp given to the write. In that case, the value remains live when it should not.</li>
-<li>A variant of the above that uses the max of the memoized timestamp and (writeTimestamp + 1) was briefly considered,
-though we opted for not memoizing for simplicity and because these are not hot codepaths.</li>
+timestamp given to the write. In that case, the value remains live when it should not.</p></li>
+<li><p>A variant of the above that uses the max of the memoized timestamp and (writeTimestamp + 1) was briefly considered,
+though we opted for not memoizing for simplicity and because these are not hot codepaths.</p></li>
 </ul>
 </li>
 </ul>
-</div>
-</div>
+</section>
 
 
            </div>

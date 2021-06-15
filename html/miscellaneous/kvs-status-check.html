@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>KeyValueService Status &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -180,17 +183,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="keyvalueservice-status">
+  <section id="keyvalueservice-status">
 <span id="kvs-status-check"></span><h1>KeyValueService Status<a class="headerlink" href="#keyvalueservice-status" title="Permalink to this headline">¶</a></h1>
 <p>Call <code class="docutils literal notranslate"><span class="pre">TransactionManagers.getKeyValueServiceStatus()</span></code> to find the state of the underlying key value service.
 Here are the values that can be returned by the status API.</p>
 <ul class="simple">
-<li><strong>TERMINAL</strong> : Implies the KVS configuration does not match the key value store state.</li>
-<li><strong>UNHEALTHY</strong> : Implies the KVS cannot perform read/write operations.</li>
-<li><strong>HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES</strong>: Implies read/write operations are available but the KVS cannot perform deletes or schema mutations.</li>
-<li><strong>HEALTHY_ALL_OPERATIONS</strong>: Implies the KVS is healthy and all operations are available.</li>
+<li><p><strong>TERMINAL</strong> : Implies the KVS configuration does not match the key value store state.</p></li>
+<li><p><strong>UNHEALTHY</strong> : Implies the KVS cannot perform read/write operations.</p></li>
+<li><p><strong>HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES</strong>: Implies read/write operations are available but the KVS cannot perform deletes or schema mutations.</p></li>
+<li><p><strong>HEALTHY_ALL_OPERATIONS</strong>: Implies the KVS is healthy and all operations are available.</p></li>
 </ul>
-</div>
+</section>
 
 
            </div>

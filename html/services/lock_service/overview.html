@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Overview &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
@@ -186,9 +189,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="overview">
+  <section id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="the-lock-service">
+<section id="the-lock-service">
 <h2>The Lock Service<a class="headerlink" href="#the-lock-service" title="Permalink to this headline">¶</a></h2>
 <p>The lock service helps prevent data corruption in the database by enabling clients to avoid modifying the same data at the same time.</p>
 <p>The lock service listens for lock requests.
@@ -200,16 +203,16 @@ When the resource becomes available, the lock service will approve the request, 
 <p>The lock token is essentially an indicator that the client should proceed with its transaction.
 However, the lock token is not actually a mutex; it is just a token.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Lock clients are expected to abide by these locks as per the <a class="reference internal" href="../../transactions/transaction_protocol.html#transaction-protocol"><span class="std std-ref">Transaction Protocol</span></a>.</p>
+<p class="admonition-title">Note</p>
+<p>Lock clients are expected to abide by these locks as per the <a class="reference internal" href="../../transactions/transaction_protocol.html#transaction-protocol"><span class="std std-ref">Transaction Protocol</span></a>.</p>
 </div>
-</div>
-<div class="section" id="the-lock-client">
+</section>
+<section id="the-lock-client">
 <h2>The Lock Client<a class="headerlink" href="#the-lock-client" title="Permalink to this headline">¶</a></h2>
 <p>A lock client runs on any service that wishes to use the lock service to coordinate activity on the database.
 The lock client uses tokens from the lock service to determine whether it is safe to proceed with transactions.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

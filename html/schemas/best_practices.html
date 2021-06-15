@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Cassandra Best Practices &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -184,22 +187,21 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="cassandra-best-practices">
+  <section id="cassandra-best-practices">
 <h1>Cassandra Best Practices<a class="headerlink" href="#cassandra-best-practices" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="overview">
+<section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>This section is intended to provide guidelines for maintaining good performance for atlasdb queries when using Cassandra as a backing store.</p>
 <p>The advice here is meant to serve as a safeguard against using atlas in ways that are known to cause performance issues, but it is not all encompassing. In general, you can feel safe if you follow the guidelines below; however, if you need to bend any of these rules, you should make sure that you understand why it’s ok to do so.</p>
-</div>
-<div class="section" id="range-scans">
+</section>
+<section id="range-scans">
 <h2>Range Scans<a class="headerlink" href="#range-scans" title="Permalink to this headline">¶</a></h2>
 <p><strong>Range Scans vs Exact Key Lookups</strong></p>
 <ul class="simple">
-<li><dl class="first docutils">
-<dt>Prefer exact key lookups over range scans</dt>
-<dd><ul class="first last">
-<li>The performance of exact key lookups do not degrade with frequent updates to the key</li>
-<li>Exact key lookups will never fetch more data than you expect</li>
+<li><dl class="simple">
+<dt>Prefer exact key lookups over range scans</dt><dd><ul>
+<li><p>The performance of exact key lookups do not degrade with frequent updates to the key</p></li>
+<li><p>Exact key lookups will never fetch more data than you expect</p></li>
 </ul>
 </dd>
 </dl>
@@ -207,70 +209,64 @@
 </ul>
 <p><strong>Row vs Dynamic Column Range Scans</strong></p>
 <ul class="simple">
-<li><dl class="first docutils">
-<dt>Prefer dynamic column range scans</dt>
-<dd><ul class="first last">
-<li>Range scanning over dynamic columns within a row can be 2 or more times faster than range scanning across rows</li>
-<li>Dynamic column scans are more efficient, and Cassandra is optimized for them</li>
+<li><dl class="simple">
+<dt>Prefer dynamic column range scans</dt><dd><ul>
+<li><p>Range scanning over dynamic columns within a row can be 2 or more times faster than range scanning across rows</p></li>
+<li><p>Dynamic column scans are more efficient, and Cassandra is optimized for them</p></li>
 </ul>
 </dd>
 </dl>
 </li>
-<li>However, when used properly, row-based range scans can still provide acceptable performance.</li>
+<li><p>However, when used properly, row-based range scans can still provide acceptable performance.</p></li>
 </ul>
 <p><strong>Range Scan Caveats</strong></p>
 <ul class="simple">
-<li><dl class="first docutils">
-<dt>Avoid range scanning across rows or dynamic columns where data is updated / overwritten / deleted</dt>
-<dd><ul class="first last">
-<li>Range scans will fetch all historical versions of every cell. This means that range scan performance degrades linearly with the number of updates to cells in the range</li>
-<li>The impact of overwrites can be alleviated over time by background sweep, but in general, you should design your schema in such a way that your queries do not rely on sweep to maintain good performance</li>
+<li><dl class="simple">
+<dt>Avoid range scanning across rows or dynamic columns where data is updated / overwritten / deleted</dt><dd><ul>
+<li><p>Range scans will fetch all historical versions of every cell. This means that range scan performance degrades linearly with the number of updates to cells in the range</p></li>
+<li><p>The impact of overwrites can be alleviated over time by background sweep, but in general, you should design your schema in such a way that your queries do not rely on sweep to maintain good performance</p></li>
 </ul>
 </dd>
 </dl>
 </li>
-<li><dl class="first docutils">
-<dt>You can improve the performance of range scans by requesting a single column</dt>
-<dd><ul class="first last">
-<li>As of AtlasDB v0.62.0, we only request the latest version of the specific column requested, if only one column is requested. Previous behaviour was consistent with the item below.</li>
+<li><dl class="simple">
+<dt>You can improve the performance of range scans by requesting a single column</dt><dd><ul>
+<li><p>As of AtlasDB v0.62.0, we only request the latest version of the specific column requested, if only one column is requested. Previous behaviour was consistent with the item below.</p></li>
 </ul>
 </dd>
 </dl>
 </li>
-<li><dl class="first docutils">
-<dt>Do not attempt to “filter” row keys by selecting multiple columns in your range scan</dt>
-<dd><ul class="first last">
-<li>Atlas will retrieve all column values for every row returned in a range scan, regardless of which columns are requested.</li>
+<li><dl class="simple">
+<dt>Do not attempt to “filter” row keys by selecting multiple columns in your range scan</dt><dd><ul>
+<li><p>Atlas will retrieve all column values for every row returned in a range scan, regardless of which columns are requested.</p></li>
 </ul>
 </dd>
 </dl>
 </li>
-<li><dl class="first docutils">
-<dt>Consider the impact on data distribution when designing a table for range scans</dt>
-<dd><ul class="first last">
-<li>Range scans inherently lead to hotspotting, because keys that are close to one another in a range will end up on the same Cassandra node.</li>
+<li><dl class="simple">
+<dt>Consider the impact on data distribution when designing a table for range scans</dt><dd><ul>
+<li><p>Range scans inherently lead to hotspotting, because keys that are close to one another in a range will end up on the same Cassandra node.</p></li>
 </ul>
 </dd>
 </dl>
 </li>
-<li><dl class="first docutils">
-<dt>When using dynamic columns for range scans, do not allow the total size of your row to grow above ~100MB.</dt>
-<dd><ul class="first last">
-<li>Large rows reduce performance of compactions and create heap pressure in Cassandra</li>
+<li><dl class="simple">
+<dt>When using dynamic columns for range scans, do not allow the total size of your row to grow above ~100MB.</dt><dd><ul>
+<li><p>Large rows reduce performance of compactions and create heap pressure in Cassandra</p></li>
 </ul>
 </dd>
 </dl>
 </li>
 </ul>
-</div>
-<div class="section" id="stream-stores">
+</section>
+<section id="stream-stores">
 <h2>Stream Stores<a class="headerlink" href="#stream-stores" title="Permalink to this headline">¶</a></h2>
 <p>The use of <code class="docutils literal notranslate"><span class="pre">hashRowComponents</span></code> for stream stores is strongly recommended as this avoids hotspotting.
 This is because the row key of a stream store value table is an ordered pair (stream ID, block ID).
 Hashing the first row component is not enough, because it still means that every block of the same stream will (likely)
 be stored on the same token range, and so loading the stream may heavily load the nodes responsible for that range.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

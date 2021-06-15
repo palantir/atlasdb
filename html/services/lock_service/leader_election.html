@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Palantir Leader Election &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
@@ -186,7 +189,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="palantir-leader-election">
+  <section id="palantir-leader-election">
 <h1>Palantir Leader Election<a class="headerlink" href="#palantir-leader-election" title="Permalink to this headline">¶</a></h1>
 <p>Palantir Leader Election is an implementation of paxos.</p>
 <p><code class="docutils literal notranslate"><span class="pre">leader-election-api</span></code> and <code class="docutils literal notranslate"><span class="pre">leader-election-impl</span></code> projects contains the relevant java classes.
@@ -196,7 +199,7 @@ Paxos is a distributed consensus algorithm, which allows our services to agree o
 An example would be agreeing on a lock service to be the leader lock service, which would then serve requests.</p>
 <p>Lock clients invoke methods on the lock leader.
 If a lock client invokes a method on a non-leader, the lock service will indicate to the client that it does not believe it is the leader by returning a NotCurrentLeader exception.</p>
-<div class="section" id="first-guarantee-of-the-lock-service">
+<section id="first-guarantee-of-the-lock-service">
 <h2>First guarantee of the lock service<a class="headerlink" href="#first-guarantee-of-the-lock-service" title="Permalink to this headline">¶</a></h2>
 <p>Our implementation of paxos guarantees that we do not have two lock services that are acting as leader at the same time.
 If the lock client invokes a method on a node which believes it is the leader, it will call a <code class="docutils literal notranslate"><span class="pre">quorum</span></code> to ensure it is still the leader prior to method invocation.
@@ -204,16 +207,16 @@ A <code class="docutils literal notranslate"><span class="pre">quorum</span></co
 If the <code class="docutils literal notranslate"><span class="pre">quorum</span></code> resolves to indicate that the invocation target is still the leader, then the method will be invoked.
 If the <code class="docutils literal notranslate"><span class="pre">quorum</span></code> resolves to indicate that the invocation target is not the leader, the method invocation will fail.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">This behavior is clear from AwaitingLeadershipProxy::invoke()</p>
+<p class="admonition-title">Note</p>
+<p>This behavior is clear from AwaitingLeadershipProxy::invoke()</p>
 </div>
-</div>
-<div class="section" id="second-guarantee-of-the-lock-service">
+</section>
+<section id="second-guarantee-of-the-lock-service">
 <h2>Second guarantee of the lock service<a class="headerlink" href="#second-guarantee-of-the-lock-service" title="Permalink to this headline">¶</a></h2>
 <p>Although it is unrelated to paxos, the other property that our implementation of paxos guarantees for the lock service is that if the lock leader fails, the other lock services will learn this information and elect a new leader, assuming that greater than N / 2 nodes are still active. The node which has failed will attempt to restart. Thus, if you send SIGTERM to the JVM running the lock service with leader election enabled, the service should restart.</p>
 <p>Although we have not discussed how paxos ensures these two properties (and, in fact, the second property is not related to paxos) we claim that these two properties enable a highly available solution for the lock service.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

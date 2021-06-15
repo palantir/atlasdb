@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>AtlasDB Sweep CLI &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
@@ -195,57 +198,57 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="atlasdb-sweep-cli">
+  <section id="atlasdb-sweep-cli">
 <span id="id1"></span><h1>AtlasDB Sweep CLI<a class="headerlink" href="#atlasdb-sweep-cli" title="Permalink to this headline">¶</a></h1>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">This is now deprecated in favor of <a class="reference internal" href="sweep-endpoints.html#atlasdb-sweep-endpoints"><span class="std std-ref">Sweep Endpoints</span></a>.</p>
+<p class="admonition-title">Warning</p>
+<p>This is now deprecated in favor of <a class="reference internal" href="sweep-endpoints.html#atlasdb-sweep-endpoints"><span class="std std-ref">Sweep Endpoints</span></a>.</p>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">For instructions on how to run an AtlasDB CLI, see <a class="reference internal" href="../../clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a>.</p>
+<p class="admonition-title">Note</p>
+<p>For instructions on how to run an AtlasDB CLI, see <a class="reference internal" href="../../clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a>.</p>
 </div>
 <p>If you ever need to force a particular table or namespace to be swept immediately, you can run the CLI <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">sweep</span></code>.
 The CLI has the following arguments:</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="8%" />
-<col width="15%" />
-<col width="77%" />
+<col style="width: 8%" />
+<col style="width: 15%" />
+<col style="width: 77%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Short option</th>
-<th class="head">Long option</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Short option</p></th>
+<th class="head"><p>Long option</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">-a</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">--all</span></code></td>
-<td>Sweep all tables, in all AtlasDB namespaces.</td>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-a</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--all</span></code></p></td>
+<td><p>Sweep all tables, in all AtlasDB namespaces.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">-n</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">--namespace</span> <span class="pre">&lt;namespace</span> <span class="pre">name&gt;</span></code></td>
-<td>A namespace name to sweep, for instance <code class="docutils literal notranslate"><span class="pre">-n</span> <span class="pre">product</span></code></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-n</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--namespace</span> <span class="pre">&lt;namespace</span> <span class="pre">name&gt;</span></code></p></td>
+<td><p>A namespace name to sweep, for instance <code class="docutils literal notranslate"><span class="pre">-n</span> <span class="pre">product</span></code></p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">-t</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">--table</span> <span class="pre">&lt;table</span> <span class="pre">name&gt;</span></code></td>
-<td>A fully qualified table name to sweep. For example, to sweep the accounts table in the bank namespace, you would use <code class="docutils literal notranslate"><span class="pre">-t</span> <span class="pre">bank.accounts</span></code>.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-t</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--table</span> <span class="pre">&lt;table</span> <span class="pre">name&gt;</span></code></p></td>
+<td><p>A fully qualified table name to sweep. For example, to sweep the accounts table in the bank namespace, you would use <code class="docutils literal notranslate"><span class="pre">-t</span> <span class="pre">bank.accounts</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">-r</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">--row</span> <span class="pre">&lt;row</span> <span class="pre">name&gt;</span></code></td>
-<td>A row name encoded in hexadecimal to start sweeping from. The CLI prints out row names as it runs, so you can use this to easily resume a manual sweep job without unnecessarily processing rows that have already been recently swept. If this option is omitted, sweeping will process all rows of the table.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-r</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--row</span> <span class="pre">&lt;row</span> <span class="pre">name&gt;</span></code></p></td>
+<td><p>A row name encoded in hexadecimal to start sweeping from. The CLI prints out row names as it runs, so you can use this to easily resume a manual sweep job without unnecessarily processing rows that have already been recently swept. If this option is omitted, sweeping will process all rows of the table.</p></td>
 </tr>
-<tr class="row-even"><td>&#160;</td>
-<td><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></td>
-<td>Perform a dry run of sweep. Instead of actually deleting cells, this will tell you how many cells would be deleted. Note that running a dry run and then running a regular sweep may produce slightly different results, as more data may have been added to the database in the meantime.</td>
+<tr class="row-even"><td></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></p></td>
+<td><p>Perform a dry run of sweep. Instead of actually deleting cells, this will tell you how many cells would be deleted. Note that running a dry run and then running a regular sweep may produce slightly different results, as more data may have been added to the database in the meantime.</p></td>
 </tr>
 </tbody>
 </table>
 <p>You must specify exactly one of <code class="docutils literal notranslate"><span class="pre">-a</span></code>, <code class="docutils literal notranslate"><span class="pre">-n</span></code>, and <code class="docutils literal notranslate"><span class="pre">-t</span></code>. If you are sweeping a specific table with <code class="docutils literal notranslate"><span class="pre">-t</span></code>, you may additionally specify the start row with <code class="docutils literal notranslate"><span class="pre">-r</span></code>. This is useful for resuming failed jobs.</p>
 <p>Additionally, see the list of <a class="reference internal" href="../standard-sweep.html#sweep-tunable-parameters"><span class="std std-ref">tunable sweep parameters</span></a> if the defaults are not working well for your AtlasDB instance.</p>
 <p>Be aware that manual sweeping will ignore all conditions that factor into determining whether background sweepers should run, and that the background sweeper will also be affected by system property changes.</p>
-</div>
+</section>
 
 
            </div>

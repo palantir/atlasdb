@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Schema Migrations &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -184,15 +187,15 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="schema-migrations">
+  <section id="schema-migrations">
 <span id="migrating-schemas"></span><h1>Schema Migrations<a class="headerlink" href="#schema-migrations" title="Permalink to this headline">¶</a></h1>
 <p>AtlasDB does not provide any mechanism or tooling specific to performing schema migrations.
 Products using AtlasDB need to validate the existing schema, create the proper tables, and migrate data as necessary and should not rely on AtlasDB to natively perform these operations.</p>
-<div class="section" id="schema-mutation-lock-cassandra-only">
+<section id="schema-mutation-lock-cassandra-only">
 <span id="schema-mutation-lock"></span><h2>Schema Mutation Lock (Cassandra only)<a class="headerlink" href="#schema-mutation-lock-cassandra-only" title="Permalink to this headline">¶</a></h2>
 <div class="admonition tip">
-<p class="first admonition-title">Tip</p>
-<p class="last">The schema mutation lock is no longer used from Atlas 0.108.0 onwards.
+<p class="admonition-title">Tip</p>
+<p>The schema mutation lock is no longer used from Atlas 0.108.0 onwards.
 This information is maintained here for reference for users of AtlasDB on older versions.</p>
 </div>
 <p>Cassandra 2.1 introduced a race condition that allows clients to create two versions of a table with the same create table command.
@@ -200,15 +203,15 @@ Upon restarting your Cassandra cluster, one table will be chosen arbitrarily and
 This is a known issue with Cassandra and is being tracked on <a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-10699">CASSANDRA-10699</a>.
 To get around this in the meantime, we do two things:</p>
 <ol class="arabic simple">
-<li>All <cite>schema mutations</cite> - creating, altering, or dropping tables - are protected by a non-expiring lock called the <cite>schema mutation lock</cite>, and the state of this lock lives in the <code class="docutils literal notranslate"><span class="pre">_locks</span></code> table in Cassandra.
+<li><p>All <cite>schema mutations</cite> - creating, altering, or dropping tables - are protected by a non-expiring lock called the <cite>schema mutation lock</cite>, and the state of this lock lives in the <code class="docutils literal notranslate"><span class="pre">_locks</span></code> table in Cassandra.
 A lock holder will free the lock after finishing the schema mutation.
-A free lock will be denoted by <code class="docutils literal notranslate"><span class="pre">0x393232333337323033363835343737353830375f30</span></code>, or a <code class="docutils literal notranslate"><span class="pre">Long.MAX_0</span></code> in hex. A held lock will be anything other than the cleared value.</li>
-<li>We designate a lockCreator in the <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-kvs-config"><span class="std std-ref">Cassandra KVS config</span></a> to ensure we do not hit the race condition while creating the <code class="docutils literal notranslate"><span class="pre">_locks</span></code> table.</li>
+A free lock will be denoted by <code class="docutils literal notranslate"><span class="pre">0x393232333337323033363835343737353830375f30</span></code>, or a <code class="docutils literal notranslate"><span class="pre">Long.MAX_0</span></code> in hex. A held lock will be anything other than the cleared value.</p></li>
+<li><p>We designate a lockCreator in the <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-kvs-config"><span class="std std-ref">Cassandra KVS config</span></a> to ensure we do not hit the race condition while creating the <code class="docutils literal notranslate"><span class="pre">_locks</span></code> table.</p></li>
 </ol>
 <p>Occasionally we will lose an AtlasDB client while performing a schema mutation, and since the schema mutation lock does not expire, you will need to manually clear the lock.
 See <a class="reference internal" href="../troubleshooting/index.html#clearing-schema-mutation-lock"><span class="std std-ref">Clearing the schema mutation lock</span></a> for steps on how to manually clear the lock.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

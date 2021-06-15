@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Benefits &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -178,9 +181,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="benefits">
+  <section id="benefits">
 <h1>Benefits<a class="headerlink" href="#benefits" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="deadlock-free">
+<section id="deadlock-free">
 <h2>Deadlock Free<a class="headerlink" href="#deadlock-free" title="Permalink to this headline">¶</a></h2>
 <p>AtlasDB supports Snapshot Isolation (SI) as well as full Serializable
 Snapshot Isolation (SSI). SI is naturally deadlock free however a transaction may need to
@@ -188,8 +191,8 @@ be retried due to a write/write (w/w) conflict.</p>
 <p>SSI may have a cycle of transactions that block on each other, but one
 of them will be restarted because of a read/write conflict (which is
 guaranteed to exist).</p>
-</div>
-<div class="section" id="physical-representation-agnostic">
+</section>
+<section id="physical-representation-agnostic">
 <h2>Physical Representation Agnostic<a class="headerlink" href="#physical-representation-agnostic" title="Permalink to this headline">¶</a></h2>
 <p>All key value stores have the same transactional semantics. One of the
 great benefits of AtlasDB is that your unit tests can run on an
@@ -204,8 +207,8 @@ from one store to another. Basically you just make a new K/V store that
 writes to both postgres and Cassandra. Then you backfill all your
 postgres data over. Then you can flip reads to Cassandra. Then you can
 just do writes to Cassandra and shut down the postgres db.</p>
-</div>
-<div class="section" id="indexes">
+</section>
+<section id="indexes">
 <h2>Indexes<a class="headerlink" href="#indexes" title="Permalink to this headline">¶</a></h2>
 <p>Once you have transactions, indexes are super easy to keep consistent.
 Whenever you write a row, you just update the index and it goes in a
@@ -216,8 +219,8 @@ query them you have to talk to all nodes. This is because they don’t
 have transactions so the indexes have to live locally with the primary
 data. An index lookup or range read in AtlasDB just talks to 1 node. It
 is efficient to answer the query “give me the next row after this row”.</p>
-</div>
-<div class="section" id="clear-transaction-semantics">
+</section>
+<section id="clear-transaction-semantics">
 <h2>Clear Transaction Semantics<a class="headerlink" href="#clear-transaction-semantics" title="Permalink to this headline">¶</a></h2>
 <p>Because this is open source code, it is easy to have full control over
 what your transactions semantics are. There is some level of trust with
@@ -225,8 +228,8 @@ some proprietary RDBMS systems that they do the right thing and their
 transaction levels are what you think they are. AtlasDB allows you very
 precise control over your consistency/performance trade-off. Conflict
 handlers are specified per table and the default is Snapshot Isolation.</p>
-</div>
-<div class="section" id="advisory-locking">
+</section>
+<section id="advisory-locking">
 <h2>Advisory Locking<a class="headerlink" href="#advisory-locking" title="Permalink to this headline">¶</a></h2>
 <p>Advisory Locking is a first class feature in AtlasDB. An example with a
 traditional DB would be grabbing a lock/lease to ensure that only one
@@ -246,8 +249,8 @@ transaction that holds any of these locks will see your committed data
 <p>All AtlasDB transactions are optimistic, so this feature is useful if
 there are long running or heavy weight transactions that you don’t want
 to run optimistically.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

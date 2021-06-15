@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Standard Sweep &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
@@ -193,149 +196,149 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="standard-sweep">
+  <section id="standard-sweep">
 <span id="id1"></span><h1>Standard Sweep<a class="headerlink" href="#standard-sweep" title="Permalink to this headline">¶</a></h1>
 <p>Standard sweep scans a table to find rows with multiple versions, then deletes the older versions from the database.</p>
-<div class="section" id="ways-to-use-standard-sweep">
+<section id="ways-to-use-standard-sweep">
 <h2>Ways to use Standard Sweep<a class="headerlink" href="#ways-to-use-standard-sweep" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><a class="reference internal" href="standard/background-sweep.html#background-sweep"><span class="std std-ref">Background sweep process</span></a> scheduled periodically:
+<li><p><a class="reference internal" href="standard/background-sweep.html#background-sweep"><span class="std std-ref">Background sweep process</span></a> scheduled periodically:
 Under normal use, the sweep job is intended to run at a constant interval as a background sweep process that does not consume significant system resources.
-Background sweep is enabled by default. If needed, background sweep can be disabled without bouncing the host service.</li>
-<li><a class="reference internal" href="standard/sweep-endpoints.html#atlasdb-sweep-endpoints"><span class="std std-ref">Sweep Endpoint</span></a> triggered manually:
+Background sweep is enabled by default. If needed, background sweep can be disabled without bouncing the host service.</p></li>
+<li><p><a class="reference internal" href="standard/sweep-endpoints.html#atlasdb-sweep-endpoints"><span class="std std-ref">Sweep Endpoint</span></a> triggered manually:
 You may trigger the sweep job on demand via an HTTP request. This could be useful in order to address any one-off performance issues.
 Long-running AtlasDB instances with large data scale may want to manually sweep specific tables before enabling the background sweeper.
-Given that the background sweep job chooses which tables it sweeps, you can ensure that a one-off large sweep job occurs during non-peak usage hours.</li>
+Given that the background sweep job chooses which tables it sweeps, you can ensure that a one-off large sweep job occurs during non-peak usage hours.</p></li>
 </ul>
-</div>
-<div class="section" id="tracking-sweep-progress">
+</section>
+<section id="tracking-sweep-progress">
 <h2>Tracking Sweep Progress<a class="headerlink" href="#tracking-sweep-progress" title="Permalink to this headline">¶</a></h2>
 <p>In order to track sweep’s general workflow, and which log lines you should expect, see <a class="reference internal" href="standard/sweep-logs.html#sweep-logs"><span class="std std-ref">Sweep Logs</span></a>.</p>
-</div>
-<div class="section" id="tunable-configuration-options">
+</section>
+<section id="tunable-configuration-options">
 <span id="sweep-tunable-parameters"></span><h2>Tunable Configuration Options<a class="headerlink" href="#tunable-configuration-options" title="Permalink to this headline">¶</a></h2>
 <p>The following optional parameters can be tuned to optimize Sweep performance for a specific AtlasDB instance.
 You may set them as part of your <a class="reference internal" href="../../configuration/index.html#atlas-config"><span class="std std-ref">AtlasDB runtime configuration</span></a>, or as a CLI option if you are running sweep using the CLI.
 Note that some of these parameters are just used as a hint. Sweep dynamically modifies these parameters according to successful or failed runs.</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="7%" />
-<col width="7%" />
-<col width="14%" />
-<col width="71%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 14%" />
+<col style="width: 71%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">AtlasDB Runtime Config</th>
-<th class="head">Endpoint Option</th>
-<th class="head">Default</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>AtlasDB Runtime Config</p></th>
+<th class="head"><p>Endpoint Option</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">enabled</span></code></td>
-<td>Only specified in config</td>
-<td>true</td>
-<td>Whether the background sweeper should run.</td>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p>Only specified in config</p></td>
+<td><p>true</p></td>
+<td><p>Whether the background sweeper should run.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">sweepThreads</span></code></td>
-<td>Only specified in config</td>
-<td>1</td>
-<td>The number of threads to run sweep with. Changes require a restart of any service node to take effect. Not recommended for Cassandra KVS. Note that threads will contend with each other for the backup lock on deletes.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sweepThreads</span></code></p></td>
+<td><p>Only specified in config</p></td>
+<td><p>1</p></td>
+<td><p>The number of threads to run sweep with. Changes require a restart of any service node to take effect. Not recommended for Cassandra KVS. Note that threads will contend with each other for the backup lock on deletes.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">readLimit</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">maxCellTsPairsToExamine</span></code></td>
-<td>128</td>
-<td>Target number of (cell, timestamp) pairs to examine in a batch of sweep.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">readLimit</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">maxCellTsPairsToExamine</span></code></p></td>
+<td><p>128</p></td>
+<td><p>Target number of (cell, timestamp) pairs to examine in a batch of sweep.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">candidateBatchSize</span></code></td>
-<td>128</td>
-<td>Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">candidateBatchSize</span></code></p></td>
+<td><p>128</p></td>
+<td><p>Target number of candidate (cell, timestamp) pairs to load at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">deleteBatchHint</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">deleteBatchSize</span></code></td>
-<td>128</td>
-<td>Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">deleteBatchHint</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">deleteBatchSize</span></code></p></td>
+<td><p>128</p></td>
+<td><p>Target number of (cell, timestamp) pairs to delete in a single batch. Decrease if sweep cannot progress pass a large row or a large cell. Increasing it may improve sweep performance.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">pauseMillis</span></code></td>
-<td>Only specified in config</td>
-<td>5000 ms</td>
-<td>Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pauseMillis</span></code></p></td>
+<td><p>Only specified in config</p></td>
+<td><p>5000 ms</p></td>
+<td><p>Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">sweepPriorityOverrides</span></code></td>
-<td>Only specified in config</td>
-<td>No overrides</td>
-<td>Fully-qualified names of tables that Sweep should prioritise particularly highly, or ignore completely. Please see <a class="reference internal" href="#priority-overrides">Priority Overrides</a> for more details.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sweepPriorityOverrides</span></code></p></td>
+<td><p>Only specified in config</p></td>
+<td><p>No overrides</p></td>
+<td><p>Fully-qualified names of tables that Sweep should prioritise particularly highly, or ignore completely. Please see <a class="reference internal" href="#priority-overrides">Priority Overrides</a> for more details.</p></td>
 </tr>
 </tbody>
 </table>
-<div class="section" id="batch-parameters">
+<section id="batch-parameters">
 <h3>Batch Parameters<a class="headerlink" href="#batch-parameters" title="Permalink to this headline">¶</a></h3>
 <p>Following is more information about when each of the batching parameters is useful.
 In short, the recommendation is:</p>
 <ul class="simple">
-<li>Decrease <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> and <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> if there is memory pressure on the client.</li>
-<li>Decrease <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> if there is memory pressure on the KVS.</li>
+<li><p>Decrease <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> and <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> if there is memory pressure on the client.</p></li>
+<li><p>Decrease <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> if there is memory pressure on the KVS.</p></li>
 </ul>
-<div class="section" id="memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit">
+<section id="memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit">
 <h4>Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit<a class="headerlink" href="#memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit" title="Permalink to this headline">¶</a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> specifies the number of values to load from the KVS on each round-trip. <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> specifies the number of values that should be swept in a batch, potentially fetching them through multiple KVS round-trips.
 If each batch takes little time, it’s advisable to increase the <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> and <code class="docutils literal notranslate"><span class="pre">deleteBatchHint</span></code>, to make sweep’s batches bigger.
 If the client is OOMing, it’s advisable to decrease the <code class="docutils literal notranslate"><span class="pre">readLimit</span></code>, to have a lower number of values per batches.
 Since each batch contains at least <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> values, if <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> reaches the same value as <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> you should reduce the <code class="docutils literal notranslate"><span class="pre">candidateBatchSize</span></code> config.
 Note that since sweep still needs to sweep at least a full row on every batch, it might be the case that the client is OOMing because the row it’s trying to sweep is very large. Please contact the AtlasDB team if you think you’re hitting this issue.</p>
-</div>
-<div class="section" id="memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint">
+</section>
+<section id="memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint">
 <h4>Memory pressure in the backing KVS: decrease candidateBatchHint<a class="headerlink" href="#memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint" title="Permalink to this headline">¶</a></h4>
 <p>The sweep job works by requesting <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> values from the KVS in each round-trip.
 In some rare cases, the Cassandra KVS will not be able to fetch <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> values, likely due to specific cells being overwritten many times and/or containing very large values.
 If that happens, KVS requests from AtlasDB will fail and sweep will reduce <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> automatically, trying to fetch fewer values in the following round-trips to the KVS.
 If subsequent KVS round-trips are successful, the value of <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> is slowly increased back to the configured value, which is also the maximum it reaches. Therefore, if the configured value is too high, failures will happen again.</p>
 <p>You can check the sweep logs to verify if this is happening frequently — and if this is the case — reduce this config to a value that the load on the KVS doesn’t trigger failures and sweep is able to run.</p>
-</div>
-</div>
-<div class="section" id="priority-overrides">
+</section>
+</section>
+<section id="priority-overrides">
 <span id="sweep-priority-overrides"></span><h3>Priority Overrides<a class="headerlink" href="#priority-overrides" title="Permalink to this headline">¶</a></h3>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Specifying <code class="docutils literal notranslate"><span class="pre">priorityTables</span></code> can be useful for influencing sweep’s behaviour in the short run.
-However, if any tables are specified as <code class="docutils literal notranslate"><span class="pre">priorityTables</span></code>, and the number of priority tables is at least <code class="docutils literal notranslate"><span class="pre">sweepThreads</span></code>, then no other tables will ever be swept, meaning that old versions of cells for those tables will accumulate.
+<p class="admonition-title">Warning</p>
+<p>Specifying <code class="docutils literal notranslate"><span class="pre">priorityTables</span></code> can be useful for influencing sweep’s behaviour in the short run.
+However, if any tables are specified as <code class="docutils literal notranslate"><span class="pre">priorityTables</span></code> then no other tables will ever be swept, meaning that old versions of cells for those tables will accumulate.
 It is not intended for priority tables to be specified in a steady state, generally speaking.</p>
 </div>
 <p>There may be situations in which the background sweeper’s heuristics for selecting tables to sweep may not satisfy one’s requirements.
 One can influence the selection process by configuring the <code class="docutils literal notranslate"><span class="pre">sweep.sweepPriorityOverrides</span></code> parameter in runtime configuration.</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="8%" />
-<col width="15%" />
-<col width="77%" />
+<col style="width: 8%" />
+<col style="width: 15%" />
+<col style="width: 77%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">AtlasDB Runtime Config</th>
-<th class="head">Default</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>AtlasDB Runtime Config</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">blacklistTables</span></code></td>
-<td>[]</td>
-<td>List of fully qualified table names (e.g. <code class="docutils literal notranslate"><span class="pre">namespace.tablename</span></code>) which the background sweeper should not sweep.</td>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">blacklistTables</span></code></p></td>
+<td><p>[]</p></td>
+<td><p>List of fully qualified table names (e.g. <code class="docutils literal notranslate"><span class="pre">namespace.tablename</span></code>) which the background sweeper should not sweep.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">priorityTables</span></code></td>
-<td>[]</td>
-<td>List of fully qualified table names which the background sweeper should prioritise for sweep.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">priorityTables</span></code></p></td>
+<td><p>[]</p></td>
+<td><p>List of fully qualified table names which the background sweeper should prioritise for sweep.</p></td>
 </tr>
 </tbody>
 </table>
 <p>Note that the conditions for table selection are only checked between iterations of sweep. The algorithm for deciding
 whether a table that is currently being swept should continue to be swept is as follows:</p>
 <ol class="arabic simple">
-<li>If the table being swept is a priority table, continue sweeping it.</li>
-<li>If there are any priority tables and the table currently being swept is not a priority table, stop sweeping it and
-switch to a random priority table.</li>
-<li>If the table being swept is not blacklisted, continue sweeping it.</li>
-<li>There are no priority tables, and the table being swept is blacklisted; select another table using standard sweep
-heuristics.</li>
+<li><p>If the table being swept is a priority table, continue sweeping it.</p></li>
+<li><p>If there are any priority tables and the table currently being swept is not a priority table, stop sweeping it and
+switch to a random priority table.</p></li>
+<li><p>If the table being swept is not blacklisted, continue sweeping it.</p></li>
+<li><p>There are no priority tables, and the table being swept is blacklisted; select another table using standard sweep
+heuristics.</p></li>
 </ol>
 <p>Note that if blacklist/priority settings are subsequently removed, sweep will continue sweeping the table that those
 settings have made it select (in particular, it will not immediately return to the original table it was sweeping).</p>
@@ -349,9 +352,9 @@ sweep, but you still want to be able to carry out a manual sweep. Note that spec
 <code class="docutils literal notranslate"><span class="pre">SweepStrategy.NOTHING</span></code> will mean that even manual sweeps will not do anything.</p>
 <div class="toctree-wrapper compound">
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

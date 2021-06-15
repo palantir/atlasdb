@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Manual Migration to Timelock Server &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
@@ -190,11 +193,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="manual-migration-to-timelock-server">
+  <section id="manual-migration-to-timelock-server">
 <span id="manual-timelock-migration"></span><h1>Manual Migration to Timelock Server<a class="headerlink" href="#manual-migration-to-timelock-server" title="Permalink to this headline">¶</a></h1>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">This is not a recommended way to migrate to external timelock server.
+<p class="admonition-title">Warning</p>
+<p>This is not a recommended way to migrate to external timelock server.
 We now have automated migrations for both Cassandra and DbKVS in place that will run when a node is started with
 the configuration to use TimeLock on versions of AtlasDB from 0.253.2 onwards. Please note that these automated
 migrations still require the cluster to be brought to a complete shutdown before any nodes switch to using TimeLock.
@@ -203,53 +206,53 @@ If you are attempting a manual migration, please contact the AtlasDB team.</p>
 <p>This migration process must be run offline (that is, with no AtlasDB clients running during migration) and basically
 consists of the following steps:</p>
 <ol class="arabic simple">
-<li>Set up the external timestamp service.</li>
-<li>Obtain a timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code> from the service that is at least as large as the largest timestamp issued.</li>
-<li>Fast-forward the external timestamp service to at least <code class="docutils literal notranslate"><span class="pre">TS</span></code> for the service.</li>
-<li>Invalidate the old timestamp service, preventing AtlasDB clients from retrieving timestamps from it.</li>
-<li>Configure AtlasDB clients to retrieve timestamps from the new timestamp service.</li>
-<li>Start AtlasDB clients.</li>
+<li><p>Set up the external timestamp service.</p></li>
+<li><p>Obtain a timestamp <code class="docutils literal notranslate"><span class="pre">TS</span></code> from the service that is at least as large as the largest timestamp issued.</p></li>
+<li><p>Fast-forward the external timestamp service to at least <code class="docutils literal notranslate"><span class="pre">TS</span></code> for the service.</p></li>
+<li><p>Invalidate the old timestamp service, preventing AtlasDB clients from retrieving timestamps from it.</p></li>
+<li><p>Configure AtlasDB clients to retrieve timestamps from the new timestamp service.</p></li>
+<li><p>Start AtlasDB clients.</p></li>
 </ol>
 <p>Strictly speaking, step 4, invalidating the timestamp service, is not required; that said, we prefer to do this to avoid
 the risk of data corruption in the event of misconfiguration (that is, if some but not all clients are pointed to the
 new timestamp service).</p>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">Ensure that no AtlasDB clients are running during the migration process. Failure to ensure this can result in
+<p class="admonition-title">Danger</p>
+<p>Ensure that no AtlasDB clients are running during the migration process. Failure to ensure this can result in
 <strong>SEVERE DATA CORRUPTION</strong> as we are unable to guarantee that timestamps are monotonically increasing!</p>
 </div>
 <div class="contents local topic" id="contents">
 <ul class="simple">
-<li><a class="reference internal" href="#step-0-shutdown-your-atlasdb-clients" id="id1">Step 0: Shutdown your AtlasDB Clients</a></li>
-<li><a class="reference internal" href="#step-1-setting-up-the-timelock-server" id="id2">Step 1: Setting up the Timelock Server</a></li>
-<li><a class="reference internal" href="#step-2-determining-the-atlasdb-timestamp" id="id3">Step 2: Determining the AtlasDB Timestamp</a></li>
-<li><a class="reference internal" href="#step-3-fast-forwarding-the-timelock-server" id="id4">Step 3: Fast-Forwarding the Timelock Server</a></li>
-<li><a class="reference internal" href="#step-4-invalidating-the-old-atlasdb-timestamp" id="id5">Step 4: Invalidating the Old AtlasDB Timestamp</a></li>
-<li><a class="reference internal" href="#steps-5-and-6-client-configuration-and-restart" id="id6">Steps 5 and 6: Client Configuration and Restart</a></li>
+<li><p><a class="reference internal" href="#step-0-shutdown-your-atlasdb-clients" id="id1">Step 0: Shutdown your AtlasDB Clients</a></p></li>
+<li><p><a class="reference internal" href="#step-1-setting-up-the-timelock-server" id="id2">Step 1: Setting up the Timelock Server</a></p></li>
+<li><p><a class="reference internal" href="#step-2-determining-the-atlasdb-timestamp" id="id3">Step 2: Determining the AtlasDB Timestamp</a></p></li>
+<li><p><a class="reference internal" href="#step-3-fast-forwarding-the-timelock-server" id="id4">Step 3: Fast-Forwarding the Timelock Server</a></p></li>
+<li><p><a class="reference internal" href="#step-4-invalidating-the-old-atlasdb-timestamp" id="id5">Step 4: Invalidating the Old AtlasDB Timestamp</a></p></li>
+<li><p><a class="reference internal" href="#steps-5-and-6-client-configuration-and-restart" id="id6">Steps 5 and 6: Client Configuration and Restart</a></p></li>
 </ul>
 </div>
-<div class="section" id="step-0-shutdown-your-atlasdb-clients">
+<section id="step-0-shutdown-your-atlasdb-clients">
 <h2><a class="toc-backref" href="#id1">Step 0: Shutdown your AtlasDB Clients</a><a class="headerlink" href="#step-0-shutdown-your-atlasdb-clients" title="Permalink to this headline">¶</a></h2>
 <p>Make sure that all of your AtlasDB clients are shut down. Failure to do this can result in severe data corruption,
 because we cannot guarantee that the Timelock Server and the embedded AtlasDB timestamp services will together issue
 monotonically increasing timestamps. (In fact, they almost certainly will not!)</p>
-</div>
-<div class="section" id="step-1-setting-up-the-timelock-server">
+</section>
+<section id="step-1-setting-up-the-timelock-server">
 <h2><a class="toc-backref" href="#id2">Step 1: Setting up the Timelock Server</a><a class="headerlink" href="#step-1-setting-up-the-timelock-server" title="Permalink to this headline">¶</a></h2>
 <p>First, setup the Timelock Server following the instructions in <a class="reference internal" href="installation.html#timelock-installation"><span class="std std-ref">Timelock Server Installation</span></a>.</p>
-</div>
-<div class="section" id="step-2-determining-the-atlasdb-timestamp">
+</section>
+<section id="step-2-determining-the-atlasdb-timestamp">
 <h2><a class="toc-backref" href="#id3">Step 2: Determining the AtlasDB Timestamp</a><a class="headerlink" href="#step-2-determining-the-atlasdb-timestamp" title="Permalink to this headline">¶</a></h2>
 <p>One can use the <a class="reference internal" href="../../cluster_management/clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a> (specifically, the <code class="docutils literal notranslate"><span class="pre">timestamp</span> <span class="pre">fetch</span></code> command) to obtain a timestamp which is guaranteed
 to be greater than all timestamps issued so far. Make sure that you are requesting for a fresh timestamp as opposed to
 an immutable timestamp (the output should say <code class="docutils literal notranslate"><span class="pre">The</span> <span class="pre">Fresh</span> <span class="pre">timestamp</span> <span class="pre">is:</span> <span class="pre">TS</span></code>). Note down the value of this timestamp;
 from here on out, we’ll refer to it as <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
-</div>
-<div class="section" id="step-3-fast-forwarding-the-timelock-server">
+</section>
+<section id="step-3-fast-forwarding-the-timelock-server">
 <h2><a class="toc-backref" href="#id4">Step 3: Fast-Forwarding the Timelock Server</a><a class="headerlink" href="#step-3-fast-forwarding-the-timelock-server" title="Permalink to this headline">¶</a></h2>
 <div class="admonition tip">
-<p class="first admonition-title">Tip</p>
-<p class="last">Throughout this document, <code class="docutils literal notranslate"><span class="pre">curl</span></code> commands that make requests to TimeLock may receive a 308 indicating the location
+<p class="admonition-title">Tip</p>
+<p>Throughout this document, <code class="docutils literal notranslate"><span class="pre">curl</span></code> commands that make requests to TimeLock may receive a 308 indicating the location
 of the leader, or a 503 indicating that a node is not the leader (and doesn’t know this). Commands should be re-run
 until they succeed on the leader.</p>
 </div>
@@ -257,50 +260,50 @@ until they succeed on the leader.</p>
 not typically exposed to AtlasDB clients. One can use it to advance the timestamp on the Timelock Server to <code class="docutils literal notranslate"><span class="pre">TS</span></code>, as
 follows:</p>
 <blockquote>
-<div><div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>curl -iXPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/&lt;namespace&gt;/timestamp-management/fast-forward?currentTimestamp=TS \
-  -H &quot;Authorization: Bearer q&quot;
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -iXPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/&lt;namespace&gt;/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS <span class="se">\</span>
+  -H <span class="s2">&quot;Authorization: Bearer q&quot;</span>
 </pre></div>
 </div>
 </div></blockquote>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
+<p class="admonition-title">Danger</p>
 <p>Make sure that <code class="docutils literal notranslate"><span class="pre">TS</span></code> has been entered correctly.</p>
-<blockquote class="last">
+<blockquote>
 <div><ul class="simple">
-<li>If <code class="docutils literal notranslate"><span class="pre">TS</span></code> entered is too large, there will generally not be adverse consequences (apart from risks of <code class="docutils literal notranslate"><span class="pre">long</span></code>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">TS</span></code> entered is too large, there will generally not be adverse consequences (apart from risks of <code class="docutils literal notranslate"><span class="pre">long</span></code>
 overflow). If this is indeed a concern (e.g. there was an accidental fast-forward to <code class="docutils literal notranslate"><span class="pre">Long.MAX_VALUE</span></code>), then
 one can proceed by shutting down the Timelock server, deleting the Paxos data directories for the client
 concerned (which resets the client timestamp to zero), restarting the Timelock server and attempting the
-fast-forward again.</li>
-<li>If <code class="docutils literal notranslate"><span class="pre">TS</span></code> entered is too small and AtlasDB clients are restarted without rectifying this, this can result in
+fast-forward again.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">TS</span></code> entered is too small and AtlasDB clients are restarted without rectifying this, this can result in
 <strong>SEVERE DATA CORRUPTION</strong> because we lose the guarantee that timestamps are monotonically increasing.
 As fast-forward is idempotent (it sets the timestamp to be the maximum of its current value and the
-<code class="docutils literal notranslate"><span class="pre">newMinimum</span></code>), <em>if clients have not been started again</em> this can be fixed by doing another fast-forward.</li>
+<code class="docutils literal notranslate"><span class="pre">newMinimum</span></code>), <em>if clients have not been started again</em> this can be fixed by doing another fast-forward.</p></li>
 </ul>
 </div></blockquote>
 </div>
 <p>To verify that this step was completed correctly, you may curl the Timelock Server’s fresh-timestamp endpoint.</p>
 <blockquote>
-<div><div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">iXPOST</span> <span class="o">&lt;</span><span class="n">protocol</span><span class="o">&gt;</span><span class="p">:</span><span class="o">//&lt;</span><span class="n">host</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">port</span><span class="o">&gt;/</span><span class="n">timelock</span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">tl</span><span class="o">/</span><span class="n">ts</span><span class="o">/&lt;</span><span class="n">namespace</span><span class="o">&gt;</span> \
-  <span class="o">--</span><span class="n">data</span> <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Authorization: Bearer q&quot;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -iXPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/&lt;namespace&gt; <span class="se">\</span>
+  --data <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> -H <span class="s2">&quot;Authorization: Bearer q&quot;</span> -H <span class="s2">&quot;Content-Type: application/json&quot;</span>
 </pre></div>
 </div>
 </div></blockquote>
 <p>The value returned should be (assuming no one else is using the Timelock Server) 1 higher than <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
-</div>
-<div class="section" id="step-4-invalidating-the-old-atlasdb-timestamp">
+</section>
+<section id="step-4-invalidating-the-old-atlasdb-timestamp">
 <h2><a class="toc-backref" href="#id5">Step 4: Invalidating the Old AtlasDB Timestamp</a><a class="headerlink" href="#step-4-invalidating-the-old-atlasdb-timestamp" title="Permalink to this headline">¶</a></h2>
 <p>The steps for invalidating the old AtlasDB timestamp will vary, depending on your choice of underlying key value store.</p>
 <ul>
-<li><p class="first">If using Postgres or Oracle, it suffices to rename the relevant column in the timestamp table (use <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span></code>).
+<li><p>If using Postgres or Oracle, it suffices to rename the relevant column in the timestamp table (use <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span></code>).
 For example, for Postgres:</p>
 <blockquote>
-<div><div class="code sql highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ALTER</span> <span class="n">TABLE</span> <span class="n">timestamp</span> <span class="n">RENAME</span> <span class="n">last_allocated</span> <span class="n">TO</span> <span class="n">LEGACY_last_allocated</span><span class="p">;</span>
+<div><div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">ALTER</span> <span class="k">TABLE</span> <span class="k">timestamp</span> <span class="k">RENAME</span> <span class="n">last_allocated</span> <span class="k">TO</span> <span class="n">LEGACY_last_allocated</span><span class="p">;</span>
 </pre></div>
 </div>
 </div></blockquote>
 </li>
-<li><p class="first">If using Cassandra, one method of invalidating the table is to overwrite the timestamp bound record with an invalid
+<li><p>If using Cassandra, one method of invalidating the table is to overwrite the timestamp bound record with an invalid
 byte array. We recommend using a bogus one-byte array for this; the zero byte array is a deletion sentinel, and
 if supplying byte arrays longer than 8 bytes, we will interpret the first 8 bytes as the timestamp bound.
 Automated migration is implemented in this way as well (though we use Cassandra’s lightweight transactions for
@@ -309,32 +312,30 @@ block for the first time).
 This can be done easily using <code class="docutils literal notranslate"><span class="pre">cqlsh</span></code>. The timestamp table is stored in the same keyspace that your
 AtlasDB client uses for its key-value service.</p>
 <blockquote>
-<div><div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">SELECT</span> <span class="o">*</span> <span class="n">FROM</span> <span class="n">atlasdb</span><span class="o">.</span><span class="s2">&quot;_timestamp&quot;</span><span class="p">;</span>
-<span class="o">&lt;</span><span class="n">note</span> <span class="n">the</span> <span class="n">value</span> <span class="n">returned</span> <span class="n">by</span> <span class="n">this</span> <span class="o">-</span> <span class="n">call</span> <span class="n">this</span> <span class="n">K</span><span class="o">&gt;</span>
-<span class="n">INSERT</span> <span class="n">INTO</span> <span class="n">atlasdb</span><span class="o">.</span><span class="s2">&quot;_timestamp&quot;</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">column1</span><span class="p">,</span> <span class="n">column2</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="n">VALUES</span> <span class="p">(</span><span class="mh">0x7473</span><span class="p">,</span> <span class="mh">0x7472</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">K</span><span class="p">);</span>
-<span class="n">INSERT</span> <span class="n">INTO</span> <span class="n">atlasdb</span><span class="o">.</span><span class="s2">&quot;_timestamp&quot;</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">column1</span><span class="p">,</span> <span class="n">column2</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="n">VALUES</span> <span class="p">(</span><span class="mh">0x7473</span><span class="p">,</span> <span class="mh">0x7473</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mh">0x00</span><span class="p">);</span>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>SELECT * FROM atlasdb.<span class="s2">&quot;_timestamp&quot;</span><span class="p">;</span>
+&lt;note the value returned by this - call this K&gt;
+INSERT INTO atlasdb.<span class="s2">&quot;_timestamp&quot;</span> <span class="o">(</span>key, column1, column2, value<span class="o">)</span> VALUES <span class="o">(</span>0x7473, 0x7472, -1, K<span class="o">)</span><span class="p">;</span>
+INSERT INTO atlasdb.<span class="s2">&quot;_timestamp&quot;</span> <span class="o">(</span>key, column1, column2, value<span class="o">)</span> VALUES <span class="o">(</span>0x7473, 0x7473, -1, 0x00<span class="o">)</span><span class="p">;</span>
 </pre></div>
 </div>
 </div></blockquote>
 </li>
-<li><p class="first">Dropping the table, generally speaking, will <em>not</em> work (on the next startup of an embedded Timestamp Service,
-AtlasDB will believe it is starting up the Timestamp Service for the first time, and thus start again from 1).</p>
-</li>
-<li><p class="first">Setting the value to <code class="docutils literal notranslate"><span class="pre">Long.MAX_VALUE</span></code> or <code class="docutils literal notranslate"><span class="pre">Long.MIN_VALUE</span></code> will not work (Java Longs do not throw on arithmetic
-overflow, and although ordinarily the first timestamp AtlasDB issues is 1 we do not throw on negative numbers).</p>
-</li>
+<li><p>Dropping the table, generally speaking, will <em>not</em> work (on the next startup of an embedded Timestamp Service,
+AtlasDB will believe it is starting up the Timestamp Service for the first time, and thus start again from 1).</p></li>
+<li><p>Setting the value to <code class="docutils literal notranslate"><span class="pre">Long.MAX_VALUE</span></code> or <code class="docutils literal notranslate"><span class="pre">Long.MIN_VALUE</span></code> will not work (Java Longs do not throw on arithmetic
+overflow, and although ordinarily the first timestamp AtlasDB issues is 1 we do not throw on negative numbers).</p></li>
 </ul>
 <p>Please contact the AtlasDB team for assistance if you are uncertain about this step or otherwise run into difficulties.</p>
 <p>To verify that this step was completed successfully, you may restart one of your AtlasDB clients. This should fail when
 TransactionManagers.create() is called, throwing a runtime exception.</p>
-</div>
-<div class="section" id="steps-5-and-6-client-configuration-and-restart">
+</section>
+<section id="steps-5-and-6-client-configuration-and-restart">
 <h2><a class="toc-backref" href="#id6">Steps 5 and 6: Client Configuration and Restart</a><a class="headerlink" href="#steps-5-and-6-client-configuration-and-restart" title="Permalink to this headline">¶</a></h2>
 <p>Configure your clients to use the Timelock Server following the instructions in <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock Client Configuration</span></a>.
 You may then restart your clients; they should now communicate with the Timelock Server when requesting timestamps
 and locks. This completes the migration process.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

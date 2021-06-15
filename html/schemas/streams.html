@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Streams &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -184,9 +187,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="streams">
+  <section id="streams">
 <span id="schemas-streams"></span><h1>Streams<a class="headerlink" href="#streams" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="overview">
+<section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>When storing large objects in an AtlasDB database, the underlying
 database can impose limits on the size of the object and its performance
@@ -198,76 +201,76 @@ AtlasDB will automatically segment large objects in a stream store into
 smaller chunks, and storage of streams happens on separate transactions and
 does not count toward your byte limit for your local trasaction.</p>
 <p>The minimal parameters required to define a stream store are shown below:</p>
-<div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">addStreamStoreDefinition</span><span class="p">(</span>
-    <span class="n">new</span> <span class="n">StreamStoreDefinitionBuilder</span><span class="p">(</span><span class="n">String</span> <span class="n">shortName</span><span class="p">,</span> <span class="n">String</span> <span class="n">longName</span><span class="p">,</span> <span class="n">ValueType</span> <span class="n">valueType</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">();</span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span> <span class="kt">void</span> <span class="nf">addStreamStoreDefinition</span><span class="p">(</span>
+    <span class="k">new</span> <span class="n">StreamStoreDefinitionBuilder</span><span class="p">(</span><span class="n">String</span> <span class="n">shortName</span><span class="p">,</span> <span class="n">String</span> <span class="n">longName</span><span class="p">,</span> <span class="n">ValueType</span> <span class="n">valueType</span><span class="p">).</span><span class="na">build</span><span class="p">();</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">shortName</span></code> is the prefix which will be used in the actual database tables.</li>
-<li><code class="docutils literal notranslate"><span class="pre">longName</span></code> is the name of the stream store in the generated Java code.</li>
-<li><code class="docutils literal notranslate"><span class="pre">valueType</span></code> specifies the value type of the id for each stored object.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">shortName</span></code> is the prefix which will be used in the actual database tables.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">longName</span></code> is the name of the stream store in the generated Java code.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">valueType</span></code> specifies the value type of the id for each stored object.</p></li>
 </ul>
 <p>Additional options for the builder include:</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="20%" />
-<col width="80%" />
+<col style="width: 20%" />
+<col style="width: 80%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Option</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">hashRowComponents</span></code></td>
-<td>Hashes the concatenation of the <code class="docutils literal notranslate"><span class="pre">id</span></code> and <code class="docutils literal notranslate"><span class="pre">blockId</span></code> components of the table storing the data blocks and prepends it to the row key. If using Cassandra KVS, we recommend that this flag is set in order to prevent hotspotting. We do not support adding this to an existing StreamStore, as it would require data migration.</td>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hashRowComponents</span></code></p></td>
+<td><p>Hashes the concatenation of the <code class="docutils literal notranslate"><span class="pre">id</span></code> and <code class="docutils literal notranslate"><span class="pre">blockId</span></code> components of the table storing the data blocks and prepends it to the row key. If using Cassandra KVS, we recommend that this flag is set in order to prevent hotspotting. We do not support adding this to an existing StreamStore, as it would require data migration.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">hashFirstRowComponent</span></code></td>
-<td>Hashes the <code class="docutils literal notranslate"><span class="pre">id</span></code> component of the table.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hashFirstRowComponent</span></code></p></td>
+<td><p>Hashes the <code class="docutils literal notranslate"><span class="pre">id</span></code> component of the table.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">isAppendHeavyAndReadLight</span></code></td>
-<td><code class="docutils literal notranslate"><span class="pre">false</span></code> by default. If set to <code class="docutils literal notranslate"><span class="pre">true</span></code>, some optimisations will be made in Cassandra KVS assuming that these streams will be changed often but not read often.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">isAppendHeavyAndReadLight</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code> by default. If set to <code class="docutils literal notranslate"><span class="pre">true</span></code>, some optimisations will be made in Cassandra KVS assuming that these streams will be changed often but not read often.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">compressStreamInClient</span></code></td>
-<td>Transparently decompresses and compresses the stream via the LZ4 algorithm upon reads and writes, respectively. Compression is performed client side before any network communication to the underlying database.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compressStreamInClient</span></code></p></td>
+<td><p>Transparently decompresses and compresses the stream via the LZ4 algorithm upon reads and writes, respectively. Compression is performed client side before any network communication to the underlying database.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">inMemoryThreshold</span></code></td>
-<td>Specifies the largest size object (in bytes) which AtlasDB will cache in memory in order to boost retrieval performance.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">inMemoryThreshold</span></code></p></td>
+<td><p>Specifies the largest size object (in bytes) which AtlasDB will cache in memory in order to boost retrieval performance.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">tableNameLogSafety</span></code></td>
-<td>Specifies the if the table name is safe to added to logs and metrics. By default, the table is considered <code class="docutils literal notranslate"><span class="pre">UNSAFE</span></code>.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tableNameLogSafety</span></code></p></td>
+<td><p>Specifies the if the table name is safe to added to logs and metrics. By default, the table is considered <code class="docutils literal notranslate"><span class="pre">UNSAFE</span></code>.</p></td>
 </tr>
 </tbody>
 </table>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">If using Cassandra KVS, we <em>strongly</em> recommend that <code class="docutils literal notranslate"><span class="pre">hashRowComponents()</span></code> is set, in order to avoid hotspotting.</p>
+<p class="admonition-title">Note</p>
+<p>If using Cassandra KVS, we <em>strongly</em> recommend that <code class="docutils literal notranslate"><span class="pre">hashRowComponents()</span></code> is set, in order to avoid hotspotting.</p>
 </div>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">We <em>strongly</em> recommend using <code class="docutils literal notranslate"><span class="pre">tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)</span></code> if the table has a safe name.</p>
+<p class="admonition-title">Note</p>
+<p>We <em>strongly</em> recommend using <code class="docutils literal notranslate"><span class="pre">tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)</span></code> if the table has a safe name.</p>
 </div>
 <p>For an example of streams in use, see the <code class="docutils literal notranslate"><span class="pre">user_profile</span></code> table and <code class="docutils literal notranslate"><span class="pre">user_photos</span></code> stream store in <a class="reference external" href="https://github.com/palantir/atlasdb/blob/cd4f33dfcaa95acb90374f698158a4aae8c28945/examples/profile-client/src/main/java/com/palantir/example/profile/schema/ProfileSchema.java">ProfileSchema</a>, and the <code class="docutils literal notranslate"><span class="pre">updateImage</span></code> method in <a class="reference external" href="https://github.com/palantir/atlasdb/blob/cd4f33dfcaa95acb90374f698158a4aae8c28945/examples/profile-client/src/main/java/com/palantir/example/profile/ProfileStore.java#L92-L110">ProfileStore</a>.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">In some places, we load whole numbers of blocks into memory, so if the in-memory threshold is smaller than the block size (1MB), we will still load a whole block.</p>
+<p class="admonition-title">Note</p>
+<p>In some places, we load whole numbers of blocks into memory, so if the in-memory threshold is smaller than the block size (1MB), we will still load a whole block.</p>
 </div>
-</div>
-<div class="section" id="storing-streams">
+</section>
+<section id="storing-streams">
 <h2>Storing Streams<a class="headerlink" href="#storing-streams" title="Permalink to this headline">¶</a></h2>
 <p>Users have two options to store streams.</p>
 <ol class="arabic simple">
-<li><code class="docutils literal notranslate"><span class="pre">getByHashOrStoreStreamAndMarkAsUsed(Transaction</span> <span class="pre">t,</span> <span class="pre">Sha256Hash</span> <span class="pre">hash,</span> <span class="pre">InputStream</span> <span class="pre">stream,</span> <span class="pre">byte[]</span> <span class="pre">reference)</span></code> is called <em>within</em> a transaction. It will store the stream and mark it as used by <code class="docutils literal notranslate"><span class="pre">reference</span></code>. This method is the preferred method to store small (&lt;100 MB) streams.</li>
-<li><code class="docutils literal notranslate"><span class="pre">storeStream(InputStream</span> <span class="pre">stream)</span></code> is called <em>outside</em> a transaction. It will store a stream without marking it as used, and users should mark the stream as used via <code class="docutils literal notranslate"><span class="pre">markStreamAsUsed(Transaction</span> <span class="pre">t,</span> <span class="pre">long</span> <span class="pre">streamId,</span> <span class="pre">byte[]</span> <span class="pre">reference)</span></code> immediately after. Users of this method need to retry if their stream was cleaned up between storing and marking. This method is the preferred method for very large streams (&gt;100 MB) that would otherwise cause the transaction within which the stream is being stored to be too long running.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">getByHashOrStoreStreamAndMarkAsUsed(Transaction</span> <span class="pre">t,</span> <span class="pre">Sha256Hash</span> <span class="pre">hash,</span> <span class="pre">InputStream</span> <span class="pre">stream,</span> <span class="pre">byte[]</span> <span class="pre">reference)</span></code> is called <em>within</em> a transaction. It will store the stream and mark it as used by <code class="docutils literal notranslate"><span class="pre">reference</span></code>. This method is the preferred method to store small (&lt;100 MB) streams.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">storeStream(InputStream</span> <span class="pre">stream)</span></code> is called <em>outside</em> a transaction. It will store a stream without marking it as used, and users should mark the stream as used via <code class="docutils literal notranslate"><span class="pre">markStreamAsUsed(Transaction</span> <span class="pre">t,</span> <span class="pre">long</span> <span class="pre">streamId,</span> <span class="pre">byte[]</span> <span class="pre">reference)</span></code> immediately after. Users of this method need to retry if their stream was cleaned up between storing and marking. This method is the preferred method for very large streams (&gt;100 MB) that would otherwise cause the transaction within which the stream is being stored to be too long running.</p></li>
 </ol>
 <p>Regular AtlasDB tables should refer to the object stored in stream stores by their <code class="docutils literal notranslate"><span class="pre">streamId</span></code>, and the <code class="docutils literal notranslate"><span class="pre">reference</span></code> that users mark the stream with should correspond to a value computable based on the parameters of the cell the <code class="docutils literal notranslate"><span class="pre">streamId</span></code> is stored in. If the <code class="docutils literal notranslate"><span class="pre">streamId</span></code> is deleted from a cell, users need to mark the stream as unused by the reference corresponding to that cell to enable garbage collection.</p>
 <div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">References to streams are <em>manually</em> added (via either <code class="docutils literal notranslate"><span class="pre">getByHashOrStoreStreamAndMarkAsUsed</span></code> or <code class="docutils literal notranslate"><span class="pre">markStreamAsUsed</span></code>) and removed (via the method <code class="docutils literal notranslate"><span class="pre">markStreamAsUnused</span></code>) by users. AtlasDB monitors the number of references to each stream, and streams that are unreferenced will be garbage collected.</p>
+<p class="admonition-title">Note</p>
+<p>References to streams are <em>manually</em> added (via either <code class="docutils literal notranslate"><span class="pre">getByHashOrStoreStreamAndMarkAsUsed</span></code> or <code class="docutils literal notranslate"><span class="pre">markStreamAsUsed</span></code>) and removed (via the method <code class="docutils literal notranslate"><span class="pre">markStreamAsUnused</span></code>) by users. AtlasDB monitors the number of references to each stream, and streams that are unreferenced will be garbage collected.</p>
 </div>
-</div>
-<div class="section" id="performance">
+</section>
+<section id="performance">
 <h2>Performance<a class="headerlink" href="#performance" title="Permalink to this headline">¶</a></h2>
 <p>Streams are marked as <code class="docutils literal notranslate"><span class="pre">cachePriority(CachePriority.COLD)</span></code> by default.
 This is a hint to the key value store that these can potentially be
@@ -277,8 +280,8 @@ delegates to 2 other <code class="docutils literal notranslate"><span class="pre
 one and other tables to another.</p>
 <p>Streams can be optionally compressed to boost performance via the
 <code class="docutils literal notranslate"><span class="pre">compressStreamsInClient</span></code> option on the <code class="docutils literal notranslate"><span class="pre">StreamStoreDefinitionBuilder</span></code>.</p>
-</div>
-<div class="section" id="transactionality">
+</section>
+<section id="transactionality">
 <h2>Transactionality<a class="headerlink" href="#transactionality" title="Permalink to this headline">¶</a></h2>
 <p>When you call <code class="docutils literal notranslate"><span class="pre">loadStream(transaction,</span> <span class="pre">id)</span></code>, only the first section of the stream data is pre-loaded as part of that transaction.
 The amount loaded is determined by the block size (1MB) and the in-memory threshold (4MiB by default); we load at least one block,
@@ -291,16 +294,16 @@ You then call <code class="docutils literal notranslate"><span class="pre">loadS
 Before you reach the end of the stream, another thread stores a mapping from <code class="docutils literal notranslate"><span class="pre">key</span></code> to <code class="docutils literal notranslate"><span class="pre">stream_id_2</span></code>.
 In this case, streaming of the original stream will continue and complete successfully, even though the data being streamed is out of date.</p>
 <p>If you wish to guard against this case, you should kick off another read transaction after closing the stream, to verify that <code class="docutils literal notranslate"><span class="pre">key</span></code> still maps to <code class="docutils literal notranslate"><span class="pre">stream_id_1</span></code>.</p>
-</div>
-<div class="section" id="non-duplication">
+</section>
+<section id="non-duplication">
 <h2>Non-Duplication<a class="headerlink" href="#non-duplication" title="Permalink to this headline">¶</a></h2>
 <p>A single stream of bytes may be stored multiple times and have many
 references to it, but will only be stored once under the covers. When
 all references to a stream are removed it will be cleaned up by the
 OnCleanupTask that is registered with the cleaner. See
 <a class="reference internal" href="cleanup_tasks.html#cleanup-tasks"><span class="std std-ref">Cleanup Tasks</span></a> for more details.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Multinode Cassandra HA Guarantees &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -184,127 +187,127 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="multinode-cassandra-ha-guarantees">
+  <section id="multinode-cassandra-ha-guarantees">
 <h1>Multinode Cassandra HA Guarantees<a class="headerlink" href="#multinode-cassandra-ha-guarantees" title="Permalink to this headline">¶</a></h1>
 <p>A multinode Cassandra cluster can generally be in one of three states:</p>
 <blockquote>
 <div><ol class="arabic simple">
-<li>All nodes are up.</li>
-<li>Some nodes are down, but there is a quorum of up nodes, i.e., the number of nodes that are down is fewer than half the replication factor (RF).</li>
-<li>Less than a quorum of the nodes are up.</li>
+<li><p>All nodes are up.</p></li>
+<li><p>Some nodes are down, but there is a quorum of up nodes, i.e., the number of nodes that are down is fewer than half the replication factor (RF).</p></li>
+<li><p>Less than a quorum of the nodes are up.</p></li>
 </ol>
 </div></blockquote>
 <p>In the case where all nodes are up, the entire Cassandra Key Value Service (KVS) API can be used. In the latter two cases, in order to guarantee consistency and correctness, usage of the KVS API is restricted as documented below.</p>
-<div class="section" id="a-minority-of-nodes-are-down">
+<section id="a-minority-of-nodes-are-down">
 <h2>A minority of nodes are down<a class="headerlink" href="#a-minority-of-nodes-are-down" title="Permalink to this headline">¶</a></h2>
 <p>The following behaviour is guaranteed when interacting with a Cassandra cluster with three nodes, RF three, and one node down. More generally, the following is the expected behaviour for a cluster that has nodes down, but can still always satisfy QUORUM requests (i.e. fewer than RF/2 nodes are down).</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="50%" />
-<col width="50%" />
+<col style="width: 50%" />
+<col style="width: 50%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Cassandra KVS API Method</th>
-<th class="head">Behaviour</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Cassandra KVS API Method</p></th>
+<th class="head"><p>Behaviour</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">addGarbageCollectionSentinelValues</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">addGarbageCollectionSentinelValues</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">cleanUpSchemaMutationLockTablesState</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cleanUpSchemaMutationLockTablesState</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">close</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">close</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">compactInternally</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compactInternally</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">create</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">create</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">createTable</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">createTable</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">createTables</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">createTables</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">delete</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">PalantirRuntimeException</span></code></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">delete</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">PalantirRuntimeException</span></code></p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">dropTable</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dropTable</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">dropTables</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dropTables</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">get</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">get</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">getAllTableNames</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">getAllTableNames</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">getAllTimestamps</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">PalantirRuntimeException</span></code></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">getAllTimestamps</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">PalantirRuntimeException</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">getLatestTimestamps</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">getLatestTimestamps</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">getMetadataForTable</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">getMetadataForTable</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">getMetadataForTables</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">getMetadataForTables</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">getRange</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">getRange</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">getRangeOfTimestamps</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">InsufficientConsistencyException</span></code> (<cite>when the iterator is accessed</cite>).</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">getRangeOfTimestamps</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">InsufficientConsistencyException</span></code> (<cite>when the iterator is accessed</cite>).</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">getRows</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">getRows</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">multiPut</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">multiPut</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">put</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">put</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">putMetadataForTable</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">putMetadataForTable</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">putMetadataForTables</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">putMetadataForTables</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code></p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">putWithTimestamps</span></code></td>
-<td>Same as when all nodes are up.</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">putWithTimestamps</span></code></p></td>
+<td><p>Same as when all nodes are up.</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">truncateTable</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">PalantirRuntimeException</span></code></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">truncateTable</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">PalantirRuntimeException</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">truncateTables</span></code></td>
-<td>Throws <code class="docutils literal notranslate"><span class="pre">PalantirRuntimeException</span></code></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">truncateTables</span></code></p></td>
+<td><p>Throws <code class="docutils literal notranslate"><span class="pre">PalantirRuntimeException</span></code></p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="less-than-a-quorum-of-nodes-are-up">
+</section>
+<section id="less-than-a-quorum-of-nodes-are-up">
 <h2>Less than a quorum of nodes are up<a class="headerlink" href="#less-than-a-quorum-of-nodes-are-up" title="Permalink to this headline">¶</a></h2>
 <p>All of the above operations should fail.</p>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">This behaviour has not been fully tested yet!</p>
+<p class="admonition-title">Warning</p>
+<p>This behaviour has not been fully tested yet!</p>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

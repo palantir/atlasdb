@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>12. Batch timestamp requests on the client side &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
@@ -200,63 +203,56 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="batch-timestamp-requests-on-the-client-side">
+  <section id="batch-timestamp-requests-on-the-client-side">
 <h1>12. Batch timestamp requests on the client side<a class="headerlink" href="#batch-timestamp-requests-on-the-client-side" title="Permalink to this headline">¶</a></h1>
 <p>Date: 26/09/2017</p>
-<div class="section" id="status">
-<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>## Status</p>
 <p>Accepted</p>
 <p>The third decision point has been superseded. The ability to disable request batching has been removed, as we
 have not seen cases in practice where enabling it has caused issues (even in spite of the latency cost there).</p>
-</div>
-<div class="section" id="context">
-<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<p>## Context</p>
 <p>A TimeLock cluster can serve multiple services. Under these circumstances, each TimeLock client node can separately
 open connections to TimeLock and request timestamps and locks. As timestamp and lock requests are typically very common
 (for instance, a single write transaction needs to contact TimeLock multiple times), TimeLock tends to experience
 relatively heavy loads. This affects overall throughput, as TimeLock takes longer to respond to requests.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">PersistentTimestampService</span></code> supports querying for a contiguous range of timestamps. This functionality has
+<p>The <cite>PersistentTimestampService</cite> supports querying for a contiguous range of timestamps. This functionality has
 already been used in production, in Palantir’s large internal product.</p>
-</div>
-<div class="section" id="decision">
-<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<p>## Decision</p>
 <ul class="simple">
-<li>Use the <code class="docutils literal notranslate"><span class="pre">RequestBatchingTimestampService</span></code> to coalesce timestamp requests to TimeLock, and enable it by default.
+<li><p>Use the <cite>RequestBatchingTimestampService</cite> to coalesce timestamp requests to TimeLock, and enable it by default.
 This means that a TimeLock client will, at any time, have at most one timestamp request in flight to TimeLock.
 When a client makes a request, if there is no request in-flight, the request is submitted immediately.
 Otherwise, requests accumulate in a batch. Once the in-flight request completes, the batch request is sent as a
-<code class="docutils literal notranslate"><span class="pre">getFreshTimestamps</span></code> request for the relevant number of timestamps, and the <code class="docutils literal notranslate"><span class="pre">TimestampRange</span></code> returned is distributed
-among the threads that made the request.</li>
-<li>Configure <code class="docutils literal notranslate"><span class="pre">RequestBatchingTimestampService</span></code> with a delay interval of zero milliseconds. In practice, this means that
+<cite>getFreshTimestamps</cite> request for the relevant number of timestamps, and the <cite>TimestampRange</cite> returned is distributed
+among the threads that made the request.</p></li>
+<li><p>Configure <cite>RequestBatchingTimestampService</cite> with a delay interval of zero milliseconds. In practice, this means that
 when a request returns, the next request will immediately be dispatched (provided timestamps have actually been
 requested). This does imply that, on average, requests take half a round-trip time longer. In practice, things
-are more complex:<ul>
-<li>In addition to the half-RTT, we also incur costs involved in synchronization of the batching.</li>
-<li>TimeLock itself tends to respond more quickly, though, as it is less heavily loaded. For many internal contexts,
+are more complex:</p>
+<ul>
+<li><p>In addition to the half-RTT, we also incur costs involved in synchronization of the batching.</p></li>
+<li><p>TimeLock itself tends to respond more quickly, though, as it is less heavily loaded. For many internal contexts,
 TimeLock being less heavily loaded is a particularly compelling reason to enable batching by default, as it
-serves timestamps and locks for many services.</li>
+serves timestamps and locks for many services.</p></li>
 </ul>
 </li>
-<li>Maintain the ability to disable request batching. This was kept, because request batching can cause a modest
+<li><p>Maintain the ability to disable request batching. This was kept, because request batching can cause a modest
 increase in latency especially where client loads are light. Request batching might not be appropriate for
-applications that require real-time responses.</li>
+applications that require real-time responses.</p></li>
 </ul>
-</div>
-<div class="section" id="consequences">
-<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<p>## Consequences</p>
 <ul class="simple">
-<li>Generally, load on TimeLock servers should be reduced, as there will be fewer network calls made to request
+<li><p>Generally, load on TimeLock servers should be reduced, as there will be fewer network calls made to request
 timestamps. Note that lock requests (both to the legacy and async lock services), as well as compound
-operations like <code class="docutils literal notranslate"><span class="pre">lockImmutableTimestamp</span></code> are not batched.</li>
-<li>Clients may experience an increase in latency, especially if TimeLock was not previously heavily loaded.
-If so, they should consider disabling timestamp batching by setting the <code class="docutils literal notranslate"><span class="pre">enableTimestampBatching</span></code> parameter in the
-<code class="docutils literal notranslate"><span class="pre">timestampClient</span></code> block of the AtlasDB runtime configuration to false.</li>
-<li>Users analysing timestamp metrics should evaluate the performance of <code class="docutils literal notranslate"><span class="pre">TimestampService.getFreshTimestamps</span></code> as opposed
-to <code class="docutils literal notranslate"><span class="pre">TimelockService.getFreshTimestamp</span></code> when trying to determine how quickly timestamps are served. This metric
-includes the time involved in waiting for the current batch to complete as well as synchronization of batches.</li>
+operations like <cite>lockImmutableTimestamp</cite> are not batched.</p></li>
+<li><p>Clients may experience an increase in latency, especially if TimeLock was not previously heavily loaded.
+If so, they should consider disabling timestamp batching by setting the <cite>enableTimestampBatching</cite> parameter in the
+<cite>timestampClient</cite> block of the AtlasDB runtime configuration to false.</p></li>
+<li><p>Users analysing timestamp metrics should evaluate the performance of <cite>TimestampService.getFreshTimestamps</cite> as opposed
+to <cite>TimelockService.getFreshTimestamp</cite> when trying to determine how quickly timestamps are served. This metric
+includes the time involved in waiting for the current batch to complete as well as synchronization of batches.</p></li>
 </ul>
-</div>
-</div>
+</section>
 
 
            </div>

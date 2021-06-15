@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Contributing to AtlasDB &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -180,41 +183,41 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="contributing-to-atlasdb">
+  <section id="contributing-to-atlasdb">
 <h1>Contributing to AtlasDB<a class="headerlink" href="#contributing-to-atlasdb" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="contributing-code">
+<section id="contributing-code">
 <h2>Contributing Code<a class="headerlink" href="#contributing-code" title="Permalink to this headline">¶</a></h2>
 <p>Follow the steps provided in <a class="reference internal" href="../overview/getting_started.html#running-from-source"><span class="std std-ref">Running from Source</span></a>.
 We are happy to accept pull requests and could use help
 implementing the AtlasDB API for more underlying physical stores.</p>
 <p>In order to ensure your pull request is merged please keep the following in mind:</p>
 <ul class="simple">
-<li>Make sure checkstyle/findbugs pass. You can run this automatically at commit time by setting up a git hook using the script located at <code class="docutils literal notranslate"><span class="pre">scripts/setup-git-hooks.sh</span></code>.</li>
-<li>Assign a member of the team for review, if it is incorrect it will be triaged to the correct person.</li>
-<li>Update the <a class="reference internal" href="../release_notes/release-notes.html#change-log"><span class="std std-ref">Changelog</span></a> with the change if it is public facing.</li>
-<li>If you are updating logic the expectation is that new tests will be added for the functionality, a lack of testing will likely delay the PR.</li>
+<li><p>Make sure checkstyle/findbugs pass. You can run this automatically at commit time by setting up a git hook using the script located at <code class="docutils literal notranslate"><span class="pre">scripts/setup-git-hooks.sh</span></code>.</p></li>
+<li><p>Assign a member of the team for review, if it is incorrect it will be triaged to the correct person.</p></li>
+<li><p>Update the <a class="reference internal" href="../release_notes/release-notes.html#change-log"><span class="std std-ref">Changelog</span></a> with the change if it is public facing.</p></li>
+<li><p>If you are updating logic the expectation is that new tests will be added for the functionality, a lack of testing will likely delay the PR.</p></li>
 </ul>
-</div>
-<div class="section" id="contributing-docs">
+</section>
+<section id="contributing-docs">
 <h2>Contributing Docs<a class="headerlink" href="#contributing-docs" title="Permalink to this headline">¶</a></h2>
 <p>The easiest way to contribute to docs is to edit them directly on GitHub using the link above:</p>
 <ol class="arabic simple">
-<li>On GitHub you will see the .rst file rendered and can edit it directly in your browser and preview the changes!</li>
-<li>After making your edits you can submit a PR below the editor.  Please construct a simple commit message highlighting your changes and create a branch name preferably with the pattern <code class="docutils literal notranslate"><span class="pre">docs/*</span></code>.</li>
+<li><p>On GitHub you will see the .rst file rendered and can edit it directly in your browser and preview the changes!</p></li>
+<li><p>After making your edits you can submit a PR below the editor.  Please construct a simple commit message highlighting your changes and create a branch name preferably with the pattern <code class="docutils literal notranslate"><span class="pre">docs/*</span></code>.</p></li>
 </ol>
 <p>If you would like to build the docs locally follow these steps:</p>
 <ol class="arabic simple">
-<li>Clone the git repository:<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
-<li>Install sphinx, sphinx_rtd_theme, and recommonmark if you don’t have it.  Instructions can be found <a class="reference external" href="http://www.sphinx-doc.org/en/stab/install.html">here</a>.  The easiest option for Mac users will be using pip.  Please be sure to update sphinx if you haven’t used it in a while.  Also please be aware the exact commands to build the docs can be found in <code class="docutils literal notranslate"><span class="pre">scripts/circle-ci/publish-github-pages.sh</span></code>.</li>
-<li>Confirm you installation is working by running <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">docs</span> <span class="pre">&amp;&amp;</span> <span class="pre">make</span> <span class="pre">html</span></code>.  The freshly built documentation will be in <code class="docutils literal notranslate"><span class="pre">docs/build/html</span></code>.</li>
-<li>Existing pages can be found in <code class="docutils literal notranslate"><span class="pre">docs/source</span></code>. Create new pages by adding an .rst file to <code class="docutils literal notranslate"><span class="pre">docs/source</span></code> and then adding the file name to the appropriate .toctree in the parent file.</li>
-<li>Commit any changes to a <code class="docutils literal notranslate"><span class="pre">docs/*</span></code> branch and push them up to github for review.</li>
+<li><p>Clone the git repository:<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</p></li>
+<li><p>Install sphinx, sphinx_rtd_theme, and recommonmark if you don’t have it.  Instructions can be found <a class="reference external" href="http://www.sphinx-doc.org/en/stab/install.html">here</a>.  The easiest option for Mac users will be using pip.  Please be sure to update sphinx if you haven’t used it in a while.  Also please be aware the exact commands to build the docs can be found in <code class="docutils literal notranslate"><span class="pre">scripts/circle-ci/publish-github-pages.sh</span></code>.</p></li>
+<li><p>Confirm you installation is working by running <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">docs</span> <span class="pre">&amp;&amp;</span> <span class="pre">make</span> <span class="pre">html</span></code>.  The freshly built documentation will be in <code class="docutils literal notranslate"><span class="pre">docs/build/html</span></code>.</p></li>
+<li><p>Existing pages can be found in <code class="docutils literal notranslate"><span class="pre">docs/source</span></code>. Create new pages by adding an .rst file to <code class="docutils literal notranslate"><span class="pre">docs/source</span></code> and then adding the file name to the appropriate .toctree in the parent file.</p></li>
+<li><p>Commit any changes to a <code class="docutils literal notranslate"><span class="pre">docs/*</span></code> branch and push them up to github for review.</p></li>
 </ol>
 <p>You can generate and view the docs locally by running
 <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">html</span></code> and opening the built html files in <code class="docutils literal notranslate"><span class="pre">docs/build/html/</span></code> in your browser of choice.</p>
 <p>The docs are built using <a class="reference external" href="http://www.sphinx-doc.org/en/stable/index.html">Sphinx</a> and written in <a class="reference external" href="http://docutils.sourceforge.net/rst.html">.rst</a>.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

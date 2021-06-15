@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Timelock Server Installation &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
@@ -190,79 +193,77 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="timelock-server-installation">
+  <section id="timelock-server-installation">
 <span id="timelock-installation"></span><h1>Timelock Server Installation<a class="headerlink" href="#timelock-server-installation" title="Permalink to this headline">¶</a></h1>
 <p>This guide explains how to install the Timelock server, and to configure existing services to use Timelock Server rather than embedded AtlasDB time and lock services.
 The basic method is to first install Timelock without any clients, and then for each existing service, prepare the service and Timelock to talk to each other.</p>
-<div class="section" id="obtain-the-timelock-binaries">
+<section id="obtain-the-timelock-binaries">
 <h2>Obtain the Timelock binaries<a class="headerlink" href="#obtain-the-timelock-binaries" title="Permalink to this headline">¶</a></h2>
 <div class="admonition tip">
-<p class="first admonition-title">Tip</p>
-<p class="last">Internal consumers can skip these steps.</p>
+<p class="admonition-title">Tip</p>
+<p>Internal consumers can skip these steps.</p>
 </div>
 <ol class="arabic">
-<li><p class="first">Clone the git repository.</p>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">palantir</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">.</span><span class="n">git</span><span class="p">;</span> <span class="n">cd</span> <span class="n">atlasdb</span>
+<li><p>Clone the git repository.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone git@github.com:palantir/atlasdb.git<span class="p">;</span> <span class="nb">cd</span> atlasdb
 </pre></div>
 </div>
 </li>
-<li><p class="first">Generate a tar file with Gradle:</p>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">gradlew</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="n">distTar</span>
+<li><p>Generate a tar file with Gradle:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./gradlew timelock-server:distTar
 </pre></div>
 </div>
 </li>
 </ol>
 <blockquote>
-<div>This will place a tar file in the <code class="docutils literal notranslate"><span class="pre">build/distributions</span></code> directory of the <code class="docutils literal notranslate"><span class="pre">timelock-server</span></code> project. The
-tar file follows semantic versioning.</div></blockquote>
-</div>
-<div class="section" id="install-timelock-without-clients">
+<div><p>This will place a tar file in the <code class="docutils literal notranslate"><span class="pre">build/distributions</span></code> directory of the <code class="docutils literal notranslate"><span class="pre">timelock-server</span></code> project. The
+tar file follows semantic versioning.</p>
+</div></blockquote>
+</section>
+<section id="install-timelock-without-clients">
 <h2>Install Timelock (without clients)<a class="headerlink" href="#install-timelock-without-clients" title="Permalink to this headline">¶</a></h2>
 <p>We recommend deploying either a 3-node or a 5-node Timelock cluster.
 A 3-node cluster will provide better performance, whereas a 5-node cluster has greater fault tolerance.</p>
 <div class="admonition tip">
-<p class="first admonition-title">Tip</p>
-<p class="last">Internal consumers can deploy the binaries by the usual method.</p>
+<p class="admonition-title">Tip</p>
+<p>Internal consumers can deploy the binaries by the usual method.</p>
 </div>
 <p>For real-world installations, we recommend provisioning a dedicated host machine for each Timelock server.</p>
 <ol class="arabic" start="3">
-<li><p class="first">Copy this tar file to each machine on which you want to deploy Timelock Server.</p>
-</li>
-<li><p class="first">On each machine which you intend to deploy Timelock Server, untar the archive.</p>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tar</span> <span class="o">-</span><span class="n">zxvf</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mf">0.</span><span class="n">sls</span><span class="o">.</span><span class="n">tgz</span><span class="p">;</span> <span class="n">cd</span> <span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mi">0</span>
+<li><p>Copy this tar file to each machine on which you want to deploy Timelock Server.</p></li>
+<li><p>On each machine which you intend to deploy Timelock Server, untar the archive.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tar -zxvf timelock-server-0.25.0.sls.tgz<span class="p">;</span> <span class="nb">cd</span> timelock-server-0.25.0
 </pre></div>
 </div>
 </li>
-<li><p class="first">Configure the Timelock Server - see <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-configuration"><span class="std std-ref">Timelock Server Configuration</span></a> for a guide on this. The configuration file
-is at <code class="docutils literal notranslate"><span class="pre">var/conf/timelock.yml</span></code> relative to the root directory of the Timelock Server.</p>
-</li>
-<li><p class="first">Start the Timelock Server with <code class="docutils literal notranslate"><span class="pre">service/bin/init.sh</span> <span class="pre">start</span></code>.
+<li><p>Configure the Timelock Server - see <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-configuration"><span class="std std-ref">Timelock Server Configuration</span></a> for a guide on this. The configuration file
+is at <code class="docutils literal notranslate"><span class="pre">var/conf/timelock.yml</span></code> relative to the root directory of the Timelock Server.</p></li>
+<li><p>Start the Timelock Server with <code class="docutils literal notranslate"><span class="pre">service/bin/init.sh</span> <span class="pre">start</span></code>.
 This should output the process ID of the Timelock Server. You can view the logs in the (by default) <code class="docutils literal notranslate"><span class="pre">var/log</span></code>
-directory.</p>
-</li>
-<li><p class="first">It may be useful to run a health-check to verify that the Timelock Server is running. To do this, you can curl
+directory.</p></li>
+<li><p>It may be useful to run a health-check to verify that the Timelock Server is running. To do this, you can curl
 the server’s <code class="docutils literal notranslate"><span class="pre">healthcheck</span></code> endpoint on its admin port (default: 8081).</p>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">8081</span><span class="o">/</span><span class="n">healthcheck</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl localhost:8081/healthcheck
 </pre></div>
 </div>
 <p>The output should indicate that the Timelock Server is healthy. The output should resemble the following:</p>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;deadlocks&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;healthy&quot;</span><span class="p">:</span> <span class="n">true</span>
-    <span class="p">}</span>
-<span class="p">}</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">{</span>
+    <span class="s2">&quot;deadlocks&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;healthy&quot;</span>: <span class="nb">true</span>
+    <span class="o">}</span>
+<span class="o">}</span>
 </pre></div>
 </div>
 </li>
 </ol>
-</div>
-<div class="section" id="add-client-s-to-timelock">
+</section>
+<section id="add-client-s-to-timelock">
 <h2>Add client(s) to Timelock<a class="headerlink" href="#add-client-s-to-timelock" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple" start="8">
-<li>Back up each client, following the steps declared in <a class="reference internal" href="../../cluster_management/backup-restore.html#backup-restore"><span class="std std-ref">Backup and Restore</span></a>.</li>
-<li>Configure each client to use Timelock.
+<li><p>Back up each client, following the steps declared in <a class="reference internal" href="../../cluster_management/backup-restore.html#backup-restore"><span class="std std-ref">Backup and Restore</span></a>.</p></li>
+<li><p>Configure each client to use Timelock.
 Detailed documentation is <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">here</span></a>.
-You must remove any <code class="docutils literal notranslate"><span class="pre">leader</span></code>, <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, or <code class="docutils literal notranslate"><span class="pre">lock</span></code> blocks; the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block to add looks like this:</li>
+You must remove any <code class="docutils literal notranslate"><span class="pre">leader</span></code>, <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, or <code class="docutils literal notranslate"><span class="pre">lock</span></code> blocks; the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block to add looks like this:</p></li>
 </ol>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
    <span class="nt">timelock</span><span class="p">:</span>
@@ -276,8 +277,8 @@ You must remove any <code class="docutils literal notranslate"><span class="pre"
 </pre></div>
 </div>
 <ol class="arabic simple" start="10">
-<li>(Optional) For verification purposes, you may retrieve a timestamp from each client you are configuring to use TimeLock.
-This can typically be performed with the Fetch Timestamp CLI or Dropwizard bundle. For example, using the Dropwizard bundle:</li>
+<li><p>(Optional) For verification purposes, you may retrieve a timestamp from each client you are configuring to use TimeLock.
+This can typically be performed with the Fetch Timestamp CLI or Dropwizard bundle. For example, using the Dropwizard bundle:</p></li>
 </ol>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/&lt;service&gt; atlasdb timestamp fetch
 
@@ -285,21 +286,21 @@ This can typically be performed with the Fetch Timestamp CLI or Dropwizard bundl
 </pre></div>
 </div>
 <ol class="arabic simple" start="11">
-<li>Shut down each client that has been newly added.</li>
-<li>Restart your Timelock cluster.</li>
-<li>Migrate each client to the timelock server - see the <a class="reference internal" href="migration.html#timelock-migration"><span class="std std-ref">separate migration docs</span></a>. For Cassandra KVS, this is automatic.</li>
+<li><p>Shut down each client that has been newly added.</p></li>
+<li><p>Restart your Timelock cluster.</p></li>
+<li><p>Migrate each client to the timelock server - see the <a class="reference internal" href="migration.html#timelock-migration"><span class="std std-ref">separate migration docs</span></a>. For Cassandra KVS, this is automatic.</p></li>
 </ol>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Do not skip this step if your client uses DbKvs! Failure to migrate your client will cause <strong>severe data corruption</strong>, as Timelock will serve timestamps starting from 1.</p>
+<p class="admonition-title">Warning</p>
+<p>Do not skip this step if your client uses DbKvs! Failure to migrate your client will cause <strong>severe data corruption</strong>, as Timelock will serve timestamps starting from 1.</p>
 </div>
 <ol class="arabic simple" start="14">
-<li>Restart each client.</li>
-<li>(Optional) To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
-For each client, the timestamp returned should be strictly greater than the corresponding timestamp obtained in step 10.</li>
+<li><p>Restart each client.</p></li>
+<li><p>(Optional) To verify that the migration worked correctly, get a fresh timestamp for each client from the Timelock server.
+For each client, the timestamp returned should be strictly greater than the corresponding timestamp obtained in step 10.</p></li>
 </ol>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

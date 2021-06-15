@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Freeing space after sweep &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
@@ -187,22 +190,22 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="freeing-space-after-sweep">
+  <section id="freeing-space-after-sweep">
 <span id="freeing-space"></span><h1>Freeing space after sweep<a class="headerlink" href="#freeing-space-after-sweep" title="Permalink to this headline">¶</a></h1>
 <p>The sweep job issues KVS-level deletes to remove stale data.
 However, this does not immediately free data, and for Oracle KVS, manual action may be required in order to gain space.</p>
-<div class="section" id="dbkvs">
+<section id="dbkvs">
 <h2>DbKvs<a class="headerlink" href="#dbkvs" title="Permalink to this headline">¶</a></h2>
 <p>DbKvs uses a background compaction thread to free up disk space. Similar to the background sweeper, the background
-compactor periodically chooses a table <a class="footnote-reference" href="#tablechoice" id="id1">[1]</a>, and runs <code class="docutils literal notranslate"><span class="pre">KeyValueService.compactInternally</span></code> on that table.</p>
-<div class="section" id="oracle-standard-edition">
+compactor periodically chooses a table <a class="footnote-reference brackets" href="#tablechoice" id="id1">1</a>, and runs <code class="docutils literal notranslate"><span class="pre">KeyValueService.compactInternally</span></code> on that table.</p>
+<section id="oracle-standard-edition">
 <h3>Oracle - Standard Edition<a class="headerlink" href="#oracle-standard-edition" title="Permalink to this headline">¶</a></h3>
 <p>The background compaction thread runs one of two commands, depending on whether the system is in maintenance mode.
 Maintenance mode indicates that users are unlikely to be accessing the system, and so blocking operations can safely be run.
 They are configured by a live-reloaded boolean <code class="docutils literal notranslate"><span class="pre">inMaintenanceMode</span></code> (config path <code class="docutils literal notranslate"><span class="pre">runtime/compact/inMaintenanceMode</span></code>)</p>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last"><code class="docutils literal notranslate"><span class="pre">inMaintenanceMode</span></code> only determines when we <em>start</em> running <code class="docutils literal notranslate"><span class="pre">SHRINK</span> <span class="pre">SPACE</span></code>.
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">inMaintenanceMode</span></code> only determines when we <em>start</em> running <code class="docutils literal notranslate"><span class="pre">SHRINK</span> <span class="pre">SPACE</span></code>.
 The operation cannot be aborted once started, so it is strongly recommended to allow for a buffer time of up to three hours before database access is required.
 For example, if users come online at 9am, then maintenance mode should be disabled by 6am.</p>
 </div>
@@ -212,35 +215,34 @@ This is usually fast, but has been seen to take hours on some very large tables.
 <p>If we are not in maintenance mode (i.e. we assume users are online), <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span> <span class="pre">table</span> <span class="pre">SHRINK</span> <span class="pre">SPACE</span> <span class="pre">COMPACT</span></code> will be run.
 This does not block the table; however, space freed by the operation is only available for use by the same table.</p>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Installations that are never set to maintenance mode may need manual action to free space after <code class="docutils literal notranslate"><span class="pre">SHRINK</span> <span class="pre">SPACE</span> <span class="pre">COMPACT</span></code> has run.
+<p class="admonition-title">Warning</p>
+<p>Installations that are never set to maintenance mode may need manual action to free space after <code class="docutils literal notranslate"><span class="pre">SHRINK</span> <span class="pre">SPACE</span> <span class="pre">COMPACT</span></code> has run.
 To do this for table <code class="docutils literal notranslate"><span class="pre">foo</span></code>, run <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span> <span class="pre">foo</span> <span class="pre">SHRINK</span> <span class="pre">SPACE</span></code>.
 Again, note that this will lock the entire table until the operation completes.</p>
 </div>
-</div>
-<div class="section" id="oracle-enterprise">
+</section>
+<section id="oracle-enterprise">
 <h3>Oracle - Enterprise<a class="headerlink" href="#oracle-enterprise" title="Permalink to this headline">¶</a></h3>
 <p>The background compaction thread runs <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span> <span class="pre">table</span> <span class="pre">MOVE</span> <span class="pre">ONLINE</span></code> on the chosen table.
 This runs online, and no user action is required.</p>
-</div>
-<div class="section" id="postgres">
+</section>
+<section id="postgres">
 <h3>Postgres<a class="headerlink" href="#postgres" title="Permalink to this headline">¶</a></h3>
 <p>The background compaction thread runs <code class="docutils literal notranslate"><span class="pre">VACUUM</span> <span class="pre">ANALYZE</span></code> on the chosen table.
 This runs online, and no user action is required.</p>
-</div>
-</div>
-<div class="section" id="cassandra-kvs">
+</section>
+</section>
+<section id="cassandra-kvs">
 <h2>Cassandra KVS<a class="headerlink" href="#cassandra-kvs" title="Permalink to this headline">¶</a></h2>
 <p>The delete operation on Cassandra KVS creates a Cassandra tombstone that prevents the data from being read.
 Cassandra uses compactions to free up disk space, which will eventually happen without manual intervention.</p>
-<table class="docutils footnote" frame="void" id="tablechoice" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>The compactor tracks when each table was last compacted (Tc), and compares those times with the last swept times (Ts), choosing the table with greatest (Ts-Tc), i.e. largest gap between compaction and sweep.</td></tr>
-</tbody>
-</table>
-</div>
-</div>
+<dl class="footnote brackets">
+<dt class="label" id="tablechoice"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>The compactor tracks when each table was last compacted (Tc), and compares those times with the last swept times (Ts), choosing the table with greatest (Ts-Tc), i.e. largest gap between compaction and sweep.</p>
+</dd>
+</dl>
+</section>
+</section>
 
 
            </div>

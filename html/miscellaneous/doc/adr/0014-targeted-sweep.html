@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>14. Targeted Sweep &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
@@ -200,17 +203,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="targeted-sweep">
+  <section id="targeted-sweep">
 <h1>14. Targeted Sweep<a class="headerlink" href="#targeted-sweep" title="Permalink to this headline">¶</a></h1>
 <p>Date: 18/06/2018</p>
-<div class="section" id="status">
-<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>## Status</p>
 <p><strong>Accepted</strong></p>
-</div>
-<div class="section" id="context">
-<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="legacy-sweep">
-<h3>Legacy Sweep<a class="headerlink" href="#legacy-sweep" title="Permalink to this headline">¶</a></h3>
+<p>## Context</p>
+<p>### Legacy Sweep</p>
 <p>To achieve its transactional guarantees, AtlasDB maintains historical versions of cells that have been written to. Eventually,
 all existing and future transactions will have a start timestamp large enough that some of these historical versions will never be
 visible again, resulting in unnecessary cruft. This is not only an issue due to taking up storage space in the underlying KVS, but
@@ -224,22 +223,19 @@ historic version for each cell prior to the sweep timestamp effectively invisibl
 safely deleted.</p>
 <p>Legacy sweep continues these scans until enough candidates have been found, processing at least one full row of cells, and
 then deletes each of the obsolete historic versions. There are two main modes for running legacy sweep:</p>
-<ol class="simple">
-<li>Background Sweep, which is a background task that repeatedly chooses a table to sweep and then proceeds to run iterations
-of sweep until all the rows have been processed.</li>
-<li>Manual Sweep, which can be triggered through a REST endpoint or a CLI to perform an iteration or a full sweep for a given table
-and start row.</li>
-</ol>
+<p>1. Background Sweep, which is a background task that repeatedly chooses a table to sweep and then proceeds to run iterations
+of sweep until all the rows have been processed.
+2. Manual Sweep, which can be triggered through a REST endpoint or a CLI to perform an iteration or a full sweep for a given table
+and start row.</p>
 <p>Note that there are corner cases where the sweep timestamp may be mistaken: a read-only transaction that has been running
 for longer than one hour (which is also subject to clock drift), or when a write transaction loses its lock while committing. In
 tables that allow read-only transactions we must therefore defensively write a <strong>garbage deletion sentinel</strong>, which is an empty
 value at a timestamp of -1, i.e., before any valid start timestamp. If a read-only transaction encounters a sentinel, that
 signalizes there could have been a historic version it should be able to read that may have been deleted, and the transaction must
 therefore abort. If a table allows read-only transactions, and therefore requires sentinels, is defined by the table’s
-<strong>sweep strategy</strong>: <code class="docutils literal notranslate"><span class="pre">CONSERVATIVE</span></code>, which allows read-only transactions and requires sentinels, and <code class="docutils literal notranslate"><span class="pre">THOROUGH</span></code>, which does not.</p>
+<strong>sweep strategy</strong>: <cite>CONSERVATIVE</cite>, which allows read-only transactions and requires sentinels, and <cite>THOROUGH</cite>, which does not.</p>
 <p>Over time we have identified a number of issues with the architecture and implementation of legacy sweep as outlined below.</p>
-<div class="section" id="legacy-sweep-is-slow">
-<h4>Legacy Sweep is Slow<a class="headerlink" href="#legacy-sweep-is-slow" title="Permalink to this headline">¶</a></h4>
+<p>#### Legacy Sweep is Slow</p>
 <p>Even if a table has no historic versions of cells that can be swept, we still have to scan through all historic versions of
 all cells in the table, which can take weeks in extreme cases. The performance only gets worse as more data is written to the
 KVS, increasing the number of entries legacy sweep must iterate through. This is a particularly large problem for users with tables
@@ -250,98 +246,83 @@ automatically retried.</p>
 <p>Moreover, legacy sweep depends on complicated heuristics to decide which table to sweep next. Given that some tables must be swept
 frequently, and the slowness of legacy sweep, significant developer time must be spent tweaking the heuristic to produce the desired
 effect.</p>
-</div>
-<div class="section" id="legacy-sweep-can-exert-significant-pressure-on-the-underlying-kvs">
-<h4>Legacy Sweep can Exert Significant Pressure on the Underlying KVS<a class="headerlink" href="#legacy-sweep-can-exert-significant-pressure-on-the-underlying-kvs" title="Permalink to this headline">¶</a></h4>
+<p>#### Legacy Sweep can Exert Significant Pressure on the Underlying KVS</p>
 <p>Scanning through a table to find historic versions of cells can in some cases cause significant pressure on the underlying KVS,
 in particular for Cassandra. Even though we are only interested in the start and commit timestamp of the transaction in which the
 writes were performed, it is our understanding that Cassandra internally still loads the contents of the cell in memory regardless.</p>
-</div>
-<div class="section" id="legacy-sweep-can-get-stuck">
-<h4>Legacy Sweep can Get Stuck<a class="headerlink" href="#legacy-sweep-can-get-stuck" title="Permalink to this headline">¶</a></h4>
+<p>#### Legacy Sweep can Get Stuck</p>
 <p>For tables that regularly have new rows added in increasing lexicographical order (for example, tables keyed on steadily  increasing
-<code class="docutils literal notranslate"><span class="pre">FIXED</span></code> or <code class="docutils literal notranslate"><span class="pre">VAR_LONG</span></code>s), legacy sweep can end up sweeping the table indefinitely as each iteration will discover a new row, therefore
+<cite>FIXED</cite> or <cite>VAR_LONG</cite> s), legacy sweep can end up sweeping the table indefinitely as each iteration will discover a new row, therefore
 never declaring the table as fully swept. As a consequence, no other tables are swept at all until the issue is noticed and manually
 resolved.</p>
-</div>
-</div>
-</div>
-<div class="section" id="decision">
-<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<p>## Decision</p>
 <p>The problems of legacy sweep are architectural, and cannot be solved by simply improving the implementation.
 We have therefore decided to change the architecture of sweep so that it does not require scanning of tables to find candidates
 to delete, and instead maintains a <strong>Sweep Queue</strong> which contains the information on all the writes into AtlasDB. This, in
 conjunction with <strong>ranged tombstones</strong> (ranged deletions), which delete all versions of a cell between two timestamps, allows us to sweep all tables
 in parallel without having to read data from the tables being swept. <em>Note that, at the time of writing this ADR, only the Cassandra
 KVS implementation of ranged tombstones actually avoids reading from the table</em>.</p>
-<div class="section" id="targeted-sweep-using-a-targeted-sweep-queue">
-<h3>Targeted Sweep using a Targeted Sweep Queue<a class="headerlink" href="#targeted-sweep-using-a-targeted-sweep-queue" title="Permalink to this headline">¶</a></h3>
+<p>### Targeted Sweep using a Targeted Sweep Queue</p>
 <p>The <strong>targeted sweep queue</strong> is a persisted queue containing the relevant metadata for each write that was about to be committed into AtlasDB.
-This metadata is encapsulated in a <code class="docutils literal notranslate"><span class="pre">WriteInfo</span></code> object and contains the following:</p>
+This metadata is encapsulated in a <cite>WriteInfo</cite> object and contains the following:</p>
 <ul class="simple">
-<li><code class="docutils literal notranslate"><span class="pre">TableReference</span></code> of the table written to.</li>
-<li><code class="docutils literal notranslate"><span class="pre">Cell</span></code> written to, i.e., the row and column names.</li>
-<li>A <strong>start timestamp</strong> of the transaction that performed the write.</li>
-<li>A flag specifying if the write was a <strong>tombstone</strong>, i.e., a delete, or a regular write.</li>
+<li><p><cite>TableReference</cite> of the table written to.</p></li>
+<li><p><cite>Cell</cite> written to, i.e., the row and column names.</p></li>
+<li><p>A <strong>start timestamp</strong> of the transaction that performed the write.</p></li>
+<li><p>A flag specifying if the write was a <strong>tombstone</strong>, i.e., a delete, or a regular write.</p></li>
 </ul>
-<p>On a high level, sweeping using the targeted sweep queue, i.e., <strong>targeted sweep</strong> is as follows:</p>
-<ol class="simple">
-<li>Whenever a transaction is about to commit, before any of its writes are persisted to the KVS, for each of the writes put a
-corresponding <code class="docutils literal notranslate"><span class="pre">WriteInfo</span></code> into the queue.</li>
-<li>Targeted sweep reads an entry from the front of the queue. Depending on the sweep strategy for the table specified by the entry, we
-acquire an appropriate <em>sweep timestamp</em>, and compare it to the <em>start timestamp</em> of the transaction.</li>
-</ol>
-<ul class="simple">
-<li>If <em>sweep timestamp &lt;= start timestamp</em>, we must pause and try later.</li>
+<p>On a high level, sweeping using the targeted sweep queue, i.e., <strong>targeted sweep</strong> is as follows:
+1. Whenever a transaction is about to commit, before any of its writes are persisted to the KVS, for each of the writes put a
+corresponding <cite>WriteInfo</cite> into the queue.
+2. Targeted sweep reads an entry from the front of the queue. Depending on the sweep strategy for the table specified by the entry, we
+acquire an appropriate <em>sweep timestamp</em>, and compare it to the <em>start timestamp</em> of the transaction.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>If <em>sweep timestamp &lt;= start timestamp</em>, we must pause and try later.</p></li>
 </ul>
-<ol class="simple">
-<li>Check the <em>commit timestamp</em> of the transaction.</li>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p>Check the <em>commit timestamp</em> of the transaction.</p></li>
 </ol>
-<ul class="simple">
-<li>If the transaction is not committed, abort it.</li>
-<li>If the transaction is aborted, delete the write from the KVS and pop the queue and read the next entry.</li>
-<li>If the transaction is committed at a timestamp greater or equal to the <em>sweep timestamp</em>, pause and try later.</li>
+<blockquote>
+<div><ul class="simple">
+<li><p>If the transaction is not committed, abort it.</p></li>
+<li><p>If the transaction is aborted, delete the write from the KVS and pop the queue and read the next entry.</p></li>
+<li><p>If the transaction is committed at a timestamp greater or equal to the <em>sweep timestamp</em>, pause and try later.</p></li>
 </ul>
-<ol class="simple">
-<li>Otherwise, insert a ranged tombstone as follows:</li>
+</div></blockquote>
+<ol class="arabic simple" start="4">
+<li><p>Otherwise, insert a ranged tombstone as follows:</p></li>
 </ol>
-<ul class="simple">
-<li>If the strategy is conservative: write a garbage deletion sentinel, then put a ranged tombstone deleting all versions of the
-cell between 0 and write timestamp - 1, not deleting the sentinel or the write.</li>
-<li>If the strategy is thorough<ul>
-<li>If the write was a tombstone, then put a ranged tombstone deleting all versions of that cell between -1 and write timestamp,
-deleting both a potentially existing sentinel and the write.</li>
-<li>Otherwise, put a ranged tombstone deleting all versions of that cell between -1 and write timestamp - 1, deleting a
-potentially existing sentinel, but not the write.</li>
+<blockquote>
+<div><ul class="simple">
+<li><p>If the strategy is conservative: write a garbage deletion sentinel, then put a ranged tombstone deleting all versions of the
+cell between 0 and write timestamp - 1, not deleting the sentinel or the write.</p></li>
+<li><p>If the strategy is thorough</p>
+<ul>
+<li><p>If the write was a tombstone, then put a ranged tombstone deleting all versions of that cell between -1 and write timestamp,
+deleting both a potentially existing sentinel and the write.</p></li>
+<li><p>Otherwise, put a ranged tombstone deleting all versions of that cell between -1 and write timestamp - 1, deleting a
+potentially existing sentinel, but not the write.</p></li>
 </ul>
 </li>
 </ul>
-<ol class="simple">
-<li>Pop the queue and read the next entry.</li>
+</div></blockquote>
+<ol class="arabic simple" start="5">
+<li><p>Pop the queue and read the next entry.</p></li>
 </ol>
 <p>For a detailed implementation of targeted sweep and the targeted sweep queue, refer to the implementation section below.</p>
-</div>
-</div>
-<div class="section" id="consequences">
-<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="benefits">
-<h3>Benefits<a class="headerlink" href="#benefits" title="Permalink to this headline">¶</a></h3>
+<p>## Consequences</p>
+<p>### Benefits
+- Targeted sweep can perform sweeps several orders of magnitude times faster than legacy sweep (this has only been verified on Cassandra so far).
+- The load on the underlying KVS is significantly reduced (this has only been verified on Cassandra so far).
+- The order of sweeping is more fair and does not suffer from issues caused by frequently appending new rows to the end of a table.</p>
+<p>### Drawbacks</p>
 <ul class="simple">
-<li>Targeted sweep can perform sweeps several orders of magnitude times faster than legacy sweep (this has only been verified on Cassandra so far).</li>
-<li>The load on the underlying KVS is significantly reduced (this has only been verified on Cassandra so far).</li>
-<li>The order of sweeping is more fair and does not suffer from issues caused by frequently appending new rows to the end of a table.</li>
+<li><p>Added overhead to committing transactions, as the information must be persisted to the sweep queue as part of the commit. Note
+that this has not caused significant regression in our benchmarks.</p></li>
 </ul>
-</div>
-<div class="section" id="drawbacks">
-<h3>Drawbacks<a class="headerlink" href="#drawbacks" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li>Added overhead to committing transactions, as the information must be persisted to the sweep queue as part of the commit. Note
-that this has not caused significant regression in our benchmarks.</li>
-</ul>
-</div>
-</div>
-<div class="section" id="implementation">
-<h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
+<p>## Implementation</p>
 <p>Since we assume that threads may die at any moment, for most of the implementation details below, correct ordering is crucial.
 Before we describe the targeted sweep schema, we will define the necessary terms. A <strong>Fine Timestamp Partition</strong> of a timestamp <em>ts</em>
 is <em>ts</em> divided by <em>50_000</em>, using integer division. A fine timestamp partition of a write is the fine
@@ -352,9 +333,9 @@ case it is a delete. We also use a sharding strategy
 to enable better parallelisation of targeted sweep. The maximum number of <strong>Shards</strong> that is supported is <em>256</em>, effectively
 splitting the queue into that number of disjoint queues. Note that once that the number of shards is increased, it cannot be
 lowered again.</p>
-<div class="section" id="sweepable-cells-table">
-<h3>Sweepable Cells Table<a class="headerlink" href="#sweepable-cells-table" title="Permalink to this headline">¶</a></h3>
-<p>This table stores the actual information about all the writes into AtlasDB. As a transaction is about to be committed, but before
+<p>### Sweepable Cells Table</p>
+<blockquote>
+<div><p>This table stores the actual information about all the writes into AtlasDB. As a transaction is about to be committed, but before
 data is persisted to the KVS, all writes from the transaction are partitioned based on shard and sweep strategy
 of the table. Then, if there are 50 or fewer writes in a partition, we persist the necessary information in the same number of cells
 in a <strong>non-dedicated row</strong>, with the row components calculated as described below. If there are more than 50 writes in a
@@ -362,31 +343,34 @@ partition, we only insert a single cell to the non-dedicated row acting as a ref
 used exclusively for the writes of this transaction and partition.</p>
 <p><strong>Row components</strong>:</p>
 <ul class="simple">
-<li><strong>timestamp_partition</strong>: a <code class="docutils literal notranslate"><span class="pre">VAR_LONG</span></code> derived from the start timestamp of the writes in that row. For <em>non-dedicated</em> rows, this
-is the fine timestamp partition. For <em>dedicated rows</em>, this is the start timestamp itself.</li>
-<li><strong>metadata</strong>, a 4 byte <code class="docutils literal notranslate"><span class="pre">BLOB</span></code> encoding of a <code class="docutils literal notranslate"><span class="pre">TargetedSweepMetadata</span></code> as follows:<ul>
-<li>1 bit for <em>sweep strategy</em>: 0 for thorough, and 1 for conservative.</li>
-<li>1 bit marking if this is a <em>dedicated row</em>: 0 for non-dedicated, 1 for dedicated.</li>
-<li>8 bits for <em>shard number</em>, between 0 and 255 inclusive.</li>
-<li>6 bits for use by dedicated rows, marking its ordinal number, between 0 and 63 inclusive.</li>
-<li>16 bits unused for now.</li>
+<li><p><strong>timestamp_partition</strong>: a <cite>VAR_LONG</cite> derived from the start timestamp of the writes in that row. For <em>non-dedicated</em> rows, this
+is the fine timestamp partition. For <em>dedicated rows</em>, this is the start timestamp itself.</p></li>
+<li><p><strong>metadata</strong>, a 4 byte <cite>BLOB</cite> encoding of a <cite>TargetedSweepMetadata</cite> as follows:</p>
+<ul>
+<li><p>1 bit for <em>sweep strategy</em>: 0 for thorough, and 1 for conservative.</p></li>
+<li><p>1 bit marking if this is a <em>dedicated row</em>: 0 for non-dedicated, 1 for dedicated.</p></li>
+<li><p>8 bits for <em>shard number</em>, between 0 and 255 inclusive.</p></li>
+<li><p>6 bits for use by dedicated rows, marking its ordinal number, between 0 and 63 inclusive.</p></li>
+<li><p>16 bits unused for now.</p></li>
 </ul>
 </li>
 </ul>
 <p>Note that the row components are hashed to avoid hot-spotting.</p>
 <p><strong>Column components</strong>:</p>
 <ul class="simple">
-<li><strong>timestamp_modulus</strong>: a <code class="docutils literal notranslate"><span class="pre">VAR_LONG</span></code> storing the start timestamp of the write modulo 50_000.</li>
-<li><strong>write_index</strong>: a <code class="docutils literal notranslate"><span class="pre">VAR_SIGNED_LONG</span></code> whose purpose is overloaded. In case we are storing 50 or fewer writes into the same row,
+<li><p><strong>timestamp_modulus</strong>: a <cite>VAR_LONG</cite> storing the start timestamp of the write modulo 50_000.</p></li>
+<li><p><strong>write_index</strong>: a <cite>VAR_SIGNED_LONG</cite> whose purpose is overloaded. In case we are storing 50 or fewer writes into the same row,
 the <em>write_index</em> is a non-negative increasing number used to deduplicate multiple writes with the same start timestamp. If we
 are storing more writes, we instead only put a single cell in the non-dedicated row acting as a reference to one or more
 dedicated rows. In this case, the <em>write_index</em> is a negative number between -1 and -64 indicating how many dedicated rows we are
 using (each dedicated row can contain up to <em>100_000</em> cells). In dedicated rows, the <em>write_index</em> is once again used for deduplication since all entries in the row will have the same
-<em>timestamp_modulus</em>.</li>
+<em>timestamp_modulus</em>.</p></li>
 </ul>
-<p><strong>Value</strong>: a <code class="docutils literal notranslate"><span class="pre">WriteReference</span></code> containing the remaining required metadata for targeted sweep: the <code class="docutils literal notranslate"><span class="pre">TableReference</span></code>, <code class="docutils literal notranslate"><span class="pre">Cell</span></code>, and
-a <code class="docutils literal notranslate"><span class="pre">boolean</span></code> specifying if the write was a tombstone.</p>
-<p>Since a persisted size of a <code class="docutils literal notranslate"><span class="pre">Cell</span></code> object can be up to 3_000 bytes (dominating the size of the above entry), and we expect at
+<dl class="simple">
+<dt><strong>Value</strong>: a <cite>WriteReference</cite> containing the remaining required metadata for targeted sweep: the <cite>TableReference</cite>, <cite>Cell</cite>, and</dt><dd><p>a <cite>boolean</cite> specifying if the write was a tombstone.</p>
+</dd>
+</dl>
+<p>Since a persisted size of a <cite>Cell</cite> object can be up to 3_000 bytes (dominating the size of the above entry), and we expect at
 most 12_500 transactions per row, by allowing at most 50 writes from the same transaction in a row, the size of one non-dedicated
 row should not exceed 2 GB and should in practice be lower than 100 MB. Note that we could technically have the full 50_000 transactions,
 in a row, but the probability of exceeding the values above is infinitesimal. We allow a maximum of 100_000 entries per dedicated row,
@@ -394,169 +378,172 @@ which ensures that each dedicated row should not be
 larger than 300MB while still allowing up to 6.4 million writes in a single transaction, and in practice even more, as long as
 the number of shards is greater than 1. Note that for each cell in a non-dedicated row, we can calculate the write’s start
 timestamp simply by multiplying the <em>timestamp_partition</em> by <em>50_000</em> and then adding its <em>timestamp_modulus</em>.</p>
-</div>
-<div class="section" id="sweepable-timestamps-table">
-<h3>Sweepable Timestamps Table<a class="headerlink" href="#sweepable-timestamps-table" title="Permalink to this headline">¶</a></h3>
-<p>This is an auxiliary table for locating the next row of the <em>sweepableCells</em> table to read since the timestamp partitions can be
+</div></blockquote>
+<p>### Sweepable Timestamps Table</p>
+<blockquote>
+<div><p>This is an auxiliary table for locating the next row of the <em>sweepableCells</em> table to read since the timestamp partitions can be
 sparse, and therefore requiring many lookups to locate a nonempty row. Each non-dedicated row of <em>sweepableCells</em> is represented
 by a single cell in this table.</p>
 <p><strong>Row components</strong>:</p>
 <ul class="simple">
-<li><strong>shard</strong>: a <code class="docutils literal notranslate"><span class="pre">VAR_LONG</span></code> containing the shard for which the row has entries for.</li>
-<li><strong>timestamp_partition</strong>: a <code class="docutils literal notranslate"><span class="pre">VAR_LONG</span></code> corresponding to the <em>coarse timestamp partition</em> of all entries in the row.</li>
-<li><strong>sweep_conservative</strong>: a <code class="docutils literal notranslate"><span class="pre">boolean</span></code> (encoded as a <code class="docutils literal notranslate"><span class="pre">BLOB</span></code>) specifying if the row contains entries for thorough (<code class="docutils literal notranslate"><span class="pre">0x00</span></code>) or
-conservative sweep (<code class="docutils literal notranslate"><span class="pre">0x01</span></code>).</li>
+<li><p><strong>shard</strong>: a <cite>VAR_LONG</cite> containing the shard for which the row has entries for.</p></li>
+<li><p><strong>timestamp_partition</strong>: a <cite>VAR_LONG</cite> corresponding to the <em>coarse timestamp partition</em> of all entries in the row.</p></li>
+<li><p><strong>sweep_conservative</strong>: a <cite>boolean</cite> (encoded as a <cite>BLOB</cite>) specifying if the row contains entries for thorough (<cite>0x00</cite>) or
+conservative sweep (<cite>0x01</cite>).</p></li>
 </ul>
 <p><strong>Column components</strong>:</p>
 <ul class="simple">
-<li><strong>timestamp_modulus</strong> is the <strong>fine timestamp partition</strong> of a row in SweepableCells that falls into the coarse partition
-specified in the timestamp_partition row component.</li>
+<li><p><strong>timestamp_modulus</strong> is the <strong>fine timestamp partition</strong> of a row in SweepableCells that falls into the coarse partition
+specified in the timestamp_partition row component.</p></li>
 </ul>
 <p><strong>Value</strong>: unused empty byte array.</p>
 <p>To locate the first row of <em>sweepableCells</em> with entries after timestamp <em>ts</em>, we start with the row of <em>sweepableTimestamps</em>
 corresponding to the coarse partition of <em>ts</em> and read from the first column with a great enough <em>timestamp_modulus</em>, increasing the
 row if necessary. If a cell is found this way, its <em>timestamp_modulus</em> is the <em>timestamp_partition</em> of the row of <em>sweepableCells</em> we
 were looking for.</p>
-</div>
-<div class="section" id="sweep-progress-per-shard-table">
-<h3>Sweep Progress (Per Shard) Table<a class="headerlink" href="#sweep-progress-per-shard-table" title="Permalink to this headline">¶</a></h3>
-<p>This table stores targeted sweep’s progress, as well as the information about the number of shards the sweep queue is using.</p>
+</div></blockquote>
+<p>### Sweep Progress (Per Shard) Table</p>
+<blockquote>
+<div><p>This table stores targeted sweep’s progress, as well as the information about the number of shards the sweep queue is using.</p>
 <p><strong>Row components</strong>:</p>
 <ul class="simple">
-<li><strong>shard</strong>: a <code class="docutils literal notranslate"><span class="pre">VAR_SIGNED_LONG</span></code> containing the shard for which we are tracking progress for.</li>
-<li><strong>sweep_conservative</strong>: a <code class="docutils literal notranslate"><span class="pre">boolean</span></code> (encoded as a <code class="docutils literal notranslate"><span class="pre">BLOB</span></code>) specifying if we are looking for conservative or thorough sweep as in
-<em>sweepableTimestamps</em>.</li>
+<li><p><strong>shard</strong>: a <cite>VAR_SIGNED_LONG</cite> containing the shard for which we are tracking progress for.</p></li>
+<li><p><strong>sweep_conservative</strong>: a <cite>boolean</cite> (encoded as a <cite>BLOB</cite>) specifying if we are looking for conservative or thorough sweep as in
+<em>sweepableTimestamps</em>.</p></li>
 </ul>
 <p><strong>Named Column</strong>:</p>
 <ul class="simple">
-<li><strong>value</strong>: a <code class="docutils literal notranslate"><span class="pre">VAR_LONG</span></code> containing the timestamp up to which targeted sweep has swept on that shard and strategy.</li>
+<li><p><strong>value</strong>: a <cite>VAR_LONG</cite> containing the timestamp up to which targeted sweep has swept on that shard and strategy.</p></li>
 </ul>
 <p>To persist the number of shards sweep queue is using, we use a distinguished row of this table, with the row defined by
 <em>shard = -1</em> and <em>sweep_conservative = true</em>. Note that all writes to this table use atomic check and set, and the values are only
 allowed to increase. A request to update a cell to a lower value will have no effect.</p>
-</div>
-<div class="section" id="writing-to-the-sweep-queue">
-<h3>Writing to the Sweep Queue<a class="headerlink" href="#writing-to-the-sweep-queue" title="Permalink to this headline">¶</a></h3>
-<p>Whenever a <code class="docutils literal notranslate"><span class="pre">SnapshotTransaction</span></code> is about to commit, before its writes are persisted into the KVS, it enqueues
+</div></blockquote>
+<p>### Writing to the Sweep Queue</p>
+<p>Whenever a <cite>SnapshotTransaction</cite> is about to commit, before its writes are persisted into the KVS, it enqueues
 them to the sweep queue:</p>
-<ol class="simple">
-<li>The sweep queue creates a list of <code class="docutils literal notranslate"><span class="pre">WriteInfo</span></code>s containing the relevant information, partitions this list
+<p>1. The sweep queue creates a list of <cite>WriteInfo</cite> s containing the relevant information, partitions this list
 according to the sweep strategies for the tables (this information is read from the table metadata and then cached), and into the
-number of shards that the sweep queue is using (the shard is determined from the hash of the <code class="docutils literal notranslate"><span class="pre">TableReference</span></code> and <code class="docutils literal notranslate"><span class="pre">Cell</span></code>).</li>
-<li>For each of the above partitions, we then put an entry into the <em>sweepableTimestamps</em> table for the start timestamp of the
-transaction.</li>
-<li>Finally, for each of the partitions, we put the <code class="docutils literal notranslate"><span class="pre">WriteInfo</span></code>s into the <em>sweepableCells</em> table.</li>
-</ol>
-<ul class="simple">
-<li>If there are 50 or fewer entries in the list, write that many cells into the table where all the row and column components are
-calculated as described above, with the <em>write_index</em> starting at 0 and increasing by 1 for each entry.</li>
-<li>If there are more than 50 entries in the list, put a single cell into the table acting as a reference to dedicated rows. The row
+number of shards that the sweep queue is using (the shard is determined from the hash of the <cite>TableReference</cite> and <cite>Cell</cite> ).
+2. For each of the above partitions, we then put an entry into the <em>sweepableTimestamps</em> table for the start timestamp of the
+transaction.
+3. Finally, for each of the partitions, we put the <cite>WriteInfo</cite> s into the <em>sweepableCells</em> table.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>If there are 50 or fewer entries in the list, write that many cells into the table where all the row and column components are
+calculated as described above, with the <em>write_index</em> starting at 0 and increasing by 1 for each entry.</p></li>
+<li><p>If there are more than 50 entries in the list, put a single cell into the table acting as a reference to dedicated rows. The row
 of the reference is the same as above, but the write_index is a negative number with an absolute value equal to the number of
 dedicated rows we will use (number of writes divided by 100_000, rounded up). Then, put the cells into dedicated rows, where
 the <em>timestamp_partition</em> is the start timestamp of the transaction (<strong>not the fine partition!</strong>), the metadata encodes that the
-row is a dedicated row and the row’s ordinal number, and the rest is the same as above.</li>
+row is a dedicated row and the row’s ordinal number, and the rest is the same as above.</p></li>
 </ul>
+</div></blockquote>
 <p>Note that we use the entire start timestamp as the <em>timestamp_partition</em> for dedicated rows to avoid clashes in case a non-dedicated
 row has multiple references to dedicated rows.</p>
-</div>
-<div class="section" id="reading-from-the-sweep-queue">
-<h3>Reading from the Sweep Queue<a class="headerlink" href="#reading-from-the-sweep-queue" title="Permalink to this headline">¶</a></h3>
+<p>### Reading from the Sweep Queue</p>
 <p>Reading from the sweep queue is done in the same order as writing. For a given shard, strategy, <strong>minimum exclusive
 timestamp</strong> (targeted sweep reads this from the <em>sweepProgressPerShard</em> table as described later), and <strong>maximum exclusive
 timestamp</strong> (for targeted sweep, this is the sweep timestamp), we do the following:</p>
-<ol class="simple">
-<li>We want to locate the fine timestamp partition for the first row of <em>sweepableCells</em> that has entries greater than the minimum
-exclusive timestamp <em>minTs</em>. Starting with the coarse partition of <em>minTs + 1</em>, we use <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code> to check if there
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>We want to locate the fine timestamp partition for the first row of <em>sweepableCells</em> that has entries greater than the minimum
+exclusive timestamp <em>minTs</em>. Starting with the coarse partition of <em>minTs + 1</em>, we use <cite>getRowsColumnRange</cite> to check if there
 is a cell in SweepableTimestamps satisfying the above condition. If not, increase the coarse partition and repeat until
 either a candidate is found, or the coarse partition grows larger than the coarse partition of <em>maxTs - 1</em>, where <em>maxTs</em> is
-the maximum exclusive timestamp.</li>
-<li>If the latter occurs, we are guaranteed that there are no entries in <em>sweepableCells</em> for the shard and strategy and any of the
-timestamps in the specified range.</li>
-<li>Otherwise, we now have a fine timestamp partition that is effectively a reference to a row of SweepableCells that is expected
+the maximum exclusive timestamp.</p></li>
+<li><p>If the latter occurs, we are guaranteed that there are no entries in <em>sweepableCells</em> for the shard and strategy and any of the
+timestamps in the specified range.</p></li>
+<li><p>Otherwise, we now have a fine timestamp partition that is effectively a reference to a row of SweepableCells that is expected
 to contain at least one cell (this may not be true in degenerate cases where a thread writing or cleaning the queue dies during
 the process). We now read cells from that row, with start timestamp greater than the last swept timestamp, referring to
 dedicated rows as necessary, until we either finish the row, exceed the <em>maxTs</em>, or we have read 100_000 entries, plus any
-additional entries to ensure we have read all the entries with the same start timestamp as the latest one.</li>
+additional entries to ensure we have read all the entries with the same start timestamp as the latest one.</p></li>
 </ol>
-</div>
-<div class="section" id="cleaning-the-sweep-queue">
-<h3>Cleaning the Sweep Queue<a class="headerlink" href="#cleaning-the-sweep-queue" title="Permalink to this headline">¶</a></h3>
+</div></blockquote>
+<p>### Cleaning the Sweep Queue</p>
 <p>Once an entire non-dedicated row of <em>sweepableCells</em> or a row of <em>sweepableTimestamps</em> are not needed anymore, we remove them as
 follows.</p>
-<ol class="simple">
-<li>Given a shard, strategy, and fine timestamp partition, delete all entries from <em>sweepableCells</em> for the corresponding row. Note
-that in Cassandra, an entire row can be deleted at once using a single tombstone.<ul>
-<li>First, we read through the non-dedicated row to find all the references to dedicated rows and delete them.</li>
-<li>Then, delete the the non-dedicated row.</li>
+<ol class="arabic">
+<li><p>Given a shard, strategy, and fine timestamp partition, delete all entries from <em>sweepableCells</em> for the corresponding row. Note
+that in Cassandra, an entire row can be deleted at once using a single tombstone.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>First, we read through the non-dedicated row to find all the references to dedicated rows and delete them.</p></li>
+<li><p>Then, delete the the non-dedicated row.</p></li>
 </ul>
+</div></blockquote>
 </li>
-<li>Then, if necessary, given a coarse timestamp partition, also delete the row defined by the shard, strategy, and the coarse
-timestamp partition in <em>sweepableTimestamps</em>.</li>
+<li><p>Then, if necessary, given a coarse timestamp partition, also delete the row defined by the shard, strategy, and the coarse
+timestamp partition in <em>sweepableTimestamps</em>.</p></li>
 </ol>
-</div>
-<div class="section" id="targeted-sweep-implementation">
-<h3>Targeted Sweep Implementation<a class="headerlink" href="#targeted-sweep-implementation" title="Permalink to this headline">¶</a></h3>
+<p>### Targeted Sweep Implementation</p>
 <p>Targeted sweep reads the write metadata from the sweep queue instead of sequentially scanning tables to find historic versions.
 After an entry is read from the sweep queue, we check the commit timestamp of the transaction that performed the write.</p>
 <ul class="simple">
-<li>If both the start timestamp and the commit timestamp are lower than the sweep timestamp, we can use a single ranged tombstone
-to delete all prior versions of the cell. Note that the Cassandra implementation of the <code class="docutils literal notranslate"><span class="pre">deleteAllTimestamps</span></code> method that writes
+<li><p>If both the start timestamp and the commit timestamp are lower than the sweep timestamp, we can use a single ranged tombstone
+to delete all prior versions of the cell. Note that the Cassandra implementation of the <cite>deleteAllTimestamps</cite> method that writes
 this ranged tombstone does not require reading any information from the KVS and therefore provides a substantial improvement in
-comparison to legacy sweep that needs to find all the previous timestamps so they can be deleted one by one.</li>
-<li>If the commit timestamp is greater than the sweep timestamp, targeted sweep must wait until the sweep timestamp increases
+comparison to legacy sweep that needs to find all the previous timestamps so they can be deleted one by one.</p></li>
+<li><p>If the commit timestamp is greater than the sweep timestamp, targeted sweep must wait until the sweep timestamp increases
 enough so that the entry can be processed. This is generally not an issue since it is only likely to happen when targeted
-sweep is processing writes that were written within the last hour.</li>
+sweep is processing writes that were written within the last hour.</p></li>
 </ul>
 <p>Targeted Sweep has a number of background threads for each strategy (as controlled by the install config) continuously cycling
 through the shards. To find the next shard to sweep, the thread requests a TimeLock lock for the shard and strategy. If successful, it
 starts an iteration of targeted sweep; otherwise, it requests a lock for the next shard, finally giving up and pausing if it cycles
 unsuccessfully through all the shards. This mechanism ensures synchronization across multiple nodes of the service. Assuming the
 thread successfully acquired a lock, we do the following</p>
-<ol class="simple">
-<li>Calculate the <em>sweep timestamp</em> for the sweep strategy used and read the <em>last swept timestamp</em> for the shard and strategy
-from <em>sweepProgressPerShard</em>.</li>
-<li>Get a batch of <code class="docutils literal notranslate"><span class="pre">WriteInfo</span></code>s from the sweep queue: read from the sweep queue as described above, where <em>minTs</em> is the <em>last
-swept timestamp</em> and <em>maxTs</em> is the <em>sweep timestamp</em>.<ul>
-<li>If we do not find any candidates, skip to step 6.</li>
+<blockquote>
+<div><p>1. Calculate the <em>sweep timestamp</em> for the sweep strategy used and read the <em>last swept timestamp</em> for the shard and strategy
+from <em>sweepProgressPerShard</em> .
+2. Get a batch of <cite>WriteInfo</cite> s from the sweep queue: read from the sweep queue as described above, where <em>minTs</em> is the <em>last
+swept timestamp</em> and <em>maxTs</em> is the <em>sweep timestamp</em> .</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>If we do not find any candidates, skip to step 6.</p></li>
 </ul>
-</li>
-<li>For each of the start timestamps in the batch, we check if the transaction was committed; if not we must abort it (this is the
+</div></blockquote>
+<p>3. For each of the start timestamps in the batch, we check if the transaction was committed; if not we must abort it (this is the
 same behaviour as legacy sweep). If a transaction was committed, but <strong>after</strong> the <em>sweep timestamp</em>, we must not progress
-targeted sweep past its start timestamp, so we remove it and all the writes with greater start timestamps from the batch.</li>
-<li>Delete all writes that are referenced to from aborted transactions. Note that these are direct deletes, not ranged tombstones.</li>
-<li>Partition the remaining <code class="docutils literal notranslate"><span class="pre">WriteInfo</span></code>s by <code class="docutils literal notranslate"><span class="pre">Cell</span></code> and <code class="docutils literal notranslate"><span class="pre">TableReference</span></code>, and then take the greatest start timestamp from each
+targeted sweep past its start timestamp, so we remove it and all the writes with greater start timestamps from the batch.
+4. Delete all writes that are referenced to from aborted transactions. Note that these are direct deletes, not ranged tombstones.
+5. Partition the remaining <cite>WriteInfo`s by `Cell</cite> and <cite>TableReference</cite>, and then take the greatest start timestamp from each
 partition. We only need one ranged tombstone per partition here, as all the other writes to that cell and table in this batch
-are going to have a lower start timestamp and are therefore going to be deleted as well.<ul>
-<li>If the strategy is conservative: write a garbage deletion sentinel, then put a ranged tombstone deleting all versions of that
-cell between 0 and write timestamp - 1, not deleting the sentinel or the write.</li>
-<li>If the strategy is thorough<ul>
-<li>If the write was a tombstone, then put a ranged tombstone deleting all versions of that cell between -1 and write timestamp,
-deleting both a potentially existing sentinel and the write.</li>
-<li>Otherwise, put a ranged tombstone deleting all versions of that cell between -1 and write timestamp - 1, deleting a
-potentially existing sentinel, but not the write.</li>
+are going to have a lower start timestamp and are therefore going to be deleted as well.</p>
+<blockquote>
+<div><ul>
+<li><p>If the strategy is conservative: write a garbage deletion sentinel, then put a ranged tombstone deleting all versions of that
+cell between 0 and write timestamp - 1, not deleting the sentinel or the write.</p></li>
+<li><p>If the strategy is thorough</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>If the write was a tombstone, then put a ranged tombstone deleting all versions of that cell between -1 and write timestamp,
+deleting both a potentially existing sentinel and the write.</p></li>
+<li><p>Otherwise, put a ranged tombstone deleting all versions of that cell between -1 and write timestamp - 1, deleting a
+potentially existing sentinel, but not the write.</p></li>
 </ul>
+</div></blockquote>
 </li>
 </ul>
-</li>
-<li>If the new sweep progress (described in greater detail below) guarantees that the minimum start timestamp swept in the future
+</div></blockquote>
+<p>6. If the new sweep progress (described in greater detail below) guarantees that the minimum start timestamp swept in the future
 will be in a greater fine, or coarse, partition than the previous <em>last swept timestamp</em>, then clean the sweep queue accordingly
-as previously explained.</li>
-<li>Persist the sweep progress in <em>sweepProgressPerShard</em> for the shard and strategy.</li>
-<li>Finally, regardless of the success or failure of the iteration, unlock the TimeLock lock for the shard and strategy and
-schedule the next iteration of sweep for the thread after a delay of 5 seconds.</li>
-</ol>
+as previously explained.
+7. Persist the sweep progress in <em>sweepProgressPerShard</em> for the shard and strategy.
+8. Finally, regardless of the success or failure of the iteration, unlock the TimeLock lock for the shard and strategy and
+schedule the next iteration of sweep for the thread after a delay of 5 seconds.</p>
+</div></blockquote>
 <p><strong>Calculating Sweep Progress</strong>:</p>
 <p>We wish to update progress to the greatest value we can guarantee we swept to. There are multiple cases to consider, in order:</p>
 <ul class="simple">
-<li>If we do not find a candidate row of <em>sweepableCells</em> while reading from the sweep queue, we can update to <em>sweep timestamp - 1</em>.</li>
-<li>If none of the timestamps from the batch were committed after the <em>sweep timestamp</em> and we have read all entries in
+<li><p>If we do not find a candidate row of <em>sweepableCells</em> while reading from the sweep queue, we can update to <em>sweep timestamp - 1</em>.</p></li>
+<li><p>If none of the timestamps from the batch were committed after the <em>sweep timestamp</em> and we have read all entries in
 <em>sweepableCells</em> up to <em>sweep timestamp</em>, then we can update to <em>ts - 1</em>, where <em>ts</em> is the minimum between
-the <em>sweep timestamp</em> and the first timestamp that would be written into the next row of <em>sweepableCells</em>.</li>
-<li>Otherwise, update to <em>ts</em>, where <em>ts</em> is the greatest timestamp among the writes in the batch.</li>
+the <em>sweep timestamp</em> and the first timestamp that would be written into the next row of <em>sweepableCells</em>.</p></li>
+<li><p>Otherwise, update to <em>ts</em>, where <em>ts</em> is the greatest timestamp among the writes in the batch.</p></li>
 </ul>
-</div>
-</div>
-</div>
+</section>
 
 
            </div>

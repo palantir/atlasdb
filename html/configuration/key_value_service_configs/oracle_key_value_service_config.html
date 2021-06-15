@@ -1,10 +1,11 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html4" lang="en" >
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>DB KVS (Oracle - beta) Configuration &mdash; OSS AtlasDB develop documentation</title>
@@ -13,6 +14,8 @@
   
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
 
@@ -31,10 +34,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
@@ -191,9 +194,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="db-kvs-oracle-beta-configuration">
+  <section id="db-kvs-oracle-beta-configuration">
 <span id="oracle-configuration"></span><h1>DB KVS (Oracle - beta) Configuration<a class="headerlink" href="#db-kvs-oracle-beta-configuration" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="enabling-oracle-for-your-application">
+<section id="enabling-oracle-for-your-application">
 <h2>Enabling Oracle for your Application<a class="headerlink" href="#enabling-oracle-for-your-application" title="Permalink to this headline">¶</a></h2>
 <p>To enable your application to be backed by Oracle, you just need to add AtlasDB DbKvs and the OracleJDBC driver as a
 runtime dependency. In gradle this looks like:</p>
@@ -202,12 +205,12 @@ runtime dependency. In gradle this looks like:</p>
 </pre></div>
 </div>
 <p>e.g.</p>
-<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.351.0&#39;</span>
+<div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.356.0&#39;</span>
 <span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:dbkvs-oracle-driver:0.3.0&#39;</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="configuring-a-running-application-to-use-oracle">
+</section>
+<section id="configuring-a-running-application-to-use-oracle">
 <h2>Configuring a Running Application to Use Oracle<a class="headerlink" href="#configuring-a-running-application-to-use-oracle" title="Permalink to this headline">¶</a></h2>
 <p>A minimal AtlasDB configuration for running against Oracle will look like the below.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
@@ -243,62 +246,62 @@ runtime dependency. In gradle this looks like:</p>
 </pre></div>
 </div>
 <p>For more details on the leader block, see <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
-</div>
-<div class="section" id="configuration-parameters">
+</section>
+<section id="configuration-parameters">
 <span id="oracle-config-params"></span><h2>Configuration Parameters<a class="headerlink" href="#configuration-parameters" title="Permalink to this headline">¶</a></h2>
 <p>The Oracle Configuration has 2 major blocks:</p>
 <p>The DDL Config Block:</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="8%" />
-<col width="67%" />
-<col width="25%" />
+<col style="width: 8%" />
+<col style="width: 67%" />
+<col style="width: 25%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Property</th>
-<th class="head">Description</th>
-<th class="head">Required</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Required</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>overflowMigrationState</td>
-<td>The value should be 3(FINISHED) for all new clients.</td>
-<td>Yes</td>
+<tbody>
+<tr class="row-even"><td><p>overflowMigrationState</p></td>
+<td><p>The value should be 3(FINISHED) for all new clients.</p></td>
+<td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td>tableFactorySupplier</td>
-<td>This should supply the <code class="docutils literal notranslate"><span class="pre">DbTableFactory</span></code> required for setting up database operations.</td>
-<td>No</td>
+<tr class="row-odd"><td><p>tableFactorySupplier</p></td>
+<td><p>This should supply the <code class="docutils literal notranslate"><span class="pre">DbTableFactory</span></code> required for setting up database operations.</p></td>
+<td><p>No</p></td>
 </tr>
-<tr class="row-even"><td>metadataTable</td>
-<td>The metadataTable should be a tableReference to the metadata table. The default value is
-{namespace:””, tablename:”_metadata”}.</td>
-<td>No</td>
+<tr class="row-even"><td><p>metadataTable</p></td>
+<td><p>The metadataTable should be a tableReference to the metadata table. The default value is
+{namespace:””, tablename:”_metadata”}.</p></td>
+<td><p>No</p></td>
 </tr>
-<tr class="row-odd"><td>tablePrefix</td>
-<td>The value should be a string with only alpha numeric characters or underscores. This should not begin
-with an underscore. Default value is “a_”.</td>
-<td>No</td>
+<tr class="row-odd"><td><p>tablePrefix</p></td>
+<td><p>The value should be a string with only alpha numeric characters or underscores. This should not begin
+with an underscore. Default value is “a_”.</p></td>
+<td><p>No</p></td>
 </tr>
-<tr class="row-even"><td>poolSize</td>
-<td>The number of threads in the connection pool to Oracle, defaults to 64.</td>
-<td>No</td>
+<tr class="row-even"><td><p>poolSize</p></td>
+<td><p>The number of threads in the connection pool to Oracle, defaults to 64.</p></td>
+<td><p>No</p></td>
 </tr>
-<tr class="row-odd"><td>fetchBatchSize</td>
-<td>The number of cells fetched in batch queries like <code class="docutils literal notranslate"><span class="pre">getAllRows</span></code>, <code class="docutils literal notranslate"><span class="pre">getAllTimestamps</span></code> etc., defaults to 256.</td>
-<td>No</td>
+<tr class="row-odd"><td><p>fetchBatchSize</p></td>
+<td><p>The number of cells fetched in batch queries like <code class="docutils literal notranslate"><span class="pre">getAllRows</span></code>, <code class="docutils literal notranslate"><span class="pre">getAllTimestamps</span></code> etc., defaults to 256.</p></td>
+<td><p>No</p></td>
 </tr>
-<tr class="row-even"><td>mutationBatchCount</td>
-<td>The maximum number of cells in a batch for write operations like <code class="docutils literal notranslate"><span class="pre">put</span></code>, <code class="docutils literal notranslate"><span class="pre">putWithTimestamps</span></code>,
-defaults to 1000.</td>
-<td>No</td>
+<tr class="row-even"><td><p>mutationBatchCount</p></td>
+<td><p>The maximum number of cells in a batch for write operations like <code class="docutils literal notranslate"><span class="pre">put</span></code>, <code class="docutils literal notranslate"><span class="pre">putWithTimestamps</span></code>,
+defaults to 1000.</p></td>
+<td><p>No</p></td>
 </tr>
-<tr class="row-odd"><td>mutationBatchSizeBytes</td>
-<td>The maximum bytes in a batch for write operations like <code class="docutils literal notranslate"><span class="pre">put</span></code>, <code class="docutils literal notranslate"><span class="pre">putWithTimestamps</span></code>, defaults to 2MB.</td>
-<td>No</td>
+<tr class="row-odd"><td><p>mutationBatchSizeBytes</p></td>
+<td><p>The maximum bytes in a batch for write operations like <code class="docutils literal notranslate"><span class="pre">put</span></code>, <code class="docutils literal notranslate"><span class="pre">putWithTimestamps</span></code>, defaults to 2MB.</p></td>
+<td><p>No</p></td>
 </tr>
 </tbody>
 </table>
-<div class="section" id="connection-parameters">
+<section id="connection-parameters">
 <h3>Connection parameters<a class="headerlink" href="#connection-parameters" title="Permalink to this headline">¶</a></h3>
 <p>If you would like to customize the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal notranslate"><span class="pre">connection</span></code> section of the <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config.
 An example is shown below; for full documentation on which parameters are available, check out <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a>.</p>
@@ -312,63 +315,63 @@ An example is shown below; for full documentation on which parameters are availa
 </pre></div>
 </div>
 <p>These are the required parameters:</p>
-<table border="1" class="colwidths-given docutils">
+<table class="colwidths-given docutils align-default">
 <colgroup>
-<col width="8%" />
-<col width="67%" />
-<col width="25%" />
+<col style="width: 8%" />
+<col style="width: 67%" />
+<col style="width: 25%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Property</th>
-<th class="head">Description</th>
-<th class="head">Required</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Required</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>host</td>
-<td>The host running Oracle.</td>
-<td>Yes</td>
+<tbody>
+<tr class="row-even"><td><p>host</p></td>
+<td><p>The host running Oracle.</p></td>
+<td><p>Yes</p></td>
 </tr>
-<tr class="row-odd"><td>port</td>
-<td>The port exposed by the Oracle server for Oracle client connections.</td>
-<td>Yes</td>
+<tr class="row-odd"><td><p>port</p></td>
+<td><p>The port exposed by the Oracle server for Oracle client connections.</p></td>
+<td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td>sid</td>
-<td>The site identifier for the Oracle server.</td>
-<td>No, but one of sid and serviceNameConfiguration must be specified.</td>
+<tr class="row-even"><td><p>sid</p></td>
+<td><p>The site identifier for the Oracle server.</p></td>
+<td><p>No, but one of sid and serviceNameConfiguration must be specified.</p></td>
 </tr>
-<tr class="row-odd"><td>serviceNameConfiguration.serviceName</td>
-<td>The service name for the Oracle server.</td>
-<td>No, but one of sid and serviceNameConfiguration must be specified.</td>
+<tr class="row-odd"><td><p>serviceNameConfiguration.serviceName</p></td>
+<td><p>The service name for the Oracle server.</p></td>
+<td><p>No, but one of sid and serviceNameConfiguration must be specified.</p></td>
 </tr>
-<tr class="row-even"><td>serviceNameConfiguration.namespaceOverride</td>
-<td>The namespace for this Oracle key-value service. If you are migrating from a database with a given sid,
+<tr class="row-even"><td><p>serviceNameConfiguration.namespaceOverride</p></td>
+<td><p>The namespace for this Oracle key-value service. If you are migrating from a database with a given sid,
 this value should be set to the value of that sid before the migration. If you are bootstrapping a new
 stack, this value should be set to the value of the top-level AtlasDB namespace config if present; otherwise,
-it may be set arbitrarily (but <em>must</em> be set to some value).</td>
-<td>No, but one of sid and serviceNameConfiguration must be specified.</td>
+it may be set arbitrarily (but <em>must</em> be set to some value).</p></td>
+<td><p>No, but one of sid and serviceNameConfiguration must be specified.</p></td>
 </tr>
-<tr class="row-odd"><td>dbLogin</td>
-<td>The Oracle DB username.</td>
-<td>Yes</td>
+<tr class="row-odd"><td><p>dbLogin</p></td>
+<td><p>The Oracle DB username.</p></td>
+<td><p>Yes</p></td>
 </tr>
-<tr class="row-even"><td>dbPassword</td>
-<td>The Oracle DB password.</td>
-<td>Yes</td>
+<tr class="row-even"><td><p>dbPassword</p></td>
+<td><p>The Oracle DB password.</p></td>
+<td><p>Yes</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="section" id="migrating-connection-methods">
+</section>
+<section id="migrating-connection-methods">
 <h3>Migrating Connection Methods<a class="headerlink" href="#migrating-connection-methods" title="Permalink to this headline">¶</a></h3>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">Improperly migrating from one method of connecting to Oracle to another can result in <strong>SEVERE DATA CORRUPTION</strong>!
+<p class="admonition-title">Danger</p>
+<p>Improperly migrating from one method of connecting to Oracle to another can result in <strong>SEVERE DATA CORRUPTION</strong>!
 Please contact the AtlasDB team before attempting such a migration.</p>
 </div>
 <div class="admonition danger">
-<p class="first admonition-title">Danger</p>
-<p class="last">The processes outlined below <strong>ONLY</strong> apply for Oracle users using embedded timestamp and lock services.
+<p class="admonition-title">Danger</p>
+<p>The processes outlined below <strong>ONLY</strong> apply for Oracle users using embedded timestamp and lock services.
 TimeLock users should contact the AtlasDB team before attempting such a migration. The procedures outlined below
 employed naively can result in <strong>SEVERE DATA CORRUPTION</strong>!</p>
 </div>
@@ -378,9 +381,9 @@ through a <cite>serviceNameConfiguration</cite>).</p>
 migration as <cite>serviceNameConfiguration.namespaceOverride</cite>.</p>
 <p>This migration can be reversed trivially (just by changing the config to reference the now-correct <cite>sid</cite>) if you are
 using embedded timestamp and lock services.</p>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>
