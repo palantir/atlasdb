@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Make default `maxConnectionAge` 888 seconds (a little less than 15min)
+    for Hikari connection pool. This default value is now compliant with STIG/Fedramp
+    O121-C2-016500 which requires idle timeout at 15 min.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5492
