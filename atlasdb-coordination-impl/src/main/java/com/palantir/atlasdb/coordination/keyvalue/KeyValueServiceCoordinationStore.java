@@ -327,7 +327,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             log.error(
                     "Error encountered when deserializing {}: {}",
                     SafeArg.of("safeDescriptionOfItemToDeserialize", safeDescriptionOfItemToDeserialize),
-                    SafeArg.of("coordinationData", PtBytes.toString(data)));
+                    SafeArg.of("coordinationData", PtBytes.toString(data)),
+                    e);
             throw new RuntimeException(e);
         }
     }
@@ -348,7 +349,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             log.error(
                     "Error encountered when serializing {}: {}",
                     SafeArg.of("safeDescriptionOfItemToSerialize", safeDescriptionOfItemToSerialize),
-                    SafeArg.of("coordinationData", object));
+                    SafeArg.of("coordinationData", object),
+                    e);
             throw new RuntimeException(e);
         }
     }
