@@ -73,7 +73,7 @@ public class TracingPrefsConfig implements Runnable {
                     }
                     loadedConfig = true;
                 } catch (IOException e) {
-                    log.error("Could not load a malformed " + TRACING_PREF_FILENAME + ".");
+                    log.error("Could not load a malformed " + TRACING_PREF_FILENAME + ".", e);
                     loadedConfig = false;
                 }
             } else {

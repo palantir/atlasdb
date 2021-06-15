@@ -460,10 +460,7 @@ public final class LockServiceImpl
                     entry.getKey().get(client, entry.getValue()).unlock();
                 }
             } catch (Throwable e) { // (authorized)
-                log.error(
-                        "Internal lock server error: state has been corrupted!!",
-                        UnsafeArg.of("exception", e),
-                        SafeArg.of("stacktrace", e.getStackTrace()));
+                log.error("Internal lock server error: state has been corrupted!!", e);
                 throw Throwables.throwUncheckedException(e);
             }
         }
@@ -1280,7 +1277,7 @@ public final class LockServiceImpl
         try {
             Thread.currentThread().setName(name);
         } catch (SecurityException ex) {
-            requestLogger.error("Cannot rename LockServer threads");
+            requestLogger.error("Cannot rename LockServer threads", ex);
         }
     }
 
