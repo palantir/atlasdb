@@ -1,5 +1,5 @@
-# 13. Write Cassandra tombstones and sentinels with a fresh Cassandra timestamp
-*******************************************************************************
+13. Write Cassandra tombstones and sentinels with a fresh Cassandra timestamp
+*****************************************************************************
 
 Date: 12/06/2018
 

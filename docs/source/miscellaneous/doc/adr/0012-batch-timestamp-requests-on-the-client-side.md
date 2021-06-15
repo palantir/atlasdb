@@ -1,5 +1,5 @@
-# 12. Batch timestamp requests on the client side
-*************************************************
+12. Batch timestamp requests on the client side
+***********************************************
 
 Date: 26/09/2017
 

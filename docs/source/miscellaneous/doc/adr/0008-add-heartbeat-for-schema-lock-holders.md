@@ -1,5 +1,5 @@
-# 8. Adding Heartbeat for Schema Lock Holders
-*********************************************
+8. Adding Heartbeat for Schema Lock Holders
+*******************************************
 
 Date: 27/09/2016
 

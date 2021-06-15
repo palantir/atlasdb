@@ -1,5 +1,5 @@
-# 9. Load and Read Streams in the Same Transaction
-**************************************************
+9. Load and Read Streams in the Same Transaction
+************************************************
 
 Date: 20/01/2017
 

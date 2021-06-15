@@ -1,5 +1,5 @@
-# 15. Batch asynchronous post-transaction unlock calls
-******************************************************
+15. Batch asynchronous post-transaction unlock calls
+****************************************************
 
 Date: 28/06/2018
 

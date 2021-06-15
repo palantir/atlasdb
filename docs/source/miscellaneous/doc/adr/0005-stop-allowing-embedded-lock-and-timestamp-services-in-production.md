@@ -1,5 +1,5 @@
-# 5. stop allowing embedded lock and timestamp services in production
-*********************************************************************
+5. stop allowing embedded lock and timestamp services in production
+*******************************************************************
 
 Date: 13/04/2016
 

@@ -1,5 +1,5 @@
-# 4. Create schema lock table via a one off CLI command
-*******************************************************
+4. Create schema lock table via a one off CLI command
+*****************************************************
 
 Date: 18/05/2016
 

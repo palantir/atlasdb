@@ -1,5 +1,5 @@
-# 7. Use CQL for column paging for sweep
-****************************************
+7. Use CQL for column paging for sweep
+**************************************
 
 Date: 22/08/2016
 

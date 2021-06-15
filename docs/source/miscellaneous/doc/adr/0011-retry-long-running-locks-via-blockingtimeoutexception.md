@@ -1,5 +1,5 @@
-# 11. Retry long-running locks via BlockingTimeoutException
-***********************************************************
+11. Retry long-running locks via BlockingTimeoutException
+*********************************************************
 
 Date: 08/05/2017
 

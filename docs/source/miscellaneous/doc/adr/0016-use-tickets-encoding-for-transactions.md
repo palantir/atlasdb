@@ -1,5 +1,5 @@
-# 16. Use the tickets encoding for the transactions table (_transactions2)
-**************************************************************************
+16. Use the tickets encoding for the transactions table (_transactions2)
+************************************************************************
 
 Date: 05/04/2019
 

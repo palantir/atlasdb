@@ -1,5 +1,5 @@
-# 10. Use partial row complete cell batching in getTimestampsByCell
-*******************************************************************
+10. Use partial row complete cell batching in getTimestampsByCell
+*****************************************************************
 
 Date: 10/03/2017
 

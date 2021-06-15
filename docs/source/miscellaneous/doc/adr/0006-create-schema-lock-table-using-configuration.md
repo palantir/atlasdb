@@ -1,5 +1,5 @@
-# 6. Create schema lock table using configuration
-*************************************************
+6. Create schema lock table using configuration
+***********************************************
 
 Date: 18/07/2016
 
