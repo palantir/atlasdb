@@ -174,7 +174,7 @@ public class NextTableToSweepProviderTest {
 
         whenGettingNextTableToSweep();
 
-        thenTableChosenIs(table("table2"));
+        thenProviderReturnsEmpty();
     }
 
     @Test

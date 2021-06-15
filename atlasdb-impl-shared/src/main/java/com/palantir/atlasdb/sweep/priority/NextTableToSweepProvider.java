@@ -67,10 +67,7 @@ public class NextTableToSweepProvider {
     public Optional<TableToSweep> getNextTableToSweep(
             Transaction tx, long conservativeSweepTimestamp, SweepPriorityOverrideConfig overrideConfig) {
         if (!overrideConfig.priorityTables().isEmpty()) {
-            Optional<TableToSweep> maybeChosenTable = attemptToChooseTable(overrideConfig);
-            if (maybeChosenTable.isPresent()) {
-                return maybeChosenTable;
-            }
+            return attemptToChooseTable(overrideConfig);
         }
 
         Map<TableReference, Double> scores = calculator.calculateSweepPriorityScores(tx, conservativeSweepTimestamp);
