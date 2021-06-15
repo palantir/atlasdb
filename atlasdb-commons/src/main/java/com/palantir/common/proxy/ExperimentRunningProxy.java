@@ -94,7 +94,7 @@ public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
                 markExperimentFailure(e);
             }
             if (e.getCause() instanceof NotInitializedException) {
-                log.warn("Resource is not initialized yet!");
+                log.warn("Resource is not initialized yet!", e.getCause());
             }
             throw e.getCause();
         }

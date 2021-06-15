@@ -303,7 +303,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
                 log.info(
                         "Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
                                 + " state was {}.",
-                        SafeArg.of("leadershipState", leadershipState));
+                        SafeArg.of("leadershipState", leadershipState),
+                        e);
                 return false;
             }
         }
@@ -332,7 +333,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
                 } catch (PaxosRoundFailureException e) {
                     log.info(
                             "Couldn't takeover leadership because a quorum could not be obtained.",
-                            SafeArg.of("lastObservedState", leadershipState));
+                            SafeArg.of("lastObservedState", leadershipState),
+                            e);
                     return false;
                 }
             case NO_QUORUM:
