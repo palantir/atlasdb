@@ -30,7 +30,8 @@ import java.util.function.Consumer;
 
 public interface Tracing {
 
-    static CloseableTracer startLocalTrace(@CompileTimeConstant String operation, Consumer<TagConsumer> tagTranslator) {
+    static CloseableTracer startLocalTrace(
+            @CompileTimeConstant final String operation, Consumer<TagConsumer> tagTranslator) {
         return CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
     }
 
@@ -43,23 +44,23 @@ public interface Tracing {
             accept("ts", Long.toString(ts));
         }
 
-        default void size(@CompileTimeConstant String name, Iterable<?> iterable) {
+        default void size(@CompileTimeConstant final String name, Iterable<?> iterable) {
             integer(name, Iterables.size(iterable));
         }
 
-        default void size(@CompileTimeConstant String name, Collection<?> collection) {
+        default void size(@CompileTimeConstant final String name, Collection<?> collection) {
             integer(name, collection.size());
         }
 
-        default void size(@CompileTimeConstant String name, Map<?, ?> map) {
+        default void size(@CompileTimeConstant final String name, Map<?, ?> map) {
             integer(name, map.size());
         }
 
-        default void size(@CompileTimeConstant String name, Multimap<?, ?> multiMap) {
+        default void size(@CompileTimeConstant final String name, Multimap<?, ?> multiMap) {
             integer(name, multiMap.size());
         }
 
-        default void integer(@CompileTimeConstant String name, int value) {
+        default void integer(@CompileTimeConstant final String name, int value) {
             accept(name, Integer.toString(value));
         }
     }

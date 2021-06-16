@@ -266,8 +266,10 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
                 try {
                     return Iterables.getOnlyElement(input);
                 } catch (IllegalArgumentException e) {
-                    log.error("Application tried to put multiple same-cell values in at same timestamp; attempting to"
-                            + " perform last-write-wins, but ordering is not guaranteed.");
+                    log.error(
+                            "Application tried to put multiple same-cell values in at same timestamp; attempting to"
+                                    + " perform last-write-wins, but ordering is not guaranteed.",
+                            e);
                     return Iterables.getLast(input);
                 }
             });

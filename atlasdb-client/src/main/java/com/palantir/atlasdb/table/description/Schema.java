@@ -247,7 +247,7 @@ public class Schema {
             try {
                 entry.getValue().validate();
             } catch (Exception e) {
-                log.error("Failed to validate table {}.", entry.getKey());
+                log.error("Failed to validate table {}.", entry.getKey(), e);
                 throw e;
             }
         }
@@ -258,7 +258,7 @@ public class Schema {
                 def.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
                 def.validate();
             } catch (Exception e) {
-                log.error("Failed to validate index {}.", indexEntry.getKey());
+                log.error("Failed to validate index {}.", indexEntry.getKey(), e);
                 throw e;
             }
         }

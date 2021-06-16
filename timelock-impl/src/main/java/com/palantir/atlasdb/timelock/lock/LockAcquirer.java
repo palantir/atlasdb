@@ -98,7 +98,7 @@ public class LockAcquirer implements AutoCloseable {
                 }
                 this.result = lockResult;
             } catch (Throwable t) {
-                log.error("Error while acquiring locks");
+                log.error("Error while acquiring locks", t);
                 unlockAll();
                 throw Throwables.propagate(t);
             }

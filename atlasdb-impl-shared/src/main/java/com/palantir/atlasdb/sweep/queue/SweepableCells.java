@@ -290,7 +290,8 @@ public class SweepableCells extends SweepQueueTable {
                             "Tried to delete {} aborted writes from table {}, "
                                     + "but instead found that the table no longer exists.",
                             SafeArg.of("number", multimap.size()),
-                            LoggingArgs.tableRef(tableRef));
+                            LoggingArgs.tableRef(tableRef),
+                            exception);
                 } else {
                     throw exception;
                 }

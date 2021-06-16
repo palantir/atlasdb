@@ -294,7 +294,8 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                 log.error(
                         "Problem reading paxos state, specifically when reading file {} (file-name {})",
                         UnsafeArg.of("full path", file.getAbsolutePath()),
-                        SafeArg.of("file name", file.getName()));
+                        SafeArg.of("file name", file.getName()),
+                        e);
                 throw Throwables.rewrap(e);
             } finally {
                 IOUtils.closeQuietly(fileIn);

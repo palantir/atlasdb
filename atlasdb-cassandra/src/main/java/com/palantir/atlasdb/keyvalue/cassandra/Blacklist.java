@@ -89,7 +89,8 @@ public class Blacklist {
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
                     SafeArg.of("host", CassandraLogHelper.host(container.getHost())),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
-                    UnsafeArg.of("exceptionMessage", e.getMessage()));
+                    UnsafeArg.of("exceptionMessage", e.getMessage()),
+                    e);
             return false;
         }
     }

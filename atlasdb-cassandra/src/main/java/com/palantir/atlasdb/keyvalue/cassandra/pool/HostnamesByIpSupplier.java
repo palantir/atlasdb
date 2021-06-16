@@ -65,7 +65,7 @@ public final class HostnamesByIpSupplier implements Supplier<Map<String, String>
             try {
                 systemPalantir = client.describe_keyspace(SYSTEM_PALANTIR_KEYSPACE);
             } catch (NotFoundException e) {
-                log.debug("Did not find keyspace with hostnames by ip, moving on without them");
+                log.debug("Did not find keyspace with hostnames by ip, moving on without them", e);
                 return ImmutableMap.of();
             }
             if (isCfNotPresent(systemPalantir, HOSTNAMES_BY_IP_TABLE)) {

@@ -190,11 +190,14 @@ public class LockStoreImpl implements LockStore {
                 // All we care about is that we're in the state machine of "LOCK_OPEN"/"LOCK_TAKEN".
                 // It still might be interesting, so we'll log it.
                 List<String> values = getActualValues(e);
-                log.debug(
-                        "Encountered a CheckAndSetException when creating the LockStore. This means that two "
-                                + "LockStore objects were created near-simultaneously, and is probably not a problem. "
-                                + "For the record, we observed these values: {}",
-                        values);
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                            "Encountered a CheckAndSetException when creating the LockStore. This means that two"
+                                + " LockStore objects were created near-simultaneously, and is probably not a problem."
+                                + " For the record, we observed these values: {}",
+                            values,
+                            e);
+                }
             }
         }
 

@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Add exception logging to multiple codepaths where log lines are already
+    being produced.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5507

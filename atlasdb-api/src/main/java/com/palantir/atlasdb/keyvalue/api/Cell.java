@@ -72,7 +72,8 @@ public final class Cell implements Serializable, Comparable<Cell> {
                             + "debugging to know the UTF-8 interpretation of the bad field was: [{}]",
                     SafeArg.of("max name length", MAX_NAME_LENGTH),
                     UnsafeArg.of("cell", this),
-                    UnsafeArg.of("name", new String(name, StandardCharsets.UTF_8)));
+                    UnsafeArg.of("name", new String(name, StandardCharsets.UTF_8)),
+                    e);
             throw e;
         }
     }

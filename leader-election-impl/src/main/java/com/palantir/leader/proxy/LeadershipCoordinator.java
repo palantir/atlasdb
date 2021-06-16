@@ -154,7 +154,7 @@ public final class LeadershipCoordinator implements Closeable {
                 Thread.sleep(GAIN_LEADERSHIP_BACKOFF.toMillis());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.warn("Gain leadership backoff interrupted");
+                log.warn("Gain leadership backoff interrupted", e);
                 if (isClosed) {
                     log.info("Gain leadership with retry terminated as the coordinator is closed");
                     return;

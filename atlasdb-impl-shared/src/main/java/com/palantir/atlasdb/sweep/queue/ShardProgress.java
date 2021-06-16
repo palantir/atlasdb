@@ -128,7 +128,8 @@ public class ShardProgress {
                         "Failed to check and set from expected old value {} to new value {}. Retrying if the old "
                                 + "value changed under us.",
                         SafeArg.of("old value", currentValue),
-                        SafeArg.of("new value", newVal));
+                        SafeArg.of("new value", newVal),
+                        e);
                 currentValue = rethrowIfUnchanged(shardAndStrategy, currentValue, e);
             }
         }
