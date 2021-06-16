@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.encoding;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Ordering;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
@@ -34,7 +34,7 @@ public final class PtBytes {
     public static final Ordering<byte[]> BYTES_COMPARATOR = Ordering.from(UnsignedBytes.lexicographicalComparator());
 
     private static final Cache<String, byte[]> cache =
-            CacheBuilder.newBuilder().maximumSize(5000).build();
+            Caffeine.newBuilder().maximumSize(5000).build();
 
     /**
      * Converts a byte array to a long value. Reverses {@link #toBytes(long)}
