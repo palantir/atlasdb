@@ -1,0 +1,17 @@
+type: improvement
+improvement:
+  description: |-
+    Incrementally push to the scrub table to reduce memory pressure
+
+    **Goals (and why)**:
+
+    Reduce memory pressure when large number of cells are deleted.
+
+    **Implementation Description (bullets)**:
+    Incrementally persist the cells to delete, rather than generating all the data and then incrementally persisting.
+    See PDS-190294 where a 20K object realm delete causes a GC storm with a client heap of 64G
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**:
+    N/A
+  links:
+  - https://github.com/palantir/atlasdb/pull/5509
