@@ -2014,6 +2014,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 throw TransactionConflictException.create(
                         tableRef,
                         getStartTimestamp(),
+                        writesByTable,
                         spanningWrites,
                         dominatingWrites,
                         System.currentTimeMillis() - timeCreated);
@@ -2086,6 +2087,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         throw TransactionConflictException.create(
                 table,
                 getStartTimestamp(),
+                writesByTable,
                 Sets.filter(spanningWrites, conflicting),
                 Sets.filter(dominatingWrites, conflicting),
                 System.currentTimeMillis() - timeCreated);

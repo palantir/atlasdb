@@ -22,6 +22,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
  * Thrown if there is a conflict detected when a transaction is committed.
@@ -35,6 +37,7 @@ import java.util.Set;
  */
 public final class TransactionConflictException extends TransactionFailedRetriableException {
     private static final long serialVersionUID = 1L;
+    private final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable;
 
     public static class CellConflict implements Serializable {
         private static final long serialVersionUID = 1L;
@@ -101,9 +104,17 @@ public final class TransactionConflictException extends TransactionFailedRetriab
         return conflictingTable;
     }
 
+    /**
+     * DO NOT MERGE 1!11!!!111
+     */
+    public ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> getWritesByTable() {
+        return writesByTable;
+    }
+
     public static TransactionConflictException create(
             TableReference tableRef,
             long timestamp,
+            ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> lol,
             Collection<CellConflict> spanningWrites,
             Collection<CellConflict> dominatingWrites,
             long elapsedMillis) {
@@ -127,7 +138,7 @@ public final class TransactionConflictException extends TransactionFailedRetriab
             formatConflicts(dominatingWrites, sb);
             sb.append('\n');
         }
-        return new TransactionConflictException(sb.toString(), spanningWrites, dominatingWrites, tableRef);
+        return new TransactionConflictException(sb.toString(), lol, spanningWrites, dominatingWrites, tableRef);
     }
 
     private static void formatConflicts(Collection<CellConflict> conflicts, StringBuilder sb) {
@@ -142,10 +153,12 @@ public final class TransactionConflictException extends TransactionFailedRetriab
 
     private TransactionConflictException(
             String message,
+            ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable,
             Collection<CellConflict> spanningWrites,
             Collection<CellConflict> dominatingWrites,
             TableReference conflictingTable) {
         super(message);
+        this.writesByTable = writesByTable;
         this.spanningWrites = ImmutableList.copyOf(spanningWrites);
         this.dominatingWrites = ImmutableList.copyOf(dominatingWrites);
         this.conflictingTable = conflictingTable;
