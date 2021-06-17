@@ -105,7 +105,7 @@ public final class TransactionConflictException extends TransactionFailedRetriab
     }
 
     /**
-     * DO NOT MERGE 1!11!!!111
+     * DO NOT MERGE 1!11!!!111.
      */
     public ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> getWritesByTable() {
         return writesByTable;
