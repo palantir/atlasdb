@@ -84,6 +84,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -1146,7 +1147,7 @@ public final class LockServiceImpl
         boolean isFrozen;
         boolean writeMode;
         synchronized (sync) {
-            readHolders = ImmutableList.copyOf(Iterables.transform(sync.getReadClients(), clientIndices::fromIndex));
+            readHolders = Collections.unmodifiableList(clientIndices.fromIndices(sync.getReadClients()));
             writeHolders = sync.getLockHolder();
             isFrozen = sync.isFrozen();
             writeMode = readHolders.isEmpty();

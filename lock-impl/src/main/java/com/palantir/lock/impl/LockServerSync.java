@@ -16,16 +16,16 @@
 package com.palantir.lock.impl;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.Ints;
 import com.palantir.lock.LockClient;
 import com.palantir.logsafe.Preconditions;
-import gnu.trove.iterator.TIntIntIterator;
-import gnu.trove.map.TIntIntMap;
-import gnu.trove.map.hash.TIntIntHashMap;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
+import org.eclipse.collections.api.iterator.IntIterator;
+import org.eclipse.collections.api.list.primitive.IntList;
+import org.eclipse.collections.api.map.primitive.MutableIntIntMap;
+import org.eclipse.collections.impl.factory.primitive.IntIntMaps;
+import org.eclipse.collections.impl.factory.primitive.IntLists;
 
 class LockServerSync extends AbstractQueuedSynchronizer {
     private static final long serialVersionUID = 1L;
@@ -33,7 +33,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
     private final LockClientIndices clients;
     private @GuardedBy("this") boolean frozen;
     private @GuardedBy("this") int writeLockHolder = 0;
-    private @GuardedBy("this") TIntIntMap readLockHolders;
+    private @GuardedBy("this") MutableIntIntMap readLockHolders;
 
     public LockServerSync(LockClientIndices clients) {
         this.clients = Preconditions.checkNotNull(clients);
@@ -191,10 +191,9 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         if (!isReadLockHeld()) {
             return null;
         }
-        TIntIntIterator iter = readLockHolders.iterator();
+        IntIterator iter = readLockHolders.keysView().intIterator();
         Preconditions.checkState(iter.hasNext());
-        iter.advance();
-        return clients.fromIndex(iter.key());
+        return clients.fromIndex(iter.next());
     }
 
     LockClient getClient(int clientIndex) {
@@ -241,9 +240,9 @@ class LockServerSync extends AbstractQueuedSynchronizer {
 
     private synchronized void incrementReadCount(int clientIndex) {
         if (readLockHolders == null) {
-            readLockHolders = new TIntIntHashMap(1);
+            readLockHolders = IntIntMaps.mutable.ofInitialCapacity(1);
         }
-        readLockHolders.adjustOrPutValue(clientIndex, 1, 1);
+        readLockHolders.addToValue(clientIndex, 1);
     }
 
     private synchronized void decrementReadCount(int clientIndex) {
@@ -251,7 +250,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
             throw LockServerLock.throwIllegalMonitorStateException(
                     clients.fromIndex(clientIndex) + " does not hold the read lock");
         }
-        int readCount = readLockHolders.remove(clientIndex);
+        int readCount = readLockHolders.removeKeyIfAbsent(clientIndex, 0);
         if (readCount > 1) {
             readLockHolders.put(clientIndex, readCount - 1);
         } else if (readCount == 0) {
@@ -260,10 +259,10 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         }
     }
 
-    synchronized Iterable<Integer> getReadClients() {
+    synchronized IntList getReadClients() {
         if (readLockHolders == null) {
-            return ImmutableList.of();
+            return IntLists.immutable.empty();
         }
-        return Ints.asList(readLockHolders.keys()); // (authorized)
+        return readLockHolders.keysView().toList(); // (authorized)
     }
 }

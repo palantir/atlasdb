@@ -16,12 +16,14 @@
 package com.palantir.lock.impl;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
 import com.palantir.lock.LockClient;
 import com.palantir.logsafe.Preconditions;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.concurrent.ThreadSafe;
+import org.eclipse.collections.api.IntIterable;
 
 @ThreadSafe
 @VisibleForTesting
@@ -55,7 +57,7 @@ public class LockClientIndices {
         return Preconditions.checkNotNull(clientByIndex.get(index));
     }
 
-    Iterable<LockClient> fromIndices(Iterable<Integer> indices) {
-        return Iterables.transform(indices, this::fromIndex);
+    List<LockClient> fromIndices(IntIterable indices) {
+        return indices.collect(this::fromIndex, new ArrayList<>());
     }
 }

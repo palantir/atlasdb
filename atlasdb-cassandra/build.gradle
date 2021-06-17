@@ -59,8 +59,6 @@ dependencies {
   compileOnly 'com.google.auto.service:auto-service'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
-
-  explicitShadow 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
 }
 
 shadowJar {

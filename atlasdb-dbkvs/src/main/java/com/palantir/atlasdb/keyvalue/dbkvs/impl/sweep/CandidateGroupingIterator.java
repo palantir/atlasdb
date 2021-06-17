@@ -21,21 +21,21 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.logsafe.Preconditions;
-import gnu.trove.list.TLongList;
-import gnu.trove.list.array.TLongArrayList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import org.eclipse.collections.api.list.primitive.MutableLongList;
+import org.eclipse.collections.impl.factory.primitive.LongLists;
 
 public final class CandidateGroupingIterator implements Iterator<List<CandidateCellForSweeping>> {
     private final Iterator<List<CellTsPairInfo>> cellTsIterator;
 
     private byte[] currentRowName = PtBytes.EMPTY_BYTE_ARRAY;
     private byte[] currentColName = PtBytes.EMPTY_BYTE_ARRAY;
-    private final TLongList currentCellTimestamps = new TLongArrayList();
+    private final MutableLongList currentCellTimestamps = LongLists.mutable.empty();
     private boolean currentIsLatestValueEmpty = false;
 
     private CandidateGroupingIterator(Iterator<List<CellTsPairInfo>> cellTsIterator) {
@@ -107,10 +107,8 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
         }
     }
 
-    private Collection<Long> toList(TLongList values) {
-        List<Long> result = Lists.newArrayListWithExpectedSize(values.size());
-        values.forEach(result::add);
-        return result;
+    private Collection<Long> toList(MutableLongList values) {
+        return values.collect(Long::valueOf, Lists.newArrayListWithExpectedSize(values.size()));
     }
 
     private void updateStateForNewCell(CellTsPairInfo cell) {
