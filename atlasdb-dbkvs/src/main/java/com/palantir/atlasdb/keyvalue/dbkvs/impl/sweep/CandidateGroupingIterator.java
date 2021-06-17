@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -108,7 +107,7 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
     }
 
     private Collection<Long> toList(MutableLongList values) {
-        return values.collect(Long::valueOf, Lists.newArrayListWithExpectedSize(values.size()));
+        return values.collect(Long::valueOf, new ArrayList<>(values.size()));
     }
 
     private void updateStateForNewCell(CellTsPairInfo cell) {

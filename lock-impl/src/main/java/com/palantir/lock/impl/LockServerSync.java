@@ -18,14 +18,15 @@ package com.palantir.lock.impl;
 import com.google.common.base.MoreObjects;
 import com.palantir.lock.LockClient;
 import com.palantir.logsafe.Preconditions;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import org.eclipse.collections.api.iterator.IntIterator;
-import org.eclipse.collections.api.list.primitive.IntList;
 import org.eclipse.collections.api.map.primitive.MutableIntIntMap;
 import org.eclipse.collections.impl.factory.primitive.IntIntMaps;
-import org.eclipse.collections.impl.factory.primitive.IntLists;
 
 class LockServerSync extends AbstractQueuedSynchronizer {
     private static final long serialVersionUID = 1L;
@@ -224,7 +225,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
                 .add("hashCode", hashCode())
                 .add("writeLockCount", getState())
                 .add("writeClient", writeLockHolder == 0 ? null : clients.fromIndex(writeLockHolder))
-                .add("readClients", clients.fromIndices(getReadClients()))
+                .add("readClients", getReadClients())
                 .add("queuedThreads", getQueueLength())
                 .add("isFrozen", frozen)
                 .toString();
@@ -259,10 +260,11 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         }
     }
 
-    synchronized IntList getReadClients() {
+    synchronized List<LockClient> getReadClients() {
         if (readLockHolders == null) {
-            return IntLists.immutable.empty();
+            return List.of();
         }
-        return readLockHolders.keysView().toList(); // (authorized)
+        return Collections.unmodifiableList(
+                readLockHolders.keysView().collect(clients::fromIndex, new ArrayList<>(readLockHolders.size())));
     }
 }
