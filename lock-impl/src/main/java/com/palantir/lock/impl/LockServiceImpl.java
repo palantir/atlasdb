@@ -1146,7 +1146,7 @@ public final class LockServiceImpl
         boolean isFrozen;
         boolean writeMode;
         synchronized (sync) {
-            readHolders = ImmutableList.copyOf(Iterables.transform(sync.getReadClients(), clientIndices::fromIndex));
+            readHolders = sync.getReadClients();
             writeHolders = sync.getLockHolder();
             isFrozen = sync.isFrozen();
             writeMode = readHolders.isEmpty();

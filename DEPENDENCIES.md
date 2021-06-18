@@ -24,5 +24,4 @@
 | [slf4j-simple, v. 1.7.5](http://www.slf4j.org/) | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) |
 | [snakeyaml, v. 1.13](https://bitbucket.org/asomov/snakeyaml) | [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) |
 | [snappy-java, v. 1.1.0.1](https://github.com/xerial/snappy-java) | [Apache License, Version 2.0](https://github.com/xerial/snappy-java/blob/develop/LICENSE) |
-| [trove, v. 3.0.3-p5](https://github.com/palantirtech/trove-3.0.3) | [Lesser General Public License, Version 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html) |
 | [txtmark, v.0.11](https://github.com/rjeschke/txtmark) | [Apache License, Version 2.0](http://www.apache.org/licenses/) |

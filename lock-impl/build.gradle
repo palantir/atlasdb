@@ -6,10 +6,11 @@ dependencies {
   compile project(":lock-api")
   compile project(":atlasdb-commons")
 
-  compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile group: 'joda-time', name: 'joda-time'
   compile group: 'org.yaml', name: 'snakeyaml'
+
+  implementation group: 'org.eclipse.collections', name: 'eclipse-collections'
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
