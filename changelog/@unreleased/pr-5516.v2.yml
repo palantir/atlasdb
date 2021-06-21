@@ -1,16 +1,5 @@
 type: fix
 fix:
-  description: "Upgrade assertj 3.20.2\n\n**Goals (and why)**:\nAssertj 3.20.0 & 3.20.1
-    had bad ABI compatibility breaks in https://github.com/assertj/assertj-core/pull/2173
-    (see\nhttps://github.com/palantir/atlasdb/pull/5511 ) and was reverted in https://github.com/assertj/assertj-core/commit/9df530d4b375b42e7007ae6470604532d435a5cdA
-    and released as assertj 3.20.2.\n\n**Implementation Description (bullets)**:\nThis
-    also picks up the fix https://github.com/assertj/assertj-core/pull/2265 for https://github.com/assertj/assertj-core/issue/2264
-    and switches back to `MapAssert#containsExactlyInAnyOrderEntriesOf` that https://github.com/palantir/atlasdb/pull/5511/
-    changed\n\n**Testing (What was existing testing like?  What have you done to improve
-    it?)**:\n\n**Concerns (what feedback would you like?)**: \n\n**Where should we
-    start reviewing?**: version.props\n\n**Priority (whenever / two weeks / yesterday)**:
-    ASAP as the ABI breaks are causing downstream issues\n\n<!---\nPlease remember
-    to:\n- Add any necessary release notes (including breaking changes)\n- Make sure
-    the documentation is up to date for your change\n--->"
+  description: "Upgrade AssertJ to 3.20.2 to fix ABI compatibility breaks."
   links:
   - https://github.com/palantir/atlasdb/pull/5516
