@@ -34,6 +34,7 @@ import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.NoSuchElementException;
@@ -280,7 +281,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         poolConfig.setTestOnBorrow(true);
 
         poolConfig.setSoftMinEvictableIdleTimeMillis(
-                TimeUnit.MILLISECONDS.convert(config.idleConnectionTimeoutSeconds(), TimeUnit.SECONDS));
+                TimeUnit.MILLISECONDS.convert(Duration.ofSeconds(config.idleConnectionTimeoutSeconds())));
         poolConfig.setMinEvictableIdleTimeMillis(Long.MAX_VALUE);
 
         // the randomness here is to prevent all of the pools for all of the hosts
@@ -288,7 +289,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         int timeBetweenEvictionsSeconds = config.timeBetweenConnectionEvictionRunsSeconds();
         int delta = ThreadLocalRandom.current().nextInt(Math.min(timeBetweenEvictionsSeconds / 2, 10));
         poolConfig.setTimeBetweenEvictionRunsMillis(
-                TimeUnit.MILLISECONDS.convert(timeBetweenEvictionsSeconds + delta, TimeUnit.SECONDS));
+                TimeUnit.MILLISECONDS.convert(Duration.ofSeconds(timeBetweenEvictionsSeconds + delta)));
         poolConfig.setNumTestsPerEvictionRun(-(int) (1.0 / config.proportionConnectionsToCheckPerEvictionRun()));
         poolConfig.setTestWhileIdle(true);
 

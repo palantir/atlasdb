@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: "Upgrade AssertJ to 3.20.2 to fix ABI compatibility breaks."
+  links:
+  - https://github.com/palantir/atlasdb/pull/5516

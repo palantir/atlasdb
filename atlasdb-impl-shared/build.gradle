@@ -17,7 +17,7 @@ dependencies {
   compile project(":timestamp-api")
   compile project(":timestamp-client")
 
-  compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
+  compile 'com.github.ben-manes.caffeine:caffeine'
   compile group: 'com.palantir.common', name: 'streams'
   compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jersey-server'
   compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
