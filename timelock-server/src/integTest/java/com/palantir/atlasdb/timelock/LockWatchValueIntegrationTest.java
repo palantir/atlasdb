@@ -159,15 +159,7 @@ public final class LockWatchValueIntegrationTest {
 
         assertThat(result).containsEntry(CELL_1, DATA_1);
         assertThat(result).containsEntry(CELL_4, DATA_2);
-
-        // Cannot use containsExactlyInAnyOrderEntriesOf assertj regression in 3.20.0 with map entry comparisons,
-        // see https://github.com/assertj/assertj-core/issues/2264 & https://github.com/assertj/assertj-core/pull/2265
-        // assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
-        assertThat(result.keySet()).isEqualTo(result2.keySet());
-        assertThat(result.values()).hasSameElementsAs(result2.values());
-        assertThat(result).hasSameSizeAs(result2).containsAllEntriesOf(result2);
-        assertThat(result).containsAllEntriesOf(result2);
-        assertThat(result2).containsAllEntriesOf(result);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
     @Test
