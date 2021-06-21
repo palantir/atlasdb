@@ -159,8 +159,7 @@ public final class LockWatchValueIntegrationTest {
 
         assertThat(result).containsEntry(CELL_1, DATA_1);
         assertThat(result).containsEntry(CELL_4, DATA_2);
-
-        assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(result2)
     }
 
     @Test
