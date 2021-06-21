@@ -100,7 +100,7 @@ public class PostgresConfigLoadingTest {
         Properties hikariProps = connectionConfig.getHikariConfig().getDataSourceProperties();
 
         assertThat(Integer.valueOf(hikariProps.getProperty(property)))
-                .describedAs(String.format("Hikari property %s should be populated from connectionConfig", property))
+                .describedAs("Hikari property %s should be populated from connectionConfig", property)
                 .isEqualTo(expectedValueSeconds);
     }
 }

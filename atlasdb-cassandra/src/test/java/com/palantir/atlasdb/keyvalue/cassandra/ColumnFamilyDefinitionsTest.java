@@ -54,9 +54,9 @@ public class ColumnFamilyDefinitionsTest {
         CfDef onlyClassName = standard.deepCopy().setCompaction_strategy("AwesomeCompactionStrategy");
 
         assertThat(ColumnFamilyDefinitions.isMatchingCf(fullyQualified, onlyClassName))
-                .describedAs(String.format(
+                .describedAs(
                         "Compaction strategies %s and %s should match",
-                        fullyQualified.compaction_strategy, onlyClassName.compaction_strategy))
+                        fullyQualified.compaction_strategy, onlyClassName.compaction_strategy)
                 .isTrue();
     }
 

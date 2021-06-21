@@ -165,7 +165,7 @@ public final class LockWatchValueIntegrationTest {
         // assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
         assertThat(result.keySet()).isEqualTo(result2.keySet());
         assertThat(result.values()).hasSameElementsAs(result2.values());
-        assertThat(result).hasSize(result2.size()).containsAllEntriesOf(result2);
+        assertThat(result).hasSameSizeAs(result2).containsAllEntriesOf(result2);
         assertThat(result).containsAllEntriesOf(result2);
         assertThat(result2).containsAllEntriesOf(result);
     }
