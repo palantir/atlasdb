@@ -71,7 +71,6 @@ public abstract class TimeLockRuntimeConfiguration {
     }
 
     @JsonProperty
-    @Value.Default
     public abstract Optional<TsBoundPersisterRuntimeConfiguration> timestampBoundPersistence();
 
     @Value.Check
