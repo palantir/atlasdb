@@ -22,7 +22,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonDeserialize(as = DatabaseTsBoundPersisterRuntimeConfiguration.class)
+@JsonDeserialize(as = ImmutableDatabaseTsBoundPersisterRuntimeConfiguration.class)
 public interface DatabaseTsBoundPersisterRuntimeConfiguration extends TsBoundPersisterRuntimeConfiguration {
     @JsonProperty("key-value-service")
     KeyValueServiceRuntimeConfig keyValueServiceRuntimeConfig();
