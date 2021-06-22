@@ -23,7 +23,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonDeserialize(as = DatabaseTsBoundPersisterRuntimeConfiguration.class)
-public interface DatabaseTsBoundPersisterRuntimeConfiguration {
+public interface DatabaseTsBoundPersisterRuntimeConfiguration extends TsBoundPersisterRuntimeConfiguration {
     @JsonProperty("key-value-service")
     KeyValueServiceRuntimeConfig keyValueServiceRuntimeConfig();
 

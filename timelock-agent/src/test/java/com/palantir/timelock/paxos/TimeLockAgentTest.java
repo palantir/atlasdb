@@ -16,11 +16,17 @@
 
 package com.palantir.timelock.paxos;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterRuntimeConfiguration;
+import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
+import com.palantir.timelock.config.TsBoundPersisterRuntimeConfiguration;
 import org.junit.Test;
 
 public class TimeLockAgentTest {
@@ -48,5 +54,36 @@ public class TimeLockAgentTest {
         assertThatCode(() -> TimeLockAgent.verifySchemaVersion(schemaVersion))
                 .as("Persisted version lower than current")
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getKeyValueServiceRuntimeConfigThrowsIfConfiguredToNotUseDatabase() {
+        assertThatThrownBy(() ->
+                        TimeLockAgent.getKeyValueServiceRuntimeConfig(ImmutableTimeLockRuntimeConfiguration.builder()
+                                .timestampBoundPersistence(mock(TsBoundPersisterRuntimeConfiguration.class))
+                                .build()))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Should not initialise DB Timelock with non-database runtime configuration");
+    }
+
+    @Test
+    public void getKeyValueServiceRuntimeConfigReturnsEmptyIfNotProvided() {
+        assertThat(TimeLockAgent.getKeyValueServiceRuntimeConfig(
+                        ImmutableTimeLockRuntimeConfiguration.builder().build()))
+                .isEmpty();
+    }
+
+    @Test
+    public void getKeyValueServiceRuntimeConfigPassesThroughConfigIfAppropriate() {
+        // Usage of mock here is to avoid introducing a dependency on atlasdb-dbkvs
+        KeyValueServiceRuntimeConfig runtimeConfig = mock(KeyValueServiceRuntimeConfig.class);
+        when(runtimeConfig.type()).thenReturn("relational");
+
+        assertThat(TimeLockAgent.getKeyValueServiceRuntimeConfig(ImmutableTimeLockRuntimeConfiguration.builder()
+                        .timestampBoundPersistence(ImmutableDatabaseTsBoundPersisterRuntimeConfiguration.builder()
+                                .keyValueServiceRuntimeConfig(runtimeConfig)
+                                .build())
+                        .build()))
+                .contains(runtimeConfig);
     }
 }

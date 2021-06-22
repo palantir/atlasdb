@@ -260,7 +260,7 @@ public class TimeLockAgent {
         ServiceDiscoveringDatabaseTimeLockSupplier dbTimeLockSupplier = new ServiceDiscoveringDatabaseTimeLockSupplier(
                 metricsManager,
                 timestampBoundPersistence.keyValueServiceConfig(),
-                getKeyValueServiceRuntimeConfig(),
+                runtime.map(TimeLockAgent::getKeyValueServiceRuntimeConfig),
                 createLeaderConfig());
         return ImmutableTimestampStorage.builder()
                 .timestampCreator(new DbBoundTimestampCreator(dbTimeLockSupplier))
@@ -269,16 +269,18 @@ public class TimeLockAgent {
                 .build();
     }
 
-    private Refreshable<Optional<KeyValueServiceRuntimeConfig>> getKeyValueServiceRuntimeConfig() {
-        return runtime.map(TimeLockRuntimeConfiguration::timestampBoundPersistence)
-                .map(maybeConfig -> maybeConfig
-                        .map(config -> {
-                            Preconditions.checkState(
-                                    config instanceof DatabaseTsBoundPersisterRuntimeConfiguration,
-                                    "Should not initialise DB Timelock with non-database runtime configuration");
-                            return (DatabaseTsBoundPersisterRuntimeConfiguration) config;
-                        })
-                        .map(DatabaseTsBoundPersisterRuntimeConfiguration::keyValueServiceRuntimeConfig));
+    @VisibleForTesting
+    static Optional<KeyValueServiceRuntimeConfig> getKeyValueServiceRuntimeConfig(
+            TimeLockRuntimeConfiguration timeLockRuntimeConfiguration) {
+        return timeLockRuntimeConfiguration
+                .timestampBoundPersistence()
+                .map(config -> {
+                    Preconditions.checkState(
+                            config instanceof DatabaseTsBoundPersisterRuntimeConfiguration,
+                            "Should not initialise DB Timelock with non-database runtime configuration");
+                    return (DatabaseTsBoundPersisterRuntimeConfiguration) config;
+                })
+                .map(DatabaseTsBoundPersisterRuntimeConfiguration::keyValueServiceRuntimeConfig);
     }
 
     private void createAndRegisterResources() {
