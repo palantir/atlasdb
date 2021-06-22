@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchTestRuntimeConfig;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
@@ -68,6 +69,10 @@ public abstract class TimeLockRuntimeConfiguration {
     public TimeLockAdjudicationConfiguration adjudication() {
         return ImmutableTimeLockAdjudicationConfiguration.builder().build();
     }
+
+    @JsonProperty
+    @Value.Default
+    public abstract Optional<TsBoundPersisterRuntimeConfiguration> timestampBoundPersistence();
 
     @Value.Check
     public void check() {

@@ -32,7 +32,9 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.junit.Test;
 
@@ -48,7 +50,8 @@ public class ServiceDiscoveringDatabaseTimeLockSupplierTest {
             .build();
 
     private final ServiceDiscoveringDatabaseTimeLockSupplier timeLockSupplier =
-            new ServiceDiscoveringDatabaseTimeLockSupplier(metricsManager, keyValueServiceConfig, leaderConfig);
+            new ServiceDiscoveringDatabaseTimeLockSupplier(
+                    metricsManager, keyValueServiceConfig, Refreshable.only(Optional.empty()), leaderConfig);
 
     @Test
     public void canGetTimestampServiceForDifferentSeries() {
