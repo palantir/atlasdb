@@ -36,16 +36,6 @@ import java.util.Optional;
 public interface DbTimeLockFactory {
     String getType();
 
-    /**
-     * @deprecated Creating a DbKeyValueService with this method will not support live reloading the DB password. Use
-     * {@link #createRawKeyValueService(MetricsManager, KeyValueServiceConfig, Refreshable, LeaderConfig)} instead.
-     */
-    @Deprecated
-    default KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager, KeyValueServiceConfig config, LeaderConfig leaderConfig) {
-        return createRawKeyValueService(metricsManager, config, Refreshable.only(Optional.empty()), leaderConfig);
-    }
-
     KeyValueService createRawKeyValueService(
             MetricsManager metricManager,
             KeyValueServiceConfig config,

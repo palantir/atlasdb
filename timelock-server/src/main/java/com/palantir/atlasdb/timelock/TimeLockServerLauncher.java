@@ -29,6 +29,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -97,7 +98,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
         TimeLockAgent timeLockAgent = TimeLockAgent.create(
                 metricsManager,
                 configuration.install(),
-                configuration::runtime, // this won't actually live reload
+                Refreshable.only(configuration.runtime()), // this won't actually live reload
                 USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
