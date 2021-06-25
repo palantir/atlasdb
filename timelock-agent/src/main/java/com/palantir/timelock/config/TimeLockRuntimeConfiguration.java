@@ -70,7 +70,7 @@ public abstract class TimeLockRuntimeConfiguration {
         return ImmutableTimeLockAdjudicationConfiguration.builder().build();
     }
 
-    @JsonProperty
+    @JsonProperty("timestamp-bound-persistence")
     public abstract Optional<TsBoundPersisterRuntimeConfiguration> timestampBoundPersistence();
 
     @Value.Check

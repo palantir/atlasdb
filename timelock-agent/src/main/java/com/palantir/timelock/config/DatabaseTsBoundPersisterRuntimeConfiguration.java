@@ -17,12 +17,14 @@
 package com.palantir.timelock.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableDatabaseTsBoundPersisterRuntimeConfiguration.class)
+@JsonTypeName("database")
 public interface DatabaseTsBoundPersisterRuntimeConfiguration extends TsBoundPersisterRuntimeConfiguration {
     @JsonProperty("key-value-service")
     KeyValueServiceRuntimeConfig keyValueServiceRuntimeConfig();
