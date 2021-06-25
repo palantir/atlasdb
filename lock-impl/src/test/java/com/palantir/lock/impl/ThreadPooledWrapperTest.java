@@ -197,8 +197,8 @@ public class ThreadPooledWrapperTest {
         assertThat(exceptions.get()).isEqualTo(numberBlocked);
     }
 
-    private void assertSuccessfulThreadsAreDone(List<Future> futures, int numberSuccessful)
-            throws InterruptedException, ExecutionException {
+    @SuppressWarnings("MissingFail") // This method *counts* successes and expects *some* to work
+    private void assertSuccessfulThreadsAreDone(List<Future> futures, int numberSuccessful) {
         AtomicInteger successes = new AtomicInteger(0);
         futures.forEach(future -> {
             try {

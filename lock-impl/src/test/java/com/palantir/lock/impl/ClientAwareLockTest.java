@@ -176,11 +176,7 @@ public final class ClientAwareLockTest {
             assertThat(anonymousReadLock.tryLock()).isNotNull();
             anonymousReadLock.lock();
         });
-        try {
-            future2.get(10, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException expected) {
-            /* Expected. */
-        }
+        assertThatThrownBy(() -> future2.get(10, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
         future1.get(200, TimeUnit.MILLISECONDS);
         future2.get(10, TimeUnit.MILLISECONDS);
     }
