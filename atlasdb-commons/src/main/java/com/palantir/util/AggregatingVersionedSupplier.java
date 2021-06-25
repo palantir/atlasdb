@@ -23,13 +23,17 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import javax.annotation.concurrent.ThreadSafe;
 
+@ThreadSafe
 public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T>> {
     public static final long UNINITIALIZED_VERSION = 0L;
 
     private final Function<Collection<T>, T> aggregator;
     private final Supplier<VersionedType<T>> memoizedValue;
-    private volatile long version = UNINITIALIZED_VERSION;
+
+    // memoizeWithExpiration is thread-safe but DOES NOT guarantee visibility; do NOT leak this outside of this object
+    private long version = UNINITIALIZED_VERSION;
 
     private final ConcurrentMap<Integer, T> latestValues = new ConcurrentHashMap<>();
 
