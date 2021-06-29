@@ -19,6 +19,7 @@ package com.palantir.timelock.history.models;
 import static com.palantir.timelock.history.models.LearnedAndAcceptedValue.voidLearnedAndAcceptedValue;
 
 import java.util.Map;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
@@ -33,8 +34,12 @@ public interface ConsolidatedLearnerAndAcceptorRecord {
     @Value.Parameter
     Map<Long, LearnedAndAcceptedValue> record();
 
-    static ConsolidatedLearnerAndAcceptorRecord of(Map<Long, LearnedAndAcceptedValue> record) {
-        return ImmutableConsolidatedLearnerAndAcceptorRecord.of(record);
+    @Value.Parameter
+    Optional<Long> greatestDeletedSeq();
+
+    static ConsolidatedLearnerAndAcceptorRecord of(
+            Map<Long, LearnedAndAcceptedValue> record, Optional<Long> greatestDeletedSeq) {
+        return ImmutableConsolidatedLearnerAndAcceptorRecord.of(record, greatestDeletedSeq);
     }
 
     default LearnedAndAcceptedValue get(long seq) {

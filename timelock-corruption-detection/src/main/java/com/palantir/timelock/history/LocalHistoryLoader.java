@@ -24,19 +24,24 @@ import com.palantir.timelock.history.models.ImmutablePaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.models.LearnerAndAcceptorRecords;
 import com.palantir.timelock.history.models.LearnerUseCase;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
+import com.palantir.timelock.history.sqlite.LogDeletionMarker;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import java.util.Map;
 
 // TBD cache implementation
 public final class LocalHistoryLoader {
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
+    private final LogDeletionMarker deletionMarker;
 
-    private LocalHistoryLoader(SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory) {
+    private LocalHistoryLoader(
+            SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory, LogDeletionMarker deletionMarker) {
         this.sqlitePaxosStateLogHistory = sqlitePaxosStateLogHistory;
+        this.deletionMarker = deletionMarker;
     }
 
-    public static LocalHistoryLoader create(SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory) {
-        return new LocalHistoryLoader(sqlitePaxosStateLogHistory);
+    public static LocalHistoryLoader create(
+            SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory, LogDeletionMarker deletionMarker) {
+        return new LocalHistoryLoader(sqlitePaxosStateLogHistory, deletionMarker);
     }
 
     public PaxosHistoryOnSingleNode getLocalPaxosHistory(
@@ -50,10 +55,13 @@ public final class LocalHistoryLoader {
     LearnerAndAcceptorRecords loadLocalHistory(
             NamespaceAndUseCase namespaceAndUseCase, HistoryQuerySequenceBounds sequenceRangeToBeVerified) {
         String paxosUseCasePrefix = namespaceAndUseCase.useCase();
+        long greatestDeletedSeq =
+                deletionMarker.getGreatestDeletedSeq(namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase());
         return sqlitePaxosStateLogHistory.getLearnerAndAcceptorLogsInRange(
                 namespaceAndUseCase.namespace(),
                 LearnerUseCase.createLearnerUseCase(paxosUseCasePrefix),
                 AcceptorUseCase.createAcceptorUseCase(paxosUseCasePrefix),
-                sequenceRangeToBeVerified);
+                sequenceRangeToBeVerified,
+                greatestDeletedSeq);
     }
 }

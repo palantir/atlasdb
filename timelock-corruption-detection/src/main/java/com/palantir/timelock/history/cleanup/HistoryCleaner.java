@@ -29,6 +29,7 @@ import com.palantir.timelock.corruption.detection.CorruptionHealthReport;
 import com.palantir.timelock.corruption.detection.HistoryAnalyzer;
 import com.palantir.timelock.history.PaxosLogHistoryProvider;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
+import com.palantir.timelock.history.sqlite.LogDeletionMarker;
 import com.palantir.tokens.auth.AuthHeader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -46,6 +47,7 @@ public class HistoryCleaner {
     private final PaxosLogHistoryProvider historyProvider;
     private final TimeLockManagementService timeLockManagementService;
     private final Path baseLogDirectory;
+    private final LogDeletionMarker deletionMarker;
 
     public HistoryCleaner(
             DataSource dataSource,
@@ -56,6 +58,7 @@ public class HistoryCleaner {
         this.historyProvider = historyProvider;
         this.timeLockManagementService = timeLockManagementService;
         this.baseLogDirectory = baseLogDirectory;
+        this.deletionMarker = LogDeletionMarker.create(dataSource);
     }
 
     public CorruptionHealthReport cleanUpHistoryAndGetHealthReport() {
@@ -67,14 +70,17 @@ public class HistoryCleaner {
         achieveConsensus(
                 namespacesEligibleForCleanup.stream().map(Client::value).collect(Collectors.toSet()));
         // actually truncate
-        history.forEach(this::runCleaUpOnNamespace);
+        history.forEach(this::runCleanUpOnNamespace);
 
         return healthReport;
     }
 
-    // todo snanda - things marked for deletion must be ignored
-    private void runCleaUpOnNamespace(CompletePaxosHistoryForNamespaceAndUseCase history) {
+    private void runCleanUpOnNamespace(CompletePaxosHistoryForNamespaceAndUseCase history) {
         long greatestSeqNumber = history.greatestSeqNumber();
+
+        // todo snanda - check positioning
+        // mark deletion
+        deletionMarker.updateProgress(history.namespace(), history.useCase(), greatestSeqNumber);
 
         // actually deletes
         truncateLearnerLogsForNamespaceAndUseCase(history, greatestSeqNumber);
@@ -91,6 +97,7 @@ public class HistoryCleaner {
         return Sets.difference(allNamespaces, corruptNamespaces).immutableCopy();
     }
 
+    // todo snanda
     void achieveConsensus(Set<String> namespaces) {
         // do this thrice so we can delete rounds upto the greatest seq number we have so far
         for (int i = 0; i < 3; i++) {

@@ -16,9 +16,12 @@
 
 package com.palantir.timelock.history.models;
 
+import static com.palantir.timelock.history.sqlite.LogDeletionMarker.INITIAL_DELETION_MARK;
+
 import com.google.common.collect.ImmutableMap;
 import com.palantir.paxos.NamespaceAndUseCase;
 import java.util.Map;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -34,6 +37,9 @@ public interface ConsolidatedPaxosHistoryOnSingleNode {
 
     default ConsolidatedLearnerAndAcceptorRecord getRecordForNamespaceAndUseCase(
             NamespaceAndUseCase namespaceAndUseCase) {
-        return records().getOrDefault(namespaceAndUseCase, ConsolidatedLearnerAndAcceptorRecord.of(ImmutableMap.of()));
+        return records()
+                .getOrDefault(
+                        namespaceAndUseCase,
+                        ConsolidatedLearnerAndAcceptorRecord.of(ImmutableMap.of(), Optional.of(INITIAL_DELETION_MARK)));
     }
 }

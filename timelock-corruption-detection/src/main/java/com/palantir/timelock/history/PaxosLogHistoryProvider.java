@@ -28,11 +28,13 @@ import com.palantir.timelock.history.models.ImmutableCompletePaxosHistoryForName
 import com.palantir.timelock.history.models.ImmutableLearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.LearnedAndAcceptedValue;
 import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
+import com.palantir.timelock.history.sqlite.LogDeletionMarker;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.util.UseCaseUtils;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
@@ -48,11 +50,13 @@ public class PaxosLogHistoryProvider {
     private final SqlitePaxosStateLogHistory sqlitePaxosStateLogHistory;
     private final List<TimeLockPaxosHistoryProvider> remoteHistoryProviders;
     private final PaxosLogHistoryProgressTracker progressTracker;
+    private final LogDeletionMarker deletionMarker;
 
     public PaxosLogHistoryProvider(DataSource dataSource, List<TimeLockPaxosHistoryProvider> remoteHistoryProviders) {
         this.remoteHistoryProviders = remoteHistoryProviders;
         this.sqlitePaxosStateLogHistory = SqlitePaxosStateLogHistory.create(dataSource);
-        this.localHistoryLoader = LocalHistoryLoader.create(this.sqlitePaxosStateLogHistory);
+        this.deletionMarker = LogDeletionMarker.create(dataSource);
+        this.localHistoryLoader = LocalHistoryLoader.create(this.sqlitePaxosStateLogHistory, deletionMarker);
         this.progressTracker = new PaxosLogHistoryProgressTracker(dataSource, sqlitePaxosStateLogHistory);
     }
 
@@ -162,22 +166,22 @@ public class PaxosLogHistoryProvider {
     }
 
     private ConsolidatedPaxosHistoryOnSingleNode buildRecordFromRemoteResponse(PaxosHistoryOnRemote historyOnRemote) {
-
         Map<NamespaceAndUseCase, List<PaxosLogWithAcceptedAndLearnedValues>> namespaceWisePaxosLogs =
                 historyOnRemote.getLogs().stream()
                         .collect(Collectors.toMap(
                                 LogsForNamespaceAndUseCase::getNamespaceAndUseCase,
                                 LogsForNamespaceAndUseCase::getLogs));
 
-        return ConsolidatedPaxosHistoryOnSingleNode.of(KeyedStream.stream(namespaceWisePaxosLogs)
-                .map(this::getConsolidatedLearnerAndAcceptorRecordFromRemotePaxosLogs)
+        return ConsolidatedPaxosHistoryOnSingleNode.of(KeyedStream.of(historyOnRemote.getLogs())
+                .mapKeys(x -> x.getNamespaceAndUseCase())
+                .map(x -> getConsolidatedLearnerAndAcceptorRecordFromRemotePaxosLogs(x.getLogs(), x.getDeletionMark()))
                 .collectToMap());
     }
 
     private ConsolidatedLearnerAndAcceptorRecord getConsolidatedLearnerAndAcceptorRecordFromRemotePaxosLogs(
-            NamespaceAndUseCase unused, List<PaxosLogWithAcceptedAndLearnedValues> remoteLogs) {
+            List<PaxosLogWithAcceptedAndLearnedValues> logs, Optional<Long> deletionMark) {
         return ConsolidatedLearnerAndAcceptorRecord.of(
-                getSequenceWiseLearnedAndAcceptedValuesFromRemoteLogs(remoteLogs));
+                getSequenceWiseLearnedAndAcceptedValuesFromRemoteLogs(logs), deletionMark);
     }
 
     private Map<Long, LearnedAndAcceptedValue> getSequenceWiseLearnedAndAcceptedValuesFromRemoteLogs(

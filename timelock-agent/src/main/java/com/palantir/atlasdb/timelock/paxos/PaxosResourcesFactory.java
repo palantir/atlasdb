@@ -41,6 +41,7 @@ import com.palantir.timelock.corruption.detection.RemoteCorruptionDetector;
 import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.PaxosLogHistoryProvider;
 import com.palantir.timelock.history.cleanup.HistoryCleaner;
+import com.palantir.timelock.history.sqlite.LogDeletionMarker;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
@@ -268,8 +269,8 @@ public final class PaxosResourcesFactory {
         CorruptionHealthCheck healthCheck =
                 new CorruptionHealthCheck(localCorruptionDetector, remoteCorruptionDetector);
 
-        LocalHistoryLoader localHistoryLoader =
-                LocalHistoryLoader.create(SqlitePaxosStateLogHistory.create(dataSource));
+        LocalHistoryLoader localHistoryLoader = LocalHistoryLoader.create(
+                SqlitePaxosStateLogHistory.create(dataSource), LogDeletionMarker.create(dataSource));
 
         return TimeLockCorruptionComponents.builder()
                 .timeLockCorruptionHealthCheck(healthCheck)

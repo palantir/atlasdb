@@ -42,6 +42,7 @@ types:
         fields:
           namespaceAndUseCase: NamespaceAndUseCase
           logs: list<PaxosLogWithAcceptedAndLearnedValues>
+          deletionMark: optional<Long> #massive break - massive
       PaxosHistoryOnRemote:
         fields:
           logs: list<LogsForNamespaceAndUseCase>

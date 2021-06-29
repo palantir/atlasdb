@@ -68,18 +68,23 @@ public final class SqlitePaxosStateLogHistory {
             Client namespace,
             LearnerUseCase learnerUseCase,
             AcceptorUseCase acceptorUseCase,
-            HistoryQuerySequenceBounds querySequenceBounds) {
-        return execute(dao -> ImmutableLearnerAndAcceptorRecords.of(
-                dao.getLearnerLogsInRange(
-                        namespace,
-                        learnerUseCase.value(),
-                        querySequenceBounds.getLowerBoundInclusive(),
-                        querySequenceBounds.getUpperBoundInclusive()),
-                dao.getAcceptorLogsInRange(
-                        namespace,
-                        acceptorUseCase.value(),
-                        querySequenceBounds.getLowerBoundInclusive(),
-                        querySequenceBounds.getUpperBoundInclusive())));
+            HistoryQuerySequenceBounds querySequenceBounds,
+            long greatestDeletedSeq) {
+        return execute(dao -> {
+            long lowerBoundInclusive = Math.max(querySequenceBounds.getLowerBoundInclusive(), greatestDeletedSeq + 1);
+            return ImmutableLearnerAndAcceptorRecords.of(
+                    dao.getLearnerLogsInRange(
+                            namespace,
+                            learnerUseCase.value(),
+                            lowerBoundInclusive,
+                            querySequenceBounds.getUpperBoundInclusive()),
+                    dao.getAcceptorLogsInRange(
+                            namespace,
+                            acceptorUseCase.value(),
+                            lowerBoundInclusive,
+                            querySequenceBounds.getUpperBoundInclusive()),
+                    greatestDeletedSeq);
+        });
     }
 
     public Map<Long, PaxosValue> getLearnerLogsSince(
