@@ -472,11 +472,39 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return Collections.emptyIterator();
         }
         Iterable<byte[]> distinctRows = getDistinctRows(rows);
+        return getSortedColumnsInternal(
+                tableRef,
+                distinctRows,
+                batchColumnRangeSelection,
+                getPerRowBatchSize(batchColumnRangeSelection, Iterables.size(distinctRows)));
+    }
+
+    @Override
+    public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, int numResults) {
+        checkGetPreconditions(tableRef);
+        if (Iterables.isEmpty(rows)) {
+            return Collections.emptyIterator();
+        }
+        Preconditions.checkArgument(numResults <= 1_000_000, "Requested number of results is too large.");
+        Iterable<byte[]> distinctRows = getDistinctRows(rows);
+        int numRows = Iterables.size(distinctRows);
+        int batchSize = getPerRowBatchSizeForFixedSize(numResults, numRows);
+        BatchColumnRangeSelection batchColumnRangeSelection =
+                BatchColumnRangeSelection.create(columnRangeSelection, batchSize);
+        return Iterators.limit(
+                getSortedColumnsInternal(tableRef, distinctRows, batchColumnRangeSelection, batchSize), numResults);
+    }
+
+    private Iterator<Map.Entry<Cell, byte[]>> getSortedColumnsInternal(
+            TableReference tableRef,
+            Iterable<byte[]> distinctRows,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            int batchHintForRead) {
 
         hasReads = true;
-        int batchSize = getPerRowBatchSize(batchColumnRangeSelection, Iterables.size(distinctRows));
         BatchColumnRangeSelection perBatchSelection = BatchColumnRangeSelection.create(
-                batchColumnRangeSelection.getStartCol(), batchColumnRangeSelection.getEndCol(), batchSize);
+                batchColumnRangeSelection.getStartCol(), batchColumnRangeSelection.getEndCol(), batchHintForRead);
 
         Map<byte[], RowColumnRangeIterator> rawResults =
                 keyValueService.getRowsColumnRange(tableRef, distinctRows, perBatchSelection, getStartTimestamp());
@@ -556,11 +584,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * possibility of needing a second batch of fetching.
      * If the batch hint is large, split batch size across rows to avoid loading too much data, while accepting that
      * second fetches may be needed to get everyone their data.
-     * */
+     */
     private static int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
         return Math.max(
                 Math.min(MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD, columnRangeSelection.getBatchHint()),
                 columnRangeSelection.getBatchHint() / distinctRowCount);
+    }
+
+    /**
+     * When the desired number of results is known, this batch hint should ensure ~99.5% of calls will not need
+     * additional KVS lookups, assuming a uniform distribution of columns across rows.
+     */
+    private static int getPerRowBatchSizeForFixedSize(int numResults, int numRows) {
+        int batchHintForRead = (int) (1.3 * numResults / numRows);
+        if (batchHintForRead < MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD) {
+            return Math.min(MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD, numResults);
+        }
+        return batchHintForRead;
     }
 
     protected List<byte[]> getDistinctRows(Iterable<byte[]> inputRows) {
