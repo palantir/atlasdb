@@ -17,6 +17,8 @@
 package com.palantir.timelock.history.models;
 
 import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosAcceptor;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,5 +50,25 @@ public interface CompletePaxosHistoryForNamespaceAndUseCase {
                 .map(Map::keySet)
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
+    }
+
+    @Value.Lazy
+    default long greatestSeqNumber() {
+        return localAndRemoteLearnerAndAcceptorRecords().stream()
+                .map(ConsolidatedLearnerAndAcceptorRecord::record)
+                .map(Map::keySet)
+                .flatMap(Set::stream)
+                .max(Comparator.naturalOrder())
+                .orElse(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Value.Lazy
+    default LearnerUseCase physicalLearnerUseCase() {
+        return LearnerUseCase.createLearnerUseCase(useCase());
+    }
+
+    @Value.Lazy
+    default AcceptorUseCase physicalAcceptorUseCase() {
+        return AcceptorUseCase.createAcceptorUseCase(useCase());
     }
 }
