@@ -27,11 +27,13 @@ import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
 import com.palantir.atlasdb.http.v2.DialogueClientOptions;
 import com.palantir.atlasdb.http.v2.ImmutableRemoteServiceConfiguration;
 import com.palantir.atlasdb.http.v2.RemoteServiceConfiguration;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.config.NodeSelectionStrategy;
 import com.palantir.dialogue.clients.DialogueClients;
+import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
@@ -40,15 +42,24 @@ import java.util.stream.Stream;
 public final class TimeLockDialogueServiceProvider {
     private final DialogueClients.ReloadingFactory reloadingFactory;
     private final TaggedMetricRegistry taggedMetricRegistry;
+    private final MetricsManager metricsManager;
+    private final ServerListConfig serverListConfig;
+    private final UserAgent userAgent;
 
     private TimeLockDialogueServiceProvider(
-            DialogueClients.ReloadingFactory reloadingFactory, TaggedMetricRegistry taggedMetricRegistry) {
+            UserAgent versionedAgent,
+            ServerListConfig serverListConfig,
+            ReloadingFactory reloadingFactory,
+            MetricsManager metricsManager) {
+        this.userAgent = versionedAgent;
+        this.serverListConfig = serverListConfig;
         this.reloadingFactory = reloadingFactory;
-        this.taggedMetricRegistry = taggedMetricRegistry;
+        this.metricsManager = metricsManager;
+        this.taggedMetricRegistry = metricsManager.getTaggedRegistry();
     }
 
     public static TimeLockDialogueServiceProvider create(
-            TaggedMetricRegistry taggedMetricRegistry,
+            MetricsManager metricsManager,
             DialogueClients.ReloadingFactory baseFactory,
             ServerListConfig serverListConfig,
             AuxiliaryRemotingParameters parameters) {
@@ -58,7 +69,7 @@ public final class TimeLockDialogueServiceProvider {
         DialogueClients.ReloadingFactory reloadingFactory = decorate(
                         baseFactory, Refreshable.only(remoteServiceConfigurations))
                 .withUserAgent(versionedAgent);
-        return new TimeLockDialogueServiceProvider(reloadingFactory, taggedMetricRegistry);
+        return new TimeLockDialogueServiceProvider(versionedAgent, serverListConfig, reloadingFactory, metricsManager);
     }
 
     private static Map<String, RemoteServiceConfiguration> createRemoteServiceConfigurations(
@@ -81,6 +92,19 @@ public final class TimeLockDialogueServiceProvider {
     public <T> T createSingleNodeInstrumentedProxy(String uri, Class<T> clazz, boolean shouldRetry) {
         return AtlasDbHttpClients.createDialogueProxy(
                 taggedMetricRegistry, clazz, reloadingFactory.getChannel(getServiceNameForTimeLock(uri, shouldRetry)));
+    }
+
+    public <T> T createSingleProxyForNodes(Class<T> clazz) {
+        return AtlasDbHttpClients.createProxyWithFailover(
+                metricsManager,
+                serverListConfig,
+                clazz,
+                AuxiliaryRemotingParameters.builder()
+                        .shouldUseExtendedTimeout(true)
+                        .shouldLimitPayload(true)
+                        .shouldRetry(true)
+                        .userAgent(userAgent)
+                        .build());
     }
 
     private static Map.Entry<String, RemoteServiceConfiguration> createSingleServiceConfigurationMapping(

@@ -40,6 +40,7 @@ import com.palantir.timelock.corruption.detection.LocalTimestampInvariantsVerifi
 import com.palantir.timelock.corruption.detection.RemoteCorruptionDetector;
 import com.palantir.timelock.history.LocalHistoryLoader;
 import com.palantir.timelock.history.PaxosLogHistoryProvider;
+import com.palantir.timelock.history.cleanup.HistoryCleaner;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
@@ -113,7 +114,8 @@ public final class PaxosResourcesFactory {
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_EACH_CLIENT, factory.components())
                 .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
-                .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
+                .timeLockCorruptionComponents(timeLockCorruptionComponents(
+                        install.sqliteDataSource(), remoteClients, install.dataDirectory()))
                 .build();
     }
 
@@ -159,7 +161,8 @@ public final class PaxosResourcesFactory {
                                 factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         new LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
-                .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
+                .timeLockCorruptionComponents(timeLockCorruptionComponents(
+                        install.sqliteDataSource(), remoteClients, install.dataDirectory()))
                 .build();
     }
 
@@ -248,7 +251,7 @@ public final class PaxosResourcesFactory {
     }
 
     private static TimeLockCorruptionComponents timeLockCorruptionComponents(
-            DataSource dataSource, PaxosRemoteClients remoteClients) {
+            DataSource dataSource, PaxosRemoteClients remoteClients, Path legacyDirectory) {
         RemoteCorruptionDetector remoteCorruptionDetector = new RemoteCorruptionDetector();
 
         PaxosLogHistoryProvider historyProvider =
@@ -256,8 +259,11 @@ public final class PaxosResourcesFactory {
 
         LocalTimestampInvariantsVerifier timestampInvariantsVerifier = new LocalTimestampInvariantsVerifier(dataSource);
 
+        HistoryCleaner historyCleaner = new HistoryCleaner(
+                dataSource, historyProvider, remoteClients.getTimeLockManagementService(), legacyDirectory);
+
         LocalCorruptionDetector localCorruptionDetector = LocalCorruptionDetector.create(
-                historyProvider, remoteClients.getRemoteCorruptionNotifiers(), timestampInvariantsVerifier);
+                remoteClients.getRemoteCorruptionNotifiers(), timestampInvariantsVerifier, historyCleaner);
 
         CorruptionHealthCheck healthCheck =
                 new CorruptionHealthCheck(localCorruptionDetector, remoteCorruptionDetector);

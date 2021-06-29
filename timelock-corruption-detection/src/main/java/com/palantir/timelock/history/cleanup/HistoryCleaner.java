@@ -58,7 +58,7 @@ public class HistoryCleaner {
         this.baseLogDirectory = baseLogDirectory;
     }
 
-    CorruptionHealthReport maybeCleanUpHistory() {
+    public CorruptionHealthReport cleanUpHistoryAndGetHealthReport() {
         List<CompletePaxosHistoryForNamespaceAndUseCase> history = historyProvider.getHistory();
         CorruptionHealthReport healthReport = HistoryAnalyzer.corruptionHealthReportForHistory(history);
         Set<Client> namespacesEligibleForCleanup = getClientsEligibleForCleanup(history, healthReport);

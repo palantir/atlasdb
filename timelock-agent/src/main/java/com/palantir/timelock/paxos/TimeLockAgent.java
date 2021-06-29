@@ -185,7 +185,7 @@ public class TimeLockAgent {
                 .proxyConfiguration(install.cluster().cluster().proxyConfiguration())
                 .build();
         return TimeLockDialogueServiceProvider.create(
-                metricsManager.getTaggedRegistry(),
+                metricsManager,
                 baseFactory,
                 timeLockServerListConfig,
                 AuxiliaryRemotingParameters.builder()
