@@ -27,6 +27,7 @@ import com.palantir.timelock.history.models.PaxosHistoryOnSingleNode;
 import com.palantir.timelock.history.sqlite.LogDeletionMarker;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import java.util.Map;
+import java.util.function.Supplier;
 
 // TBD cache implementation
 public final class LocalHistoryLoader {
@@ -55,13 +56,13 @@ public final class LocalHistoryLoader {
     LearnerAndAcceptorRecords loadLocalHistory(
             NamespaceAndUseCase namespaceAndUseCase, HistoryQuerySequenceBounds sequenceRangeToBeVerified) {
         String paxosUseCasePrefix = namespaceAndUseCase.useCase();
-        long greatestDeletedSeq =
+        Supplier<Long> greatestDeletedSeqSupplier = () ->
                 deletionMarker.getGreatestDeletedSeq(namespaceAndUseCase.namespace(), namespaceAndUseCase.useCase());
         return sqlitePaxosStateLogHistory.getLearnerAndAcceptorLogsInRange(
                 namespaceAndUseCase.namespace(),
                 LearnerUseCase.createLearnerUseCase(paxosUseCasePrefix),
                 AcceptorUseCase.createAcceptorUseCase(paxosUseCasePrefix),
                 sequenceRangeToBeVerified,
-                greatestDeletedSeq);
+                greatestDeletedSeqSupplier);
     }
 }

@@ -34,6 +34,7 @@ import com.palantir.timelock.history.models.LearnerUseCase;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.immutables.JdbiImmutables;
@@ -69,9 +70,10 @@ public final class SqlitePaxosStateLogHistory {
             LearnerUseCase learnerUseCase,
             AcceptorUseCase acceptorUseCase,
             HistoryQuerySequenceBounds querySequenceBounds,
-            long greatestDeletedSeq) {
+            Supplier<Long> greatestDeletedSeqSupplier) {
         return execute(dao -> {
-            long lowerBoundInclusive = Math.max(querySequenceBounds.getLowerBoundInclusive(), greatestDeletedSeq + 1);
+            long lowerBoundInclusive = Math.max(querySequenceBounds.getLowerBoundInclusive(),
+                    greatestDeletedSeqSupplier.get() + 1);
             return ImmutableLearnerAndAcceptorRecords.of(
                     dao.getLearnerLogsInRange(
                             namespace,
@@ -83,7 +85,7 @@ public final class SqlitePaxosStateLogHistory {
                             acceptorUseCase.value(),
                             lowerBoundInclusive,
                             querySequenceBounds.getUpperBoundInclusive()),
-                    greatestDeletedSeq);
+                    greatestDeletedSeqSupplier.get());
         });
     }
 
