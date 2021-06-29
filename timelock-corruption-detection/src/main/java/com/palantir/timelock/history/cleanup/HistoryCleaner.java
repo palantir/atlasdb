@@ -97,7 +97,7 @@ public class HistoryCleaner {
         return Sets.difference(allNamespaces, corruptNamespaces).immutableCopy();
     }
 
-    // todo snanda
+    // todo snanda ah 3 rounds of non-sense
     void achieveConsensus(Set<String> namespaces) {
         // do this thrice so we can delete rounds upto the greatest seq number we have so far
         for (int i = 0; i < 3; i++) {
@@ -123,7 +123,6 @@ public class HistoryCleaner {
     }
 
     void truncateAcceptorLogsForNamespaceAndUseCase(CompletePaxosHistoryForNamespaceAndUseCase history, long ts) {
-        // todo sudiksha - maybe wanna reuse the jdbi  connections?
         // sqlite shit
         Client client = history.namespace();
         PaxosStateLog<PaxosAcceptorState> sqlite = SqlitePaxosStateLog.create(

@@ -72,8 +72,8 @@ public final class SqlitePaxosStateLogHistory {
             HistoryQuerySequenceBounds querySequenceBounds,
             Supplier<Long> greatestDeletedSeqSupplier) {
         return execute(dao -> {
-            long lowerBoundInclusive = Math.max(querySequenceBounds.getLowerBoundInclusive(),
-                    greatestDeletedSeqSupplier.get() + 1);
+            long lowerBoundInclusive =
+                    Math.max(querySequenceBounds.getLowerBoundInclusive(), greatestDeletedSeqSupplier.get() + 1);
             return ImmutableLearnerAndAcceptorRecords.of(
                     dao.getLearnerLogsInRange(
                             namespace,
