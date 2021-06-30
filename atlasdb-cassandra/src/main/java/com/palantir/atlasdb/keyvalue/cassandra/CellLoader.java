@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -23,12 +25,14 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.TaskRunner.KvsLoadingTask;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tracing.CloseableTracer;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -92,8 +96,20 @@ final class CellLoader {
             boolean loadAllTs,
             CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             ConsistencyLevel consistency) {
-        Map<InetSocketAddress, List<Cell>> hostsAndCells =
-                HostPartitioner.partitionByHost(clientPool, cells, Cell::getRowName);
+        Map<InetSocketAddress, List<Cell>> hostsAndCells;
+        try (CloseableTracer tracer = CloseableTracer.startSpan(
+                "partitionByHost",
+                ImmutableMap.of(
+                        "cells",
+                        String.valueOf(cells.size()),
+                        "tableRef",
+                        LoggingArgs.safeInternalTableNameOrPlaceholder(tableRef.toString()),
+                        "timestampClause",
+                        loadAllTs ? "for all timestamps " : "",
+                        "startTs",
+                        String.valueOf(startTs)))) {
+            hostsAndCells = HostPartitioner.partitionByHost(clientPool, cells, Cell::getRowName);
+        }
         int totalPartitions = hostsAndCells.keySet().size();
 
         if (log.isTraceEnabled()) {
@@ -106,7 +122,7 @@ final class CellLoader {
                     SafeArg.of("totalPartitions", totalPartitions));
         }
 
-        List<Callable<Void>> tasks = new ArrayList<>();
+        List<KvsLoadingTask<Void>> tasks = new ArrayList<>();
         for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
             if (log.isTraceEnabled()) {
                 log.trace(
@@ -118,22 +134,24 @@ final class CellLoader {
                         SafeArg.of("ipPort", hostAndCells.getKey()));
             }
 
-            tasks.addAll(getLoadWithTsTasksForSingleHost(
-                    kvsMethodName,
-                    hostAndCells.getKey(),
-                    tableRef,
-                    hostAndCells.getValue(),
-                    startTs,
-                    loadAllTs,
-                    visitor,
-                    consistency));
+            try (CloseableTracer tracer = CloseableTracer.startSpan("getLoadWithTsTasksForSingleHost")) {
+                tasks.addAll(getLoadWithTsTasksForSingleHost(
+                        kvsMethodName,
+                        hostAndCells.getKey(),
+                        tableRef,
+                        hostAndCells.getValue(),
+                        startTs,
+                        loadAllTs,
+                        visitor,
+                        consistency));
+            }
         }
 
         taskRunner.runAllTasksCancelOnFailure(tasks);
     }
 
     // TODO(unknown): after cassandra api change: handle different column select per row
-    private List<Callable<Void>> getLoadWithTsTasksForSingleHost(
+    private List<KvsLoadingTask<Void>> getLoadWithTsTasksForSingleHost(
             final String kvsMethodName,
             final InetSocketAddress host,
             final TableReference tableRef,
@@ -143,7 +161,7 @@ final class CellLoader {
             final CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        List<Callable<Void>> tasks = new ArrayList<>();
+        List<KvsLoadingTask<Void>> tasks = new ArrayList<>();
         for (final List<Cell> partition : batcher.partitionIntoBatches(cells, host, tableRef)) {
             Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(
                     host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
@@ -175,10 +193,17 @@ final class CellLoader {
                                     + ")";
                         }
                     });
-            tasks.add(AnnotatedCallable.wrapWithThreadName(
-                    AnnotationType.PREPEND,
-                    "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
-                    multiGetCallable));
+            tasks.add(ImmutableKvsLoadingTask.of(
+                    AnnotatedCallable.wrapWithThreadName(
+                            AnnotationType.PREPEND,
+                            "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
+                            multiGetCallable),
+                    ImmutableMetadata.builder()
+                            .taskName("loadWithTs")
+                            .numCells(partition.size())
+                            .tableRefs(ImmutableSet.of(tableRef))
+                            .host(host.getHostName())
+                            .build()));
         }
         return tasks;
     }

@@ -31,6 +31,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -170,6 +171,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
         if (!ByteArrayUtilities.areMapsEqual(remoteReads, cacheReads)) {
             failAndLog(
+                    SafeArg.of("endpoint", "get"),
                     UnsafeArg.of("table", tableReference),
                     UnsafeArg.of("remoteReads", remoteReads.keySet()),
                     UnsafeArg.of("cacheReads", cacheReads.keySet()));
@@ -181,7 +183,11 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             NavigableMap<byte[], RowResult<byte[]>> remoteReads,
             NavigableMap<byte[], RowResult<byte[]>> cacheReads) {
         if (!ByteArrayUtilities.areRowResultsEqual(remoteReads, cacheReads)) {
-            failAndLog(UnsafeArg.of("table", tableReference));
+            failAndLog(
+                    SafeArg.of("endpoint", "getRows"),
+                    UnsafeArg.of("table", tableReference),
+                    UnsafeArg.of("remoteReads", remoteReads),
+                    UnsafeArg.of("cacheReads", cacheReads));
         }
     }
 

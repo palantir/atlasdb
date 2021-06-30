@@ -11,6 +11,7 @@ dependencies {
   compile group: 'com.squareup.okio', name: 'okio'
   compile group: 'jakarta.annotation', name: 'jakarta.annotation-api'
   compile group: 'jakarta.validation', name: 'jakarta.validation-api'
+  compile group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api'
 
   compile 'com.github.ben-manes.caffeine:caffeine'
   compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'

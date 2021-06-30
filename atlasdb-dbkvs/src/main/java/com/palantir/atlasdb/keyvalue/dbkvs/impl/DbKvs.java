@@ -1093,7 +1093,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     private Map<Sha256Hash, Integer> getColumnCountsUnordered(
             TableReference tableRef, List<byte[]> rowList, ColumnRangeSelection columnRangeSelection, long timestamp) {
         return runRead(tableRef, dbReadTable -> {
-            Map<Sha256Hash, Integer> counts = new HashMap<>(rowList.size());
+            Map<Sha256Hash, Integer> counts = Maps.newHashMapWithExpectedSize(rowList.size());
             try (ClosableIterator<AgnosticLightResultRow> iter =
                     dbReadTable.getRowsColumnRangeCounts(rowList, timestamp, columnRangeSelection)) {
                 while (iter.hasNext()) {

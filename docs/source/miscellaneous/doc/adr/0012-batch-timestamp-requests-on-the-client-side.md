@@ -1,4 +1,5 @@
-# 12. Batch timestamp requests on the client side
+12. Batch timestamp requests on the client side
+***********************************************
 
 Date: 26/09/2017
 
@@ -31,10 +32,12 @@ already been used in production, in Palantir's large internal product.
   when a request returns, the next request will immediately be dispatched (provided timestamps have actually been
   requested). This does imply that, on average, requests take half a round-trip time longer. In practice, things
   are more complex:
+
   - In addition to the half-RTT, we also incur costs involved in synchronization of the batching.
   - TimeLock itself tends to respond more quickly, though, as it is less heavily loaded. For many internal contexts,
     TimeLock being less heavily loaded is a particularly compelling reason to enable batching by default, as it
     serves timestamps and locks for many services.
+
 - Maintain the ability to disable request batching. This was kept, because request batching can cause a modest
   increase in latency especially where client loads are light. Request batching might not be appropriate for 
   applications that require real-time responses.

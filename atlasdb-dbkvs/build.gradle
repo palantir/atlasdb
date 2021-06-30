@@ -16,12 +16,12 @@ dependencies {
   implementation 'com.google.auto.service:auto-service-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
-  implementation 'com.palantir.patches.sourceforge:trove3'
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'commons-dbutils:commons-dbutils'
   implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.postgresql:postgresql'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-commons')

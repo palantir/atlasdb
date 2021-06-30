@@ -21,7 +21,7 @@ CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server
 
 CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
 
-CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
+CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:postgresTest' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
 CONTAINER_6=(':timelock-server:suiteTest')
 
@@ -29,10 +29,14 @@ CONTAINER_7=(':timelock-server:stressTest')
 
 CONTAINER_8=(':atlasdb-ete-tests:timeLockMigrationTest')
 
-CONTAINER_9=('compileJava' 'compileTestJava')
+CONTAINER_9=(':atlasdb-ete-tests:oracleTest')
+
+CONTAINER_10=('atlasdb-dbkvs-tests:oracleTest')
+
+CONTAINER_11=('compileJava' 'compileTestJava')
 
 # Container 0 - runs tasks not found in the below containers
-CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}")
+CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}" "${CONTAINER_10[@]}")
 
 for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
@@ -48,19 +52,24 @@ if ./scripts/circle-ci/check-only-docs-changes.sh; then
     exit 0
 fi
 
+if [ $CIRCLE_NODE_INDEX -eq 9 ] || [ $CIRCLE_NODE_INDEX -eq 10 ]; then
+    printenv DOCKERHUB_PASSWORD | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+    # The oracle container is very large and takes a long time to pull.
+    # If this image is not pulled here, the circle build usually times out.
+    docker-compose -f atlasdb-dbkvs-tests/src/test/resources/docker-compose.oracle.yml pull oracle
+fi
+
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+HeapDumpOnOutOfMemoryError"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -verbose:gc"
-JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+PrintGC"
-JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+PrintGCDateStamps"
-JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+PrintGCDetails"
-JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:-TraceClassUnloading"
+JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:gc"
+JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:gc*"
+JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:class+unload=off"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
 
 # External builds have a 16gb limit.
-if [ "$CIRCLE_NODE_INDEX" -eq "9" ]; then
+if [ "$CIRCLE_NODE_INDEX" -eq "11" ]; then
     export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 else
-    BASE_GRADLE_ARGS+=" --parallel"
     export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
     BASE_GRADLE_ARGS+=" --parallel"
 fi
@@ -77,5 +86,7 @@ case $CIRCLE_NODE_INDEX in
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
     7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
     8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} ;;
-    9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
+    9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} ;;
+    10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} ;;
+    11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac

@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Log the endpoint when lock watch cache validations fail.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5490

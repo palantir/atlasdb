@@ -17,10 +17,11 @@
 package com.palantir.paxos;
 
 import com.google.common.net.HostAndPort;
+import com.palantir.common.annotations.ImmutablesStyles.AllParametersStyle;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(allParameters = true)
+@AllParametersStyle
 public interface LeaderPingerContext<T> {
     T pinger();
 

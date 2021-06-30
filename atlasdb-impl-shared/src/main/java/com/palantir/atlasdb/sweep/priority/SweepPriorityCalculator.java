@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep.priority;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -28,7 +29,6 @@ import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,7 +52,7 @@ class SweepPriorityCalculator {
 
     // weights one month of no sweeping with the same priority as about 100000 expected cells to sweep.
     private static final double MILLIS_SINCE_SWEEP_PRIORITY_WEIGHT =
-            100_000.0 / TimeUnit.MILLISECONDS.convert(30, TimeUnit.DAYS);
+            100_000.0 / TimeUnit.MILLISECONDS.convert(Duration.ofDays(30));
 
     private final KeyValueService kvs;
     private final SweepPriorityStore sweepPriorityStore;
@@ -94,7 +94,7 @@ class SweepPriorityCalculator {
         boolean shouldLog = decideWhetherToLogAllPriorities();
 
         // Compute priority for tables that do have a priority table.
-        Map<TableReference, Double> scores = new HashMap<>(oldPriorities.size());
+        Map<TableReference, Double> scores = Maps.newHashMapWithExpectedSize(oldPriorities.size());
         Collection<TableReference> toDelete = new ArrayList<>();
         for (SweepPriority oldPriority : oldPriorities) {
             TableReference tableReference = oldPriority.tableRef();
@@ -234,13 +234,13 @@ class SweepPriorityCalculator {
         // for large tables we're essentially just comparing writeCount <= cellTsPairsExamined / 100
         boolean fewWrites = writeCount <= 100 + cellTsPairsExamined / 100;
 
-        long daysSinceLastSweep = TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS);
+        long daysSinceLastSweep = TimeUnit.DAYS.convert(Duration.ofMillis(millisSinceSweep));
 
         return fewWrites && daysSinceLastSweep < 180;
     }
 
     private boolean weWantToAvoidOverloadingTheStoreWithTombstones(SweepPriority newPriority, long millisSinceSweep) {
-        long daysSinceLastSweep = TimeUnit.DAYS.convert(millisSinceSweep, TimeUnit.MILLISECONDS);
+        long daysSinceLastSweep = TimeUnit.DAYS.convert(Duration.ofMillis(millisSinceSweep));
 
         return newPriority.staleValuesDeleted() > WAIT_BEFORE_SWEEPING_IF_WE_GENERATE_THIS_MANY_TOMBSTONES
                 && daysSinceLastSweep < 1

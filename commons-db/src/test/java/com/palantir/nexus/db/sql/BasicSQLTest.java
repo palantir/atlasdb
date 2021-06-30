@@ -15,6 +15,7 @@
  */
 package com.palantir.nexus.db.sql;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.nexus.db.monitoring.timer.DurationSqlTimer;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
+import java.io.ByteArrayInputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -61,6 +63,17 @@ public class BasicSQLTest {
 
         verify(executeExecutorOne, times(1)).submit(any(Callable.class));
         verify(executeExecutorTwo, times(2)).submit(any(Callable.class));
+    }
+
+    @Test
+    public void testSQLException() {
+        StringBuilder sb = new StringBuilder();
+        byte[] bytes = new byte[] {0, 1, (byte) 0xff};
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        // A typical atlas key is identified by row_name, column_name, ts
+        BasicSQLUtils.toStringSqlArgs(sb, new Object[] {bytes, bis, 123L});
+        assertThat(sb.toString())
+                .isEqualTo("([B: '0001ff', java.io.ByteArrayInputStream: '0001ff', java.lang.Long: '123')\n");
     }
 
     private void executeSqlQuery(BasicSQL basicSql) throws SQLException {

@@ -6,7 +6,6 @@ dependencies {
   compile project(":lock-api")
   compile project(":atlasdb-commons")
 
-  compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile group: 'joda-time', name: 'joda-time'
   compile group: 'org.yaml', name: 'snakeyaml'
@@ -18,6 +17,7 @@ dependencies {
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':commons-executors')
   implementation project(':lock-api-objects')

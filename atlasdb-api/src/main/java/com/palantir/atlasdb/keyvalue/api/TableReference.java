@@ -61,6 +61,7 @@ public final class TableReference {
      * or createWithEmptyNamespace, if you're passing in a system table name.
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public static TableReference createUnsafe(String fullTableName) {
         return fullTableName.indexOf('.') < 0
                 ? createWithEmptyNamespace(fullTableName)

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.common.annotations.ImmutablesStyles.AllParametersStyle;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
@@ -81,7 +82,7 @@ public final class AutobatchingPingableLeaderFactory implements Closeable {
             try {
                 closeable.close();
             } catch (IOException e) {
-                log.error("could not close autobatcher for pingable leader");
+                log.error("could not close autobatcher for pingable leader", e);
             }
         }
         uuidToRemoteAutobatcher.close();
@@ -138,7 +139,7 @@ public final class AutobatchingPingableLeaderFactory implements Closeable {
     }
 
     @Value.Immutable
-    @Value.Style(allParameters = true)
+    @AllParametersStyle
     interface PingRequest {
         Client client();
 

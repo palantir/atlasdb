@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import org.immutables.value.Value;
 
@@ -39,16 +38,9 @@ public abstract class DatabaseTsBoundPersisterConfiguration implements TsBoundPe
         return !(other instanceof DatabaseTsBoundPersisterConfiguration);
     }
 
-    /*
-     * "relational" is hard-coded from DbKeyValueServiceConfig
-     * to avoid taking a compile time dependency on atlasdb-dbkvs
-     */
     @Value.Check
     public void check() {
-        String kvsType = keyValueServiceConfig().type();
-        Preconditions.checkArgument(
-                kvsType.equals("relational") || kvsType.equals("memory"),
-                "Only InMemory/Dbkvs is a supported for TimeLock's database persister. Found %s.",
-                kvsType);
+        PermittedKeyValueServiceTypes.checkKeyValueServiceTypeIsPermitted(
+                keyValueServiceConfig().type());
     }
 }

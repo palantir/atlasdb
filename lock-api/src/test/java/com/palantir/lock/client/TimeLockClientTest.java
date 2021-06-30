@@ -17,6 +17,8 @@ package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -31,6 +33,7 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -92,7 +95,7 @@ public class TimeLockClientTest {
 
         timelock.lock(request);
 
-        verify(refresher).registerLocks(ImmutableSet.of(TOKEN_1));
+        verify(refresher).registerLocks(eq(ImmutableSet.of(TOKEN_1)), any(ClientLockingOptions.class));
     }
 
     @Test

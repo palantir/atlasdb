@@ -21,6 +21,7 @@ import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -47,10 +48,10 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
 
     @Override
     public void run(CombinedTimeLockServerConfiguration configuration, Environment environment) throws Exception {
-        TimeLockAgent agent = TimeLockAgent.create(
+        TimeLockAgent.create(
                 MetricsManagers.of(environment.metrics(), SharedTaggedMetricRegistries.getSingleton()),
                 configuration.install(),
-                configuration::runtime, // this won't actually live reload
+                Refreshable.only(configuration.runtime()), // This won't actually live reload.
                 USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),

@@ -17,10 +17,11 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@PackageVisibleImmutablesStyle
 public interface RowReference {
     TableReference tableRef();
 

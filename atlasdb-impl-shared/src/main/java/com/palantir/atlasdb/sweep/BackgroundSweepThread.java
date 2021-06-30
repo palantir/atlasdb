@@ -133,7 +133,7 @@ public class BackgroundSweepThread implements Runnable {
                 sleepUntilNextRun(maybeOutcome);
             }
         } catch (InterruptedException e) {
-            log.info("Shutting down background sweeper. Please restart the service to rerun background sweep.");
+            log.info("Shutting down background sweeper. Please restart the service to rerun background sweep.", e);
             closeTableLockIfHeld();
         } catch (Throwable t) {
             log.error(
@@ -278,7 +278,8 @@ public class BackgroundSweepThread implements Runnable {
                 } catch (InterruptedException ex) {
                     log.info(
                             "Sweep lost the lock for table {}",
-                            LoggingArgs.tableRef(progress.get().tableRef()));
+                            LoggingArgs.tableRef(progress.get().tableRef()),
+                            ex);
                     closeTableLockIfHeld();
                     currentTable = Optional.empty();
                     // We'll fall through and choose a new table

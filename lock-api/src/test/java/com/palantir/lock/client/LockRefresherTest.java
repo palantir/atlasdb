@@ -17,17 +17,23 @@ package com.palantir.lock.client;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Before;
 import org.junit.Test;
 
 public class LockRefresherTest {
@@ -40,7 +46,13 @@ public class LockRefresherTest {
 
     private final DeterministicScheduler executor = new DeterministicScheduler();
     private final TimelockService timelock = mock(TimelockService.class);
-    private final LockRefresher refresher = new LockRefresher(executor, timelock, REFRESH_INTERVAL_MILLIS);
+    private final Clock clock = mock(Clock.class);
+    private final LockRefresher refresher = new LockRefresher(executor, timelock, REFRESH_INTERVAL_MILLIS, clock);
+
+    @Before
+    public void setUp() {
+        when(clock.instant()).thenReturn(Instant.EPOCH);
+    }
 
     @Test
     public void continuesRefreshingLocksThatAreReturned() {
@@ -93,6 +105,55 @@ public class LockRefresherTest {
         tick();
         tick();
         verify(timelock, times(2)).refreshLockLeases(lockTokensToRefresh);
+    }
+
+    @Test
+    public void locksWithoutSpecifiedOptionsHaveLongTenure() {
+        when(timelock.refreshLockLeases(TOKENS)).thenReturn(TOKENS);
+        when(clock.instant()).thenReturn(Instant.EPOCH);
+        refresher.registerLocks(TOKENS);
+
+        tick();
+        verify(timelock).refreshLockLeases(TOKENS);
+
+        when(clock.instant()).thenReturn(Instant.MAX); // O(1 billion years). AtlasDB probably won't exist then...?
+        tick();
+        verify(timelock, times(2)).refreshLockLeases(TOKENS);
+        tick();
+        verify(timelock, times(3)).refreshLockLeases(TOKENS);
+    }
+
+    @Test
+    public void lockNoLongerRefreshedAfterTenureElapses() {
+        Runnable callback = mock(Runnable.class);
+
+        when(timelock.refreshLockLeases(TOKENS)).thenReturn(TOKENS);
+        when(clock.instant()).thenReturn(Instant.EPOCH);
+        refresher.registerLocks(
+                TOKENS,
+                ClientLockingOptions.builder()
+                        .maximumLockTenure(Duration.ofMinutes(5))
+                        .tenureExpirationCallback(callback)
+                        .build());
+
+        tick();
+        verify(timelock).refreshLockLeases(TOKENS);
+        verify(callback, never()).run();
+
+        when(clock.instant()).thenReturn(Instant.EPOCH.plus(Duration.ofMinutes(3)));
+        tick();
+        verify(timelock, times(2)).refreshLockLeases(TOKENS);
+        verify(callback, never()).run();
+
+        when(clock.instant()).thenReturn(Instant.EPOCH.plus(Duration.ofMinutes(7)));
+        tick();
+        verify(timelock, times(2)).refreshLockLeases(TOKENS);
+        // Callback ran once per expired token
+        verify(callback, times(TOKENS.size())).run();
+
+        tick();
+        // No more
+        verify(callback, times(TOKENS.size())).run();
     }
 
     private void registerLocks() {

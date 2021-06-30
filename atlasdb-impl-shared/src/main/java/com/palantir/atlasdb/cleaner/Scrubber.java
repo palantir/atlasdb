@@ -594,7 +594,7 @@ public class Scrubber {
         try {
             shutdown = service.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            log.error("Interrupted while shutting down the scrubber. This shouldn't happen.");
+            log.error("Interrupted while shutting down the scrubber. This shouldn't happen.", e);
             Thread.currentThread().interrupt();
         }
         if (!shutdown) {

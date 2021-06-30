@@ -77,9 +77,15 @@ public abstract class ConnectionConfig {
         return 256;
     }
 
+    /**
+     * STIG O121-C2-016500 and Fedramp requires idle connections are closed within 15 mins.
+     * Because typically minimum pool sizes are > 0, we frequently create connections that are
+     * never used. Hence, this setting needs to be < 15 min - "a few seconds" (recommended in
+     * Hikari docs to allow for client side latency). 900 - a dozen = 888.
+     */
     @Value.Default
     public Integer getMaxConnectionAge() {
-        return 1800;
+        return 888;
     }
 
     @Value.Default

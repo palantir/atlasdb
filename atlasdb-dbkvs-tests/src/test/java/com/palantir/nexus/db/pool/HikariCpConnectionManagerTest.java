@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import com.google.common.base.Throwables;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbkvsPostgresTestSuite;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbKvsPostgresTestSuite;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
@@ -250,7 +250,7 @@ public class HikariCpConnectionManagerTest {
 
     private static PostgresConnectionConfig createConnectionConfig(
             String username, String password, int minConnections, int maxConnections) {
-        PostgresConnectionConfig suiteConfig = DbkvsPostgresTestSuite.getConnectionConfig();
+        PostgresConnectionConfig suiteConfig = DbKvsPostgresTestSuite.getConnectionConfig();
         return ImmutablePostgresConnectionConfig.builder()
                 .dbName(suiteConfig.getDbName())
                 .host(suiteConfig.getHost())

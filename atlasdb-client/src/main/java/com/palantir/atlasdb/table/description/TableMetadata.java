@@ -28,7 +28,7 @@ import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(get = {"get*", "is*", "has*"})
+@TableMetadataStyle
 public abstract class TableMetadata implements Persistable {
 
     @Value.Default

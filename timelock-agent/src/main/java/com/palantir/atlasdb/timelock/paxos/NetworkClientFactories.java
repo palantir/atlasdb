@@ -24,7 +24,7 @@ import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(typeInnerBuilder = "DoNotMatch")
+@DoNotMatchInnerBuilderStyle
 public interface NetworkClientFactories {
     Factory<PaxosAcceptorNetworkClient> acceptor();
 

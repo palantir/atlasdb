@@ -60,8 +60,11 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
                 if (cqlCapableConfig.cqlHosts().isEmpty()) {
                     return MoreExecutors.newDirectExecutorService();
                 }
-                return tracingExecutorService(instrumentExecutorService(
-                        createThreadPool(cqlCapableConfig.cqlHosts().size() * config.poolSize()), metricsManager));
+                return tracingExecutorService(
+                        "Atlas Cassandra Async KVS",
+                        instrumentExecutorService(
+                                createThreadPool(cqlCapableConfig.cqlHosts().size() * config.poolSize()),
+                                metricsManager));
             }
         });
 
@@ -79,8 +82,8 @@ public final class DefaultCassandraAsyncKeyValueServiceFactory implements Cassan
         return PTExecutors.newFixedThreadPool(maxPoolSize, "Atlas Cassandra Async KVS");
     }
 
-    private ExecutorService tracingExecutorService(ExecutorService executorService) {
-        return Tracers.wrap(executorService);
+    private ExecutorService tracingExecutorService(String operationName, ExecutorService executorService) {
+        return Tracers.wrap(operationName, executorService);
     }
 
     private ExecutorService instrumentExecutorService(ExecutorService executorService, MetricsManager metricsManager) {

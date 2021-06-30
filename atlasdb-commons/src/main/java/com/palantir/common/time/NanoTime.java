@@ -18,12 +18,13 @@ package com.palantir.common.time;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import java.time.Duration;
 import java.util.concurrent.locks.LockSupport;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@PackageVisibleImmutablesStyle
 public abstract class NanoTime implements Comparable<NanoTime> {
     @JsonValue
     abstract long time();

@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: The DB persister runtime config for TimeLock now has the correct serialisation
+    type `database`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5521

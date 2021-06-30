@@ -350,7 +350,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, config);
         } catch (Exception e) {
-            log.error("Startup checks failed, was not able to create the keyspace or ensure it already existed.");
+            log.error("Startup checks failed, was not able to create the keyspace or ensure it already existed.", e);
             throw new RuntimeException(e);
         }
 

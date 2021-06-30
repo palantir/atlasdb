@@ -1,4 +1,5 @@
-# 13. Write Cassandra tombstones and sentinels with a fresh Cassandra timestamp
+13. Write Cassandra tombstones and sentinels with a fresh Cassandra timestamp
+*****************************************************************************
 
 Date: 12/06/2018
 
@@ -84,11 +85,11 @@ strain/performance perspective.
 Recall the invariants we seek to preserve:
 
 1. a tombstone or range tombstone that covers a cell with the Cassandra timestamp `TS` must have a Cassandra timestamp 
-  greater than `TS`
+greater than `TS`
 2. a tombstone or range tombstone that covers a sweep sentinel with Cassandra timestamp `TS` must have a Cassandra
-  timestamp greater than `TS`
+timestamp greater than `TS`
 3. the insertion of a fresh sweep sentinel after a tombstone that covers the sentinel, written at timestamp `TS`, must 
-  have a Cassandra timestamp greater than `TS`
+have a Cassandra timestamp greater than `TS`
 
 A cell being covered with Cassandra timestamp `TS` must also have Atlas start timestamp `TS`. Given that this cell is
 already written to the database, a fresh timestamp `TS'` is necessarily greater than `TS`, giving us statement 1.
@@ -109,10 +110,13 @@ general (there may be several `-1` timestamps in SSTables that are not frequentl
 ## Consequences
 
 - Key-value services now need a fresh timestamp supplier for initialisation.
+
   - An alternative approach where this was optional was considered (and if not provided we would use the legacy mode).
     We decided to mandate providing the supplier as the benefits of better tombstone droppability are significant.
   - The fresh timestamp supplier is unused by key value services other than Cassandra.
+
 - Inserting sentinels or writing tombstones/range tombstones requires one additional RPC.
+
   - These operations do not occur on critical paths (i.e. normal read/write transactions for clients) and may thus be
     less performance-sensitive. Reads and writes on critical paths do not suffer from any extra RPC overhead here.
   - A memoisation approach was considered, but naïve memoisation is wrong - there is a risk where if you write a value

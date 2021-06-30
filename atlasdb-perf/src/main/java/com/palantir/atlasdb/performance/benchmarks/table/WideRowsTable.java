@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -25,7 +26,6 @@ import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
@@ -74,7 +74,7 @@ public class WideRowsTable {
 
     private void storeData() {
         services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> values = new HashMap<>(NUM_ROWS * NUM_COLS_PER_ROW);
+            Map<Cell, byte[]> values = Maps.newHashMapWithExpectedSize(NUM_ROWS * NUM_COLS_PER_ROW);
             for (int i = 0; i < NUM_ROWS; i++) {
                 for (int j = 0; j < NUM_COLS_PER_ROW; j++) {
                     values.put(cell(i, j), Ints.toByteArray(i * NUM_COLS_PER_ROW + j));

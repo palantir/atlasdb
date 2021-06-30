@@ -131,6 +131,9 @@ public class ExecutorInheritableThreadLocal<T> {
         return null;
     }
 
+    // This project is used by api projects outside of atlasdb that try very hard to minimize
+    // their dependency footprint. As such we don't want to force users to take guava as a dependency.
+    @SuppressWarnings("AvoidNewHashMapInt")
     static Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> getMapForNewThread() {
         ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> currentMap =
                 mapForThisThread.get();

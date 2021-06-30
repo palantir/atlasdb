@@ -33,6 +33,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
@@ -69,6 +70,7 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.ServiceDiscoveringDatabaseTimeLockSupplier;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.DatabaseTsBoundPersisterRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
@@ -105,7 +107,7 @@ public class TimeLockAgent {
 
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
-    private final Supplier<TimeLockRuntimeConfiguration> runtime;
+    private final Refreshable<TimeLockRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
     private final Optional<Consumer<UndertowService>> undertowRegistrar;
     private final PaxosResources paxosResources;
@@ -124,7 +126,7 @@ public class TimeLockAgent {
     public static TimeLockAgent create(
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
-            Supplier<TimeLockRuntimeConfiguration> runtime,
+            Refreshable<TimeLockRuntimeConfiguration> runtime,
             UserAgent userAgent,
             int threadPoolSize,
             long blockingTimeoutMs,
@@ -197,7 +199,7 @@ public class TimeLockAgent {
     private TimeLockAgent(
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
-            Supplier<TimeLockRuntimeConfiguration> runtime,
+            Refreshable<TimeLockRuntimeConfiguration> runtime,
             Optional<Consumer<UndertowService>> undertowRegistrar,
             int threadPoolSize,
             long blockingTimeoutMs,
@@ -256,12 +258,29 @@ public class TimeLockAgent {
     private TimestampStorage createDatabaseTimestampStorage(
             DatabaseTsBoundPersisterConfiguration timestampBoundPersistence) {
         ServiceDiscoveringDatabaseTimeLockSupplier dbTimeLockSupplier = new ServiceDiscoveringDatabaseTimeLockSupplier(
-                metricsManager, timestampBoundPersistence.keyValueServiceConfig(), createLeaderConfig());
+                metricsManager,
+                timestampBoundPersistence.keyValueServiceConfig(),
+                runtime.map(TimeLockAgent::getKeyValueServiceRuntimeConfig),
+                createLeaderConfig());
         return ImmutableTimestampStorage.builder()
                 .timestampCreator(new DbBoundTimestampCreator(dbTimeLockSupplier))
                 .persistentNamespaceContext(PersistentNamespaceContexts.dbBound(
                         dbTimeLockSupplier.getTimestampSeriesProvider(AtlasDbConstants.DB_TIMELOCK_TIMESTAMP_TABLE)))
                 .build();
+    }
+
+    @VisibleForTesting
+    static Optional<KeyValueServiceRuntimeConfig> getKeyValueServiceRuntimeConfig(
+            TimeLockRuntimeConfiguration timeLockRuntimeConfiguration) {
+        return timeLockRuntimeConfiguration
+                .timestampBoundPersistence()
+                .map(config -> {
+                    Preconditions.checkState(
+                            config instanceof DatabaseTsBoundPersisterRuntimeConfiguration,
+                            "Should not initialise DB Timelock with non-database runtime configuration");
+                    return (DatabaseTsBoundPersisterRuntimeConfiguration) config;
+                })
+                .map(DatabaseTsBoundPersisterRuntimeConfiguration::keyValueServiceRuntimeConfig);
     }
 
     private void createAndRegisterResources() {

@@ -118,7 +118,8 @@ public class PersistentLockManager implements AutoCloseable {
                 log.info(
                         "CAS failed on lock acquire. We thought the lockId was {}, and the database has {}",
                         SafeArg.of("lockId", lockId),
-                        SafeArg.of("actualEntry", actualEntry));
+                        SafeArg.of("actualEntry", actualEntry),
+                        e);
                 if (lockId != null && actualEntry.instanceId().equals(lockId.value())) {
                     // We tried to acquire while already holding the lock. Welp - but we still have the lock.
                     referenceCount++;
@@ -140,7 +141,7 @@ public class PersistentLockManager implements AutoCloseable {
             log.warn("Failed to acquire persistent lock for sweep. Waiting and retrying.");
             return false;
         } catch (NotInitializedException e) {
-            log.info("The LockStore is not initialized yet. Waiting and retrying.");
+            log.info("The LockStore is not initialized yet. Waiting and retrying.", e);
             return false;
         }
     }

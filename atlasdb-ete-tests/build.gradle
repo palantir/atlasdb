@@ -117,6 +117,11 @@ task dbkvsTest(type: Test) {
     include '**/DbKvsTestSuite.class'
 }
 
+task oracleTest(type: Test) {
+    dependsOn prepareForEteTests
+    include '**/OracleDbKvsEteTestSuite.class'
+}
+
 test {
     dependsOn longTest, prepareForEteTests, timeLockTest, dbkvsTest
     exclude '**/MultiCassandraTestSuite.class'
@@ -127,6 +132,7 @@ test {
 
     exclude '**/*EteTest.class'
     exclude '**/DbKvsTestSuite.class'
+    exclude '**/OracleDbKvsEteTestSuite.class'
 }
 
 distribution {
@@ -136,5 +142,5 @@ distribution {
     defaultJvmOpts '-Xmx768M'
 }
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+sourceCompatibility = 11
+targetCompatibility = 11

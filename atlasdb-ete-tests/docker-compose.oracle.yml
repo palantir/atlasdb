@@ -1,0 +1,26 @@
+version: '2'
+
+services:
+  oracle:
+    image: palantirtechnologies/oracle-atlasdb:19.11.0.0-se
+    ports:
+      - "1521"
+
+  ete1:
+    build: .
+    command: [bash, -c, 'cp var/conf/atlasdb-ete.oracle.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://oracle:1521 && service/bin/init.sh console']
+    ports:
+      - "3828"
+    depends_on:
+      - oracle
+    environment:
+      - ME=ete1
+
+  ete-cli:
+    build: .
+    entrypoint: [bash, -c, 'cp var/conf/atlasdb-ete.oracle.yml var/conf/atlasdb-ete.yml && "$$@"', --]
+    command: exit
+    depends_on:
+      - ete1
+    environment:
+      - ME=ete1

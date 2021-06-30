@@ -22,7 +22,6 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -51,20 +50,20 @@ public abstract class CqlQuery {
     }
 
     /**
-     * Returns an object whose {@link #toString()} implementation returns a log-safe string, and does all formatting
-     * lazily. This is intended to be used for trace logging, where the {@link #toString()} method may never be called.
+     * Returns safe string representation of the query.
      */
-    public Object getLazySafeLoggableObject() {
-        return new Object() {
-            @Override
-            public String toString() {
-                String argsString = args().stream()
-                        .filter(Arg::isSafeForLogging)
-                        .map(arg -> String.format("%s = %s", arg.getName(), arg.getValue()))
-                        .collect(Collectors.joining(", "));
-
-                return safeQueryFormat() + ": " + argsString;
+    public String getSafeLog() {
+        StringBuilder buffer = new StringBuilder().append(safeQueryFormat()).append(": ");
+        boolean first = true;
+        for (Arg<?> arg : args()) {
+            if (arg.isSafeForLogging()) {
+                if (!first) {
+                    buffer.append(", ");
+                }
+                first = false;
+                buffer.append(arg.getName()).append(" = ").append(arg.getValue());
             }
-        };
+        }
+        return buffer.toString();
     }
 }

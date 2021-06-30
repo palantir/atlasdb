@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Users may now specify runtime KVS configuration for DB-TimeLock.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5519

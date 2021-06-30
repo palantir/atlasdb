@@ -212,6 +212,7 @@ public final class TableTasks {
      *             int, int, DiffStats, DiffVisitor)} instead
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public static void diff(
             final TransactionManager txManager,
             ExecutorService exec,
