@@ -13,6 +13,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
     implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.sls.versions:sls-versions'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard:dropwizard-core'
