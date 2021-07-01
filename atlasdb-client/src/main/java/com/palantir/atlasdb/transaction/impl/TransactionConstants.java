@@ -18,7 +18,8 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -58,6 +59,7 @@ public final class TransactionConstants {
     public static final TableMetadata TRANSACTION_TABLE_METADATA = TableMetadata.internal()
             .singleRowComponent("write_ts", ValueType.VAR_LONG)
             .singleNamedColumn(COMMIT_TS_COLUMN_STRING, "commit_ts", ValueType.VAR_LONG)
+            .nameLogSafety(LogSafety.SAFE)
             .build();
 
     /**
@@ -69,8 +71,8 @@ public final class TransactionConstants {
     public static final TableMetadata TRANSACTIONS2_TABLE_METADATA = TableMetadata.internal()
             .singleSafeRowComponent("start_ts_row", ValueType.BLOB)
             .singleDynamicSafeColumn("start_ts_col", ValueType.BLOB, ValueType.BLOB)
-            .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
-            .sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING)
+            .nameLogSafety(LogSafety.SAFE)
+            .sweepStrategy(SweepStrategy.NOTHING)
             .explicitCompressionBlockSizeKB(64)
             .denselyAccessedWideRows(true)
             .build();
