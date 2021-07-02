@@ -1,0 +1,15 @@
+type: improvement
+improvement:
+  description: |-
+    revert metadata
+
+    Reverts https://github.com/palantir/atlasdb/pull/5467.
+    This isn't required as the same tracing metadata is reported via TracingCassandraClient.
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/5527
