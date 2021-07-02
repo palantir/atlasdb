@@ -33,6 +33,7 @@ dependencies {
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.google.auto.service:auto-service-annotations'
   implementation 'com.google.guava:guava'
+  implementation 'com.palantir.conjure.java.api:service-config'
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.tokens:auth-tokens'
   implementation 'com.palantir.tracing:tracing'

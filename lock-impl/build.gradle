@@ -18,6 +18,7 @@ dependencies {
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'org.eclipse.collections:eclipse-collections'
+  implementation 'org.eclipse.collections:eclipse-collections-api'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':commons-executors')
   implementation project(':lock-api-objects')

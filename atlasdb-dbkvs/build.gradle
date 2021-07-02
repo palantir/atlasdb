@@ -22,6 +22,7 @@ dependencies {
   implementation 'commons-dbutils:commons-dbutils'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.eclipse.collections:eclipse-collections'
+  implementation 'org.eclipse.collections:eclipse-collections-api'
   implementation 'org.postgresql:postgresql'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-commons')
