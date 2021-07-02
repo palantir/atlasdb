@@ -1,5 +1,0 @@
-type: improvement
-improvement:
-  description: bump libthrift to 0.12.0 to address some CVEs
-  links:
-  - https://github.com/palantir/atlasdb/pull/5522
