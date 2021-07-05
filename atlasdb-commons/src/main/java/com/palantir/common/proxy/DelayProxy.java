@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.function.Supplier;
 
+@SuppressWarnings("ProxyNonConstantType")
 public class DelayProxy implements DelegatingInvocationHandler {
 
     @SuppressWarnings("unchecked")

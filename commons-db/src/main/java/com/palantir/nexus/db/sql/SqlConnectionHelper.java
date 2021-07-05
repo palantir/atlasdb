@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
  *
  * @author jweel
  */
+@SuppressWarnings("BadAssert") // performance sensitive asserts
 public final class SqlConnectionHelper {
 
     private final BasicSQL basicSql;

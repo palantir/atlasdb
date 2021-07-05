@@ -166,6 +166,7 @@ public abstract class BasicSQL {
     private static final long POSTGRES_BEGIN_RANGE = new DateTime(-4712, 1, 1, 0, 0, 0, 0).getMillis();
     private static final long POSTGRES_END_RANGE = new DateTime(294276, 1, 1, 0, 0, 0, 0).getMillis();
 
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     protected BlobHandler setObject(Connection c, PreparedStatement ps, int i, Object obj) throws PalantirSqlException {
         if (obj instanceof ByteArrayInputStream) {
             ByteArrayInputStream bais = (ByteArrayInputStream) obj;
@@ -249,7 +250,8 @@ public abstract class BasicSQL {
         return baos.toByteArray();
     }
 
-    /** Takes a byte array, deserializes it and returns an Object
+    /**
+     * Takes a byte array, deserializes it and returns an Object
      */
     @SuppressWarnings("BanSerializableRead")
     static Object getBlobObject(InputStream stream) throws IOException, ClassNotFoundException {
@@ -265,6 +267,7 @@ public abstract class BasicSQL {
         EXCLUDE_OFFSET;
     }
 
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     static String getInClause(Collection<Long> allowed) {
         Iterator<Long> it = allowed.iterator();
         if (!it.hasNext()) {
@@ -284,6 +287,7 @@ public abstract class BasicSQL {
         return sb.toString();
     }
 
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     static long getLongFromNumber(Object obj) {
         assert (obj != null);
         return (obj != null) ? ((BigDecimal) obj).longValue() : 0L;
@@ -293,7 +297,9 @@ public abstract class BasicSQL {
         return (obj != null) ? ((BigDecimal) obj).longValue() : returnIfNull;
     }
 
-    /** Encapsulates the logic for creating a prepared statement with the arguments set*/
+    /**
+     * Encapsulates the logic for creating a prepared statement with the arguments set
+     */
     private PreparedStatement createPreparedStatement(Connection c, String sql, Object[] vs)
             throws PalantirSqlException {
         PreparedStatement ps;
@@ -360,6 +366,7 @@ public abstract class BasicSQL {
         }
     }
 
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     public static boolean assertNotOnSqlThread() {
         assert !Thread.currentThread().getName().contains(SELECT_THREAD_NAME);
         assert !Thread.currentThread().getName().contains(EXECUTE_THREAD_NAME);
@@ -395,8 +402,10 @@ public abstract class BasicSQL {
         FALSE,
     }
 
-    /**Execute the PreparedStatement asynchronously, cancel it if we're interrupted, and return the result set if we're not.
-     * Throws a RuntimeException (PalantirInterruptedException) in case of interrupts. */
+    /**
+     * Execute the PreparedStatement asynchronously, cancel it if we're interrupted, and return the result set if we're not.
+     * Throws a RuntimeException (PalantirInterruptedException) in case of interrupts.
+     */
     private <T> T runCancellably(
             PreparedStatement ps, ResultSetVisitor<T> visitor, FinalSQLString sql, @Nullable Integer fetchSize)
             throws PalantirInterruptedException, PalantirSqlException {
@@ -635,6 +644,7 @@ public abstract class BasicSQL {
                 "selectExists"); //$NON-NLS-1$
     }
 
+    @SuppressWarnings("BadAssert") // only fail check with asserts enabled
     protected int selectIntegerInternal(final Connection c, final FinalSQLString sql, Object... vs)
             throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
@@ -666,6 +676,7 @@ public abstract class BasicSQL {
                 "selectInteger"); //$NON-NLS-1$
     }
 
+    @SuppressWarnings("BadAssert") // only fail check with asserts enabled
     protected Long selectLongInternal(
             final Connection c,
             final FinalSQLString sql,
@@ -892,6 +903,7 @@ public abstract class BasicSQL {
                 c);
     }
 
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     public boolean insertMany(final Connection c, final FinalSQLString sql, final Object vs[][])
             throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {

@@ -16,6 +16,7 @@
 package com.palantir.common.concurrent;
 
 import com.google.common.base.Throwables;
+import com.palantir.logsafe.Preconditions;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
@@ -40,12 +41,13 @@ public class BlockingWorkerPool {
      * currently executing tasks has finished.
      *
      * @throws RuntimeException wrapping an ExecutionException if a previously
-     *         submitted task threw an exception.
+     *                          submitted task threw an exception.
      */
     public synchronized void submitTask(Runnable task) throws InterruptedException {
         waitForAvailability();
 
-        assert currentTaskCount.get() < concurrentTaskLimit : "currentTaskCount must be less than currentTaskLimit";
+        Preconditions.checkState(
+                currentTaskCount.get() < concurrentTaskLimit, "currentTaskCount must be less than currentTaskLimit");
         service.submit(task, null);
         currentTaskCount.incrementAndGet();
     }
@@ -69,7 +71,7 @@ public class BlockingWorkerPool {
      * finish.
      *
      * @throws RuntimeException wrapping an ExecutionException if a previously
-     *         submitted task threw an exception.
+     *                          submitted task threw an exception.
      */
     public synchronized void waitForSubmittedTasks() throws InterruptedException {
         while (currentTaskCount.get() > 0) {
@@ -79,6 +81,7 @@ public class BlockingWorkerPool {
 
     /**
      * Waits until the number of tasks drops below the concurrent task limit.
+     *
      * @throws InterruptedException
      */
     public synchronized void waitForAvailability() throws InterruptedException {

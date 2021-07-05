@@ -18,6 +18,8 @@ package com.palantir.util;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.UnsafeArg;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -36,7 +38,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Thread Safe
- *
  */
 public class SoftCache<K, V> extends MBeanCache<K, V> {
     private static final int INITIAL_SIZE = 1000;
@@ -101,7 +102,10 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
                 cacheEntries.remove(key);
             }
         } else {
-            assert false : "All references should be of type KeyedReference";
+            Preconditions.checkState(
+                    false,
+                    "All references should be of type KeyedReference",
+                    UnsafeArg.of("ref", ref == null ? "null" : ref.getClass().getName()));
         }
     }
 
@@ -121,7 +125,9 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         return false;
     }
 
-    /** Adds an object to the cache.
+    /**
+     * Adds an object to the cache.
+     *
      * @param key
      * @param value
      */
@@ -166,7 +172,9 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         putAllIfAbsent(map);
     }
 
-    /** Gets an object from the cache.
+    /**
+     * Gets an object from the cache.
+     *
      * @param key
      */
     @Override
@@ -203,7 +211,9 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         return ret;
     }
 
-    /** Removes an object from the cache.
+    /**
+     * Removes an object from the cache.
+     *
      * @param key
      */
     public synchronized V remove(K key) {
@@ -216,7 +226,8 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         return cacheEntries.size();
     }
 
-    /** Clears all entries from the cache.
+    /**
+     * Clears all entries from the cache.
      */
     @Override
     public synchronized void clear() {
@@ -255,6 +266,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      * Iterates through the cache and cleans up any cache references that have
      * been collected by the garbage collector.
      */
+    @SuppressWarnings("BadAssert") // performance sensitive assertion checks
     public final void cleanup() {
         mbean.cleanups.incrementAndGet();
         if (log.isTraceEnabled()) {
@@ -279,16 +291,17 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
      * Convenience cache operations *****************************
      */
 
-    /** This convenience method filters a request by removing all items in the request which
+    /**
+     * This convenience method filters a request by removing all items in the request which
      * are in the cache and returning the corresponding values.
-     *
+     * <p>
      * Synchronization note: this method is not synchronized on the cache.  Thus, if replacements
      * are performed during a canonicalization, it is undefined which object is returned.  Similarly,
      * this function is not synchronized on the request collection, so if synchronization is required,
      * it must be performed externally.
      *
      * @param request The list of items to be fetched from the backing store.  This collection must
-     * be modifiable.
+     *                be modifiable.
      */
     public Collection<V> filter(Collection<K> request) {
         Collection<V> rv = new ArrayList<V>();
@@ -307,12 +320,13 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         return rv;
     }
 
-    /** This convenience method takes a map of items returned from the backing store and replaces
+    /**
+     * This convenience method takes a map of items returned from the backing store and replaces
      * references loaded from the backing store with items in the cache.
-     *
+     * <p>
      * A call to canonicalize will typically be followed by a putAll on the returnVal, so that
      * future requests to the cache will return the new items loaded.
-     *
+     * <p>
      * Synchronization note: this method is not synchronized on the cache.  Thus, if replacements
      * are performed during a canonicalization, it is undefined which object is returned.  Similarly,
      * this function is not synchronized on the returnVal map, so if synchronization is required, it

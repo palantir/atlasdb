@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
  * Allows you to intercept and override methods in {@link Statement} and subinterfaces
  * methods.
  */
+@SuppressWarnings("ProxyNonConstantType")
 public final class InterceptorStatement<T extends Statement> extends AbstractInvocationHandler
         implements InvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(InterceptorStatement.class);
