@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |-
+    Reverts https://github.com/palantir/atlasdb/pull/5467.
+    This isn't required as the same tracing metadata is reported via TracingCassandraClient.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5527
