@@ -15,26 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.Throwables;
 import com.palantir.tracing.DetachedSpan;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
-import org.immutables.value.Value;
 
 class TaskRunner {
     private final ListeningExecutorService listeningExecutor;
@@ -47,21 +40,21 @@ class TaskRunner {
      * Similar to executor.invokeAll, but cancels all remaining tasks if one fails and doesn't spawn new threads if
      * there is only one task
      */
-    <V> List<V> runAllTasksCancelOnFailure(List<KvsLoadingTask<V>> tasks) {
+    <V> List<V> runAllTasksCancelOnFailure(List<Callable<V>> tasks) {
         if (tasks.size() == 1) {
             try {
                 // Callable<Void> returns null, so can't use immutable list
-                return Collections.singletonList(tasks.get(0).task().call());
+                return Collections.singletonList(tasks.get(0).call());
             } catch (Exception e) {
                 throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }
         }
 
         List<ListenableFuture<V>> futures = new ArrayList<>(tasks.size());
-        for (KvsLoadingTask<V> task : tasks) {
+        for (Callable<V> task : tasks) {
             DetachedSpan detachedSpan = DetachedSpan.start("task");
-            ListenableFuture<V> future = listeningExecutor.submit(task.task());
-            futures.add(attachDetachedSpanCompletion(detachedSpan, task.metadata(), future, listeningExecutor));
+            ListenableFuture<V> future = listeningExecutor.submit(task);
+            futures.add(attachDetachedSpanCompletion(detachedSpan, future, listeningExecutor));
         }
         try {
             List<V> results = new ArrayList<>(tasks.size());
@@ -79,58 +72,21 @@ class TaskRunner {
     }
 
     private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
-            DetachedSpan detachedSpan, Metadata metadata, ListenableFuture<V> future, Executor tracingExecutorService) {
+            DetachedSpan detachedSpan, ListenableFuture<V> future, Executor tracingExecutorService) {
         Futures.addCallback(
                 future,
                 new FutureCallback<V>() {
                     @Override
                     public void onSuccess(V result) {
-                        detachedSpan.complete(metadata.getMetadata());
+                        detachedSpan.complete();
                     }
 
                     @Override
                     public void onFailure(Throwable throwable) {
-                        detachedSpan.complete(metadata.getMetadata());
+                        detachedSpan.complete();
                     }
                 },
                 tracingExecutorService);
         return future;
-    }
-
-    @Value.Immutable
-    interface Metadata {
-
-        String taskName();
-
-        int numCells();
-
-        Set<TableReference> tableRefs();
-
-        String host();
-
-        default Map<String, String> getMetadata() {
-            return ImmutableMap.of(
-                    "taskName",
-                    taskName(),
-                    "numCells",
-                    String.valueOf(numCells()),
-                    "tableRefs",
-                    tableRefs().stream()
-                            .map(LoggingArgs::safeTableOrPlaceholder)
-                            .collect(Collectors.toList())
-                            .toString(),
-                    "host",
-                    host());
-        }
-    }
-
-    @Value.Immutable
-    interface KvsLoadingTask<V> {
-
-        @Value.Parameter
-        Callable<V> task();
-
-        @Value.Parameter
-        Metadata metadata();
     }
 }
