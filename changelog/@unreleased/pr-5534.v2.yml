@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: Publishing of AtlasDB dependent services should work again; this was
+    broken because of what the maintainers believe to be a bad interaction between
+    dependency-control and check implicit dependencies. This reverts the offending
+    dependency and disables the check which is believed to be erroneously firing.
+    We seek to re-enable the implicit dependency check soon.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5534
