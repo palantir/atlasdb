@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.console;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
@@ -96,7 +96,7 @@ public class AtlasConsoleServiceTest {
             }
         });
         context.checking(toJson(output, Set.class));
-        assertEquals(service.tables(), RESULT);
+        assertThat(service.tables()).isEqualTo(RESULT);
         context.assertIsSatisfied();
     }
 
@@ -111,7 +111,7 @@ public class AtlasConsoleServiceTest {
             }
         });
         context.checking(toJson(output, TableMetadata.class));
-        assertEquals(service.getMetadata(table), RESULT);
+        assertThat(service.getMetadata(table)).isEqualTo(RESULT);
         context.assertIsSatisfied();
     }
 
@@ -127,7 +127,7 @@ public class AtlasConsoleServiceTest {
             }
         });
         context.checking(toJson(output, TableRowResult.class));
-        assertEquals(service.getRows(token, QUERY), RESULT);
+        assertThat(service.getRows(token, QUERY)).isEqualTo(RESULT);
         context.assertIsSatisfied();
     }
 
@@ -143,7 +143,7 @@ public class AtlasConsoleServiceTest {
             }
         });
         context.checking(toJson(output, TableCellVal.class));
-        assertEquals(service.getCells(token, QUERY), RESULT);
+        assertThat(service.getCells(token, QUERY)).isEqualTo(RESULT);
         context.assertIsSatisfied();
     }
 
@@ -159,7 +159,7 @@ public class AtlasConsoleServiceTest {
             }
         });
         context.checking(toJson(output, RangeToken.class));
-        assertEquals(service.getRange(token, QUERY), RESULT);
+        assertThat(service.getRange(token, QUERY)).isEqualTo(RESULT);
         context.assertIsSatisfied();
     }
 

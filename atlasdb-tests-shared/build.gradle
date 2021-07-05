@@ -29,6 +29,7 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.assertj:assertj-guava'
   implementation 'org.hamcrest:hamcrest'
   implementation 'org.rocksdb:rocksdbjni'
   implementation project(':atlasdb-api')
