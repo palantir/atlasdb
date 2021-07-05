@@ -19,7 +19,6 @@ dependencies {
     compile group: 'com.palantir.conjure.java.api', name: 'service-config'
     compile group: 'one.util', name: 'streamex'
 
-    implementation 'com.boundary:high-scale-lib'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.errorprone:error_prone_annotations'

@@ -22,7 +22,6 @@ dependencies {
     compile group: 'com.palantir.refreshable', name: 'refreshable'
     compile group: 'one.util', name: 'streamex'
 
-    implementation 'com.boundary:high-scale-lib'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java:conjure-lib'
