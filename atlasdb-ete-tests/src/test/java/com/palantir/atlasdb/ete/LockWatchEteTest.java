@@ -27,6 +27,8 @@ import com.palantir.atlasdb.lock.GetLockWatchUpdateRequest;
 import com.palantir.atlasdb.lock.SimpleEteLockWatchResource;
 import com.palantir.atlasdb.lock.TransactionId;
 import com.palantir.atlasdb.lock.WriteRequest;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
@@ -44,7 +46,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 public final class LockWatchEteTest {
     private static final String SEED = "seed";
@@ -53,6 +57,9 @@ public final class LockWatchEteTest {
     private static final String ROW_3 = row(3);
 
     private final EteLockWatchResource lockWatcher = EteSetup.createClientToSingleNode(EteLockWatchResource.class);
+
+    @Rule
+    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     private TableReference tableReference;
 
@@ -80,6 +87,7 @@ public final class LockWatchEteTest {
     }
 
     @Test
+    @ShouldRetry
     public void multipleTransactionVersionsReturnsSnapshotAndOnlyRelevantRecentEvents() {
         LockWatchVersion baseVersion = seedCacheAndGetVersion();
 
