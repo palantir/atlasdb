@@ -60,6 +60,7 @@ public final class TransactionConstants {
             .singleRowComponent("write_ts", ValueType.VAR_LONG)
             .singleNamedColumn(COMMIT_TS_COLUMN_STRING, "commit_ts", ValueType.VAR_LONG)
             .nameLogSafety(LogSafety.SAFE)
+            .sweepStrategy(SweepStrategy.NOTHING)
             .build();
 
     /**
