@@ -31,12 +31,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *  Dynamic Proxy for confining an object to a particular thread, but allowing explicit handoff.
- *
- *  For example, {@linkplain java.sql.Connection} objects are not thread-safe and are often passed around, sometimes between threads.  This
- *  can lead to race conditions.  Wrapping a Connection in a ThreadConfinedProxy will enforce that we do not accidentally access the
- *  Connection from multiple threads, provided we never expose the Connection outside of the proxy.
+ * Dynamic Proxy for confining an object to a particular thread, but allowing explicit handoff.
+ * <p>
+ * For example, {@linkplain java.sql.Connection} objects are not thread-safe and are often passed around, sometimes between threads.  This
+ * can lead to race conditions.  Wrapping a Connection in a ThreadConfinedProxy will enforce that we do not accidentally access the
+ * Connection from multiple threads, provided we never expose the Connection outside of the proxy.
  */
+@SuppressWarnings("ProxyNonConstantType")
 public final class ThreadConfinedProxy extends AbstractInvocationHandler implements DelegatingInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ThreadConfinedProxy.class);
 
@@ -73,7 +74,6 @@ public final class ThreadConfinedProxy extends AbstractInvocationHandler impleme
      * different type of proxy that also uses a {@linkplain DelegatingInvocationHandler}, this method will recursively apply to the
      * delegate.  This means that this method can handle arbitrarily nested DelegatingInvocationHandlers, including nested
      * ThreadConfinedProxy objects.
-     *
      */
     public static void changeThread(Object proxy, Thread oldThread, Thread newThread) {
         Preconditions.checkNotNull(proxy, "Proxy argument must not be null");

@@ -31,9 +31,10 @@ import java.util.function.Supplier;
  * Proxy that calls the requested method in another thread waits on a Future.
  * If the calling thread is interrupted, this proxy will throw a PalantirInterruptedException.
  * If given the CancelDelgate#Cancel option, it will also interrupt the delegated thread.
- * @author dcohen
  *
+ * @author dcohen
  */
+@SuppressWarnings("ProxyNonConstantType")
 public final class InterruptibleProxy implements DelegatingInvocationHandler {
     private static final Supplier<ExecutorService> defaultExecutor =
             Suppliers.memoize(() -> PTExecutors.newCachedThreadPool("Interruptible Proxy"));

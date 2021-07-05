@@ -71,6 +71,7 @@ public final class StackTraceUtils {
         return getStackTraceForConnection(connection, false);
     }
 
+    @SuppressWarnings("BadAssert") // performance sensitive
     public static String[] getStackTraceForConnection(MBeanServerConnection connection, boolean redact)
             throws JMException, IOException {
         long[] threadIDs = (long[]) connection.getAttribute(THREAD_MXBEAN, "AllThreadIds");
@@ -125,7 +126,7 @@ public final class StackTraceUtils {
                         stackDepths[j] = ((Integer) getLockedStackDepthMethod.invoke(lockedMonitors[j])).intValue();
                     }
                 } catch (InvocationTargetException e) {
-                    /** if lockedMonitors is not empty, then getLockedMonitors exists,
+                    /* if lockedMonitors is not empty, then getLockedMonitors exists,
                      * ergo monitorInfo exists and we should never end up here
                      * (or in the next catch block)
                      */
@@ -310,9 +311,9 @@ public final class StackTraceUtils {
     }
 
     /**
-     *  This function pluralizes the given text and now accounts for three capitalization cases: lower case, Camel Case, and ALL CAPS.
-     *  It converts the text to lower case first and looks it up in the plurals dictionary (which we assume to be all lower case now).
-     *  If it does not exist, it simply appends a "s" to the word.  Then it converts the capitalization.  Also see TextUtilText.testPluralizeWithCaps().
+     * This function pluralizes the given text and now accounts for three capitalization cases: lower case, Camel Case, and ALL CAPS.
+     * It converts the text to lower case first and looks it up in the plurals dictionary (which we assume to be all lower case now).
+     * If it does not exist, it simply appends a "s" to the word.  Then it converts the capitalization.  Also see TextUtilText.testPluralizeWithCaps().
      */
     public static String pluralize(String text) {
         if (text == null || "".equals(text)) {
@@ -336,7 +337,6 @@ public final class StackTraceUtils {
             if (plural != null && plural.length() > 0) {
                 return Character.toUpperCase(plural.charAt(0)) + plural.substring(1); // Camel Case
             } else {
-                assert false : "dictionary entry too short";
                 return plural;
             }
         } else {

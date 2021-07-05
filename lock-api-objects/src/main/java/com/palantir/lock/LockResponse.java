@@ -67,9 +67,10 @@ public final class LockResponse implements Serializable {
 
     /**
      * This should only get created by the Lock Service.
-     *
+     * <p>
      * This constructor is for {@link BlockingMode#BLOCK_INDEFINITELY_THEN_RELEASE}
      */
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     public LockResponse(Map<LockDescriptor, LockClient> lockHolders) {
         this.token = null;
         this.lockHolders = ImmutableSortedMap.copyOf(lockHolders);

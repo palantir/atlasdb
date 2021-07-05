@@ -204,10 +204,12 @@ public class DbKvsGetRanges {
             }
         }
     }
+
     /**
      * This tablehod expects the input to be sorted by rowname ASC for both rowsForBatches and
      * cellsByRow.
      */
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> breakUpByBatch(
             List<RangeRequest> requests,
             SortedSetMultimap<Integer, byte[]> rowsForBatches,

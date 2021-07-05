@@ -24,6 +24,7 @@ import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@SuppressWarnings("ProxyNonConstantType")
 public final class ToggleableExceptionProxy implements DelegatingInvocationHandler {
 
     @SuppressWarnings("unchecked")

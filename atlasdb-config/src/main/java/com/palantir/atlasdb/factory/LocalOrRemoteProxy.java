@@ -31,6 +31,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * A proxy that chooses between using a local or remote proxy based on a task that may take a while to complete.
  */
+@SuppressWarnings("ProxyNonConstantType")
 final class LocalOrRemoteProxy<T> extends AbstractInvocationHandler {
 
     static <U> U newProxyInstance(
