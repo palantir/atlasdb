@@ -34,6 +34,7 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
     protected DBType dbType;
     protected Map<String, Integer> columnMap;
 
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     public AbstractAgnosticResultRow(DBType type, Map<String, Integer> cmap) {
         dbType = type;
         columnMap = cmap;
@@ -105,6 +106,7 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
     protected abstract byte[] getBytes(int col) throws PalantirSqlException;
 
     @Override
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     public long getCount(String colname) throws PalantirSqlException {
         long count = getLong(colname);
         assert count > -1;
@@ -142,10 +144,12 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
      * Get a value out of a result set, assume it to be a number field.
      * If null, use default value of 0).  This call is appropriate for Oracle column
      * types of NUMBER, or HSQLDB column types of BIGINT
+     *
      * @param col Zero-based column index
      * @throws PalantirSqlException
      */
-    @Deprecated // use the get by colname variant instead
+    @Deprecated
+    // use the get by colname variant instead
     long getLong(int col) throws PalantirSqlException {
         return getLong(col, 0);
     }

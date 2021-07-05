@@ -43,6 +43,7 @@ public final class ColumnSelection implements Serializable {
         this.selectedColumns = selectedColumns;
     }
 
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     public static ColumnSelection valueOf(String serialized) {
         Set<byte[]> columns = new TreeSet<>(UnsignedBytes.lexicographicalComparator());
         for (String columnString : serialized.split("\\s*,\\s*")) {
@@ -93,6 +94,7 @@ public final class ColumnSelection implements Serializable {
         return selectedColumns == null;
     }
 
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     public Collection<byte[]> getSelectedColumns() {
         assert selectedColumns != null;
         return Collections.unmodifiableCollection(selectedColumns);

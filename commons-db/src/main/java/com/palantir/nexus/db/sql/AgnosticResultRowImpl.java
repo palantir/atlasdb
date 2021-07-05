@@ -44,11 +44,12 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
      * If null, return empty byte array.  This call is appropriate for H2/Oracle column
      * types of BLOB, or HSQLDB column types of LONGVARBINARY or
      * POSTGRESQL types of BYTEA
-     * @param col Zero-based column index
+     *
+     * @param col        Zero-based column index
      * @param blobLength the length in bytes of the blob (ignored if negative).
-     *    Setting this parameter improves the efficiency of this call by ~30%.
-     *    You can obtain this value by retrieving a "length(my_blob)" column in
-     *    your ResultSet.
+     *                   Setting this parameter improves the efficiency of this call by ~30%.
+     *                   You can obtain this value by retrieving a "length(my_blob)" column in
+     *                   your ResultSet.
      * @return bytes of the blob
      * @throws SQLException
      * @deprecated
@@ -85,7 +86,6 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
 
             return blob;
         }
-        assert false : "unknown db type"; // $NON-NLS-1$
         throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
     }
 
@@ -106,7 +106,6 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
         } else if (dbType == DBType.POSTGRESQL) {
             return (String) columns.get(col);
         }
-        assert false : "unknown db type"; // $NON-NLS-1$
         throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
     }
 
@@ -115,10 +114,11 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
      * If null, use fallback value supplied (as when user wants -1 for value
      * not present instead of 0).  This call is appropriate for Oracle column
      * types of NUMBER, or H2/HSQLDB / POSTGRESQL column types of BIGINT
-     * @deprecated use getLong by colname instead.
-     * @param col Zero-based column index
+     *
+     * @param col      Zero-based column index
      * @param fallback long value to return if value not present (e.g. null in db)
      * @throws SQLException
+     * @deprecated use getLong by colname instead.
      */
     @Override
     @Deprecated // use the get by colname variant instead
@@ -135,7 +135,6 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
             } else if (dbType == DBType.POSTGRESQL || dbType == DBType.H2_MEMORY) {
                 return ((Number) columns.get(col)).longValue();
             }
-            assert false : "unknown db type"; // $NON-NLS-1$
             throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
         }
     }
@@ -174,10 +173,8 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
                 return ((BigDecimal) o).intValue();
             }
             String msg = "unknown return type for expected integer column"; // $NON-NLS-1$
-            assert false : msg;
             throw PalantirSqlException.create(msg);
         }
-        assert false : "no db type defined"; // $NON-NLS-1$
         throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
     }
 
@@ -194,7 +191,6 @@ public class AgnosticResultRowImpl extends AbstractAgnosticResultRow {
             return ((Double) columns.get(col)).doubleValue();
         }
 
-        assert false : "unknown db type"; // $NON-NLS-1$
         throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
     }
 

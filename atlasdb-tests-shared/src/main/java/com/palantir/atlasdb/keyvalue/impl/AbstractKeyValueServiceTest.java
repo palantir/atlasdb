@@ -84,6 +84,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.ArrayUtils;
+import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -637,20 +638,24 @@ public abstract class AbstractKeyValueServiceTest {
         final byte[] endRow = rangeRequest.getEndExclusive();
 
         if (startRow.length > 0) {
-            if (!reverse) {
-                assert UnsignedBytes.lexicographicalComparator().compare(startRow, row) <= 0;
+            if (reverse) {
+                Assertions.assertThat(UnsignedBytes.lexicographicalComparator().compare(startRow, row))
+                        .isGreaterThanOrEqualTo(0);
             } else {
-                assert UnsignedBytes.lexicographicalComparator().compare(startRow, row) >= 0;
+                Assertions.assertThat(UnsignedBytes.lexicographicalComparator().compare(startRow, row))
+                        .isLessThanOrEqualTo(0);
             }
         }
 
         while (it.hasNext()) {
             byte[] nextRow = it.next().getRowName();
 
-            if (!reverse) {
-                assert UnsignedBytes.lexicographicalComparator().compare(row, nextRow) <= 0;
+            if (reverse) {
+                Assertions.assertThat(UnsignedBytes.lexicographicalComparator().compare(row, nextRow))
+                        .isGreaterThanOrEqualTo(0);
             } else {
-                assert UnsignedBytes.lexicographicalComparator().compare(row, nextRow) >= 0;
+                Assertions.assertThat(UnsignedBytes.lexicographicalComparator().compare(row, nextRow))
+                        .isLessThanOrEqualTo(0);
             }
 
             row = nextRow;
@@ -658,10 +663,12 @@ public abstract class AbstractKeyValueServiceTest {
         }
 
         if (endRow.length > 0) {
-            if (!reverse) {
-                assert UnsignedBytes.lexicographicalComparator().compare(row, endRow) < 0;
+            if (reverse) {
+                Assertions.assertThat(UnsignedBytes.lexicographicalComparator().compare(row, endRow))
+                        .isGreaterThan(0);
             } else {
-                assert UnsignedBytes.lexicographicalComparator().compare(row, endRow) > 0;
+                Assertions.assertThat(UnsignedBytes.lexicographicalComparator().compare(row, endRow))
+                        .isLessThan(0);
             }
         }
 
