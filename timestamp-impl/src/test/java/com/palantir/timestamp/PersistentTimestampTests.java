@@ -18,13 +18,11 @@ package com.palantir.timestamp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.longThat;
 
-import org.assertj.core.api.HamcrestCondition;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,7 +47,7 @@ public class PersistentTimestampTests {
         TimestampRange first = timestamp.incrementBy(10);
         TimestampRange second = timestamp.incrementBy(10);
 
-        assertThat(first.getUpperBound()).is(new HamcrestCondition<>(is(lessThan(second.getLowerBound()))));
+        assertThat(first.getUpperBound()).isLessThan(second.getLowerBound());
     }
 
     @Test

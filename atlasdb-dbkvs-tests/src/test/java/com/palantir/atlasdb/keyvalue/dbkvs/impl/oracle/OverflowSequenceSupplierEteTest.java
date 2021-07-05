@@ -26,8 +26,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.assertj.core.api.HamcrestCondition;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -72,7 +70,7 @@ public class OverflowSequenceSupplierEteTest {
             long overflowId = sequenceSupplier.get();
             assertThat(overflowId)
                     .describedAs("OverflowIds must always be monotonically increasing.")
-                    .is(new HamcrestCondition<>(Matchers.greaterThan(previousOverflowId)));
+                    .isGreaterThan(previousOverflowId);
             assertThat(overflowIds)
                     .describedAs("OverflowIDs must be different across threads.")
                     .doesNotContain(overflowId);

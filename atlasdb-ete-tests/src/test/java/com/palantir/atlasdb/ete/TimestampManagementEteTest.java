@@ -16,11 +16,8 @@
 package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
 
 import com.palantir.atlasdb.timestamp.EteTimestampResource;
-import org.assertj.core.api.HamcrestCondition;
 import org.junit.Test;
 
 public class TimestampManagementEteTest {
@@ -36,6 +33,6 @@ public class TimestampManagementEteTest {
         long newts = timestampClient.getFreshTimestamp() + 10000000;
         timestampClient.fastForwardTimestamp(newts);
 
-        assertThat(timestampClient.getFreshTimestamp()).is(new HamcrestCondition<>(is(greaterThan(newts))));
+        assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(newts);
     }
 }

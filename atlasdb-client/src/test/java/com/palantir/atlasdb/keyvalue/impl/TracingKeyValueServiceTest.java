@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -50,7 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.assertj.core.api.HamcrestCondition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -401,8 +399,7 @@ public class TracingKeyValueServiceTest {
         assertThat(observer.spans()).hasSize(1);
         assertThat(observer.spans().get(0).getOperation()).isEqualTo(opName);
         assertThat(observer.spans().get(0).type()).isEqualTo(SpanType.LOCAL);
-        assertThat(observer.spans().get(0).getDurationNanoSeconds())
-                .is(new HamcrestCondition<>(greaterThanOrEqualTo(0L)));
+        assertThat(observer.spans().get(0).getDurationNanoSeconds()).isGreaterThanOrEqualTo(0);
         assertThat(observer.spans().get(0).getMetadata()).containsExactlyEntriesOf(metadata);
     }
 }
