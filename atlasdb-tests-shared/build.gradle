@@ -20,6 +20,53 @@ dependencies {
   compile group: 'org.mockito', name: 'mockito-core'
   compile group: "org.awaitility", name: "awaitility"
 
+  implementation 'com.boundary:high-scale-lib'
+  implementation 'com.fasterxml.jackson.core:jackson-core'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.common:streams'
+  implementation 'com.palantir.conjure.java.api:service-config'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'com.palantir.tritium:tritium-registry'
+  implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.hamcrest:hamcrest'
+  implementation 'org.rocksdb:rocksdbjni'
+  implementation project(':atlasdb-api')
+  implementation project(':atlasdb-client')
+  implementation project(':atlasdb-client-protobufs')
+  implementation project(':atlasdb-commons')
+  implementation project(':atlasdb-impl-shared')
+  implementation project(':atlasdb-persistent-lock-api')
+  implementation project(':atlasdb-remoting-api')
+  implementation project(':commons-executors')
+  implementation project(':lock-api')
+  implementation project(':lock-api-objects')
+  implementation project(':lock-impl')
+  implementation project(':timestamp-api')
+
+  testImplementation 'com.google.guava:guava'
+  testImplementation 'com.google.protobuf:protobuf-java'
+  testImplementation 'com.palantir.common:streams'
+  testImplementation 'com.palantir.safe-logging:safe-logging'
+  testImplementation 'com.palantir.tracing:tracing-api'
+  testImplementation 'com.palantir.tritium:tritium-registry'
+  testImplementation 'commons-io:commons-io'
+  testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'org.apache.commons:commons-lang3'
+  testImplementation 'org.hamcrest:hamcrest'
+  testImplementation 'org.slf4j:slf4j-api'
+  testImplementation project(':atlasdb-api')
+  testImplementation project(':atlasdb-client')
+  testImplementation project(':atlasdb-client-protobufs')
+  testImplementation project(':atlasdb-commons')
+  testImplementation project(':atlasdb-impl-shared')
+  testImplementation project(':commons-executors')
+  testImplementation project(':lock-api')
+  testImplementation project(':lock-api-objects')
+  testImplementation project(':lock-impl')
+  testImplementation project(':timestamp-api')
+
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
 

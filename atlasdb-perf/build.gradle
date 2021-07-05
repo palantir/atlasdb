@@ -16,26 +16,53 @@ configurations.all {
 }
 
 dependencies {
-  compile project(':atlasdb-api')
-  compile project(':atlasdb-dagger')
-  compile project(':atlasdb-dbkvs')
-  compile project(':atlasdb-cassandra')
+    compile project(':atlasdb-api')
+    compile project(':atlasdb-dagger')
+    compile project(':atlasdb-dbkvs')
+    compile project(':atlasdb-cassandra')
 
-  compile group: 'io.airlift', name: 'airline', version: '0.7'
-  compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
-  compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
-  compile group: 'ch.qos.logback', name: 'logback-classic'
-  compile group: 'org.awaitility', name: 'awaitility'
+    compile group: 'io.airlift', name: 'airline', version: '0.7'
+    compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
+    compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
+    compile group: 'ch.qos.logback', name: 'logback-classic'
+    compile group: 'org.awaitility', name: 'awaitility'
 
-  testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'org.mockito', name: 'mockito-core'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
+    implementation 'com.google.protobuf:protobuf-java'
+    implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'commons-io:commons-io'
+    implementation 'jakarta.inject:jakarta.inject-api'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'org.slf4j:slf4j-api'
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-client-protobufs')
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-dbkvs-hikari')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':commons-executors')
+    implementation project(':leader-election-api')
+    implementation project(':leader-election-impl')
+    implementation project(':timestamp-api')
 
-  compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
-  annotationProcessor group: 'org.immutables', name: 'value'
-  compileOnly 'org.immutables:value::annotations'
-  annotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13'
-  compileOnly 'org.openjdk.jmh:jmh-generator-annprocess:1.13'
-  implementation 'org.assertj:assertj-core'
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'org.apache.commons:commons-math3'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
+
+    compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
+    annotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13'
+    compileOnly 'org.openjdk.jmh:jmh-generator-annprocess:1.13'
+    implementation 'org.assertj:assertj-core'
 }
 
 distZip {

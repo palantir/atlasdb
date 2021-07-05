@@ -3,14 +3,30 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 
 dependencies {
-  testCompile project(":atlasdb-cassandra")
-  testCompile project(":atlasdb-cli")
-  testCompile project(":atlasdb-tests-shared")
-  testCompile project(":atlasdb-container-test-utils")
-  testCompile project(":atlasdb-ete-test-utils")
+    testImplementation 'com.boundary:high-scale-lib'
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'com.palantir.common:streams'
+    testImplementation 'com.palantir.safe-logging:safe-logging'
+    testImplementation 'com.squareup.okio:okio'
+    testImplementation 'org.apache.commons:commons-lang3'
+    testImplementation 'org.apache.thrift:libthrift'
+    testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.slf4j:slf4j-api'
+    testImplementation project(':atlasdb-api')
+    testImplementation project(':atlasdb-client')
+    testImplementation project(':atlasdb-client-protobufs')
+    testImplementation project(':atlasdb-commons')
+    testImplementation project(':atlasdb-impl-shared')
+    testImplementation project(':timestamp-api')
 
-  testCompile ('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
-      exclude module: 'junit'
+    testCompile project(":atlasdb-cassandra")
+    testCompile project(":atlasdb-cli")
+    testCompile project(":atlasdb-tests-shared")
+    testCompile project(":atlasdb-container-test-utils")
+    testCompile project(":atlasdb-ete-test-utils")
+
+    testCompile('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
+        exclude module: 'junit'
 
       exclude group: 'org.apache.httpcomponents'
   }
@@ -20,14 +36,14 @@ dependencies {
     exclude group: 'org.apache.httpcomponents'
   }
 
-  testCompile project(':flake-rule')
+    testCompile project(':flake-rule')
 
-  testCompile ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
-      exclude(group: 'com.codahale.metrics', module: 'metrics-core')
-  }
+    testCompile('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+        exclude(group: 'com.codahale.metrics', module: 'metrics-core')
+    }
 
-  testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
 }
 
 task longTest(type: Test) {

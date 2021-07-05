@@ -9,6 +9,14 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
 
   implementation group: 'com.palantir.sls.versions', name: 'sls-versions'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.google.protobuf:protobuf-java'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation project(':commons-annotations')
+
 
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'

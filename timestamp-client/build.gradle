@@ -9,6 +9,13 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
 
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+
+  testImplementation 'com.google.errorprone:error_prone_annotations'
+  testImplementation 'com.google.guava:guava'
+
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
 

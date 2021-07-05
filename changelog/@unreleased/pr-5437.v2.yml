@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Atlas declares all implicit dependencies
+  links:
+  - https://github.com/palantir/atlasdb/pull/5437

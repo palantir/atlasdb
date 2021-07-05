@@ -7,11 +7,56 @@ dependencies {
     compile project(":timelock-impl")
     compile project(":timelock-corruption-detection")
 
-    // many of these we get as transitive dependencies but I wanted to be super explicit
-    // about what dependencies we're actually using
-
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.palantir.conjure.java.api', name: 'service-config'
+
+    implementation 'com.boundary:high-scale-lib'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.github.rholder:guava-retrying'
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.conjure.java.api:ssl-config'
+    implementation 'com.palantir.conjure.java.runtime:client-config'
+    implementation 'com.palantir.conjure.java.runtime:keystores'
+    implementation 'com.palantir.conjure.java:conjure-undertow-lib'
+    implementation 'com.palantir.dialogue:dialogue-clients'
+    implementation 'com.palantir.refreshable:refreshable'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.sls.versions:sls-versions'
+    implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'com.palantir.tritium:tritium-api'
+    implementation 'com.palantir.tritium:tritium-registry'
+    implementation 'com.zaxxer:HikariCP'
+    implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'org.jdbi:jdbi3-core'
+    implementation 'org.jdbi:jdbi3-sqlobject'
+    implementation 'org.slf4j:slf4j-api'
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-autobatch')
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-conjure')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':atlasdb-remoting-api')
+    implementation project(':commons-annotations')
+    implementation project(':commons-executors')
+    implementation project(':leader-election-api')
+    implementation project(':leader-election-impl')
+    implementation project(':lock-api')
+    implementation project(':lock-impl')
+    implementation project(':timelock-api:timelock-api-jersey')
+    implementation project(':timelock-api:timelock-api-objects')
+    implementation project(':timelock-corruption-detection:timelock-corruption-detection-jersey')
+    implementation project(':timestamp-api')
+    implementation project(':timestamp-impl')
+
+    testImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
 
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'

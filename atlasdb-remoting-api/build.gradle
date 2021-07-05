@@ -8,6 +8,14 @@ dependencies {
   compile group: 'com.palantir.conjure.java.runtime', name: 'refresh-utils'
   compile group: 'com.palantir.common', name: 'streams'
 
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.conjure.java.api:ssl-config'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.safe-logging:safe-logging'
+
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
 

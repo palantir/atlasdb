@@ -7,6 +7,14 @@ dependencies {
     implementation "com.palantir.tritium:tritium-metrics"
     implementation "org.jboss.threads:jboss-threads"
 
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.tritium:tritium-registry'
+    implementation 'org.slf4j:slf4j-api'
+
+    testImplementation 'com.palantir.tritium:tritium-registry'
+    testImplementation 'io.dropwizard.metrics:metrics-core'
+
     testCompile group: 'com.google.guava', name: 'guava'
     testCompileOnly 'org.immutables:value::annotations'
 }

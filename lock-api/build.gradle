@@ -22,6 +22,28 @@ dependencies {
     compile group: 'com.palantir.refreshable', name: 'refreshable'
     compile group: 'one.util', name: 'streamex'
 
+    implementation 'com.boundary:high-scale-lib'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.conjure.java:conjure-lib'
+    implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'org.slf4j:slf4j-api'
+    implementation project(':commons-annotations')
+    implementation project(':commons-executors')
+    implementation project(':lock-conjure-api:lock-conjure-api-objects')
+    implementation project(':timelock-api:timelock-api-objects')
+
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'com.palantir.common:streams'
+    testImplementation 'io.dropwizard.metrics:metrics-core'
+    testImplementation 'org.slf4j:slf4j-api'
+    testImplementation project(':lock-conjure-api:lock-conjure-api-objects')
+    testImplementation project(':timelock-api:timelock-api-objects')
+
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")
     annotationProcessor group: 'org.immutables', name: 'value'

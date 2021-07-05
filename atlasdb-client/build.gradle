@@ -89,6 +89,51 @@ dependencies {
 
   integrationInputCompile project(":atlasdb-client")
 
+  implementation 'com.boundary:high-scale-lib'
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.conjure.java:conjure-lib'
+  implementation 'com.palantir.refreshable:refreshable'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.tracing:tracing-api'
+  implementation 'com.palantir.tritium:tritium-api'
+  implementation 'com.palantir.tritium:tritium-core'
+  implementation 'com.palantir.tritium:tritium-slf4j'
+  implementation 'com.squareup.okio:okio'
+  implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'jakarta.annotation:jakarta.annotation-api'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':atlasdb-autobatch')
+  implementation project(':commons-annotations')
+  implementation project(':commons-executors')
+  implementation project(':lock-api-objects')
+  implementation project(':timestamp-api')
+
+  testImplementation 'ch.qos.logback:logback-core'
+  testImplementation 'com.google.guava:guava'
+  testImplementation 'com.palantir.safe-logging:preconditions'
+  testImplementation 'com.palantir.tracing:tracing-api'
+  testImplementation 'com.palantir.tritium:tritium-api'
+  testImplementation 'com.squareup.okio:okio'
+  testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'org.apache.commons:commons-lang3'
+  testImplementation 'org.hamcrest:hamcrest'
+  testImplementation 'org.slf4j:slf4j-api'
+  testImplementation project(':commons-annotations')
+  testImplementation project(':lock-api-objects')
+  testImplementation project(':timestamp-api')
+
+  integrationInputImplementation 'com.fasterxml.jackson.core:jackson-annotations'
+  integrationInputImplementation 'com.fasterxml.jackson.core:jackson-databind'
+  integrationInputImplementation 'com.google.code.findbugs:annotations'
+  integrationInputImplementation 'com.google.code.findbugs:annotations'
+  integrationInputImplementation 'com.google.errorprone:error_prone_annotations'
+  integrationInputImplementation 'com.google.guava:guava'
+  integrationInputImplementation project(':atlasdb-api')
+  integrationInputImplementation project(':atlasdb-commons')
+
   integrationInputAnnotationProcessor group: 'org.immutables', name: 'value'
   integrationInputCompileOnly 'org.immutables:value::annotations'
 }

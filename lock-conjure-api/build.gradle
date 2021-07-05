@@ -17,6 +17,14 @@ subprojects {
     dependencies {
         compile project(':lock-api-objects')
         compile 'com.palantir.conjure.java:conjure-lib'
+
+        implementation 'com.google.guava:guava'
+        implementation 'com.palantir.tokens:auth-tokens'
+        implementation 'io.undertow:undertow-core'
+        implementation 'com.fasterxml.jackson.core:jackson-annotations'
+        implementation 'com.fasterxml.jackson.core:jackson-databind'
+        implementation 'com.palantir.safe-logging:preconditions'
+        implementation 'com.palantir.safe-logging:safe-logging'
     }
     tasks.licenseMain.enabled = false
 }

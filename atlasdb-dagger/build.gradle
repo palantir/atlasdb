@@ -6,6 +6,24 @@ dependencies {
   compile project(':atlasdb-service')
   compile group: 'com.google.dagger', name: 'dagger'
 
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.refreshable:refreshable'
+  implementation 'com.palantir.tritium:tritium-registry'
+  implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'jakarta.inject:jakarta.inject-api'
+  implementation project(':atlasdb-api')
+  implementation project(':atlasdb-client')
+  implementation project(':atlasdb-config')
+  implementation project(':atlasdb-coordination-impl')
+  implementation project(':atlasdb-impl-shared')
+  implementation project(':atlasdb-persistent-lock-api')
+  implementation project(':commons-executors')
+  implementation project(':lock-api')
+  implementation project(':lock-api-objects')
+  implementation project(':lock-impl')
+  implementation project(':timestamp-api')
+
   annotationProcessor group: 'com.google.dagger', name: 'dagger-compiler'
   compileOnly 'com.google.dagger:dagger-compiler'
   annotationProcessor group: 'org.immutables', name: 'value'

@@ -52,6 +52,49 @@ dependencies {
       exclude group: 'org.hamcrest'
   }
 
+  implementation 'com.boundary:high-scale-lib'
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.github.ben-manes.caffeine:caffeine'
+  implementation 'com.google.auto.service:auto-service-annotations'
+  implementation 'com.google.errorprone:error_prone_annotations'
+  implementation 'com.google.protobuf:protobuf-java'
+  implementation 'com.palantir.cassandra:cassandra-all'
+  implementation 'com.palantir.common:streams'
+  implementation 'com.palantir.conjure.java.api:service-config'
+  implementation 'com.palantir.refreshable:refreshable'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.tritium:tritium-caffeine'
+  implementation 'com.palantir.tritium:tritium-metrics'
+  implementation 'com.palantir.tritium:tritium-registry'
+  implementation 'com.squareup.okio:okio'
+  implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'org.apache.thrift:libthrift'
+  implementation 'org.slf4j:slf4j-api'
+  implementation project(':atlasdb-commons')
+  implementation project(':commons-annotations')
+  implementation project(':commons-executors')
+  implementation project(':timestamp-api')
+
+  testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+  testImplementation 'com.google.protobuf:protobuf-java'
+  testImplementation 'com.palantir.cassandra:cassandra-all'
+  testImplementation 'com.palantir.common:streams'
+  testImplementation 'com.palantir.conjure.java.api:service-config'
+  testImplementation 'com.palantir.refreshable:refreshable'
+  testImplementation 'com.palantir.safe-logging:preconditions'
+  testImplementation 'com.palantir.tritium:tritium-registry'
+  testImplementation 'com.squareup.okio:okio'
+  testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'org.apache.commons:commons-lang3'
+  testImplementation 'org.apache.thrift:libthrift'
+  testImplementation 'org.hamcrest:hamcrest'
+  testImplementation 'com.palantir.tracing:tracing-api'
+  testImplementation project(':atlasdb-client-protobufs')
+  testImplementation project(':atlasdb-commons')
+  testImplementation project(':commons-executors')
+
   annotationProcessor group: 'org.immutables', name: 'value'
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
