@@ -264,6 +264,7 @@ class CassandraRequestExceptionHandler {
         private static final RequestExceptionHandlerStrategy INSTANCE = new LegacyExceptionHandler();
 
         private static final long BACKOFF_DURATION = Duration.ofSeconds(1).toMillis();
+        private static final int FIVE_HUNDRED = 500;
 
         @Override
         public boolean shouldBackoff(Exception ex) {
@@ -274,7 +275,7 @@ class CassandraRequestExceptionHandler {
         public long getBackoffPeriod(int numberOfAttempts) {
             // And value between -500 and +500ms to backoff to better spread load on failover
             return numberOfAttempts * BACKOFF_DURATION
-                    + (ThreadLocalRandom.current().nextInt(1000) - 500);
+                    + (ThreadLocalRandom.current().nextInt(2 * FIVE_HUNDRED) - FIVE_HUNDRED);
         }
 
         @Override
@@ -287,6 +288,7 @@ class CassandraRequestExceptionHandler {
         private static final RequestExceptionHandlerStrategy INSTANCE = new Conservative();
         private static final long MAX_BACKOFF = Duration.ofSeconds(30).toMillis();
         private static final double UNCERTAINTY = 0.5;
+        private static final double BACKOFF_COEFF = 100;
 
         private static final long MAX_EXPECTED_BACKOFF = (long) (MAX_BACKOFF / (UNCERTAINTY + 1));
 
@@ -298,7 +300,7 @@ class CassandraRequestExceptionHandler {
         @Override
         public long getBackoffPeriod(int numberOfAttempts) {
             double randomCoeff = ThreadLocalRandom.current().nextDouble(1 - UNCERTAINTY, 1 + UNCERTAINTY);
-            return (long) (Math.min(500 * Math.pow(2, numberOfAttempts), MAX_EXPECTED_BACKOFF) * randomCoeff);
+            return (long) (Math.min(BACKOFF_COEFF * Math.pow(2, numberOfAttempts), MAX_EXPECTED_BACKOFF) * randomCoeff);
         }
 
         @Override
