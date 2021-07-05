@@ -3,7 +3,6 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 
 dependencies {
-    testImplementation 'com.boundary:high-scale-lib'
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.common:streams'
     testImplementation 'com.palantir.safe-logging:safe-logging'

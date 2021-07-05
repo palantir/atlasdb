@@ -100,7 +100,6 @@ allprojects {
             it.substitute it.module('org.glassfish.web:javax.el') with it.module('org.glassfish:jakarta.el:3.0.3')
         }
     }
-    check.dependsOn checkImplicitDependencies
 
     tasks.withType(JavaCompile) {
         options.compilerArgs += ['-Werror']
