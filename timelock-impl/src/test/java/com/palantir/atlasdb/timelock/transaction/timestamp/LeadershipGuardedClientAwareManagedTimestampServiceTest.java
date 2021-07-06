@@ -48,4 +48,15 @@ public class LeadershipGuardedClientAwareManagedTimestampServiceTest {
         // Maybe excessive, but I think reasonable
         verify(delegate).getFreshTimestamp();
     }
+
+    @Test
+    public void doNotReturnIfClosedAfterDelegateInvocationBegins() {
+        when(delegate.getFreshTimestamp()).thenAnswer(invocation -> {
+            delegatingService.close();
+            return 42L;
+        });
+        assertThatThrownBy(delegatingService::getFreshTimestamp)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessage("Lost leadership elsewhere");
+    }
 }

@@ -16,7 +16,9 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -215,17 +217,8 @@ public final class PaxosResourcesFactory {
                 .addAllCloseables(singleLeaderClientFactories.closeables())
                 .build();
 
-        NetworkClientFactories.Factory<PaxosProposer> proposerFactory = client -> {
-            PaxosAcceptorNetworkClient acceptorNetworkClient =
-                    combinedNetworkClientFactories.acceptor().create(client);
-            PaxosLearnerNetworkClient learnerNetworkClient =
-                    combinedNetworkClientFactories.learner().create(client);
-
-            PaxosProposer paxosProposer =
-                    PaxosProposerImpl.newProposer(acceptorNetworkClient, learnerNetworkClient, install.nodeUuid());
-
-            return timelockMetrics.instrument(PaxosProposer.class, paxosProposer, client);
-        };
+        NetworkClientFactories.Factory<PaxosProposer> proposerFactory =
+                getPaxosProposerFactory(timelockMetrics, combinedNetworkClientFactories);
 
         NetworkClientFactories.Factory<ManagedTimestampService> timestampFactory = client -> {
             // TODO (jkong): live reload ping
@@ -245,6 +238,22 @@ public final class PaxosResourcesFactory {
                 .addAdhocResources(new TimestampPaxosResource(paxosComponents))
                 .timestampPaxosComponents(paxosComponents)
                 .timestampServiceFactory(timestampFactory);
+    }
+
+    @VisibleForTesting
+    static Factory<PaxosProposer> getPaxosProposerFactory(
+            TimelockPaxosMetrics timelockMetrics, NetworkClientFactories combinedNetworkClientFactories) {
+        return client -> {
+            PaxosAcceptorNetworkClient acceptorNetworkClient =
+                    combinedNetworkClientFactories.acceptor().create(client);
+            PaxosLearnerNetworkClient learnerNetworkClient =
+                    combinedNetworkClientFactories.learner().create(client);
+
+            PaxosProposer paxosProposer =
+                    PaxosProposerImpl.newProposer(acceptorNetworkClient, learnerNetworkClient, UUID.randomUUID());
+
+            return timelockMetrics.instrument(PaxosProposer.class, paxosProposer, client);
+        };
     }
 
     private static TimeLockCorruptionComponents timeLockCorruptionComponents(

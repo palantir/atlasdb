@@ -20,7 +20,6 @@ import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.timestamp.TimestampRange;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,7 @@ public class LeadershipGuardedClientAwareManagedTimestampService
             LoggerFactory.getLogger(LeadershipGuardedClientAwareManagedTimestampService.class);
 
     private final ClientAwareManagedTimestampService delegate;
-    private final AtomicBoolean isClosed = new AtomicBoolean(false);
+    private volatile boolean isClosed = false;
 
     public LeadershipGuardedClientAwareManagedTimestampService(ClientAwareManagedTimestampService delegate) {
         this.delegate = delegate;
@@ -49,6 +48,11 @@ public class LeadershipGuardedClientAwareManagedTimestampService
     @Override
     public void fastForwardTimestamp(long currentTimestamp) {
         ensureStillOpen(() -> {
+            // This looks funky, but is intentional:
+            // although it doesn't prevent the fast forward from happening as far as the Paxos log is concerned,
+            // a user will never know that their fast forward succeeded. The log is able to subsequently recover
+            // (it will find that the UUID for the proposer is not the one it expects, and cause another leader
+            // election, but that's fine to help us get out of this race condition.)
             delegate.fastForwardTimestamp(currentTimestamp);
             return null;
         });
@@ -76,11 +80,7 @@ public class LeadershipGuardedClientAwareManagedTimestampService
 
     @Override
     public void close() {
-        if (!isClosed.compareAndSet(false, true)) {
-            log.info("Could not close the client-aware managed timestamp service, because it was already closed."
-                    + " Possibly indicative of weirdness in Atlas code, but should be benign as far as the user is"
-                    + " concerned.");
-        }
+        isClosed = true;
     }
 
     private <T> T ensureStillOpen(Supplier<T> operation) {
@@ -91,7 +91,7 @@ public class LeadershipGuardedClientAwareManagedTimestampService
     }
 
     private void throwIfClosed() {
-        if (isClosed.get()) {
+        if (isClosed) {
             throw new NotCurrentLeaderException("Lost leadership elsewhere");
         }
     }
