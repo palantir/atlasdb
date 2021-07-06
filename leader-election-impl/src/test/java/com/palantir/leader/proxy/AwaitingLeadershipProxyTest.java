@@ -17,7 +17,6 @@ package com.palantir.leader.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.core.Is.isA;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -51,7 +50,6 @@ import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";
@@ -61,9 +59,6 @@ public class AwaitingLeadershipProxyTest {
     private final LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
     private final Runnable mockRunnable = mock(Runnable.class);
     private final Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
-
-    @Rule
-    public final ExpectedException expect = ExpectedException.none();
 
     @Rule
     public final RenderTracingRule rule = new RenderTracingRule();
@@ -105,8 +100,10 @@ public class AwaitingLeadershipProxyTest {
         ListenableFuture<?> future = proxy.future();
         assertThat(future).isNotDone();
         inProgressCheck.set(StillLeadingStatus.NOT_LEADING);
-        expect.expectCause(isA(NotCurrentLeaderException.class));
-        future.get();
+
+        assertThatThrownBy(future::get)
+                .hasCauseExactlyInstanceOf(NotCurrentLeaderException.class)
+                .hasMessageContaining("method invoked on a non-leader");
     }
 
     @Test

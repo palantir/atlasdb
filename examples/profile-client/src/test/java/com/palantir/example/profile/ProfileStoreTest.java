@@ -16,9 +16,9 @@
 package com.palantir.example.profile;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.Closeables;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -36,9 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import org.junit.After;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ProfileStoreTest {
     private static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
@@ -48,11 +46,8 @@ public class ProfileStoreTest {
     private final TransactionManager txnMgr =
             TransactionManagers.createInMemory(ProfileSchema.INSTANCE.getLatestSchema());
 
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
-
     @After
-    public void after() throws Exception {
+    public void after() {
         txnMgr.close();
     }
 
@@ -67,11 +62,11 @@ public class ProfileStoreTest {
     }
 
     @Test
-    public void testStoreGetDataThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+    public void testStoreGetDataThrowsAfterTransactionManagerIsClosedThrows() {
         txnMgr.close();
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
-        testStore();
+        assertThatThrownBy(this::testStore)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Operations cannot be performed on closed TransactionManager.");
     }
 
     @Test
@@ -79,14 +74,11 @@ public class ProfileStoreTest {
         final UUID userId = storeUser();
         storeImage(userId);
         runWithRetry(store -> {
-            InputStream image = store.getImageForUser(userId);
-            try {
+            try (InputStream image = store.getImageForUser(userId)) {
                 Sha256Hash hash = Sha256Hash.createFrom(image);
                 assertThat(hash).isEqualTo(Sha256Hash.computeHash(IMAGE));
             } catch (IOException e) {
                 throw Throwables.throwUncheckedException(e);
-            } finally {
-                Closeables.closeQuietly(image);
             }
             return null;
         });
@@ -103,11 +95,11 @@ public class ProfileStoreTest {
     }
 
     @Test
-    public void testStoreImageThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+    public void testStoreImageThrowsAfterTransactionManagerIsClosedThrows() {
         txnMgr.close();
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
-        testStoreImage();
+        assertThatThrownBy(this::testStoreImage)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Operations cannot be performed on closed TransactionManager.");
     }
 
     private void storeImage(final UUID userId) {
@@ -137,11 +129,11 @@ public class ProfileStoreTest {
     }
 
     @Test
-    public void testDeleteImageThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+    public void testDeleteImageThrowsAfterTransactionManagerIsClosedThrows() {
         txnMgr.close();
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
-        testDeleteImage();
+        assertThatThrownBy(this::testDeleteImage)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Operations cannot be performed on closed TransactionManager.");
     }
 
     @Test
@@ -155,11 +147,11 @@ public class ProfileStoreTest {
     }
 
     @Test
-    public void testBirthdayIndexThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+    public void testBirthdayIndexThrowsAfterTransactionManagerIsClosedThrows() {
         txnMgr.close();
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
-        testDeleteImage();
+        assertThatThrownBy(this::testBirthdayIndex)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Operations cannot be performed on closed TransactionManager.");
     }
 
     private UUID storeUser() {

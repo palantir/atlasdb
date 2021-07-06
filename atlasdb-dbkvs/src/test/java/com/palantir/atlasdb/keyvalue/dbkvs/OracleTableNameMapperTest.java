@@ -16,7 +16,8 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyObject;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
@@ -31,9 +32,7 @@ import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class OracleTableNameMapperTest {
     private static final String TEST_PREFIX = "a_";
@@ -44,9 +43,6 @@ public class OracleTableNameMapperTest {
     private AgnosticResultSet resultSet;
     private ConnectionSupplier connectionSupplier;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Before
     public void setup() {
         connectionSupplier = mock(ConnectionSupplier.class);
@@ -56,7 +52,7 @@ public class OracleTableNameMapperTest {
         resultSet = mock(AgnosticResultSet.class);
         when(sqlConnection.selectResultSetUnregisteredQuery(
                         startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE LOWER(short_table_name)"),
-                        anyObject()))
+                        any()))
                 .thenReturn(resultSet);
     }
 
@@ -79,9 +75,10 @@ public class OracleTableNameMapperTest {
         when(resultSet.get(eq(0))).thenReturn(row);
 
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot create any more tables with name starting with a_te__ThisIsAVeryLongT");
-        oracleTableNameMapper.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
+        assertThatThrownBy(() ->
+                        oracleTableNameMapper.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Cannot create any more tables with name starting with a_te__ThisIsAVeryLongT");
     }
 
     @Test
@@ -91,7 +88,7 @@ public class OracleTableNameMapperTest {
         assertThat(pkConstraintName).isEqualTo(AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX + tableName);
     }
 
-    private String getTableNameWithNumber(int tableNum) {
+    private static String getTableNameWithNumber(int tableNum) {
         return String.format("a_te__ThisIsAVeryLongT_%0" + OracleTableNameMapper.SUFFIX_NUMBER_LENGTH + "d", tableNum);
     }
 }

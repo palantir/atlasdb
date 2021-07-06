@@ -16,16 +16,14 @@
 package com.palantir.timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 
 public class TimestampAllocationFailuresTest {
@@ -39,9 +37,6 @@ public class TimestampAllocationFailuresTest {
     private final Logger log = mock(Logger.class);
 
     private final TimestampAllocationFailures allocationFailures = new TimestampAllocationFailures(log);
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
 
     @Test
     public void shouldRethrowExceptions() {
@@ -83,10 +78,10 @@ public class TimestampAllocationFailuresTest {
     public void shouldDisallowTryingToIssueMoreTimestampsAfterAMultipleRunningTimestampServicesFailure() {
         ignoringExceptions(() -> allocationFailures.responseTo(MULTIPLE_RUNNING_SERVICES_FAILURE));
 
-        exception.expectCause(is(MULTIPLE_RUNNING_SERVICES_FAILURE));
-        exception.expect(ServiceNotAvailableException.class);
-
-        allocationFailures.verifyWeShouldIssueMoreTimestamps();
+        assertThatThrownBy(allocationFailures::verifyWeShouldIssueMoreTimestamps)
+                .isInstanceOf(ServiceNotAvailableException.class)
+                .getCause()
+                .isEqualTo(MULTIPLE_RUNNING_SERVICES_FAILURE);
     }
 
     @SuppressWarnings("Slf4jConstantLogMessage")
@@ -121,7 +116,7 @@ public class TimestampAllocationFailuresTest {
         void perform();
     }
 
-    private void ignoringExceptions(Action action) {
+    private static void ignoringExceptions(Action action) {
         try {
             action.perform();
         } catch (Exception e) {

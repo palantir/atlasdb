@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -24,14 +25,9 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class CandidateGroupingIteratorTest {
-
-    @Rule
-    public final ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void emptyInput() {
@@ -41,7 +37,7 @@ public class CandidateGroupingIteratorTest {
     @Test
     public void singleCellInOnePage() {
         assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "x", 20L)))))
-                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", 2L, false, 10L, 20L))));
+                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", false, 10L, 20L))));
     }
 
     @Test
@@ -50,7 +46,7 @@ public class CandidateGroupingIteratorTest {
                         ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "x", 20L)),
                         ImmutableList.of(cellTs("a", "x", 30L)))))
                 .isEqualTo(ImmutableList.of(
-                        ImmutableList.of(), ImmutableList.of(candidate("a", "x", 3L, false, 10L, 20L, 30L))));
+                        ImmutableList.of(), ImmutableList.of(candidate("a", "x", false, 10L, 20L, 30L))));
     }
 
     @Test
@@ -58,31 +54,32 @@ public class CandidateGroupingIteratorTest {
         assertThat(group(ImmutableList.of(
                         ImmutableList.of(cellTs("a", "x", 10L), cellTs("a", "y", 10L), cellTs("b", "y", 10L)))))
                 .isEqualTo(ImmutableList.of(ImmutableList.of(
-                        candidate("a", "x", 1L, false, 10L),
-                        candidate("a", "y", 2L, false, 10L),
-                        candidate("b", "y", 3L, false, 10L))));
+                        candidate("a", "x", false, 10L),
+                        candidate("a", "y", false, 10L),
+                        candidate("b", "y", false, 10L))));
     }
 
     @Test
     public void latestValueEmpty() {
         assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L, false), cellTs("a", "x", 20L, true)))))
-                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", 2L, true, 10L, 20L))));
+                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", true, 10L, 20L))));
     }
 
     @Test
     public void nonLatestValueEmpty() {
         assertThat(group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 10L, true), cellTs("a", "x", 20L, false)))))
-                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", 2L, false, 10L, 20L))));
+                .isEqualTo(ImmutableList.of(ImmutableList.of(candidate("a", "x", false, 10L, 20L))));
     }
 
     @Test
     public void throwIfTimestampsAreOutOfOrder() {
-        thrown.expectMessage("Timestamps for each cell must be fed in strictly increasing order");
-        group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 20L), cellTs("a", "x", 10L))));
+        assertThatThrownBy(
+                        () -> group(ImmutableList.of(ImmutableList.of(cellTs("a", "x", 20L), cellTs("a", "x", 10L)))))
+                .hasMessage("Timestamps for each cell must be fed in strictly increasing order");
     }
 
     private static CandidateCellForSweeping candidate(
-            String rowName, String colName, long numCellTsPairsExamined, boolean latestValEmpty, Long... ts) {
+            String rowName, String colName, boolean latestValEmpty, Long... ts) {
         Arrays.sort(ts);
         return ImmutableCandidateCellForSweeping.builder()
                 .cell(Cell.create(bytes(rowName), bytes(colName)))
@@ -91,7 +88,7 @@ public class CandidateGroupingIteratorTest {
                 .build();
     }
 
-    private List<List<CandidateCellForSweeping>> group(List<List<CellTsPairInfo>> cellTsPairBatches) {
+    private static List<List<CandidateCellForSweeping>> group(List<List<CellTsPairInfo>> cellTsPairBatches) {
         return ImmutableList.copyOf(CandidateGroupingIterator.create(cellTsPairBatches.iterator()));
     }
 

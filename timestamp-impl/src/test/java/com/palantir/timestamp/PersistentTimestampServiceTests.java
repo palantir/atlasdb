@@ -16,19 +16,15 @@
 package com.palantir.timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.timestamp.AbstractTimestampServiceTests;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 // Test PersistentTimestampServiceImpl by fully instantiating it with an InMemoryTimestampBoundStore.
 // See also PersistentTimestampServiceMockingTest that mocks AvailableTimestamps instead.
 public class PersistentTimestampServiceTests extends AbstractTimestampServiceTests {
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
 
     private PersistentTimestampService persistentTimestampService;
     private InMemoryTimestampBoundStore timestampBoundStore;
@@ -56,22 +52,21 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
         assertThat(getTimestampService().getFreshTimestamps(100_000).size()).isEqualTo(10_000L);
     }
 
-    @Test(expected = ServiceNotAvailableException.class)
-    public void throwsAserviceNotAvailableExceptionIfThereAreMultipleServersRunning() {
+    @Test
+    public void throwsServiceNotAvailableExceptionIfThereAreMultipleServersRunning() {
         timestampBoundStore.pretendMultipleServersAreRunning();
-
-        getTimestampService().getFreshTimestamp();
+        assertThatThrownBy(() -> getTimestampService().getFreshTimestamp())
+                .isInstanceOf(ServiceNotAvailableException.class);
     }
 
     @Test
     public void shouldRethrowAllocationExceptions() {
         final IllegalArgumentException failure = new IllegalArgumentException();
-        exception.expect(RuntimeException.class);
-        exception.expectCause(is(failure));
-
         timestampBoundStore.failWith(failure);
-
-        getTimestampService().getFreshTimestamp();
+        assertThatThrownBy(() -> getTimestampService().getFreshTimestamp())
+                .isInstanceOf(RuntimeException.class)
+                .getCause()
+                .isEqualTo(failure);
     }
 
     @Test
@@ -84,9 +79,11 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
         assertThat(timestampBoundStore.numberOfAllocations()).isLessThan(2);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldRejectFastForwardToTheSentinelValue() {
-        getTimestampManagementService().fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP);
+        assertThatThrownBy(() -> getTimestampManagementService()
+                        .fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private void getTimestampAndIgnoreErrors() {

@@ -15,57 +15,54 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import org.junit.Rule;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @SuppressWarnings("CheckReturnValue")
 public class SweepBatchConfigTest {
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
 
     @Test
     public void canCreateConfig() {
-        ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(1)
-                .candidateBatchSize(1)
-                .deleteBatchSize(1)
-                .build();
+        assertThat(ImmutableSweepBatchConfig.builder()
+                        .maxCellTsPairsToExamine(1)
+                        .candidateBatchSize(1)
+                        .deleteBatchSize(1)
+                        .build())
+                .isNotNull();
     }
 
     @Test
     public void canNotCreateConfigWithZeroCellsToExamine() {
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("cells to examine");
-
-        ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(0)
-                .candidateBatchSize(1)
-                .deleteBatchSize(1)
-                .build();
+        assertThatThrownBy(() -> ImmutableSweepBatchConfig.builder()
+                        .maxCellTsPairsToExamine(0)
+                        .candidateBatchSize(1)
+                        .deleteBatchSize(1)
+                        .build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("cells to examine");
     }
 
     @Test
     public void canNotCreateConfigWithZeroCandidateBatchSize() {
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Candidate batch size");
-
-        ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(1)
-                .candidateBatchSize(0)
-                .deleteBatchSize(1)
-                .build();
+        assertThatThrownBy(() -> ImmutableSweepBatchConfig.builder()
+                        .maxCellTsPairsToExamine(1)
+                        .candidateBatchSize(0)
+                        .deleteBatchSize(1)
+                        .build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Candidate batch size");
     }
 
     @Test
     public void canNotCreateConfigWithZeroDeleteBatchSize() {
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Delete batch size");
-
-        ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(1)
-                .candidateBatchSize(1)
-                .deleteBatchSize(0)
-                .build();
+        assertThatThrownBy(() -> ImmutableSweepBatchConfig.builder()
+                        .maxCellTsPairsToExamine(1)
+                        .candidateBatchSize(1)
+                        .deleteBatchSize(0)
+                        .build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Delete batch size");
     }
 }
