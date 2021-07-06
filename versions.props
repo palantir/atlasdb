@@ -49,7 +49,6 @@ net.jpountz.lz4:lz4 = 1.3.0
 one.util:streamex = 0.7.3
 org.apache.commons:commons-lang3 = 3.12.0
 org.apache.commons:commons-pool2 = 2.10.0
-org.apache.thrift:libthrift = 0.14.2
 org.assertj:assertj-* = 3.20.2
 org.assertj:assertj-guava = 3.4.0
 org.awaitility:awaitility = 4.1.0
@@ -72,5 +71,8 @@ org.yaml:snakeyaml = 1.29
 
 # Manually upgraded versions
 # dependency-upgrader:OFF
+
+# transitive dep with API breaks in 0.14.0
+org.apache.thrift:libthrift = 0.12.0
 # Large internal product uses 2.x
 org.codehaus.groovy:* = 2.5.14
