@@ -24,6 +24,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("ProxyNonConstantType")
 public final class PredicateSwitchedProxy<T> extends AbstractInvocationHandler {
     private final T firstService;
     private final T secondService;

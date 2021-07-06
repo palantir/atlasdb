@@ -6,5 +6,4 @@ libsDirName = file('build/artifacts')
 // api projects outside of atlasdb that try very hard to minimize
 // their dependency footprint.
 dependencies {
-    implementation 'com.boundary:high-scale-lib'
 }

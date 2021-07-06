@@ -69,7 +69,7 @@ public final class CassandraKeyValueServices {
     /**
      * Attempt to wait until a quorum of nodes has reached consensus on a schema version, and it is known that no
      * other nodes currently disagree with this quorum.
-     *
+     * <p>
      * The goals of this method include:
      * <ol>
      *     <li>
@@ -87,10 +87,9 @@ public final class CassandraKeyValueServices {
      *     </li>
      * </ol>
      *
-     * @param schemaMutationTimeMillis time to wait for nodes' schema versions to match.
-     * @param client Cassandra client.
+     * @param schemaMutationTimeMillis      time to wait for nodes' schema versions to match.
+     * @param client                        Cassandra client.
      * @param unsafeSchemaChangeDescription description of the schema change that was performed prior to this check.
-     *
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
     static void waitForSchemaVersions(
@@ -203,6 +202,7 @@ public final class CassandraKeyValueServices {
         return "0x" + PtBytes.encodeHexString(array);
     }
 
+    @SuppressWarnings("BadAssert") // performance sensitive asserts
     public static ByteBuffer makeCompositeBuffer(byte[] colName, long positiveTimestamp) {
         assert colName.length <= 1 << 16 : "Cannot use column names larger than 64KiB, was " + colName.length;
 
@@ -295,7 +295,7 @@ public final class CassandraKeyValueServices {
      * These columns have an Atlas timestamp of zero, but should not have a Cassandra timestamp of zero as that may
      * interfere with compactions. We want these to be at least reasonably consistent with Atlas's overall logical
      * time.
-     *
+     * <p>
      * In practice, usage may involve obtaining a (reasonably) fresh timestamp and using that as the timestamp for the
      * deletion.
      */

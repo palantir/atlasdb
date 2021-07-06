@@ -72,6 +72,7 @@ public final class CloseTracking {
             closed = true;
         }
 
+        @SuppressWarnings("BadAssert") // only fail close check with asserts enabled
         public synchronized void check() {
             if (!closed) {
                 log.error("{} never closed!", typeName, createTrace);

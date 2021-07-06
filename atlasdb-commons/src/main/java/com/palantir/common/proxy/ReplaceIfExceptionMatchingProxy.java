@@ -29,6 +29,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("ProxyNonConstantType")
 public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(ReplaceIfExceptionMatchingProxy.class);
 

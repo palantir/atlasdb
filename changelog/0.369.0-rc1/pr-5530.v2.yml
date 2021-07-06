@@ -1,7 +1,0 @@
-type: improvement
-improvement:
-  description: |-
-    Reduce backoff duration upon receiving an exception from Cassandra.
-    A lot of calls seem to be requiring upto 3 retries due to KVS slowness, which quickly pile on latency. This will reduce the time between those retries.
-  links:
-  - https://github.com/palantir/atlasdb/pull/5530

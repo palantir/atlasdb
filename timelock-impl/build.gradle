@@ -18,7 +18,6 @@ dependencies {
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile group: 'org.mindrot', name: 'jbcrypt'
 
-    implementation 'com.boundary:high-scale-lib'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.github.ben-manes.caffeine:caffeine'
