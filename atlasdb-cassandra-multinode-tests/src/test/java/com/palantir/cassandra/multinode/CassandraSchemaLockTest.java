@@ -16,10 +16,8 @@
 package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.everyItem;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.Containers;
@@ -42,11 +40,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.assertj.core.api.HamcrestCondition;
-import org.hamcrest.Description;
-import org.hamcrest.FeatureMatcher;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -82,48 +75,22 @@ public class CassandraSchemaLockTest {
         CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config);
         assertThat(kvs.getAllTableNames()).contains(table1);
 
-        assertThat(new File(CONTAINERS.getLogDirectory()))
-                .is(new HamcrestCondition<>(containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError()))));
+        assertThat(new File(CONTAINERS.getLogDirectory()).listFiles()).allSatisfy(file -> {
+            Path path = Paths.get(file.getAbsolutePath());
+            try (Stream<String> lines = Files.lines(path, StandardCharsets.ISO_8859_1)) {
+                List<String> badLines = lines.filter(line -> line.contains("Column family ID mismatch"))
+                        .collect(Collectors.toList());
+                assertThat(badLines)
+                        .describedAs("File called %s which contains lines %s", file.getAbsolutePath(), badLines)
+                        .isEmpty();
+            } catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+        });
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
     private void async(Callable callable) {
         executorService.submit(callable);
-    }
-
-    private static Matcher<File> containsFiles(Matcher<Iterable<? extends File>> fileMatcher) {
-        return new FeatureMatcher<File, List<File>>(
-                fileMatcher, "Directory with files such that", "Directory contains") {
-            @Override
-            protected List<File> featureValueOf(File actual) {
-                return ImmutableList.copyOf(actual.listFiles());
-            }
-        };
-    }
-
-    private static Matcher<File> doesNotContainTheColumnFamilyIdMismatchError() {
-        return new TypeSafeDiagnosingMatcher<File>() {
-            @Override
-            protected boolean matchesSafely(File file, Description mismatchDescription) {
-                Path path = Paths.get(file.getAbsolutePath());
-                try (Stream<String> lines = Files.lines(path, StandardCharsets.ISO_8859_1)) {
-                    List<String> badLines = lines.filter(line -> line.contains("Column family ID mismatch"))
-                            .collect(Collectors.toList());
-
-                    mismatchDescription
-                            .appendText("file called " + file.getAbsolutePath() + " which contains lines")
-                            .appendValueList("\n", "\n", "", badLines);
-
-                    return badLines.isEmpty();
-                } catch (IOException e) {
-                    throw Throwables.propagate(e);
-                }
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("a file with no column family ID mismatch errors");
-            }
-        };
     }
 }

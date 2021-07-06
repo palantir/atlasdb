@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -56,8 +57,8 @@ public class CassandraApiVersionTest {
         assertThat(version.supportsCheckAndSet()).isTrue();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void invalid_version_strings_throw_an_error() {
-        new CassandraApiVersion("20_4.1");
+        assertThatThrownBy(() -> new CassandraApiVersion("20_4.1")).isInstanceOf(UnsupportedOperationException.class);
     }
 }

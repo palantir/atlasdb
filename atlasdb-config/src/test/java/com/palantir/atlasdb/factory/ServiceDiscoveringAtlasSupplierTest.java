@@ -30,19 +30,14 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.io.IOException;
 import java.util.Optional;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ServiceDiscoveringAtlasSupplierTest {
     private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
     private final KeyValueServiceConfigHelper invalidKvsConfig = () -> "should not be found kvs";
-    private final AtlasDbFactory delegate = new AutoServiceAnnotatedAtlasDbFactory();
+    private final AtlasDbFactory<KeyValueServiceConfig> delegate = new AutoServiceAnnotatedAtlasDbFactory();
     private final Optional<LeaderConfig> leaderConfig = Optional.of(mock(LeaderConfig.class));
     private final MetricsManager metrics = MetricsManagers.createForTests();
-
-    @Rule
-    public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void delegateToFactoriesAnnotatedWithAutoService() {
@@ -88,8 +83,6 @@ public class ServiceDiscoveringAtlasSupplierTest {
 
     @Test
     public void alwaysSaveThreadDumpsToTheSameFile() throws IOException {
-        ServiceDiscoveringAtlasSupplier supplier = createAtlasSupplier(kvsConfig);
-
         String firstPath = ServiceDiscoveringAtlasSupplier.saveThreadDumps();
         String secondPath = ServiceDiscoveringAtlasSupplier.saveThreadDumps();
 

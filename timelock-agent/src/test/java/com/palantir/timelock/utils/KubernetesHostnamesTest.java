@@ -16,10 +16,9 @@
 package com.palantir.timelock.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class KubernetesHostnamesTest {
 
@@ -27,30 +26,27 @@ public class KubernetesHostnamesTest {
     private static final KubernetesHostnames K8S_INSTANCE =
             new KubernetesHostnames(() -> "svc-47775-2.svc-47775.namespace.svc.cluster.local");
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
-    public void getCurrentHostname_not_k8s() throws Exception {
-        expectedException.expect(RuntimeException.class);
-        expectedException.expectMessage("Not running in a k8s stateful set.");
-        NON_K8S_INSTANCE.getCurrentHostname();
+    public void getCurrentHostname_not_k8s() {
+        assertThatThrownBy(NON_K8S_INSTANCE::getCurrentHostname)
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Not running in a k8s stateful set.");
     }
 
     @Test
-    public void getCurrentHostname_k8s() throws Exception {
+    public void getCurrentHostname_k8s() {
         assertThat(K8S_INSTANCE.getCurrentHostname()).isEqualTo("svc-47775-2.svc-47775.namespace");
     }
 
     @Test
-    public void getClusterMembers_not_k8s() throws Exception {
-        expectedException.expect(RuntimeException.class);
-        expectedException.expectMessage("Not running in a k8s stateful set.");
-        NON_K8S_INSTANCE.getClusterMembers(4);
+    public void getClusterMembers_not_k8s() {
+        assertThatThrownBy(() -> NON_K8S_INSTANCE.getClusterMembers(4))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Not running in a k8s stateful set.");
     }
 
     @Test
-    public void getClusterMembers_k8s() throws Exception {
+    public void getClusterMembers_k8s() {
         assertThat(K8S_INSTANCE.getClusterMembers(3))
                 .containsOnly(
                         "svc-47775-0.svc-47775.namespace",
@@ -59,9 +55,9 @@ public class KubernetesHostnamesTest {
     }
 
     @Test
-    public void getClusterMembers_k8s_incorrectCount() throws Exception {
-        expectedException.expect(RuntimeException.class);
-        expectedException.expectMessage("Current Pod ID 2 indicates a cluster size greater than the expected 2.");
-        K8S_INSTANCE.getClusterMembers(2);
+    public void getClusterMembers_k8s_incorrectCount() {
+        assertThatThrownBy(() -> K8S_INSTANCE.getClusterMembers(2))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Current Pod ID 2 indicates a cluster size greater than the expected 2.");
     }
 }

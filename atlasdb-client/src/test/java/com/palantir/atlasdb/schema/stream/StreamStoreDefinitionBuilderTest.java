@@ -15,22 +15,27 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.palantir.atlasdb.table.description.ValueType;
 import org.junit.Test;
 
 public class StreamStoreDefinitionBuilderTest {
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testTooBigInMemoryThreshold() {
-        new StreamStoreDefinitionBuilder("test", "test", ValueType.VAR_LONG)
-                .inMemoryThreshold(StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD + 1)
-                .build();
+        assertThatThrownBy(() -> new StreamStoreDefinitionBuilder("test", "test", ValueType.VAR_LONG)
+                        .inMemoryThreshold(StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD + 1)
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void testMaxInMemoryThreshold() {
-        new StreamStoreDefinitionBuilder("test", "test", ValueType.VAR_LONG)
-                .inMemoryThreshold(StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD)
-                .build();
+        assertThatCode(() -> new StreamStoreDefinitionBuilder("test", "test", ValueType.VAR_LONG)
+                        .inMemoryThreshold(StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD)
+                        .build())
+                .doesNotThrowAnyException();
     }
 }

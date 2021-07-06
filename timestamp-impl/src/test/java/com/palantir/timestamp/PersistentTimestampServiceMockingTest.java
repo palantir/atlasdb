@@ -16,6 +16,7 @@
 package com.palantir.timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -52,9 +53,9 @@ public class PersistentTimestampServiceMockingTest {
         verify(timestamp).incrementBy(10000);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void willRejectRequestsForLessThan1Timestamp() {
-        timestampService.getFreshTimestamps(0);
+        assertThatThrownBy(() -> timestampService.getFreshTimestamps(0)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -71,8 +72,9 @@ public class PersistentTimestampServiceMockingTest {
         assertThat(timestampService.getFreshTimestamp()).isEqualTo(TIMESTAMP);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldRejectFastForwardToTheSentinelValue() {
-        timestampService.fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP);
+        assertThatThrownBy(() -> timestampService.fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -16,37 +16,36 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly", "checkstyle:WhitespaceAround"})
 public class SchemasTest {
     private static final String TABLE_NAME = "testTable";
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace("testTable");
     private static final Namespace NAMESPACE = Namespace.create("testNamespace");
-    Mockery mockery;
-    KeyValueService kvs;
+    private KeyValueService kvs;
 
     @Before
-    public void setup() {
-        mockery = new Mockery();
-        kvs = mockery.mock(KeyValueService.class);
+    public void before() {
+        kvs = mock(KeyValueService.class);
     }
 
     @Test
@@ -70,68 +69,54 @@ public class SchemasTest {
 
     @Test
     public void testCreateTable() {
-        mockery.checking(new Expectations() {
-            {
-                oneOf(kvs)
-                        .createTables(
-                                with(tableMapContainsEntry(TABLE_REF, getSimpleTableDefinitionAsBytes(TABLE_REF))));
-            }
-        });
+        ArgumentCaptor<Map<TableReference, byte[]>> argumentCaptor = ArgumentCaptor.forClass(Map.class);
+        doNothing().when(kvs).createTables(argumentCaptor.capture());
+
         Schemas.createTable(kvs, TABLE_REF, getSimpleTableDefinition(TABLE_REF));
+        verify(kvs).createTables(eq(argumentCaptor.getValue()));
+        assertThat(argumentCaptor.getValue())
+                .extractingByKey(TABLE_REF)
+                .asInstanceOf(InstanceOfAssertFactories.BYTE_ARRAY)
+                .isEqualTo(getSimpleTableDefinitionAsBytes(TABLE_REF));
     }
 
     @Test
     public void testCreateTables() {
+        ArgumentCaptor<Map<TableReference, byte[]>> argumentCaptor = ArgumentCaptor.forClass(Map.class);
+        doNothing().when(kvs).createTables(argumentCaptor.capture());
+
         TableReference tableName1 = TableReference.createWithEmptyNamespace(TABLE_NAME + "1");
         TableReference tableName2 = TableReference.createWithEmptyNamespace(TABLE_NAME + "2");
-        mockery.checking(new Expectations() {
-            {
-                oneOf(kvs)
-                        .createTables(
-                                with(tableMapContainsEntry(tableName1, getSimpleTableDefinitionAsBytes(tableName1))));
-                oneOf(kvs)
-                        .createTables(
-                                with(tableMapContainsEntry(tableName2, getSimpleTableDefinitionAsBytes(tableName2))));
-            }
-        });
-        Map<TableReference, TableDefinition> tables = new HashMap<>();
-        tables.put(tableName1, getSimpleTableDefinition(tableName1));
-        tables.put(tableName2, getSimpleTableDefinition(tableName2));
+
+        Map<TableReference, TableDefinition> tables = ImmutableMap.of(
+                tableName1, getSimpleTableDefinition(tableName1),
+                tableName2, getSimpleTableDefinition(tableName2));
+
         Schemas.createTables(kvs, tables);
+        verify(kvs).createTables(eq(argumentCaptor.getValue()));
+        assertThat(argumentCaptor.getValue())
+                .extractingByKey(tableName1)
+                .asInstanceOf(InstanceOfAssertFactories.BYTE_ARRAY)
+                .isEqualTo(getSimpleTableDefinitionAsBytes(tableName1));
+        assertThat(argumentCaptor.getValue())
+                .extractingByKey(tableName2)
+                .asInstanceOf(InstanceOfAssertFactories.BYTE_ARRAY)
+                .isEqualTo(getSimpleTableDefinitionAsBytes(tableName2));
     }
 
     @Test
     public void testDeleteTablesForSweepSchema() {
-        Set<TableReference> allTableNames = new HashSet<>();
-        allTableNames.add(TableReference.createFromFullyQualifiedName("sweep.priority"));
+        Set<TableReference> allTableNames =
+                ImmutableSet.of(TableReference.createFromFullyQualifiedName("sweep.priority"));
+        when(kvs.getAllTableNames()).thenReturn(allTableNames);
 
-        mockery.checking(new Expectations() {
-            {
-                oneOf(kvs).getAllTableNames();
-                will(returnValue(allTableNames));
-                oneOf(kvs).dropTables(allTableNames);
-                oneOf(kvs).getAllTableNames();
-            }
-        });
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
+        verify(kvs).getAllTableNames();
+        verify(kvs).dropTables(allTableNames);
+        verify(kvs).getAllTableNames();
     }
 
-    private Matcher<Map<TableReference, byte[]>> tableMapContainsEntry(TableReference tableRef, byte[] description) {
-        return new TypeSafeDiagnosingMatcher<Map<TableReference, byte[]>>() {
-            @Override
-            protected boolean matchesSafely(Map<TableReference, byte[]> item, Description mismatchDescription) {
-                mismatchDescription.appendText("Map does not contain match: ").appendValue(tableRef.getQualifiedName());
-                return item.containsKey(tableRef) && Arrays.equals(description, item.get(tableRef));
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("Contains key: ").appendValue(tableRef.getQualifiedName());
-            }
-        };
-    }
-
-    private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
+    private static TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {
             {
                 javaTableName(tableRef.getTablename());
@@ -145,7 +130,7 @@ public class SchemasTest {
         };
     }
 
-    private byte[] getSimpleTableDefinitionAsBytes(TableReference tableRef) {
+    private static byte[] getSimpleTableDefinitionAsBytes(TableReference tableRef) {
         return getSimpleTableDefinition(tableRef).toTableMetadata().persistToBytes();
     }
 }

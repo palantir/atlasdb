@@ -34,6 +34,7 @@ import java.util.function.Supplier;
  * we use a time limit. This exists to support perpetual {@code 308} responses from servers, which may happen if
  * leader election is still taking place.
  */
+@SuppressWarnings("ProxyNonConstantType")
 public final class FastFailoverProxy<T> extends AbstractInvocationHandler {
     private static final Duration TIME_LIMIT = Duration.ofSeconds(10);
 

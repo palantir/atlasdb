@@ -15,7 +15,8 @@
  */
 package com.palantir.timestamp;
 
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -24,14 +25,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.palantir.exception.PalantirInterruptedException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class ErrorCheckingTimestampBoundStoreTest {
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
 
     private final TimestampAllocationFailures allocationFailures = mock(TimestampAllocationFailures.class);
     private final TimestampBoundStore delegate = mock(TimestampBoundStore.class);
@@ -46,9 +42,7 @@ public class ErrorCheckingTimestampBoundStoreTest {
         doThrow(failure).when(delegate).storeUpperLimit(anyLong());
         when(allocationFailures.responseTo(failure)).thenReturn(expectedException);
 
-        exception.expect(is(expectedException));
-
-        store.storeUpperLimit(1_000);
+        assertThatThrownBy(() -> store.storeUpperLimit(1_000)).isEqualTo(expectedException);
     }
 
     @Test
@@ -67,14 +61,11 @@ public class ErrorCheckingTimestampBoundStoreTest {
     @Test
     public void shouldThrowAnInterruptedExceptionIfTheThreadIsInterrupted() {
         try {
-            exception.expect(PalantirInterruptedException.class);
-
             Thread.currentThread().interrupt();
-
-            store.storeUpperLimit(1_000);
+            assertThatThrownBy(() -> store.storeUpperLimit(1_000)).isInstanceOf(PalantirInterruptedException.class);
         } finally {
             // Clear the interrupt
-            Thread.interrupted();
+            assertThat(Thread.interrupted()).isTrue();
         }
     }
 
@@ -82,12 +73,10 @@ public class ErrorCheckingTimestampBoundStoreTest {
     public void shouldNotTryToPersistANewLimitIfInterrupted() {
         try {
             Thread.currentThread().interrupt();
-            store.storeUpperLimit(1_000);
-        } catch (Exception e) {
-            // Ingnore expected exception
+            assertThatThrownBy(() -> store.storeUpperLimit(1_000)).isInstanceOf(PalantirInterruptedException.class);
         } finally {
             // Clear the interrupt
-            Thread.interrupted();
+            assertThat(Thread.interrupted()).isTrue();
         }
 
         verify(delegate, never()).storeUpperLimit(anyLong());

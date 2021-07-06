@@ -23,8 +23,6 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
-import org.assertj.core.api.HamcrestCondition;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -113,8 +111,7 @@ public class WeightedHostsTest {
 
         int prevKey = 0;
         for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
-            int currWeight = entry.getKey() - prevKey;
-            assertThat(currWeight).is(new HamcrestCondition<>(Matchers.greaterThan(0)));
+            assertThat(entry.getKey()).isGreaterThan(prevKey);
             prevKey = entry.getKey();
         }
     }

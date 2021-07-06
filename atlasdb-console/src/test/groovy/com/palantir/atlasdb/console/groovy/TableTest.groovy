@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.console.groovy
 
-import static groovy.test.GroovyAssert.assertEquals
 import static groovy.test.GroovyAssert.shouldFail
+import static org.assertj.core.api.Assertions.assertThatThrownBy
 
 import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
@@ -24,11 +24,8 @@ import com.palantir.atlasdb.console.exceptions.IllegalConsoleCommandException
 import com.palantir.atlasdb.console.module.Range
 import com.palantir.atlasdb.console.module.Table
 import org.gmock.WithGMock
-import org.junit.Assert
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.ExpectedException
 
 @WithGMock
 class TableTest {
@@ -54,9 +51,6 @@ class TableTest {
         (tableQuery4): serviceQuery4
     ]
 
-    @Rule
-    public ExpectedException exceptions = ExpectedException.none();
-
     @Before
     void setup() {
         service = mock(AtlasConsoleServiceWrapper)
@@ -78,10 +72,10 @@ class TableTest {
         ]
         service.getMetadata(TABLE_NAME).returns(DESC).once()
         play {
-            assertEquals(DESC, table.describe())
+            assert DESC == table.describe()
             assert !table.isDynamic()
-            assertEquals(['alice', 'bob'], table.columnNames())
-            assertEquals(['foo', 'bar'], table.rowComponents())
+            assert ['alice', 'bob'] == table.columnNames()
+            assert ['foo', 'bar'] == table.rowComponents()
         }
     }
 
@@ -94,7 +88,7 @@ class TableTest {
         def token = mock(TransactionToken)
         service.getRows(query, token).returns([data: [['a': 'foo']]]).once()
         play {
-            assertEquals('a': 'foo', table.getRow(row, col, token))
+            assert ['a': 'foo'] == table.getRow(row, col, token)
         }
     }
 
@@ -112,7 +106,7 @@ class TableTest {
         def token = mock(TransactionToken)
         service.getRows(query, token).returns([data: [['a': 'foo'], ['b': 'bar']]]).once()
         play {
-            assertEquals([['a': 'foo'], ['b': 'bar']], table.getRows(row, col, token))
+            assert [['a': 'foo'], ['b': 'bar']] == table.getRows(row, col, token)
         }
     }
 
@@ -130,7 +124,7 @@ class TableTest {
         def token = mock(TransactionToken)
         service.getRows(query, token).returns([data: [['a': 'foo'], ['b': 'bar']]]).once()
         play {
-            assertEquals([['a': 'foo'], ['b': 'bar']], table.getPartialRows(tableQuery1, tableQuery1, token))
+            assert [['a': 'foo'], ['b': 'bar']] == table.getPartialRows(tableQuery1, tableQuery1, token)
             shouldFail(MissingMethodException) {
                 table.getPartialRows(tableQuery1)
             }
@@ -143,7 +137,7 @@ class TableTest {
         def token = mock(TransactionToken)
         service.getCells(query, token).returns([data: [['a': 'foo'], ['b': 'bar']]]).once()
         play {
-            assertEquals([['a': 'foo'], ['b': 'bar']], table.getCells(cells, token))
+            assert [['a': 'foo'], ['b': 'bar']] == table.getCells(cells, token)
         }
 
     }
@@ -168,7 +162,7 @@ class TableTest {
         def result = [data: expected, next: null]
         service.getRange(expected, token).returns(result).once()
         play {
-            assertEquals(new Range(service, result, token), table.getRange(query, token))
+            assert new Range(service, result, token) == table.getRange(query, token)
         }
     }
 
@@ -192,7 +186,7 @@ class TableTest {
         //have to reimplement part of table.getRows since partial mocks don't work :(
         service.delete(queryize(output), token).once()
         play {
-            assertEquals(null, table.delete(input, token))
+            assert null == table.delete(input, token)
         }
     }
 
@@ -255,12 +249,12 @@ class TableTest {
         service.put(queryize([firstOutput]), token).once()
         service.put(queryize([firstOutput, secondOutput]), token).once()
         play {
-            Assert.assertEquals table.put(firstInput, token), null
-            Assert.assertEquals table.put([firstInput, secondInput], token), null
+            assert table.put(firstInput, token) == null
+            assert table.put([firstInput, secondInput], token) == null
             def message = shouldFail(IllegalArgumentException) {
                 table.put([firstInput, secondInput, thirdInput], token)
             }
-            assertEquals("Column c does not exist", message.message)
+            assert "Column c does not exist" == message.message
         }
     }
 
@@ -277,9 +271,9 @@ class TableTest {
         service.put(queryize([secondOutput]), token).once()
         service.put(queryize([firstOutput, secondOutput]), token).once()
         play {
-            assertEquals(null, table.put(firstInput, token))
-            assertEquals(null, table.put([secondInput], token))
-            assertEquals(null, table.put([firstInput, secondInput], token))
+            assert null == table.put(firstInput, token)
+            assert null == table.put([secondInput], token)
+            assert null == table.put([firstInput, secondInput], token)
         }
     }
 
@@ -288,8 +282,8 @@ class TableTest {
         AtlasConsoleServiceWrapper tmpService = mock(AtlasConsoleServiceWrapper)
         Table tmpTable = new Table(TABLE_NAME, tmpService, false)
         def token = mock(TransactionToken)
-        exceptions.expect(IllegalConsoleCommandException.class)
-        tmpTable.put([row: 1, col: 'a', val: 11], token)
+        assertThatThrownBy({ -> tmpTable.put([row: 1, col: 'a', val: 11], token) })
+                .isInstanceOf(IllegalConsoleCommandException)
     }
 
     @Test
@@ -297,7 +291,7 @@ class TableTest {
         AtlasConsoleServiceWrapper tmpService = mock(AtlasConsoleServiceWrapper)
         Table tmpTable = new Table(TABLE_NAME, tmpService, false)
         def token = mock(TransactionToken)
-        exceptions.expect(IllegalConsoleCommandException.class)
-        tmpTable.delete([row: 1, cols: 'a'], token)
+        assertThatThrownBy({ -> tmpTable.delete([row: 1, cols: 'a'], token) })
+                .isInstanceOf(IllegalConsoleCommandException)
     }
 }

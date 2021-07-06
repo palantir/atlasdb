@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.containers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -24,14 +25,16 @@ public class CassandraCliParserTest {
 
     private final CassandraCliParser parser = new CassandraCliParser(CassandraVersion.from("2.2.9"));
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void cannotCreateUnsupportedParser() {
-        new CassandraCliParser(CassandraVersion.from("1.2.19"));
+        assertThatThrownBy(() -> new CassandraCliParser(CassandraVersion.from("1.2.19")))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void cannotCreateFutureParser() {
-        new CassandraCliParser(CassandraVersion.from("4.0"));
+        assertThatThrownBy(() -> new CassandraCliParser(CassandraVersion.from("4.0")))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -119,7 +122,7 @@ public class CassandraCliParserTest {
         assertThat(parserThreeSeven.parseSystemAuthReplicationFromCqlsh(output)).isEqualTo(4);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void parsingFailsWhenSystemAuthKeyspaceIsNotThere() {
         String output = "\n"
                 + " keyspace_name      | durable_writes | strategy_class                              "
@@ -134,10 +137,11 @@ public class CassandraCliParserTest {
                 + "| {\"replication_factor\":\"2\"}\n"
                 + "\n"
                 + "(3 rows)";
-        parser.parseSystemAuthReplicationFromCqlsh(output);
+        assertThatThrownBy(() -> parser.parseSystemAuthReplicationFromCqlsh(output))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void parsingFailsWhenSystemAuthKeyspaceIsNotANumber() {
         String output = "\n"
                 + " keyspace_name      | durable_writes | strategy_class                              "
@@ -152,15 +156,17 @@ public class CassandraCliParserTest {
                 + "| {\"replication_factor\":\"2\"}\n"
                 + "\n"
                 + "(3 rows)";
-        parser.parseSystemAuthReplicationFromCqlsh(output);
+        assertThatThrownBy(() -> parser.parseSystemAuthReplicationFromCqlsh(output))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void parsingFailsWhenSystemAuthKeyspaceOutputCorrupt() {
-        parser.parseSystemAuthReplicationFromCqlsh(CORRUPT_STRING);
+        assertThatThrownBy(() -> parser.parseSystemAuthReplicationFromCqlsh(CORRUPT_STRING))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void parsingFailsWhenSystemAuthKeyspaceReplicationStrategyIsNotSimple() {
         String output = "\n"
                 + " keyspace_name      | durable_writes | strategy_class                                       "
@@ -175,6 +181,7 @@ public class CassandraCliParserTest {
                 + "| {\"replication_factor\":\"2\"}\n"
                 + "\n"
                 + "(3 rows)";
-        parser.parseSystemAuthReplicationFromCqlsh(output);
+        assertThatThrownBy(() -> parser.parseSystemAuthReplicationFromCqlsh(output))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -54,7 +54,6 @@ dependencies {
     testImplementation 'com.palantir.safe-logging:safe-logging'
     testImplementation 'commons-io:commons-io'
     testImplementation 'joda-time:joda-time'
-    testImplementation 'org.hamcrest:hamcrest'
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-cassandra')

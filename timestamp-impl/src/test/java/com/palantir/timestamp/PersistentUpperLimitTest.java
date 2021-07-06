@@ -25,9 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class PersistentUpperLimitTest {
     private static final long TIMESTAMP = 12345L;
@@ -36,11 +34,6 @@ public class PersistentUpperLimitTest {
 
     private TimestampBoundStore boundStore;
     private PersistentUpperLimit upperLimit;
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
-
-    private final TimestampAllocationFailures allocationFailures = mock(TimestampAllocationFailures.class);
 
     @Before
     public void setup() {

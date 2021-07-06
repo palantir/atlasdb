@@ -16,6 +16,7 @@
 package com.palantir.timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -62,13 +63,15 @@ public class DelegatingManagedTimestampServiceTest {
         verify(timestampManagementService, times(1)).fastForwardTimestamp(eq(LEADING_PI_DIGITS));
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testCannotInitialiseWithNullTimestampService() {
-        new DelegatingManagedTimestampService(timestampService, null);
+        assertThatThrownBy(() -> new DelegatingManagedTimestampService(timestampService, null))
+                .isInstanceOf(NullPointerException.class);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testCannotInitialiseWithNullTimestampManagementService() {
-        new DelegatingManagedTimestampService(null, timestampManagementService);
+        assertThatThrownBy(() -> new DelegatingManagedTimestampService(null, timestampManagementService))
+                .isInstanceOf(NullPointerException.class);
     }
 }

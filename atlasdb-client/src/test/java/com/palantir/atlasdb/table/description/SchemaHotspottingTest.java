@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import java.io.File;
@@ -114,24 +115,26 @@ public class SchemaHotspottingTest {
         return indexFirstRowComponentHashed;
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testHardFailOnValidateOfTableHotspottingSchema() {
-        getHotspottingSchema().validate();
+        assertThatThrownBy(() -> getHotspottingSchema().validate()).isInstanceOf(IllegalStateException.class);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testHardFailOnValidateOfIndexHotspottingSchema() {
-        getIndexHotspottingSchema().validate();
+        assertThatThrownBy(() -> getIndexHotspottingSchema().validate()).isInstanceOf(IllegalStateException.class);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testFailToGenerateTableHotspottingSchema() throws IOException {
-        getHotspottingSchema().renderTables(new TemporaryFolder().getRoot());
+        assertThatThrownBy(() -> getHotspottingSchema().renderTables(new TemporaryFolder().getRoot()))
+                .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testFailToGenerateIndexHotspottingSchema() throws IOException {
-        getIndexHotspottingSchema().renderTables(new TemporaryFolder().getRoot());
+        assertThatThrownBy(() -> getIndexHotspottingSchema().renderTables(new TemporaryFolder().getRoot()))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

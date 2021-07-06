@@ -16,6 +16,7 @@
 package com.palantir.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -41,7 +42,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.junit.Assert;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,7 +52,7 @@ import org.junit.Test;
  * @author jtamer, ddoan
  */
 public abstract class LockServiceTest {
-    private static final ExecutorService executor = PTExecutors.newCachedThreadPool(LockServiceTest.class.getName());
+    private final ExecutorService executor = PTExecutors.newCachedThreadPool(LockServiceTest.class.getName());
 
     private LockService server;
     private LockClient client;
@@ -62,7 +63,7 @@ public abstract class LockServiceTest {
     protected abstract LockService getLockService();
 
     @Before
-    public void setUp() {
+    public void before() {
         new File("lock_server_timestamp.dat").delete();
         server = getLockService();
         client = LockClient.of("a client");
@@ -71,7 +72,14 @@ public abstract class LockServiceTest {
         barrier = new CyclicBarrier(2);
     }
 
-    /** Tests that RemoteLockService api (that internal forwards to LockService api) passes a sanity check. */
+    @After
+    public void after() {
+        executor.shutdownNow();
+    }
+
+    /**
+     * Tests that RemoteLockService api (that internal forwards to LockService api) passes a sanity check.
+     */
     @Test
     public void testRemoteLockServiceApi() throws InterruptedException {
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ, lock2, LockMode.WRITE))
@@ -79,20 +87,27 @@ public abstract class LockServiceTest {
                 .doNotBlock()
                 .build();
 
-        Assert.assertNull(server.getMinLockedInVersionId(LockClient.ANONYMOUS.getClientId()));
+        assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS.getClientId()))
+                .isNull();
         LockRefreshToken token = server.lock(LockClient.ANONYMOUS.getClientId(), request);
-        Assert.assertEquals(10, (long) server.getMinLockedInVersionId(LockClient.ANONYMOUS.getClientId()));
-        Assert.assertNull(server.lock(LockClient.ANONYMOUS.getClientId(), request));
+        assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS.getClientId()))
+                .isEqualTo(10);
+        assertThat(server.lock(LockClient.ANONYMOUS.getClientId(), request)).isNull();
         server.unlock(token);
 
-        Assert.assertNull(server.getMinLockedInVersionId(LockClient.ANONYMOUS.getClientId()));
+        assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS.getClientId()))
+                .isNull();
         HeldLocksToken heldToken = server.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request);
-        Assert.assertEquals(10, (long) server.getMinLockedInVersionId(LockClient.ANONYMOUS.getClientId()));
-        Assert.assertNull(server.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request));
+        assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS.getClientId()))
+                .isEqualTo(10);
+        assertThat(server.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), request))
+                .isNull();
         server.unlock(heldToken.getLockRefreshToken());
     }
 
-    /** Tests using doNotBlock() in the lock request. */
+    /**
+     * Tests using doNotBlock() in the lock request.
+     */
     @Test
     public void testDoNotBlock() throws InterruptedException {
         long lockTimeoutMs = LockRequest.getDefaultLockTimeout().toMillis();
@@ -102,31 +117,31 @@ public abstract class LockServiceTest {
                 .build();
         long currentTimeMs = System.currentTimeMillis();
         LockResponse response = server.lockWithFullLockResponse(client, request);
-        Assert.assertTrue(response.success());
-        Assert.assertTrue(response.getLockHolders().isEmpty());
+        assertThat(response.success()).isTrue();
+        assertThat(response.getLockHolders()).isEmpty();
         HeldLocksToken token1 = response.getToken();
-        Assert.assertNotNull(token1);
-        Assert.assertEquals(client, token1.getClient());
-        Assert.assertEquals(10, (long) token1.getVersionId());
-        Assert.assertEquals(request.getLockDescriptors(), token1.getLockDescriptors());
-        Assert.assertTrue(currentTimeMs + lockTimeoutMs <= token1.getExpirationDateMs());
-        Assert.assertTrue(token1.getExpirationDateMs() <= System.currentTimeMillis() + lockTimeoutMs);
+        assertThat(token1).isNotNull();
+        assertThat(token1.getClient()).isEqualTo(this.client);
+        assertThat(token1.getVersionId()).isEqualTo(10);
+        assertThat(token1.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+        assertThat(token1.getExpirationDateMs())
+                .isBetween(currentTimeMs + lockTimeoutMs, System.currentTimeMillis() + lockTimeoutMs);
 
-        HeldLocksToken nullToken = server.lockWithFullLockResponse(
-                        LockClient.ANONYMOUS,
-                        LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.READ))
-                                .doNotBlock()
-                                .build())
-                .getToken();
-        Assert.assertNull(nullToken);
+        assertThat(server.lockWithFullLockResponse(
+                                LockClient.ANONYMOUS,
+                                LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.READ))
+                                        .doNotBlock()
+                                        .build())
+                        .getToken())
+                .isNull();
 
-        nullToken = server.lockWithFullLockResponse(
-                        LockClient.ANONYMOUS,
-                        LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.WRITE))
-                                .doNotBlock()
-                                .build())
-                .getToken();
-        Assert.assertNull(nullToken);
+        assertThat(server.lockWithFullLockResponse(
+                                LockClient.ANONYMOUS,
+                                LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.WRITE))
+                                        .doNotBlock()
+                                        .build())
+                        .getToken())
+                .isNull();
 
         HeldLocksToken anonymousReadToken = server.lockWithFullLockResponse(
                         LockClient.ANONYMOUS,
@@ -134,43 +149,46 @@ public abstract class LockServiceTest {
                                 .doNotBlock()
                                 .build())
                 .getToken();
-        Assert.assertNotNull(anonymousReadToken);
+        assertThat(anonymousReadToken).isNotNull();
         server.unlock(anonymousReadToken);
 
         HeldLocksToken token2 = server.lockWithFullLockResponse(
-                        client,
+                        this.client,
                         LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.READ))
                                 .withLockedInVersionId(5)
                                 .doNotBlock()
                                 .build())
                 .getToken();
-        Assert.assertNotNull(token2);
+        assertThat(token2).isNotNull();
 
         HeldLocksToken token3 = server.lockWithFullLockResponse(
-                        client,
+                        this.client,
                         LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.WRITE))
                                 .doNotBlock()
                                 .build())
                 .getToken();
-        Assert.assertNotNull(token3);
+        assertThat(token3).isNotNull();
 
-        Assert.assertEquals(ImmutableSet.of(token1, token2, token3), server.getTokens(client));
-        Assert.assertEquals(5, server.getMinLockedInVersionId(client).longValue());
+        assertThat(server.getTokens(this.client)).isEqualTo(ImmutableSet.of(token1, token2, token3));
+        assertThat(server.getMinLockedInVersionId(this.client).longValue()).isEqualTo(5);
 
         server.unlock(token2);
-        Assert.assertEquals(ImmutableSet.of(token1, token3), server.getTokens(client));
-        Assert.assertEquals(10, server.getMinLockedInVersionId(client).longValue());
+        assertThat(server.getTokens(this.client)).isEqualTo(ImmutableSet.of(token1, token3));
+        assertThat(server.getMinLockedInVersionId(this.client).longValue()).isEqualTo(10);
 
         server.unlock(token1);
-        Assert.assertEquals(ImmutableSet.of(token3), server.refreshTokens(ImmutableSet.of(token1, token2, token3)));
-        Assert.assertNull(server.getMinLockedInVersionId(client));
+        assertThat(server.refreshTokens(ImmutableSet.of(token1, token2, token3)))
+                .isEqualTo(ImmutableSet.of(token3));
+        assertThat(server.getMinLockedInVersionId(this.client)).isNull();
 
         server.unlock(token3);
-        Assert.assertTrue(server.getTokens(client).isEmpty());
-        Assert.assertNull(server.getMinLockedInVersionId(client));
+        assertThat(server.getTokens(this.client)).isEmpty();
+        assertThat(server.getMinLockedInVersionId(this.client)).isNull();
     }
 
-    /** Tests using blockForAtMost() in the lock request. */
+    /**
+     * Tests using blockForAtMost() in the lock request.
+     */
     @Test
     public void testBlockForAtMost() throws Exception {
         long lockTimeoutMs = LockRequest.getDefaultLockTimeout().toMillis();
@@ -180,14 +198,14 @@ public abstract class LockServiceTest {
                 .build();
         long currentTimeMs = System.currentTimeMillis();
         LockResponse response = server.lockWithFullLockResponse(client, request);
-        Assert.assertTrue(response.success());
-        Assert.assertTrue(response.getLockHolders().isEmpty());
+        assertThat(response.success()).isTrue();
+        assertThat(response.getLockHolders()).isEmpty();
         HeldLocksToken token1 = response.getToken();
-        Assert.assertNotNull(token1);
-        Assert.assertEquals(client, token1.getClient());
-        Assert.assertEquals(request.getLockDescriptors(), token1.getLockDescriptors());
-        Assert.assertTrue(currentTimeMs + lockTimeoutMs <= token1.getExpirationDateMs());
-        Assert.assertTrue(token1.getExpirationDateMs() <= System.currentTimeMillis() + lockTimeoutMs);
+        assertThat(token1).isNotNull();
+        assertThat(token1.getClient()).isEqualTo(client);
+        assertThat(token1.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+        assertThat(token1.getExpirationDateMs())
+                .isBetween(currentTimeMs + lockTimeoutMs, System.currentTimeMillis() + lockTimeoutMs);
 
         Future<?> future = executor.submit((Callable<Void>) () -> {
             LockResponse response1 = server.lockWithFullLockResponse(
@@ -195,28 +213,26 @@ public abstract class LockServiceTest {
                     LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.READ))
                             .blockForAtMost(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS))
                             .build());
-            Assert.assertFalse(response1.success());
-            Assert.assertFalse(response1.getLockHolders().isEmpty());
-            Assert.assertEquals(ImmutableSortedMap.of(lock2, client), response1.getLockHolders());
-            HeldLocksToken nullToken = response1.getToken();
-            Assert.assertNull(nullToken);
+            assertThat(response1.success()).isFalse();
+            assertThat(response1.getLockHolders()).isNotEmpty().isEqualTo(ImmutableSortedMap.of(lock2, client));
+            assertThat(response1.getToken()).isNull();
             barrier.await();
 
-            response1 = server.lockWithFullLockResponse(
+            LockResponse response2 = server.lockWithFullLockResponse(
                     LockClient.ANONYMOUS,
                     LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.READ))
                             .blockForAtMost(SimpleTimeDuration.of(100, TimeUnit.MILLISECONDS))
                             .build());
-            Assert.assertTrue(response1.success());
-            Assert.assertTrue(response1.getLockHolders().isEmpty());
-            HeldLocksToken validToken = response1.getToken();
-            Assert.assertNotNull(validToken);
+            assertThat(response2.success()).isTrue();
+            assertThat(response2.getLockHolders()).isEmpty();
+            HeldLocksToken validToken = response2.getToken();
+            assertThat(validToken).isNotNull();
             server.unlock(validToken);
 
             return null;
         });
 
-        barrier.await();
+        barrier.await(15, TimeUnit.SECONDS);
         Thread.sleep(10);
         server.unlock(token1);
         future.get();
@@ -227,10 +243,10 @@ public abstract class LockServiceTest {
                 LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
                         .blockForAtMost(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
                         .build());
-        Assert.assertTrue(response.success());
-        Assert.assertTrue(response.getLockHolders().isEmpty());
+        assertThat(response.success()).isTrue();
+        assertThat(response.getLockHolders()).isEmpty();
         HeldLocksToken anonymousReadToken = response.getToken();
-        Assert.assertNotNull(anonymousReadToken);
+        assertThat(anonymousReadToken).isNotNull();
         server.unlock(anonymousReadToken);
 
         response = server.lockWithFullLockResponse(
@@ -239,40 +255,43 @@ public abstract class LockServiceTest {
                         .withLockedInVersionId(5)
                         .blockForAtMost(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS))
                         .build());
-        Assert.assertTrue(response.success());
-        Assert.assertTrue(response.getLockHolders().isEmpty());
+        assertThat(response.success()).isTrue();
+        assertThat(response.getLockHolders()).isEmpty();
         HeldLocksToken token2 = response.getToken();
-        Assert.assertNotNull(token2);
+        assertThat(token2).isNotNull();
 
         response = server.lockWithFullLockResponse(
                 client,
                 LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.WRITE))
                         .blockForAtMost(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS))
                         .build());
-        Assert.assertTrue(response.success());
-        Assert.assertTrue(response.getLockHolders().isEmpty());
+        assertThat(response.success()).isTrue();
+        assertThat(response.getLockHolders()).isEmpty();
         HeldLocksToken token3 = response.getToken();
-        Assert.assertNotNull(token3);
+        assertThat(token3).isNotNull();
 
-        Assert.assertEquals(ImmutableSet.of(token1, token2, token3), server.getTokens(client));
-        Assert.assertEquals(5, server.getMinLockedInVersionId(client).longValue());
-        Assert.assertNull(server.getMinLockedInVersionId(LockClient.ANONYMOUS));
+        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token1, token2, token3));
+        assertThat(server.getMinLockedInVersionId(client).longValue()).isEqualTo(5);
+        assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS)).isNull();
 
         server.unlock(token2);
-        Assert.assertEquals(ImmutableSet.of(token1, token3), server.getTokens(client));
-        Assert.assertEquals(10, server.getMinLockedInVersionId(client).longValue());
-        Assert.assertNull(server.getMinLockedInVersionId(LockClient.ANONYMOUS));
+        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token1, token3));
+        assertThat(server.getMinLockedInVersionId(client).longValue()).isEqualTo(10);
+        assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS)).isNull();
 
         server.unlock(token1);
-        Assert.assertEquals(ImmutableSet.of(token3), server.refreshTokens(ImmutableSet.of(token1, token2, token3)));
-        Assert.assertNull(server.getMinLockedInVersionId(client));
+        assertThat(server.refreshTokens(ImmutableSet.of(token1, token2, token3)))
+                .isEqualTo(ImmutableSet.of(token3));
+        assertThat(server.getMinLockedInVersionId(client)).isNull();
 
         server.unlock(token3);
-        Assert.assertTrue(server.getTokens(client).isEmpty());
-        Assert.assertNull(server.getMinLockedInVersionId(client));
+        assertThat(server.getTokens(client)).isEmpty();
+        assertThat(server.getMinLockedInVersionId(client)).isNull();
     }
 
-    /** Tests using block indefinitely mode */
+    /**
+     * Tests using block indefinitely mode
+     */
     @Test
     public void testBlockIndefinitely() throws Exception {
         long lockTimeoutMs = LockRequest.getDefaultLockTimeout().toMillis();
@@ -281,14 +300,14 @@ public abstract class LockServiceTest {
                 .build();
         long currentTimeMs = System.currentTimeMillis();
         LockResponse response = server.lockWithFullLockResponse(client, request);
-        Assert.assertTrue(response.success());
-        Assert.assertTrue(response.getLockHolders().isEmpty());
+        assertThat(response.success()).isTrue();
+        assertThat(response.getLockHolders()).isEmpty();
         HeldLocksToken token1 = response.getToken();
-        Assert.assertNotNull(token1);
-        Assert.assertEquals(client, token1.getClient());
-        Assert.assertEquals(request.getLockDescriptors(), token1.getLockDescriptors());
-        Assert.assertTrue(currentTimeMs + lockTimeoutMs <= token1.getExpirationDateMs());
-        Assert.assertTrue(token1.getExpirationDateMs() <= System.currentTimeMillis() + lockTimeoutMs);
+        assertThat(token1).isNotNull();
+        assertThat(token1.getClient()).isEqualTo(client);
+        assertThat(token1.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
+        assertThat(token1.getExpirationDateMs())
+                .isBetween(currentTimeMs + lockTimeoutMs, System.currentTimeMillis() + lockTimeoutMs);
 
         Future<?> future = executor.submit((Callable<Void>) () -> {
             barrier.await();
@@ -297,7 +316,7 @@ public abstract class LockServiceTest {
                             LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.READ))
                                     .build())
                     .getToken();
-            Assert.assertNotNull(validToken);
+            assertThat(validToken).isNotNull();
             server.unlock(validToken);
 
             return null;
@@ -314,7 +333,7 @@ public abstract class LockServiceTest {
                         LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
                                 .build())
                 .getToken();
-        Assert.assertNotNull(anonymousReadToken);
+        assertThat(anonymousReadToken).isNotNull();
         server.unlock(anonymousReadToken);
 
         HeldLocksToken token2 = server.lockWithFullLockResponse(
@@ -323,34 +342,37 @@ public abstract class LockServiceTest {
                                 .withLockedInVersionId(5)
                                 .build())
                 .getToken();
-        Assert.assertNotNull(token2);
+        assertThat(token2).isNotNull();
 
         HeldLocksToken token3 = server.lockWithFullLockResponse(
                         client,
                         LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.WRITE))
                                 .build())
                 .getToken();
-        Assert.assertNotNull(token3);
+        assertThat(token3).isNotNull();
 
-        Assert.assertEquals(ImmutableSet.of(token1, token2, token3), server.getTokens(client));
-        Assert.assertEquals(5, server.getMinLockedInVersionId(client).longValue());
-        Assert.assertNull(server.getMinLockedInVersionId(LockClient.ANONYMOUS));
+        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token1, token2, token3));
+        assertThat(server.getMinLockedInVersionId(client).longValue()).isEqualTo(5);
+        assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS)).isNull();
 
         server.unlock(token2);
-        Assert.assertEquals(ImmutableSet.of(token1, token3), server.getTokens(client));
-        Assert.assertEquals(10, server.getMinLockedInVersionId(client).longValue());
-        Assert.assertNull(server.getMinLockedInVersionId(LockClient.ANONYMOUS));
+        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token1, token3));
+        assertThat(server.getMinLockedInVersionId(client).longValue()).isEqualTo(10);
+        assertThat(server.getMinLockedInVersionId(LockClient.ANONYMOUS)).isNull();
 
         server.unlock(token1);
-        Assert.assertEquals(ImmutableSet.of(token3), server.refreshTokens(ImmutableSet.of(token1, token2, token3)));
-        Assert.assertNull(server.getMinLockedInVersionId(client));
+        assertThat(server.refreshTokens(ImmutableSet.of(token1, token2, token3)))
+                .isEqualTo(ImmutableSet.of(token3));
+        assertThat(server.getMinLockedInVersionId(client)).isNull();
 
         server.unlock(token3);
-        Assert.assertTrue(server.getTokens(client).isEmpty());
-        Assert.assertNull(server.getMinLockedInVersionId(client));
+        assertThat(server.getTokens(client)).isEmpty();
+        assertThat(server.getMinLockedInVersionId(client)).isNull();
     }
 
-    /** Tests lockAndRelease */
+    /**
+     * Tests lockAndRelease
+     */
     @Test
     public void testLockAndRelease() throws Exception {
         LockRequest hasLock2 = LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.WRITE))
@@ -361,21 +383,16 @@ public abstract class LockServiceTest {
                 .build();
 
         LockResponse resp2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, hasLock2);
-        Assert.assertTrue(resp2.success());
+        assertThat(resp2.success()).isTrue();
 
         Future<?> future = executor.submit((Callable<Void>) () -> {
             LockResponse resp = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-            Assert.assertNotNull(resp);
-            Assert.assertTrue(resp.success());
+            assertThat(resp).isNotNull();
+            assertThat(resp.success()).isTrue();
             return null;
         });
 
-        try {
-            future.get(1, TimeUnit.MILLISECONDS);
-            Assert.fail();
-        } catch (TimeoutException e) {
-            // good
-        }
+        assertThatThrownBy(() -> future.get(1, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
 
         server.unlock(resp2.getToken());
 
@@ -385,7 +402,9 @@ public abstract class LockServiceTest {
         server.unlock(resp2.getToken());
     }
 
-    /** Tests lockAndRelease with perf optimization */
+    /**
+     * Tests lockAndRelease with perf optimization
+     */
     @Test
     public void testLockAndRelease2() throws Exception {
         LockRequest hasLock1 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
@@ -398,22 +417,17 @@ public abstract class LockServiceTest {
                 .build();
 
         LockResponse resp2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, hasLock2);
-        Assert.assertTrue(resp2.success());
+        assertThat(resp2.success()).isTrue();
 
         Future<?> future = executor.submit((Callable<Void>) () -> {
             LockResponse resp = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-            Assert.assertNotNull(resp);
-            Assert.assertTrue(resp.success());
+            assertThat(resp).isNotNull();
+            assertThat(resp.success()).isTrue();
             return null;
         });
 
         Thread.sleep(10);
-        try {
-            future.get(1, TimeUnit.MILLISECONDS);
-            Assert.fail();
-        } catch (TimeoutException e) {
-            // good
-        }
+        assertThatThrownBy(() -> future.get(1, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
         LockResponse resp1 = server.lockWithFullLockResponse(client, hasLock1);
 
         server.unlock(resp2.getToken());
@@ -426,7 +440,9 @@ public abstract class LockServiceTest {
         server.unlock(resp2.getToken());
     }
 
-    /** Tests lockAsManyAsPossible() */
+    /**
+     * Tests lockAsManyAsPossible()
+     */
     @Test
     public void testLockAsManyAsPossible() throws InterruptedException {
         LockRequest request1 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
@@ -438,36 +454,38 @@ public abstract class LockServiceTest {
 
         LockResponse response = server.lockWithFullLockResponse(client, request1);
         HeldLocksToken token1 = response.getToken();
-        Assert.assertNotNull(token1);
-        Assert.assertEquals(client, token1.getClient());
-        Assert.assertEquals(request1.getLockDescriptors(), token1.getLockDescriptors());
+        assertThat(token1).isNotNull();
+        assertThat(token1.getClient()).isEqualTo(client);
+        assertThat(token1.getLockDescriptors()).isEqualTo(request1.getLockDescriptors());
 
         response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2);
         HeldLocksToken token2 = response.getToken();
         System.out.println(response.getLockHolders());
-        Assert.assertNotNull(token2);
-        Assert.assertEquals(LockClient.ANONYMOUS, token2.getClient());
-        Assert.assertEquals(request2.getLockDescriptors(), token2.getLockDescriptors());
+        assertThat(token2).isNotNull();
+        assertThat(token2.getClient()).isEqualTo(LockClient.ANONYMOUS);
+        assertThat(token2.getLockDescriptors()).isEqualTo(request2.getLockDescriptors());
 
         LockRequest request3 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ, lock2, LockMode.WRITE))
                 .lockAsManyAsPossible()
                 .blockForAtMost(SimpleTimeDuration.of(100, TimeUnit.MILLISECONDS))
                 .build();
         response = server.lockWithFullLockResponse(client, request3);
-        Assert.assertTrue(response.success());
+        assertThat(response.success()).isTrue();
         HeldLocksToken token3 = response.getToken();
-        Assert.assertNotNull(token3);
-        Assert.assertEquals(client, token3.getClient());
-        Assert.assertEquals(
-                LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ)), token3.getLockDescriptors());
+        assertThat(token3).isNotNull();
+        assertThat(token3.getClient()).isEqualTo(client);
+        assertThat(token3.getLockDescriptors())
+                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ)));
 
         server.unlock(token1);
         server.unlock(token2);
         server.unlock(token3);
-        Assert.assertTrue(server.getTokens(client).isEmpty());
+        assertThat(server.getTokens(client)).isEmpty();
     }
 
-    /** Tests against LockService.logCurrentState() long-block bug (QA-87074) */
+    /**
+     * Tests against LockService.logCurrentState() long-block bug (QA-87074)
+     */
     @Test
     public void testLogCurrentState() throws Exception {
         long lockTimeoutMs = LockRequest.getDefaultLockTimeout().toMillis();
@@ -480,14 +498,14 @@ public abstract class LockServiceTest {
                 .build();
         long currentTimeMs = System.currentTimeMillis();
         LockResponse response1 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request1);
-        Assert.assertTrue(response1.success());
-        Assert.assertTrue(response1.getLockHolders().isEmpty());
+        assertThat(response1.success()).isTrue();
+        assertThat(response1.getLockHolders()).isEmpty();
         HeldLocksToken token1 = response1.getToken();
-        Assert.assertNotNull(token1);
-        Assert.assertEquals(LockClient.ANONYMOUS, token1.getClient());
-        Assert.assertEquals(request1.getLockDescriptors(), token1.getLockDescriptors());
-        Assert.assertTrue(currentTimeMs + lockTimeoutMs <= token1.getExpirationDateMs());
-        Assert.assertTrue(token1.getExpirationDateMs() <= System.currentTimeMillis() + lockTimeoutMs);
+        assertThat(token1).isNotNull();
+        assertThat(token1.getClient()).isEqualTo(LockClient.ANONYMOUS);
+        assertThat(token1.getLockDescriptors()).isEqualTo(request1.getLockDescriptors());
+        assertThat(token1.getExpirationDateMs())
+                .isBetween(currentTimeMs + lockTimeoutMs, System.currentTimeMillis() + lockTimeoutMs);
 
         // Second request grabs corresponding WRITE lock, will block inside LockServer until READ lock expires
         executor.submit((Callable<Void>) () -> {
@@ -496,7 +514,7 @@ public abstract class LockServiceTest {
                     .build();
             LockResponse response2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2);
             HeldLocksToken validToken = response2.getToken();
-            Assert.assertNotNull(validToken);
+            assertThat(validToken).isNotNull();
             server.unlock(validToken);
             return null;
         });
@@ -517,8 +535,7 @@ public abstract class LockServiceTest {
         try {
             logCallFuture.get(logCurrentStateCallTimeoutMs, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
-            // If we exceed the timeout, the call is hung and it's a failure
-            Assert.fail();
+            throw new AssertionError("If we exceed the timeout, the call is hung and it's a failure", e);
         } finally {
             LockServiceTestUtils.cleanUpLogStateDir();
         }
@@ -527,22 +544,21 @@ public abstract class LockServiceTest {
     @Test
     public void testGetLockState() throws Exception {
         LockState state0 = server.getLockState(lock1);
-        Assert.assertFalse(state0.isWriteLocked());
-        Assert.assertEquals(state0.exactCurrentLockHolders(), ImmutableList.of());
-        Assert.assertEquals(state0.holders(), ImmutableList.of());
-        Assert.assertEquals(state0.requesters(), ImmutableList.of());
+        assertThat(state0.isWriteLocked()).isFalse();
+        assertThat(state0.exactCurrentLockHolders()).isEmpty();
+        assertThat(state0.holders()).isEmpty();
+        assertThat(state0.requesters()).isEmpty();
 
         LockRequest request1 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
                 .doNotBlock()
                 .build();
         LockResponse response1 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request1);
-        Assert.assertTrue(response1.success());
+        assertThat(response1.success()).isTrue();
         LockState state1 = server.getLockState(lock1);
-        Assert.assertFalse(state1.isWriteLocked());
-        Assert.assertEquals(state1.exactCurrentLockHolders(), ImmutableList.of(LockClient.ANONYMOUS));
-        Assert.assertEquals(
-                Iterables.getOnlyElement(state1.holders()).requestingThread(),
-                Thread.currentThread().getName());
+        assertThat(state1.isWriteLocked()).isFalse();
+        assertThat(ImmutableList.of(LockClient.ANONYMOUS)).isEqualTo(state1.exactCurrentLockHolders());
+        assertThat(Thread.currentThread().getName())
+                .isEqualTo(Iterables.getOnlyElement(state1.holders()).requestingThread());
 
         executor.submit((Callable<Void>) () -> {
             barrier.await();
@@ -551,7 +567,7 @@ public abstract class LockServiceTest {
                     .build();
             LockResponse response2 = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2);
             HeldLocksToken validToken = response2.getToken();
-            Assert.assertNotNull(validToken);
+            assertThat(validToken).isNotNull();
             server.unlock(validToken);
             return null;
         });
@@ -563,7 +579,9 @@ public abstract class LockServiceTest {
         assertThat(Iterables.getOnlyElement(state2.requesters()).versionId()).hasValue(100L);
     }
 
-    /** Tests lock responses */
+    /**
+     * Tests lock responses
+     */
     @Test
     public void testLockReponse() throws InterruptedException {
         LockDescriptor lock3 = StringLockDescriptor.of("third lock");
@@ -574,61 +592,62 @@ public abstract class LockServiceTest {
                 .doNotBlock()
                 .build();
         LockResponse response = server.lockWithFullLockResponse(client, request);
-        Assert.assertTrue(response.success());
-        Assert.assertTrue(response.getLockHolders().isEmpty());
+        assertThat(response.success()).isTrue();
+        assertThat(response.getLockHolders()).isEmpty();
 
         request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ, lock3, LockMode.WRITE))
                 .lockAsManyAsPossible()
                 .blockForAtMost(SimpleTimeDuration.of(50, TimeUnit.MILLISECONDS))
                 .build();
         response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-        Assert.assertTrue(response.success());
-        Assert.assertFalse(response.getLockHolders().isEmpty());
-        Assert.assertEquals(ImmutableMap.of(lock3, client), response.getLockHolders());
+        assertThat(response.success()).isTrue();
+        assertThat(response.getLockHolders().isEmpty()).isFalse();
+        assertThat(response.getLockHolders()).isEqualTo(ImmutableMap.of(lock3, client));
         HeldLocksToken token = response.getToken();
-        Assert.assertEquals(LockClient.ANONYMOUS, token.getClient());
-        Assert.assertEquals(
-                LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ)), token.getLockDescriptors());
+        assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
+        assertThat(token.getLockDescriptors())
+                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ)));
 
         request = LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.READ, lock4, LockMode.WRITE))
                 .lockAsManyAsPossible()
                 .blockForAtMost(SimpleTimeDuration.of(50, TimeUnit.MILLISECONDS))
                 .build();
         response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-        Assert.assertTrue(response.success());
-        Assert.assertFalse(response.getLockHolders().isEmpty());
-        Assert.assertEquals(ImmutableMap.of(lock4, client), response.getLockHolders());
+        assertThat(response.success()).isTrue();
+        assertThat(response.getLockHolders().isEmpty()).isFalse();
+        assertThat(response.getLockHolders()).isEqualTo(ImmutableMap.of(lock4, client));
         token = response.getToken();
-        Assert.assertEquals(LockClient.ANONYMOUS, token.getClient());
-        Assert.assertEquals(
-                LockCollections.of(ImmutableSortedMap.of(lock2, LockMode.READ)), token.getLockDescriptors());
+        assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
+        assertThat(token.getLockDescriptors())
+                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock2, LockMode.READ)));
 
         request = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ, lock2, LockMode.READ))
                 .lockAsManyAsPossible()
                 .blockForAtMost(SimpleTimeDuration.of(50, TimeUnit.MILLISECONDS))
                 .build();
         response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-        Assert.assertTrue(response.success());
-        Assert.assertTrue(response.getLockHolders().isEmpty());
+        assertThat(response.success()).isTrue();
+        assertThat(response.getLockHolders()).isEmpty();
         token = response.getToken();
-        Assert.assertEquals(LockClient.ANONYMOUS, token.getClient());
-        Assert.assertEquals(
-                LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ, lock2, LockMode.READ)),
-                token.getLockDescriptors());
+        assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
+        assertThat(token.getLockDescriptors())
+                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.READ, lock2, LockMode.READ)));
 
         request = LockRequest.builder(ImmutableSortedMap.of(lock3, LockMode.WRITE, lock4, LockMode.WRITE))
                 .lockAsManyAsPossible()
                 .blockForAtMost(SimpleTimeDuration.of(50, TimeUnit.MILLISECONDS))
                 .build();
         response = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request);
-        Assert.assertFalse(response.success());
-        Assert.assertFalse(response.getLockHolders().isEmpty());
-        Assert.assertEquals(ImmutableSortedMap.of(lock3, client, lock4, client), response.getLockHolders());
+        assertThat(response.success()).isFalse();
+        assertThat(response.getLockHolders().isEmpty()).isFalse();
+        assertThat(response.getLockHolders()).isEqualTo(ImmutableSortedMap.of(lock3, client, lock4, client));
         token = response.getToken();
-        Assert.assertNull(token);
+        assertThat(token).isNull();
     }
 
-    /** Tests grants */
+    /**
+     * Tests grants
+     */
     @Test
     public void testGrants() throws Exception {
         LockRequest requestWrite = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
@@ -643,170 +662,150 @@ public abstract class LockServiceTest {
                 .build();
         HeldLocksToken token1 =
                 server.lockWithFullLockResponse(client, requestWrite).getToken();
-        Assert.assertNotNull(token1);
+        assertThat(token1).isNotNull();
         HeldLocksToken token2 =
                 server.lockWithFullLockResponse(client, requestRead).getToken();
-        Assert.assertNotNull(token2);
-        try {
-            server.convertToGrant(token1);
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected: holding both read and write locks */
-        }
+        assertThat(token2).isNotNull();
+        HeldLocksToken finalToken = token1;
+        assertThatThrownBy(() -> server.convertToGrant(finalToken))
+                .describedAs("Expected: holding both read and write locks")
+                .isInstanceOf(IllegalMonitorStateException.class);
         HeldLocksToken token3 =
                 server.lockWithFullLockResponse(client, requestTwoLocks).getToken();
-        Assert.assertNotNull(token3);
-        try {
-            server.convertToGrant(token3);
-            Assert.fail();
-        } catch (IllegalMonitorStateException expected) {
-            /* Expected: holding multiple locks */
-        }
+        assertThat(token3).isNotNull();
+        assertThatThrownBy(() -> server.convertToGrant(token3))
+                .describedAs("Expected: holding multiple locks")
+                .isInstanceOf(IllegalMonitorStateException.class);
         server.unlock(token2);
         server.unlock(token3);
 
         LockClient client2 = LockClient.of("client2");
         LockResponse response = server.lockWithFullLockResponse(client2, requestWrite);
-        Assert.assertFalse(response.success());
-        Assert.assertEquals(ImmutableMap.of(lock1, client), response.getLockHolders());
+        assertThat(response.success()).isFalse();
+        assertThat(response.getLockHolders()).isEqualTo(ImmutableMap.of(lock1, client));
         HeldLocksToken nullToken = response.getToken();
-        Assert.assertNull(nullToken);
+        assertThat(nullToken).isNull();
 
         HeldLocksGrant grantToken = server.convertToGrant(token1);
-        Assert.assertNull(grantToken.getClient());
+        assertThat(grantToken.getClient()).isNull();
 
         HeldLocksToken validToken = server.useGrant(client2, grantToken);
-        Assert.assertNotNull(validToken);
-        Assert.assertEquals(client2, validToken.getClient());
+        assertThat(validToken).isNotNull();
+        assertThat(validToken.getClient()).isEqualTo(client2);
         server.unlock(validToken);
 
         requestWrite = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
                 .build();
         token1 = server.lockWithFullLockResponse(client, requestWrite).getToken();
-        Assert.assertNotNull(token1);
-        Assert.assertEquals(client, token1.getClient());
+        assertThat(token1).isNotNull();
+        assertThat(token1.getClient()).isEqualTo(client);
         Future<?> future = executor.submit((Callable<Void>) () -> {
             HeldLocksToken validToken1 = server.lockWithFullLockResponse(
                             LockClient.ANONYMOUS,
                             LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
                                     .build())
                     .getToken();
-            Assert.assertNotNull(validToken1);
-            Assert.assertEquals(LockClient.ANONYMOUS, validToken1.getClient());
+            assertThat(validToken1).isNotNull();
+            assertThat(validToken1.getClient()).isEqualTo(LockClient.ANONYMOUS);
             server.unlock(validToken1);
 
             return null;
         });
         grantToken = server.convertToGrant(token1);
-        Assert.assertNull(grantToken.getClient());
+        assertThat(grantToken.getClient()).isNull();
 
         validToken = server.useGrant(client2, grantToken.getGrantId());
-        Assert.assertNotNull(validToken);
-        Assert.assertEquals(client2, validToken.getClient());
+        assertThat(validToken).isNotNull();
+        assertThat(validToken.getClient()).isEqualTo(client2);
 
         Thread.sleep(100);
         server.unlock(validToken);
         future.get();
-        Assert.assertTrue(server.getTokens(client).isEmpty());
-        Assert.assertTrue(server.getTokens(client2).isEmpty());
+        assertThat(server.getTokens(client)).isEmpty();
+        assertThat(server.getTokens(client2)).isEmpty();
     }
 
-    /** Tests for illegal actions */
+    /**
+     * Tests for illegal actions
+     */
     @Test
     public void testIllegalActions() throws InterruptedException {
-        try {
-            LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
-                    .doNotBlock()
-                    .doNotBlock()
-                    .build();
-            Assert.fail();
-        } catch (IllegalStateException expected) {
-            /* Expected: can't call doNotBlock() twice */
-        }
-        try {
-            LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
-                    .doNotBlock()
-                    .blockForAtMost(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
-                    .build();
-            Assert.fail();
-        } catch (IllegalStateException expected) {
-            /* Expected: can't call both doNotBlock() and blockForAtMost() */
-        }
-        try {
-            LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
-                    .blockForAtMost(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
-                    .blockForAtMost(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
-                    .build();
-            Assert.fail();
-        } catch (IllegalStateException expected) {
-            /* Expected: can't call blockForAtMost() twice */
-        }
-        try {
-            LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
-                    .timeoutAfter(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
-                    .timeoutAfter(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
-                    .build();
-            Assert.fail();
-        } catch (IllegalStateException expected) {
-            /* Expected: can't call timeoutAfter() twice */
-        }
-        try {
-            LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
-                    .lockAsManyAsPossible()
-                    .lockAsManyAsPossible()
-                    .build();
-            Assert.fail();
-        } catch (IllegalStateException expected) {
-            /* Expected: can't call lockAsManyAsPossible() twice */
-        }
-        try {
-            LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
-                    .lockAsManyAsPossible()
-                    .build();
-            Assert.fail();
-        } catch (IllegalStateException expected) {
-            /* Expected: lockAsManyAsPossible() requires doNotBlock() or blockForAtMost() modes */
-        }
-        try {
-            LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
-                    .withLockedInVersionId(1)
-                    .withLockedInVersionId(2)
-                    .build();
-            Assert.fail();
-        } catch (IllegalStateException expected) {
-            /* Expected: can't call withLockedInVersionId() twice */
-        }
+        assertThatThrownBy(() -> LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
+                        .doNotBlock()
+                        .doNotBlock()
+                        .build())
+                .describedAs("Expected: can't call doNotBlock() twice")
+                .isInstanceOf(IllegalStateException.class);
+
+        assertThatThrownBy(() -> LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
+                        .doNotBlock()
+                        .blockForAtMost(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
+                        .build())
+                .describedAs("Expected: can't call both doNotBlock() and blockForAtMost()")
+                .isInstanceOf(IllegalStateException.class);
+
+        assertThatThrownBy(() -> LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
+                        .blockForAtMost(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
+                        .blockForAtMost(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
+                        .build())
+                .describedAs("Expected: can't call blockForAtMost() twice")
+                .isInstanceOf(IllegalStateException.class);
+
+        assertThatThrownBy(() -> LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
+                        .timeoutAfter(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
+                        .timeoutAfter(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
+                        .build())
+                .describedAs("Expected: can't call timeoutAfter() twice")
+                .isInstanceOf(IllegalStateException.class);
+
+        assertThatThrownBy(() -> LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
+                        .lockAsManyAsPossible()
+                        .lockAsManyAsPossible()
+                        .build())
+                .describedAs("Expected: can't call lockAsManyAsPossible() twice")
+                .isInstanceOf(IllegalStateException.class);
+
+        assertThatThrownBy(() -> LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
+                        .lockAsManyAsPossible()
+                        .build())
+                .describedAs("Expected: lockAsManyAsPossible() requires" + " doNotBlock() or blockForAtMost() modes ")
+                .isInstanceOf(IllegalStateException.class);
+
+        assertThatThrownBy(() -> LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
+                        .withLockedInVersionId(1)
+                        .withLockedInVersionId(2)
+                        .build())
+                .describedAs("Expected: can't call withLockedInVersionId() twice")
+                .isInstanceOf(IllegalStateException.class);
+
         HeldLocksToken token = server.lockWithFullLockResponse(
                         client,
                         LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ))
                                 .doNotBlock()
                                 .build())
                 .getToken();
-        Assert.assertNotNull(token);
-        Assert.assertEquals(ImmutableSet.of(token), server.getTokens(client));
-        try {
-            server.getTokens(LockClient.ANONYMOUS);
-            Assert.fail();
-        } catch (IllegalArgumentException expected) {
-            /* Expected: can't refresh an anonymous client */
-        }
-        try {
-            server.getTokens(LockClient.INTERNAL_LOCK_GRANT_CLIENT);
-            Assert.fail();
-        } catch (IllegalArgumentException expected) {
-            /* Expected: can't refresh the internal lock grant client */
-        }
-        try {
-            server.unlockAndFreeze(token);
-            Assert.fail();
-        } catch (IllegalArgumentException expected) {
-            /* Expected: can't unlock and freeze read lock */
-        }
+
+        assertThat(token).isNotNull();
+        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token));
+        assertThatThrownBy(() -> server.getTokens(LockClient.ANONYMOUS))
+                .describedAs("Expected: can't refresh an anonymous client")
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> server.getTokens(LockClient.INTERNAL_LOCK_GRANT_CLIENT))
+                .describedAs("Expected: can't refresh the internal lock grant client")
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> server.unlockAndFreeze(token))
+                .describedAs("Expected: can't unlock and freeze read lock")
+                .isInstanceOf(IllegalArgumentException.class);
+
         server.unlock(token);
-        Assert.assertTrue(server.getTokens(client).isEmpty());
+        assertThat(server.getTokens(client)).isEmpty();
     }
 
-    /** Tests grabbing many locks with each request */
+    /**
+     * Tests grabbing many locks with each request
+     */
     @Test
     public void testNumerousLocksPerClient() throws InterruptedException {
         SortedMap<LockDescriptor, LockMode> lockMap = new TreeMap<>();
@@ -823,10 +822,10 @@ public abstract class LockServiceTest {
         LockRequest requestAllLocks = LockRequest.builder(lockMap).doNotBlock().build();
         HeldLocksToken readWriteToken =
                 server.lockWithFullLockResponse(client, requestAllLocks).getToken();
-        Assert.assertNotNull(readWriteToken);
-        Assert.assertEquals(client, readWriteToken.getClient());
-        Assert.assertEquals(
-                LockCollections.of(ImmutableSortedMap.copyOf(lockMap)), readWriteToken.getLockDescriptors());
+        assertThat(readWriteToken).isNotNull();
+        assertThat(readWriteToken.getClient()).isEqualTo(client);
+        assertThat(readWriteToken.getLockDescriptors())
+                .isEqualTo(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
 
         lockMap = new TreeMap<>();
         for (int i = 0; i < numLocks; ++i) {
@@ -835,9 +834,9 @@ public abstract class LockServiceTest {
         requestAllLocks = LockRequest.builder(lockMap).doNotBlock().build();
         HeldLocksToken token =
                 server.lockWithFullLockResponse(client, requestAllLocks).getToken();
-        Assert.assertNotNull(token);
-        Assert.assertEquals(client, token.getClient());
-        Assert.assertEquals(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)), token.getLockDescriptors());
+        assertThat(token).isNotNull();
+        assertThat(token.getClient()).isEqualTo(client);
+        assertThat(token.getLockDescriptors()).isEqualTo(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
 
         server.unlock(token);
         server.unlock(readWriteToken);
@@ -857,19 +856,19 @@ public abstract class LockServiceTest {
         }
         requestAllLocks = LockRequest.builder(lockMap).doNotBlock().build();
         token = server.lockWithFullLockResponse(client2, requestAllLocks).getToken();
-        Assert.assertNull(token);
+        assertThat(token).isNull();
         requestAllLocks =
                 LockRequest.builder(lockMap).doNotBlock().lockAsManyAsPossible().build();
         token = server.lockWithFullLockResponse(client2, requestAllLocks).getToken();
-        Assert.assertNotNull(token);
-        Assert.assertEquals(client2, token.getClient());
+        assertThat(token).isNotNull();
+        assertThat(token.getClient()).isEqualTo(client2);
         lockMap = new TreeMap<>();
         for (int i = 0; i < numLocks; ++i) {
             if (i % 2 != 0) {
                 lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.WRITE);
             }
         }
-        Assert.assertEquals(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)), token.getLockDescriptors());
+        assertThat(token.getLockDescriptors()).isEqualTo(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
         server.unlock(token);
 
         lockMap = new TreeMap<>();
@@ -883,19 +882,21 @@ public abstract class LockServiceTest {
         requestAllLocks =
                 LockRequest.builder(lockMap).doNotBlock().lockAsManyAsPossible().build();
         token = server.lockWithFullLockResponse(client2, requestAllLocks).getToken();
-        Assert.assertNotNull(token);
-        Assert.assertEquals(client2, token.getClient());
+        assertThat(token).isNotNull();
+        assertThat(token.getClient()).isEqualTo(client2);
         lockMap = new TreeMap<>();
         for (int i = 0; i < numLocks; ++i) {
             if (i % 2 != 0) {
                 lockMap.put(StringLockDescriptor.of("lock " + i), LockMode.READ);
             }
         }
-        Assert.assertEquals(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)), token.getLockDescriptors());
+        assertThat(token.getLockDescriptors()).isEqualTo(LockCollections.of(ImmutableSortedMap.copyOf(lockMap)));
         server.unlock(token);
     }
 
-    /** Tests using multiple threads to grab the same locks */
+    /**
+     * Tests using multiple threads to grab the same locks
+     */
     @Test
     public void testNumerousClientsPerLock() throws Exception {
         new File("lock_server_timestamp.dat").delete();
@@ -961,10 +962,8 @@ public abstract class LockServiceTest {
                                 numFailure.set(numFailure.get() + 1);
                             } else {
                                 numSuccess.set(numSuccess.get() + 1);
-                                Assert.assertEquals(
-                                        Integer.toString(clientID),
-                                        token.getClient().getClientId());
-                                Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
+                                assertThat(token.getClient().getClientId()).isEqualTo(Integer.toString(clientID));
+                                assertThat(token.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
                                 try {
                                     Thread.sleep(50);
                                 } catch (InterruptedException e) {
@@ -972,7 +971,7 @@ public abstract class LockServiceTest {
                                 }
                                 System.out.println(System.currentTimeMillis() - token.getExpirationDateMs());
                                 server.unlock(token);
-                                Assert.assertTrue(server.getTokens(client).isEmpty());
+                                assertThat(server.getTokens(client)).isEmpty();
                             }
                         }
                     } catch (RuntimeException e) {
@@ -989,12 +988,7 @@ public abstract class LockServiceTest {
             future.cancel(true);
         }
         for (Future<?> future : futures) {
-            try {
-                future.get();
-                Assert.fail();
-            } catch (ExecutionException expected) {
-                /* expected */
-            }
+            assertThatThrownBy(future::get).isInstanceOf(ExecutionException.class);
         }
         System.out.println("Number of unsuccessfully acquired locks: " + numFailure.get());
         System.out.println("Number of successfully acquired locks: " + numSuccess.get());
@@ -1002,13 +996,15 @@ public abstract class LockServiceTest {
                 .build();
         HeldLocksToken token =
                 server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
-        Assert.assertNotNull(token);
-        Assert.assertEquals(LockClient.ANONYMOUS, token.getClient());
-        Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
+        assertThat(token).isNotNull();
+        assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
+        assertThat(token.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
         server.unlock(token);
     }
 
-    /** Tests expiring lock tokens and grants */
+    /**
+     * Tests expiring lock tokens and grants
+     */
     @Test
     public void testExpiringTokensAndGrants() throws Exception {
         new File("lock_server_timestamp.dat").delete();
@@ -1023,43 +1019,46 @@ public abstract class LockServiceTest {
                 .timeoutAfter(SimpleTimeDuration.of(500, TimeUnit.MILLISECONDS))
                 .build();
         HeldLocksToken token = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertNotNull(token);
-        Assert.assertEquals(client, token.getClient());
-        Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
+        assertThat(token).isNotNull();
+        assertThat(token.getClient()).isEqualTo(client);
+        assertThat(token.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
         Thread.sleep(51);
-        Assert.assertTrue(token.getExpirationDateMs() - System.currentTimeMillis() < 450);
+        assertThat(token.getExpirationDateMs() - System.currentTimeMillis()).isLessThan(450);
         HeldLocksToken nullToken =
                 server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
-        Assert.assertNull(nullToken);
+        assertThat(nullToken).isNull();
         Thread.sleep(450);
 
         token = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
-        Assert.assertNotNull(token);
-        Assert.assertEquals(LockClient.ANONYMOUS, token.getClient());
-        Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
+        assertThat(token).isNotNull();
+        assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
+        assertThat(token.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
 
         HeldLocksGrant grant = server.convertToGrant(token);
-        Assert.assertNotNull(grant);
-        Assert.assertNull(grant.getClient());
-        Assert.assertEquals(request.getLockDescriptors(), grant.getLocks());
+        assertThat(grant).isNotNull();
+        assertThat(grant.getClient()).isNull();
+        assertThat(grant.getLocks()).isEqualTo(request.getLockDescriptors());
         Thread.sleep(51);
-        Assert.assertTrue(grant.getExpirationDateMs() - System.currentTimeMillis() < 450);
+        assertThat(grant.getExpirationDateMs() - System.currentTimeMillis()).isLessThan(450);
         grant = server.refreshGrant(grant);
-        Assert.assertTrue(grant.getExpirationDateMs() - System.currentTimeMillis() < 500);
+        assertThat(grant).isNotNull();
+        assertThat(grant.getExpirationDateMs() - System.currentTimeMillis()).isLessThan(500);
         nullToken =
                 server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
-        Assert.assertNull(nullToken);
+        assertThat(nullToken).isNull();
         Thread.sleep(500);
 
         token = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertNotNull(token);
-        Assert.assertEquals(client, token.getClient());
-        Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
+        assertThat(token).isNotNull();
+        assertThat(token.getClient()).isEqualTo(client);
+        assertThat(token.getLockDescriptors()).isEqualTo(request.getLockDescriptors());
         server.unlock(token);
-        Assert.assertTrue(server.getTokens(client).isEmpty());
+        assertThat(server.getTokens(client)).isEmpty();
     }
 
-    /** Convert a write lock to a read lock */
+    /**
+     * Convert a write lock to a read lock
+     */
     @Test
     public void testConvertWriteToRead() throws Exception {
         final LockRequest request1 = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE))
@@ -1068,39 +1067,38 @@ public abstract class LockServiceTest {
                 LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ)).build();
         HeldLocksToken token1 =
                 server.lockWithFullLockResponse(client, request1).getToken();
-        Assert.assertNotNull(token1);
-        Assert.assertEquals(client, token1.getClient());
-        Assert.assertEquals(request1.getLockDescriptors(), token1.getLockDescriptors());
+        assertThat(token1).isNotNull();
+        assertThat(token1.getClient()).isEqualTo(client);
+        assertThat(token1.getLockDescriptors()).isEqualTo(request1.getLockDescriptors());
 
         Future<?> future = executor.submit((Callable<Void>) () -> {
             barrier.await();
             HeldLocksToken validToken = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request2)
                     .getToken();
-            Assert.assertNotNull(validToken);
-            Assert.assertEquals(LockClient.ANONYMOUS, validToken.getClient());
-            Assert.assertEquals(request2.getLockDescriptors(), validToken.getLockDescriptors());
-            Assert.assertTrue(server.unlock(validToken));
+            assertThat(validToken).isNotNull();
+            assertThat(validToken.getClient()).isEqualTo(LockClient.ANONYMOUS);
+            assertThat(validToken.getLockDescriptors()).isEqualTo(request2.getLockDescriptors());
+            assertThat(server.unlock(validToken)).isTrue();
             return null;
         });
         barrier.await();
         Thread.sleep(50);
         HeldLocksToken token2 =
                 server.lockWithFullLockResponse(client, request2).getToken();
-        Assert.assertNotNull(token2);
-        Assert.assertEquals(client, token2.getClient());
-        Assert.assertEquals(request2.getLockDescriptors(), token2.getLockDescriptors());
-        Assert.assertTrue(server.unlock(token1));
+        assertThat(token2).isNotNull();
+        assertThat(token2.getClient()).isEqualTo(client);
+        assertThat(token2.getLockDescriptors()).isEqualTo(request2.getLockDescriptors());
+        assertThat(server.unlock(token1)).isTrue();
         future.get();
-        Assert.assertTrue(server.unlock(token2));
-        Assert.assertTrue(server.getTokens(client).isEmpty());
+        assertThat(server.unlock(token2)).isTrue();
+        assertThat(server.getTokens(client)).isEmpty();
     }
 
-    /** Test bounds */
+    /**
+     * Test bounds
+     */
     @Test
     public void testBoundaryConditions() throws InterruptedException {
-        LockClient client;
-        LockDescriptor lock;
-
         char[] longChar = new char[1000000];
         for (int i = 0; i < 999999; ++i) {
             longChar[i] = 'x';
@@ -1108,63 +1106,60 @@ public abstract class LockServiceTest {
         longChar[999999] = '\0';
         String longString = String.copyValueOf(longChar);
 
-        Assert.assertEquals(LockClient.of(null), LockClient.ANONYMOUS);
-        Assert.assertEquals(LockClient.of(LockClient.ANONYMOUS.getClientId()), LockClient.ANONYMOUS);
+        assertThat(LockClient.of(null)).isEqualTo(LockClient.ANONYMOUS);
+        assertThat(LockClient.of(LockClient.ANONYMOUS.getClientId())).isEqualTo(LockClient.ANONYMOUS);
 
-        client = LockClient.of(longString);
-        Assert.assertEquals(longString, client.getClientId());
-        try {
-            lock = StringLockDescriptor.of("");
-            Assert.fail();
-        } catch (IllegalArgumentException expected) {
-            /* Expected: empty string */
-        }
-        lock = StringLockDescriptor.of(longString);
-        Assert.assertEquals(longString, lock.getLockIdAsString());
+        LockClient lockClient = LockClient.of(longString);
+        assertThat(lockClient.getClientId()).isEqualTo(longString);
+        assertThatThrownBy(() -> StringLockDescriptor.of(""))
+                .describedAs("Should not create lock descriptor with empty string")
+                .isInstanceOf(IllegalArgumentException.class);
+        LockDescriptor lock = StringLockDescriptor.of(longString);
+        assertThat(lock.getLockIdAsString()).isEqualTo(longString);
 
         LockRequest request =
                 LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.READ)).build();
-        HeldLocksToken token = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertEquals(client, token.getClient());
-        Assert.assertEquals(LockCollections.of(ImmutableSortedMap.of(lock, LockMode.READ)), token.getLockDescriptors());
+        HeldLocksToken token =
+                server.lockWithFullLockResponse(lockClient, request).getToken();
+        assertThat(token).isNotNull().extracting(HeldLocksToken::getClient).isEqualTo(lockClient);
+        assertThat(token.getLockDescriptors())
+                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock, LockMode.READ)));
 
         LockRequest request2 = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE))
                 .blockForAtMost(SimpleTimeDuration.of(0, TimeUnit.SECONDS))
                 .build();
-        try {
-            server.lockWithFullLockResponse(client, request2);
-            Assert.fail();
-        } catch (IllegalMonitorStateException e) {
-            // expected
-        }
+        assertThatThrownBy(() -> server.lockWithFullLockResponse(lockClient, request2))
+                .isInstanceOf(IllegalMonitorStateException.class);
         LockClient client2 = LockClient.of("another client");
         HeldLocksToken token2 =
                 server.lockWithFullLockResponse(client2, request2).getToken();
-        Assert.assertNull(token2);
-        request2 = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.READ))
+        assertThat(token2).isNull();
+
+        LockRequest request3 = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.READ))
                 .blockForAtMost(server.getLockServerOptions().getMaxAllowedBlockingDuration())
                 .build();
-        token2 = server.lockWithFullLockResponse(client2, request2).getToken();
-        Assert.assertNotNull(token2);
-        server.unlock(token2);
+        HeldLocksToken token3 =
+                server.lockWithFullLockResponse(client2, request3).getToken();
+        assertThat(token3).isNotNull();
+        server.unlock(token3);
 
         TimeDuration beyondMaxDuration = SimpleTimeDuration.of(
                 server.getLockServerOptions().getMaxAllowedBlockingDuration().toSeconds() + 10, TimeUnit.SECONDS);
-        request2 = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.READ))
+        LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.READ))
                 .blockForAtMost(beyondMaxDuration)
                 .build();
+
         TimeDuration negativeDuration = SimpleTimeDuration.of(-10, TimeUnit.SECONDS);
-        try {
-            request2 = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.READ))
-                    .blockForAtMost(negativeDuration)
-                    .build();
-            Assert.fail();
-        } catch (IllegalArgumentException expected) {
-            /* Expected: negative time duration */
-        }
+        assertThatThrownBy(() -> LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.READ))
+                        .blockForAtMost(negativeDuration)
+                        .build())
+                .describedAs("Expected: negative time duration")
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
-    /** Tests unlock and freeze */
+    /**
+     * Tests unlock and freeze
+     */
     @Test
     public void testUnlockAndFreeze() throws Exception {
         new File("lock_server_timestamp.dat").delete();
@@ -1181,63 +1176,64 @@ public abstract class LockServiceTest {
                 .build();
         HeldLocksToken token =
                 server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
-        Assert.assertNotNull(token);
-        Assert.assertEquals(LockClient.ANONYMOUS, token.getClient());
-        Assert.assertEquals(
-                LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.WRITE)), token.getLockDescriptors());
-        try {
-            server.unlockAndFreeze(token);
-            Assert.fail();
-        } catch (IllegalArgumentException expected) {
-            /* Expected: anonymous clients can't unlock and freeze */
-        }
+        assertThat(token).isNotNull();
+        assertThat(token.getClient()).isEqualTo(LockClient.ANONYMOUS);
+        assertThat(token.getLockDescriptors())
+                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.WRITE)));
+        HeldLocksToken finalToken = token;
+        assertThatThrownBy(() -> server.unlockAndFreeze(finalToken))
+                .describedAs("Expected: anonymous clients can't unlock and freeze")
+                .isInstanceOf(IllegalArgumentException.class);
+
         server.unlock(token);
-        Assert.assertTrue(server.getTokens(client).isEmpty());
+        assertThat(server.getTokens(client)).isEmpty();
 
         token = server.lockWithFullLockResponse(client, request).getToken();
         HeldLocksToken token2 = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertNotNull(token2);
-        Assert.assertEquals(client, token2.getClient());
-        Assert.assertEquals(
-                LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.WRITE)), token2.getLockDescriptors());
+        assertThat(token2).isNotNull();
+        assertThat(token2.getClient()).isEqualTo(client);
+        assertThat(token2.getLockDescriptors())
+                .isEqualTo(LockCollections.of(ImmutableSortedMap.of(lock1, LockMode.WRITE)));
         server.unlockAndFreeze(token2);
         token2 = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertNull(token2);
+        assertThat(token2).isNull();
         server.unlockAndFreeze(token);
-        Assert.assertTrue(server.getTokens(client).isEmpty());
+        assertThat(server.getTokens(client)).isEmpty();
 
         token = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertNotNull(token);
+        assertThat(token).isNotNull();
         token2 = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertNotNull(token2);
+        assertThat(token2).isNotNull();
         HeldLocksToken token3 = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertNotNull(token3);
+        assertThat(token3).isNotNull();
         server.unlockAndFreeze(token3);
         token3 = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertNull(token3);
-        Assert.assertTrue(server.getTokens(client).isEmpty());
+        assertThat(token3).isNull();
+        assertThat(server.getTokens(client)).isEmpty();
         HeldLocksToken token4 = server.lockWithFullLockResponse(
                         client,
                         LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.WRITE))
                                 .doNotBlock()
                                 .build())
                 .getToken();
-        Assert.assertNotNull(token4);
-        Assert.assertEquals(ImmutableSet.of(token4), server.getTokens(client));
+        assertThat(token4).isNotNull();
+        assertThat(server.getTokens(client)).isEqualTo(ImmutableSet.of(token4));
         token = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertNull(token);
+        assertThat(token).isNull();
         Thread.sleep(1000);
         token = server.lockWithFullLockResponse(client, request).getToken();
-        Assert.assertNotNull(token);
+        assertThat(token).isNotNull();
     }
 
-    /** Tests identity operations */
+    /**
+     * Tests identity operations
+     */
     @Test
     public void testIdentity() {
-        Assert.assertEquals("a client", client.getClientId());
-        Assert.assertEquals("", LockClient.ANONYMOUS.getClientId());
-        Assert.assertEquals("lock1", lock1.getLockIdAsString());
-        Assert.assertEquals("lock2", lock2.getLockIdAsString());
+        assertThat(client.getClientId()).isEqualTo("a client");
+        assertThat(LockClient.ANONYMOUS.getClientId()).isEqualTo("");
+        assertThat(lock1.getLockIdAsString()).isEqualTo("lock1");
+        assertThat(lock2.getLockIdAsString()).isEqualTo("lock2");
     }
 
     @Test
@@ -1245,9 +1241,10 @@ public abstract class LockServiceTest {
         testReentrancy(LockMode.READ, LockMode.READ);
     }
 
-    @Test(expected = IllegalMonitorStateException.class)
-    public void testReentrantReadWrite() throws InterruptedException {
-        testReentrancy(LockMode.READ, LockMode.WRITE);
+    @Test
+    public void testReentrantReadWrite() {
+        assertThatThrownBy(() -> testReentrancy(LockMode.READ, LockMode.WRITE))
+                .isInstanceOf(IllegalMonitorStateException.class);
     }
 
     @Test
