@@ -65,8 +65,7 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
         timestampBoundStore.failWith(failure);
         assertThatThrownBy(() -> getTimestampService().getFreshTimestamp())
                 .isInstanceOf(RuntimeException.class)
-                .getCause()
-                .isEqualTo(failure);
+                .hasCause(failure);
     }
 
     @Test

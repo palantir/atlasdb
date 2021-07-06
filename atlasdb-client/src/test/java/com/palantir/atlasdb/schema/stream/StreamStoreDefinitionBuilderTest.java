@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.table.description.ValueType;
@@ -33,9 +33,9 @@ public class StreamStoreDefinitionBuilderTest {
 
     @Test
     public void testMaxInMemoryThreshold() {
-        assertThat(new StreamStoreDefinitionBuilder("test", "test", ValueType.VAR_LONG)
+        assertThatCode(() -> new StreamStoreDefinitionBuilder("test", "test", ValueType.VAR_LONG)
                         .inMemoryThreshold(StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD)
                         .build())
-                .isNotNull();
+                .doesNotThrowAnyException();
     }
 }

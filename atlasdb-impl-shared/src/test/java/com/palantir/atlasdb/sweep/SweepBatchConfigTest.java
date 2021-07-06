@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
@@ -25,12 +25,12 @@ public class SweepBatchConfigTest {
 
     @Test
     public void canCreateConfig() {
-        assertThat(ImmutableSweepBatchConfig.builder()
+        assertThatCode(() -> ImmutableSweepBatchConfig.builder()
                         .maxCellTsPairsToExamine(1)
                         .candidateBatchSize(1)
                         .deleteBatchSize(1)
                         .build())
-                .isNotNull();
+                .doesNotThrowAnyException();
     }
 
     @Test

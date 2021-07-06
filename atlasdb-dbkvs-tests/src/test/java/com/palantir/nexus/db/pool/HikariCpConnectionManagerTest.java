@@ -63,11 +63,7 @@ public class HikariCpConnectionManagerTest {
     @Test
     public void testCantGetConnectionIfClosed() throws SQLException {
         manager.close();
-        assertThatThrownBy(() -> {
-                    try (Connection connection = manager.getConnection()) {
-                        assertThat(connection).isNotNull();
-                    }
-                })
+        assertThatThrownBy(() -> manager.getConnection())
                 .isInstanceOf(SQLException.class)
                 .hasMessageContaining("Hikari connection pool already closed!");
     }
@@ -78,11 +74,7 @@ public class HikariCpConnectionManagerTest {
         try (Connection conn1 = manager.getConnection();
                 Connection conn2 = manager.getConnection();
                 Connection conn3 = manager.getConnection()) {
-            assertThatThrownBy(() -> {
-                        try (Connection conn4 = manager.getConnection()) {
-                            assertThat(conn4).isNotNull();
-                        }
-                    })
+            assertThatThrownBy(() -> manager.getConnection())
                     .isInstanceOf(SQLException.class)
                     .hasMessageContaining("Connection is not available, request timed out after");
         }

@@ -81,8 +81,7 @@ public class InterruptibleFutureTest {
         interruptible.cancel(true);
         assertThatThrownBy(interruptible::get)
                 .isInstanceOfAny(CancellationException.class, ExecutionException.class)
-                .getRootCause()
-                .isInstanceOf(InterruptedException.class);
+                .hasRootCauseInstanceOf(InterruptedException.class);
     }
 
     @Test
