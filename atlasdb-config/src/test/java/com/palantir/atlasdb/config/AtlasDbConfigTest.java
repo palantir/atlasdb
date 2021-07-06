@@ -89,9 +89,9 @@ public class AtlasDbConfigTest {
         assertThat(config).isNotNull();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void kvsConfigIsRequired() {
-        ImmutableAtlasDbConfig.builder().build();
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder().build()).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -122,70 +122,77 @@ public class AtlasDbConfigTest {
         assertThat(config).isNotNull();
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void leaderBlockNotPermittedWithLockAndTimestampBlocks() {
-        ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .leader(LEADER_CONFIG)
-                .lock(SINGLETON_SERVER_LIST)
-                .timestamp(SINGLETON_SERVER_LIST)
-                .build();
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void timelockBlockNotPermittedWithLockAndTimestampBlocks() {
-        ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .timelock(ImmutableTimeLockClientConfig.builder()
-                        .client("testClient")
-                        .serversList(SINGLETON_SERVER_LIST)
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .leader(LEADER_CONFIG)
+                        .lock(SINGLETON_SERVER_LIST)
+                        .timestamp(SINGLETON_SERVER_LIST)
                         .build())
-                .lock(SINGLETON_SERVER_LIST)
-                .timestamp(SINGLETON_SERVER_LIST)
-                .build();
+                .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
+    public void timelockBlockNotPermittedWithLockAndTimestampBlocks() {
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .timelock(ImmutableTimeLockClientConfig.builder()
+                                .client("testClient")
+                                .serversList(SINGLETON_SERVER_LIST)
+                                .build())
+                        .lock(SINGLETON_SERVER_LIST)
+                        .timestamp(SINGLETON_SERVER_LIST)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
     public void timelockBlockNotPermittedWithLeaderBlock() {
-        ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .timelock(TIMELOCK_CONFIG)
-                .leader(LEADER_CONFIG)
-                .build();
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .timelock(TIMELOCK_CONFIG)
+                        .leader(LEADER_CONFIG)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void leaderBlockNotPermittedWithLockBlock() {
-        ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .leader(LEADER_CONFIG)
-                .lock(SINGLETON_SERVER_LIST)
-                .build();
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .leader(LEADER_CONFIG)
+                        .lock(SINGLETON_SERVER_LIST)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void leaderBlockNotPermittedWithTimestampBlock() {
-        ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .leader(LEADER_CONFIG)
-                .timestamp(SINGLETON_SERVER_LIST)
-                .build();
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .leader(LEADER_CONFIG)
+                        .timestamp(SINGLETON_SERVER_LIST)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void lockBlockRequiresTimestampBlock() {
-        ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .lock(SINGLETON_SERVER_LIST)
-                .build();
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .lock(SINGLETON_SERVER_LIST)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void timestampBlockRequiresLockBlock() {
-        ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .timestamp(SINGLETON_SERVER_LIST)
-                .build();
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .timestamp(SINGLETON_SERVER_LIST)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -195,7 +202,7 @@ public class AtlasDbConfigTest {
                         .leader(LEADER_CONFIG)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception -> assertThat(exception.getMessage()).contains("config needs to be set"));
+                .hasMessageContaining("config needs to be set");
     }
 
     @Test
@@ -205,24 +212,26 @@ public class AtlasDbConfigTest {
                         .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                         .build())
                 .isInstanceOf(IllegalStateException.class)
-                .satisfies(exception -> assertThat(exception.getMessage()).contains("config should be present"));
+                .hasMessageContaining("config should be present");
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void absentNamespaceRequiresMatchingKvsNamespaceAndTimelockClient() {
-        ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
-                .build();
+        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void namespaceAcceptsEmptyKvsNamespaceAndTimelockClient() {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .namespace("a client")
-                .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
-                .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
-                .build();
+        assertThat(ImmutableAtlasDbConfig.builder()
+                        .namespace("a client")
+                        .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
+                        .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
+                        .build())
+                .isNotNull();
     }
 
     @Test

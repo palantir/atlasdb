@@ -15,35 +15,40 @@
  */
 package com.palantir.atlasdb.config;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.Collections;
 import org.junit.Test;
 
 @SuppressWarnings("CheckReturnValue")
 public class LeaderConfigTest {
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void cannotCreateALeaderConfigWithNoLeaders() {
-        ImmutableLeaderConfig.builder()
-                .localServer("me")
-                .leaders(Collections.emptySet())
-                .quorumSize(0)
-                .build();
+        assertThatThrownBy(() -> ImmutableLeaderConfig.builder()
+                        .localServer("me")
+                        .leaders(Collections.emptySet())
+                        .quorumSize(0)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void cannotCreateALeaderConfigWithQuorumSizeNotBeingAMajorityOfTheLeaders() {
-        ImmutableLeaderConfig.builder()
-                .localServer("me")
-                .addLeaders("not me", "me")
-                .quorumSize(1)
-                .build();
+        assertThatThrownBy(() -> ImmutableLeaderConfig.builder()
+                        .localServer("me")
+                        .addLeaders("not me", "me")
+                        .quorumSize(1)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void cannotCreateALeaderConfigWithQuorumSizeLargerThanTheAmountOfLeaders() {
-        ImmutableLeaderConfig.builder()
-                .localServer("me")
-                .addLeaders("not me", "me")
-                .quorumSize(3)
-                .build();
+        assertThatThrownBy(() -> ImmutableLeaderConfig.builder()
+                        .localServer("me")
+                        .addLeaders("not me", "me")
+                        .quorumSize(3)
+                        .build())
+                .isInstanceOf(IllegalStateException.class);
     }
 }

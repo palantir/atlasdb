@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
@@ -27,12 +28,13 @@ import java.util.List;
 import org.junit.Test;
 
 public class CellsToSweepPartitioningIteratorTest {
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void canNotCreateIteratorWithZeroBatchSize() {
-        new CellsToSweepPartitioningIterator(
-                ImmutableList.of(batchWithThreeTssPerCell(1, 1, 10)).iterator(),
-                0,
-                new CellsToSweepPartitioningIterator.ExaminedCellLimit(PtBytes.toBytes("row"), 1L));
+        assertThatThrownBy(() -> new CellsToSweepPartitioningIterator(
+                        ImmutableList.of(batchWithThreeTssPerCell(1, 1, 10)).iterator(),
+                        0,
+                        new CellsToSweepPartitioningIterator.ExaminedCellLimit(PtBytes.toBytes("row"), 1L)))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

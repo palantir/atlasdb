@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -47,14 +49,15 @@ public class DbKvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServi
                 .forEach(keyValueService::dropTable);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void throwWhenCreatingDifferentLongTablesWithSameFirstCharactersUntilTheTableNameLimit() {
         String tableNameForFirstSixtyCharactersToBeSame = StringUtils.left(
                 TEST_LONG_TABLE_NAME,
                 PostgresDdlTable.ATLASDB_POSTGRES_TABLE_NAME_LIMIT
                         - TEST_NAMESPACE.getName().length()
                         - TWO_UNDERSCORES);
-        createTwoTablesWithSamePrefix(tableNameForFirstSixtyCharactersToBeSame);
+        assertThatThrownBy(() -> createTwoTablesWithSamePrefix(tableNameForFirstSixtyCharactersToBeSame))
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test
@@ -80,9 +83,10 @@ public class DbKvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServi
         keyValueService.dropTable(longTableName2);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void throwWhenCreatingDifferentLongTablesWithSameFirstCharactersAfterTheTableNameLimit() throws Exception {
-        createTwoTablesWithSamePrefix(TEST_LONG_TABLE_NAME);
+        assertThatThrownBy(() -> createTwoTablesWithSamePrefix(TEST_LONG_TABLE_NAME))
+                .isInstanceOf(RuntimeException.class);
     }
 
     private void createTwoTablesWithSamePrefix(String tableNamePrefix) {

@@ -1241,9 +1241,10 @@ public abstract class LockServiceTest {
         testReentrancy(LockMode.READ, LockMode.READ);
     }
 
-    @Test(expected = IllegalMonitorStateException.class)
-    public void testReentrantReadWrite() throws InterruptedException {
-        testReentrancy(LockMode.READ, LockMode.WRITE);
+    @Test
+    public void testReentrantReadWrite() {
+        assertThatThrownBy(() -> testReentrancy(LockMode.READ, LockMode.WRITE))
+                .isInstanceOf(IllegalMonitorStateException.class);
     }
 
     @Test

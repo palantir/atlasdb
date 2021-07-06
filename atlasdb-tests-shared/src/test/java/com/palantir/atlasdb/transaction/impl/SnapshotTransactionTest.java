@@ -867,10 +867,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatThrownBy(t2::commit).isInstanceOf(TransactionConflictException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void disallowPutOnEmptyObject() {
         Transaction t1 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.EMPTY_BYTE_ARRAY));
+        assertThatThrownBy(() -> t1.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.EMPTY_BYTE_ARRAY)))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

@@ -16,6 +16,7 @@
 package com.palantir.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
@@ -36,14 +37,14 @@ public class LockDescriptorTest {
         testAsciiLockDescriptors(HELLO_WORLD_LOCK_ID + "/" + OPPENHEIMER_LOCK_ID);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testInvalidSimpleStringDescriptor() {
-        testAsciiLockDescriptors("");
+        assertThatThrownBy(() -> testAsciiLockDescriptors("")).isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testNullSimpleStringDescriptor() {
-        testAsciiLockDescriptors(null);
+        assertThatThrownBy(() -> testAsciiLockDescriptors(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -56,14 +57,14 @@ public class LockDescriptorTest {
         testEncodedLockId(new byte[] {'h', 0x00, 0x10, 'i'});
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testInvalidEncodedStringDescriptor() {
-        testEncodedLockDescriptors("");
+        assertThatThrownBy(() -> testEncodedLockDescriptors("")).isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testNullEncodedStringDescriptor() {
-        testEncodedLockDescriptors(null);
+        assertThatThrownBy(() -> testEncodedLockDescriptors(null)).isInstanceOf(NullPointerException.class);
     }
 
     private void testAsciiLockDescriptors(String lockId) {

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -94,24 +95,24 @@ public class BlockConsumingInputStreamTest {
         dataStream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
     }
 
-    @Test(expected = NullPointerException.class)
-    public void cantReadToNullArray() throws IOException {
-        dataStream.read(null, 1, 1);
+    @Test
+    public void cantReadToNullArray() {
+        assertThatThrownBy(() -> dataStream.read(null, 1, 1)).isInstanceOf(NullPointerException.class);
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void cantReadToNegativePlace() throws IOException {
-        dataStream.read(data, -1, 1);
+    @Test
+    public void cantReadToNegativePlace() {
+        assertThatThrownBy(() -> dataStream.read(data, -1, 1)).isInstanceOf(IndexOutOfBoundsException.class);
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void cantReadNegativeAmount() throws IOException {
-        dataStream.read(data, 0, -1);
+    @Test
+    public void cantReadNegativeAmount() {
+        assertThatThrownBy(() -> dataStream.read(data, 0, -1)).isInstanceOf(IndexOutOfBoundsException.class);
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
+    @Test
     public void cantReadMoreThanArrayLength() throws IOException {
-        dataStream.read(data, 0, 10);
+        assertThatThrownBy(() -> dataStream.read(data, 0, 10)).isInstanceOf(IndexOutOfBoundsException.class);
     }
 
     @Test
@@ -200,11 +201,11 @@ public class BlockConsumingInputStreamTest {
         assertThat(Arrays.copyOf(result, DATA_SIZE)).isEqualTo(data);
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
+    @Test
     public void passingInTooManyBlocksCausesAnException() throws IOException {
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE_PLUS_ONE, 1);
         byte[] result = new byte[DATA_SIZE_PLUS_ONE];
-        stream.read(result);
+        assertThatThrownBy(() -> stream.read(result)).isInstanceOf(IndexOutOfBoundsException.class);
     }
 
     @Test
@@ -235,7 +236,7 @@ public class BlockConsumingInputStreamTest {
         BlockConsumingInputStream.ensureExpectedArraySizeDoesNotOverflow(bigGetter, 1);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void bufferLengthCanNotQuiteReachIntMaxValue() throws IOException {
         BlockGetter reallyBigGetter = new BlockGetter() {
             @Override
@@ -254,10 +255,11 @@ public class BlockConsumingInputStreamTest {
         assertThat((long) reallyBigGetter.expectedBlockLength() * (long) blocksInMemory)
                 .as("Test assumption violated: expectedBlockLength() * blocksInMemory > MAX_IN_MEMORY_THRESHOLD.")
                 .isGreaterThan(StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD);
-        BlockConsumingInputStream.create(reallyBigGetter, 9, blocksInMemory);
+        assertThatThrownBy(() -> BlockConsumingInputStream.create(reallyBigGetter, 9, blocksInMemory))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void bufferLengthShouldNotExceedMaxArrayLength() throws IOException {
         BlockGetter tooBigGetter = new BlockGetter() {
             @Override
@@ -272,7 +274,8 @@ public class BlockConsumingInputStreamTest {
         };
 
         // Should fail, because tooBigGetter.expectedBlockLength() * 1 = Integer.MAX_VALUE - 7.
-        BlockConsumingInputStream.create(tooBigGetter, 2, 1);
+        assertThatThrownBy(() -> BlockConsumingInputStream.create(tooBigGetter, 2, 1))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

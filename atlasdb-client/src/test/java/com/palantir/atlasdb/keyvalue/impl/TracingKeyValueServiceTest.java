@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -91,9 +92,9 @@ public class TracingKeyValueServiceTest {
         verify(delegate, atLeast(1)).close();
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void createNullThrows() {
-        TracingKeyValueService.create(null);
+        assertThatThrownBy(() -> TracingKeyValueService.create(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
