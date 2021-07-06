@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories.Factory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -241,7 +240,7 @@ public final class PaxosResourcesFactory {
     }
 
     @VisibleForTesting
-    static Factory<PaxosProposer> getPaxosProposerFactory(
+    static NetworkClientFactories.Factory<PaxosProposer> getPaxosProposerFactory(
             TimelockPaxosMetrics timelockMetrics, NetworkClientFactories combinedNetworkClientFactories) {
         return client -> {
             PaxosAcceptorNetworkClient acceptorNetworkClient =
