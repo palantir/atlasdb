@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 /**
  * This proxy exists to retry in case of a SocketTimeoutException (something that isn't retried natively by Dialogue).
  */
+@SuppressWarnings("ProxyNonConstantType")
 public final class RetryOnSocketTimeoutExceptionProxy<T> extends AbstractInvocationHandler {
     private static final int MAX_NUM_RETRIES = 5;
     private final Supplier<T> delegate;
