@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.proxy.PredicateSwitchedProxy;
@@ -23,13 +24,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.PingableLeader;
-import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
-import com.palantir.paxos.PaxosAcceptorNetworkClient;
-import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
-import com.palantir.paxos.PaxosLearnerNetworkClient;
-import com.palantir.paxos.PaxosProposer;
-import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.paxos.SqliteConnections;
+import com.palantir.paxos.*;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
@@ -55,6 +50,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
+import org.jetbrains.annotations.NotNull;
 
 public final class PaxosResourcesFactory {
 
@@ -215,7 +211,23 @@ public final class PaxosResourcesFactory {
                 .addAllCloseables(singleLeaderClientFactories.closeables())
                 .build();
 
-        NetworkClientFactories.Factory<PaxosProposer> proposerFactory = client -> {
+        NetworkClientFactories.Factory<PaxosProposer> proposerFactory =
+                getProposerFactory(timelockMetrics, combinedNetworkClientFactories);
+
+        NetworkClientFactories.Factory<ManagedTimestampService> timestampFactory = getTimestampFactory(
+                paxosRuntime, timelockMetrics, paxosComponents, combinedNetworkClientFactories, proposerFactory);
+
+        return ImmutablePaxosResources.builder()
+                .addAdhocResources(new TimestampPaxosResource(paxosComponents))
+                .timestampPaxosComponents(paxosComponents)
+                .timestampServiceFactory(timestampFactory);
+    }
+
+    @NotNull
+    @VisibleForTesting
+    static NetworkClientFactories.Factory<PaxosProposer> getProposerFactory(
+            TimelockPaxosMetrics timelockMetrics, NetworkClientFactories combinedNetworkClientFactories) {
+        return client -> {
             PaxosAcceptorNetworkClient acceptorNetworkClient =
                     combinedNetworkClientFactories.acceptor().create(client);
             PaxosLearnerNetworkClient learnerNetworkClient =
@@ -226,7 +238,14 @@ public final class PaxosResourcesFactory {
 
             return timelockMetrics.instrument(PaxosProposer.class, paxosProposer, client);
         };
+    }
 
+    private static NetworkClientFactories.Factory<ManagedTimestampService> getTimestampFactory(
+            Supplier<PaxosRuntimeConfiguration> paxosRuntime,
+            TimelockPaxosMetrics timelockMetrics,
+            LocalPaxosComponents paxosComponents,
+            NetworkClientFactories combinedNetworkClientFactories,
+            NetworkClientFactories.Factory<PaxosProposer> proposerFactory) {
         NetworkClientFactories.Factory<ManagedTimestampService> timestampFactory = client -> {
             // TODO (jkong): live reload ping
             TimestampBoundStore boundStore = timelockMetrics.instrument(
@@ -240,11 +259,7 @@ public final class PaxosResourcesFactory {
                     client);
             return PersistentTimestampServiceImpl.create(boundStore);
         };
-
-        return ImmutablePaxosResources.builder()
-                .addAdhocResources(new TimestampPaxosResource(paxosComponents))
-                .timestampPaxosComponents(paxosComponents)
-                .timestampServiceFactory(timestampFactory);
+        return timestampFactory;
     }
 
     private static TimeLockCorruptionComponents timeLockCorruptionComponents(
