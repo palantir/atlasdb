@@ -83,10 +83,10 @@ public class AtlasDbConfigTest {
 
     @Test
     public void configWithNoLeaderOrLockIsValid() {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .build();
-        assertThat(config).isNotNull();
+        assertThatCode(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .build())
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -96,30 +96,30 @@ public class AtlasDbConfigTest {
 
     @Test
     public void configWithLeaderBlockIsValid() {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .leader(LEADER_CONFIG)
-                .build();
-        assertThat(config).isNotNull();
+        assertThatCode(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .leader(LEADER_CONFIG)
+                        .build())
+                .doesNotThrowAnyException();
     }
 
     @Test
     public void configWithTimelockBlockIsValid() {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .timelock(TIMELOCK_CONFIG)
-                .build();
-        assertThat(config).isNotNull();
+        assertThatCode(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .timelock(TIMELOCK_CONFIG)
+                        .build())
+                .doesNotThrowAnyException();
     }
 
     @Test
     public void remoteLockAndTimestampConfigIsValid() {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                .lock(SINGLETON_SERVER_LIST)
-                .timestamp(SINGLETON_SERVER_LIST)
-                .build();
-        assertThat(config).isNotNull();
+        assertThatCode(() -> ImmutableAtlasDbConfig.builder()
+                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                        .lock(SINGLETON_SERVER_LIST)
+                        .timestamp(SINGLETON_SERVER_LIST)
+                        .build())
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -226,12 +226,12 @@ public class AtlasDbConfigTest {
 
     @Test
     public void namespaceAcceptsEmptyKvsNamespaceAndTimelockClient() {
-        assertThat(ImmutableAtlasDbConfig.builder()
+        assertThatCode(() -> ImmutableAtlasDbConfig.builder()
                         .namespace("a client")
                         .keyValueService(KVS_CONFIG_WITHOUT_NAMESPACE)
                         .timelock(TIMELOCK_CONFIG_WITH_OPTIONAL_EMPTY_CLIENT)
                         .build())
-                .isNotNull();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -240,10 +240,11 @@ public class AtlasDbConfigTest {
         assertThat(kvsConfig.namespace())
                 .describedAs("This test assumes the InMemoryAtlasDbConfig has no namespace by default")
                 .isNotPresent();
-        ImmutableAtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .namespace(Optional.empty())
-                .keyValueService(kvsConfig)
-                .build();
+        assertThatCode(() -> ImmutableAtlasDbConfig.builder()
+                        .namespace(Optional.empty())
+                        .keyValueService(kvsConfig)
+                        .build())
+                .doesNotThrowAnyException();
     }
 
     @Test

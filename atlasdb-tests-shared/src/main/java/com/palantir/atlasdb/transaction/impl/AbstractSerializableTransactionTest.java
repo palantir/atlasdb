@@ -275,8 +275,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 .satisfiesAnyOf(
                         t -> assertThat(t).isInstanceOf(TransactionFailedRetriableException.class), t -> assertThat(t)
                                 .isInstanceOf(ExecutionException.class)
-                                .getCause()
-                                .isInstanceOf(TransactionFailedRetriableException.class));
+                                .hasCauseInstanceOf(TransactionFailedRetriableException.class));
     }
 
     @Test
@@ -345,8 +344,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 .satisfiesAnyOf(
                         t -> assertThat(t).isInstanceOf(TransactionFailedRetriableException.class), t -> assertThat(t)
                                 .isInstanceOf(ExecutionException.class)
-                                .getCause()
-                                .isInstanceOf(TransactionFailedRetriableException.class));
+                                .hasCauseInstanceOf(TransactionFailedRetriableException.class));
     }
 
     private void withdrawMoney(Transaction txn, boolean account, boolean isCellGet) {
