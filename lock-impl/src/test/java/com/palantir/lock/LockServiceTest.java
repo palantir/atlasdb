@@ -575,7 +575,7 @@ public abstract class LockServiceTest {
         barrier.await();
         Thread.sleep(500);
         LockState state2 = server.getLockState(lock1);
-        assertThat(state2.requesters().size()).isEqualTo(1);
+        assertThat(state2.requesters()).hasSize(1);
         assertThat(Iterables.getOnlyElement(state2.requesters()).versionId()).hasValue(100L);
     }
 
@@ -1231,7 +1231,7 @@ public abstract class LockServiceTest {
     @Test
     public void testIdentity() {
         assertThat(client.getClientId()).isEqualTo("a client");
-        assertThat(LockClient.ANONYMOUS.getClientId()).isEqualTo("");
+        assertThat(LockClient.ANONYMOUS.getClientId()).isEmpty();
         assertThat(lock1.getLockIdAsString()).isEqualTo("lock1");
         assertThat(lock2.getLockIdAsString()).isEqualTo("lock2");
     }
