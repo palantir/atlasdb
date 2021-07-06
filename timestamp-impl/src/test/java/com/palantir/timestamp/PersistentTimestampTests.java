@@ -16,15 +16,14 @@
 package com.palantir.timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.hamcrest.MockitoHamcrest.longThat;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public class PersistentTimestampTests {
 
@@ -69,6 +68,8 @@ public class PersistentTimestampTests {
         timestamp.increaseTo(newMinimum);
 
         assertThat(timestamp.incrementBy(1).getLowerBound()).isEqualTo(newMinimum + 1L);
-        verify(upperLimit).increaseToAtLeast(longThat(is(greaterThan(newMinimum))));
+        ArgumentCaptor<Long> argumentCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(upperLimit, atLeastOnce()).increaseToAtLeast(argumentCaptor.capture());
+        assertThat(argumentCaptor.getValue()).isGreaterThan(newMinimum);
     }
 }

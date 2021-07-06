@@ -82,7 +82,6 @@ dependencies {
   testCompile(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
   }
-  testCompile group: 'org.hamcrest', name: 'hamcrest-core'
   testCompile group: 'ch.qos.logback', name: 'logback-classic'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.awaitility', name: 'awaitility'
@@ -118,7 +117,6 @@ dependencies {
   testImplementation 'com.squareup.okio:okio'
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation 'org.apache.commons:commons-lang3'
-  testImplementation 'org.hamcrest:hamcrest'
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':commons-annotations')
   testImplementation project(':lock-api-objects')

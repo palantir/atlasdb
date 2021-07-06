@@ -88,7 +88,6 @@ dependencies {
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.apache.thrift:libthrift'
-  testImplementation 'org.hamcrest:hamcrest'
   testImplementation 'com.palantir.tracing:tracing-api'
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':atlasdb-commons')

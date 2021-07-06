@@ -9,7 +9,6 @@ dependencies {
     compile project(':atlasdb-client')
 
     compile group: 'junit', name: 'junit'
-    compile group: 'org.hamcrest', name: 'hamcrest-core'
     compile group: 'commons-io', name: 'commons-io'
     implementation 'org.assertj:assertj-core'
     implementation 'com.google.guava:guava'

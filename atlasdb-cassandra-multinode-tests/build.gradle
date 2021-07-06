@@ -5,7 +5,6 @@ dependencies {
     testImplementation 'com.google.guava:guava'
     testImplementation 'org.apache.thrift:libthrift'
     testImplementation 'org.awaitility:awaitility'
-    testImplementation 'org.hamcrest:hamcrest'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-client')
     testImplementation project(':atlasdb-commons')

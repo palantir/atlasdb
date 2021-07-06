@@ -21,7 +21,6 @@ dependencies {
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
-    testImplementation 'org.hamcrest:hamcrest'
 
     annotationProcessor group: 'org.immutables', name: 'value'
     compileOnly 'org.immutables:value::annotations'
@@ -34,7 +33,6 @@ dependencies {
     testCompile(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }
-    testCompile group: 'org.hamcrest', name: 'hamcrest-core'
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'org.awaitility', name: 'awaitility'
 }

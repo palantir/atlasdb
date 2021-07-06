@@ -21,7 +21,6 @@ dependencies {
   testImplementation 'joda-time:joda-time'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.awaitility:awaitility'
-  testImplementation 'org.hamcrest:hamcrest'
   testImplementation project(':atlasdb-api')
   testImplementation project(':atlasdb-client')
   testImplementation project(':atlasdb-config')

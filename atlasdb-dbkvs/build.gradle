@@ -33,7 +33,6 @@ dependencies {
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:safe-logging'
   testImplementation 'com.zaxxer:HikariCP'
-  testImplementation 'org.hamcrest:hamcrest'
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':atlasdb-commons')
 
