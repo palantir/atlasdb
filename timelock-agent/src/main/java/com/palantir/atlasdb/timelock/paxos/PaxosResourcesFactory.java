@@ -56,7 +56,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
-import org.jetbrains.annotations.NotNull;
 
 public final class PaxosResourcesFactory {
 
@@ -229,7 +228,6 @@ public final class PaxosResourcesFactory {
                 .timestampServiceFactory(timestampFactory);
     }
 
-    @NotNull
     @VisibleForTesting
     static NetworkClientFactories.Factory<PaxosProposer> getProposerFactory(
             TimelockPaxosMetrics timelockMetrics, NetworkClientFactories combinedNetworkClientFactories) {
