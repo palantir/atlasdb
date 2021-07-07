@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Replace the Jackson Afterburner module with Blackbird
+  links:
+  - https://github.com/palantir/atlasdb/pull/5541

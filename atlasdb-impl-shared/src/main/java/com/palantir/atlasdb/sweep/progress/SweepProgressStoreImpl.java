@@ -18,7 +18,7 @@ package com.palantir.atlasdb.sweep.progress;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import com.fasterxml.jackson.module.blackbird.BlackbirdModule;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -65,7 +65,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private static final ObjectMapper OBJECT_MAPPER =
-            new ObjectMapper().registerModule(new Jdk8Module()).registerModule(new AfterburnerModule());
+            new ObjectMapper().registerModule(new Jdk8Module()).registerModule(new BlackbirdModule());
 
     private static final String ROW_AND_COLUMN_NAME = "s";
     private static final byte[] ROW_AND_COLUMN_NAME_BYTES = PtBytes.toCachedBytes(ROW_AND_COLUMN_NAME);
