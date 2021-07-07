@@ -27,6 +27,7 @@ public interface TimeLockServicesCreator {
      * and lock service supplier.
      */
     TimeLockServices createTimeLockServices(
+            boolean disableAsyncLockReaper,
             Client client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier);

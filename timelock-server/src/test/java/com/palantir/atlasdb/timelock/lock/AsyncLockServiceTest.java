@@ -60,6 +60,7 @@ public class AsyncLockServiceTest {
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
+            false,
             locks,
             immutableTimestampTracker,
             acquirer,

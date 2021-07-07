@@ -51,13 +51,18 @@ public class AsyncLockService implements Closeable {
      *
      * Executors here are assumed to be owned by this service, and will be shut down when {@link #close()} is called.
      *
+     *
+     * @param disableAsyncLockReaper whether to disable the async lock reaper
      * @param lockLog lock logger
      * @param reaperExecutor executor for reaping locks that have not been refreshed by clients
      * @param timeoutExecutor executor for timing out lock requests that have blocked for longer than permitted
      * @return an asynchronous lock service
      */
     public static AsyncLockService createDefault(
-            LockLog lockLog, ScheduledExecutorService reaperExecutor, ScheduledExecutorService timeoutExecutor) {
+            boolean disableAsyncLockReaper,
+            LockLog lockLog,
+            ScheduledExecutorService reaperExecutor,
+            ScheduledExecutorService timeoutExecutor) {
 
         LeaderClock clock = LeaderClock.create();
 
@@ -66,6 +71,7 @@ public class AsyncLockService implements Closeable {
         LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
 
         return new AsyncLockService(
+                disableAsyncLockReaper,
                 new LockCollection(),
                 new ImmutableTimestampTracker(),
                 lockAcquirer,
@@ -79,6 +85,7 @@ public class AsyncLockService implements Closeable {
 
     @VisibleForTesting
     AsyncLockService(
+            boolean disableAsyncLockReaper,
             LockCollection locks,
             ImmutableTimestampTracker immutableTimestampTracker,
             LockAcquirer acquirer,
@@ -99,7 +106,9 @@ public class AsyncLockService implements Closeable {
         this.lockWatchingService = lockWatchingService;
         this.lockAcquirer = acquirer;
 
-        scheduleExpiredLockReaper();
+        if (!disableAsyncLockReaper) {
+            scheduleExpiredLockReaper();
+        }
     }
 
     private void scheduleExpiredLockReaper() {

@@ -62,6 +62,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
     @Override
     public TimeLockServices createTimeLockServices(
+            boolean disableAsyncLockReaper,
             Client client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier) {
@@ -71,7 +72,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         AsyncTimelockService asyncTimelockService = leadershipComponents.wrapInLeadershipProxy(
                 client,
                 AsyncTimelockService.class,
-                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
+                () -> createRawAsyncTimelockService(
+                        disableAsyncLockReaper, client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
 
         AsyncTimelockResource asyncTimelockResource =
                 new AsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
@@ -88,7 +90,10 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private AsyncTimelockService createRawAsyncTimelockService(
-            Client client, Supplier<ManagedTimestampService> timestampServiceSupplier, LockLog maybeEnhancedLockLog) {
+            boolean disableAsyncLockReaper,
+            Client client,
+            Supplier<ManagedTimestampService> timestampServiceSupplier,
+            LockLog maybeEnhancedLockLog) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
                 PTExecutors.newSingleThreadScheduledExecutor(
                         new NamedThreadFactory("async-lock-reaper-" + client, true)),
@@ -100,7 +105,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 metricsManager.getRegistry(),
                 "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
-                AsyncLockService.createDefault(maybeEnhancedLockLog, reaperExecutor, timeoutExecutor),
+                AsyncLockService.createDefault(
+                        disableAsyncLockReaper, maybeEnhancedLockLog, reaperExecutor, timeoutExecutor),
                 timestampServiceSupplier.get(),
                 maybeEnhancedLockLog);
     }

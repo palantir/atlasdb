@@ -506,7 +506,11 @@ public class TimeLockAgent {
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
                 timestampStorage.timestampCreator().createTimestampService(typedClient, leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
-        return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
+        return timelockCreator.createTimeLockServices(
+                install.iAmOnThePersistenceTeamAndKnowWhatIAmDoingTemporarilyDisableExpiredLockReaperOnV2Locks(),
+                typedClient,
+                rawTimestampServiceSupplier,
+                rawLockServiceSupplier);
     }
 
     private LeaderConfig createLeaderConfig() {

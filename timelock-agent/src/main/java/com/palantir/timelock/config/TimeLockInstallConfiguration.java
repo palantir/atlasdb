@@ -38,6 +38,11 @@ public interface TimeLockInstallConfiguration {
     ClusterConfiguration cluster();
 
     @Value.Default
+    default boolean iAmOnThePersistenceTeamAndKnowWhatIAmDoingTemporarilyDisableExpiredLockReaperOnV2Locks() {
+        return false;
+    }
+
+    @Value.Default
     default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {
         return false;
     }
