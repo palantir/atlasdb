@@ -30,7 +30,7 @@ public class AsyncLockServiceTest {
         ScheduledExecutorService reaperExecutor = PTExecutors.newSingleThreadScheduledExecutor();
         ScheduledExecutorService timeoutExecutor = PTExecutors.newSingleThreadScheduledExecutor();
         AsyncLockService asyncLockService = AsyncLockService.createDefault(
-                disableAsyncLockReaper,
+                false,
                 new LockLog(MetricsManagers.createForTests().getRegistry(), () -> 1L),
                 reaperExecutor,
                 timeoutExecutor);
