@@ -62,7 +62,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
     @Override
     public TimeLockServices createTimeLockServices(
-            boolean disableAsyncLockReaper,
+            boolean slowAsyncLockReaper,
             Client client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier) {
@@ -73,7 +73,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 client,
                 AsyncTimelockService.class,
                 () -> createRawAsyncTimelockService(
-                        disableAsyncLockReaper, client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
+                        slowAsyncLockReaper, client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
 
         AsyncTimelockResource asyncTimelockResource =
                 new AsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
@@ -90,7 +90,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private AsyncTimelockService createRawAsyncTimelockService(
-            boolean disableAsyncLockReaper,
+            boolean slowAsyncLockReaper,
             Client client,
             Supplier<ManagedTimestampService> timestampServiceSupplier,
             LockLog maybeEnhancedLockLog) {
@@ -106,7 +106,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
                 AsyncLockService.createDefault(
-                        disableAsyncLockReaper, maybeEnhancedLockLog, reaperExecutor, timeoutExecutor),
+                        slowAsyncLockReaper, maybeEnhancedLockLog, reaperExecutor, timeoutExecutor),
                 timestampServiceSupplier.get(),
                 maybeEnhancedLockLog);
     }

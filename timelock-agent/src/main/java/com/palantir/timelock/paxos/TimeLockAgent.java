@@ -507,7 +507,7 @@ public class TimeLockAgent {
                 timestampStorage.timestampCreator().createTimestampService(typedClient, leaderConfig);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
         return timelockCreator.createTimeLockServices(
-                install.iAmOnThePersistenceTeamAndKnowWhatIAmDoingTemporarilyDisableExpiredLockReaperOnV2Locks(),
+                install.iAmOnThePersistenceTeamAndKnowWhatIAmDoingUseVerySlowAsyncLockReaperOnV2Locks(),
                 typedClient,
                 rawTimestampServiceSupplier,
                 rawLockServiceSupplier);

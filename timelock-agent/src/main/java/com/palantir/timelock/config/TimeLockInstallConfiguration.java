@@ -38,7 +38,7 @@ public interface TimeLockInstallConfiguration {
     ClusterConfiguration cluster();
 
     @Value.Default
-    default boolean iAmOnThePersistenceTeamAndKnowWhatIAmDoingTemporarilyDisableExpiredLockReaperOnV2Locks() {
+    default boolean iAmOnThePersistenceTeamAndKnowWhatIAmDoingUseVerySlowAsyncLockReaperOnV2Locks() {
         return false;
     }
 
