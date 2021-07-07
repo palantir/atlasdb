@@ -119,8 +119,9 @@ public class AsyncLockService implements Closeable {
                     }
                 },
                 0,
-                slowAsyncLockReaper ? TimeUnit.MINUTES.toMillis(10) :
-                        LockLeaseContract.SERVER_LEASE_TIMEOUT.toMillis() / 2,
+                slowAsyncLockReaper
+                        ? TimeUnit.MINUTES.toMillis(10)
+                        : LockLeaseContract.SERVER_LEASE_TIMEOUT.toMillis() / 2,
                 TimeUnit.MILLISECONDS);
     }
 
