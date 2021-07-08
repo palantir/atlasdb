@@ -172,7 +172,7 @@ public abstract class AbstractKeyValueServiceTest {
         Map<Cell, Value> values = keyValueService.getRows(
                 TEST_TABLE, Arrays.asList(row(1), row(2)), ColumnSelection.all(), TEST_TIMESTAMP + 1);
         assertThat(values).hasSize(4);
-        assertThat(values.get(Cell.create(row(1), column(1)))).isNull();
+        assertThat(values).doesNotContainKey(Cell.create(row(1), column(1)));
         assertThat(values.get(Cell.create(row(1), column(0))).getContents()).isEqualTo(val(1, 0));
         assertThat(values.get(Cell.create(row(1), column(2))).getContents()).isEqualTo(val(1, 2));
         assertThat(values.get(Cell.create(row(2), column(1))).getContents()).isEqualTo(val(2, 1));
@@ -549,7 +549,7 @@ public abstract class AbstractKeyValueServiceTest {
         Map<Cell, Value> values =
                 keyValueService.getRows(TEST_TABLE, Arrays.asList(row(1), row(2)), columns1and2, TEST_TIMESTAMP + 1);
         assertThat(values).hasSize(3);
-        assertThat(values.get(Cell.create(row(1), column(0)))).isNull();
+        assertThat(values).doesNotContainKey(Cell.create(row(1), column(0)));
         assertThat(values.get(Cell.create(row(1), column(2))).getContents()).isEqualTo(val(1, 2));
         assertThat(values.get(Cell.create(row(2), column(1))).getContents()).isEqualTo(val(2, 1));
         assertThat(values.get(Cell.create(row(2), column(2))).getContents()).isEqualTo(val(2, 2));
@@ -591,7 +591,7 @@ public abstract class AbstractKeyValueServiceTest {
     @Test
     public void testTableMetadata() {
         assertThat(keyValueService.getMetadataForTable(TEST_TABLE))
-                .hasSize(AtlasDbConstants.GENERIC_TABLE_METADATA.length);
+                .hasSameSizeAs(AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.putMetadataForTable(TEST_TABLE, ArrayUtils.EMPTY_BYTE_ARRAY);
         assertThat(keyValueService.getMetadataForTable(TEST_TABLE)).isEmpty();
         keyValueService.putMetadataForTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -1097,10 +1097,8 @@ public abstract class AbstractKeyValueServiceTest {
         legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), false);
 
         assertThat(getAllTimestampsForTestCell()).containsExactlyInAnyOrder(latestTs);
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))
-                        .get(TEST_CELL))
-                .isEqualTo(Value.create(val(0, 9), latestTs));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)))
+                .containsEntry(TEST_CELL, Value.create(val(0, 9), latestTs));
     }
 
     @Test
@@ -1150,18 +1148,12 @@ public abstract class AbstractKeyValueServiceTest {
                         .get(row1col0))
                 .containsExactly(latestTsCol0);
 
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(row0col0, Long.MAX_VALUE))
-                        .get(row0col0))
-                .isEqualTo(Value.create(val(1, 0), latestTsCol0));
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(row0col1, Long.MAX_VALUE))
-                        .get(row0col1))
-                .isEqualTo(Value.create(val(1, 0), latestTsCol1));
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(row1col0, Long.MAX_VALUE))
-                        .get(row1col0))
-                .isEqualTo(Value.create(val(1, 0), latestTsCol0));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col0, Long.MAX_VALUE)))
+                .containsEntry(row0col0, Value.create(val(1, 0), latestTsCol0));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col1, Long.MAX_VALUE)))
+                .containsEntry(row0col1, Value.create(val(1, 0), latestTsCol1));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row1col0, Long.MAX_VALUE)))
+                .containsEntry(row1col0, Value.create(val(1, 0), latestTsCol0));
     }
 
     @Test
@@ -1185,10 +1177,8 @@ public abstract class AbstractKeyValueServiceTest {
         legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), true);
 
         assertThat(getAllTimestampsForTestCell()).contains(latestTs);
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))
-                        .get(TEST_CELL))
-                .isEqualTo(Value.create(val(0, 9), latestTs));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)))
+                .containsEntry(TEST_CELL, Value.create(val(0, 9), latestTs));
     }
 
     @Test
@@ -1241,18 +1231,12 @@ public abstract class AbstractKeyValueServiceTest {
                         .get(row1col0))
                 .contains(latestTsCol0);
 
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(row0col0, Long.MAX_VALUE))
-                        .get(row0col0))
-                .isEqualTo(Value.create(val(1, 0), latestTsCol0));
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(row0col1, Long.MAX_VALUE))
-                        .get(row0col1))
-                .isEqualTo(Value.create(val(1, 0), latestTsCol1));
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(row1col0, Long.MAX_VALUE))
-                        .get(row1col0))
-                .isEqualTo(Value.create(val(1, 0), latestTsCol0));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col0, Long.MAX_VALUE)))
+                .containsEntry(row0col0, Value.create(val(1, 0), latestTsCol0));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col1, Long.MAX_VALUE)))
+                .containsEntry(row0col1, Value.create(val(1, 0), latestTsCol1));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row1col0, Long.MAX_VALUE)))
+                .containsEntry(row1col0, Value.create(val(1, 0), latestTsCol0));
     }
 
     @Test
@@ -1265,10 +1249,8 @@ public abstract class AbstractKeyValueServiceTest {
         legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), false);
 
         assertThat(getAllTimestampsForTestCell()).containsExactlyInAnyOrder(Value.INVALID_VALUE_TIMESTAMP, latestTs);
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Value.INVALID_VALUE_TIMESTAMP + 1L))
-                        .get(TEST_CELL))
-                .isEqualTo(Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Value.INVALID_VALUE_TIMESTAMP + 1L)))
+                .containsEntry(TEST_CELL, Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP));
     }
 
     @Test
@@ -1360,15 +1342,11 @@ public abstract class AbstractKeyValueServiceTest {
         final Value val1 = Value.create(val(0, 7), TEST_TIMESTAMP + 1);
         final Value val5 = Value.create(val(0, 9), TEST_TIMESTAMP + 5);
         keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(TEST_CELL, val5));
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 6))
-                        .get(TEST_CELL))
-                .isEqualTo(val5);
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 6)))
+                .containsEntry(TEST_CELL, val5);
 
-        assertThat(keyValueService
-                        .get(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 5))
-                        .get(TEST_CELL))
-                .isEqualTo(val1);
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 5)))
+                .containsEntry(TEST_CELL, val1);
 
         keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(TEST_CELL, TEST_TIMESTAMP + 5));
     }
