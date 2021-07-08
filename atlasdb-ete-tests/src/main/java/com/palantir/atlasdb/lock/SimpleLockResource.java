@@ -43,9 +43,9 @@ public class SimpleLockResource implements LockResource {
     }
 
     @Override
-    public boolean lockUsingTimelockApi(int numLocks, int descriptorSize) {
+    public boolean lockUsingTimelockApi(int numDescriptors, int descriptorSize) {
         Set<LockDescriptor> descriptors =
-                generateDescriptors(numLocks, descriptorSize).collect(Collectors.toSet());
+                generateDescriptors(numDescriptors, descriptorSize).collect(Collectors.toSet());
         LockRequest request = LockRequest.of(descriptors, 1_000);
         LockResponse response = transactionManager.getTimelockService().lock(request);
         if (response.wasSuccessful()) {
@@ -56,9 +56,9 @@ public class SimpleLockResource implements LockResource {
     }
 
     @Override
-    public boolean lockUsingLegacyLockApi(int numLocks, int descriptorSize) {
+    public boolean lockUsingLegacyLockApi(int numDescriptors, int descriptorSize) {
         com.palantir.lock.LockRequest request = com.palantir.lock.LockRequest.builder(
-                        generateDescriptorMap(numLocks, descriptorSize))
+                        generateDescriptorMap(numDescriptors, descriptorSize))
                 .build();
         try {
             HeldLocksToken response = transactionManager.getLockService().lockAndGetHeldLocks("test", request);

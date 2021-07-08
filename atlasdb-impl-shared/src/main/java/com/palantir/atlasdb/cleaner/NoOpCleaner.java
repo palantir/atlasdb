@@ -39,7 +39,7 @@ public final class NoOpCleaner implements Cleaner {
             TransactionManager txManager,
             Multimap<TableReference, Cell> tableRefToCell,
             long scrubTimestamp,
-            long commitTs) {
+            long commitTimestamp) {
         throw new UnsupportedOperationException("This cleaner does not support scrubbing");
     }
 
