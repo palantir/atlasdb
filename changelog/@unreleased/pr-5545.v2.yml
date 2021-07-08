@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: BlockingTimeLimitedLockService now propagates exceptions correctly;
+    users should see fewer 500s on failures to acquire locks (owing to timeout or
+    other runtime exceptions).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5545

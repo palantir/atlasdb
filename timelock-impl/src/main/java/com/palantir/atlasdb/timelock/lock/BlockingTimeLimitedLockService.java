@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.HeldLocksGrant;
@@ -38,6 +39,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import javax.annotation.Nullable;
@@ -201,14 +203,17 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
         } catch (TimeoutException e) {
             // This is the legitimate timeout case we're trying to catch.
             throw logAndHandleTimeout(specification);
-        } catch (Exception e) {
+        } catch (UncheckedExecutionException | ExecutionException e) {
             // We don't know, and would prefer not to throw checked exceptions apart from InterruptedException.
             Throwable cause = e.getCause();
             if (cause instanceof InterruptedException) {
                 logInterrupted(specification, (InterruptedException) cause);
                 throw (InterruptedException) cause;
+            } else if (cause != null) {
+                Throwables.throwIfUnchecked(cause);
+                throw new RuntimeException(cause);
             }
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
