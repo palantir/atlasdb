@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock.lock;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.ExecutionError;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -204,7 +203,7 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
         } catch (TimeoutException e) {
             // This is the legitimate timeout case we're trying to catch.
             throw logAndHandleTimeout(specification);
-        } catch (UncheckedExecutionException | ExecutionException | ExecutionError e) {
+        } catch (UncheckedExecutionException | ExecutionException e) {
             // We don't know, and would prefer not to throw checked exceptions apart from InterruptedException.
             Throwable cause = e.getCause();
             if (cause instanceof InterruptedException) {
