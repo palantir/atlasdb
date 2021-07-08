@@ -544,7 +544,7 @@ public class TimeLockAgent {
 
     public void shutdown() {
         paxosResources.leadershipComponents().shutdown();
-        sqliteDataSource.close();
         timestampStorage.close();
+        sqliteDataSource.close();
     }
 }
