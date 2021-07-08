@@ -25,7 +25,6 @@ dependencies {
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310'
 
-    implementation 'io.dropwizard:dropwizard-jackson'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
@@ -68,7 +67,6 @@ dependencies {
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     testImplementation 'com.palantir.conjure.java:conjure-lib'
     testImplementation 'com.palantir.sls.versions:sls-versions'
-    testImplementation 'io.dropwizard:dropwizard-jackson'
 
     api 'com.palantir.dialogue:dialogue-clients'
 
