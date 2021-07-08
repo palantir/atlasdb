@@ -90,7 +90,6 @@ dependencies {
     testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
     testCompile project(":atlasdb-tests-shared")
 
-    testCompile group: 'com.palantir.remoting2', name: 'jersey-servers'
     testCompile group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
     testCompile group: 'com.palantir.conjure.java.api', name: 'test-utils'
     testCompile group: 'org.assertj', name: 'assertj-core'
