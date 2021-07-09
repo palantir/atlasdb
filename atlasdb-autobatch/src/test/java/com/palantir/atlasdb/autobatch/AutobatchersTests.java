@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -25,6 +26,7 @@ import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
 
 public class AutobatchersTests {
@@ -42,21 +44,32 @@ public class AutobatchersTests {
     }
 
     @Test
-    public void testTimeoutOnSlowOrHangingFunction() {
+    public void testTimeoutAndRetryOperations() {
+        AtomicLong guard = new AtomicLong(0);
         DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(list -> {
-                    Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
+                    if (guard.compareAndSet(0, 1)) {
+                        Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
+                    }
                     list.forEach(element -> element.result().set(new Object()));
                 })
-                .batchFunctionTimeout(Duration.ofMillis(1))
+                .batchFunctionTimeout(Duration.ofSeconds(1))
                 .safeLoggablePurpose("testing")
                 .build();
 
         ListenableFuture<Object> response = autobatcher.apply(new Object());
+
+        // Ensure that the second object is not put in the first batch
+        Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        ListenableFuture<Object> secondResponse = autobatcher.apply(new Object());
+
         // Notice that an exception here implies that we must have timed out prematurely, because nothing else would
         // apply a timeout (without the underlying layer, this call will not throw).
         assertThatThrownBy(response::get)
                 .isInstanceOf(ExecutionException.class)
                 .hasCauseInstanceOf(RuntimeException.class)
                 .hasRootCauseInstanceOf(TimeoutException.class);
+
+        // Without timeouts, this operation would never succeed!
+        assertThatCode(secondResponse::get).doesNotThrowAnyException();
     }
 }
