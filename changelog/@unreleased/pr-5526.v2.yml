@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    Make transactions table safe to log.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5526
