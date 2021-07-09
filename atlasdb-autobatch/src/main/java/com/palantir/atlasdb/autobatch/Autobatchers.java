@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -103,25 +104,27 @@ public final class Autobatchers {
     private static <I, O> Consumer<List<BatchElement<I, O>>> maybeWrapWithTimeout(
             Consumer<List<BatchElement<I, O>>> batchFunction, EventHandlerParameters parameters) {
         return parameters
-                .batchFunctionTimeout()
-                .map(timeout -> wrapWithTimeout(batchFunction, parameters.safeLoggablePurpose(), timeout))
+                .batchFunctionTimeoutContext()
+                .map(context -> wrapWithTimeout(batchFunction, parameters.safeLoggablePurpose(), context))
                 .orElse(batchFunction);
     }
 
     private static <I, O> CoalescingRequestFunction<I, O> maybeWrapWithTimeout(
             CoalescingRequestFunction<I, O> coalescingFunction, EventHandlerParameters parameters) {
         return parameters
-                .batchFunctionTimeout()
-                .map(timeout -> wrapWithTimeout(coalescingFunction, parameters.safeLoggablePurpose(), timeout))
+                .batchFunctionTimeoutContext()
+                .map(context -> wrapWithTimeout(coalescingFunction, parameters.safeLoggablePurpose(), context))
                 .orElse(coalescingFunction);
     }
 
     private static <I, O> Consumer<List<BatchElement<I, O>>> wrapWithTimeout(
-            Consumer<List<BatchElement<I, O>>> delegate, String safeLoggablePurpose, Duration maxRuntime) {
-        TimeLimiter limiter = createTimeLimiter(safeLoggablePurpose);
+            Consumer<List<BatchElement<I, O>>> delegate,
+            String safeLoggablePurpose,
+            TimeoutOrchestrationContext context) {
+        TimeLimiter limiter = SimpleTimeLimiter.create(context.exclusiveExecutor());
         return elements -> {
             try {
-                limiter.runWithTimeout(() -> delegate.accept(elements), maxRuntime);
+                limiter.runWithTimeout(() -> delegate.accept(elements), context.batchFunctionTimeout());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
@@ -139,11 +142,11 @@ public final class Autobatchers {
     }
 
     private static <I, O> CoalescingRequestFunction<I, O> wrapWithTimeout(
-            CoalescingRequestFunction<I, O> delegate, String safeLoggablePurpose, Duration maxRuntime) {
-        TimeLimiter limiter = createTimeLimiter(safeLoggablePurpose);
+            CoalescingRequestFunction<I, O> delegate, String safeLoggablePurpose, TimeoutOrchestrationContext context) {
+        TimeLimiter limiter = SimpleTimeLimiter.create(context.exclusiveExecutor());
         return elements -> {
             try {
-                return limiter.callWithTimeout(() -> delegate.apply(elements), maxRuntime);
+                return limiter.callWithTimeout(() -> delegate.apply(elements), context.batchFunctionTimeout());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
@@ -217,7 +220,13 @@ public final class Autobatchers {
 
             ImmutableEventHandlerParameters.Builder parametersBuilder = ImmutableEventHandlerParameters.builder();
             bufferSize.ifPresent(parametersBuilder::batchSize);
-            parametersBuilder.safeLoggablePurpose(purpose).batchFunctionTimeout(batchFunctionTimeout);
+            parametersBuilder.safeLoggablePurpose(purpose);
+            Optional<TimeoutOrchestrationContext> timeoutOrchestrationContext =
+                    batchFunctionTimeout.map(timeout -> ImmutableTimeoutOrchestrationContext.builder()
+                            .batchFunctionTimeout(timeout)
+                            .exclusiveExecutor(PTExecutors.newCachedThreadPool("autobatcher." + purpose + "-timeout"))
+                            .build());
+            timeoutOrchestrationContext.ifPresent(parametersBuilder::batchFunctionTimeoutContext);
             EventHandlerParameters parameters = parametersBuilder.build();
 
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(parameters);
@@ -228,7 +237,13 @@ public final class Autobatchers {
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.build());
 
-            return DisruptorAutobatcher.create(profiledHandler, parameters.batchSize(), purpose, waitStrategy);
+            return DisruptorAutobatcher.create(
+                    profiledHandler,
+                    parameters.batchSize(),
+                    purpose,
+                    waitStrategy,
+                    () -> timeoutOrchestrationContext.ifPresent(
+                            context -> context.exclusiveExecutor().shutdown()));
         }
     }
 
@@ -241,6 +256,17 @@ public final class Autobatchers {
 
         String safeLoggablePurpose();
 
-        Optional<Duration> batchFunctionTimeout();
+        Optional<TimeoutOrchestrationContext> batchFunctionTimeoutContext();
+    }
+
+    @Value.Immutable
+    interface TimeoutOrchestrationContext {
+        Duration batchFunctionTimeout();
+
+        /**
+         * This executor should ONLY be used for the purposes of performing time limiting. It may be shut down when
+         * the autobatcher is no longer needed.
+         */
+        ExecutorService exclusiveExecutor();
     }
 }

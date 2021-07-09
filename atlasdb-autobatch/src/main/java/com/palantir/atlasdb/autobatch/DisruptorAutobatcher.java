@@ -67,15 +67,19 @@ public final class DisruptorAutobatcher<T, R>
     private final Disruptor<DisruptorBatchElement<T, R>> disruptor;
     private final RingBuffer<DisruptorBatchElement<T, R>> buffer;
     private final String safeLoggablePurpose;
+    private final Runnable closingCallback;
+
     private volatile boolean closed = false;
 
     DisruptorAutobatcher(
             Disruptor<DisruptorBatchElement<T, R>> disruptor,
             RingBuffer<DisruptorBatchElement<T, R>> buffer,
-            String safeLoggablePurpose) {
+            String safeLoggablePurpose,
+            Runnable closingCallback) {
         this.disruptor = disruptor;
         this.buffer = buffer;
         this.safeLoggablePurpose = safeLoggablePurpose;
+        this.closingCallback = closingCallback;
     }
 
     @Override
@@ -100,6 +104,7 @@ public final class DisruptorAutobatcher<T, R>
                             + "Ensure that handlers aren't uninterruptibly blocking and ensure that they are closed.",
                     e);
         }
+        closingCallback.run();
     }
 
     private static final class DisruptorBatchElement<T, R> {
@@ -165,7 +170,8 @@ public final class DisruptorAutobatcher<T, R>
             EventHandler<BatchElement<T, R>> eventHandler,
             int bufferSize,
             String safeLoggablePurpose,
-            Optional<WaitStrategy> waitStrategy) {
+            Optional<WaitStrategy> waitStrategy,
+            Runnable closingCallback) {
         Disruptor<DisruptorBatchElement<T, R>> disruptor = new Disruptor<>(
                 DisruptorBatchElement::new,
                 bufferSize,
@@ -175,6 +181,6 @@ public final class DisruptorAutobatcher<T, R>
         disruptor.handleEventsWith(
                 (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
-        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), safeLoggablePurpose);
+        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), safeLoggablePurpose, closingCallback);
     }
 }
