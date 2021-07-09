@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -53,12 +51,12 @@ public class AutobatchersTests {
                 .safeLoggablePurpose("testing")
                 .build();
 
-        Instant start = Instant.now();
         ListenableFuture<Object> response = autobatcher.apply(new Object());
+        // Notice that an exception here implies that we must have timed out prematurely, because nothing else would
+        // apply a timeout (without the underlying layer, this call will not throw).
         assertThatThrownBy(response::get)
                 .isInstanceOf(ExecutionException.class)
                 .hasCauseInstanceOf(RuntimeException.class)
                 .hasRootCauseInstanceOf(TimeoutException.class);
-        assertThat(Duration.between(start, Instant.now())).isLessThan(Duration.ofSeconds(30));
     }
 }
