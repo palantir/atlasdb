@@ -35,6 +35,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +69,7 @@ public final class WriteBatchingTransactionService implements TransactionService
         DisruptorAutobatcher<TimestampPair, Void> autobatcher = Autobatchers.<TimestampPair, Void>independent(
                         elements -> processBatch(delegate, elements))
                 .safeLoggablePurpose("write-batching-transaction-service")
+                .batchFunctionTimeout(Duration.ofMinutes(5))
                 .build();
         return new WriteBatchingTransactionService(delegate, autobatcher);
     }

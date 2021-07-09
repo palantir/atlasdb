@@ -27,6 +27,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +49,7 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     public static BatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchCache cache) {
         DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(consumer(leaseService, cache))
                 .safeLoggablePurpose("get-commit-timestamp")
+                .batchFunctionTimeout(Duration.ofSeconds(30))
                 .build();
         return new BatchingCommitTimestampGetter(autobatcher);
     }

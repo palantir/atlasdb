@@ -33,6 +33,7 @@ import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.List;
@@ -54,6 +55,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
     public static MultiClientCommitTimestampGetter create(InternalMultiClientConjureTimelockService delegate) {
         DisruptorAutobatcher<NamespacedRequest, Long> autobatcher = Autobatchers.independent(consumer(delegate))
                 .safeLoggablePurpose("multi-client-commit-timestamp-getter")
+                .batchFunctionTimeout(Duration.ofSeconds(30))
                 .build();
         return new MultiClientCommitTimestampGetter(autobatcher);
     }

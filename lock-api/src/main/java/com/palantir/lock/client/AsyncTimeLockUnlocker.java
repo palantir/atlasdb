@@ -21,6 +21,7 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -59,6 +60,7 @@ public final class AsyncTimeLockUnlocker implements TimeLockUnlocker, AutoClosea
                     }
                     batch.stream().map(BatchElement::result).forEach(f -> f.set(null));
                 })
+                .batchFunctionTimeout(Duration.ofSeconds(30))
                 .safeLoggablePurpose("async-timelock-unlocker")
                 .build());
     }
