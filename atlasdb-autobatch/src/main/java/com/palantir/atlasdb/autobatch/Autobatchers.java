@@ -163,11 +163,6 @@ public final class Autobatchers {
         };
     }
 
-    private static TimeLimiter createTimeLimiter(String safeLoggablePurpose) {
-        return SimpleTimeLimiter.create(
-                PTExecutors.newCachedThreadPool("autobatcher." + safeLoggablePurpose + "-timeout"));
-    }
-
     public static final class AutobatcherBuilder<I, O> {
 
         private final Function<EventHandlerParameters, EventHandler<BatchElement<I, O>>> handlerFactory;
