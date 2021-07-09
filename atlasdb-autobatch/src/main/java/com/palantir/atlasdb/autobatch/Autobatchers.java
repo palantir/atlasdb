@@ -16,9 +16,11 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.WaitStrategy;
@@ -129,6 +131,9 @@ public final class Autobatchers {
                         SafeArg.of("safeLoggablePurpose", safeLoggablePurpose),
                         e);
                 throw new RuntimeException(e);
+            } catch (UncheckedExecutionException e) {
+                Throwables.throwIfUnchecked(e.getCause());
+                throw new RuntimeException(e.getCause());
             }
         };
     }
@@ -148,7 +153,8 @@ public final class Autobatchers {
                         SafeArg.of("safeLoggablePurpose", safeLoggablePurpose),
                         e);
                 throw new RuntimeException(e);
-            } catch (ExecutionException e) {
+            } catch (ExecutionException | UncheckedExecutionException e) {
+                Throwables.throwIfUnchecked(e.getCause());
                 throw new RuntimeException(e.getCause());
             }
         };
