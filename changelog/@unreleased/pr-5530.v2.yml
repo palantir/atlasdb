@@ -1,6 +1,6 @@
 type: improvement
 improvement:
   description: |-
-    Reduces backoff upon receiving an exception from KVS.
+    Reduces backoff upon receiving an exception from Cassandra.
   links:
   - https://github.com/palantir/atlasdb/pull/5530
