@@ -65,7 +65,8 @@ public class TimeLockServerDownIntegrationTest {
         // Try to get again
         assertThatThrownBy(() -> txnManager.runTaskWithRetry(
                         txn -> txn.get(TABLE, ImmutableSet.of(CELL)).get(CELL)))
-                .isExactlyInstanceOf(TimeoutException.class);
+                .isInstanceOf(RuntimeException.class)
+                .hasCauseInstanceOf(TimeoutException.class);
     }
 
     private static void takeDownTimeLock() throws ExecutionException {
