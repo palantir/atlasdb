@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.autobatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.within;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Metric;
@@ -45,7 +44,7 @@ public class BatchSizeRecorderTest {
 
         assertThat(histogram).isNotNull();
         assertThat(histogram.getCount()).isEqualTo(2);
-        assertThat(histogram.getSnapshot().getMean()).isCloseTo(7.5, within(0.001));
+        assertThat(histogram.getSnapshot().getMean()).isEqualTo(7.5);
     }
 
     @Test
