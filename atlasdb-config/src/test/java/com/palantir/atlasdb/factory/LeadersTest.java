@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -111,16 +112,17 @@ public class LeadersTest {
         verifyNoMoreInteractions(localAcceptor);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void createProxyAndLocalListThrowsIfNullClassProvided() {
         PaxosAcceptor localAcceptor = mock(PaxosAcceptor.class);
 
-        Leaders.createProxyAndLocalList(
-                localAcceptor,
-                REMOTE_SERVICE_ADDRESSES,
-                REMOTING_CLIENT_CONFIG,
-                Optional.of(TRUST_CONTEXT),
-                null,
-                AtlasDbRemotingConstants.DEFAULT_USER_AGENT);
+        assertThatThrownBy(() -> Leaders.createProxyAndLocalList(
+                        localAcceptor,
+                        REMOTE_SERVICE_ADDRESSES,
+                        REMOTING_CLIENT_CONFIG,
+                        Optional.of(TRUST_CONTEXT),
+                        null,
+                        AtlasDbRemotingConstants.DEFAULT_USER_AGENT))
+                .isInstanceOf(NullPointerException.class);
     }
 }

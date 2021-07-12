@@ -22,6 +22,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
+@SuppressWarnings("ProxyNonConstantType")
 public final class TimingProxy implements DelegatingInvocationHandler {
 
     @SuppressWarnings("unchecked")
@@ -43,7 +44,6 @@ public final class TimingProxy implements DelegatingInvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         TimingState token = timer.begin(method.getName());
-        assert token != null;
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {

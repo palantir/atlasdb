@@ -17,17 +17,18 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
+import com.palantir.conjure.java.jackson.optimizations.ObjectMapperOptimizations;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.io.IOException;
 
 public final class WriteReferencePersister {
     private static final byte[] writePrefix = {1};
-    private static final ObjectMapper OBJECT_MAPPER =
-            new ObjectMapper().registerModule(new Jdk8Module()).registerModule(new AfterburnerModule());
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new Jdk8Module())
+            .registerModules(ObjectMapperOptimizations.createModules());
 
     private final SweepTableIndices tableIndices;
 

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.persistentlock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.eq;
@@ -76,24 +77,24 @@ public class LockStoreTest {
         assertThat(lockStore.allLockEntries()).containsExactly(lockEntry);
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void canNotAcquireLockTwice() throws Exception {
         lockStore.acquireBackupLock(REASON);
-        lockStore.acquireBackupLock(REASON);
+        assertThatThrownBy(() -> lockStore.acquireBackupLock(REASON)).isInstanceOf(CheckAndSetException.class);
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void canNotAcquireLockTwiceForDifferentReasons() throws Exception {
         lockStore.acquireBackupLock(REASON);
-        lockStore.acquireBackupLock("other-reason");
+        assertThatThrownBy(() -> lockStore.acquireBackupLock("other-reason")).isInstanceOf(CheckAndSetException.class);
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void canNotAcquireLockThatWasTakenOutByAnotherStore() throws Exception {
         LockStore otherLockStore = LockStoreImpl.create(kvs);
         otherLockStore.acquireBackupLock("grabbed by other store");
 
-        lockStore.acquireBackupLock(REASON);
+        assertThatThrownBy(() -> lockStore.acquireBackupLock(REASON)).isInstanceOf(CheckAndSetException.class);
     }
 
     @Test
@@ -112,17 +113,17 @@ public class LockStoreTest {
         assertThat(lockStore.allLockEntries()).containsExactly(LockStoreImpl.LOCK_OPEN);
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void cannotReleaseLockWhenLockIsOpen() throws Exception {
         LockEntry otherLockEntry = ImmutableLockEntry.builder()
                 .lockName("name")
                 .instanceId(OTHER_ID)
                 .reason(OTHER_REASON)
                 .build();
-        lockStore.releaseLock(otherLockEntry);
+        assertThatThrownBy(() -> lockStore.releaseLock(otherLockEntry)).isInstanceOf(CheckAndSetException.class);
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void canNotReleaseNonExistentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
 
@@ -131,7 +132,7 @@ public class LockStoreTest {
                 .instanceId(OTHER_ID)
                 .reason(OTHER_REASON)
                 .build();
-        lockStore.releaseLock(otherLockEntry);
+        assertThatThrownBy(() -> lockStore.releaseLock(otherLockEntry)).isInstanceOf(CheckAndSetException.class);
     }
 
     @Test
@@ -142,7 +143,7 @@ public class LockStoreTest {
         lockStore.acquireBackupLock(REASON);
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void canNotReacquireAfterReleasingDifferentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireBackupLock(REASON);
 
@@ -157,6 +158,6 @@ public class LockStoreTest {
             // expected
         }
 
-        lockStore.acquireBackupLock(REASON);
+        assertThatThrownBy(() -> lockStore.acquireBackupLock(REASON)).isInstanceOf(CheckAndSetException.class);
     }
 }

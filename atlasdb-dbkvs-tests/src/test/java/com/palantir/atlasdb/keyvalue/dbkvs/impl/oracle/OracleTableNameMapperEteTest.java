@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.lessThan;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -27,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import org.assertj.core.api.HamcrestCondition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -70,8 +68,7 @@ public class OracleTableNameMapperEteTest {
         String shortPrefixedTableName =
                 ORACLE_TABLE_NAME_MAPPER.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
 
-        assertThat(shortPrefixedTableName.length())
-                .is(new HamcrestCondition<>(lessThan(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT)));
+        assertThat(shortPrefixedTableName).hasSizeLessThan(AtlasDbConstants.ATLASDB_ORACLE_TABLE_NAME_LIMIT);
         String expectedName = "a_ns__test_table_0000";
         assertThat(shortPrefixedTableName).isEqualTo(expectedName);
     }

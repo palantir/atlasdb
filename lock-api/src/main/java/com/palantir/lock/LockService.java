@@ -135,9 +135,9 @@ public interface LockService extends RemoteLockService {
     /**
      * Refreshes the given lock tokens.
      *
-     * @deprecated use {@link #refreshLockRefreshTokens(Iterable)} instead
      * @see #refreshLockRefreshTokens(Iterable)
      * @return the subset of tokens which are still valid after being refreshed
+     * @deprecated use {@link #refreshLockRefreshTokens(Iterable)} instead
      */
     @POST
     @Path("refresh-tokens")

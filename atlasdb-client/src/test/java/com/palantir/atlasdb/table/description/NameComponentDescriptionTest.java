@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -69,26 +70,28 @@ public class NameComponentDescriptionTest {
         assertThat(description.getLogSafety()).isEqualTo(LogSafety.SAFE);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void builderRequiresComponentName() {
-        new NameComponentDescription.Builder()
-                .type(VALUE_TYPE)
-                .byteOrder(VALUE_BYTE_ORDER)
-                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
-                .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
-                .logSafety(LogSafety.SAFE)
-                .build();
+        assertThatThrownBy(() -> new NameComponentDescription.Builder()
+                        .type(VALUE_TYPE)
+                        .byteOrder(VALUE_BYTE_ORDER)
+                        .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                        .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
+                        .logSafety(LogSafety.SAFE)
+                        .build())
+                .isInstanceOf(NullPointerException.class);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void builderRequiresType() {
-        new NameComponentDescription.Builder()
-                .componentName(COMPONENT_NAME)
-                .byteOrder(VALUE_BYTE_ORDER)
-                .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
-                .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
-                .logSafety(LogSafety.SAFE)
-                .build();
+        assertThatThrownBy(() -> new NameComponentDescription.Builder()
+                        .componentName(COMPONENT_NAME)
+                        .byteOrder(VALUE_BYTE_ORDER)
+                        .uniformRowNamePartitioner(UNIFORM_ROW_NAME_PARTITIONER)
+                        .explicitRowNamePartitioner(EXPLICIT_ROW_NAME_PARTITIONER)
+                        .logSafety(LogSafety.SAFE)
+                        .build())
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test

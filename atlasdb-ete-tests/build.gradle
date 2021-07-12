@@ -18,7 +18,6 @@ dependencies {
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
-    implementation 'com.boundary:high-scale-lib'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
@@ -55,7 +54,6 @@ dependencies {
     testImplementation 'com.palantir.safe-logging:safe-logging'
     testImplementation 'commons-io:commons-io'
     testImplementation 'joda-time:joda-time'
-    testImplementation 'org.hamcrest:hamcrest'
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-cassandra')

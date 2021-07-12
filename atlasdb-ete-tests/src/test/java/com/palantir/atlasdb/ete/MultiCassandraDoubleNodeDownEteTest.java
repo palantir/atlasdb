@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.ete;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -40,16 +42,18 @@ public class MultiCassandraDoubleNodeDownEteTest {
         MultiCassandraUtils.resetCassandraCluster(ALL_CASSANDRA_NODES);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void shouldNotBeAbleToWriteWithTwoCassandraNodesDown() {
-        TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
-        todos.addTodo(getUniqueTodo());
+        assertThatThrownBy(() ->
+                        EteSetup.createClientToSingleNode(TodoResource.class).addTodo(getUniqueTodo()))
+                .isInstanceOf(RuntimeException.class);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void shouldNotBeAbleToReadWithTwoCassandraNodesDown() {
-        TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
-        todos.getTodoList();
+        assertThatThrownBy(() ->
+                        EteSetup.createClientToSingleNode(TodoResource.class).getTodoList())
+                .isInstanceOf(RuntimeException.class);
     }
 
     private static Todo getUniqueTodo() {

@@ -22,7 +22,6 @@ dependencies {
     compile group: 'com.palantir.refreshable', name: 'refreshable'
     compile group: 'one.util', name: 'streamex'
 
-    implementation 'com.boundary:high-scale-lib'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java:conjure-lib'
@@ -56,7 +55,6 @@ dependencies {
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.awaitility', name: 'awaitility'
-    testCompile group: 'org.hamcrest', name: 'hamcrest-core'
     testCompile(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
     }

@@ -21,7 +21,6 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
 
-  implementation 'com.boundary:high-scale-lib'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.common:streams'
@@ -52,5 +51,4 @@ dependencies {
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: 'org.hamcrest', name: 'hamcrest-core'
 }

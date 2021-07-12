@@ -52,7 +52,6 @@ dependencies {
       exclude group: 'org.hamcrest'
   }
 
-  implementation 'com.boundary:high-scale-lib'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'
@@ -89,7 +88,6 @@ dependencies {
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.apache.thrift:libthrift'
-  testImplementation 'org.hamcrest:hamcrest'
   testImplementation 'com.palantir.tracing:tracing-api'
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':atlasdb-commons')

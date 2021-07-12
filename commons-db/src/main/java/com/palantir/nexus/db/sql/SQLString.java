@@ -37,7 +37,7 @@ import javax.annotation.concurrent.GuardedBy;
 import org.apache.commons.lang3.Validate;
 
 // class extended by other projects
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"WeakerAccess", "BadAssert"}) // performance sensitive asserts
 public class SQLString extends BasicSQLString {
     private static final Pattern ALL_WORD_CHARS_REGEX = Pattern.compile("^[a-zA-Z_0-9\\.\\-]*$"); // $NON-NLS-1$
     private static final String UNREGISTERED_SQL_COMMENT = "/* UnregisteredSQLString */";
@@ -57,13 +57,19 @@ public class SQLString extends BasicSQLString {
      */
     @GuardedBy("cacheLock")
     private static volatile ImmutableMap<String, FinalSQLString> cachedUnregistered = ImmutableMap.of();
-    /** Rewritten registered queries. */
+    /**
+     * Rewritten registered queries.
+     */
     @GuardedBy("cacheLock")
     private static volatile ImmutableMap<String, FinalSQLString> cachedKeyed = ImmutableMap.of();
-    /** All registered queries. */
+    /**
+     * All registered queries.
+     */
     protected static final ConcurrentMap<String, FinalSQLString> registeredValues =
             new ConcurrentHashMap<String, FinalSQLString>();
-    /** DB-specific registered queries. */
+    /**
+     * DB-specific registered queries.
+     */
     protected static final ConcurrentMap<String, ConcurrentMap<DBType, FinalSQLString>> registeredValuesOverride =
             new ConcurrentHashMap<>();
 
@@ -92,6 +98,7 @@ public class SQLString extends BasicSQLString {
 
     /**
      * Call this function to store a query to be used later with the given key.
+     *
      * @param key Unique identifier for this query
      * @param sql The query that will be stored
      */
@@ -106,8 +113,9 @@ public class SQLString extends BasicSQLString {
 
     /**
      * Same as the overloaded registerQuery, but overrides the query for a specific DBType.
-     * @param key Unique identifier representing this query
-     * @param sql The query that will be stored
+     *
+     * @param key     Unique identifier representing this query
+     * @param sql     The query that will be stored
      * @param dbTypes Override the query for this list of DBTypes.  These are not allowed to be null.
      */
     public static void registerQuery(String key, String sql, DBType... dbTypes) {
@@ -120,10 +128,11 @@ public class SQLString extends BasicSQLString {
 
     /**
      * Same as the overloaded registerQuery, but overrides the query for a specific DBType.
-     * @param key Unique identifier representing this query
-     * @param sql The query that will be stored
+     *
+     * @param key    Unique identifier representing this query
+     * @param sql    The query that will be stored
      * @param dbType Override the query for this DBType.
-     * If this value is null, it is the same as <code>registerQuery(key, sql)</code>
+     *               If this value is null, it is the same as <code>registerQuery(key, sql)</code>
      */
     public static RegisteredSQLString registerQuery(String key, String sql, DBType dbType) {
         if (dbType == null) {
@@ -156,7 +165,7 @@ public class SQLString extends BasicSQLString {
      * the dbType override first, then use the general registered query This factory is used by <code>SQL</code> to find
      * a registered query.
      *
-     * @param key The key that was passed to <code>registerQuery</code>
+     * @param key    The key that was passed to <code>registerQuery</code>
      * @param dbType Look for queries registered with this override first
      * @return a SQLString object representing the stored query
      */
@@ -218,6 +227,7 @@ public class SQLString extends BasicSQLString {
 
     /**
      * Contructor for unregistered (dynamic) SQL.
+     *
      * @param sql The string to be used in a query
      */
     private SQLString(String sql) {
@@ -226,8 +236,9 @@ public class SQLString extends BasicSQLString {
 
     /**
      * Contructor for registered SQL.
-     * @param key The query key
-     * @param sql The string to be used in a query
+     *
+     * @param key    The query key
+     * @param sql    The string to be used in a query
      * @param dbType This is only used in making the SQL comment
      */
     protected SQLString(String key, String sql, DBType dbType) {
@@ -236,8 +247,9 @@ public class SQLString extends BasicSQLString {
 
     /**
      * Creates an appropriate comment string for the beginning of a SQL statement.
+     *
      * @param keyString Identifier for the SQL; will be null if the SQL is unregistered
-     * @param dbType The database type
+     * @param dbType    The database type
      */
     private static String makeCommentString(String keyString, DBType dbType) {
         String registrationState;
@@ -324,21 +336,22 @@ public class SQLString extends BasicSQLString {
         }
     }
 
-    /** Routine for registering all the possible combinations of queries
+    /**
+     * Routine for registering all the possible combinations of queries
      * given a set of keyed clauses. This is used to build up a map in
      * {@code map} from which clients can decode the queries string to use for
      * the clauses they want. The clauses will always occur in the generated
      * queries in the order listed the {@code clauses} array.
      *
-     * @param baseKey the basic type of search
-     * @param map a mapping from a set of restrictive clause names and the base
-     * key to a distinguishing query name.
+     * @param baseKey   the basic type of search
+     * @param map       a mapping from a set of restrictive clause names and the base
+     *                  key to a distinguishing query name.
      * @param sqlFormat format string which takes one argument which is the
-     * conjunction of clauses (from <code>clauses</code>) which modify the
-     * query variant
-     * @param type database type the search is for, null for all DBs
-     * @param clauses clauses (in the same order as their keys) which can narrow
-     * the search
+     *                  conjunction of clauses (from <code>clauses</code>) which modify the
+     *                  query variant
+     * @param type      database type the search is for, null for all DBs
+     * @param clauses   clauses (in the same order as their keys) which can narrow
+     *                  the search
      */
     public static void registerQueryVariants(
             String baseKey, Map<Set<String>, String> map, String sqlFormat, DBType type, List<SqlClause> clauses) {
@@ -373,8 +386,8 @@ public class SQLString extends BasicSQLString {
      * Object returned when a query is registered.
      * Its only method is getKey(), because we can't actually rely on the SQL itself inside this
      * object (since it might be overridden).
-     * @author dcohen
      *
+     * @author dcohen
      */
     public static final class RegisteredSQLString {
 

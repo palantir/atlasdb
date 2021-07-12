@@ -20,7 +20,6 @@ dependencies {
   compile group: "org.jdbi", name: 'jdbi3-sqlobject'
   compile group: 'org.xerial', name: 'sqlite-jdbc'
 
-  implementation 'com.boundary:high-scale-lib'
   implementation group: 'com.palantir.common', name: 'streams'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -35,7 +34,6 @@ dependencies {
 
   testImplementation 'com.google.guava:guava'
   testImplementation 'io.dropwizard.metrics:metrics-core'
-  testImplementation 'org.hamcrest:hamcrest'
   testImplementation project(':commons-executors')
   testImplementation project(':leader-election-api-protobufs')
 

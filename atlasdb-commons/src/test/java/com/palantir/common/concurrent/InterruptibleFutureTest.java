@@ -16,7 +16,7 @@
 package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
@@ -25,18 +25,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.internal.matchers.ThrowableCauseMatcher;
-import org.junit.rules.ExpectedException;
 
 public class InterruptibleFutureTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private ExecutorService executor;
 
@@ -59,28 +52,25 @@ public class InterruptibleFutureTest {
     }
 
     @Test
-    public void testNoStart() throws Exception {
+    public void testNoStart() {
         RunnableFuture<Integer> interruptible = getInterruptible();
-        expectedException.expect(TimeoutException.class);
-        interruptible.get(10, TimeUnit.MILLISECONDS);
+        assertThatThrownBy(() -> interruptible.get(10, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
     }
 
     @Test
-    public void testCancelTrueBeforeStart() throws Exception {
+    public void testCancelTrueBeforeStart() {
         RunnableFuture<Integer> interruptible = getInterruptible();
         interruptible.cancel(true);
         executor.execute(interruptible);
-        expectedException.expect(CancellationException.class);
-        interruptible.get();
+        assertThatThrownBy(interruptible::get).isInstanceOf(CancellationException.class);
     }
 
     @Test
-    public void testCancelFalseBeforeStart() throws Exception {
+    public void testCancelFalseBeforeStart() {
         RunnableFuture<Integer> interruptible = getInterruptible();
         interruptible.cancel(false);
         executor.execute(interruptible);
-        expectedException.expect(CancellationException.class);
-        interruptible.get();
+        assertThatThrownBy(interruptible::get).isInstanceOf(CancellationException.class);
     }
 
     @Test
@@ -89,10 +79,9 @@ public class InterruptibleFutureTest {
         executor.execute(interruptible);
         interruptible.started.await();
         interruptible.cancel(true);
-        expectedException.expect(Matchers.<Throwable>either(instanceOf(CancellationException.class))
-                .or(Matchers.<Throwable>both(instanceOf(ExecutionException.class))
-                        .and(ThrowableCauseMatcher.hasCause(instanceOf(InterruptedException.class)))));
-        interruptible.get();
+        assertThatThrownBy(interruptible::get)
+                .isInstanceOfAny(CancellationException.class, ExecutionException.class)
+                .hasRootCauseInstanceOf(InterruptedException.class);
     }
 
     @Test
@@ -101,8 +90,7 @@ public class InterruptibleFutureTest {
         executor.execute(interruptible);
         interruptible.started.await();
         interruptible.cancel(false);
-        expectedException.expect(TimeoutException.class);
-        interruptible.get(10, TimeUnit.MILLISECONDS);
+        assertThatThrownBy(() -> interruptible.get(10, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
     }
 
     @Test
@@ -117,7 +105,7 @@ public class InterruptibleFutureTest {
     public void testCancelButRunToCompletion() throws Exception {
         final CountDownLatch started = new CountDownLatch(1);
         final CountDownLatch hang = new CountDownLatch(1);
-        RunnableFuture<Integer> interruptible = new InterruptibleFuture<Integer>() {
+        RunnableFuture<Integer> interruptible = new InterruptibleFuture<>() {
             @Override
             public Integer call() {
                 try {
@@ -137,7 +125,7 @@ public class InterruptibleFutureTest {
 
     @Test
     public void testCompleteAndThenCancel() throws Exception {
-        RunnableFuture<Integer> interruptible = new InterruptibleFuture<Integer>() {
+        RunnableFuture<Integer> interruptible = new InterruptibleFuture<>() {
             @Override
             public Integer call() throws InterruptedException {
                 if (Thread.interrupted()) {
@@ -153,23 +141,21 @@ public class InterruptibleFutureTest {
     }
 
     @Test
-    public void testCancelTrueNoStart() throws Exception {
+    public void testCancelTrueNoStart() {
         RunnableFuture<Integer> interruptible = getInterruptible();
         interruptible.cancel(true);
-        expectedException.expect(CancellationException.class);
-        interruptible.get();
+        assertThatThrownBy(interruptible::get).isInstanceOf(CancellationException.class);
     }
 
     @Test
-    public void testCancelFalseNoStart() throws Exception {
+    public void testCancelFalseNoStart() {
         RunnableFuture<Integer> interruptible = getInterruptible();
         interruptible.cancel(false);
-        expectedException.expect(CancellationException.class);
-        interruptible.get();
+        assertThatThrownBy(interruptible::get).isInstanceOf(CancellationException.class);
     }
 
-    private RunnableFuture<Integer> getInterruptible() {
-        return new InterruptibleFuture<Integer>() {
+    private static RunnableFuture<Integer> getInterruptible() {
+        return new InterruptibleFuture<>() {
             @Override
             public Integer call() {
                 return 1;
@@ -188,7 +174,7 @@ public class InterruptibleFutureTest {
         }
     }
 
-    private InterruptibleWithSleep getInterruptibleWithSleep() {
+    private static InterruptibleWithSleep getInterruptibleWithSleep() {
         return new InterruptibleWithSleep();
     }
 }

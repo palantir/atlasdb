@@ -17,6 +17,7 @@
 package com.palantir.nexus.db.pool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import com.google.common.base.Throwables;
@@ -36,9 +37,7 @@ import java.util.Random;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class HikariCpConnectionManagerTest {
 
@@ -54,9 +53,6 @@ public class HikariCpConnectionManagerTest {
         manager.close();
     }
 
-    @Rule
-    public final ExpectedException thrown = ExpectedException.none();
-
     @Test
     public void testCanGetConnection() throws SQLException {
         try (Connection conn = manager.getConnection()) {
@@ -67,35 +63,34 @@ public class HikariCpConnectionManagerTest {
     @Test
     public void testCantGetConnectionIfClosed() throws SQLException {
         manager.close();
-        thrown.expect(SQLException.class);
-        thrown.expectMessage("Hikari connection pool already closed!");
-        try (Connection conn = manager.getConnection()) {
-            fail("fail");
-        }
+        assertThatThrownBy(() -> manager.getConnection())
+                .isInstanceOf(SQLException.class)
+                .hasMessageContaining("Hikari connection pool already closed!");
     }
 
     @Test
     public void testCantGetConnectionIfPoolExhausted() throws SQLException {
+        //noinspection unused - try-with-resources gets & closes connections
         try (Connection conn1 = manager.getConnection();
                 Connection conn2 = manager.getConnection();
                 Connection conn3 = manager.getConnection()) {
-            thrown.expect(SQLTransientConnectionException.class);
-            thrown.expectMessage("Connection is not available, request timed out after");
-            try (Connection conn4 = manager.getConnection()) {
-                fail("fail");
-            }
+            assertThatThrownBy(() -> manager.getConnection())
+                    .isInstanceOf(SQLException.class)
+                    .hasMessageContaining("Connection is not available, request timed out after");
         }
     }
 
     @SuppressWarnings("checkstyle:NestedTryDepth")
     @Test
     public void testConnectionsAreReturnedToPoolWhenClosedAndOverAllocationsAreStillRejected() throws SQLException {
+        //noinspection unused - try-with-resources gets & closes connections
         try (Connection conn1 = manager.getConnection();
                 Connection conn2 = manager.getConnection()) {
             try (Connection conn3 = manager.getConnection()) {
                 checkConnection(conn3);
                 // Make sure we exhausted the pool
                 boolean caught = false;
+                //noinspection unused - try-with-resources gets & closes connections
                 try (Connection conn4 = manager.getConnection()) {
                     fail("fail");
                 } catch (SQLTransientConnectionException e) {
@@ -112,6 +107,7 @@ public class HikariCpConnectionManagerTest {
 
     @Test
     public void testConnectionsAreReturnedToPoolWhenClosed() throws SQLException {
+        //noinspection unused - try-with-resources gets & closes connections
         try (Connection conn1 = manager.getConnection();
                 Connection conn2 = manager.getConnection()) {
             try (Connection conn3 = manager.getConnection()) {

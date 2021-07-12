@@ -69,6 +69,16 @@ public class ConjureResourceExceptionHandler {
                             // cancel operations. While this looks dodgy, it's intentional.
                             throw QosException.unavailable(interrupted);
                         },
+                        MoreExecutors.directExecutor())
+                .catching(
+                        RuntimeException.class,
+                        runtimeException -> {
+                            Throwable cause = runtimeException.getCause();
+                            if (cause instanceof InterruptedException) {
+                                throw QosException.unavailable(cause);
+                            }
+                            throw runtimeException;
+                        },
                         MoreExecutors.directExecutor());
     }
 }

@@ -20,9 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -151,8 +148,6 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.Assertions;
-import org.assertj.core.api.HamcrestCondition;
-import org.hamcrest.Matchers;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -365,14 +360,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(val).isEqualTo(1000);
         TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
                 .hasPlaceholderWriteWriteConflictsSatisfying(
-                        conflicts -> assertThat(conflicts).is(new HamcrestCondition<>(greaterThanOrEqualTo(1L))));
+                        conflicts -> assertThat(conflicts).isGreaterThanOrEqualTo(1L));
     }
 
     @Test
     public void testConcurrentWriteIgnoreConflicts() throws InterruptedException, ExecutionException {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.IGNORE_ALL);
         long val = concurrentlyIncrementValueThousandTimesAndGet();
-        assertThat(val).is(new HamcrestCondition<>(Matchers.lessThan(1000L)));
+        assertThat(val).isLessThan(1000L);
     }
 
     @Test
@@ -617,18 +612,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         RowResult<byte[]> rowResult1 = snapshotTx
                 .getRows(TABLE, ImmutableList.of(row1), column1Selection)
                 .get(row1);
-        assertThat(rowResult1.getColumns())
-                .is(new HamcrestCondition<>(hasEntry(row1Column1.getColumnName(), row1Column1Value)));
-        assertThat(rowResult1.getColumns())
-                .is(new HamcrestCondition<>(not(hasEntry(row1Column2.getColumnName(), row1Column2Value))));
+        assertThat(rowResult1.getColumns()).containsEntry(row1Column1.getColumnName(), row1Column1Value);
+        assertThat(rowResult1.getColumns()).doesNotContainEntry(row1Column2.getColumnName(), row1Column2Value);
 
         RowResult<byte[]> rowResult2 = snapshotTx
                 .getRows(TABLE, ImmutableList.of(row1), ColumnSelection.all())
                 .get(row1);
-        assertThat(rowResult2.getColumns())
-                .is(new HamcrestCondition<>(hasEntry(row1Column1.getColumnName(), row1Column1Value)));
-        assertThat(rowResult2.getColumns())
-                .is(new HamcrestCondition<>(hasEntry(row1Column2.getColumnName(), row1Column2Value)));
+        assertThat(rowResult2.getColumns()).containsEntry(row1Column1.getColumnName(), row1Column1Value);
+        assertThat(rowResult2.getColumns()).containsEntry(row1Column2.getColumnName(), row1Column2Value);
     }
 
     @Test
@@ -876,10 +867,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatThrownBy(t2::commit).isInstanceOf(TransactionConflictException.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void disallowPutOnEmptyObject() {
         Transaction t1 = txManager.createNewTransaction();
-        t1.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.EMPTY_BYTE_ARRAY));
+        assertThatThrownBy(() -> t1.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.EMPTY_BYTE_ARRAY)))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

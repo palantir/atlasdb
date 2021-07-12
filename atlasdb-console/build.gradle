@@ -23,6 +23,7 @@ dependencies {
 
     testImplementation 'com.fasterxml.jackson.core:jackson-core'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.codehaus.groovy:groovy-test'
     testImplementation project(':atlasdb-client')
 

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -106,13 +107,13 @@ public class CassandraServiceTest {
         assertThat(resolvedHost).isEqualTo(new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT));
     }
 
-    @Test(expected = UnknownHostException.class)
+    @Test
     public void shouldThrowIfPortsAreNotTheSameAddressDoesNotMatch() throws UnknownHostException {
         InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, OTHER_PORT);
 
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, host2));
 
-        cassandra.getAddressForHost(HOSTNAME_3);
+        assertThatThrownBy(() -> cassandra.getAddressForHost(HOSTNAME_3)).isInstanceOf(UnknownHostException.class);
     }
 
     @Test

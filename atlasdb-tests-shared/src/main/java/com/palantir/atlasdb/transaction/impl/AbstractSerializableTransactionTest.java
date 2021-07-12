@@ -19,7 +19,7 @@ import static com.palantir.atlasdb.transaction.impl.SnapshotTransaction.columnOr
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -67,7 +67,6 @@ import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsCont
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
@@ -245,7 +244,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 .isInstanceOf(TransactionSerializableConflictException.class);
     }
 
-    @Test(expected = TransactionFailedRetriableException.class)
+    @Test
     public void testConcurrentWriteSkew() throws InterruptedException, BrokenBarrierException {
         Transaction t0 = startTransaction();
         put(t0, "row1", "col1", "100");
@@ -262,18 +261,21 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
             t1.commit();
             return null;
         });
+        exec.shutdown();
 
         Transaction t2 = startTransaction();
         withdrawMoney(t2, false, false);
 
         barrier.await();
-        t2.commit();
-        try {
-            future.get();
-            fail("fail");
-        } catch (ExecutionException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
-        }
+
+        assertThat(catchThrowable(() -> {
+                    t2.commit();
+                    future.get();
+                }))
+                .satisfiesAnyOf(
+                        t -> assertThat(t).isInstanceOf(TransactionFailedRetriableException.class), t -> assertThat(t)
+                                .isInstanceOf(ExecutionException.class)
+                                .hasCauseInstanceOf(TransactionFailedRetriableException.class));
     }
 
     @Test
@@ -312,7 +314,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 .isInstanceOf(TransactionSerializableConflictException.class);
     }
 
-    @Test(expected = TransactionFailedRetriableException.class)
+    @Test
     public void testConcurrentWriteSkewCell() throws InterruptedException, BrokenBarrierException {
         Transaction t0 = startTransaction();
         put(t0, "row1", "col1", "100");
@@ -329,18 +331,20 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
             t1.commit();
             return null;
         });
+        exec.shutdown();
 
         Transaction t2 = startTransaction();
         withdrawMoney(t2, false, true);
 
         barrier.await();
-        t2.commit();
-        try {
-            future.get();
-            fail("fail");
-        } catch (ExecutionException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
-        }
+        assertThat(catchThrowable(() -> {
+                    t2.commit();
+                    future.get();
+                }))
+                .satisfiesAnyOf(
+                        t -> assertThat(t).isInstanceOf(TransactionFailedRetriableException.class), t -> assertThat(t)
+                                .isInstanceOf(ExecutionException.class)
+                                .hasCauseInstanceOf(TransactionFailedRetriableException.class));
     }
 
     private void withdrawMoney(Transaction txn, boolean account, boolean isCellGet) {

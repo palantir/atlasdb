@@ -25,6 +25,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("BadAssert") // explicitly using asserts for test-only
 public class AssertUtils {
 
     /**
@@ -33,7 +34,7 @@ public class AssertUtils {
      * which is extremely annoying to try to filter based on your logging properties.
      * (Should it go into the server error log, or maybe the upgrade log, or the import log file?
      * Can't tell, cause it's all AssertUtils!)
-     *
+     * <p>
      * Until we get all downstream projects off of using defaultLog however,
      * this will stay, just deprecated.
      */

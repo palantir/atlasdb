@@ -29,8 +29,8 @@ import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndLockWatchStateUpdate;
-import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
+import com.palantir.atlasdb.timelock.transaction.timestamp.LeadershipGuardedClientAwareManagedTimestampService;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -59,13 +59,14 @@ import java.util.function.Supplier;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final AsyncLockService lockService;
-    private final ClientAwareManagedTimestampService timestampService;
+    private final LeadershipGuardedClientAwareManagedTimestampService timestampService;
     private final LockLog lockLog;
 
     public AsyncTimelockServiceImpl(
             AsyncLockService lockService, ManagedTimestampService timestampService, LockLog lockLog) {
         this.lockService = lockService;
-        this.timestampService = DelegatingClientAwareManagedTimestampService.createDefault(timestampService);
+        this.timestampService = new LeadershipGuardedClientAwareManagedTimestampService(
+                DelegatingClientAwareManagedTimestampService.createDefault(timestampService));
         this.lockLog = lockLog;
     }
 
@@ -254,6 +255,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public void close() {
+        timestampService.close();
         lockService.close();
     }
 

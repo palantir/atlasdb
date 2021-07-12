@@ -21,7 +21,6 @@ dependencies {
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'org.hamcrest', name: 'hamcrest-core'
   testCompile(group: 'org.jmock', name: 'jmock') {
     exclude group: 'org.hamcrest'
   }

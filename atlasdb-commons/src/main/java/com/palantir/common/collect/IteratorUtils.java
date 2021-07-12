@@ -70,7 +70,7 @@ public final class IteratorUtils {
                     ret.set(nextInt, next);
                 }
             }
-            assert i != Integer.MAX_VALUE : "i is too big";
+            Preconditions.checkState(i != Integer.MAX_VALUE, "i is too big");
         }
         return ret;
     }
@@ -140,6 +140,7 @@ public final class IteratorUtils {
     /**
      * The iterators provided to this function have to be sorted and strictly increasing.
      */
+    @SuppressWarnings("BadAssert") // performance sensitive assert checks
     public static <T> Iterator<T> mergeIterators(
             Iterator<? extends T> one,
             Iterator<? extends T> two,
@@ -157,16 +158,12 @@ public final class IteratorUtils {
                 }
                 if (!a.hasNext()) {
                     T ret = b.next();
-                    if (b.hasNext()) {
-                        assert ordering.compare(ret, b.peek()) < 0;
-                    }
+                    assert !b.hasNext() || ordering.compare(ret, b.peek()) < 0;
                     return ret;
                 }
                 if (!b.hasNext()) {
                     T ret = a.next();
-                    if (a.hasNext()) {
-                        assert ordering.compare(ret, a.peek()) < 0;
-                    }
+                    assert !a.hasNext() || ordering.compare(ret, a.peek()) < 0;
                     return ret;
                 }
                 T peekA = a.peek();
@@ -176,15 +173,11 @@ public final class IteratorUtils {
                     return mergeFunction.apply(Pair.create(a.next(), b.next()));
                 } else if (comp < 0) {
                     T ret = a.next();
-                    if (a.hasNext()) {
-                        assert ordering.compare(ret, a.peek()) < 0;
-                    }
+                    assert !a.hasNext() || ordering.compare(ret, a.peek()) < 0;
                     return ret;
                 } else {
                     T ret = b.next();
-                    if (b.hasNext()) {
-                        assert ordering.compare(ret, b.peek()) < 0;
-                    }
+                    assert !b.hasNext() || ordering.compare(ret, b.peek()) < 0;
                     return ret;
                 }
             }

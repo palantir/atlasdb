@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -35,9 +36,7 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.sql.Connection;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class OracleTableNameUnmapperTest {
 
@@ -52,9 +51,6 @@ public class OracleTableNameUnmapperTest {
     private OracleTableNameUnmapper oracleTableNameUnmapper;
     private AgnosticResultSet resultSet;
     private ConnectionSupplier connectionSupplier;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setup() {
@@ -74,10 +70,10 @@ public class OracleTableNameUnmapperTest {
     @Test
     public void shouldThrowIfTableMappingDoesNotExist() throws TableMappingNotFoundException {
         when(resultSet.size()).thenReturn(0);
-
-        expectedException.expect(TableMappingNotFoundException.class);
-        expectedException.expectMessage("The table a_test_namespace__ThisIsAVeryLongTableNameThatWillExceed");
-        oracleTableNameUnmapper.getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF);
+        assertThatThrownBy(() -> oracleTableNameUnmapper.getShortTableNameFromMappingTable(
+                        connectionSupplier, TEST_PREFIX, TABLE_REF))
+                .isInstanceOf(TableMappingNotFoundException.class)
+                .hasMessageContaining("The table a_test_namespace__ThisIsAVeryLongTableNameThatWillExceed");
     }
 
     @Test

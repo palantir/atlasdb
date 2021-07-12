@@ -414,7 +414,7 @@ public class StreamTest extends AtlasDbTestCase {
         });
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testConcurrentDelete() throws IOException {
         Random rand = new Random();
         StreamTestTableFactory tableFactory = StreamTestTableFactory.of();
@@ -445,7 +445,7 @@ public class StreamTest extends AtlasDbTestCase {
         });
 
         // Gives a null pointer exception.
-        assertStreamHasBytes(stream, bytes1);
+        assertThatThrownBy(() -> assertStreamHasBytes(stream, bytes1)).isInstanceOf(NullPointerException.class);
     }
 
     private void deleteStream(StreamTestTableFactory tableFactory, Transaction tx, Long streamId) {

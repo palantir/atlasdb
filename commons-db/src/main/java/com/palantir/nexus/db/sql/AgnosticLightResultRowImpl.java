@@ -45,11 +45,11 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     /**
      * Retrieves the bytes that makes up a blob.
      *
-     * @param col index of the column that contains the blob
+     * @param col        index of the column that contains the blob
      * @param blobLength the length in bytes of the blob (ignored if negative).
-     *    Setting this parameter improves the efficiency of this call by ~30%.
-     *    You can obtain this value by retrieving a "length(my_blob)" column in
-     *    your ResultSet.
+     *                   Setting this parameter improves the efficiency of this call by ~30%.
+     *                   You can obtain this value by retrieving a "length(my_blob)" column in
+     *                   your ResultSet.
      * @return bytes of the blob
      * @throws PalantirSqlException
      */
@@ -77,7 +77,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
             return blob;
         }
 
-        assert false : "unsupported db type"; // $NON-NLS-1$
         throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
     }
 
@@ -92,7 +91,8 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
         return getBinaryInputStream(findColumn(colname));
     }
 
-    @Deprecated // use the get by colname variant instead
+    @Deprecated
+    // use the get by colname variant instead
     InputStream getBinaryInputStream(int col) throws PalantirSqlException {
         return ResultSets.getBinaryStream(results, col);
     }
@@ -107,12 +107,12 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
         } else if (dbType == DBType.POSTGRESQL || dbType == DBType.H2_MEMORY) {
             return ResultSets.getString(results, col);
         }
-        assert false : "unknown db for getClobString"; // $NON-NLS-1$
         throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
     }
 
     @Override
-    @Deprecated // use the get by colname variant instead
+    @Deprecated
+    // use the get by colname variant instead
     long getLong(int col) throws PalantirSqlException {
         return ResultSets.getLong(results, col);
     }
@@ -120,6 +120,7 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     /**
      * This one isn't as fast, probably.  If the Long or BigDecimal
      * doesn't need to be instantiated, it'll probably run faster.
+     *
      * @throws PalantirSqlException
      */
     @Override
@@ -134,7 +135,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
             } else if (dbType == DBType.POSTGRESQL || dbType == DBType.H2_MEMORY) {
                 return ResultSets.getLong(results, col);
             } else {
-                assert false : "getLong from unknown db type"; // $NON-NLS-1$
                 throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
             }
         }
@@ -169,7 +169,6 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
         } else if (dbType == DBType.POSTGRESQL || dbType == DBType.H2_MEMORY) {
             return ResultSets.getInt(results, col);
         } else {
-            assert false : "unknown db type for getInteger"; // $NON-NLS-1$
             throw PalantirSqlException.create("unknown db type: " + dbType); // $NON-NLS-1$
         }
     }
@@ -177,6 +176,7 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
     /**
      * Returns the string value for the column. If the column value is null,
      * return null.
+     *
      * @throws PalantirSqlException
      */
     @Override
@@ -195,7 +195,8 @@ public class AgnosticLightResultRowImpl extends AbstractAgnosticResultRow implem
         return String.valueOf(obj);
     }
 
-    @Deprecated // use the get by colname variant instead
+    @Deprecated
+    // use the get by colname variant instead
     DateTime getDateTime(int col) throws PalantirSqlException {
         Object rawObj = ResultSets.getObject(results, col);
         if (rawObj == null) {

@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.FakeTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
@@ -34,6 +35,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,20 +51,25 @@ public class BlockingTimeLimitedLockServiceTest {
     private final TimeLimiter acceptingLimiter = new FakeTimeLimiter();
     private final TimeLimiter timingOutLimiter = mock(TimeLimiter.class);
     private final TimeLimiter interruptingLimiter = mock(TimeLimiter.class);
-    private final TimeLimiter throwingLimiter = mock(TimeLimiter.class);
+    private final TimeLimiter uncheckedThrowingLimiter = mock(TimeLimiter.class);
+    private final TimeLimiter checkedThrowingLimiter = mock(TimeLimiter.class);
 
     private final CloseableLockService delegate = mock(CloseableLockService.class);
 
     private final BlockingTimeLimitedLockService acceptingService = createService(acceptingLimiter);
     private final BlockingTimeLimitedLockService timingOutService = createService(timingOutLimiter);
     private final BlockingTimeLimitedLockService interruptingService = createService(interruptingLimiter);
-    private final BlockingTimeLimitedLockService throwingService = createService(throwingLimiter);
+    private final BlockingTimeLimitedLockService uncheckedThrowingService = createService(uncheckedThrowingLimiter);
+    private final BlockingTimeLimitedLockService checkedThrowingService = createService(checkedThrowingLimiter);
 
     @Before
     public void setUp() throws Exception {
         when(timingOutLimiter.callWithTimeout(any(), anyLong(), any())).thenThrow(new TimeoutException());
         when(interruptingLimiter.callWithTimeout(any(), anyLong(), any())).thenThrow(new InterruptedException());
-        when(throwingLimiter.callWithTimeout(any(), anyLong(), any())).thenThrow(new IllegalStateException());
+        when(uncheckedThrowingLimiter.callWithTimeout(any(), anyLong(), any()))
+                .thenThrow(new UncheckedExecutionException(new IllegalStateException()));
+        when(checkedThrowingLimiter.callWithTimeout(any(), anyLong(), any()))
+                .thenThrow(new ExecutionException(new Exception()));
     }
 
     @Test
@@ -100,8 +107,11 @@ public class BlockingTimeLimitedLockServiceTest {
 
     @Test
     public void rethrowsExceptionOccurringFromInterruptibleOperation() {
-        assertThatThrownBy(() -> throwingService.lock(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
+        assertThatThrownBy(() -> uncheckedThrowingService.lock(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
                 .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> checkedThrowingService.lock(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
+                .isInstanceOf(RuntimeException.class)
+                .hasCauseExactlyInstanceOf(Exception.class);
     }
 
     @Test

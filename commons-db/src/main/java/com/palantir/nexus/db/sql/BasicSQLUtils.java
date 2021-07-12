@@ -17,6 +17,8 @@ package com.palantir.nexus.db.sql;
 
 import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SQLConstants;
 import com.palantir.nexus.db.ThreadConfinedProxy;
@@ -81,8 +83,10 @@ public class BasicSQLUtils {
                 return query;
             }
         }
-
-        assert false : "limitQuery() only supports POSTGRES, H2, HSQL, and ORACLE db type."; // $NON-NLS-1$
+        Preconditions.checkState(
+                false,
+                "limitQuery() only supports POSTGRES, H2, HSQL, and ORACLE db type.",
+                UnsafeArg.of("db", dbType));
         return query;
     }
 
@@ -121,9 +125,9 @@ public class BasicSQLUtils {
      * <p>
      * Note: you cannot alter the query or varbinds after calling this method.
      *
-     * @param query - query to limit
-     * @param maxRows - maximum number of results to provide
-     * @param offset - 0-based offset to return results from
+     * @param query    - query to limit
+     * @param maxRows  - maximum number of results to provide
+     * @param offset   - 0-based offset to return results from
      * @param varbinds - the variable bindings for the given query
      */
     public static String limitQuery(String query, int maxRows, int offset, List<Object> varbinds, DBType dbType) {
@@ -136,8 +140,8 @@ public class BasicSQLUtils {
      * <p>
      * Note: you cannot alter the query or varbinds after calling this method.
      *
-     * @param query - query to limit
-     * @param maxRows - maximum number of results to provide
+     * @param query    - query to limit
+     * @param maxRows  - maximum number of results to provide
      * @param varbinds - the variable bindings for the given query
      */
     public static String limitQuery(String query, int maxRows, List<Object> varbinds, DBType dbType) {
@@ -173,7 +177,7 @@ public class BasicSQLUtils {
      * It will not have spaces around it!
      *
      * @param sequenceName Name of a valid sequence in your database
-     * @param label Name assigned to the "column" in the result set
+     * @param label        Name assigned to the "column" in the result set
      */
     public static String getSequenceColumnString(String sequenceName, String label, DBType type) {
         String sql;
@@ -244,14 +248,15 @@ public class BasicSQLUtils {
 
     private static final Logger cancelLogger = LoggerFactory.getLogger("SQLUtils.cancel"); // $NON-NLS-1$
 
-    /** Helper method for wrapping quick calls that don't appreciate being interrupted.
+    /**
+     * Helper method for wrapping quick calls that don't appreciate being interrupted.
      * Passes all exceptions and errors back to the client.
      * Runs in another thread - do not acquire connections from within the callable (it will fail).
      * N.B. (DCohen) Despite the claim in the previous line, there is code that acquires connections from within the callable successfully.
      * Unclear why this is bad.
-     *
+     * <p>
      * Should only use low-level type stuff.
-     *
+     * <p>
      * This method takes a connection, which the callable intends to use,
      * essentially declaring that the child thread now owns
      * this connection.
