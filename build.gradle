@@ -119,7 +119,6 @@ allprojects {
                 'Finally',
                 'FutureReturnValueIgnored',
                 'GetClassOnEnum',
-                'HidingField',
                 'ImmutableEnumChecker',
                 'ImmutablesBuilderMissingInitialization',
                 'InconsistentCapitalization',
