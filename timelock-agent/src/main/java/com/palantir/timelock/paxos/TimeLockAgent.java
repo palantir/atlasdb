@@ -73,6 +73,7 @@ import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import com.palantir.timelock.config.TimeLockPersistenceInvariants;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 import com.palantir.timelock.corruption.detection.CorruptionHealthReport;
@@ -134,6 +135,8 @@ public class TimeLockAgent {
             Optional<Consumer<UndertowService>> undertowRegistrar,
             OrderableSlsVersion timeLockVersion,
             ObjectMapper objectMapper) {
+        verifyIsNewServiceInvariant(install);
+
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider =
                 createTimeLockDialogueServiceProvider(metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
@@ -385,6 +388,14 @@ public class TimeLockAgent {
             Consumer<UndertowService> presentUndertowRegistrar, UndertowService service) {
         presentUndertowRegistrar.accept(
                 UndertowCorruptionHandlerService.of(service, corruptionComponents.timeLockCorruptionHealthCheck()));
+    }
+
+    @VisibleForTesting
+    static void verifyIsNewServiceInvariant(TimeLockInstallConfiguration install) {
+        if (!install.paxos().ignoreNewServiceCheck()) {
+            TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
+                    install.isNewServiceNode(), install.paxos().doDataDirectoriesExist());
+        }
     }
 
     static void verifySchemaVersion(PersistedSchemaVersion persistedSchemaVersion) {

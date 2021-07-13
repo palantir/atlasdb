@@ -21,8 +21,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.paxos.Client;
-import java.util.Map;
 import org.immutables.value.Value;
+
+import java.util.Map;
 
 /**
  * Static (not live-reloaded) portions of TimeLock's configuration.
@@ -64,13 +65,5 @@ public interface TimeLockInstallConfiguration {
     default boolean isNewServiceNode() {
         return paxos().isNewService()
                 || cluster().knownNewServers().contains(cluster().localServer());
-    }
-
-    @Value.Check
-    default void check() {
-        if (!paxos().ignoreNewServiceCheck()) {
-            TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
-                    isNewServiceNode(), paxos().doDataDirectoriesExist());
-        }
     }
 }

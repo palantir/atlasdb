@@ -16,21 +16,56 @@
 
 package com.palantir.timelock.paxos;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.timelock.config.ClusterConfiguration;
+import com.palantir.timelock.config.PaxosInstallConfiguration;
+import com.palantir.timelock.config.TsBoundPersisterRuntimeConfiguration;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterRuntimeConfiguration;
-import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
-import com.palantir.timelock.config.TsBoundPersisterRuntimeConfiguration;
-import org.junit.Test;
-
 public class TimeLockAgentTest {
+
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private static final String SERVER_A = "horses-for-courses:1234";
+    public static final String SERVER_B = "paddock-and-chips:2345";
+    private static final ClusterConfiguration CLUSTER_CONFIG = ImmutableDefaultClusterConfiguration.builder()
+            .localServer(SERVER_A)
+            .cluster(PartialServiceConfiguration.of(
+                    ImmutableList.of(SERVER_A, SERVER_B, "the-mane-event:3456"), Optional.empty()))
+            .addKnownNewServers(SERVER_B)
+            .build();
+
     private final PersistedSchemaVersion schemaVersion = mock(PersistedSchemaVersion.class);
+
+    private File newPaxosLogDirectory;
+    private File extantPaxosLogDirectory;
+    private File extantSqliteLogDirectory;
+
+    @Before
+    public void setUp() throws IOException {
+        newPaxosLogDirectory = Paths.get(temporaryFolder.getRoot().toString(), "part-time-parliament")
+                .toFile();
+
+        extantPaxosLogDirectory = temporaryFolder.newFolder("lets-do-some-voting");
+        extantSqliteLogDirectory = temporaryFolder.newFolder("whats-a-right-join");
+    }
 
     @Test
     public void throwWhenPersistedSchemaVersionTooLow() {
@@ -85,5 +120,60 @@ public class TimeLockAgentTest {
                                 .build())
                         .build()))
                 .contains(runtimeConfig);
+    }
+
+    @Test
+    public void newServiceNotSetNoDataDirectoryThrows() {
+        assertThatThrownBy(
+                        () -> TimeLockAgent.verifyIsNewServiceInvariant(ImmutableTimeLockInstallConfiguration.builder()
+                                .cluster(CLUSTER_CONFIG)
+                                .paxos(createPaxosInstall(false, false))
+                                .build()))
+                .isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
+    public void newServiceSetNoDataDirectoryExistsThrows() {
+        assertThatThrownBy(
+                        () -> TimeLockAgent.verifyIsNewServiceInvariant(ImmutableTimeLockInstallConfiguration.builder()
+                                .cluster(CLUSTER_CONFIG)
+                                .paxos(createPaxosInstall(true, true))
+                                .build()))
+                .isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
+    public void newServiceNotSetNoDataDirectoryDoesNotThrowWhenIgnoreFlagSet() {
+        assertThatCode(() -> TimeLockAgent.verifyIsNewServiceInvariant(ImmutableTimeLockInstallConfiguration.builder()
+                        .cluster(CLUSTER_CONFIG)
+                        .paxos(createPaxosInstall(false, false, true))
+                        .build()))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void newServiceSetNoDataDirectoryExistsDoesNotThrowWhenIgnoreFlagSet() {
+        assertThatCode(() -> TimeLockAgent.verifyIsNewServiceInvariant(ImmutableTimeLockInstallConfiguration.builder()
+                        .cluster(CLUSTER_CONFIG)
+                        .paxos(createPaxosInstall(true, true, true))
+                        .build()))
+                .doesNotThrowAnyException();
+    }
+
+    private PaxosInstallConfiguration createPaxosInstall(boolean isNewService, boolean shouldDirectoriesExist) {
+        return createPaxosInstall(isNewService, shouldDirectoriesExist, false);
+    }
+
+    private PaxosInstallConfiguration createPaxosInstall(
+            boolean isNewService, boolean shouldDirectoriesExist, boolean ignoreCheck) {
+        return ImmutablePaxosInstallConfiguration.builder()
+                .dataDirectory(shouldDirectoriesExist ? extantPaxosLogDirectory : newPaxosLogDirectory)
+                .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
+                        .dataDirectory(shouldDirectoriesExist ? extantSqliteLogDirectory : extantPaxosLogDirectory)
+                        .build())
+                .isNewService(isNewService)
+                .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)
+                .ignoreNewServiceCheck(ignoreCheck)
+                .build();
     }
 }
