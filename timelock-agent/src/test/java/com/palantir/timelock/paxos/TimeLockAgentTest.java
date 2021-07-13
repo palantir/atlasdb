@@ -30,6 +30,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterRuntimeConfiguration;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
+import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutableSqlitePaxosPersistenceConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
@@ -164,6 +165,42 @@ public class TimeLockAgentTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    public void throwsIfConfiguredToBeNewServiceWithExistingDirectory() throws IOException {
+        File mockFile = getMockFileWith(true, true);
+
+        assertFailsToVerifyConfiguration(
+                PaxosInstallConfiguration.builder().dataDirectory(mockFile).isNewService(true));
+    }
+
+    @Test
+    public void throwsIfConfiguredToBeExistingServiceWithoutDirectory() throws IOException {
+        File mockFile = getMockFileWith(false, true);
+
+        assertFailsToVerifyConfiguration(
+                PaxosInstallConfiguration.builder().dataDirectory(mockFile).isNewService(false));
+    }
+
+    @Test
+    public void newServiceByClusterBootstrapConfigurationFailsIfDirectoryExists() throws IOException {
+        File mockFile = getMockFileWith(true, true);
+
+        ClusterConfiguration differentClusterConfig = ImmutableDefaultClusterConfiguration.builder()
+                .localServer(SERVER_A)
+                .addKnownNewServers(SERVER_A)
+                .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, "b", "c"), Optional.empty()))
+                .build();
+
+        assertThatThrownBy(() -> TimeLockAgent.verifyIsNewServiceInvariant(TimeLockInstallConfiguration.builder()
+                        .cluster(differentClusterConfig)
+                        .paxos(PaxosInstallConfiguration.builder()
+                                .dataDirectory(mockFile)
+                                .isNewService(false)
+                                .build())
+                        .build()))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
     private PaxosInstallConfiguration createPaxosInstall(boolean isNewService, boolean shouldDirectoriesExist) {
         return createPaxosInstall(isNewService, shouldDirectoriesExist, false);
     }
@@ -179,5 +216,23 @@ public class TimeLockAgentTest {
                 .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)
                 .ignoreNewServiceCheck(ignoreCheck)
                 .build();
+    }
+
+    private File getMockFileWith(boolean isDirectory, boolean canCreateDirectory) throws IOException {
+        File mockFile = mock(File.class);
+        when(mockFile.mkdirs()).thenReturn(canCreateDirectory);
+        when(mockFile.isDirectory()).thenReturn(isDirectory);
+        when(mockFile.getPath()).thenReturn("var/data/paxos");
+        when(mockFile.getCanonicalPath()).thenReturn("/var/data/paxos");
+        return mockFile;
+    }
+
+    private void assertFailsToVerifyConfiguration(ImmutablePaxosInstallConfiguration.Builder configBuilder) {
+        PaxosInstallConfiguration installConfiguration = configBuilder.build();
+        assertThatThrownBy(() -> TimeLockAgent.verifyIsNewServiceInvariant(TimeLockInstallConfiguration.builder()
+                        .cluster(CLUSTER_CONFIG)
+                        .paxos(installConfiguration)
+                        .build()))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }
