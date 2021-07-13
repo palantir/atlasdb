@@ -44,6 +44,7 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -385,7 +386,7 @@ public class Schema {
         outputFile.createNewFile();
         FileWriter os = null;
         try {
-            os = new FileWriter(outputFile);
+            os = new FileWriter(outputFile, StandardCharsets.UTF_8);
             os.write(code);
         } finally {
             if (os != null) {
