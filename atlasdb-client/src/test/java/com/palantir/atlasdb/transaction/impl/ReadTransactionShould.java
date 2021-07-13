@@ -36,6 +36,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,8 +48,9 @@ public class ReadTransactionShould {
             TableReference.createWithEmptyNamespace("dummy-conservative");
     private static final TableReference DUMMY_THOROUGH_TABLE =
             TableReference.createWithEmptyNamespace("dummy-thorough");
-    private static final Cell DUMMY_CELL = Cell.create("row".getBytes(), "col".getBytes());
-    private static final byte[] EMPTY_BYTES = "".getBytes();
+    private static final Cell DUMMY_CELL =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "col".getBytes(StandardCharsets.UTF_8));
+    private static final byte[] EMPTY_BYTES = "".getBytes(StandardCharsets.UTF_8);
 
     private static final Map<String, Object[]> simpleGets = ImmutableMap.<String, Object[]>builder()
             .put("get", new Object[] {DUMMY_THOROUGH_TABLE, ImmutableSet.of(DUMMY_CELL)})
@@ -73,7 +75,9 @@ public class ReadTransactionShould {
     @Test
     public void notAllowPuts() {
         checkThrowsAndNoInteraction(
-                () -> readTransaction.put(DUMMY_CONSERVATIVE_TABLE, ImmutableMap.of(DUMMY_CELL, "value".getBytes())),
+                () -> readTransaction.put(
+                        DUMMY_CONSERVATIVE_TABLE,
+                        ImmutableMap.of(DUMMY_CELL, "value".getBytes(StandardCharsets.UTF_8))),
                 IllegalArgumentException.class,
                 "is a read only transaction");
     }
