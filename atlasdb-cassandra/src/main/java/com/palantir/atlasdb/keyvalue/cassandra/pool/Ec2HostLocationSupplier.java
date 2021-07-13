@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +45,7 @@ public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             int responseCode = conn.getResponseCode();
             Preconditions.checkState(responseCode == 200, "Getting AWS host metadata was not successful");
-            try (InputStreamReader reader = new InputStreamReader(conn.getInputStream())) {
+            try (InputStreamReader reader = new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)) {
                 return parseHostLocation(CharStreams.toString(reader));
             }
         } catch (IOException e) {
