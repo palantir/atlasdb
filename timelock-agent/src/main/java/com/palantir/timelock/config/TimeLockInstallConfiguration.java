@@ -21,9 +21,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.paxos.Client;
-import org.immutables.value.Value;
-
 import java.util.Map;
+import org.immutables.value.Value;
 
 /**
  * Static (not live-reloaded) portions of TimeLock's configuration.
@@ -66,4 +65,10 @@ public interface TimeLockInstallConfiguration {
         return paxos().isNewService()
                 || cluster().knownNewServers().contains(cluster().localServer());
     }
+
+    static Builder builder() {
+        return new Builder();
+    }
+
+    class Builder extends ImmutableTimeLockInstallConfiguration.Builder {}
 }

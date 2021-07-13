@@ -42,9 +42,8 @@ public class TimeLockPersistenceInvariantsTest {
     public void doesNotCreateDirectoryForPaxosDirectoryIfNewService() throws IOException {
         File mockFile = getMockFileWith(false, true);
 
-        assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
-                .dataDirectory(mockFile)
-                .isNewService(true));
+        assertCanBuildConfiguration(
+                PaxosInstallConfiguration.builder().dataDirectory(mockFile).isNewService(true));
 
         verify(mockFile, times(0)).mkdirs();
     }
@@ -53,9 +52,8 @@ public class TimeLockPersistenceInvariantsTest {
     public void canUseExistingDirectoryAsPaxosDirectory() throws IOException {
         File mockFile = getMockFileWith(true, false);
 
-        assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
-                .dataDirectory(mockFile)
-                .isNewService(false));
+        assertCanBuildConfiguration(
+                PaxosInstallConfiguration.builder().dataDirectory(mockFile).isNewService(false));
 
         verify(mockFile, atLeastOnce()).isDirectory();
     }
@@ -64,18 +62,16 @@ public class TimeLockPersistenceInvariantsTest {
     public void throwsIfConfiguredToBeNewServiceWithExistingDirectory() throws IOException {
         File mockFile = getMockFileWith(true, true);
 
-        assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
-                .dataDirectory(mockFile)
-                .isNewService(true));
+        assertFailsToBuildConfiguration(
+                PaxosInstallConfiguration.builder().dataDirectory(mockFile).isNewService(true));
     }
 
     @Test
     public void throwsIfConfiguredToBeExistingServiceWithoutDirectory() throws IOException {
         File mockFile = getMockFileWith(false, true);
 
-        assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
-                .dataDirectory(mockFile)
-                .isNewService(false));
+        assertFailsToBuildConfiguration(
+                PaxosInstallConfiguration.builder().dataDirectory(mockFile).isNewService(false));
     }
 
     @Test
@@ -88,9 +84,9 @@ public class TimeLockPersistenceInvariantsTest {
                 .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, "b", "c"), Optional.empty()))
                 .build();
 
-        assertThatThrownBy(ImmutableTimeLockInstallConfiguration.builder()
+        assertThatThrownBy(TimeLockInstallConfiguration.builder()
                         .cluster(differentClusterConfig)
-                        .paxos(ImmutablePaxosInstallConfiguration.builder()
+                        .paxos(PaxosInstallConfiguration.builder()
                                 .dataDirectory(mockFile)
                                 .isNewService(false)
                                 .build())::build)
@@ -107,9 +103,9 @@ public class TimeLockPersistenceInvariantsTest {
                 .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, "b", "c"), Optional.empty()))
                 .build();
 
-        assertThatCode(ImmutableTimeLockInstallConfiguration.builder()
+        assertThatCode(TimeLockInstallConfiguration.builder()
                         .cluster(differentClusterConfig)
-                        .paxos(ImmutablePaxosInstallConfiguration.builder()
+                        .paxos(PaxosInstallConfiguration.builder()
                                 .dataDirectory(mockFile)
                                 .isNewService(false)
                                 .build())::build)
@@ -128,7 +124,7 @@ public class TimeLockPersistenceInvariantsTest {
     @SuppressWarnings("CheckReturnValue")
     private void assertCanBuildConfiguration(ImmutablePaxosInstallConfiguration.Builder configBuilder) {
         PaxosInstallConfiguration installConfiguration = configBuilder.build();
-        ImmutableTimeLockInstallConfiguration.builder()
+        TimeLockInstallConfiguration.builder()
                 .cluster(CLUSTER_CONFIG)
                 .paxos(installConfiguration)
                 .build();
@@ -136,7 +132,7 @@ public class TimeLockPersistenceInvariantsTest {
 
     private void assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.Builder configBuilder) {
         PaxosInstallConfiguration installConfiguration = configBuilder.build();
-        assertThatThrownBy(ImmutableTimeLockInstallConfiguration.builder()
+        assertThatThrownBy(TimeLockInstallConfiguration.builder()
                         .cluster(CLUSTER_CONFIG)
                         .paxos(installConfiguration)::build)
                 .isInstanceOf(IllegalArgumentException.class);

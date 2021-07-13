@@ -130,7 +130,7 @@ public class PaxosInstallConfigurationIntegrationTest {
 
     private static ImmutablePaxosInstallConfiguration.Builder createPartialConfiguration(
             File dataDirectory, File sqliteDataDirectory) {
-        return ImmutablePaxosInstallConfiguration.builder()
+        return PaxosInstallConfiguration.builder()
                 .dataDirectory(dataDirectory)
                 .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
                         .dataDirectory(sqliteDataDirectory)
@@ -168,7 +168,7 @@ public class PaxosInstallConfigurationIntegrationTest {
     @SuppressWarnings("CheckReturnValue")
     private static void attemptConstructTopLevelConfigWithoutOverrides(
             PaxosInstallConfiguration paxosInstallConfiguration) {
-        ImmutableTimeLockInstallConfiguration.builder()
+        TimeLockInstallConfiguration.builder()
                 .paxos(paxosInstallConfiguration)
                 .cluster(CLUSTER_CONFIG)
                 .build();
