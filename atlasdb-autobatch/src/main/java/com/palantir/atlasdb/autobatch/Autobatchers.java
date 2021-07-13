@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
@@ -135,8 +134,7 @@ public final class Autobatchers {
                         e);
                 throw new RuntimeException(e);
             } catch (UncheckedExecutionException e) {
-                Throwables.throwIfUnchecked(e.getCause());
-                throw new RuntimeException(e.getCause());
+                throw com.palantir.common.base.Throwables.throwCauseAsUnchecked(e);
             }
         };
     }
@@ -157,8 +155,7 @@ public final class Autobatchers {
                         e);
                 throw new RuntimeException(e);
             } catch (ExecutionException | UncheckedExecutionException e) {
-                Throwables.throwIfUnchecked(e.getCause());
-                throw new RuntimeException(e.getCause());
+                throw com.palantir.common.base.Throwables.throwCauseAsUnchecked(e);
             }
         };
     }

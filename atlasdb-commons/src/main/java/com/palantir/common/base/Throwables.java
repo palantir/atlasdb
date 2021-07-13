@@ -19,6 +19,7 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -221,6 +222,17 @@ public final class Throwables {
             log.error("Unexpected error encountered while rewrapping throwable of class {}", throwable.getClass(), e);
             throw createPalantirRuntimeException(newMessage, throwable);
         }
+    }
+
+    public static RuntimeException throwCauseAsUnchecked(Exception exception) {
+        Throwable cause = exception.getCause();
+
+        if (cause == null) {
+            log.warn("Exceptions passed to throwCauseAsUnchecked should have a cause", cause);
+            throw new SafeIllegalStateException("Exceptions passed to throwCauseAsUnchecked should have a cause");
+        }
+        throwIfUncheckedException(cause);
+        throw new RuntimeException(cause);
     }
 
     /**

@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -44,9 +45,11 @@ public class AutobatchersTests {
     }
 
     @Test
-    public void testTimeoutAndRetryOperations() {
+    public void testTimeoutAndRetryOperations() throws InterruptedException {
         AtomicLong guard = new AtomicLong(0);
+        CountDownLatch enqueueLatch = new CountDownLatch(1);
         DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(list -> {
+                    enqueueLatch.countDown();
                     if (guard.compareAndSet(0, 1)) {
                         Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
                     }
@@ -59,7 +62,7 @@ public class AutobatchersTests {
         ListenableFuture<Object> response = autobatcher.apply(new Object());
 
         // Ensure that the second object is not put in the first batch
-        Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        enqueueLatch.await();
         ListenableFuture<Object> secondResponse = autobatcher.apply(new Object());
 
         // Notice that an exception here implies that we must have timed out prematurely, because nothing else would
