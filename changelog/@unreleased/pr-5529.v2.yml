@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: Autobatchers that interact with Cassandra or TimeLock are now resilient
+    to cases where operations hang (defined as taking more than 5 minutes or 30 seconds
+    respectively without returning). In these cases, if a request takes longer than
+    the stipulated amount of time, the batch will be marked as failed (but users will
+    see these failures and can retry - e.g. transactions with runTaskWithRetry will
+    retry).
+  links:
+  - https://github.com/palantir/atlasdb/pull/5529

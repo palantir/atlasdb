@@ -16,8 +16,10 @@
 package com.palantir.common.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.sql.SQLException;
 import org.junit.Before;
@@ -59,6 +61,33 @@ public class ThrowablesTest {
             int sizeAfter = e.getStackTrace().length;
             assertThat(sizeBefore).isEqualTo(sizeAfter);
         }
+    }
+
+    @Test
+    public void testThrowCauseAsUnchecked() {
+        IOException checkedException = new IOException("I am inside the box");
+        assertThatThrownBy(() -> {
+                    throw Throwables.throwCauseAsUnchecked(
+                            new TwoArgConstructorException("I have two args", checkedException));
+                })
+                .as("checked causes are wrapped in a runtime exception")
+                .isInstanceOf(RuntimeException.class)
+                .hasRootCause(checkedException);
+
+        assertThatThrownBy(() -> {
+                    throw Throwables.throwCauseAsUnchecked(new RuntimeException());
+                })
+                .as("exceptions without causes should not be allowed")
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessage("Exceptions passed to throwCauseAsUnchecked should have a cause");
+
+        RuntimeException uncheckedException = new RuntimeException("I only make noise at runtime");
+        assertThatThrownBy(() -> {
+                    throw Throwables.throwCauseAsUnchecked(
+                            new TwoArgConstructorException("I do not have three args", uncheckedException));
+                })
+                .as("unchecked causes should be propagated as-is")
+                .isEqualTo(uncheckedException);
     }
 
     // only has a (string, throwable) constructor

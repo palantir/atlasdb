@@ -28,6 +28,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +47,7 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
         DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher =
                 Autobatchers.independent(consumer(lockLeaseService, cache))
                         .safeLoggablePurpose("transaction-starter")
+                        .batchFunctionTimeout(Duration.ofSeconds(30))
                         .build();
         return new BatchingIdentifiedAtlasDbTransactionStarter(autobatcher);
     }

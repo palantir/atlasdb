@@ -33,6 +33,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockWatchCache;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.List;
@@ -58,6 +59,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         DisruptorAutobatcher<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher =
                 Autobatchers.independent(consumer(delegate, UUID.randomUUID()))
                         .safeLoggablePurpose("multi-client-transaction-starter")
+                        .batchFunctionTimeout(Duration.ofSeconds(30))
                         .build();
         return new MultiClientTransactionStarter(autobatcher);
     }
