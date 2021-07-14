@@ -47,7 +47,7 @@ public class SchemaTest {
     public TemporaryFolder testFolder = new TemporaryFolder();
 
     private static final String CLASS_HASH = "__CLASS_HASH";
-    private static final String TEST_PACKAGE = "package";
+    private static final String TEST_PACKAGE = "pkg";
     private static final String TEST_TABLE_NAME = "TestTable";
     private static final String TEST_PATH = TEST_PACKAGE + "/" + TEST_TABLE_NAME + "Table.java";
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);

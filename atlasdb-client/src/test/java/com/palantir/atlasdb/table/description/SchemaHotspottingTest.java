@@ -49,7 +49,7 @@ public class SchemaHotspottingTest {
     }
 
     private static Schema getIgnoredHotspottingSchema() {
-        Schema ignoredHotspottingSchema = new Schema(SCHEMA_NAME, "valid.package", Namespace.DEFAULT_NAMESPACE);
+        Schema ignoredHotspottingSchema = new Schema(SCHEMA_NAME, "valid.pkg", Namespace.DEFAULT_NAMESPACE);
         ignoredHotspottingSchema.addTableDefinition(TABLE_NAME, new TableDefinition() {
             {
                 ignoreHotspottingChecks();
@@ -166,7 +166,7 @@ public class SchemaHotspottingTest {
         assertThat(Arrays.asList(srcDir.list())).contains("valid");
 
         File validDirectory = srcDir.listFiles()[0];
-        assertThat(Arrays.asList(validDirectory.list())).contains("package");
+        assertThat(Arrays.asList(validDirectory.list())).contains("pkg");
         assertThat(Arrays.asList(validDirectory.listFiles()[0].list()))
                 .contains(SCHEMA_NAME + "TableFactory.java", TABLE_NAME + "Table.java");
     }
