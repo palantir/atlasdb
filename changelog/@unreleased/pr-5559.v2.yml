@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Format generated code using Goethe (palantir-java-format for javapoet)
+  links:
+  - https://github.com/palantir/atlasdb/pull/5559
