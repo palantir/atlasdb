@@ -197,10 +197,11 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
     private void generateCode(TypeToExtend typeToExtend) throws IOException {
         String newTypeName = PREFIX + typeToExtend.getSimpleName();
-        TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(newTypeName);
-        typeBuilder.addTypeVariables(typeToExtend.getTypeParameterElements().stream()
-                .map(TypeVariableName::get)
-                .collect(Collectors.toList()));
+        TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(newTypeName)
+                .addOriginatingElement(typeToExtend.getTypeElement())
+                .addTypeVariables(typeToExtend.getTypeParameterElements().stream()
+                        .map(TypeVariableName::get)
+                        .collect(Collectors.toList()));
 
         // Add modifiers
         TypeMirror typeMirror = typeToExtend.getType();
