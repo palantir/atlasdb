@@ -8,6 +8,7 @@ dependencies {
 
     compile group: 'com.squareup', name: 'javapoet'
     compile group: 'com.google.guava', name: 'guava'
+    compile group: 'com.palantir.goethe', name: 'goethe'
 
     implementation 'com.google.auto.service:auto-service-annotations'
     implementation 'com.google.errorprone:error_prone_annotations'
