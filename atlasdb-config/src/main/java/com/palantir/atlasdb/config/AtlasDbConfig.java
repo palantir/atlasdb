@@ -360,10 +360,12 @@ public abstract class AtlasDbConfig {
             String presentNamespace = namespace().get();
             Preconditions.checkState(!presentNamespace.contains("\""), "Namespace should not be quoted");
 
+            boolean allowDifferentKvsNamespace =
+                    enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces();
             keyValueService()
                     .namespace()
                     .ifPresent(kvsNamespace -> Preconditions.checkState(
-                            kvsNamespace.equals(presentNamespace),
+                            kvsNamespace.equals(presentNamespace) || allowDifferentKvsNamespace,
                             "If present, keyspace/dbName/sid config should be the same as the"
                                     + " atlas root-level namespace config."));
 
