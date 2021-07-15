@@ -90,6 +90,10 @@ final class TypeToExtend {
         return typeToExtend.asType();
     }
 
+    TypeElement getTypeElement() {
+        return typeToExtend;
+    }
+
     Set<ExecutableElement> getMethods() {
         return methods;
     }
