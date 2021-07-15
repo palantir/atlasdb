@@ -138,7 +138,6 @@ allprojects {
                 'MockitoInternalUsage',
                 'ModifyCollectionInEnhancedForLoop',
                 'NarrowingCompoundAssignment',
-                'NonAtomicVolatileUpdate',
                 'NullOptional',
                 'OperatorPrecedence',
                 'OverrideThrowableToString',
