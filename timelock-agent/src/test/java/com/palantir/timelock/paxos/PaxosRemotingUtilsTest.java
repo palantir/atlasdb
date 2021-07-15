@@ -25,7 +25,6 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
-import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import java.net.MalformedURLException;
@@ -46,7 +45,7 @@ public class PaxosRemotingUtilsTest {
                     .build())
             .build();
     private static final PaxosInstallConfiguration PAXOS_CONFIGURATION = createPaxosConfiguration();
-    private static final TimeLockInstallConfiguration NO_SSL_TIMELOCK = ImmutableTimeLockInstallConfiguration.builder()
+    private static final TimeLockInstallConfiguration NO_SSL_TIMELOCK = TimeLockInstallConfiguration.builder()
             .paxos(PAXOS_CONFIGURATION)
             .cluster(NO_SSL_CLUSTER)
             .build();
@@ -59,7 +58,7 @@ public class PaxosRemotingUtilsTest {
                     .security(SSL_CONFIGURATION)
                     .build())
             .build();
-    private static final TimeLockInstallConfiguration SSL_TIMELOCK = ImmutableTimeLockInstallConfiguration.builder()
+    private static final TimeLockInstallConfiguration SSL_TIMELOCK = TimeLockInstallConfiguration.builder()
             .paxos(PAXOS_CONFIGURATION)
             .cluster(SSL_CLUSTER)
             .build();

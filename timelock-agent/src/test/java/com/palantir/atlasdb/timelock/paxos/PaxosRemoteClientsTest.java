@@ -30,9 +30,7 @@ import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
-import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
-import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.SqlitePaxosPersistenceConfigurations;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -55,13 +53,13 @@ public class PaxosRemoteClientsTest {
 
     @Before
     public void setUp() {
-        paxosInstallConfiguration = ImmutablePaxosInstallConfiguration.builder()
+        paxosInstallConfiguration = PaxosInstallConfiguration.builder()
                 .isNewService(false)
                 .dataDirectory(temporaryFolder.getRoot())
                 .sqlitePersistence(SqlitePaxosPersistenceConfigurations.DEFAULT)
                 .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)
                 .build();
-        installConfiguration = ImmutableTimeLockInstallConfiguration.builder()
+        installConfiguration = TimeLockInstallConfiguration.builder()
                 .cluster(ImmutableDefaultClusterConfiguration.builder()
                         .localServer("a:1")
                         .cluster(

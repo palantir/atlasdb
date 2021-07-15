@@ -17,12 +17,9 @@
 package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.io.File;
 import java.io.IOException;
@@ -51,9 +48,6 @@ public class TimeLockInstallConfigurationTest {
     private File extantPaxosLogDirectory;
     private File extantSqliteLogDirectory;
 
-    private PaxosInstallConfiguration newService;
-    private PaxosInstallConfiguration extantService;
-
     @Before
     public void setUp() throws IOException {
         newPaxosLogDirectory = Paths.get(temporaryFolder.getRoot().toString(), "part-time-parliament")
@@ -67,7 +61,7 @@ public class TimeLockInstallConfigurationTest {
 
     @Test
     public void newServiceIfNewServiceFlagSetToTrue() {
-        assertThat(ImmutableTimeLockInstallConfiguration.builder()
+        assertThat(TimeLockInstallConfiguration.builder()
                         .cluster(CLUSTER_CONFIG)
                         .paxos(createPaxosInstall(true, false))
                         .build()
@@ -77,7 +71,7 @@ public class TimeLockInstallConfigurationTest {
 
     @Test
     public void existingServiceIfNewServiceFlagSetToFalse() {
-        assertThat(ImmutableTimeLockInstallConfiguration.builder()
+        assertThat(TimeLockInstallConfiguration.builder()
                         .cluster(CLUSTER_CONFIG)
                         .paxos(createPaxosInstall(false, true))
                         .build()
@@ -87,7 +81,7 @@ public class TimeLockInstallConfigurationTest {
 
     @Test
     public void newNodeInExistingServiceRecognisedAsNew() {
-        assertThat(ImmutableTimeLockInstallConfiguration.builder()
+        assertThat(TimeLockInstallConfiguration.builder()
                         .cluster(ImmutableDefaultClusterConfiguration.builder()
                                 .localServer(SERVER_A)
                                 .cluster(PartialServiceConfiguration.of(
@@ -101,49 +95,13 @@ public class TimeLockInstallConfigurationTest {
                 .isTrue();
     }
 
-    @Test
-    public void newServiceNotSetNoDataDirectoryThrows() {
-        assertThatThrownBy(() -> ImmutableTimeLockInstallConfiguration.builder()
-                        .cluster(CLUSTER_CONFIG)
-                        .paxos(createPaxosInstall(false, false))
-                        .build())
-                .isInstanceOf(SafeIllegalArgumentException.class);
-    }
-
-    @Test
-    public void newServiceSetNoDataDirectoryExistsThrows() {
-        assertThatThrownBy(() -> ImmutableTimeLockInstallConfiguration.builder()
-                        .cluster(CLUSTER_CONFIG)
-                        .paxos(createPaxosInstall(true, true))
-                        .build())
-                .isInstanceOf(SafeIllegalArgumentException.class);
-    }
-
-    @Test
-    public void newServiceNotSetNoDataDirectoryDoesNotThrowWhenIgnoreFlagSet() {
-        assertThatCode(() -> ImmutableTimeLockInstallConfiguration.builder()
-                        .cluster(CLUSTER_CONFIG)
-                        .paxos(createPaxosInstall(false, false, true))
-                        .build())
-                .doesNotThrowAnyException();
-    }
-
-    @Test
-    public void newServiceSetNoDataDirectoryExistsDoesNotThrowWhenIgnoreFlagSet() {
-        assertThatCode(() -> ImmutableTimeLockInstallConfiguration.builder()
-                        .cluster(CLUSTER_CONFIG)
-                        .paxos(createPaxosInstall(true, true, true))
-                        .build())
-                .doesNotThrowAnyException();
-    }
-
     private PaxosInstallConfiguration createPaxosInstall(boolean isNewService, boolean shouldDirectoriesExist) {
         return createPaxosInstall(isNewService, shouldDirectoriesExist, false);
     }
 
     private PaxosInstallConfiguration createPaxosInstall(
             boolean isNewService, boolean shouldDirectoriesExist, boolean ignoreCheck) {
-        return ImmutablePaxosInstallConfiguration.builder()
+        return PaxosInstallConfiguration.builder()
                 .dataDirectory(shouldDirectoriesExist ? extantPaxosLogDirectory : newPaxosLogDirectory)
                 .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
                         .dataDirectory(shouldDirectoriesExist ? extantSqliteLogDirectory : extantPaxosLogDirectory)
