@@ -117,6 +117,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
