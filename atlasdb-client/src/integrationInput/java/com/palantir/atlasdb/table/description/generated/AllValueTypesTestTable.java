@@ -1,5 +1,26 @@
 package com.palantir.atlasdb.table.description.generated;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import javax.annotation.Generated;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -63,59 +84,28 @@ import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings({"all", "deprecation"})
-public final class AllValueTypesTestTable
-        implements AtlasDbMutablePersistentTable<
-                        AllValueTypesTestTable.AllValueTypesTestRow,
-                        AllValueTypesTestTable.AllValueTypesTestNamedColumnValue<?>,
-                        AllValueTypesTestTable.AllValueTypesTestRowResult>,
-                AtlasDbNamedMutableTable<
-                        AllValueTypesTestTable.AllValueTypesTestRow,
-                        AllValueTypesTestTable.AllValueTypesTestNamedColumnValue<?>,
-                        AllValueTypesTestTable.AllValueTypesTestRowResult> {
+public final class AllValueTypesTestTable implements
+        AtlasDbMutablePersistentTable<AllValueTypesTestTable.AllValueTypesTestRow,
+                                         AllValueTypesTestTable.AllValueTypesTestNamedColumnValue<?>,
+                                         AllValueTypesTestTable.AllValueTypesTestRowResult>,
+        AtlasDbNamedMutableTable<AllValueTypesTestTable.AllValueTypesTestRow,
+                                    AllValueTypesTestTable.AllValueTypesTestNamedColumnValue<?>,
+                                    AllValueTypesTestTable.AllValueTypesTestRowResult> {
     private final Transaction t;
     private final List<AllValueTypesTestTrigger> triggers;
-    private static final String rawTableName = "AllValueTypesTest";
+    private final static String rawTableName = "AllValueTypesTest";
     private final TableReference tableRef;
-    private static final ColumnSelection allColumns = getColumnSelection(AllValueTypesTestNamedColumn.values());
+    private final static ColumnSelection allColumns = getColumnSelection(AllValueTypesTestNamedColumn.values());
 
     static AllValueTypesTestTable of(Transaction t, Namespace namespace) {
         return new AllValueTypesTestTable(t, namespace, ImmutableList.<AllValueTypesTestTrigger>of());
     }
 
-    static AllValueTypesTestTable of(
-            Transaction t,
-            Namespace namespace,
-            AllValueTypesTestTrigger trigger,
-            AllValueTypesTestTrigger... triggers) {
-        return new AllValueTypesTestTable(
-                t,
-                namespace,
-                ImmutableList.<AllValueTypesTestTrigger>builder()
-                        .add(trigger)
-                        .add(triggers)
-                        .build());
+    static AllValueTypesTestTable of(Transaction t, Namespace namespace, AllValueTypesTestTrigger trigger, AllValueTypesTestTrigger... triggers) {
+        return new AllValueTypesTestTable(t, namespace, ImmutableList.<AllValueTypesTestTrigger>builder().add(trigger).add(triggers).build());
     }
 
     static AllValueTypesTestTable of(Transaction t, Namespace namespace, List<AllValueTypesTestTrigger> triggers) {
@@ -172,41 +162,11 @@ public final class AllValueTypesTestTable
         private final UUID component10;
         private final byte[] blobComponent;
 
-        public static AllValueTypesTestRow of(
-                long component0,
-                long component1,
-                long component2,
-                long component3,
-                Sha256Hash component4,
-                String component5,
-                byte[] component8,
-                Long component9,
-                UUID component10,
-                byte[] blobComponent) {
-            return new AllValueTypesTestRow(
-                    component0,
-                    component1,
-                    component2,
-                    component3,
-                    component4,
-                    component5,
-                    component8,
-                    component9,
-                    component10,
-                    blobComponent);
+        public static AllValueTypesTestRow of(long component0, long component1, long component2, long component3, Sha256Hash component4, String component5, byte[] component8, Long component9, UUID component10, byte[] blobComponent) {
+            return new AllValueTypesTestRow(component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent);
         }
 
-        private AllValueTypesTestRow(
-                long component0,
-                long component1,
-                long component2,
-                long component3,
-                Sha256Hash component4,
-                String component5,
-                byte[] component8,
-                Long component9,
-                UUID component10,
-                byte[] blobComponent) {
+        private AllValueTypesTestRow(long component0, long component1, long component2, long component3, Sha256Hash component4, String component5, byte[] component8, Long component9, UUID component10, byte[] blobComponent) {
             this.component0 = component0;
             this.component1 = component1;
             this.component2 = component2;
@@ -355,23 +315,13 @@ public final class AllValueTypesTestTable
             byte[] component1Bytes = EncodingUtils.encodeSignedVarLong(component1);
             byte[] component2Bytes = PtBytes.toBytes(Long.MIN_VALUE ^ component2);
             byte[] component3Bytes = EncodingUtils.encodeLittleEndian(component3);
-            byte[] component4Bytes = component4.getBytes(StandardCharsets.UTF_8);
+            byte[] component4Bytes = component4.getBytes();
             byte[] component5Bytes = EncodingUtils.encodeVarString(component5);
             byte[] component8Bytes = EncodingUtils.encodeSizedBytes(component8);
             byte[] component9Bytes = EncodingUtils.encodeNullableFixedLong(component9);
             byte[] component10Bytes = EncodingUtils.encodeUUID(component10);
             byte[] blobComponentBytes = blobComponent;
-            return EncodingUtils.add(
-                    component0Bytes,
-                    component1Bytes,
-                    component2Bytes,
-                    component3Bytes,
-                    component4Bytes,
-                    component5Bytes,
-                    component8Bytes,
-                    component9Bytes,
-                    component10Bytes,
-                    blobComponentBytes);
+            return EncodingUtils.add(component0Bytes, component1Bytes, component2Bytes, component3Bytes, component4Bytes, component5Bytes, component8Bytes, component9Bytes, component10Bytes, blobComponentBytes);
         }
 
         public static final Hydrator<AllValueTypesTestRow> BYTES_HYDRATOR = new Hydrator<AllValueTypesTestRow>() {
@@ -392,40 +342,30 @@ public final class AllValueTypesTestTable
                 __index += EncodingUtils.sizeOfVarString(component5);
                 byte[] component8 = EncodingUtils.decodeSizedBytes(__input, __index);
                 __index += EncodingUtils.sizeOfSizedBytes(component8);
-                Long component9 = EncodingUtils.decodeNullableFixedLong(__input, __index);
+                Long component9 = EncodingUtils.decodeNullableFixedLong(__input,__index);
                 __index += 9;
                 UUID component10 = EncodingUtils.decodeUUID(__input, __index);
                 __index += 16;
                 byte[] blobComponent = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
                 __index += 0;
-                return new AllValueTypesTestRow(
-                        component0,
-                        component1,
-                        component2,
-                        component3,
-                        component4,
-                        component5,
-                        component8,
-                        component9,
-                        component10,
-                        blobComponent);
+                return new AllValueTypesTestRow(component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent);
             }
         };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("component0", component0)
-                    .add("component1", component1)
-                    .add("component2", component2)
-                    .add("component3", component3)
-                    .add("component4", component4)
-                    .add("component5", component5)
-                    .add("component8", component8)
-                    .add("component9", component9)
-                    .add("component10", component10)
-                    .add("blobComponent", blobComponent)
-                    .toString();
+                .add("component0", component0)
+                .add("component1", component1)
+                .add("component2", component2)
+                .add("component3", component3)
+                .add("component4", component4)
+                .add("component5", component5)
+                .add("component8", component8)
+                .add("component9", component9)
+                .add("component10", component10)
+                .add("blobComponent", blobComponent)
+                .toString();
         }
 
         @Override
@@ -440,55 +380,33 @@ public final class AllValueTypesTestTable
                 return false;
             }
             AllValueTypesTestRow other = (AllValueTypesTestRow) obj;
-            return Objects.equals(component0, other.component0)
-                    && Objects.equals(component1, other.component1)
-                    && Objects.equals(component2, other.component2)
-                    && Objects.equals(component3, other.component3)
-                    && Objects.equals(component4, other.component4)
-                    && Objects.equals(component5, other.component5)
-                    && Arrays.equals(component8, other.component8)
-                    && Objects.equals(component9, other.component9)
-                    && Objects.equals(component10, other.component10)
-                    && Arrays.equals(blobComponent, other.blobComponent);
+            return Objects.equals(component0, other.component0) && Objects.equals(component1, other.component1) && Objects.equals(component2, other.component2) && Objects.equals(component3, other.component3) && Objects.equals(component4, other.component4) && Objects.equals(component5, other.component5) && Arrays.equals(component8, other.component8) && Objects.equals(component9, other.component9) && Objects.equals(component10, other.component10) && Arrays.equals(blobComponent, other.blobComponent);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[] {
-                component0,
-                component1,
-                component2,
-                component3,
-                component4,
-                component5,
-                component8,
-                component9,
-                component10,
-                blobComponent
-            });
+            return Arrays.deepHashCode(new Object[]{ component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent });
         }
 
         @Override
         public int compareTo(AllValueTypesTestRow o) {
             return ComparisonChain.start()
-                    .compare(this.component0, o.component0)
-                    .compare(this.component1, o.component1)
-                    .compare(this.component2, o.component2)
-                    .compare(this.component3, o.component3)
-                    .compare(this.component4, o.component4)
-                    .compare(this.component5, o.component5)
-                    .compare(this.component8, o.component8, UnsignedBytes.lexicographicalComparator())
-                    .compare(this.component9, o.component9)
-                    .compare(this.component10, o.component10)
-                    .compare(this.blobComponent, o.blobComponent, UnsignedBytes.lexicographicalComparator())
-                    .result();
+                .compare(this.component0, o.component0)
+                .compare(this.component1, o.component1)
+                .compare(this.component2, o.component2)
+                .compare(this.component3, o.component3)
+                .compare(this.component4, o.component4)
+                .compare(this.component5, o.component5)
+                .compare(this.component8, o.component8, UnsignedBytes.lexicographicalComparator())
+                .compare(this.component9, o.component9)
+                .compare(this.component10, o.component10)
+                .compare(this.blobComponent, o.blobComponent, UnsignedBytes.lexicographicalComparator())
+                .result();
         }
     }
 
-    public interface AllValueTypesTestNamedColumnValue<T> extends NamedColumnValue<T> {
-        /* */
-    }
+    public interface AllValueTypesTestNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
@@ -545,8 +463,8 @@ public final class AllValueTypesTestTable
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
@@ -605,8 +523,8 @@ public final class AllValueTypesTestTable
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
@@ -665,8 +583,8 @@ public final class AllValueTypesTestTable
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
@@ -725,8 +643,8 @@ public final class AllValueTypesTestTable
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
@@ -785,8 +703,8 @@ public final class AllValueTypesTestTable
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
@@ -825,7 +743,7 @@ public final class AllValueTypesTestTable
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+            byte[] bytes = value.getBytes();
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
@@ -845,8 +763,8 @@ public final class AllValueTypesTestTable
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
@@ -905,8 +823,8 @@ public final class AllValueTypesTestTable
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
@@ -958,15 +876,15 @@ public final class AllValueTypesTestTable
             @Override
             public Column6 hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(PtBytes.toString(bytes, 0, bytes.length - 0));
+                return of(PtBytes.toString(bytes, 0, bytes.length-0));
             }
         };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
@@ -1025,8 +943,8 @@ public final class AllValueTypesTestTable
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
@@ -1085,8 +1003,8 @@ public final class AllValueTypesTestTable
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
@@ -1138,21 +1056,20 @@ public final class AllValueTypesTestTable
             @Override
             public Column9 hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(EncodingUtils.decodeNullableFixedLong(bytes, 0));
+                return of(EncodingUtils.decodeNullableFixedLong(bytes,0));
             }
         };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("Value", this.value)
-                    .toString();
+                .add("Value", this.value)
+                .toString();
         }
     }
 
     public interface AllValueTypesTestTrigger {
-        public void putAllValueTypesTest(
-                Multimap<AllValueTypesTestRow, ? extends AllValueTypesTestNamedColumnValue<?>> newRows);
+        public void putAllValueTypesTest(Multimap<AllValueTypesTestRow, ? extends AllValueTypesTestNamedColumnValue<?>> newRows);
     }
 
     public static final class AllValueTypesTestRowResult implements TypedRowResult {
@@ -1434,19 +1351,19 @@ public final class AllValueTypesTestTable
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("RowName", getRowName())
-                    .add("Column0", getColumn0())
-                    .add("Column1", getColumn1())
-                    .add("Column10", getColumn10())
-                    .add("Column2", getColumn2())
-                    .add("Column3", getColumn3())
-                    .add("Column4", getColumn4())
-                    .add("Column5", getColumn5())
-                    .add("Column6", getColumn6())
-                    .add("Column7", getColumn7())
-                    .add("Column8", getColumn8())
-                    .add("Column9", getColumn9())
-                    .toString();
+                .add("RowName", getRowName())
+                .add("Column0", getColumn0())
+                .add("Column1", getColumn1())
+                .add("Column10", getColumn10())
+                .add("Column2", getColumn2())
+                .add("Column3", getColumn3())
+                .add("Column4", getColumn4())
+                .add("Column5", getColumn5())
+                .add("Column6", getColumn6())
+                .add("Column7", getColumn7())
+                .add("Column8", getColumn8())
+                .add("Column9", getColumn9())
+                .toString();
         }
     }
 
@@ -1540,18 +1457,18 @@ public final class AllValueTypesTestTable
 
     private static final Map<String, Hydrator<? extends AllValueTypesTestNamedColumnValue<?>>> shortNameToHydrator =
             ImmutableMap.<String, Hydrator<? extends AllValueTypesTestNamedColumnValue<?>>>builder()
-                    .put("c0", Column0.BYTES_HYDRATOR)
-                    .put("c1", Column1.BYTES_HYDRATOR)
-                    .put("c2", Column2.BYTES_HYDRATOR)
-                    .put("c3", Column3.BYTES_HYDRATOR)
-                    .put("c4", Column4.BYTES_HYDRATOR)
-                    .put("c5", Column5.BYTES_HYDRATOR)
-                    .put("c6", Column6.BYTES_HYDRATOR)
-                    .put("c7", Column7.BYTES_HYDRATOR)
-                    .put("c8", Column8.BYTES_HYDRATOR)
-                    .put("c9", Column9.BYTES_HYDRATOR)
-                    .put("c10", Column10.BYTES_HYDRATOR)
-                    .build();
+                .put("c0", Column0.BYTES_HYDRATOR)
+                .put("c1", Column1.BYTES_HYDRATOR)
+                .put("c2", Column2.BYTES_HYDRATOR)
+                .put("c3", Column3.BYTES_HYDRATOR)
+                .put("c4", Column4.BYTES_HYDRATOR)
+                .put("c5", Column5.BYTES_HYDRATOR)
+                .put("c6", Column6.BYTES_HYDRATOR)
+                .put("c7", Column7.BYTES_HYDRATOR)
+                .put("c8", Column8.BYTES_HYDRATOR)
+                .put("c9", Column9.BYTES_HYDRATOR)
+                .put("c10", Column10.BYTES_HYDRATOR)
+                .build();
 
     public Map<AllValueTypesTestRow, Long> getColumn0s(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
@@ -1617,8 +1534,7 @@ public final class AllValueTypesTestTable
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Sha256Hash> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Sha256Hash val =
-                    Column4.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            Sha256Hash val = Column4.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
@@ -1713,8 +1629,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn0(Map<AllValueTypesTestRow, Long> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Column0.of(e.getValue()));
         }
@@ -1726,8 +1641,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn1(Map<AllValueTypesTestRow, Long> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
@@ -1739,8 +1653,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn2(Map<AllValueTypesTestRow, Long> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Column2.of(e.getValue()));
         }
@@ -1752,8 +1665,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn3(Map<AllValueTypesTestRow, Long> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Column3.of(e.getValue()));
         }
@@ -1765,8 +1677,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn4(Map<AllValueTypesTestRow, Sha256Hash> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Sha256Hash> e : map.entrySet()) {
             toPut.put(e.getKey(), Column4.of(e.getValue()));
         }
@@ -1778,8 +1689,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn5(Map<AllValueTypesTestRow, String> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, String> e : map.entrySet()) {
             toPut.put(e.getKey(), Column5.of(e.getValue()));
         }
@@ -1791,8 +1701,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn6(Map<AllValueTypesTestRow, String> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, String> e : map.entrySet()) {
             toPut.put(e.getKey(), Column6.of(e.getValue()));
         }
@@ -1804,8 +1713,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn7(Map<AllValueTypesTestRow, byte[]> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, byte[]> e : map.entrySet()) {
             toPut.put(e.getKey(), Column7.of(e.getValue()));
         }
@@ -1817,8 +1725,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn8(Map<AllValueTypesTestRow, byte[]> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, byte[]> e : map.entrySet()) {
             toPut.put(e.getKey(), Column8.of(e.getValue()));
         }
@@ -1830,8 +1737,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn9(Map<AllValueTypesTestRow, Long> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Column9.of(e.getValue()));
         }
@@ -1843,8 +1749,7 @@ public final class AllValueTypesTestTable
     }
 
     public void putColumn10(Map<AllValueTypesTestRow, UUID> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut =
-                Maps.newHashMapWithExpectedSize(map.size());
+        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, UUID> e : map.entrySet()) {
             toPut.put(e.getKey(), Column10.of(e.getValue()));
         }
@@ -1999,8 +1904,7 @@ public final class AllValueTypesTestTable
 
     public Optional<AllValueTypesTestRowResult> getRow(AllValueTypesTestRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult =
-                t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.empty();
         } else {
@@ -2031,13 +1935,11 @@ public final class AllValueTypesTestTable
     @Override
     public List<AllValueTypesTestNamedColumnValue<?>> getRowColumns(AllValueTypesTestRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult =
-                t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<AllValueTypesTestNamedColumnValue<?>> ret =
-                    Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<AllValueTypesTestNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -2046,85 +1948,63 @@ public final class AllValueTypesTestTable
     }
 
     @Override
-    public Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowsMultimap(
-            Iterable<AllValueTypesTestRow> rows) {
+    public Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowsMultimap(Iterable<AllValueTypesTestRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
-    public Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowsMultimap(
-            Iterable<AllValueTypesTestRow> rows, ColumnSelection columns) {
+    public Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowsMultimap(Iterable<AllValueTypesTestRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
-    private Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowsMultimapInternal(
-            Iterable<AllValueTypesTestRow> rows, ColumnSelection columns) {
+    private Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowsMultimapInternal(Iterable<AllValueTypesTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowMapFromRowResults(
-            Collection<RowResult<byte[]>> rowResults) {
+    private static Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
         Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
             AllValueTypesTestRow row = AllValueTypesTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
-                rowMap.put(
-                        row,
-                        shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
+                rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
         }
         return rowMap;
     }
 
     @Override
-    public Map<AllValueTypesTestRow, BatchingVisitable<AllValueTypesTestNamedColumnValue<?>>> getRowsColumnRange(
-            Iterable<AllValueTypesTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
-                t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<AllValueTypesTestRow, BatchingVisitable<AllValueTypesTestNamedColumnValue<?>>> transformed =
-                Maps.newHashMapWithExpectedSize(results.size());
+    public Map<AllValueTypesTestRow, BatchingVisitable<AllValueTypesTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<AllValueTypesTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<AllValueTypesTestRow, BatchingVisitable<AllValueTypesTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             AllValueTypesTestRow row = AllValueTypesTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<AllValueTypesTestNamedColumnValue<?>> bv =
-                    BatchingVisitables.transform(e.getValue(), result -> {
-                        return shortNameToHydrator
-                                .get(PtBytes.toString(result.getKey().getColumnName()))
-                                .hydrateFromBytes(result.getValue());
-                    });
+            BatchingVisitable<AllValueTypesTestNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
             transformed.put(row, bv);
         }
         return transformed;
     }
 
     @Override
-    public Iterator<Map.Entry<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>>> getRowsColumnRange(
-            Iterable<AllValueTypesTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results =
-                t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+    public Iterator<Map.Entry<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<AllValueTypesTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            AllValueTypesTestRow row = AllValueTypesTestRow.BYTES_HYDRATOR.hydrateFromBytes(
-                    e.getKey().getRowName());
-            AllValueTypesTestNamedColumnValue<?> colValue = shortNameToHydrator
-                    .get(PtBytes.toString(e.getKey().getColumnName()))
-                    .hydrateFromBytes(e.getValue());
+            AllValueTypesTestRow row = AllValueTypesTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            AllValueTypesTestNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
             return Maps.immutableEntry(row, colValue);
         });
     }
 
     @Override
-    public Map<AllValueTypesTestRow, Iterator<AllValueTypesTestNamedColumnValue<?>>> getRowsColumnRangeIterator(
-            Iterable<AllValueTypesTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results =
-                t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<AllValueTypesTestRow, Iterator<AllValueTypesTestNamedColumnValue<?>>> transformed =
-                Maps.newHashMapWithExpectedSize(results.size());
+    public Map<AllValueTypesTestRow, Iterator<AllValueTypesTestNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<AllValueTypesTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<AllValueTypesTestRow, Iterator<AllValueTypesTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
             AllValueTypesTestRow row = AllValueTypesTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
             Iterator<AllValueTypesTestNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
-                return shortNameToHydrator
-                        .get(PtBytes.toString(result.getKey().getColumnName()))
-                        .hydrateFromBytes(result.getValue());
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
         }
@@ -2143,31 +2023,26 @@ public final class AllValueTypesTestTable
     }
 
     public BatchingVisitableView<AllValueTypesTestRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(
-                t.getRange(
-                        tableRef,
-                        RangeRequest.builder()
-                                .retainColumns(optimizeColumnSelection(columns))
-                                .build()),
+        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder()
+                .retainColumns(optimizeColumnSelection(columns)).build()),
                 new Function<RowResult<byte[]>, AllValueTypesTestRowResult>() {
-                    @Override
-                    public AllValueTypesTestRowResult apply(RowResult<byte[]> input) {
-                        return AllValueTypesTestRowResult.of(input);
-                    }
-                });
+            @Override
+            public AllValueTypesTestRowResult apply(RowResult<byte[]> input) {
+                return AllValueTypesTestRowResult.of(input);
+            }
+        });
     }
 
     @Override
-    public List<String> findConstraintFailures(
-            Map<Cell, byte[]> writes,
-            ConstraintCheckingTransaction transaction,
-            AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
+                                               ConstraintCheckingTransaction transaction,
+                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
         return ImmutableList.of();
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(
-            Map<Cell, byte[]> writes, AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
+                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
         return ImmutableList.of();
     }
 
