@@ -45,9 +45,9 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class CachingTransactionTest {
-    private static final byte[] ROW_BYTES = "row".getBytes();
-    private static final byte[] COL_BYTES = "col".getBytes();
-    private static final byte[] VALUE_BYTES = "value".getBytes();
+    private static final byte[] ROW_BYTES = "row".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] COL_BYTES = "col".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] VALUE_BYTES = "value".getBytes(StandardCharsets.UTF_8);
     private static final String SYNC = "sync";
     private static final String ASYNC = "async";
 

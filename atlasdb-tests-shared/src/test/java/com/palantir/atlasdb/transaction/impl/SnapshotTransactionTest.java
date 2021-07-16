@@ -298,10 +298,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     static final TableReference TABLE_SWEPT_THOROUGH_MIGRATION =
             TableReference.createFromFullyQualifiedName("default.table5");
 
-    private static final byte[] ROW_FOO = "foo".getBytes();
-    private static final byte[] ROW_BAR = "bar".getBytes();
-    private static final byte[] COL_A = "a".getBytes();
-    private static final byte[] COL_B = "b".getBytes();
+    private static final byte[] ROW_FOO = "foo".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] ROW_BAR = "bar".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] COL_A = "a".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] COL_B = "b".getBytes(StandardCharsets.UTF_8);
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
     private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
@@ -1070,9 +1070,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void getRowsColumnRangesReturnsInOrderInCaseOfAbortedTxns() {
-        byte[] row = "foo".getBytes();
-        Cell firstCell = Cell.create(row, "a".getBytes());
-        Cell secondCell = Cell.create(row, "b".getBytes());
+        byte[] row = "foo".getBytes(StandardCharsets.UTF_8);
+        Cell firstCell = Cell.create(row, "a".getBytes(StandardCharsets.UTF_8));
+        Cell secondCell = Cell.create(row, "b".getBytes(StandardCharsets.UTF_8));
         byte[] value = new byte[1];
 
         serializableTxManager.runTaskWithRetry(tx -> {
@@ -1108,9 +1108,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void getOtherRowsColumnRangesReturnsInOrderInCaseOfAbortedTxns() {
-        byte[] row = "foo".getBytes();
-        Cell firstCell = Cell.create(row, "a".getBytes());
-        Cell secondCell = Cell.create(row, "b".getBytes());
+        byte[] row = "foo".getBytes(StandardCharsets.UTF_8);
+        Cell firstCell = Cell.create(row, "a".getBytes(StandardCharsets.UTF_8));
+        Cell secondCell = Cell.create(row, "b".getBytes(StandardCharsets.UTF_8));
         byte[] value = new byte[1];
 
         serializableTxManager.runTaskWithRetry(tx -> {
@@ -1166,13 +1166,15 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         List<Cell> expectedDeletedCells = new ArrayList<>(numRows * numCellsPerRow);
         for (int iRow = 0; iRow < numRows; iRow++) {
             String row = String.format("row%02d", iRow);
-            expectedRows.add(row.getBytes());
+            expectedRows.add(row.getBytes(StandardCharsets.UTF_8));
             for (int iCell = 0; iCell < numCellsPerRow; iCell++) {
                 String cell = String.format("cell%02d", iCell);
                 if (iCell < numDeletedCellsPerRow) {
-                    expectedDeletedCells.add(Cell.create(row.getBytes(), cell.getBytes()));
+                    expectedDeletedCells.add(
+                            Cell.create(row.getBytes(StandardCharsets.UTF_8), cell.getBytes(StandardCharsets.UTF_8)));
                 } else {
-                    expectedCells.add(Cell.create(row.getBytes(), cell.getBytes()));
+                    expectedCells.add(
+                            Cell.create(row.getBytes(StandardCharsets.UTF_8), cell.getBytes(StandardCharsets.UTF_8)));
                 }
             }
         }
@@ -1725,12 +1727,15 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         List<Cell> colA_cells = ImmutableList.of(Cell.create(ROW_FOO, COL_A), Cell.create(ROW_BAR, COL_A));
 
         putCellsInTable(colA_cells, TABLE);
-        List<Cell> entries =
-                getSortedEntries(TABLE, rows, BatchColumnRangeSelection.create(COL_A, "az".getBytes(), 1000));
+        List<Cell> entries = getSortedEntries(
+                TABLE, rows, BatchColumnRangeSelection.create(COL_A, "az".getBytes(StandardCharsets.UTF_8), 1000));
         Assertions.assertThat(entries).containsExactlyElementsOf(colA_cells);
 
-        List<Cell> outOfRangeEntries =
-                getSortedEntries(TABLE, rows, BatchColumnRangeSelection.create("y".getBytes(), "z".getBytes(), 1000));
+        List<Cell> outOfRangeEntries = getSortedEntries(
+                TABLE,
+                rows,
+                BatchColumnRangeSelection.create(
+                        "y".getBytes(StandardCharsets.UTF_8), "z".getBytes(StandardCharsets.UTF_8), 1000));
         Assertions.assertThat(outOfRangeEntries).isEmpty();
     }
 

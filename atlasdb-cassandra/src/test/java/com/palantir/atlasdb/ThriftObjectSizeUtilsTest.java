@@ -37,7 +37,7 @@ import org.junit.Test;
 
 public class ThriftObjectSizeUtilsTest {
     private static final String TEST_NAME = "foo";
-    private static final ByteBuffer TEST_NAME_BYTES = ByteBuffer.wrap(TEST_NAME.getBytes());
+    private static final ByteBuffer TEST_NAME_BYTES = ByteBuffer.wrap(TEST_NAME.getBytes(StandardCharsets.UTF_8));
     private static final Column TEST_COLUMN = new Column(TEST_NAME_BYTES);
 
     private static final long TEST_NAME_SIZE = 3L;
@@ -74,8 +74,9 @@ public class ThriftObjectSizeUtilsTest {
     public void getSizeForColumnOrSuperColumnWithANonEmptyColumnAndSuperColumn() {
         assertThat(ThriftObjectSizeUtils.getColumnOrSuperColumnSize(new ColumnOrSuperColumn()
                         .setColumn(TEST_COLUMN)
-                        .setSuper_column(
-                                new SuperColumn(ByteBuffer.wrap(TEST_NAME.getBytes()), ImmutableList.of(TEST_COLUMN)))))
+                        .setSuper_column(new SuperColumn(
+                                ByteBuffer.wrap(TEST_NAME.getBytes(StandardCharsets.UTF_8)),
+                                ImmutableList.of(TEST_COLUMN)))))
                 .isEqualTo(NULL_SIZE * 2 + TEST_COLUMN_SIZE + TEST_NAME_BYTES_SIZE + TEST_COLUMN_SIZE);
     }
 
@@ -92,8 +93,8 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForNonEmptyByteBuffer() {
-        assertThat(ThriftObjectSizeUtils.getByteBufferSize(ByteBuffer.wrap(TEST_NAME.getBytes())))
-                .isEqualTo(TEST_NAME.getBytes().length);
+        assertThat(ThriftObjectSizeUtils.getByteBufferSize(ByteBuffer.wrap(TEST_NAME.getBytes(StandardCharsets.UTF_8))))
+                .isEqualTo(TEST_NAME.getBytes(StandardCharsets.UTF_8).length);
     }
 
     @Test
@@ -140,9 +141,9 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForMutationWithDeletionContainingSuperColumn() {
-        long nonEmptyDeletionSize = Long.BYTES + TEST_NAME.getBytes().length + NULL_SIZE;
-        assertThat(ThriftObjectSizeUtils.getMutationSize(
-                        new Mutation().setDeletion(new Deletion().setSuper_column(TEST_NAME.getBytes()))))
+        long nonEmptyDeletionSize = Long.BYTES + TEST_NAME.getBytes(StandardCharsets.UTF_8).length + NULL_SIZE;
+        assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
+                        .setDeletion(new Deletion().setSuper_column(TEST_NAME.getBytes(StandardCharsets.UTF_8)))))
                 .isEqualTo(NULL_SIZE + nonEmptyDeletionSize);
     }
 
@@ -156,11 +157,12 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForMutationWithDeletionContainingNonEmptySlicePredicate() {
-        long deletionSize = Long.BYTES + NULL_SIZE + (TEST_NAME.getBytes().length + NULL_SIZE);
+        long deletionSize = Long.BYTES + NULL_SIZE + (TEST_NAME.getBytes(StandardCharsets.UTF_8).length + NULL_SIZE);
         assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
                         .setDeletion(new Deletion()
                                 .setPredicate(new SlicePredicate()
-                                        .setColumn_names(ImmutableList.of(ByteBuffer.wrap(TEST_NAME.getBytes())))))))
+                                        .setColumn_names(ImmutableList.of(
+                                                ByteBuffer.wrap(TEST_NAME.getBytes(StandardCharsets.UTF_8))))))))
                 .isEqualTo(NULL_SIZE + deletionSize);
     }
 
@@ -187,16 +189,17 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForKeySliceWithKeySetSetButColumnsNotSet() {
-        assertThat(ThriftObjectSizeUtils.getKeySliceSize(new KeySlice().setKey(TEST_NAME.getBytes())))
-                .isEqualTo(NULL_SIZE + TEST_NAME.getBytes().length);
+        assertThat(ThriftObjectSizeUtils.getKeySliceSize(
+                        new KeySlice().setKey(TEST_NAME.getBytes(StandardCharsets.UTF_8))))
+                .isEqualTo(NULL_SIZE + TEST_NAME.getBytes(StandardCharsets.UTF_8).length);
     }
 
     @Test
     public void getSizeForKeySliceWithKeyAndColumns() {
         assertThat(ThriftObjectSizeUtils.getKeySliceSize(new KeySlice()
-                        .setKey(TEST_NAME.getBytes())
+                        .setKey(TEST_NAME.getBytes(StandardCharsets.UTF_8))
                         .setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN))))
-                .isEqualTo(TEST_NAME.getBytes().length + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
+                .isEqualTo(TEST_NAME.getBytes(StandardCharsets.UTF_8).length + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
     }
 
     @Test
