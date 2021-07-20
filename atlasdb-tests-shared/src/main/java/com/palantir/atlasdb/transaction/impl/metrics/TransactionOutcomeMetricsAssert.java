@@ -24,13 +24,11 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.function.LongConsumer;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.WritableAssertionInfo;
-import org.assertj.core.internal.Objects;
 
 public class TransactionOutcomeMetricsAssert
         extends AbstractAssert<TransactionOutcomeMetricsAssert, TransactionOutcomeMetrics> {
     private final TaggedMetricRegistry taggedMetricRegistry;
-    private final Objects objects = Objects.instance();
-    private WritableAssertionInfo writableAssertionInfo = new WritableAssertionInfo();
+    private final WritableAssertionInfo writableAssertionInfo = new WritableAssertionInfo();
 
     public TransactionOutcomeMetricsAssert(TransactionOutcomeMetrics actual) {
         super(actual, TransactionOutcomeMetricsAssert.class);
