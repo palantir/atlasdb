@@ -48,15 +48,15 @@ public class CassandraClientPoolIntegrationTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     private int modifiedReplicationFactor;
-    private Blacklist blacklist;
+    private Denylist denylist;
     private CassandraClientPoolImpl clientPool;
 
     @Before
     public void setUp() {
-        blacklist = new Blacklist(CASSANDRA.getConfig());
+        denylist = new Denylist(CASSANDRA.getConfig());
         modifiedReplicationFactor = CASSANDRA.getConfig().replicationFactor() + 1;
         clientPool = CassandraClientPoolImpl.createImplForTest(
-                metricsManager, CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+                metricsManager, CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, denylist);
     }
 
     @Test
@@ -95,7 +95,7 @@ public class CassandraClientPoolIntegrationTest {
                 .build();
 
         CassandraClientPoolImpl clientPoolWithLocation = CassandraClientPoolImpl.createImplForTest(
-                metricsManager, configHostWithLocation, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+                metricsManager, configHostWithLocation, CassandraClientPoolImpl.StartupChecks.RUN, denylist);
 
         return clientPoolWithLocation.getLocalHosts();
     }
@@ -145,14 +145,14 @@ public class CassandraClientPoolIntegrationTest {
 
     @Test
     public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
-        blacklist.addAll(clientPool.getCurrentPools().keySet());
+        denylist.addAll(clientPool.getCurrentPools().keySet());
         try {
             clientPool.run(describeRing);
         } catch (Exception e) {
-            fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
+            fail("Should have been allowed to attempt forward progress after denylisting all hosts in pool.");
         }
 
-        blacklist.removeAll();
+        denylist.removeAll();
     }
 
     private void assertReplicationFactorMismatchError(Exception ex) {

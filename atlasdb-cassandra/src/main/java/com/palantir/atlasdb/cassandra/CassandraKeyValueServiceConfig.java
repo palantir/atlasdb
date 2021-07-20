@@ -112,7 +112,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     /**
      * The period between refreshing the Cassandra client pools. At every refresh, we check the health of the current
-     * blacklisted nodes — if they're healthy, we whitelist them.
+     * denylisted nodes — if they're healthy, we allowlist them.
      */
     @Value.Default
     default int poolRefreshIntervalSeconds() {
@@ -120,7 +120,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
-     * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
+     * The minimal period we wait to check if a Cassandra node is healthy after it's been denylisted.
      *
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#unresponsiveHostBackoffTimeSeconds()} to make this
      * value live-reloadable.

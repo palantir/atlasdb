@@ -23,8 +23,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
+import com.palantir.atlasdb.keyvalue.cassandra.Denylist;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import java.net.InetSocketAddress;
@@ -42,7 +42,7 @@ public class CassandraServiceTest {
     private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
 
     private CassandraKeyValueServiceConfig config;
-    private Blacklist blacklist;
+    private Denylist denylist;
 
     @Test
     public void shouldOnlyReturnLocalHosts() {
@@ -139,7 +139,7 @@ public class CassandraServiceTest {
     @Test
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
         CassandraService cassandra = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
-        blacklist.add(HOST_1);
+        denylist.add(HOST_1);
         Optional<CassandraClientPoolingContainer> container =
                 cassandra.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertContainerHasHostOne(container);
@@ -178,11 +178,11 @@ public class CassandraServiceTest {
                 .localHostWeighting(weighting)
                 .build();
 
-        blacklist = new Blacklist(config);
+        denylist = new Denylist(config);
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraService service =
-                new CassandraService(metricsManager, config, blacklist, new CassandraClientPoolMetrics(metricsManager));
+                new CassandraService(metricsManager, config, denylist, new CassandraClientPoolMetrics(metricsManager));
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);

@@ -97,11 +97,11 @@ whether a table that is currently being swept should continue to be swept is as 
 1. If the table being swept is a priority table, continue sweeping it.
 2. If there are any priority tables and the table currently being swept is not a priority table, stop sweeping it and
    switch to a random priority table.
-3. If the table being swept is not blacklisted, continue sweeping it.
-4. There are no priority tables, and the table being swept is blacklisted; select another table using standard sweep
+3. If the table being swept is not denylisted, continue sweeping it.
+4. There are no priority tables, and the table being swept is denylisted; select another table using standard sweep
    heuristics.
 
-Note that if blacklist/priority settings are subsequently removed, sweep will continue sweeping the table that those
+Note that if denylist/priority settings are subsequently removed, sweep will continue sweeping the table that those
 settings have made it select (in particular, it will not immediately return to the original table it was sweeping).
 
 Also, as we don't know the data distribution of the original table we were sweeping, we don't know how much of the
@@ -110,7 +110,7 @@ registering that we have only done a partial sweep. In practice, this would tend
 original table being swept will be picked again for sweeping after overrides have been removed may be a little higher
 than if we accounted for the partial sweep.
 
-One possible use of having blacklist tables is for specifying tables which you don't want the background sweeper to
+One possible use of having denylist tables is for specifying tables which you don't want the background sweeper to
 sweep, but you still want to be able to carry out a manual sweep. Note that specifying tables as
 ``SweepStrategy.NOTHING`` will mean that even manual sweeps will not do anything.
 

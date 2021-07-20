@@ -60,8 +60,8 @@ public class CassandraClientImpl implements CassandraClient {
     private final Cassandra.Client client;
     private volatile AtomicReference<Throwable> invalidated = new AtomicReference<>();
 
-    // Client is considered to be invalid if a blacklisted exception is thrown.
-    private static final ImmutableSet<Class> BLACKLISTED_EXCEPTIONS =
+    // Client is considered to be invalid if a denylisted exception is thrown.
+    private static final ImmutableSet<Class> DENYLISTED_EXCEPTIONS =
             ImmutableSet.of(TTransportException.class, TProtocolException.class, NoSuchElementException.class);
 
     public CassandraClientImpl(Cassandra.Client client) {
@@ -340,7 +340,7 @@ public class CassandraClientImpl implements CassandraClient {
         if (invalidated.get() != null) {
             return;
         }
-        for (Class b : BLACKLISTED_EXCEPTIONS) {
+        for (Class b : DENYLISTED_EXCEPTIONS) {
             if (b.isInstance(e)) {
                 invalidated.compareAndSet(null, new Throwable("Client invalidated here.", e));
                 return;

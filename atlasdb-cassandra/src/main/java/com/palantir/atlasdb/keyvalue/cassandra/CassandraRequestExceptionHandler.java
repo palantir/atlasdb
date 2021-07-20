@@ -40,33 +40,33 @@ class CassandraRequestExceptionHandler {
     private final Supplier<Integer> maxTriesSameHost;
     private final Supplier<Integer> maxTriesTotal;
     private final Supplier<Boolean> useConservativeHandler;
-    private final Blacklist blacklist;
+    private final Denylist denylist;
     private final Optional<RequestExceptionHandlerStrategy> overrideStrategyForTest;
 
     CassandraRequestExceptionHandler(
             Supplier<Integer> maxTriesSameHost,
             Supplier<Integer> maxTriesTotal,
             Supplier<Boolean> useConservativeHandler,
-            Blacklist blacklist) {
+            Denylist denylist) {
         this.maxTriesSameHost = maxTriesSameHost;
         this.maxTriesTotal = maxTriesTotal;
         this.useConservativeHandler = useConservativeHandler;
-        this.blacklist = blacklist;
+        this.denylist = denylist;
         this.overrideStrategyForTest = Optional.empty();
     }
 
     private CassandraRequestExceptionHandler(
-            Supplier<Integer> maxTriesSameHost, Supplier<Integer> maxTriesTotal, Blacklist blacklist) {
+            Supplier<Integer> maxTriesSameHost, Supplier<Integer> maxTriesTotal, Denylist denylist) {
         this.maxTriesSameHost = maxTriesSameHost;
         this.maxTriesTotal = maxTriesTotal;
         this.useConservativeHandler = () -> true;
-        this.blacklist = blacklist;
+        this.denylist = denylist;
         this.overrideStrategyForTest = Optional.of(NoBackoffForTesting.INSTANCE);
     }
 
     static CassandraRequestExceptionHandler withNoBackoffForTest(
-            Supplier<Integer> maxTriesSameHost, Supplier<Integer> maxTriesTotal, Blacklist blacklist) {
-        return new CassandraRequestExceptionHandler(maxTriesSameHost, maxTriesTotal, blacklist);
+            Supplier<Integer> maxTriesSameHost, Supplier<Integer> maxTriesTotal, Denylist denylist) {
+        return new CassandraRequestExceptionHandler(maxTriesSameHost, maxTriesTotal, denylist);
     }
 
     @SuppressWarnings("unchecked")
@@ -87,8 +87,8 @@ class CassandraRequestExceptionHandler {
             throw logAndThrowException(numberOfAttempts, ex, req);
         }
 
-        if (shouldBlacklist(ex, numberOfAttemptsOnHost)) {
-            blacklist.add(hostTried);
+        if (shouldDenylist(ex, numberOfAttemptsOnHost)) {
+            denylist.add(hostTried);
         }
 
         logNumberOfAttempts(ex, numberOfAttempts);
@@ -138,7 +138,7 @@ class CassandraRequestExceptionHandler {
     }
 
     @VisibleForTesting
-    boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
+    boolean shouldDenylist(Exception ex, int numberOfAttempts) {
         return isConnectionException(ex)
                 && numberOfAttempts >= maxTriesSameHost.get()
                 && !isExceptionNotImplicatingThisParticularNode(ex);
@@ -253,9 +253,9 @@ class CassandraRequestExceptionHandler {
         long getBackoffPeriod(int numberOfAttempts);
 
         /**
-         * Exceptions that cause a host to be blacklisted shouldn't be retried on another host. As number of
+         * Exceptions that cause a host to be denylisted shouldn't be retried on another host. As number of
          * retries are recorded per request, and we want the number of retries on that specific host to exceed a
-         * determined value before blacklisting.
+         * determined value before denylisting.
          */
         boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts);
     }
