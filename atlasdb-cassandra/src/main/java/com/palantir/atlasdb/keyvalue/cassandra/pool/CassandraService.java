@@ -270,7 +270,7 @@ public class CassandraService implements AutoCloseable {
             return Optional.empty();
         }
 
-        Set<InetSocketAddress> livingHosts = denylist.filterBlacklistedHostsFrom(filteredHosts);
+        Set<InetSocketAddress> livingHosts = denylist.filterDenylistedHostsFrom(filteredHosts);
         if (livingHosts.isEmpty()) {
             log.info("There are no known live hosts in the connection pool matching the predicate. We're choosing"
                     + " one at random in a last-ditch attempt at forward progress.");
@@ -330,7 +330,7 @@ public class CassandraService implements AutoCloseable {
             StringBuilder currentState = new StringBuilder();
             currentState.append(String.format(
                     "POOL STATUS: Current denylist = %s,%n current hosts in pool = %s%n",
-                    denylist.describeBlacklistedHosts(), currentPools.keySet().toString()));
+                    denylist.describeDenylistedHosts(), currentPools.keySet().toString()));
             for (Map.Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
                 int activeCheckouts = entry.getValue().getActiveCheckouts();
                 int totalAllowed = entry.getValue().getPoolSize();
@@ -357,7 +357,7 @@ public class CassandraService implements AutoCloseable {
             return getRandomGoodHost().getHost();
         }
 
-        Set<InetSocketAddress> liveOwnerHosts = denylist.filterBlacklistedHostsFrom(hostsForKey);
+        Set<InetSocketAddress> liveOwnerHosts = denylist.filterDenylistedHostsFrom(hostsForKey);
 
         if (!liveOwnerHosts.isEmpty()) {
             Optional<InetSocketAddress> activeHost = getRandomHostByActiveConnections(liveOwnerHosts);

@@ -247,7 +247,7 @@ v0.143.1
          - Change
 
     *    - |fixed|
-         - ``InsufficientConsistencyException`` and ``NoSuchElementException`` will now not cause nodes to be blacklisted from the Cassandra client pool.
+         - ``InsufficientConsistencyException`` and ``NoSuchElementException`` will now not cause nodes to be denylisted from the Cassandra client pool.
            Previously this could happen - even though these exceptions are not reflective of the individual node in question being unable to service requests.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4038>`__)
 
@@ -1898,7 +1898,7 @@ v0.94.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3328>`__)
 
     *    - |fixed|
-         - Fixed a bug in C* retry logic where number of retries over all the hosts were used as number of retries on a single host, which may cause unexpected blacklisting behaviour.
+         - Fixed a bug in C* retry logic where number of retries over all the hosts were used as number of retries on a single host, which may cause unexpected denylisting behaviour.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3323>`__)
 
 =======
@@ -1935,7 +1935,7 @@ v0.93.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3313>`__)
 
     *    - |fixed| |logs|
-         - Fixed a bug where Cassandra client pool was erroneously logging host removal from denylist, even the host was not blacklisted in the first place.
+         - Fixed a bug where Cassandra client pool was erroneously logging host removal from denylist, even the host was not denylisted in the first place.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3314>`__)
 
 =======
@@ -2424,7 +2424,7 @@ v0.82.0
 
     *    - |new|
          - Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) denylist.
-           This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a blacklisted table, as appropriate.
+           This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a denylisted table, as appropriate.
            Please see :ref:`Sweep Priority Overrides <sweep-priority-overrides>` for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3090>`__)
 
@@ -2562,7 +2562,7 @@ v0.80.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3058>`__)
 
     *    - |fixed|
-         - Fixed a bug that causes Cassandra clients to return to the pool even if they have thrown blacklisted exceptions.
+         - Fixed a bug that causes Cassandra clients to return to the pool even if they have thrown denylisted exceptions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3063>`__)
 
     *    - |fixed|
@@ -3776,8 +3776,8 @@ Improvements
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2542>`__)
 
     *    - |improved|
-         - The duration between attempts of whitelist Cassandra nodes was reduced from 5 minutes to 2 minutes, and the minimum period a node is blacklisted for was reduced from 2 minutes to 30 seconds.
-           This means we check the health of a blacklisted Cassandra node and whitelist it faster than before.
+         - The duration between attempts of allowlist Cassandra nodes was reduced from 5 minutes to 2 minutes, and the minimum period a node is denylisted for was reduced from 2 minutes to 30 seconds.
+           This means we check the health of a denylisted Cassandra node and allowlist it faster than before.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2543>`__)
 
     *    - |devbreak| |improved|
@@ -4209,7 +4209,7 @@ v0.57.0
 
     *    - |metrics| |changed|
          - From this version onwards, AtlasDB's metrics no longer have unbounded multiplicity.
-           This means that AtlasDB can be whitelisted in the internal metrics aggregator tool.
+           This means that AtlasDB can be allowlisted in the internal metrics aggregator tool.
 
     *    - |metrics| |userbreak|
          - AtlasDB no longer embeds Cassandra host names in its metrics.
@@ -4749,7 +4749,7 @@ v0.47.0
          - Change
 
     *    - |improved|
-         - ErrorProne is enabled and not ignored on all AtlasDB projects. This means that AtlasDB can be whitelisted in the internal logging aggregator tool from this version ownards.
+         - ErrorProne is enabled and not ignored on all AtlasDB projects. This means that AtlasDB can be allowlisted in the internal logging aggregator tool from this version ownards.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1889>`__)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1901>`__)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1902>`__)
@@ -7046,7 +7046,7 @@ v0.10.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/663>`__)
 
     *    - |improved|
-         - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic for deciding whether or not a node should be blacklisted.
+         - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic for deciding whether or not a node should be denylisted.
            This should result in less connection churn and therefore lower latency.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/667>`__)
 

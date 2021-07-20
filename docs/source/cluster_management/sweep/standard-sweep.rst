@@ -97,8 +97,8 @@ whether a table that is currently being swept should continue to be swept is as 
 1. If the table being swept is a priority table, continue sweeping it.
 2. If there are any priority tables and the table currently being swept is not a priority table, stop sweeping it and
    switch to a random priority table.
-3. If the table being swept is not blacklisted, continue sweeping it.
-4. There are no priority tables, and the table being swept is blacklisted; select another table using standard sweep
+3. If the table being swept is not denylisted, continue sweeping it.
+4. There are no priority tables, and the table being swept is denylisted; select another table using standard sweep
    heuristics.
 
 Note that if denylist/priority settings are subsequently removed, sweep will continue sweeping the table that those

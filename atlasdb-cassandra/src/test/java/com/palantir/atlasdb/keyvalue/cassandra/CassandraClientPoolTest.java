@@ -190,19 +190,19 @@ public class CassandraClientPoolTest {
     }
 
     @Test
-    public void testBlacklistMetrics() {
+    public void testDenylistMetrics() {
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
         CassandraClientPoolingContainer container =
                 cassandraClientPool.getCurrentPools().get(HOST_1);
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        verifyBlacklistMetric(0);
+        verifyDenylistMetric(0);
         setFailureModeForHost(container, new SocketTimeoutException());
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        verifyBlacklistMetric(1);
+        verifyDenylistMetric(1);
     }
 
     @Test
-    public void successfulRequestCausesHostToBeRemovedFromBlacklist() {
+    public void successfulRequestCausesHostToBeRemovedFromDenylist() {
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
         CassandraClientPoolingContainer container =
                 cassandraClientPool.getCurrentPools().get(HOST_1);
@@ -531,8 +531,8 @@ public class CassandraClientPoolTest {
                 .isEqualTo(requestConnectionExceptionProportion);
     }
 
-    private void verifyBlacklistMetric(Integer expectedSize) {
-        assertThat(getAggregateMetricValueForMetricName("numBlacklistedHosts")).isEqualTo(expectedSize);
+    private void verifyDenylistMetric(Integer expectedSize) {
+        assertThat(getAggregateMetricValueForMetricName("numDenylistedHosts")).isEqualTo(expectedSize);
     }
 
     private Object getAggregateMetricValueForMetricName(String metricName) {

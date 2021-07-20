@@ -69,7 +69,7 @@ public class DenylistTest {
     }
 
     @Test
-    public void canAddHostToBlacklist() {
+    public void canAddHostToDenylist() {
         denylist.add(ADDRESS_1);
 
         assertThat(denylist.contains(ADDRESS_1)).isTrue();
@@ -77,7 +77,7 @@ public class DenylistTest {
     }
 
     @Test
-    public void doesNotRemoveHostFromBlacklistIfTimeHasNotElapsedYet() {
+    public void doesNotRemoveHostFromDenylistIfTimeHasNotElapsedYet() {
         when(clock.millis()).thenReturn(42L);
 
         denylist.add(ADDRESS_1);
@@ -87,7 +87,7 @@ public class DenylistTest {
     }
 
     @Test
-    public void doesNotRemoveHostFromBlacklistIfTimeHasElapsedAndNodeUnhealthy() {
+    public void doesNotRemoveHostFromDenylistIfTimeHasElapsedAndNodeUnhealthy() {
         denylist.add(ADDRESS_1);
         denylist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, badContainer));
 
@@ -95,7 +95,7 @@ public class DenylistTest {
     }
 
     @Test
-    public void removesHostFromBlacklistIfTimeHasElapsedAndNodeHealthy() {
+    public void removesHostFromDenylistIfTimeHasElapsedAndNodeHealthy() {
         denylist.add(ADDRESS_1);
         denylist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
 
@@ -103,7 +103,7 @@ public class DenylistTest {
     }
 
     @Test
-    public void removesHostsFromBlacklistIfUnknown() {
+    public void removesHostsFromDenylistIfUnknown() {
         denylist.add(ADDRESS_2);
         denylist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
 

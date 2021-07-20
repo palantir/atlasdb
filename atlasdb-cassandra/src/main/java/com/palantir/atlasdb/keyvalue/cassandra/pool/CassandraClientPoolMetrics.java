@@ -69,7 +69,7 @@ public class CassandraClientPoolMetrics {
 
     public void registerAggregateMetrics(Supplier<Integer> denylistSize) {
         // Keep metrics registered under CassandraClientPool.class rather than move them and potentially break things.
-        metricsManager.registerMetric(CassandraClientPool.class, "numBlacklistedHosts", denylistSize::get);
+        metricsManager.registerMetric(CassandraClientPool.class, "numDenylistedHosts", denylistSize::get);
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion", aggregateRequestMetrics::getExceptionProportion);
         metricsManager.registerMetric(

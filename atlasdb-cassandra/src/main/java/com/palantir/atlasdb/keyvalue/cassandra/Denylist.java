@@ -95,7 +95,7 @@ public class Denylist {
         }
     }
 
-    public Set<InetSocketAddress> filterBlacklistedHostsFrom(Collection<InetSocketAddress> potentialHosts) {
+    public Set<InetSocketAddress> filterDenylistedHostsFrom(Collection<InetSocketAddress> potentialHosts) {
         return Sets.difference(ImmutableSet.copyOf(potentialHosts), denylist.keySet());
     }
 
@@ -105,7 +105,7 @@ public class Denylist {
 
     public void add(InetSocketAddress host) {
         denylist.put(host, clock.millis());
-        log.info("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
+        log.info("Denylisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
     }
 
     void addAll(Set<InetSocketAddress> hosts) {
@@ -124,16 +124,16 @@ public class Denylist {
         return denylist.size();
     }
 
-    public String describeBlacklistedHosts() {
+    public String describeDenylistedHosts() {
         return denylist.keySet().toString();
     }
 
     public List<String> denylistDetails() {
         return denylist.entrySet().stream()
-                .map(denylistedHostToBlacklistTime -> String.format(
+                .map(denylistedHostToDenylistTime -> String.format(
                         "host: %s was denylisted at %s",
-                        CassandraLogHelper.host(denylistedHostToBlacklistTime.getKey()),
-                        denylistedHostToBlacklistTime.getValue().longValue()))
+                        CassandraLogHelper.host(denylistedHostToDenylistTime.getKey()),
+                        denylistedHostToDenylistTime.getValue().longValue()))
                 .collect(Collectors.toList());
     }
 }
