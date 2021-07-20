@@ -18,7 +18,10 @@ package com.palantir.atlasdb.sweep.queue;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.DefaultSensitiveLoggingArgProducers;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
@@ -247,6 +250,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
             SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction);
             SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
+            registerSweepableTimestampsAsSafe();
             return new SweepQueueFactory(
                     shardProgress,
                     shards,
@@ -257,6 +261,12 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     kvs,
                     timelock,
                     readBatchingRuntimeContext);
+        }
+
+        private static void registerSweepableTimestampsAsSafe() {
+            LoggingArgs.registerSensitiveLoggingArgProducerForTable(
+                    TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef(),
+                    DefaultSensitiveLoggingArgProducers.ALWAYS_SAFE);
         }
 
         private SweepQueueWriter createWriter() {
