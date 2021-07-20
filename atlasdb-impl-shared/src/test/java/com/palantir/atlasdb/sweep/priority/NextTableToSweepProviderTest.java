@@ -50,7 +50,7 @@ public class NextTableToSweepProviderTest {
     private StreamStoreRemappingSweepPriorityCalculator calculator;
     private Map<TableReference, Double> priorities;
     private Set<String> priorityTables;
-    private Set<String> blacklistTables;
+    private Set<String> denylistTables;
 
     private List<Optional<TableToSweep>> tablesToSweep = new ArrayList<>();
 
@@ -63,7 +63,7 @@ public class NextTableToSweepProviderTest {
         calculator = mock(StreamStoreRemappingSweepPriorityCalculator.class);
         priorities = new HashMap<>();
         priorityTables = new HashSet<>();
-        blacklistTables = new HashSet<>();
+        denylistTables = new HashSet<>();
 
         provider = new NextTableToSweepProvider(lockService, calculator);
     }
@@ -178,10 +178,10 @@ public class NextTableToSweepProviderTest {
     }
 
     @Test
-    public void calculatorReturnsLargeValueForBlacklistedTable_thenProviderStillDoesNotSelectIt() {
+    public void calculatorReturnsLargeValueForDenylistedTable_thenProviderStillDoesNotSelectIt() {
         givenPriority(table("table1"), 10_000.0);
         givenPriority(table("table2"), 1.0);
-        givenBlacklisted(table("table1"));
+        givenDenylisted(table("table1"));
 
         whenGettingNextTableToSweep();
 
@@ -189,11 +189,11 @@ public class NextTableToSweepProviderTest {
     }
 
     @Test
-    public void allTablesBlacklisted_thenProviderReturnsEmpty() {
+    public void allTablesDenylisted_thenProviderReturnsEmpty() {
         givenPriority(table("table1"), 1.0);
         givenPriority(table("table2"), 1.0);
-        givenBlacklisted(table("table1"));
-        givenBlacklisted(table("table2"));
+        givenDenylisted(table("table1"));
+        givenDenylisted(table("table2"));
 
         whenGettingNextTableToSweep();
 
@@ -230,8 +230,8 @@ public class NextTableToSweepProviderTest {
         priorityTables.add(table.getQualifiedName());
     }
 
-    private void givenBlacklisted(TableReference table) {
-        blacklistTables.add(table.getQualifiedName());
+    private void givenDenylisted(TableReference table) {
+        denylistTables.add(table.getQualifiedName());
     }
 
     private void givenTableIsLocked(String table) throws InterruptedException {
@@ -257,7 +257,7 @@ public class NextTableToSweepProviderTest {
     private SweepPriorityOverrideConfig createOverrideConfig() {
         return ImmutableSweepPriorityOverrideConfig.builder()
                 .addAllPriorityTables(priorityTables)
-                .addAllBlacklistTables(blacklistTables)
+                .addAllBlacklistTables(denylistTables)
                 .build();
     }
 
