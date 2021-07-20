@@ -20,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class SimpleTodoResource implements TodoResource {
@@ -56,13 +57,13 @@ public class SimpleTodoResource implements TodoResource {
 
     @Override
     public void storeSnapshot(String snapshot) {
-        InputStream snapshotStream = new ByteArrayInputStream(snapshot.getBytes());
+        InputStream snapshotStream = new ByteArrayInputStream(snapshot.getBytes(StandardCharsets.UTF_8));
         atlas.storeSnapshot(snapshotStream);
     }
 
     @Override
     public void storeUnmarkedSnapshot(String snapshot) {
-        InputStream snapshotStream = new ByteArrayInputStream(snapshot.getBytes());
+        InputStream snapshotStream = new ByteArrayInputStream(snapshot.getBytes(StandardCharsets.UTF_8));
         atlas.storeUnmarkedSnapshot(snapshotStream);
     }
 

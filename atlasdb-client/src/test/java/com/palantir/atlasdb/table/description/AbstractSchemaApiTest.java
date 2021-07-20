@@ -42,6 +42,7 @@ import com.palantir.atlasdb.table.description.test.StringValuePersister;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransaction;
 import com.palantir.common.base.BatchingVisitableFromIterable;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -160,8 +161,8 @@ public abstract class AbstractSchemaApiTest {
         Cell expectedCell = getCell(TEST_ROW_KEY, SECOND_COL_SHORT_NAME);
         Cell anotherExpectedCell = getCell(TEST_ROW_KEY2, SECOND_COL_SHORT_NAME);
         RangeRequest expectedRange = RangeRequest.builder()
-                .startRowInclusive(TEST_ROW_KEY.getBytes())
-                .endRowExclusive(RANGE_END_ROW_KEY.getBytes())
+                .startRowInclusive(TEST_ROW_KEY.getBytes(StandardCharsets.UTF_8))
+                .endRowExclusive(RANGE_END_ROW_KEY.getBytes(StandardCharsets.UTF_8))
                 .retainColumns(SECOND_COLUMN_SELECTION)
                 .build();
         when(transaction.getRange(tableRef, expectedRange))
@@ -183,8 +184,8 @@ public abstract class AbstractSchemaApiTest {
         Cell anotherExpectedCell = getCell(TEST_ROW_KEY2, SECOND_COL_SHORT_NAME);
         Cell cellToBeDroppedFromResults = getCell(TEST_ROW_KEY3, SECOND_COL_SHORT_NAME);
         RangeRequest expectedRange = RangeRequest.builder()
-                .startRowInclusive(TEST_ROW_KEY.getBytes())
-                .endRowExclusive(RANGE_END_ROW_KEY.getBytes())
+                .startRowInclusive(TEST_ROW_KEY.getBytes(StandardCharsets.UTF_8))
+                .endRowExclusive(RANGE_END_ROW_KEY.getBytes(StandardCharsets.UTF_8))
                 .retainColumns(SECOND_COLUMN_SELECTION)
                 .batchHint(2)
                 .build();
@@ -229,7 +230,7 @@ public abstract class AbstractSchemaApiTest {
     protected void addToResultsMap(
             SortedMap<byte[], RowResult<byte[]>> map, String rowKey, String colShortName, byte[] value) {
         Cell resultCell = getCell(rowKey, colShortName);
-        map.put(rowKey.getBytes(), RowResult.of(resultCell, value));
+        map.put(rowKey.getBytes(StandardCharsets.UTF_8), RowResult.of(resultCell, value));
     }
 
     protected Cell getCell(String rowKey, String colShortName) {

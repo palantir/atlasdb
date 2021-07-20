@@ -67,10 +67,10 @@ public class TestScrubQueueMigrationCommand {
         kvs.putWithTimestamps(
                 AtlasDbConstants.OLD_SCRUB_TABLE,
                 ImmutableMultimap.of(
-                        cell1, Value.create("foo\0bar".getBytes(), 10),
-                        cell1, Value.create("baz".getBytes(), 20),
-                        cell2, Value.create("foo".getBytes(), 30),
-                        cell3, Value.create("foo\0bar\0baz".getBytes(), 40)));
+                        cell1, Value.create("foo\0bar".getBytes(StandardCharsets.UTF_8), 10),
+                        cell1, Value.create("baz".getBytes(StandardCharsets.UTF_8), 20),
+                        cell2, Value.create("foo".getBytes(StandardCharsets.UTF_8), 30),
+                        cell3, Value.create("foo\0bar\0baz".getBytes(StandardCharsets.UTF_8), 40)));
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ScrubQueueMigrationCommand.run(kvs, new PrintWriter(baos, true), 1000);
         BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> visitable =

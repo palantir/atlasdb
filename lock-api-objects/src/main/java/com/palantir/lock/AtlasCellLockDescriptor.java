@@ -17,6 +17,7 @@ package com.palantir.lock;
 
 import com.google.common.base.Strings;
 import com.palantir.logsafe.Preconditions;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.locks.ReadWriteLock;
 
 /**
@@ -36,7 +37,7 @@ public final class AtlasCellLockDescriptor {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableName));
         Preconditions.checkNotNull(rowName, "rowName should not be null");
         Preconditions.checkNotNull(colName, "colName should not be null");
-        byte[] tableBytes = tableName.getBytes();
+        byte[] tableBytes = tableName.getBytes(StandardCharsets.UTF_8);
         byte[] bytes = new byte[tableBytes.length + 1 + rowName.length + 1 + colName.length];
         System.arraycopy(tableBytes, 0, bytes, 0, tableBytes.length);
         System.arraycopy(rowName, 0, bytes, tableBytes.length + 1, rowName.length);

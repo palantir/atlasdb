@@ -37,6 +37,7 @@ import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.SingleLeaderPinger;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
@@ -75,8 +76,9 @@ public class SinglePingableLeaderTest {
 
     @Before
     public void setup() {
-        availableServer.stubFor(UUID_MAPPING.willReturn(
-                aResponse().withStatus(200).withBody(("\"" + REMOTE_UUID.toString() + "\"").getBytes())));
+        availableServer.stubFor(UUID_MAPPING.willReturn(aResponse()
+                .withStatus(200)
+                .withBody(("\"" + REMOTE_UUID.toString() + "\"").getBytes(StandardCharsets.UTF_8))));
 
         availableServer.stubFor(PING_MAPPING.willReturn(WireMock.aResponse().withStatus(204)));
 

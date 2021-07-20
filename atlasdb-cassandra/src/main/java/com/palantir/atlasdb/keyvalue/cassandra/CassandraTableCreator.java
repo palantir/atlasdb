@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.cassandra.thrift.Compression;
@@ -118,6 +119,6 @@ class CassandraTableCreator {
         String internalTableName = CassandraKeyValueServiceImpl.internalTableName(tableRef);
         String keyspace = config.getKeyspaceOrThrow();
         String fullTableNameForUuid = keyspace + "." + internalTableName;
-        return UUID.nameUUIDFromBytes(fullTableNameForUuid.getBytes());
+        return UUID.nameUUIDFromBytes(fullTableNameForUuid.getBytes(StandardCharsets.UTF_8));
     }
 }

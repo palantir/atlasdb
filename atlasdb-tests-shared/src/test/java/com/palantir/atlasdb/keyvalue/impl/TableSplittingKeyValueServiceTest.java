@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -33,8 +34,9 @@ import org.junit.Test;
 public class TableSplittingKeyValueServiceTest {
     private static final Namespace NAMESPACE = Namespace.create("namespace");
     private static final TableReference TABLE = TableReference.create(NAMESPACE, "table");
-    private static final Cell CELL = Cell.create("row".getBytes(), "column".getBytes());
-    private static final byte[] VALUE = "value".getBytes();
+    private static final Cell CELL =
+            Cell.create("row".getBytes(StandardCharsets.UTF_8), "column".getBytes(StandardCharsets.UTF_8));
+    private static final byte[] VALUE = "value".getBytes(StandardCharsets.UTF_8);
     private static final long TIMESTAMP = 123L;
     public static final ImmutableMap<Cell, byte[]> VALUES = ImmutableMap.of(CELL, VALUE);
 
@@ -62,7 +64,7 @@ public class TableSplittingKeyValueServiceTest {
     public void delegatesMethodsToTheKvsAssociatedWithTheNamespaceIfNoTableMappingExists() {
         TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
                 ImmutableList.of(tableDelegate, namespaceDelegate),
-                ImmutableMap.<TableReference, KeyValueService>of(),
+                ImmutableMap.of(),
                 ImmutableMap.of(NAMESPACE, namespaceDelegate));
 
         mockery.checking(new Expectations() {
@@ -117,10 +119,11 @@ public class TableSplittingKeyValueServiceTest {
                         table2, otherTableDelegate,
                         table3, otherTableDelegate));
 
-        final ImmutableMap<TableReference, byte[]> tableSpec1 = ImmutableMap.of(table1, "1".getBytes());
+        final ImmutableMap<TableReference, byte[]> tableSpec1 =
+                ImmutableMap.of(table1, "1".getBytes(StandardCharsets.UTF_8));
         final ImmutableMap<TableReference, byte[]> tableSpec2 = ImmutableMap.of(
-                table2, "2".getBytes(),
-                table3, "3".getBytes());
+                table2, "2".getBytes(StandardCharsets.UTF_8),
+                table3, "3".getBytes(StandardCharsets.UTF_8));
 
         mockery.checking(new Expectations() {
             {

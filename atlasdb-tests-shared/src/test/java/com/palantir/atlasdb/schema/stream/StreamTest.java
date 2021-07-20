@@ -63,6 +63,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -128,7 +129,7 @@ public class StreamTest extends AtlasDbTestCase {
         final byte[] data = PtBytes.toBytes("streamed");
         final long streamId = txManager.runTaskWithRetry(t -> {
             Sha256Hash hash = Sha256Hash.computeHash(data);
-            byte[] reference = "ref".getBytes();
+            byte[] reference = "ref".getBytes(StandardCharsets.UTF_8);
 
             return defaultStore.getByHashOrStoreStreamAndMarkAsUsed(t, hash, new ByteArrayInputStream(data), reference);
         });
@@ -147,7 +148,7 @@ public class StreamTest extends AtlasDbTestCase {
         final byte[] data = PtBytes.toBytes("streamed");
         long streamId = txManager.runTaskWithRetry(t -> {
             Sha256Hash hash = Sha256Hash.computeHash(data);
-            byte[] reference = "ref".getBytes();
+            byte[] reference = "ref".getBytes(StandardCharsets.UTF_8);
 
             return defaultStore.getByHashOrStoreStreamAndMarkAsUsed(t, hash, new ByteArrayInputStream(data), reference);
         });

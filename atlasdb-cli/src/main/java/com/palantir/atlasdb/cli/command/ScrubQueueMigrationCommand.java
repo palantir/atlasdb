@@ -35,6 +35,7 @@ import com.palantir.logsafe.Preconditions;
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
@@ -65,7 +66,7 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
         Preconditions.checkArgument(
                 !truncateOldQueue || batchSize == null,
                 "Truncating the old scrub queue and specifying a batch size are mutually exclusive options.");
-        PrintWriter output = new PrintWriter(System.out, true);
+        PrintWriter output = new PrintWriter(System.out, true, StandardCharsets.UTF_8);
         if (truncateOldQueue) {
             services.getKeyValueService().truncateTable(AtlasDbConstants.OLD_SCRUB_TABLE);
             output.println("Truncated the old scrub queue.");

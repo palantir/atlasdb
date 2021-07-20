@@ -17,6 +17,7 @@
 package com.palantir.lock;
 
 import com.google.common.collect.Range;
+import java.nio.charset.StandardCharsets;
 
 public final class AtlasLockDescriptorRanges {
     private AtlasLockDescriptorRanges() {
@@ -52,7 +53,7 @@ public final class AtlasLockDescriptorRanges {
     }
 
     private static byte[] bytesForTableName(String tableName) {
-        return tableName.getBytes();
+        return tableName.getBytes(StandardCharsets.UTF_8);
     }
 
     private static byte[] createExclusiveEndNameForPrefixScan(byte[] prefix) {

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
 public class ExaminedCellLimitTest {
@@ -160,12 +161,13 @@ public class ExaminedCellLimitTest {
 
     private void examinedEnoughCellsIs(boolean expected) {
         CellsToSweepPartitioningIterator.ExaminedCellLimit limit =
-                new CellsToSweepPartitioningIterator.ExaminedCellLimit(startingRow.getBytes(), maxCellsToExamine);
+                new CellsToSweepPartitioningIterator.ExaminedCellLimit(
+                        startingRow.getBytes(StandardCharsets.UTF_8), maxCellsToExamine);
 
         assertThat(limit.examinedEnoughCells(cellsExamined, cell())).isEqualTo(expected);
     }
 
     private Cell cell() {
-        return Cell.create(currentRow.getBytes(), "COLUMN".getBytes());
+        return Cell.create(currentRow.getBytes(StandardCharsets.UTF_8), "COLUMN".getBytes(StandardCharsets.UTF_8));
     }
 }

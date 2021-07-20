@@ -107,6 +107,7 @@ import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Collection;
@@ -192,8 +193,9 @@ public class TransactionManagersTest {
         TransactionManagers.runAsync =
                 task -> Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(task::run);
 
-        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(
-                aResponse().withStatus(200).withBody(("\"" + UUID.randomUUID().toString() + "\"").getBytes())));
+        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
+                .withStatus(200)
+                .withBody(("\"" + UUID.randomUUID().toString() + "\"").getBytes(StandardCharsets.UTF_8))));
         availableServer.stubFor(
                 TIMESTAMP_MAPPING.willReturn(aResponse().withStatus(200).withBody("1")));
         availableServer.stubFor(
@@ -834,7 +836,7 @@ public class TransactionManagersTest {
                     PingableLeader localPingableLeader = invocation.getArgument(0);
                     availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
                             .withStatus(200)
-                            .withBody(("\"" + localPingableLeader.getUUID() + "\"").getBytes())));
+                            .withBody(("\"" + localPingableLeader.getUUID() + "\"").getBytes(StandardCharsets.UTF_8))));
                     return null;
                 })
                 .when(environment)

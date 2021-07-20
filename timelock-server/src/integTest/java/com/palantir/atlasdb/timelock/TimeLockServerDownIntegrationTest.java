@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import org.junit.ClassRule;
@@ -34,8 +35,9 @@ import org.junit.rules.RuleChain;
 
 public class TimeLockServerDownIntegrationTest {
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");
-    private static final byte[] DATA = "foo".getBytes();
-    private static final Cell CELL = Cell.create("bar".getBytes(), "baz".getBytes());
+    private static final byte[] DATA = "foo".getBytes(StandardCharsets.UTF_8);
+    private static final Cell CELL =
+            Cell.create("bar".getBytes(StandardCharsets.UTF_8), "baz".getBytes(StandardCharsets.UTF_8));
 
     private static final TestableTimelockCluster CLUSTER =
             new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);

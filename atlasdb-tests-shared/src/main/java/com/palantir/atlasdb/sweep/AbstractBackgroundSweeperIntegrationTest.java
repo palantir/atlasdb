@@ -47,6 +47,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
 import com.palantir.timestamp.InMemoryTimestampService;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -189,10 +190,12 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         Map<Cell, byte[]> cells = new HashMap<>();
         for (int i = 0; i < 50; ++i) {
             cells.put(
-                    Cell.create(Ints.toByteArray(i), "c".getBytes()),
+                    Cell.create(Ints.toByteArray(i), "c".getBytes(StandardCharsets.UTF_8)),
                     (i % 3 == 0) ? new byte[] {} : Ints.toByteArray(123456 + i));
             if (i % 2 == 0) {
-                cells.put(Cell.create(Ints.toByteArray(i), "d".getBytes()), Ints.toByteArray(9876543 - i));
+                cells.put(
+                        Cell.create(Ints.toByteArray(i), "d".getBytes(StandardCharsets.UTF_8)),
+                        Ints.toByteArray(9876543 - i));
             }
         }
         kvs.put(tableRef, cells, startTs);

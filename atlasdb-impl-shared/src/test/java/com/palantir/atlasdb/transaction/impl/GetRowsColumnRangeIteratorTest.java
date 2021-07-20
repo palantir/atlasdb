@@ -127,7 +127,7 @@ public class GetRowsColumnRangeIteratorTest {
     private Set<Cell> putColumns(int numberOfColumns) {
         byte[] value = new byte[1];
         Map<Cell, byte[]> puts = IntStream.range(0, numberOfColumns)
-                .mapToObj(i -> String.format("cell%02d", i).getBytes())
+                .mapToObj(i -> String.format("cell%02d", i).getBytes(StandardCharsets.UTF_8))
                 .map(column -> Cell.create(ROW, column))
                 .collect(ImmutableMap.toImmutableMap(Function.identity(), _unused -> value));
         kvs.put(TABLE_REFERENCE, puts, 1L);

@@ -50,6 +50,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -127,7 +128,7 @@ public class TodoClient {
 
     // Stores a new snapshot, marking the previous one as unused. We thus have at most one used stream at any time
     public void storeSnapshot(InputStream snapshot) {
-        byte[] streamReference = "EteTest".getBytes();
+        byte[] streamReference = "EteTest".getBytes(StandardCharsets.UTF_8);
 
         TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
         SnapshotsStreamStore streamStore = SnapshotsStreamStore.of(transactionManager, tableFactory);
