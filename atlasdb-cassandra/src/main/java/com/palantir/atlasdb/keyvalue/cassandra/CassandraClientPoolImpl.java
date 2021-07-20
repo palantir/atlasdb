@@ -317,6 +317,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         serversToAdd.forEach(cassandra::addPool);
         serversToRemove.forEach(cassandra::removePool);
 
+        log.info("Servers to add", SafeArg.of("serversToAdd", serversToAdd));
+        log.info("Servers to remove", SafeArg.of("serversToRemove", serversToRemove));
+
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
             cassandra.refreshTokenRangesAndGetServers();
