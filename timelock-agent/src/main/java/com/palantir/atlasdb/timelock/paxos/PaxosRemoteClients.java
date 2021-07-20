@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
@@ -159,6 +160,11 @@ public abstract class PaxosRemoteClients {
         return createInstrumentedRemoteProxies(TimeLockPaxosHistoryProvider.class, true)
                 .values()
                 .collect(Collectors.toList());
+    }
+
+    @Value.Derived
+    public TimeLockManagementService getTimeLockManagementService() {
+        return context().dialogueServiceProvider().createSingleProxyForNodes(TimeLockManagementService.class);
     }
 
     private <T> List<WithDedicatedExecutor<LeaderPingerContext<T>>> leaderPingerContext(Class<T> clazz) {

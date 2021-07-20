@@ -18,7 +18,10 @@ package com.palantir.timelock.corruption.detection;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.NamespaceAndUseCase;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -39,5 +42,17 @@ public interface CorruptionHealthReport {
     default boolean shouldRejectRequests() {
         return violatingStatusesToNamespaceAndUseCase().keySet().stream()
                 .anyMatch(CorruptionCheckViolation::shouldRejectRequests);
+    }
+
+    default boolean hasCorruption() {
+        return !(violatingStatusesToNamespaceAndUseCase().keySet().stream()
+                .allMatch(x -> x.equals(CorruptionCheckViolation.NONE)));
+    }
+
+    // Todo Sudiksha
+    default Set<Client> corruptNamespaces() {
+        return violatingStatusesToNamespaceAndUseCase().values().stream()
+                .map(x -> x.namespace())
+                .collect(Collectors.toSet());
     }
 }

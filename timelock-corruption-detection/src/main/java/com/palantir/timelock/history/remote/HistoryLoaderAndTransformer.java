@@ -69,6 +69,8 @@ public final class HistoryLoaderAndTransformer {
                         .build())
                 .collect(Collectors.toList());
 
-        return Maps.immutableEntry(namespaceAndUseCase, LogsForNamespaceAndUseCase.of(namespaceAndUseCase, logs));
+        return Maps.immutableEntry(
+                namespaceAndUseCase,
+                LogsForNamespaceAndUseCase.of(namespaceAndUseCase, logs, records.greatestDeletedSeq()));
     }
 }

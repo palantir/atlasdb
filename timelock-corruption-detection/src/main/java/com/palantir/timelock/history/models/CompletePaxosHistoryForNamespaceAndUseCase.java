@@ -17,10 +17,14 @@
 package com.palantir.timelock.history.models;
 
 import com.palantir.paxos.Client;
+import com.palantir.paxos.PaxosAcceptor;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 /**
@@ -41,12 +45,46 @@ public interface CompletePaxosHistoryForNamespaceAndUseCase {
     @Value.Parameter
     List<ConsolidatedLearnerAndAcceptorRecord> localAndRemoteLearnerAndAcceptorRecords();
 
+    /**
+     * Excludes the deleted rounds
+     * */
     @Value.Lazy
     default Set<Long> getAllSequenceNumbers() {
+        return getSequenceStream(getGreatestDeletedSeq()).collect(Collectors.toSet());
+    }
+
+    @Value.Lazy
+    default long greatestSeqNumber() {
+        return getSequenceStream(getGreatestDeletedSeq())
+                .max(Comparator.naturalOrder())
+                .orElse(PaxosAcceptor.NO_LOG_ENTRY);
+    }
+
+    @Value.Lazy
+    default Stream<Long> getSequenceStream(long greatestDeletedSeq) {
         return localAndRemoteLearnerAndAcceptorRecords().stream()
                 .map(ConsolidatedLearnerAndAcceptorRecord::record)
                 .map(Map::keySet)
                 .flatMap(Set::stream)
-                .collect(Collectors.toSet());
+                .filter(x -> x > greatestDeletedSeq);
+    }
+
+    @Value.Lazy
+    default LearnerUseCase physicalLearnerUseCase() {
+        return LearnerUseCase.createLearnerUseCase(useCase());
+    }
+
+    @Value.Lazy
+    default AcceptorUseCase physicalAcceptorUseCase() {
+        return AcceptorUseCase.createAcceptorUseCase(useCase());
+    }
+
+    @Value.Lazy
+    default long getGreatestDeletedSeq() {
+        return localAndRemoteLearnerAndAcceptorRecords().stream()
+                .map(ConsolidatedLearnerAndAcceptorRecord::greatestDeletedSeq)
+                .flatMap(Optional::stream)
+                .max(Comparator.naturalOrder())
+                .orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 }

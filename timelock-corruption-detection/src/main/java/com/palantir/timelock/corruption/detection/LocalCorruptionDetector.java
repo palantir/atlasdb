@@ -20,7 +20,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.corruption.handle.LocalCorruptionHandler;
-import com.palantir.timelock.history.PaxosLogHistoryProvider;
+import com.palantir.timelock.history.cleanup.HistoryCleaner;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -33,31 +33,29 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     private final ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory(CORRUPTION_DETECTOR_THREAD_PREFIX, true));
     private final LocalCorruptionHandler corruptionHandler;
-    private final PaxosLogHistoryProvider historyProvider;
     private final LocalTimestampInvariantsVerifier timestampInvariantsVerifier;
-
+    private final HistoryCleaner cleaner;
     private volatile CorruptionStatus localCorruptionState = CorruptionStatus.HEALTHY;
     private volatile CorruptionHealthReport localCorruptionReport = CorruptionHealthReport.defaultHealthyReport();
 
     public static LocalCorruptionDetector create(
-            PaxosLogHistoryProvider historyProvider,
             List<TimeLockCorruptionNotifier> corruptionNotifiers,
-            LocalTimestampInvariantsVerifier timestampInvariants) {
+            LocalTimestampInvariantsVerifier timestampInvariants,
+            HistoryCleaner cleaner) {
         LocalCorruptionDetector localCorruptionDetector =
-                new LocalCorruptionDetector(historyProvider, corruptionNotifiers, timestampInvariants);
+                new LocalCorruptionDetector(corruptionNotifiers, timestampInvariants, cleaner);
 
         localCorruptionDetector.scheduleWithFixedDelay();
         return localCorruptionDetector;
     }
 
     private LocalCorruptionDetector(
-            PaxosLogHistoryProvider historyProvider,
             List<TimeLockCorruptionNotifier> corruptionNotifiers,
-            LocalTimestampInvariantsVerifier timestampInvariantsVerifier) {
-
-        this.historyProvider = historyProvider;
+            LocalTimestampInvariantsVerifier timestampInvariantsVerifier,
+            HistoryCleaner cleaner) {
         this.timestampInvariantsVerifier = timestampInvariantsVerifier;
         this.corruptionHandler = new LocalCorruptionHandler(corruptionNotifiers);
+        this.cleaner = cleaner;
     }
 
     private void scheduleWithFixedDelay() {
@@ -79,7 +77,7 @@ public final class LocalCorruptionDetector implements CorruptionDetector {
     }
 
     private CorruptionHealthReport analyzeHistoryAndBuildCorruptionHealthReport() {
-        return HistoryAnalyzer.corruptionHealthReportForHistory(historyProvider.getHistory());
+        return cleaner.cleanUpHistoryAndGetHealthReport();
     }
 
     private void processLocalHealthReport() {

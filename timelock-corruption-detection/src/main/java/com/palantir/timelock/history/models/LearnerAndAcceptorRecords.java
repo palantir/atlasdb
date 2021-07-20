@@ -34,6 +34,9 @@ public interface LearnerAndAcceptorRecords {
     @Value.Parameter
     Map<Long, PaxosAcceptorData> acceptorRecords();
 
+    @Value.Parameter
+    long greatestDeletedSeq();
+
     default Optional<PaxosValue> getLearnedValueAtSeqIfExists(long seq) {
         return Optional.ofNullable(learnerRecords().get(seq));
     }
