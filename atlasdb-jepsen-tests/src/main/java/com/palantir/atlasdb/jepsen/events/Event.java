@@ -43,7 +43,7 @@ public interface Event {
         Map<Keyword, ?> encodedMap = EventUtils.encodeNemesis(map);
         Map<String, Object> convertedMap = KeyedStream.stream(encodedMap)
                 .mapKeys(Keyword::getName)
-                .map(value -> value != null & value instanceof Keyword ? ((Keyword) value).getName() : value)
+                .map(value -> value != null && value instanceof Keyword ? ((Keyword) value).getName() : value)
                 .collectToMap();
         return OBJECT_MAPPER.convertValue(convertedMap, Event.class);
     }
