@@ -153,7 +153,6 @@ allprojects {
                 'ReturnValueIgnored',
                 'ReverseDnsLookup',
                 'SafeLoggingExceptionMessageFormat',
-                'ShortCircuitBoolean',
                 'Slf4jLogsafeArgs',
                 'Slf4jThrowable',
                 'StaticAssignmentInConstructor',
