@@ -165,6 +165,18 @@ public interface Transaction {
     @Idempotent
     Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection);
+
+    /**
+     * Similar to {@link #getSortedColumns(TableReference, Iterable, BatchColumnRangeSelection)}, except that the
+     * returned iterator will be limited to {@code numResults} entries.
+     *
+     * The implementation of this method is expected to make fewer KVS calls than
+     * {@link #getSortedColumns(TableReference, Iterable, BatchColumnRangeSelection)}.
+     */
+    @Idempotent
+    Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, int numResults);
+
     /**
      * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}.
      *

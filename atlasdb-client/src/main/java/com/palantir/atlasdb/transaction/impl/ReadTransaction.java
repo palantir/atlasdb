@@ -32,6 +32,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -127,6 +128,12 @@ public class ReadTransaction extends ForwardingTransaction {
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
         checkTableName(tableRef);
         return delegate().getSortedColumns(tableRef, rows, batchColumnRangeSelection);
+    }
+
+    @Override
+    public Iterator<Entry<Cell, byte[]>> getSortedColumns(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, int numResults) {
+        return delegate().getSortedColumns(tableRef, rows, columnRangeSelection, numResults);
     }
 
     @Override
