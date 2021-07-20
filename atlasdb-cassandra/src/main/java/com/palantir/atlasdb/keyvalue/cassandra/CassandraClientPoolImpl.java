@@ -58,7 +58,7 @@ import org.slf4j.LoggerFactory;
  *   - Pooling
  *   - Token Aware Mapping / Query Routing / Data partitioning
  *   - Retriable Queries
- *   - Pool member error tracking / blacklisting*
+ *   - Pool member error tracking / denylisting*
  *   - Pool refreshing
  *   - Pool node autodiscovery
  *   - Pool member health checking*
@@ -104,7 +104,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolImpl.class);
 
-    private final Blacklist blacklist;
+    private final Denylist denylist;
     private final CassandraRequestExceptionHandler exceptionHandler;
     private final CassandraService cassandra;
 
@@ -121,14 +121,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
-            Blacklist blacklist) {
-        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
+            Denylist denylist) {
+        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(denylist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
                 config,
                 startupChecks,
                 exceptionHandler,
-                blacklist,
+                denylist,
                 new CassandraClientPoolMetrics(metricsManager));
         cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
@@ -140,15 +140,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             ScheduledExecutorService refreshDaemon,
-            Blacklist blacklist,
+            Denylist denylist,
             CassandraService cassandra) {
-        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
+        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(denylist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 config,
                 startupChecks,
                 refreshDaemon,
                 exceptionHandler,
-                blacklist,
+                denylist,
                 cassandra,
                 new CassandraClientPoolMetrics(metricsManager));
         cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
@@ -160,18 +160,18 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             boolean initializeAsync) {
-        Blacklist blacklist = new Blacklist(config);
+        Denylist denylist = new Denylist(config);
         CassandraRequestExceptionHandler exceptionHandler = new CassandraRequestExceptionHandler(
                 () -> runtimeConfig.get().numberOfRetriesOnSameHost(),
                 () -> runtimeConfig.get().numberOfRetriesOnAllHosts(),
                 () -> runtimeConfig.get().conservativeRequestExceptionHandler(),
-                blacklist);
+                denylist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
                 config,
                 StartupChecks.RUN,
                 exceptionHandler,
-                blacklist,
+                denylist,
                 new CassandraClientPoolMetrics(metricsManager));
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
@@ -182,15 +182,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             CassandraRequestExceptionHandler exceptionHandler,
-            Blacklist blacklist,
+            Denylist denylist,
             CassandraClientPoolMetrics metrics) {
         this(
                 config,
                 startupChecks,
                 sharedRefreshDaemon,
                 exceptionHandler,
-                blacklist,
-                new CassandraService(metricsManager, config, blacklist, metrics),
+                denylist,
+                new CassandraService(metricsManager, config, denylist, metrics),
                 metrics);
     }
 
@@ -199,13 +199,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             StartupChecks startupChecks,
             ScheduledExecutorService refreshDaemon,
             CassandraRequestExceptionHandler exceptionHandler,
-            Blacklist blacklist,
+            Denylist denylist,
             CassandraService cassandra,
             CassandraClientPoolMetrics metrics) {
         this.config = config;
         this.startupChecks = startupChecks;
         this.refreshDaemon = refreshDaemon;
-        this.blacklist = blacklist;
+        this.denylist = denylist;
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
         this.metrics = metrics;
@@ -234,7 +234,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             runOneTimeStartupChecks();
         }
         refreshPool(); // ensure we've initialized before returning
-        metrics.registerAggregateMetrics(blacklist::size);
+        metrics.registerAggregateMetrics(denylist::size);
     }
 
     private void cleanUpOnInitFailure() {
@@ -247,9 +247,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         cassandra.clearInitialCassandraHosts();
     }
 
-    private static CassandraRequestExceptionHandler testExceptionHandler(Blacklist blacklist) {
+    private static CassandraRequestExceptionHandler testExceptionHandler(Denylist denylist) {
         return CassandraRequestExceptionHandler.withNoBackoffForTest(
-                CassandraClientPoolImpl::getMaxRetriesPerHost, CassandraClientPoolImpl::getMaxTriesTotal, blacklist);
+                CassandraClientPoolImpl::getMaxRetriesPerHost, CassandraClientPoolImpl::getMaxTriesTotal, denylist);
     }
 
     @Override
@@ -263,8 +263,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     /**
-     * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
-     * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
+     * This is the maximum number of times we'll accept connection failures to one host before denylisting it. Note
+     * that subsequent hosts we try in the same call will actually be denylisted after one connection failure
      */
     @VisibleForTesting
     static int getMaxRetriesPerHost() {
@@ -292,7 +292,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private synchronized void refreshPool() {
-        blacklist.checkAndUpdate(cassandra.getPools());
+        denylist.checkAndUpdate(cassandra.getPools());
 
         Set<InetSocketAddress> resolvedConfigAddresses =
                 config.servers().accept(new CassandraServersConfigs.ThriftHostsExtractingVisitor());
@@ -366,7 +366,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 atLeastOneHostResponded = true;
             } catch (Exception e) {
                 completelyUnresponsiveHosts.put(host, e);
-                blacklist.add(host);
+                denylist.add(host);
             }
 
             if (thisHostResponded) {
@@ -426,7 +426,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
             try {
                 V response = runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
-                removeFromBlacklistAfterResponse(hostPool.getHost());
+                removeFromDenylistAfterResponse(hostPool.getHost());
                 return response;
             } catch (Exception ex) {
                 exceptionHandler.handleExceptionFromRequest(req, hostPool.getHost(), ex);
@@ -438,7 +438,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             RetryableCassandraRequest<V, K> req) {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(req.getPreferredHost());
 
-        if (blacklist.contains(req.getPreferredHost()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
+        if (denylist.contains(req.getPreferredHost()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
             InetSocketAddress previousHost = hostPool == null ? req.getPreferredHost() : hostPool.getHost();
             Optional<CassandraClientPoolingContainer> hostPoolCandidate =
                     cassandra.getRandomGoodHostForPredicate(address -> !req.alreadyTriedOnHost(address));
@@ -461,13 +461,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             InetSocketAddress specifiedHost, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = cassandra.getPools().get(specifiedHost);
         V response = runWithPooledResourceRecordingMetrics(hostPool, fn);
-        removeFromBlacklistAfterResponse(specifiedHost);
+        removeFromDenylistAfterResponse(specifiedHost);
         return response;
     }
 
-    private void removeFromBlacklistAfterResponse(InetSocketAddress host) {
-        if (blacklist.contains(host)) {
-            blacklist.remove(host);
+    private void removeFromDenylistAfterResponse(InetSocketAddress host) {
+        if (denylist.contains(host)) {
+            denylist.remove(host);
             log.info(
                     "Added host {} back into the pool after receiving a successful response",
                     SafeArg.of("host", CassandraLogHelper.host(host)));

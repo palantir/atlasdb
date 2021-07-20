@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
 import org.junit.Test;
 
-public class BlacklistTest {
+public class DenylistTest {
     private static final InetSocketAddress ADDRESS_1 = InetSocketAddress.createUnresolved("NW16XE", 123);
     private static final InetSocketAddress ADDRESS_2 = InetSocketAddress.createUnresolved("SW1A2AA", 1234);
     private static final InetSocketAddress ADDRESS_3 = InetSocketAddress.createUnresolved("SE17PB", 12345);
@@ -57,7 +57,7 @@ public class BlacklistTest {
     private final CassandraClientPoolingContainer goodContainer = mock(CassandraClientPoolingContainer.class);
     private final CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
 
-    private final Blacklist blacklist = new Blacklist(CONFIG, clock);
+    private final Denylist denylist = new Denylist(CONFIG, clock);
 
     @Before
     @SuppressWarnings("unchecked") // Mock type is correct
@@ -70,55 +70,55 @@ public class BlacklistTest {
 
     @Test
     public void canAddHostToBlacklist() {
-        blacklist.add(ADDRESS_1);
+        denylist.add(ADDRESS_1);
 
-        assertThat(blacklist.contains(ADDRESS_1)).isTrue();
-        assertThat(blacklist.contains(ADDRESS_2)).isFalse();
+        assertThat(denylist.contains(ADDRESS_1)).isTrue();
+        assertThat(denylist.contains(ADDRESS_2)).isFalse();
     }
 
     @Test
     public void doesNotRemoveHostFromBlacklistIfTimeHasNotElapsedYet() {
         when(clock.millis()).thenReturn(42L);
 
-        blacklist.add(ADDRESS_1);
-        blacklist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
+        denylist.add(ADDRESS_1);
+        denylist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
 
-        assertThat(blacklist.contains(ADDRESS_1)).isTrue();
+        assertThat(denylist.contains(ADDRESS_1)).isTrue();
     }
 
     @Test
     public void doesNotRemoveHostFromBlacklistIfTimeHasElapsedAndNodeUnhealthy() {
-        blacklist.add(ADDRESS_1);
-        blacklist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, badContainer));
+        denylist.add(ADDRESS_1);
+        denylist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, badContainer));
 
-        assertThat(blacklist.contains(ADDRESS_1)).isTrue();
+        assertThat(denylist.contains(ADDRESS_1)).isTrue();
     }
 
     @Test
     public void removesHostFromBlacklistIfTimeHasElapsedAndNodeHealthy() {
-        blacklist.add(ADDRESS_1);
-        blacklist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
+        denylist.add(ADDRESS_1);
+        denylist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
 
-        assertThat(blacklist.contains(ADDRESS_1)).isFalse();
+        assertThat(denylist.contains(ADDRESS_1)).isFalse();
     }
 
     @Test
     public void removesHostsFromBlacklistIfUnknown() {
-        blacklist.add(ADDRESS_2);
-        blacklist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
+        denylist.add(ADDRESS_2);
+        denylist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer));
 
-        assertThat(blacklist.contains(ADDRESS_2)).isFalse();
+        assertThat(denylist.contains(ADDRESS_2)).isFalse();
     }
 
     @Test
     public void handlesDifferentStatusUpdatesAsBatch() {
-        blacklist.add(ADDRESS_1);
-        blacklist.add(ADDRESS_2);
-        blacklist.add(ADDRESS_3);
-        blacklist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer, ADDRESS_2, badContainer));
+        denylist.add(ADDRESS_1);
+        denylist.add(ADDRESS_2);
+        denylist.add(ADDRESS_3);
+        denylist.checkAndUpdate(ImmutableMap.of(ADDRESS_1, goodContainer, ADDRESS_2, badContainer));
 
-        assertThat(blacklist.contains(ADDRESS_1)).isFalse();
-        assertThat(blacklist.contains(ADDRESS_2)).isTrue();
-        assertThat(blacklist.contains(ADDRESS_3)).isFalse();
+        assertThat(denylist.contains(ADDRESS_1)).isFalse();
+        assertThat(denylist.contains(ADDRESS_2)).isTrue();
+        assertThat(denylist.contains(ADDRESS_3)).isFalse();
     }
 }

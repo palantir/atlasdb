@@ -1935,7 +1935,7 @@ v0.93.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3313>`__)
 
     *    - |fixed| |logs|
-         - Fixed a bug where Cassandra client pool was erroneously logging host removal from blacklist, even the host was not blacklisted in the first place.
+         - Fixed a bug where Cassandra client pool was erroneously logging host removal from denylist, even the host was not blacklisted in the first place.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3314>`__)
 
 =======
@@ -2178,7 +2178,7 @@ v0.89.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3239>`__)
 
     *    - |fixed|
-         - We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won't blacklist connections due to a failed CAS.
+         - We no longer treat CAS failure in Cassandra as a Cassandra level issue, meaning that we won't denylist connections due to a failed CAS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3215>`__)
 
     *    - |improved|
@@ -2353,8 +2353,8 @@ v0.83.0
          - Change
 
     *    - |improved|
-         - If we make a successful request to a Cassandra client, we now remove it from the overall Cassandra service's blacklist.
-           Previously, removal from the blacklist would only occur after a background thread successfully refreshed the pool, meaning that requests may become stuck if Cassandra was rolling restarted.
+         - If we make a successful request to a Cassandra client, we now remove it from the overall Cassandra service's denylist.
+           Previously, removal from the denylist would only occur after a background thread successfully refreshed the pool, meaning that requests may become stuck if Cassandra was rolling restarted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3145>`__)
 
     *    - |fixed|
@@ -2423,7 +2423,7 @@ v0.82.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3095>`__)
 
     *    - |new|
-         - Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) blacklist.
+         - Users can now explicitly specify specific tables for the background sweeper to (1) prioritise above other tables, or (2) denylist.
            This is done as part of live-reloadable configuration, though note that background sweep will conclude its current iteration before switching to a priority table / away from a blacklisted table, as appropriate.
            Please see :ref:`Sweep Priority Overrides <sweep-priority-overrides>` for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3090>`__)

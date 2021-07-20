@@ -79,7 +79,7 @@ public class CassandraClientPoolTest {
     private Set<InetSocketAddress> poolServers = new HashSet<>();
 
     private CassandraKeyValueServiceConfig config;
-    private Blacklist blacklist;
+    private Denylist denylist;
     private CassandraService cassandra = mock(CassandraService.class);
 
     @Before
@@ -89,7 +89,7 @@ public class CassandraClientPoolTest {
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
 
-        blacklist = new Blacklist(config);
+        denylist = new Denylist(config);
 
         doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation)))
                 .when(cassandra)
@@ -211,12 +211,12 @@ public class CassandraClientPoolTest {
 
         assertThatThrownBy(() -> runNoopWithRetryOnHost(HOST_1, cassandraClientPool))
                 .isInstanceOf(AtlasDbDependencyException.class);
-        assertThat(blacklist.contains(HOST_1)).isTrue();
+        assertThat(denylist.contains(HOST_1)).isTrue();
 
         fail.set(false);
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_1)).isFalse();
+        assertThat(denylist.contains(HOST_1)).isFalse();
     }
 
     @Test
@@ -230,12 +230,12 @@ public class CassandraClientPoolTest {
                         pool, container -> container.getHost().equals(downHost.get())));
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_1)).isTrue();
+        assertThat(denylist.contains(HOST_1)).isTrue();
 
         downHost.set(HOST_2);
 
         runNoopWithRetryOnHost(HOST_2, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_1)).isFalse();
+        assertThat(denylist.contains(HOST_1)).isFalse();
     }
 
     @Test
@@ -246,7 +246,7 @@ public class CassandraClientPoolTest {
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
-                blacklist);
+                denylist);
 
         host(HOST_1)
                 .throwsException(new SocketTimeoutException())
@@ -256,7 +256,7 @@ public class CassandraClientPoolTest {
         host(HOST_2).throwsException(new SocketTimeoutException()).inPool(cassandraClientPool);
 
         runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
-        assertThat(blacklist.contains(HOST_2)).isFalse();
+        assertThat(denylist.contains(HOST_2)).isFalse();
     }
 
     @Test
@@ -380,7 +380,7 @@ public class CassandraClientPoolTest {
                 config,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 deterministicExecutor,
-                blacklist,
+                denylist,
                 cassandra);
     }
 
@@ -457,7 +457,7 @@ public class CassandraClientPoolTest {
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
-                blacklist);
+                denylist);
 
         serversInPool.forEach(address -> cassandraClientPool
                 .getCurrentPools()

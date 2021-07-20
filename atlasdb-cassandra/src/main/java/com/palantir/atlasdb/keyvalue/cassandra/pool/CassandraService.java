@@ -31,11 +31,11 @@ import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
-import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
+import com.palantir.atlasdb.keyvalue.cassandra.Denylist;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -74,7 +74,7 @@ public class CassandraService implements AutoCloseable {
 
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
-    private final Blacklist blacklist;
+    private final Denylist denylist;
     private final CassandraClientPoolMetrics poolMetrics;
 
     private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
@@ -91,12 +91,12 @@ public class CassandraService implements AutoCloseable {
     public CassandraService(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
-            Blacklist blacklist,
+            Denylist denylist,
             CassandraClientPoolMetrics poolMetrics) {
         this.metricsManager = metricsManager;
         this.config = config;
         this.myLocationSupplier = HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation());
-        this.blacklist = blacklist;
+        this.denylist = denylist;
         this.poolMetrics = poolMetrics;
 
         Supplier<Map<String, String>> hostnamesByIpSupplier = new HostnamesByIpSupplier(this::getRandomGoodHost);
@@ -270,7 +270,7 @@ public class CassandraService implements AutoCloseable {
             return Optional.empty();
         }
 
-        Set<InetSocketAddress> livingHosts = blacklist.filterBlacklistedHostsFrom(filteredHosts);
+        Set<InetSocketAddress> livingHosts = denylist.filterBlacklistedHostsFrom(filteredHosts);
         if (livingHosts.isEmpty()) {
             log.info("There are no known live hosts in the connection pool matching the predicate. We're choosing"
                     + " one at random in a last-ditch attempt at forward progress.");
@@ -329,8 +329,8 @@ public class CassandraService implements AutoCloseable {
         if (log.isDebugEnabled()) {
             StringBuilder currentState = new StringBuilder();
             currentState.append(String.format(
-                    "POOL STATUS: Current blacklist = %s,%n current hosts in pool = %s%n",
-                    blacklist.describeBlacklistedHosts(), currentPools.keySet().toString()));
+                    "POOL STATUS: Current denylist = %s,%n current hosts in pool = %s%n",
+                    denylist.describeBlacklistedHosts(), currentPools.keySet().toString()));
             for (Map.Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
                 int activeCheckouts = entry.getValue().getActiveCheckouts();
                 int totalAllowed = entry.getValue().getPoolSize();
@@ -357,7 +357,7 @@ public class CassandraService implements AutoCloseable {
             return getRandomGoodHost().getHost();
         }
 
-        Set<InetSocketAddress> liveOwnerHosts = blacklist.filterBlacklistedHostsFrom(hostsForKey);
+        Set<InetSocketAddress> liveOwnerHosts = denylist.filterBlacklistedHostsFrom(hostsForKey);
 
         if (!liveOwnerHosts.isEmpty()) {
             Optional<InetSocketAddress> activeHost = getRandomHostByActiveConnections(liveOwnerHosts);
@@ -370,9 +370,9 @@ public class CassandraService implements AutoCloseable {
                 "Perf / cluster stability issue. Token aware query routing has failed because there are no known "
                         + "live hosts that claim ownership of the given range."
                         + " Falling back to choosing a random live node."
-                        + " Current host blacklist is {}."
+                        + " Current host denylist is {}."
                         + " Current state logged at TRACE",
-                SafeArg.of("blacklistedHosts", blacklist.blacklistDetails()));
+                SafeArg.of("denylistedHosts", denylist.denylistDetails()));
         log.trace("Current ring view is: {}.", SafeArg.of("tokenMap", getRingViewDescription()));
         return getRandomGoodHost().getHost();
     }
@@ -385,7 +385,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     public void removePool(InetSocketAddress removedServerAddress) {
-        blacklist.remove(removedServerAddress);
+        denylist.remove(removedServerAddress);
         try {
             currentPools.get(removedServerAddress).shutdownPooling();
         } catch (Exception e) {

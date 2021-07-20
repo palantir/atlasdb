@@ -67,9 +67,9 @@ public class CassandraClientPoolMetrics {
                 CassandraClientPoolingContainer.class, metric.metricName, meanGauge, ImmutableMap.of("pool", "mean"));
     }
 
-    public void registerAggregateMetrics(Supplier<Integer> blacklistSize) {
+    public void registerAggregateMetrics(Supplier<Integer> denylistSize) {
         // Keep metrics registered under CassandraClientPool.class rather than move them and potentially break things.
-        metricsManager.registerMetric(CassandraClientPool.class, "numBlacklistedHosts", blacklistSize::get);
+        metricsManager.registerMetric(CassandraClientPool.class, "numBlacklistedHosts", denylistSize::get);
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion", aggregateRequestMetrics::getExceptionProportion);
         metricsManager.registerMetric(

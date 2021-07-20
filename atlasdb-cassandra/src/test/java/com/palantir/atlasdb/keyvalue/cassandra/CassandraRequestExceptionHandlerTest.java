@@ -69,10 +69,10 @@ public class CassandraRequestExceptionHandlerTest {
     @Before
     public void setup() {
         handlerLegacy = new CassandraRequestExceptionHandler(
-                () -> MAX_RETRIES_PER_HOST, () -> MAX_RETRIES_TOTAL, () -> false, new Blacklist(config));
+                () -> MAX_RETRIES_PER_HOST, () -> MAX_RETRIES_TOTAL, () -> false, new Denylist(config));
 
         handlerConservative = new CassandraRequestExceptionHandler(
-                () -> MAX_RETRIES_PER_HOST, () -> MAX_RETRIES_TOTAL, () -> true, new Blacklist(config));
+                () -> MAX_RETRIES_PER_HOST, () -> MAX_RETRIES_TOTAL, () -> true, new Denylist(config));
     }
 
     @Test
@@ -90,19 +90,19 @@ public class CassandraRequestExceptionHandlerTest {
     @Test
     public void connectionExceptionsWithSufficientAttemptsShouldBlacklistDefault() {
         for (Exception ex : CONNECTION_EXCEPTIONS) {
-            assertThat(handlerLegacy.shouldBlacklist(ex, MAX_RETRIES_PER_HOST - 1))
+            assertThat(handlerLegacy.shouldDenylist(ex, MAX_RETRIES_PER_HOST - 1))
                     .describedAs("MAX_RETRIES_PER_HOST - 1 attempts should not blacklist")
                     .isFalse();
         }
 
         for (Exception ex : CONNECTION_EXCEPTIONS) {
-            assertThat(handlerLegacy.shouldBlacklist(ex, MAX_RETRIES_PER_HOST))
+            assertThat(handlerLegacy.shouldDenylist(ex, MAX_RETRIES_PER_HOST))
                     .describedAs("MAX_RETRIES_PER_HOST attempts with exception %s should blacklist", ex)
                     .isTrue();
         }
 
         Exception ffException = Iterables.get(FAST_FAILOVER_EXCEPTIONS, 0);
-        assertThat(handlerLegacy.shouldBlacklist(ffException, MAX_RETRIES_PER_HOST))
+        assertThat(handlerLegacy.shouldDenylist(ffException, MAX_RETRIES_PER_HOST))
                 .describedAs("Exception %s should not blacklist", ffException)
                 .isFalse();
     }
@@ -199,19 +199,19 @@ public class CassandraRequestExceptionHandlerTest {
     @Test
     public void connectionExceptionsWithSufficientAttemptsShouldBlacklistConservative() {
         for (Exception ex : CONNECTION_EXCEPTIONS) {
-            assertThat(handlerConservative.shouldBlacklist(ex, MAX_RETRIES_PER_HOST - 1))
+            assertThat(handlerConservative.shouldDenylist(ex, MAX_RETRIES_PER_HOST - 1))
                     .describedAs("MAX_RETRIES_PER_HOST - 1 attempts should not blacklist")
                     .isFalse();
         }
 
         for (Exception ex : CONNECTION_EXCEPTIONS) {
-            assertThat(handlerConservative.shouldBlacklist(ex, MAX_RETRIES_PER_HOST))
+            assertThat(handlerConservative.shouldDenylist(ex, MAX_RETRIES_PER_HOST))
                     .describedAs("MAX_RETRIES_PER_HOST attempts with exception %s should blacklist", ex)
                     .isTrue();
         }
 
         Exception ffException = Iterables.get(FAST_FAILOVER_EXCEPTIONS, 0);
-        assertThat(handlerConservative.shouldBlacklist(ffException, MAX_RETRIES_PER_HOST))
+        assertThat(handlerConservative.shouldDenylist(ffException, MAX_RETRIES_PER_HOST))
                 .describedAs("Exception %s should not blacklist", ffException)
                 .isFalse();
     }
@@ -299,7 +299,7 @@ public class CassandraRequestExceptionHandlerTest {
     public void changingHandlerModeHasNoEffectWithoutGetStrategy() {
         Exception ex = Iterables.get(TRANSIENT_EXCEPTIONS, 0);
         CassandraRequestExceptionHandler handler = new CassandraRequestExceptionHandler(
-                () -> MAX_RETRIES_PER_HOST, () -> MAX_RETRIES_TOTAL, this::mutableMode, new Blacklist(config));
+                () -> MAX_RETRIES_PER_HOST, () -> MAX_RETRIES_TOTAL, this::mutableMode, new Denylist(config));
         CassandraRequestExceptionHandler.RequestExceptionHandlerStrategy conservativeStrategy = handler.getStrategy();
         assertThat(handler.shouldBackoff(ex, handler.getStrategy())).isTrue();
 
@@ -337,9 +337,9 @@ public class CassandraRequestExceptionHandlerTest {
     @Test
     public void nonImplicatingExceptionsShouldNeverBlacklist() {
         NOT_IMPLICATING_NODES_EXCEPTIONS.forEach(ex -> {
-            assertThat(handlerConservative.shouldBlacklist(ex, MAX_RETRIES_PER_HOST + 1))
+            assertThat(handlerConservative.shouldDenylist(ex, MAX_RETRIES_PER_HOST + 1))
                     .isFalse();
-            assertThat(handlerLegacy.shouldBlacklist(ex, MAX_RETRIES_PER_HOST + 1))
+            assertThat(handlerLegacy.shouldDenylist(ex, MAX_RETRIES_PER_HOST + 1))
                     .isFalse();
         });
     }
@@ -347,9 +347,9 @@ public class CassandraRequestExceptionHandlerTest {
     @Test
     public void nonImplicatingExceptionWithConnectionAsCauseShouldNeverBlacklist() {
         Exception ex = new InsufficientConsistencyException("insufficient consistency", new SocketTimeoutException());
-        assertThat(handlerConservative.shouldBlacklist(ex, MAX_RETRIES_PER_HOST + 1))
+        assertThat(handlerConservative.shouldDenylist(ex, MAX_RETRIES_PER_HOST + 1))
                 .isFalse();
-        assertThat(handlerLegacy.shouldBlacklist(ex, MAX_RETRIES_PER_HOST + 1)).isFalse();
+        assertThat(handlerLegacy.shouldDenylist(ex, MAX_RETRIES_PER_HOST + 1)).isFalse();
     }
 
     private boolean mutableMode() {

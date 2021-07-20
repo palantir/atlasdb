@@ -33,38 +33,38 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Blacklist {
-    private static final Logger log = LoggerFactory.getLogger(Blacklist.class);
+public class Denylist {
+    private static final Logger log = LoggerFactory.getLogger(Denylist.class);
 
     private final CassandraKeyValueServiceConfig config;
     private final Clock clock;
 
-    private Map<InetSocketAddress, Long> blacklist;
+    private Map<InetSocketAddress, Long> denylist;
 
-    public Blacklist(CassandraKeyValueServiceConfig config) {
+    public Denylist(CassandraKeyValueServiceConfig config) {
         this(config, Clock.systemUTC());
     }
 
     @VisibleForTesting
-    Blacklist(CassandraKeyValueServiceConfig config, Clock clock) {
+    Denylist(CassandraKeyValueServiceConfig config, Clock clock) {
         this.config = config;
-        this.blacklist = new ConcurrentHashMap<>();
+        this.denylist = new ConcurrentHashMap<>();
         this.clock = clock;
     }
 
     void checkAndUpdate(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
-        // Check blacklist and re-integrate or continue to wait as necessary
-        for (Map.Entry<InetSocketAddress, Long> blacklistedEntry : blacklist.entrySet()) {
-            if (coolOffPeriodExpired(blacklistedEntry)) {
-                InetSocketAddress host = blacklistedEntry.getKey();
+        // Check denylist and re-integrate or continue to wait as necessary
+        for (Map.Entry<InetSocketAddress, Long> denylistedEntry : denylist.entrySet()) {
+            if (coolOffPeriodExpired(denylistedEntry)) {
+                InetSocketAddress host = denylistedEntry.getKey();
                 if (!pools.containsKey(host)) {
                     // Probably the pool changed underneath us
-                    blacklist.remove(host);
+                    denylist.remove(host);
                     log.info(
-                            "Removing host {} from the blacklist as it wasn't found in the pool.",
+                            "Removing host {} from the denylist as it wasn't found in the pool.",
                             SafeArg.of("host", CassandraLogHelper.host(host)));
                 } else if (isHostHealthy(pools.get(host))) {
-                    blacklist.remove(host);
+                    denylist.remove(host);
                     log.info(
                             "Added host {} back into the pool after a waiting period and successful health check.",
                             SafeArg.of("host", CassandraLogHelper.host(host)));
@@ -73,9 +73,9 @@ public class Blacklist {
         }
     }
 
-    private boolean coolOffPeriodExpired(Map.Entry<InetSocketAddress, Long> blacklistedEntry) {
+    private boolean coolOffPeriodExpired(Map.Entry<InetSocketAddress, Long> denylistedEntry) {
         long backoffTimeMillis = TimeUnit.SECONDS.toMillis(config.unresponsiveHostBackoffTimeSeconds());
-        return blacklistedEntry.getValue() + backoffTimeMillis < clock.millis();
+        return denylistedEntry.getValue() + backoffTimeMillis < clock.millis();
     }
 
     private boolean isHostHealthy(CassandraClientPoolingContainer container) {
@@ -85,7 +85,7 @@ public class Blacklist {
             return true;
         } catch (Exception e) {
             log.info(
-                    "We tried to add blacklisted host '{}' back into the pool, but got an exception"
+                    "We tried to add denylisted host '{}' back into the pool, but got an exception"
                             + " that caused us to distrust this host further. Exception message was: {} : {}",
                     SafeArg.of("host", CassandraLogHelper.host(container.getHost())),
                     SafeArg.of("exceptionClass", e.getClass().getCanonicalName()),
@@ -96,15 +96,15 @@ public class Blacklist {
     }
 
     public Set<InetSocketAddress> filterBlacklistedHostsFrom(Collection<InetSocketAddress> potentialHosts) {
-        return Sets.difference(ImmutableSet.copyOf(potentialHosts), blacklist.keySet());
+        return Sets.difference(ImmutableSet.copyOf(potentialHosts), denylist.keySet());
     }
 
     boolean contains(InetSocketAddress host) {
-        return blacklist.containsKey(host);
+        return denylist.containsKey(host);
     }
 
     public void add(InetSocketAddress host) {
-        blacklist.put(host, clock.millis());
+        denylist.put(host, clock.millis());
         log.info("Blacklisted host '{}'", SafeArg.of("badHost", CassandraLogHelper.host(host)));
     }
 
@@ -113,27 +113,27 @@ public class Blacklist {
     }
 
     public void remove(InetSocketAddress host) {
-        blacklist.remove(host);
+        denylist.remove(host);
     }
 
     void removeAll() {
-        blacklist.clear();
+        denylist.clear();
     }
 
     int size() {
-        return blacklist.size();
+        return denylist.size();
     }
 
     public String describeBlacklistedHosts() {
-        return blacklist.keySet().toString();
+        return denylist.keySet().toString();
     }
 
-    public List<String> blacklistDetails() {
-        return blacklist.entrySet().stream()
-                .map(blacklistedHostToBlacklistTime -> String.format(
-                        "host: %s was blacklisted at %s",
-                        CassandraLogHelper.host(blacklistedHostToBlacklistTime.getKey()),
-                        blacklistedHostToBlacklistTime.getValue().longValue()))
+    public List<String> denylistDetails() {
+        return denylist.entrySet().stream()
+                .map(denylistedHostToBlacklistTime -> String.format(
+                        "host: %s was denylisted at %s",
+                        CassandraLogHelper.host(denylistedHostToBlacklistTime.getKey()),
+                        denylistedHostToBlacklistTime.getValue().longValue()))
                 .collect(Collectors.toList());
     }
 }
