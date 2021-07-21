@@ -18,7 +18,7 @@ package com.palantir.util.paging;
 import java.io.Serializable;
 
 /**
- *
+ * Supplies a simple token backed result page.
  * @author manthony
  *
  * @param <T>

@@ -36,7 +36,7 @@ public interface Puncher {
     void punch(long timestamp);
 
     /**
-     * @return a timestamp smaller than the timestamp of any currently un-timed-out
+     * Returns a timestamp smaller than the timestamp of any currently un-timed-out
      *         transaction.
      */
     Supplier<Long> getTimestampSupplier();

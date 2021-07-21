@@ -52,6 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Utility methods for JMX operations.
  */
 public final class JMXUtils {
     private static final Logger log = LoggerFactory.getLogger(JMXUtils.class);
@@ -272,7 +273,7 @@ public final class JMXUtils {
     }
 
     /**
-     *
+     * Returns proxy interfaces to all beans registered to the server implementing the class mbeanClazz.
      * @param <T>
      * @param mbeanClazz
      * @return proxy interfaces to all beans registered to the server implementing the class mbeanClazz.

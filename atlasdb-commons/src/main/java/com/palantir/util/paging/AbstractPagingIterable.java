@@ -37,6 +37,8 @@ public abstract class AbstractPagingIterable<T, P extends BasicResultsPage<T>> i
 
     /**
      *
+     * Simple paging iterator.
+     *
      * @author manthony
      *
      * @param <T>

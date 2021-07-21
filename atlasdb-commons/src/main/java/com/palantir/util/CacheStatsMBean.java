@@ -18,7 +18,7 @@ package com.palantir.util;
 import javax.management.MXBean;
 
 /**
- *
+ * Statistics for the {@link MBeanCache}.
  *
  */
 @MXBean

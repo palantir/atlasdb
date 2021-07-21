@@ -18,7 +18,7 @@ package com.palantir.util;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- *
+ * Statistics for the {@link MBeanCache}.
  *
  */
 public class CacheStats implements CacheStatsMBean {
