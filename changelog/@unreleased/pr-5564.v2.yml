@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: |-
+    Reduce calls to sanityCheckDatacenters.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5564
