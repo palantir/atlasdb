@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Verify;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -30,6 +32,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -55,6 +58,8 @@ public final class CassandraVerifier {
             + "and running the appropriate repairs; talking to support first is recommended. "
             + "If you're running in some sort of environment where nodes have no known correlated "
             + "failure patterns, you can set the 'ignoreNodeTopologyChecks' KVS config option.";
+    private static final Cache<CassandraKeyValueServiceConfig, Set<String>> sanityCheckedDatacenters =
+            Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(60)).build();
 
     private CassandraVerifier() {
         // Utility class
@@ -67,6 +72,10 @@ public final class CassandraVerifier {
 
     static Set<String> sanityCheckDatacenters(CassandraClient client, CassandraKeyValueServiceConfig config)
             throws TException {
+        Set<String> cachedDatacenters = sanityCheckedDatacenters.getIfPresent(config);
+        if (cachedDatacenters != null) {
+            return cachedDatacenters;
+        }
         createSimpleRfTestKeyspaceIfNotExists(client);
 
         Multimap<String, String> datacenterToRack = HashMultimap.create();
@@ -83,7 +92,10 @@ public final class CassandraVerifier {
             checkMoreRacksThanRfOrFewerHostsThanRf(config, hosts, datacenterToRack);
         }
 
-        return datacenterToRack.keySet();
+        Set<String> datacenters = datacenterToRack.keySet();
+        sanityCheckedDatacenters.put(config, datacenters);
+
+        return datacenters;
     }
 
     private static void createSimpleRfTestKeyspaceIfNotExists(CassandraClient client) throws TException {
