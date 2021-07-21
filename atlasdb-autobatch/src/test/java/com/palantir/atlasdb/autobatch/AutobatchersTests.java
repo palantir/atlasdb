@@ -51,7 +51,7 @@ public class AutobatchersTests {
         DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(list -> {
                     enqueueLatch.countDown();
                     if (guard.compareAndSet(0, 1)) {
-                        Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
+                        Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30));
                     }
                     list.forEach(element -> element.result().set(new Object()));
                 })
