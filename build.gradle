@@ -4,7 +4,6 @@ buildscript {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        jcenter()
     }
 
     dependencies {
@@ -61,7 +60,6 @@ task printLastVersion {
 allprojects {
     repositories {
         mavenCentral()
-        jcenter()
     }
 
     apply plugin: 'java-library'
