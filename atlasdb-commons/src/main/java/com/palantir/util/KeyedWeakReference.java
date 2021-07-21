@@ -19,7 +19,7 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 
 /**
- *
+ * Keyed Weak Reference.
  *
  */
 public class KeyedWeakReference<K, V> extends WeakReference<V> implements KeyedReference {

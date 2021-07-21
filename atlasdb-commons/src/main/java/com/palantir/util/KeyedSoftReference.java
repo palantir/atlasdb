@@ -19,7 +19,7 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 
 /**
- *
+ * Keyed Soft Reference for {@link SoftCache}.
  *
  */
 public class KeyedSoftReference<K, V> extends SoftReference<V> implements KeyedReference {

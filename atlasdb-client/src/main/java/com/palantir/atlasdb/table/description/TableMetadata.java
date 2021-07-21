@@ -82,7 +82,7 @@ public abstract class TableMetadata implements Persistable {
     }
 
     /**
-     * @return whether the table has densely accessed wide rows. This helps identify tables which could benefit from
+     * Returns whether the table has densely accessed wide rows. This helps identify tables which could benefit from
      * setting database tuning parameters to values more in line with such workflows, like the _transactions2 table.
      */
     @Value.Default

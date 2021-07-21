@@ -17,7 +17,7 @@ package com.palantir.common.base;
 
 public interface AbortingVisitor<T, K extends Exception> {
     /**
-     * @return true if more items should be visited.
+     * Returns true if more items should be visited.
      */
     boolean visit(T item) throws K;
 }

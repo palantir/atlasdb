@@ -133,7 +133,6 @@ allprojects {
                 'JdkObsolete',
                 'LogSafePreconditionsMessageFormat',
                 'MathAbsoluteRandom',
-                'MissingSummary',
                 'MixedMutabilityReturnType',
                 'MockitoInternalUsage',
                 'ModifyCollectionInEnhancedForLoop',

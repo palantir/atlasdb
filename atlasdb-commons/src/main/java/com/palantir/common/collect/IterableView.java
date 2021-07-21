@@ -220,7 +220,7 @@ public abstract class IterableView<T> extends ForwardingObject implements Iterab
     }
 
     /**
-     * @return a sequential {@code Stream} with the contents as its source.
+     * Returns a sequential {@code Stream} with the contents as its source.
      */
     @SuppressWarnings("unchecked")
     public Stream<T> stream() {

@@ -20,7 +20,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 
 /**
- *
+ * Object Input Stream Factory used in {@link com.palantir.common.proxy.SerializingUtils}.
  *
  */
 public interface ObjectInputStreamFactory {

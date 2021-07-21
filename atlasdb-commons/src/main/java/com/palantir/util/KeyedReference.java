@@ -16,7 +16,7 @@
 package com.palantir.util;
 
 /**
- *
+ * Keyed Soft Reference for {@link SoftCache}.
  *
  */
 public interface KeyedReference {
