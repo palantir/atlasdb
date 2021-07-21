@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -35,12 +36,12 @@ public class AsyncInitializerTest {
     private static final int FIVE = 5;
 
     private static class AlwaysFailingInitializer extends AsyncInitializer {
-        volatile int initializationAttempts = 0;
+        final AtomicInteger initializationAttempts = new AtomicInteger(0);
         DeterministicSchedulerShutdownAware deterministicScheduler;
 
         @Override
         public void tryInitialize() {
-            ++initializationAttempts;
+            initializationAttempts.incrementAndGet();
             throw new RuntimeException("Failed initializing");
         }
 
@@ -62,11 +63,11 @@ public class AsyncInitializerTest {
     }
 
     private static final class DeterministicSchedulerShutdownAware extends DeterministicScheduler {
-        volatile int numberOfTimesShutdownCalled = 0;
+        private final AtomicInteger numberOfTimesShutdownCalled = new AtomicInteger(0);
 
         @Override
         public void shutdown() {
-            numberOfTimesShutdownCalled++;
+            numberOfTimesShutdownCalled.incrementAndGet();
         }
     }
 
@@ -101,7 +102,7 @@ public class AsyncInitializerTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Multiple calls tried to initialize the same instance.");
         tickSchedulerFiveTimes(initializer);
-        assertThat(initializer.initializationAttempts).isEqualTo(1);
+        assertThat(initializer.initializationAttempts.get()).isEqualTo(1);
     }
 
     @Test
@@ -113,7 +114,7 @@ public class AsyncInitializerTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Multiple calls tried to initialize the same instance.");
         tickSchedulerFiveTimes(initializer);
-        assertThat(initializer.initializationAttempts).isEqualTo(1 + FIVE);
+        assertThat(initializer.initializationAttempts.get()).isEqualTo(1 + FIVE);
     }
 
     @Test
@@ -121,7 +122,7 @@ public class AsyncInitializerTest {
         AlwaysFailingInitializer eventuallySuccessfulInitializer = new AlwaysFailingInitializer() {
             @Override
             public void tryInitialize() {
-                if (initializationAttempts < FIVE) {
+                if (initializationAttempts.get() < FIVE) {
                     super.tryInitialize();
                 }
             }
@@ -154,7 +155,7 @@ public class AsyncInitializerTest {
         AlwaysFailingInitializer selfCancellingInitializer = new AlwaysFailingInitializer() {
             @Override
             public void tryInitialize() {
-                if (++initializationAttempts <= 6) {
+                if (initializationAttempts.incrementAndGet() <= 6) {
                     throw new RuntimeException("Fail 6 times");
                 }
                 cancelInitialization(cleanupTask);
@@ -175,7 +176,7 @@ public class AsyncInitializerTest {
         AlwaysFailingInitializer successfulInitializer = new AlwaysFailingInitializer() {
             @Override
             public void tryInitialize() {
-                ++initializationAttempts;
+                initializationAttempts.incrementAndGet();
             }
         };
         Runnable cleanupTask = mock(Runnable.class);
@@ -193,9 +194,9 @@ public class AsyncInitializerTest {
     private void fiveTicksAndAssertNumberOfShutdownsAndAttempts(
             AlwaysFailingInitializer initializer, int shutdowns, int attempts) {
         tickSchedulerFiveTimes(initializer);
-        assertThat(initializer.deterministicScheduler.numberOfTimesShutdownCalled)
+        assertThat(initializer.deterministicScheduler.numberOfTimesShutdownCalled.get())
                 .isEqualTo(shutdowns);
-        assertThat(initializer.initializationAttempts).isEqualTo(attempts);
+        assertThat(initializer.initializationAttempts.get()).isEqualTo(attempts);
     }
 
     private AsyncInitializer getMockedInitializer() {

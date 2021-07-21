@@ -16,10 +16,12 @@
 package com.palantir.timestamp;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class InMemoryTimestampBoundStore implements TimestampBoundStore {
+    private final AtomicInteger numberOfAllocations = new AtomicInteger(0);
+
     private volatile long upperLimit = 0;
-    private volatile int numberOfAllocations = 0;
     private boolean shouldThrowErrorMultipleServerError = false;
     private Optional<RuntimeException> error = Optional.empty();
 
@@ -28,6 +30,7 @@ public class InMemoryTimestampBoundStore implements TimestampBoundStore {
         return upperLimit;
     }
 
+    @SuppressWarnings("NonAtomicVolatileUpdate")
     @Override
     public void storeUpperLimit(long newLimit) throws MultipleRunningTimestampServiceError {
         if (shouldThrowErrorMultipleServerError) {
@@ -37,7 +40,7 @@ public class InMemoryTimestampBoundStore implements TimestampBoundStore {
         if (error.isPresent()) {
             throw error.orElse(null);
         }
-        numberOfAllocations++;
+        numberOfAllocations.incrementAndGet();
         upperLimit = newLimit;
     }
 
@@ -46,7 +49,7 @@ public class InMemoryTimestampBoundStore implements TimestampBoundStore {
     }
 
     public int numberOfAllocations() {
-        return numberOfAllocations;
+        return numberOfAllocations.get();
     }
 
     public void failWith(RuntimeException ex) {
