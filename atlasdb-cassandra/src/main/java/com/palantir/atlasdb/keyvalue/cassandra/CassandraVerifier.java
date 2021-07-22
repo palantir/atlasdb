@@ -29,6 +29,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.net.InetSocketAddress;
@@ -70,12 +71,18 @@ public final class CassandraVerifier {
         return null;
     };
 
-    static Set<String> sanityCheckDatacenters(CassandraClient client, CassandraKeyValueServiceConfig config)
-            throws TException {
-        Set<String> cachedDatacenters = sanityCheckedDatacenters.getIfPresent(config);
-        if (cachedDatacenters != null) {
-            return cachedDatacenters;
-        }
+    static Set<String> sanityCheckDatacenters(CassandraClient client, CassandraKeyValueServiceConfig config) {
+        return sanityCheckedDatacenters.get(config, kvsConfig -> {
+            try {
+                return sanityCheckDatacentersInternal(client, kvsConfig);
+            } catch (TException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        });
+    }
+
+    private static Set<String> sanityCheckDatacentersInternal(
+            CassandraClient client, CassandraKeyValueServiceConfig config) throws TException {
         createSimpleRfTestKeyspaceIfNotExists(client);
 
         Multimap<String, String> datacenterToRack = HashMultimap.create();
@@ -92,10 +99,7 @@ public final class CassandraVerifier {
             checkMoreRacksThanRfOrFewerHostsThanRf(config, hosts, datacenterToRack);
         }
 
-        Set<String> datacenters = datacenterToRack.keySet();
-        sanityCheckedDatacenters.put(config, datacenters);
-
-        return datacenters;
+        return datacenterToRack.keySet();
     }
 
     private static void createSimpleRfTestKeyspaceIfNotExists(CassandraClient client) throws TException {
@@ -276,7 +280,7 @@ public final class CassandraVerifier {
         });
     }
 
-    static KsDef createKsDefForFresh(CassandraClient client, CassandraKeyValueServiceConfig config) throws TException {
+    static KsDef createKsDefForFresh(CassandraClient client, CassandraKeyValueServiceConfig config) {
         KsDef ksDef = new KsDef(config.getKeyspaceOrThrow(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
         Set<String> dcs = sanityCheckDatacenters(client, config);
         ksDef.setStrategy_options(Maps.asMap(dcs, ignore -> String.valueOf(config.replicationFactor())));
@@ -285,7 +289,7 @@ public final class CassandraVerifier {
     }
 
     static KsDef checkAndSetReplicationFactor(
-            CassandraClient client, KsDef ksDef, CassandraKeyValueServiceConfig config) throws TException {
+            CassandraClient client, KsDef ksDef, CassandraKeyValueServiceConfig config) {
         KsDef result = ksDef;
         Set<String> datacenters;
         if (Objects.equals(result.getStrategy_class(), CassandraConstants.SIMPLE_STRATEGY)) {
@@ -300,7 +304,7 @@ public final class CassandraVerifier {
     }
 
     private static Set<String> getDcForSimpleStrategy(
-            CassandraClient client, KsDef ksDef, CassandraKeyValueServiceConfig config) throws TException {
+            CassandraClient client, KsDef ksDef, CassandraKeyValueServiceConfig config) {
         checkKsDefRfEqualsOne(ksDef, config);
         Set<String> datacenters = sanityCheckDatacenters(client, config);
         checkOneDatacenter(config, datacenters);
