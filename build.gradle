@@ -24,9 +24,9 @@ buildscript {
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '6.1.0'
-    id 'com.palantir.consistent-versions' version '1.30.0'
+    id 'com.palantir.consistent-versions' version '2.0.0'
     id 'org.unbroken-dome.test-sets' version '4.0.0'
-    id 'com.google.protobuf' version '0.8.16'
+    id 'com.google.protobuf' version '0.8.17'
 }
 
 apply plugin: 'com.palantir.baseline'
