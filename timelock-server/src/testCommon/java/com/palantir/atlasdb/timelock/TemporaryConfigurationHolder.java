@@ -20,6 +20,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Locale;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
