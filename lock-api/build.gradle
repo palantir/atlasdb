@@ -59,4 +59,5 @@ dependencies {
       exclude group: 'org.hamcrest'
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
+    implementation 'com.palantir.safe-logging:logger'
 }

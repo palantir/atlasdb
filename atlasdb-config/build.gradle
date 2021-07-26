@@ -95,4 +95,6 @@ dependencies {
     testCompile group: 'com.github.stefanbirkner', name: 'system-rules'
     // Needed for Jersey Response-based tests
     testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
+    implementation 'com.palantir.safe-logging:logger'
+    testImplementation 'com.palantir.safe-logging:logger'
 }

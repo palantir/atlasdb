@@ -19,6 +19,8 @@ import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SQLConstants;
 import com.palantir.nexus.db.ThreadConfinedProxy;
@@ -35,8 +37,6 @@ import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.format.DateTimeFormat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BasicSQLUtils {
 
@@ -246,7 +246,7 @@ public class BasicSQLUtils {
         return out.toString();
     }
 
-    private static final Logger cancelLogger = LoggerFactory.getLogger("SQLUtils.cancel"); // $NON-NLS-1$
+    private static final SafeLogger cancelLogger = SafeLoggerFactory.get("SQLUtils.cancel"); // $NON-NLS-1$
 
     /**
      * Helper method for wrapping quick calls that don't appreciate being interrupted.

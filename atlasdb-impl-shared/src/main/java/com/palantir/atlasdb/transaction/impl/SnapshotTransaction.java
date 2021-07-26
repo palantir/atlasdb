@@ -132,6 +132,8 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -190,7 +192,7 @@ import org.slf4j.LoggerFactory;
 public class SnapshotTransaction extends AbstractTransaction implements ConstraintCheckingTransaction {
     private static final Logger log = LoggerFactory.getLogger(SnapshotTransaction.class);
     private static final Logger perfLogger = LoggerFactory.getLogger("dualschema.perf");
-    private static final Logger constraintLogger = LoggerFactory.getLogger("dualschema.constraints");
+    private static final SafeLogger constraintLogger = SafeLoggerFactory.get("dualschema.constraints");
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
 

@@ -19,19 +19,19 @@ package com.palantir.atlasdb.internalschema;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class TransactionSchemaInstaller implements AutoCloseable {
     private static final ScheduledExecutorService sharedScheduledExecutorService =
             PTExecutors.newSingleThreadScheduledExecutor(PTExecutors.newNamedThreadFactory(true));
-    private static final Logger log = LoggerFactory.getLogger(TransactionSchemaInstaller.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TransactionSchemaInstaller.class);
 
     @VisibleForTesting
     static final Duration POLLING_INTERVAL = Duration.ofMinutes(10);

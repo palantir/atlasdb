@@ -30,4 +30,5 @@ dependencies {
   testImplementation project(':atlasdb-remoting-api')
 
   testCompile project(":atlasdb-config")
+    implementation 'com.palantir.safe-logging:logger'
 }

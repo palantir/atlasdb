@@ -25,6 +25,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
@@ -41,8 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Clients register their intent to check whether the given remote is their leader. Periodically, the total set of
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  */
 final class CumulativeLeaderPinger extends AbstractScheduledService implements ClientAwareLeaderPinger {
 
-    private static final Logger log = LoggerFactory.getLogger(CumulativeLeaderPinger.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CumulativeLeaderPinger.class);
 
     private final LeaderPingerContext<BatchPingableLeader> remoteClient;
     private final Duration leaderPingRate;

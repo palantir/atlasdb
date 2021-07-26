@@ -24,6 +24,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -32,11 +34,9 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.NotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class HostnamesByIpSupplier implements Supplier<Map<String, String>> {
-    private static final Logger log = LoggerFactory.getLogger(HostnamesByIpSupplier.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(HostnamesByIpSupplier.class);
 
     private static final String SYSTEM_PALANTIR_KEYSPACE = "system_palantir";
     private static final String HOSTNAMES_BY_IP_TABLE = "hostnames_by_ip";

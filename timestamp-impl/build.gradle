@@ -29,4 +29,5 @@ dependencies {
   }
   testCompile group: 'org.awaitility', name: 'awaitility'
   testCompile group: 'org.mockito', name: 'mockito-core'
+    implementation 'com.palantir.safe-logging:logger'
 }

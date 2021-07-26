@@ -42,6 +42,7 @@ dependencies {
     implementation project(':timestamp-api')
 
     runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
+    implementation 'com.palantir.safe-logging:logger'
 }
 
 distribution {

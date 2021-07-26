@@ -24,6 +24,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.LeaderPingResult;
 import com.palantir.paxos.LeaderPingResults;
 import com.palantir.paxos.LeaderPinger;
@@ -43,8 +45,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of a paxos member than can be a designated proposer (leader) and designated
@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
  * @author rullman
  */
 public class PaxosLeaderElectionService implements LeaderElectionService {
-    private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(PaxosLeaderElectionService.class);
 
     // stored here to be consistent when proposing to take over leadership
     private static final byte[] LEADERSHIP_PROPOSAL_VALUE = null;

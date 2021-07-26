@@ -68,4 +68,5 @@ dependencies {
     }
 
     testCompile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
+    implementation 'com.palantir.safe-logging:logger'
 }

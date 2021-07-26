@@ -21,9 +21,9 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The SimpleCleaner simply delegates to the various specialized objects that do the real work.
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * @author jweel
  */
 public class SimpleCleaner implements Cleaner {
-    private static final Logger log = LoggerFactory.getLogger(SimpleCleaner.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SimpleCleaner.class);
 
     private final Scrubber scrubber;
     private final Puncher puncher;

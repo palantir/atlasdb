@@ -24,6 +24,8 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
 import java.util.Arrays;
 import java.util.List;
@@ -35,11 +37,9 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class CassandraTimestampUtils {
-    private static final Logger log = LoggerFactory.getLogger(CassandraTimestampUtils.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraTimestampUtils.class);
 
     public static final String ROW_AND_COLUMN_NAME = CassandraTimestampBoundStore.ROW_AND_COLUMN_NAME;
     public static final String BACKUP_COLUMN_NAME = "oldTs";
