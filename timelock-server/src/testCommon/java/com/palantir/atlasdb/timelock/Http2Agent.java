@@ -17,16 +17,16 @@
 package com.palantir.atlasdb.timelock;
 
 import com.ea.agentloader.AgentLoader;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.lang.instrument.Instrumentation;
 import org.mortbay.jetty.alpn.agent.Premain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A very simple wrapper around the jetty-alpn-agent for dynamic loading. */
 public final class Http2Agent {
     private Http2Agent() {}
 
-    private static final SafeLogger log = SafeLoggerFactory.get(Http2Agent.class);
+    private static final Logger log = LoggerFactory.getLogger(Http2Agent.class);
 
     private static boolean hasBeenInstalled = false;
 

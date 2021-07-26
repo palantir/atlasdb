@@ -21,12 +21,12 @@ import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class SingleBackendCommand extends AbstractCommand {
-    private static final SafeLogger log = SafeLoggerFactory.get(SingleBackendCommand.class);
+    private static final Logger log = LoggerFactory.getLogger(SingleBackendCommand.class);
 
     @Override
     public Integer call() {

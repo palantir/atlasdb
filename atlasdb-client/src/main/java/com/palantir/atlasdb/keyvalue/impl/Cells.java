@@ -37,8 +37,6 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.annotation.Output;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -49,9 +47,11 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Cells {
-    private static final SafeLogger log = SafeLoggerFactory.get(Cells.class);
+    private static final Logger log = LoggerFactory.getLogger(Cells.class);
 
     private Cells() {
         /* */

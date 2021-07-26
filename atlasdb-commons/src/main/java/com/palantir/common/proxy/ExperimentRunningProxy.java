@@ -21,8 +21,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -33,10 +31,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("ProxyNonConstantType")
 public final class ExperimentRunningProxy<T> extends AbstractInvocationHandler {
-    private static final SafeLogger log = SafeLoggerFactory.get(ExperimentRunningProxy.class);
+    private static final Logger log = LoggerFactory.getLogger(ExperimentRunningProxy.class);
     static final Duration REFRESH_INTERVAL = Duration.ofMinutes(10);
     static final Duration CLIENT_REFRESH_INTERVAL = Duration.ofMinutes(30);
 

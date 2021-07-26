@@ -27,8 +27,6 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
 import java.lang.management.ManagementFactory;
@@ -54,9 +52,11 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TMemoryInputTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CassandraClientPoolingContainer implements PoolingContainer<CassandraClient> {
-    private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolingContainer.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
 
     private final InetSocketAddress host;
     private final CassandraKeyValueServiceConfig config;

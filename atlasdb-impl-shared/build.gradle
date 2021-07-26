@@ -111,7 +111,6 @@ dependencies {
   }
 
   testRuntime group: 'ch.qos.logback', name: 'logback-classic'
-    implementation 'com.palantir.safe-logging:logger'
 }
 
 configurations.testCompile {

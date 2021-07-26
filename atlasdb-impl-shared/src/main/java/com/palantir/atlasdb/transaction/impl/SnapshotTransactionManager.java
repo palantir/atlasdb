@@ -56,8 +56,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.SafeShutdownRunner;
@@ -73,9 +71,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
-    private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransactionManager.class);
+    private static final Logger log = LoggerFactory.getLogger(SnapshotTransactionManager.class);
 
     private static final int NUM_RETRIES = 10;
 

@@ -22,12 +22,12 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.conjure.java.server.jersey.WebPreconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SweeperServiceImpl implements SweeperService {
-    private static final SafeLogger log = SafeLoggerFactory.get(SweeperServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(SweeperServiceImpl.class);
 
     private final SpecificTableSweeper specificTableSweeper;
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;

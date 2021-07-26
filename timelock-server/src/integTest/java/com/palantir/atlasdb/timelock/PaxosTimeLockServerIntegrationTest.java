@@ -30,8 +30,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
 import org.awaitility.Awaitility;
@@ -40,10 +38,12 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PaxosTimeLockServerIntegrationTest {
 
-    private static final SafeLogger log = SafeLoggerFactory.get(PaxosTimeLockServerIntegrationTest.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosTimeLockServerIntegrationTest.class);
 
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";

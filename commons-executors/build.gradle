@@ -17,5 +17,4 @@ dependencies {
 
     testCompile group: 'com.google.guava', name: 'guava'
     testCompileOnly 'org.immutables:value::annotations'
-    implementation 'com.palantir.safe-logging:logger'
 }

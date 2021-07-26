@@ -23,15 +23,15 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SafeLoggableDataUtils {
-    private static final SafeLogger log = SafeLoggerFactory.get(SafeLoggableDataUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(SafeLoggableDataUtils.class);
     private static final Predicate<LogSafety> IS_SAFE = safety -> safety == LogSafety.SAFE;
 
     private SafeLoggableDataUtils() {

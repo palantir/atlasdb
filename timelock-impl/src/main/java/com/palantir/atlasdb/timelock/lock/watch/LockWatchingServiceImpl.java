@@ -31,8 +31,6 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -43,6 +41,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Note on concurrency: We use a fair read write lock mechanism and synchronisation as follows:
@@ -61,7 +61,7 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings("UnstableApiUsage")
 public class LockWatchingServiceImpl implements LockWatchingService {
-    private static final SafeLogger log = SafeLoggerFactory.get(LockWatchingServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(LockWatchingServiceImpl.class);
 
     private final LockEventLog lockEventLog;
     private final AtomicReference<LockWatches> watches = new AtomicReference<>(LockWatches.create());

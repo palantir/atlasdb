@@ -36,8 +36,6 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
@@ -50,6 +48,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
 @Deprecated
 public class TransactionPostMortemRunner {
 
-    private static final SafeLogger log = SafeLoggerFactory.get(TransactionPostMortemRunner.class);
+    private static final Logger log = LoggerFactory.getLogger(TransactionPostMortemRunner.class);
 
     private final String timelockNamespace;
     private final ClientLockDiagnosticCollector clientLockDiagnosticCollector;

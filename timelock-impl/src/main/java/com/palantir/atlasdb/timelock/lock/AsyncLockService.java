@@ -23,18 +23,18 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AsyncLockService implements Closeable {
 
-    private static final SafeLogger log = SafeLoggerFactory.get(AsyncLockService.class);
+    private static final Logger log = LoggerFactory.getLogger(AsyncLockService.class);
 
     private final LockCollection locks;
     private final LockAcquirer lockAcquirer;

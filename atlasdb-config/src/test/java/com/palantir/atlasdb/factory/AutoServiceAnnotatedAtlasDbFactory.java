@@ -24,8 +24,6 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.ArrayList;
@@ -33,6 +31,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 import org.jmock.Mockery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @AutoService(AtlasDbFactory.class)
 public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
@@ -41,7 +41,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory<KeyVal
     private static final Mockery context = new Mockery();
     private static final KeyValueService keyValueService = context.mock(KeyValueService.class);
     private static List<ManagedTimestampService> nextTimestampServices = new ArrayList<>();
-    private static final SafeLogger log = SafeLoggerFactory.get(AutoServiceAnnotatedAtlasDbFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(AutoServiceAnnotatedAtlasDbFactory.class);
 
     @Override
     public String getType() {

@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
 import com.google.common.base.Suppliers;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +26,11 @@ import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ThriftQueryWeighers {
-    private static final SafeLogger log = SafeLoggerFactory.get(ThriftQueryWeighers.class);
+    private static final Logger log = LoggerFactory.getLogger(ThriftQueryWeighers.class);
 
     static final int ESTIMATED_NUM_BYTES_PER_ROW = 100;
 

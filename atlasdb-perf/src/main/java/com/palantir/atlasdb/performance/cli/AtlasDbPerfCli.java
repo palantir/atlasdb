@@ -23,8 +23,6 @@ import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
 import io.airlift.airline.HelpOption;
@@ -46,6 +44,8 @@ import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The Atlas Perf(ormance) CLI is a tool for making and running AtlasDB performance tests.
@@ -56,7 +56,7 @@ import org.reflections.scanners.MethodAnnotationsScanner;
  */
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCli {
-    private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbPerfCli.class);
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbPerfCli.class);
 
     @Inject
     private HelpOption helpOption;

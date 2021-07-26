@@ -38,8 +38,6 @@ import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,9 +45,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class LockWatchManagerImpl extends LockWatchManagerInternal {
-    private static final SafeLogger log = SafeLoggerFactory.get(LockWatchManagerImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(LockWatchManagerImpl.class);
 
     private final Set<LockWatchReferences.LockWatchReference> referencesFromSchema;
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = ConcurrentHashMap.newKeySet();

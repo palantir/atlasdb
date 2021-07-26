@@ -22,8 +22,6 @@ import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.leader.proxy.LeadershipCoordinator;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
@@ -36,10 +34,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LeadershipComponents {
 
-    private static final SafeLogger log = SafeLoggerFactory.get(LeadershipComponents.class);
+    private static final Logger log = LoggerFactory.getLogger(LeadershipComponents.class);
 
     private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = new ConcurrentHashMap<>();
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();

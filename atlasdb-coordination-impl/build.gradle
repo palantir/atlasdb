@@ -26,5 +26,4 @@ dependencies {
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
-    implementation 'com.palantir.safe-logging:logger'
 }

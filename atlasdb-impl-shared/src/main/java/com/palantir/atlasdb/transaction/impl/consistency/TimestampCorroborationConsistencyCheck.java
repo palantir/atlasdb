@@ -19,10 +19,10 @@ import com.palantir.atlasdb.factory.ImmutableTransactionManagerConsistencyResult
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.function.ToLongFunction;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Compares a source of fresh timestamps against a conservative lower bound that should always be strictly lower than
@@ -33,7 +33,7 @@ import org.immutables.value.Value;
  */
 @Value.Immutable
 public abstract class TimestampCorroborationConsistencyCheck implements TransactionManagerConsistencyCheck {
-    private static final SafeLogger log = SafeLoggerFactory.get(TimestampCorroborationConsistencyCheck.class);
+    private static final Logger log = LoggerFactory.getLogger(TimestampCorroborationConsistencyCheck.class);
 
     protected abstract ToLongFunction<TransactionManager> conservativeBound();
 

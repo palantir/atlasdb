@@ -21,8 +21,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.paxos.HealthCheckDigest;
@@ -33,9 +31,11 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class NoSimultaneousServiceCheck {
-    private static final SafeLogger log = SafeLoggerFactory.get(NoSimultaneousServiceCheck.class);
+    private static final Logger log = LoggerFactory.getLogger(NoSimultaneousServiceCheck.class);
 
     private static final int REQUIRED_ATTEMPTS_BEFORE_GIVING_UP = 5;
 

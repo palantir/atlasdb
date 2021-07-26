@@ -35,8 +35,6 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
@@ -45,6 +43,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class coalesces write (that is, put-unless-exists) requests to an underlying {@link EncodingTransactionService},
@@ -54,7 +54,7 @@ import org.immutables.value.Value;
  * {@link KeyAlreadyExistsException#getExistingKeys()}.
  */
 public final class WriteBatchingTransactionService implements TransactionService {
-    private static final SafeLogger log = SafeLoggerFactory.get(WriteBatchingTransactionService.class);
+    private static final Logger log = LoggerFactory.getLogger(WriteBatchingTransactionService.class);
 
     private final EncodingTransactionService delegate;
     private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;

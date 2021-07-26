@@ -30,8 +30,6 @@ import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -48,9 +46,11 @@ import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.SlicePredicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class CellLoader {
-    private static final SafeLogger log = SafeLoggerFactory.get(CellLoader.class);
+    private static final Logger log = LoggerFactory.getLogger(CellLoader.class);
 
     private final CassandraClientPool clientPool;
     private final WrappingQueryRunner queryRunner;

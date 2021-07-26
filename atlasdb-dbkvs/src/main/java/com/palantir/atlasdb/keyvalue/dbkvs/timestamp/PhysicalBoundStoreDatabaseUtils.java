@@ -17,8 +17,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -27,9 +25,11 @@ import java.sql.Statement;
 import java.util.OptionalLong;
 import java.util.function.Function;
 import org.postgresql.util.PSQLState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class PhysicalBoundStoreDatabaseUtils {
-    private static final SafeLogger log = SafeLoggerFactory.get(PhysicalBoundStoreDatabaseUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(PhysicalBoundStoreDatabaseUtils.class);
 
     private PhysicalBoundStoreDatabaseUtils() {
         // utilities

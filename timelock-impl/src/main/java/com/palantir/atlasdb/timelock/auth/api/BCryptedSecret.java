@@ -17,14 +17,14 @@
 package com.palantir.atlasdb.timelock.auth.api;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import org.immutables.value.Value;
 import org.mindrot.jbcrypt.BCrypt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Value.Immutable
 public abstract class BCryptedSecret {
-    private static final SafeLogger log = SafeLoggerFactory.get(BCryptedSecret.class);
+    private static final Logger log = LoggerFactory.getLogger(BCryptedSecret.class);
 
     abstract String hashedSecret();
 

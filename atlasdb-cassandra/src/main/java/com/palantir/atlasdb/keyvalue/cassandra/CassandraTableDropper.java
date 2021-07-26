@@ -20,16 +20,16 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.Throwables;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class CassandraTableDropper {
-    private static final SafeLogger log = SafeLoggerFactory.get(CassandraTableDropper.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraTableDropper.class);
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
     private final CassandraTableMetadata cassandraTableMetadata;

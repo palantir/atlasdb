@@ -21,12 +21,12 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Releases lock tokens from a {@link TimelockService} asynchronously.
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  * Thus not retrying is reasonably safe (as long as we can guarantee that the lock won't otherwise be refreshed).
  */
 public final class AsyncTimeLockUnlocker implements TimeLockUnlocker, AutoCloseable {
-    private static final SafeLogger log = SafeLoggerFactory.get(AsyncTimeLockUnlocker.class);
+    private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockUnlocker.class);
     private final DisruptorAutobatcher<Set<LockToken>, Void> autobatcher;
 
     private AsyncTimeLockUnlocker(DisruptorAutobatcher<Set<LockToken>, Void> autobatcher) {

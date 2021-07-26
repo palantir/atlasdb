@@ -22,8 +22,6 @@ import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
 import java.time.Duration;
@@ -31,10 +29,12 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class NamespaceTakeoverResource implements NamespaceLeadershipTakeoverService {
 
-    private static final SafeLogger log = SafeLoggerFactory.get(NamespaceTakeoverResource.class);
+    private static final Logger log = LoggerFactory.getLogger(NamespaceTakeoverResource.class);
     private static final Duration RANDOM_WAIT_BEFORE_BACKOFF = Duration.ofMillis(500);
 
     private final LeadershipComponents leadershipComponents;

@@ -27,16 +27,16 @@ import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WriteInfoPartitioner {
-    private static final SafeLogger log = SafeLoggerFactory.get(WriteInfoPartitioner.class);
+    private static final Logger log = LoggerFactory.getLogger(WriteInfoPartitioner.class);
 
     private final KeyValueService kvs;
     private final Supplier<Integer> numShards;

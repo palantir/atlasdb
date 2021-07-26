@@ -23,8 +23,6 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 import java.io.File;
 import java.io.IOException;
@@ -47,9 +45,11 @@ import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class RocksDbPersistentStore implements PersistentStore {
-    private static final SafeLogger log = SafeLoggerFactory.get(RocksDbPersistentStore.class);
+    private static final Logger log = LoggerFactory.getLogger(RocksDbPersistentStore.class);
 
     private final ConcurrentMap<UUID, ColumnFamilyHandle> availableColumnFamilies = new ConcurrentHashMap<>();
     private final RocksDB rocksDB;

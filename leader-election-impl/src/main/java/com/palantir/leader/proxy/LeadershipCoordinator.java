@@ -25,8 +25,6 @@ import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.Optional;
@@ -34,6 +32,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is the component of TimeLock that is responsible for coordinating and maintaining a consistent leadership state
@@ -49,7 +49,7 @@ import javax.annotation.Nullable;
  * 3. To verify if we are still the leader
  */
 public final class LeadershipCoordinator implements Closeable {
-    private static final SafeLogger log = SafeLoggerFactory.get(LeadershipCoordinator.class);
+    private static final Logger log = LoggerFactory.getLogger(LeadershipCoordinator.class);
 
     private static final Duration GAIN_LEADERSHIP_BACKOFF = Duration.ofMillis(500);
 
