@@ -30,7 +30,6 @@ public class InMemoryTimestampBoundStore implements TimestampBoundStore {
         return upperLimit;
     }
 
-    @SuppressWarnings("NonAtomicVolatileUpdate")
     @Override
     public void storeUpperLimit(long newLimit) throws MultipleRunningTimestampServiceError {
         if (shouldThrowErrorMultipleServerError) {
