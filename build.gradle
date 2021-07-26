@@ -163,6 +163,7 @@ allprojects {
                 'TypeParameterUnusedInFormals',
                 'UndefinedEquals',
                 'UnnecessaryLambda',
+                'UnrecognisedJavadocTag',
                 'UseCorrectAssertInTests',
                 'ValidateConstantMessage',
                 'VisibleForTestingPackagePrivate'
