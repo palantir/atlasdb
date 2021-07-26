@@ -37,4 +37,5 @@ dependencies {
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.palantir.tracing', name: 'tracing-test-utils'
+    implementation 'com.palantir.safe-logging:logger'
 }

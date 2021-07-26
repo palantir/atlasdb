@@ -22,14 +22,14 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:FinalClass") // Used for mocking
 public class SingleLockService implements AutoCloseable {
-    private static final Logger log = LoggerFactory.getLogger(SingleLockService.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SingleLockService.class);
 
     private final RemoteLockService lockService;
     private final String lockId;

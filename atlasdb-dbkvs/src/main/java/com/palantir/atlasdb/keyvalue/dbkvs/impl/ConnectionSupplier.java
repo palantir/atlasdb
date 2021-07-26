@@ -15,14 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.sql.SQLException;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConnectionSupplier implements SqlConnectionSupplier {
-    private static final Logger log = LoggerFactory.getLogger(ConnectionSupplier.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(ConnectionSupplier.class);
     private volatile SqlConnection sharedConnection;
     private final Supplier<SqlConnection> delegate;
 

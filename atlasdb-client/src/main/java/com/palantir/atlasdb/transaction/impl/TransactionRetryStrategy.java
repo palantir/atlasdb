@@ -32,13 +32,13 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntPredicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class TransactionRetryStrategy {
     public enum Strategies {
@@ -56,7 +56,7 @@ public final class TransactionRetryStrategy {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(TransactionRetryStrategy.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TransactionRetryStrategy.class);
     private final WaitStrategy waitStrategy;
     private final BlockStrategy blockStrategy;
 

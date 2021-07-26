@@ -20,14 +20,14 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("FinalClass")
 public class TimeLockMigrator extends AsyncInitializer {
-    private static final Logger log = LoggerFactory.getLogger(TimeLockMigrator.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TimeLockMigrator.class);
 
     private final TimestampStoreInvalidator source;
     private final TimestampManagementService destination;

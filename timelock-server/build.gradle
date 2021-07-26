@@ -214,4 +214,6 @@ dependencies {
     integTestImplementation project(':timelock-api:timelock-api-objects')
     integTestImplementation project(':timelock-impl')
     integTestImplementation project(':timestamp-api')
+    integTestImplementation 'com.palantir.safe-logging:logger'
+    testCommonImplementation 'com.palantir.safe-logging:logger'
 }

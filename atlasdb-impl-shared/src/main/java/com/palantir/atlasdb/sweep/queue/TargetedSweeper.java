@@ -40,17 +40,17 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSweeper {
-    private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TargetedSweeper.class);
 
     private final boolean shouldResetAndStopSweep;
     private final Supplier<TargetedSweepRuntimeConfig> runtime;

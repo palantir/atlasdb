@@ -21,16 +21,16 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializab
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializableTable.BlobsSerializableRow;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.random.RandomBytes;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class TransactionWriteBenchmarkContended extends AbstractBenchmark {
 
-    private static final Logger log = LoggerFactory.getLogger(TransactionWriteBenchmarkContended.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TransactionWriteBenchmarkContended.class);
 
     private static final BenchmarksTableFactory tableFactory = BenchmarksTableFactory.of();
 

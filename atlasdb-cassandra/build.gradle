@@ -100,6 +100,7 @@ dependencies {
   compileOnly 'com.google.auto.service:auto-service'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
+    implementation 'com.palantir.safe-logging:logger'
 }
 
 shadowJar {

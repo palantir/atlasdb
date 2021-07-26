@@ -71,4 +71,5 @@ dependencies {
   testCompile(group: 'org.jmock', name: 'jmock') {
       exclude group: 'org.hamcrest'
   }
+    testImplementation 'com.palantir.safe-logging:logger'
 }

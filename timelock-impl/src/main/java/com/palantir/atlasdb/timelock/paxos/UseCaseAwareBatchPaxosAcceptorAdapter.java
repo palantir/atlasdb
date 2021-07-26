@@ -20,6 +20,8 @@ import static com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient.CA
 
 import com.google.common.collect.SetMultimap;
 import com.palantir.conjure.java.api.errors.RemoteException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosPromise;
@@ -29,12 +31,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class UseCaseAwareBatchPaxosAcceptorAdapter implements BatchPaxosAcceptor {
 
-    private static final Logger log = LoggerFactory.getLogger(UseCaseAwareBatchPaxosAcceptorAdapter.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(UseCaseAwareBatchPaxosAcceptorAdapter.class);
 
     private final PaxosUseCase useCase;
     private final BatchPaxosAcceptorRpcClient rpcClient;

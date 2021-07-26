@@ -33,11 +33,11 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.conjure.java.jackson.optimizations.ObjectMapperOptimizations;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class SweepProgressStoreImpl implements SweepProgressStore {
 
@@ -59,7 +59,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(SweepProgressStoreImpl.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SweepProgressStoreImpl.class);
 
     private final KeyValueService kvs;
     private final InitializingWrapper wrapper = new InitializingWrapper();

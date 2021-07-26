@@ -134,4 +134,6 @@ dependencies {
 
   integrationInputAnnotationProcessor group: 'org.immutables', name: 'value'
   integrationInputCompileOnly 'org.immutables:value::annotations'
+    implementation 'com.palantir.safe-logging:logger'
+    testImplementation 'com.palantir.safe-logging:logger'
 }
