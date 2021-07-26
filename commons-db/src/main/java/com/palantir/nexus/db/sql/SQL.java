@@ -20,6 +20,8 @@ import com.palantir.common.base.Throwables;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 import com.palantir.db.oracle.JdbcHandler.BlobHandler;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
@@ -38,8 +40,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Routines for issuing SQL statements to the database.
@@ -55,7 +55,8 @@ public abstract class SQL extends BasicSQL {
         super(selectStatementExecutor, executeStatementExecutor);
     }
 
-    static final Logger sqlExceptionlog = LoggerFactory.getLogger("sqlException." + SQL.class.getName()); // $NON-NLS-1$
+    static final SafeLogger sqlExceptionlog =
+            SafeLoggerFactory.get("sqlException." + SQL.class.getName()); // $NON-NLS-1$
 
     /** key for the sql query to list tables with a given column. */
     static final String LIST_TABLES_WITH_COLUMN = "SQL_LIST_TABLES_WITH_COLUMN"; // $NON-NLS-1$

@@ -21,10 +21,10 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Creates a dictionary of table references to shorter (integral) identifiers.
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  */
 public final class SweepTableIndices {
-    private static final Logger log = LoggerFactory.getLogger(SweepTableIndices.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SweepTableIndices.class);
 
     private final IdsToNames idToNames;
     private final NamesToIds namesToIds;

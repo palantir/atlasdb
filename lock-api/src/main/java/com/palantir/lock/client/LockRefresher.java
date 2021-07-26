@@ -22,6 +22,8 @@ import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
@@ -33,12 +35,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LockRefresher implements AutoCloseable {
 
-    private static final Logger log = LoggerFactory.getLogger(LockRefresher.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(LockRefresher.class);
 
     private final ScheduledExecutorService executor;
     private final TimelockService timelockService;

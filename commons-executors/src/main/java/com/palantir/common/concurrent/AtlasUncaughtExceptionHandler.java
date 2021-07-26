@@ -16,13 +16,13 @@
 
 package com.palantir.common.concurrent;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 
 enum AtlasUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
     INSTANCE;
 
-    private static final Logger log = LoggerFactory.getLogger(AtlasUncaughtExceptionHandler.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AtlasUncaughtExceptionHandler.class);
 
     @Override
     public void uncaughtException(@SuppressWarnings("unused") Thread thread, Throwable throwable) {

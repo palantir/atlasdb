@@ -29,6 +29,8 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.DetachedSpan;
 import java.io.Closeable;
 import java.util.Optional;
@@ -38,8 +40,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import javax.annotation.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * While this class is public, it shouldn't be used as API outside of AtlasDB because we
@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
 
-    private static final Logger log = LoggerFactory.getLogger(DisruptorAutobatcher.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DisruptorAutobatcher.class);
 
     /*
        By memoizing thread factories per loggable purpose, the thread names are numbered uniquely for multiple

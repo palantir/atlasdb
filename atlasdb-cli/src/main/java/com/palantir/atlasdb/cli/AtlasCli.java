@@ -22,15 +22,15 @@ import com.palantir.atlasdb.cli.command.SweepCommand;
 import com.palantir.atlasdb.cli.command.timestamp.CleanTransactionRange;
 import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
 import java.util.concurrent.Callable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class AtlasCli {
 
-    private static final Logger log = LoggerFactory.getLogger(AtlasCli.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AtlasCli.class);
 
     private AtlasCli() {}
 

@@ -38,6 +38,8 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
@@ -54,12 +56,10 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class TargetedSweepMetrics {
-    private static final Logger log = LoggerFactory.getLogger(TargetedSweepMetrics.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TargetedSweepMetrics.class);
     private final Map<SweeperStrategy, MetricsForStrategy> metricsForStrategyMap;
 
     private TargetedSweepMetrics(

@@ -28,14 +28,14 @@ import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.PersistableBoolean;
 import java.util.Map;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ShardProgress {
-    private static final Logger log = LoggerFactory.getLogger(ShardProgress.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(ShardProgress.class);
     static final TableReference TABLE_REF =
             TargetedSweepTableFactory.of().getSweepShardProgressTable(null).getTableRef();
 

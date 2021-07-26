@@ -27,15 +27,15 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampService;
 import java.util.List;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DefaultCleanerBuilder {
-    private static final Logger log = LoggerFactory.getLogger(DefaultCleanerBuilder.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DefaultCleanerBuilder.class);
 
     private final KeyValueService keyValueService;
     private final TimelockService timelockService;
