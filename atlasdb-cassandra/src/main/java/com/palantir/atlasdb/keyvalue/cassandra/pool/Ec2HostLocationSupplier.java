@@ -19,14 +19,14 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.CharStreams;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Returns the client's datacenter and rack derived from Cassandra's Ec2Snitch.
@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * The reply comes in the form "datacenter"+"rack", e.g. "us-east-1a", where datacenter is "us-east-1" and rack is "a".
  */
 public final class Ec2HostLocationSupplier implements Supplier<HostLocation> {
-    private static final Logger log = LoggerFactory.getLogger(Ec2HostLocationSupplier.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(Ec2HostLocationSupplier.class);
     private static final String AZ_URL = "http://169.254.169.254/latest/meta-data/placement/availability-zone";
 
     @Override

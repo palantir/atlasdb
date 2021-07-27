@@ -65,6 +65,8 @@ import com.palantir.lock.LockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
@@ -73,6 +75,7 @@ import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
+import com.palantir.timelock.config.TimeLockPersistenceInvariants;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 import com.palantir.timelock.corruption.detection.CorruptionHealthReport;
@@ -96,12 +99,10 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
-    private static final Logger log = LoggerFactory.getLogger(TimeLockAgent.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TimeLockAgent.class);
     // Schema version from 2 onwards are on SQLite
     static final Long SCHEMA_VERSION = 3L;
 
@@ -134,6 +135,8 @@ public class TimeLockAgent {
             Optional<Consumer<UndertowService>> undertowRegistrar,
             OrderableSlsVersion timeLockVersion,
             ObjectMapper objectMapper) {
+        verifyIsNewServiceInvariant(install);
+
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider =
                 createTimeLockDialogueServiceProvider(metricsManager, install, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
@@ -385,6 +388,14 @@ public class TimeLockAgent {
             Consumer<UndertowService> presentUndertowRegistrar, UndertowService service) {
         presentUndertowRegistrar.accept(
                 UndertowCorruptionHandlerService.of(service, corruptionComponents.timeLockCorruptionHealthCheck()));
+    }
+
+    @VisibleForTesting
+    static void verifyIsNewServiceInvariant(TimeLockInstallConfiguration install) {
+        if (!install.paxos().ignoreNewServiceCheck()) {
+            TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
+                    install.isNewServiceNode(), install.paxos().doDataDirectoriesExist());
+        }
     }
 
     static void verifySchemaVersion(PersistedSchemaVersion persistedSchemaVersion) {

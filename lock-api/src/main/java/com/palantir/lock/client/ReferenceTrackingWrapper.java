@@ -16,12 +16,12 @@
 
 package com.palantir.lock.client;
 
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ReferenceTrackingWrapper<T extends AutoCloseable> implements AutoCloseable {
-    private static final Logger log = LoggerFactory.getLogger(ReferenceTrackingWrapper.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(ReferenceTrackingWrapper.class);
 
     private final AtomicInteger referenceCount;
 

@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.goethe.Goethe;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
@@ -111,7 +112,7 @@ public final class TableFactoryRenderer {
                 .indent("    ")
                 .build();
 
-        return javaFile.toString();
+        return Goethe.formatAsString(javaFile);
     }
 
     private List<FieldSpec> getFields() {

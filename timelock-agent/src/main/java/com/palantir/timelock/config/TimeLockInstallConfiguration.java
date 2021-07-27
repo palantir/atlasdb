@@ -66,11 +66,9 @@ public interface TimeLockInstallConfiguration {
                 || cluster().knownNewServers().contains(cluster().localServer());
     }
 
-    @Value.Check
-    default void check() {
-        if (!paxos().ignoreNewServiceCheck()) {
-            TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
-                    isNewServiceNode(), paxos().doDataDirectoriesExist());
-        }
+    static Builder builder() {
+        return new Builder();
     }
+
+    class Builder extends ImmutableTimeLockInstallConfiguration.Builder {}
 }

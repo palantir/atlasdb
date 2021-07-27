@@ -4,17 +4,16 @@ buildscript {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        jcenter()
     }
 
     dependencies {
-        classpath 'com.netflix.nebula:gradle-info-plugin:9.3.0'
+        classpath 'com.netflix.nebula:gradle-info-plugin:10.0.0'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:17.3.2'
         classpath 'com.palantir.gradle.externalpublish:gradle-external-publish-plugin:1.2.1'
-        classpath 'com.palantir.baseline:gradle-baseline-java:3.97.0'
+        classpath 'com.palantir.baseline:gradle-baseline-java:4.9.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:5.10.0'
         classpath 'com.palantir.javaformat:gradle-palantir-java-format:2.2.0'
-        classpath 'com.palantir.metricschema:gradle-metric-schema:0.6.0'
+        classpath 'com.palantir.metricschema:gradle-metric-schema:0.8.0'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:4.24.0'
         classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.15.0'
         classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1'
@@ -25,9 +24,9 @@ buildscript {
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '6.1.0'
-    id 'com.palantir.consistent-versions' version '1.30.0'
+    id 'com.palantir.consistent-versions' version '2.0.0'
     id 'org.unbroken-dome.test-sets' version '4.0.0'
-    id 'com.google.protobuf' version '0.8.16'
+    id 'com.google.protobuf' version '0.8.17'
 }
 
 apply plugin: 'com.palantir.baseline'
@@ -61,7 +60,6 @@ task printLastVersion {
 allprojects {
     repositories {
         mavenCentral()
-        jcenter()
     }
 
     apply plugin: 'java-library'
@@ -106,7 +104,6 @@ allprojects {
         // temporarily relax constraints until we can fix all violations
         options.errorprone.disable 'ArrayAsKeyOfSetOrMap',
                 'CacheLoaderNull',
-                'CatchFail',
                 'ClassNewInstance',
                 'CloseableProvides',
                 'DangerousCompletableFutureUsage',
@@ -138,7 +135,6 @@ allprojects {
                 'MockitoInternalUsage',
                 'ModifyCollectionInEnhancedForLoop',
                 'NarrowingCompoundAssignment',
-                'NonAtomicVolatileUpdate',
                 'NullOptional',
                 'OperatorPrecedence',
                 'OverrideThrowableToString',
@@ -153,7 +149,6 @@ allprojects {
                 'ReturnValueIgnored',
                 'ReverseDnsLookup',
                 'SafeLoggingExceptionMessageFormat',
-                'ShortCircuitBoolean',
                 'Slf4jLogsafeArgs',
                 'Slf4jThrowable',
                 'StaticAssignmentInConstructor',
@@ -166,6 +161,7 @@ allprojects {
                 'TypeParameterUnusedInFormals',
                 'UndefinedEquals',
                 'UnnecessaryLambda',
+                'UnrecognisedJavadocTag',
                 'UseCorrectAssertInTests',
                 'ValidateConstantMessage',
                 'VisibleForTestingPackagePrivate'

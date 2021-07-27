@@ -19,13 +19,13 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class will delegate functionality and return the value (or throw the exception) of
@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings("ProxyNonConstantType")
 public final class MultiDelegateProxy<T> extends AbstractInvocationHandler {
-    private static final Logger log = LoggerFactory.getLogger(MultiDelegateProxy.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(MultiDelegateProxy.class);
 
     @SafeVarargs
     public static <T> T newProxyInstance(Class<T> interfaceClass, T mainDelegate, T... delegatesToCall) {

@@ -32,6 +32,8 @@ import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.LeadershipStateManager.LeadershipState;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
 import java.io.Closeable;
@@ -40,12 +42,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("ProxyNonConstantType")
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
-    private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AwaitingLeadershipProxy.class);
 
     private static final int MAX_NO_QUORUM_RETRIES = 10;
     private static final ListeningScheduledExecutorService schedulingExecutor =

@@ -19,6 +19,8 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
@@ -41,8 +43,8 @@ import org.slf4j.LoggerFactory;
  */
 class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
     private static final Logger log = LoggerFactory.getLogger(AgnosticLightResultSetImpl.class);
-    private static final Logger sqlExceptionlog =
-            LoggerFactory.getLogger("sqlException." + AgnosticLightResultSetImpl.class.getName());
+    private static final SafeLogger sqlExceptionlog =
+            SafeLoggerFactory.get("sqlException." + AgnosticLightResultSetImpl.class.getName());
 
     private final ResultSet results;
     private final DBType dbType;

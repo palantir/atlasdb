@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.DBType;
 import java.io.File;
 import java.util.Map;
@@ -29,15 +31,13 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @JsonDeserialize(as = ImmutableOracleConnectionConfig.class)
 @JsonSerialize(as = ImmutableOracleConnectionConfig.class)
 @JsonTypeName(OracleConnectionConfig.TYPE)
 @Value.Immutable
 public abstract class OracleConnectionConfig extends ConnectionConfig {
-    private static final Logger log = LoggerFactory.getLogger(OracleConnectionConfig.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(OracleConnectionConfig.class);
 
     public static final String TYPE = "oracle";
 

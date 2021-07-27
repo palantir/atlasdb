@@ -27,13 +27,13 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Optional;
 import java.util.function.LongSupplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This is the easiest way to try out AtlasDB with your schema.  It runs entirely in memory but has
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
  */
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
-    private static final Logger log = LoggerFactory.getLogger(InMemoryAtlasDbFactory.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(InMemoryAtlasDbFactory.class);
 
     @Override
     public String getType() {

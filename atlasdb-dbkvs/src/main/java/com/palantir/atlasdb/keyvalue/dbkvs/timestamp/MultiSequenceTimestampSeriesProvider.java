@@ -24,20 +24,20 @@ import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Set;
 import org.apache.commons.dbutils.QueryRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Reads all of the series from a timestamp table written to by timestamp bound stores using the
  * {@link MultiSequencePhysicalBoundStoreStrategy} strategy.
  */
 public final class MultiSequenceTimestampSeriesProvider implements TimestampSeriesProvider {
-    private static final Logger log = LoggerFactory.getLogger(MultiSequenceTimestampSeriesProvider.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(MultiSequenceTimestampSeriesProvider.class);
 
     private final ConnectionManager connManager;
     private final TableReference timestampTable;

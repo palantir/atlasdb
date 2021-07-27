@@ -16,12 +16,12 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 
 public final class PreCommitConditions {
 
-    private static final Logger log = LoggerFactory.getLogger(PreCommitConditions.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(PreCommitConditions.class);
 
     public static final PreCommitCondition NO_OP = new PreCommitCondition() {
         @Override

@@ -21,6 +21,8 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.util.Collection;
@@ -30,11 +32,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Blacklist {
-    private static final Logger log = LoggerFactory.getLogger(Blacklist.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(Blacklist.class);
 
     private final CassandraKeyValueServiceConfig config;
     private final Clock clock;

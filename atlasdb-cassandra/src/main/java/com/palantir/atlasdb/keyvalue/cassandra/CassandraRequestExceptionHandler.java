@@ -20,6 +20,8 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
@@ -31,11 +33,9 @@ import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class CassandraRequestExceptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(CassandraRequestExceptionHandler.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraRequestExceptionHandler.class);
 
     private final Supplier<Integer> maxTriesSameHost;
     private final Supplier<Integer> maxTriesTotal;
