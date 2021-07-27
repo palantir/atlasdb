@@ -344,9 +344,11 @@ public final class CassandraVerifier {
     private static void checkRfsMatchConfig(
             KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs, Map<String, String> strategyOptions) {
         for (String datacenter : dcs) {
-            if (Integer.parseInt(strategyOptions.get(datacenter)) != config.replicationFactor()) {
+            int keyspaceRf = Integer.parseInt(strategyOptions.get(datacenter));
+            if (keyspaceRf != config.replicationFactor()) {
                 throw new UnsupportedOperationException("Your current Cassandra keyspace (" + ks.getName()
-                        + ") has a replication factor not matching your Atlas Cassandra configuration."
+                        + ") has a replication factor (" + keyspaceRf + ") not matching your Atlas "
+                        + "Cassandra configuration (" + config.replicationFactor() + ")."
                         + " Change them to match, but be mindful of what steps you'll need to"
                         + " take to correctly repair or cleanup existing data in your cluster.");
             }
