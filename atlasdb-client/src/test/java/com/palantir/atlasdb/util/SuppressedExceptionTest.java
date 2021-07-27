@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.util;
 
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SuppressedExceptionTest {
-    private static final SafeLogger log = SafeLoggerFactory.get("AnnotatedCallable");
+    private static final Logger log = LoggerFactory.getLogger("AnnotatedCallable");
 
     @Test
     public void throwableSuppressingItselfShouldBeLoggable() {

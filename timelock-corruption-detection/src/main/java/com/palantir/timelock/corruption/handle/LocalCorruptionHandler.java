@@ -21,16 +21,16 @@ import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LocalCorruptionHandler {
-    private static final SafeLogger log = SafeLoggerFactory.get(LocalCorruptionHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(LocalCorruptionHandler.class);
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private final List<TimeLockCorruptionNotifier> corruptionNotifiers;

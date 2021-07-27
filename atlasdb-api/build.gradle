@@ -51,5 +51,4 @@ dependencies {
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
-    implementation 'com.palantir.safe-logging:logger'
 }

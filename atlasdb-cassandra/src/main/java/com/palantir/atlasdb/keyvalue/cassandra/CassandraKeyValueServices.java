@@ -34,8 +34,6 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -53,9 +51,11 @@ import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CassandraKeyValueServices {
-    private static final SafeLogger log = SafeLoggerFactory.get(CassandraKeyValueServices.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServices.class);
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;

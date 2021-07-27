@@ -48,8 +48,6 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.util.Optional;
@@ -58,9 +56,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
-    private static final SafeLogger log = SafeLoggerFactory.get(SerializableTransactionManager.class);
+    private static final Logger log = LoggerFactory.getLogger(SerializableTransactionManager.class);
 
     private final ConflictTracer conflictTracer;
 

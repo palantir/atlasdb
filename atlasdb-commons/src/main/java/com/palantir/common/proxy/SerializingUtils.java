@@ -15,18 +15,18 @@
  */
 package com.palantir.common.proxy;
 
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.ByteArrayIOStream;
 import com.palantir.util.ObjectInputStreamFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("BanSerializableRead")
 public final class SerializingUtils {
-    private static final SafeLogger log = SafeLoggerFactory.get(SerializingUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(SerializingUtils.class);
 
     private SerializingUtils() {
         /* */

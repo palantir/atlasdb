@@ -97,5 +97,4 @@ dependencies {
 
     testAnnotationProcessor group: 'org.immutables', name: 'value'
     testCompileOnly 'org.immutables:value::annotations'
-    implementation 'com.palantir.safe-logging:logger'
 }

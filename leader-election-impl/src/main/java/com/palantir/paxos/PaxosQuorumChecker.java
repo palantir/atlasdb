@@ -24,8 +24,6 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,12 +38,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("MethodTypeParameterName")
 public final class PaxosQuorumChecker {
 
     public static final Duration DEFAULT_REMOTE_REQUESTS_TIMEOUT = Duration.ofSeconds(5);
-    private static final SafeLogger log = SafeLoggerFactory.get(PaxosQuorumChecker.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosQuorumChecker.class);
     private static final String PAXOS_MESSAGE_ERROR =
             "We encountered an error while trying to request an acknowledgement from another paxos node."
                     + " This could mean the node is down, or we cannot connect to it for some other reason.";

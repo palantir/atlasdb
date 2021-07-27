@@ -34,14 +34,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This wrapper KVS should ensure that we're consistent across KVSs with:
@@ -51,7 +51,7 @@ import org.apache.commons.lang3.Validate;
  *   - Not having a ton of boilerplate in each KVS
  */
 public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueService {
-    private static final SafeLogger log = SafeLoggerFactory.get(ValidatingQueryRewritingKeyValueService.class);
+    private static final Logger log = LoggerFactory.getLogger(ValidatingQueryRewritingKeyValueService.class);
     private static final String TRANSACTION_ERROR =
             "shouldn't be putting into the transaction table at this level of KVS abstraction";
 

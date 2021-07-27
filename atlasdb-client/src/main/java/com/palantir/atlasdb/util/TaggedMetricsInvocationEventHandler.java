@@ -24,8 +24,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
 import com.palantir.tritium.event.DefaultInvocationContext;
 import com.palantir.tritium.event.InvocationContext;
@@ -41,6 +39,8 @@ import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simplified and yet extended version of Tritium's MetricsInvocationEventHandler. This class supports augmenting
@@ -50,7 +50,7 @@ import org.immutables.value.Value;
  * MetricsInvocationEventHandler.
  */
 public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEventHandler<InvocationContext> {
-    private static final SafeLogger log = SafeLoggerFactory.get(TaggedMetricsInvocationEventHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(TaggedMetricsInvocationEventHandler.class);
 
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final String serviceName;

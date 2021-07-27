@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: |-
+    Revert "Manually run the SafeLogger migration"
+
+    Reverts palantir/atlasdb#5572
+
+    should not have approved
+  links:
+  - https://github.com/palantir/atlasdb/pull/5573

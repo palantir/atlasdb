@@ -41,8 +41,6 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -50,9 +48,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TableTasks {
-    private static final SafeLogger log = SafeLoggerFactory.get(TableTasks.class);
+    private static final Logger log = LoggerFactory.getLogger(TableTasks.class);
 
     private TableTasks() {
         // Utility class

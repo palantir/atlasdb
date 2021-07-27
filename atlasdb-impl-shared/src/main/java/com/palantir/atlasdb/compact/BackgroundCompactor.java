@@ -28,17 +28,17 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class BackgroundCompactor implements AutoCloseable {
     public static final long SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS = TimeUnit.SECONDS.toMillis(5);
 
-    private static final SafeLogger log = SafeLoggerFactory.get(BackgroundCompactor.class);
+    private static final Logger log = LoggerFactory.getLogger(BackgroundCompactor.class);
 
     private final TransactionManager transactionManager;
     private final KeyValueService keyValueService;

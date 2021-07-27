@@ -181,8 +181,6 @@ import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.DelegatingManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -210,12 +208,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.ws.rs.ClientErrorException;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Value.Immutable
 @StagedBuilderStyle
 public abstract class TransactionManagers {
     private static final int LOGGING_INTERVAL = 60;
-    private static final SafeLogger log = SafeLoggerFactory.get(TransactionManagers.class);
+    private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
     abstract AtlasDbConfig config();

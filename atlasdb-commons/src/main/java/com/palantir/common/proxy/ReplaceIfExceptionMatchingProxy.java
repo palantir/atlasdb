@@ -19,8 +19,6 @@ package com.palantir.common.proxy;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.reflect.AbstractInvocationHandler;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -28,10 +26,12 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("ProxyNonConstantType")
 public final class ReplaceIfExceptionMatchingProxy<T> extends AbstractInvocationHandler {
-    private static final SafeLogger log = SafeLoggerFactory.get(ReplaceIfExceptionMatchingProxy.class);
+    private static final Logger log = LoggerFactory.getLogger(ReplaceIfExceptionMatchingProxy.class);
 
     private final Supplier<T> delegateFactory;
     private final Predicate<Throwable> shouldReplace;

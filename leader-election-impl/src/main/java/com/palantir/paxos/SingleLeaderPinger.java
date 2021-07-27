@@ -27,8 +27,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.PingResult;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.sls.versions.VersionComparator;
 import java.time.Duration;
@@ -45,9 +43,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SingleLeaderPinger implements LeaderPinger {
-    private static final SafeLogger log = SafeLoggerFactory.get(SingleLeaderPinger.class);
+    private static final Logger log = LoggerFactory.getLogger(SingleLeaderPinger.class);
 
     private final ConcurrentMap<UUID, LeaderPingerContext<PingableLeader>> uuidToServiceCache =
             new ConcurrentHashMap<>();

@@ -22,8 +22,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Runnables;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -51,6 +49,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import org.jboss.threads.ViewExecutor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link
@@ -61,7 +61,7 @@ import org.jboss.threads.ViewExecutor;
  */
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public final class PTExecutors {
-    private static final SafeLogger log = SafeLoggerFactory.get(PTExecutors.class);
+    private static final Logger log = LoggerFactory.getLogger(PTExecutors.class);
 
     private static final Supplier<ExecutorService> SHARED_EXECUTOR = Suppliers.memoize(() ->
             // Shared pool uses 60 second idle thread timeouts for greater reuse

@@ -85,7 +85,6 @@ dependencies {
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     testCompile group: 'org.assertj', name: 'assertj-core'
-    implementation 'com.palantir.safe-logging:logger'
 }
 
 task prepareForEteTests(type: Copy, dependsOn: 'distTar') {

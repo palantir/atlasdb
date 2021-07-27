@@ -21,11 +21,11 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePrior
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 abstract class AbstractDefinition {
-    private static final SafeLogger log = SafeLoggerFactory.get(AbstractDefinition.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractDefinition.class);
     private static final ImmutableSet<ValueType> CRITICAL_ROW_TYPES =
             ImmutableSet.of(ValueType.VAR_LONG, ValueType.VAR_SIGNED_LONG, ValueType.VAR_STRING, ValueType.SIZED_BLOB);
 

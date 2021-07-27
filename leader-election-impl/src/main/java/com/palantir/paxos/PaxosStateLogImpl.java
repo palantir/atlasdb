@@ -25,8 +25,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.File;
@@ -47,6 +45,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
@@ -54,7 +54,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     private final Map<Long, Long> seqToVersionMap = new ConcurrentHashMap<>();
 
     private static final String TMP_FILE_SUFFIX = ".tmp";
-    private static final SafeLogger log = SafeLoggerFactory.get(PaxosStateLogImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosStateLogImpl.class);
 
     private static Predicate<File> nameIsALongPredicate() {
         return file -> {

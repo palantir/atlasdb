@@ -18,8 +18,6 @@ package com.palantir.util;
 
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -28,9 +26,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TimedRunner {
-    private static final SafeLogger log = SafeLoggerFactory.get(TimedRunner.class);
+    private static final Logger log = LoggerFactory.getLogger(TimedRunner.class);
 
     private final ExecutorService executor;
     private final Duration timeoutDuration;

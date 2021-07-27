@@ -36,19 +36,19 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClient;
 import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultCqlClientFactory implements CqlClientFactory {
     public static final CqlClientFactory DEFAULT = new DefaultCqlClientFactory();
 
-    private static final SafeLogger log = SafeLoggerFactory.get(DefaultCqlClientFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(DefaultCqlClientFactory.class);
 
     private final Supplier<Cluster.Builder> cqlClusterBuilderFactory;
 

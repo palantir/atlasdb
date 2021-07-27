@@ -19,14 +19,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Wrap another Puncher, optimizing the #punch() operation to operate just on a local variable; the
@@ -36,7 +36,7 @@ import java.util.function.Supplier;
  * @author jweel
  */
 public final class AsyncPuncher implements Puncher {
-    private static final SafeLogger log = SafeLoggerFactory.get(AsyncPuncher.class);
+    private static final Logger log = LoggerFactory.getLogger(AsyncPuncher.class);
 
     @VisibleForTesting
     static final long INVALID_TIMESTAMP = -1L;

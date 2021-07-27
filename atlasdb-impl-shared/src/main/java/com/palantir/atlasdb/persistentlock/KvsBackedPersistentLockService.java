@@ -20,11 +20,11 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.conjure.java.server.jersey.WebPreconditions;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KvsBackedPersistentLockService implements PersistentLockService {
-    private static final SafeLogger log = SafeLoggerFactory.get(KvsBackedPersistentLockService.class);
+    private static final Logger log = LoggerFactory.getLogger(KvsBackedPersistentLockService.class);
 
     private final LockStore lockStore;
 

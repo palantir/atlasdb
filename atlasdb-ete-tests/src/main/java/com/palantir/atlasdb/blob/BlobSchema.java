@@ -23,12 +23,12 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.File;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BlobSchema implements AtlasSchema {
-    private static final SafeLogger log = SafeLoggerFactory.get(BlobSchema.class);
+    private static final Logger log = LoggerFactory.getLogger(BlobSchema.class);
 
     private static final Namespace BLOB_NAMESPACE = Namespace.create("blob");
     private static final Schema GENERATED_SCHEMA = generateSchema();

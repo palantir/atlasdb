@@ -27,8 +27,6 @@ import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
 import java.io.IOException;
@@ -57,9 +55,11 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
-    private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraClientFactory.class);
     private static final LoadingCache<SslConfiguration, SSLSocketFactory> sslSocketFactoryCache =
             Caffeine.newBuilder().weakValues().build(SslSocketFactories::createSslSocketFactory);
     private static final ExpiringMemoizedRunnable SHUTDOWN_FAILURE_HANDLER =

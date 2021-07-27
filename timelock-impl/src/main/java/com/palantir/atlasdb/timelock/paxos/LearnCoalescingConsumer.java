@@ -21,8 +21,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.common.concurrent.CheckedRejectedExecutionException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponseImpl;
@@ -30,10 +28,12 @@ import com.palantir.paxos.PaxosValue;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class LearnCoalescingConsumer implements CoalescingRequestFunction<Map.Entry<Client, PaxosValue>, PaxosResponse> {
 
-    private static final SafeLogger log = SafeLoggerFactory.get(LearnCoalescingConsumer.class);
+    private static final Logger log = LoggerFactory.getLogger(LearnCoalescingConsumer.class);
     private static final PaxosResponse SUCCESSFUL_RESPONSE = new PaxosResponseImpl(true);
 
     private final WithDedicatedExecutor<BatchPaxosLearner> localLearner;

@@ -22,8 +22,6 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
@@ -38,9 +36,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
-    private static final SafeLogger log = SafeLoggerFactory.get(TimeLockFeedbackBackgroundTask.class);
+    private static final Logger log = LoggerFactory.getLogger(TimeLockFeedbackBackgroundTask.class);
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private static final String TIMELOCK_FEEDBACK_THREAD_PREFIX = "TimeLockFeedbackBackgroundTask";

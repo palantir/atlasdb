@@ -19,12 +19,12 @@ package com.palantir.paxos;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicLong;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This implementation of {@link PaxosStateLog} delegates all reads and writes of rounds to one of two delegates, as
@@ -32,7 +32,7 @@ import org.immutables.value.Value;
  * we update the appropriate metric. Remaining methods are delegated only to the current delegate.
  */
 public final class SplittingPaxosStateLog<V extends Persistable & Versionable> implements PaxosStateLog<V> {
-    private static final SafeLogger log = SafeLoggerFactory.get(SplittingPaxosStateLog.class);
+    private static final Logger log = LoggerFactory.getLogger(SplittingPaxosStateLog.class);
 
     private final PaxosStateLog<V> legacyLog;
     private final PaxosStateLog<V> currentLog;

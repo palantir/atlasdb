@@ -16,13 +16,13 @@
 package com.palantir.atlasdb.containers;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CassandraCliParser {
-    private static final SafeLogger log = SafeLoggerFactory.get(CassandraCliParser.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraCliParser.class);
 
     private final CassandraVersion cassandraVersion;
 

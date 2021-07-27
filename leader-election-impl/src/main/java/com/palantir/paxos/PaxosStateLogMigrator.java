@@ -24,8 +24,6 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,9 +34,11 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Default;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
-    private static final SafeLogger log = SafeLoggerFactory.get(PaxosStateLogMigrator.class);
+    private static final Logger log = LoggerFactory.getLogger(PaxosStateLogMigrator.class);
 
     public static final int SAFETY_BUFFER = 50;
 
