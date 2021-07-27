@@ -17,6 +17,8 @@ package com.palantir.nexus.db.pool;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -24,8 +26,6 @@ import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Allows you to intercept and override methods in {@link Statement} and subinterfaces
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("ProxyNonConstantType")
 public final class InterceptorStatement<T extends Statement> extends AbstractInvocationHandler
         implements InvocationHandler {
-    private static final Logger log = LoggerFactory.getLogger(InterceptorStatement.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(InterceptorStatement.class);
 
     private final T delegate;
 

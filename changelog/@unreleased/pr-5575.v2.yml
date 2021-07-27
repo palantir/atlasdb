@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: AtlasDB now uses the Palantir SafeLogger framework.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5575

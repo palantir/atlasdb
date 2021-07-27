@@ -24,13 +24,13 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Comparator;
 import javax.annotation.Nonnull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Represents a cell in the key-value store.
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class Cell implements Serializable, Comparable<Cell> {
     private static final long serialVersionUID = 1L;
-    private static final Logger log = LoggerFactory.getLogger(Cell.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(Cell.class);
 
     // Oracle has an upper bound on RAW types of 2000.
     public static final int MAX_NAME_LENGTH = 1500;

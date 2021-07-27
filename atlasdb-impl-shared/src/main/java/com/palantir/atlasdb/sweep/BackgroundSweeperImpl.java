@@ -23,14 +23,14 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoCloseable {
-    private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(BackgroundSweeperImpl.class);
 
     private static final long MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS = 10_000;
 

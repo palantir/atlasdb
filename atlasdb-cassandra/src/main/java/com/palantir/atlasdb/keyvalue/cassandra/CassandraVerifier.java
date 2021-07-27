@@ -29,6 +29,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Map;
@@ -41,11 +43,9 @@ import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.commons.lang3.Validate;
 import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class CassandraVerifier {
-    private static final Logger log = LoggerFactory.getLogger(CassandraVerifier.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraVerifier.class);
     private static final KsDef SIMPLE_RF_TEST_KS_DEF = new KsDef(
                     CassandraConstants.SIMPLE_RF_TEST_KEYSPACE, CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of())
             .setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1"));

@@ -19,6 +19,8 @@ package com.palantir.atlasdb.metrics;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.Map;
 import java.util.Optional;
@@ -26,15 +28,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Indicates whether metrics should be published. If {@link #test(MetricName)} returns true, that means we think
  * the metric involved SHOULD be published.
  */
 public class MetricPublicationArbiter implements Predicate<MetricName> {
-    private static final Logger log = LoggerFactory.getLogger(MetricPublicationArbiter.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(MetricPublicationArbiter.class);
 
     private final Map<MetricName, Set<DeduplicatingFilterHolder>> singleMetricFilters;
 

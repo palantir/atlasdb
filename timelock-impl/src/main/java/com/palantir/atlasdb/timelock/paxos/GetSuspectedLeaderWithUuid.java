@@ -30,6 +30,8 @@ import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.LeaderPingerContext;
 import com.palantir.paxos.PaxosConstants;
 import com.palantir.paxos.PaxosQuorumChecker;
@@ -44,8 +46,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import javax.annotation.concurrent.NotThreadSafe;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /*
    This is not thread safe, but it is okay because it is run within an autobatcher, which is configured to not process
@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 @NotThreadSafe
 class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Optional<ClientAwareLeaderPinger>>>> {
 
-    private static final Logger log = LoggerFactory.getLogger(GetSuspectedLeaderWithUuid.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(GetSuspectedLeaderWithUuid.class);
 
     private final Map<LeaderPingerContext<BatchPingableLeader>, CheckedRejectionExecutorService> executors;
     private final BiMap<LeaderPingerContext<BatchPingableLeader>, ClientAwareLeaderPinger> clientAwareLeaders;

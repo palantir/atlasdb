@@ -31,6 +31,8 @@ import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.List;
@@ -43,11 +45,9 @@ import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import okio.ByteString;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
-    private static final Logger log = LoggerFactory.getLogger(DefaultOffHeapCache.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DefaultOffHeapCache.class);
     private static final String BATCHER_PURPOSE = "off-heap-cache";
     private static final MetricName CACHE_HIT = constructCacheMetricName("cacheHit");
     private static final MetricName CACHE_MISS = constructCacheMetricName("cacheMiss");

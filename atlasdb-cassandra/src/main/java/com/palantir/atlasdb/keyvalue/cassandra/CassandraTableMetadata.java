@@ -29,16 +29,16 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CassandraTableMetadata {
-    private static final Logger log = LoggerFactory.getLogger(CassandraTableMetadata.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraTableMetadata.class);
     private final RangeLoader rangeLoader;
     private final CassandraTables cassandraTables;
     private final CassandraClientPool clientPool;

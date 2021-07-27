@@ -18,9 +18,9 @@ package com.palantir.atlasdb.timelock.lock;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimplifyingLockService;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import javax.ws.rs.BadRequestException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This lock service may be used as a LockService, for the purposes of advisory locking as well as for
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * which attempts to acquire the immutable timestamp before transactions begin running.
  */
 public class NonTransactionalLockService extends SimplifyingLockService {
-    private static final Logger log = LoggerFactory.getLogger(NonTransactionalLockService.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(NonTransactionalLockService.class);
 
     private final LockService delegate;
 
