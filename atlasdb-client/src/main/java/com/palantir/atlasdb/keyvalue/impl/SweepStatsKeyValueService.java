@@ -263,7 +263,7 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
                 }
             } catch (Throwable t) {
                 if (!Thread.interrupted()) {
-                    log.warn("Error occurred while flushing sweep stats: {}", t, t);
+                    log.warn("Error occurred while flushing sweep stats", t);
                 }
             }
         };

@@ -80,7 +80,7 @@ public class TracingPrefsConfig implements Runnable {
                 loadedConfig = false;
             }
         } catch (Throwable t) {
-            log.error("Error occurred while refreshing {}: {}", TRACING_PREF_FILENAME, t, t);
+            log.error("Error occurred while refreshing {}", TRACING_PREF_FILENAME, t);
         }
     }
 

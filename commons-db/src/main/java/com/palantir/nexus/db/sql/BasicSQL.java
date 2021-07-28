@@ -568,6 +568,7 @@ public abstract class BasicSQL {
         return getSQLException(cause.getCause());
     }
 
+    @SuppressWarnings("Slf4jThrowable") // Existing logging behaviour where the non stacktrace part has sufficed.
     public static PalantirSqlException handleInterruptions(long startTime, SQLException cause)
             throws PalantirSqlException {
         SqlLoggers.SQL_EXCEPTION_LOG.debug("Caught SQLException", cause);

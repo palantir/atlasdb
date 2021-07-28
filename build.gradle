@@ -150,7 +150,6 @@ allprojects {
                 'ReverseDnsLookup',
                 'SafeLoggingExceptionMessageFormat',
                 'Slf4jLogsafeArgs',
-                'Slf4jThrowable',
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable',
                 'StringSplitter',

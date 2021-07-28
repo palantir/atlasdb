@@ -19,6 +19,7 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
@@ -199,7 +200,10 @@ public final class Throwables {
      */
     public static <T extends Throwable> T rewrap(final String newMessage, final T throwable) {
         Preconditions.checkNotNull(throwable);
-        log.info("Rewrapping throwable {} with newMessage {}", throwable, newMessage);
+        log.info("Rewrapping throwable {} with newMessage {}",
+                UnsafeArg.of("wrappedThrowable", throwable),
+                UnsafeArg.of("newMessage", newMessage))
+        ;
         try {
             Constructor<?>[] constructors = throwable.getClass().getConstructors();
             // First see if we can create the exception in a way that lets us preserve the message text
