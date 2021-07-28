@@ -107,6 +107,7 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1503,7 +1504,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         String lowerCaseTableName = tableRef.getQualifiedName().toLowerCase();
         Map<Cell, Value> rows = getRows(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableSet.of(lowerCaseTableName.getBytes()),
+                ImmutableSet.of(lowerCaseTableName.getBytes(StandardCharsets.UTF_8)),
                 ColumnSelection.all(),
                 Long.MAX_VALUE);
 

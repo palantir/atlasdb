@@ -268,7 +268,7 @@ public class TestSweepCommand {
     private String get(KeyValueService kvs, TableReference table, String row, long ts) {
         Cell cell = Cell.create(row.getBytes(StandardCharsets.UTF_8), COL.getBytes(StandardCharsets.UTF_8));
         Value val = kvs.get(table, ImmutableMap.of(cell, ts)).get(cell);
-        return val == null ? null : new String(val.getContents());
+        return val == null ? null : new String(val.getContents(), StandardCharsets.UTF_8);
     }
 
     private Set<Long> getAllTs(KeyValueService kvs, TableReference table, String row) {

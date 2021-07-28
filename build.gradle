@@ -107,7 +107,6 @@ allprojects {
                 'ClassNewInstance',
                 'CloseableProvides',
                 'DangerousCompletableFutureUsage',
-                'DefaultCharset',
                 'DnsLookup',
                 'DoNotMock',
                 'EmptyBlockTag',

@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -45,9 +46,9 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class CachingTransactionTest {
-    private static final byte[] ROW_BYTES = "row".getBytes();
-    private static final byte[] COL_BYTES = "col".getBytes();
-    private static final byte[] VALUE_BYTES = "value".getBytes();
+    private static final byte[] ROW_BYTES = "row".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] COL_BYTES = "col".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] VALUE_BYTES = "value".getBytes(StandardCharsets.UTF_8);
     private static final String SYNC = "sync";
     private static final String ASYNC = "async";
 

@@ -23,6 +23,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -72,7 +73,7 @@ public final class AtlasLockDescriptorUtils {
         if (endOfTableName == -1) {
             return Optional.empty();
         }
-        String fullyQualifiedName = new String(rawBytes, 0, endOfTableName);
+        String fullyQualifiedName = new String(rawBytes, 0, endOfTableName, StandardCharsets.UTF_8);
         TableReference tableRef = TableReference.createFromFullyQualifiedName(fullyQualifiedName);
         ByteString remainingBytes = ByteString.of(rawBytes, endOfTableName + 1, rawBytes.length - (endOfTableName + 1));
         return Optional.of(ImmutableTableRefAndRemainder.of(tableRef, remainingBytes));

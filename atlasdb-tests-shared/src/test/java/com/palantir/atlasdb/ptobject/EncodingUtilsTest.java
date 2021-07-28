@@ -25,6 +25,7 @@ import com.palantir.atlasdb.ptobject.EncodingUtils.EncodingType;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.util.crypto.Sha256Hash;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -63,10 +64,10 @@ public class EncodingUtilsTest {
         for (int i = 1; i < 100; i++) {
             byte[] bytes = new byte[1000];
             rand.nextBytes(bytes);
-            String str = new String(bytes);
+            String str = new String(bytes, StandardCharsets.UTF_8);
             assertThat(EncodingUtils.decodeVarString(EncodingUtils.encodeVarString(str))
-                            .getBytes())
-                    .isEqualTo(str.getBytes());
+                            .getBytes(StandardCharsets.UTF_8))
+                    .isEqualTo(str.getBytes(StandardCharsets.UTF_8));
             assertThat(EncodingUtils.encodeVarString(str)).hasSize(EncodingUtils.sizeOfVarString(str));
         }
     }

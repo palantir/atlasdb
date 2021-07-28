@@ -28,6 +28,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.Tracers.ThrowingCallable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -97,7 +98,7 @@ public final class RocksDbPersistentStore implements PersistentStore {
     public PersistentStore.Handle createSpace() {
         Handle handle = PersistentStore.Handle.newHandle();
         ColumnFamilyHandle columnFamilyHandle = callWithExceptionHandling(() -> rocksDB.createColumnFamily(
-                new ColumnFamilyDescriptor(handle.id().toString().getBytes())));
+                new ColumnFamilyDescriptor(handle.id().toString().getBytes(StandardCharsets.UTF_8))));
         availableColumnFamilies.put(handle.id(), columnFamilyHandle);
         return handle;
     }

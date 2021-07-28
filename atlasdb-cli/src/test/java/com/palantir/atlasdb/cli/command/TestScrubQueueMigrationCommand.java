@@ -33,8 +33,11 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.SortedMap;
 import org.junit.After;
 import org.junit.Before;
@@ -67,12 +70,15 @@ public class TestScrubQueueMigrationCommand {
         kvs.putWithTimestamps(
                 AtlasDbConstants.OLD_SCRUB_TABLE,
                 ImmutableMultimap.of(
-                        cell1, Value.create("foo\0bar".getBytes(), 10),
-                        cell1, Value.create("baz".getBytes(), 20),
-                        cell2, Value.create("foo".getBytes(), 30),
-                        cell3, Value.create("foo\0bar\0baz".getBytes(), 40)));
+                        cell1, Value.create("foo\0bar".getBytes(StandardCharsets.UTF_8), 10),
+                        cell1, Value.create("baz".getBytes(StandardCharsets.UTF_8), 20),
+                        cell2, Value.create("foo".getBytes(StandardCharsets.UTF_8), 30),
+                        cell3, Value.create("foo\0bar\0baz".getBytes(StandardCharsets.UTF_8), 40)));
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ScrubQueueMigrationCommand.run(kvs, new PrintWriter(baos, true), 1000);
+        ScrubQueueMigrationCommand.run(
+                kvs,
+                new PrintWriter(new BufferedWriter(new OutputStreamWriter(baos, StandardCharsets.UTF_8)), true),
+                1000);
         BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> visitable =
                 scrubStore.getBatchingVisitableScrubQueue(
                         Long.MAX_VALUE, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY);
@@ -82,7 +88,7 @@ public class TestScrubQueueMigrationCommand {
                         20L, ImmutableMultimap.of(baz, cell1),
                         30L, ImmutableMultimap.of(foo, cell2),
                         40L, ImmutableMultimap.of(foo, cell3, bar, cell3, baz, cell3)));
-        String output = new String(baos.toByteArray());
+        String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
         assertThat(output).describedAs(output).contains("Starting iteration 2");
         assertThat(output).describedAs(output).contains("Moved 4 cells");
         assertThat(output).describedAs(output).contains("into 7 cells");

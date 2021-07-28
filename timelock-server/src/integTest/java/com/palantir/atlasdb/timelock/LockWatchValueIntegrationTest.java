@@ -48,6 +48,7 @@ import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictExcep
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -62,14 +63,18 @@ import org.junit.rules.RuleChain;
 
 public final class LockWatchValueIntegrationTest {
     private static final String TEST_PACKAGE = "package";
-    private static final byte[] DATA_1 = "foo".getBytes();
-    private static final byte[] DATA_2 = "Caecilius est in horto".getBytes();
-    private static final byte[] DATA_3 = "canis est in via".getBytes();
-    private static final byte[] DATA_4 = "Quintus Caecilius Iucundus".getBytes();
-    private static final Cell CELL_1 = Cell.create("bar".getBytes(), "baz".getBytes());
-    private static final Cell CELL_2 = Cell.create("bar".getBytes(), "spam".getBytes());
-    private static final Cell CELL_3 = Cell.create("eggs".getBytes(), "baz".getBytes());
-    private static final Cell CELL_4 = Cell.create("eggs".getBytes(), "spam".getBytes());
+    private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] DATA_3 = "canis est in via".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] DATA_4 = "Quintus Caecilius Iucundus".getBytes(StandardCharsets.UTF_8);
+    private static final Cell CELL_1 =
+            Cell.create("bar".getBytes(StandardCharsets.UTF_8), "baz".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL_2 =
+            Cell.create("bar".getBytes(StandardCharsets.UTF_8), "spam".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL_3 =
+            Cell.create("eggs".getBytes(StandardCharsets.UTF_8), "baz".getBytes(StandardCharsets.UTF_8));
+    private static final Cell CELL_4 =
+            Cell.create("eggs".getBytes(StandardCharsets.UTF_8), "spam".getBytes(StandardCharsets.UTF_8));
     private static final String TABLE = "table";
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final CellReference TABLE_CELL_1 = CellReference.of(TABLE_REF, CELL_1);
@@ -312,8 +317,10 @@ public final class LockWatchValueIntegrationTest {
         });
 
         // New set of rows and columns to force new references (to test every part of the equality checking)
-        Set<byte[]> rows2 = ImmutableSet.of("bar".getBytes(), "eggs".getBytes());
-        ColumnSelection columns2 = ColumnSelection.create(ImmutableSet.of("baz".getBytes(), "spam".getBytes()));
+        Set<byte[]> rows2 =
+                ImmutableSet.of("bar".getBytes(StandardCharsets.UTF_8), "eggs".getBytes(StandardCharsets.UTF_8));
+        ColumnSelection columns2 = ColumnSelection.create(
+                ImmutableSet.of("baz".getBytes(StandardCharsets.UTF_8), "spam".getBytes(StandardCharsets.UTF_8)));
 
         NavigableMap<byte[], RowResult<byte[]>> cacheRead = txnManager.runTaskThrowOnConflict(txn -> {
             NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows2, columns2);
@@ -334,8 +341,10 @@ public final class LockWatchValueIntegrationTest {
 
         awaitUnlock();
 
-        Set<byte[]> rows = ImmutableSet.of("bar".getBytes(), "eggs".getBytes());
-        ColumnSelection columns = ColumnSelection.create(ImmutableSet.of("baz".getBytes(), "spam".getBytes()));
+        Set<byte[]> rows =
+                ImmutableSet.of("bar".getBytes(StandardCharsets.UTF_8), "eggs".getBytes(StandardCharsets.UTF_8));
+        ColumnSelection columns = ColumnSelection.create(
+                ImmutableSet.of("baz".getBytes(StandardCharsets.UTF_8), "spam".getBytes(StandardCharsets.UTF_8)));
 
         txnManager.runTaskThrowOnConflict(txn -> {
             NavigableMap<byte[], RowResult<byte[]>> remoteRead = txn.getRows(TABLE_REF, rows, columns);
