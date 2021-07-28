@@ -45,7 +45,7 @@ public class ThriftObjectSizeUtilsTest {
     private static final long TEST_NAME_BYTES_SIZE = TEST_NAME_BYTES.remaining();
     private static final long TEST_COLUMN_SIZE = TEST_NAME_BYTES_SIZE + 4L + 4L + 8L;
     private static final ColumnOrSuperColumn EMPTY_COLUMN_OR_SUPERCOLUMN = new ColumnOrSuperColumn();
-    public static final int NULL_SIZE = Integer.BYTES;
+    public static final long NULL_SIZE = Integer.BYTES;
     private static final long EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE = NULL_SIZE * 4;
 
     @Test
