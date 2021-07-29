@@ -1928,8 +1928,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private String getExpiredLocksErrorString(@Nullable LockToken commitLocksToken, Set<LockToken> expiredLocks) {
         return "The following immutable timestamp lock was required: " + immutableTimestampLock
-                + "; the following commit locks were required: " + commitLocksToken
-                + "; the following locks are no longer valid: " + expiredLocks;
+                + "; the following commit locks were required: " + commitLocksToken.getRequestId()
+                + "; the following locks are no longer valid: "
+                + expiredLocks.stream().map(lock -> lock.getRequestId()).collect(Collectors.toSet());
     }
 
     private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
