@@ -109,7 +109,6 @@ dependencies {
     }
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.github.tomakehurst', name: 'wiremock-standalone'
-    testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
