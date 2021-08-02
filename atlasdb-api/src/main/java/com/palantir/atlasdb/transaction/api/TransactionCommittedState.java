@@ -16,16 +16,29 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.transaction.api.TransactionCommittedState.DependentState;
+import com.palantir.atlasdb.transaction.api.TransactionCommittedState.FullyCommittedState;
+import com.palantir.atlasdb.transaction.api.TransactionCommittedState.RolledBackState;
 import org.immutables.value.Value;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = FullyCommittedState.class, name = "f"),
+    @JsonSubTypes.Type(value = RolledBackState.class, name = "r"),
+    @JsonSubTypes.Type(value = DependentState.class, name = "d")
+})
 public interface TransactionCommittedState {
     <T> T accept(Visitor<T> visitor);
 
     @Value.Immutable
     @JsonSerialize(as = ImmutableFullyCommittedState.class)
     @JsonDeserialize(as = ImmutableFullyCommittedState.class)
+    @JsonTypeName("f")
     interface FullyCommittedState extends TransactionCommittedState {
         long commitTimestamp();
 
@@ -38,6 +51,7 @@ public interface TransactionCommittedState {
     @Value.Immutable
     @JsonSerialize(as = ImmutableRolledBackState.class)
     @JsonDeserialize(as = ImmutableRolledBackState.class)
+    @JsonTypeName("r")
     interface RolledBackState extends TransactionCommittedState {
         @Override
         default <T> T accept(Visitor<T> visitor) {
@@ -48,6 +62,7 @@ public interface TransactionCommittedState {
     @Value.Immutable
     @JsonSerialize(as = ImmutableDependentState.class)
     @JsonDeserialize(as = ImmutableDependentState.class)
+    @JsonTypeName("d")
     interface DependentState extends TransactionCommittedState {
         long commitTimestamp();
 

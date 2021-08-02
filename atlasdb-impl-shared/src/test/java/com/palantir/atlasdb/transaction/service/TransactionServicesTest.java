@@ -34,7 +34,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.api.ImmutableDependentState;
 import com.palantir.atlasdb.transaction.api.ImmutableFullyCommittedState;
+import com.palantir.atlasdb.transaction.api.ImmutablePrimaryTransactionLocator;
 import com.palantir.atlasdb.transaction.api.ImmutableRolledBackState;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
@@ -43,7 +45,6 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.serialization.ObjectMappers;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -59,10 +60,11 @@ public class TransactionServicesTest {
     private final TimestampService timestampService = new InMemoryTimestampService();
     private final CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
             keyValueService, timestampService, MetricsManagers.createForTests(), false);
+    private final InMemoryKeyValueService remoteKeyValueService = new InMemoryKeyValueService(false);
+    private final TransactionService remoteTransactionService =
+            SimpleTransactionService.createV2(remoteKeyValueService);
     private final TransactionService transactionService = TransactionServices.createTransactionService(
-            keyValueService, new TransactionSchemaManager(coordinationService), (_unused) -> {
-                throw new SafeRuntimeException("bad!");
-            });
+            keyValueService, new TransactionSchemaManager(coordinationService), unused -> remoteTransactionService);
 
     private long startTs;
     private long commitTs;
@@ -70,6 +72,7 @@ public class TransactionServicesTest {
     @Before
     public void setup() {
         TransactionTables.createTables(keyValueService);
+        TransactionTables.createTables(remoteKeyValueService);
     }
 
     @Test
@@ -165,6 +168,50 @@ public class TransactionServicesTest {
 
         verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
         verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTIONS2_TABLE), anyMap());
+    }
+
+    @Test
+    public void canFollowV3TransactionIndirectionCommittingCase() {
+        forceInstallVersion(3);
+        initializeTimestamps();
+
+        Transactions3Service.create(keyValueService)
+                .putUnlessExists(
+                        startTs,
+                        ImmutableDependentState.builder()
+                                .primaryLocator(ImmutablePrimaryTransactionLocator.builder()
+                                        .namespace("tom")
+                                        .startTimestamp(42L)
+                                        .build())
+                                .commitTimestamp(commitTs)
+                                .build());
+
+        assertThat(transactionService.get(startTs)).isNull();
+
+        remoteTransactionService.putUnlessExists(42L, 52L);
+        assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
+    }
+
+    @Test
+    public void canFollowV3TransactionIndirectionAbortingCase() {
+        forceInstallVersion(3);
+        initializeTimestamps();
+
+        Transactions3Service.create(keyValueService)
+                .putUnlessExists(
+                        startTs,
+                        ImmutableDependentState.builder()
+                                .primaryLocator(ImmutablePrimaryTransactionLocator.builder()
+                                        .namespace("tom")
+                                        .startTimestamp(42L)
+                                        .build())
+                                .commitTimestamp(commitTs)
+                                .build());
+
+        assertThat(transactionService.get(startTs)).isNull();
+
+        remoteTransactionService.putUnlessExists(42L, TransactionConstants.FAILED_COMMIT_TS);
+        assertThat(transactionService.get(startTs)).isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
     }
 
     private void initializeTimestamps() {
