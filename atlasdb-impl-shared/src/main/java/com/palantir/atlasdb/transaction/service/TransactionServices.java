@@ -25,8 +25,7 @@ import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.api.ImmutableJointTransactionConfiguration;
-import com.palantir.atlasdb.transaction.api.JointTransactionConfiguration;
+import com.palantir.atlasdb.transaction.api.RemoteTransactionServiceCache;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -42,26 +41,25 @@ public final class TransactionServices {
     public static TransactionService createTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
-            JointTransactionConfiguration jointTransactionConfiguration) {
+            RemoteTransactionServiceCache jointTransactionContext) {
         if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
-            return createSplitKeyTransactionService(
-                    keyValueService, transactionSchemaManager, jointTransactionConfiguration);
+            return createSplitKeyTransactionService(keyValueService, transactionSchemaManager, jointTransactionContext);
         }
         return createV1TransactionService(keyValueService);
     }
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
-        return createTransactionService(
-                keyValueService,
-                transactionSchemaManager,
-                ImmutableJointTransactionConfiguration.builder().build());
+        return createTransactionService(keyValueService, transactionSchemaManager, (_namespace) -> {
+            throw new SafeIllegalStateException(
+                    "This transaction service doesn't know how to create " + "connections to others.");
+        });
     }
 
     private static TransactionService createSplitKeyTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
-            JointTransactionConfiguration jointTransactionConfiguration) {
+            RemoteTransactionServiceCache jointTransactionContext) {
         // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
         return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
                 transactionSchemaManager::getTransactionsSchemaVersion,
@@ -71,13 +69,13 @@ public final class TransactionServices {
                         TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
                         createV2TransactionService(keyValueService),
                         TransactionConstants.JOINT_SUPPORTING_VERSION,
-                        createV3TransactionService(keyValueService, jointTransactionConfiguration))));
+                        createV3TransactionService(keyValueService, jointTransactionContext))));
     }
 
     private static TransactionService createV3TransactionService(
-            KeyValueService keyValueService, JointTransactionConfiguration jointTransactionConfiguration) {
+            KeyValueService keyValueService, RemoteTransactionServiceCache jointTransactionContext) {
         return new PreStartHandlingTransactionService(GenericUserFacingTransactionService.create(
-                Transactions3Service.create(keyValueService), jointTransactionConfiguration));
+                Transactions3Service.create(keyValueService), jointTransactionContext));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -98,10 +96,7 @@ public final class TransactionServices {
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
         CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
                 keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
-        return createTransactionService(
-                keyValueService,
-                new TransactionSchemaManager(coordinationService),
-                ImmutableJointTransactionConfiguration.builder().build());
+        return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
     }
 
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(

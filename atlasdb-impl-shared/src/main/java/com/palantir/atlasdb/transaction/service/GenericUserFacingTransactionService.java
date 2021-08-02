@@ -21,7 +21,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.api.ImmutableFullyCommittedState;
 import com.palantir.atlasdb.transaction.api.ImmutableRolledBackState;
-import com.palantir.atlasdb.transaction.api.JointTransactionConfiguration;
+import com.palantir.atlasdb.transaction.api.RemoteTransactionServiceCache;
 import com.palantir.atlasdb.transaction.api.TransactionCommittedState;
 import com.palantir.atlasdb.transaction.api.TransactionCommittedState.DependentState;
 import com.palantir.atlasdb.transaction.api.TransactionCommittedState.FullyCommittedState;
@@ -44,18 +44,17 @@ import org.jetbrains.annotations.Nullable;
  */
 public class GenericUserFacingTransactionService implements TransactionService {
     private final CombinedTransactionService local;
-    private final Map<String, TransactionService> remotes;
+    private final RemoteTransactionServiceCache factory;
 
     public GenericUserFacingTransactionService(
-            CombinedTransactionService local, Map<String, TransactionService> remotes) {
+            CombinedTransactionService local, RemoteTransactionServiceCache factory) {
         this.local = local;
-        this.remotes = remotes;
+        this.factory = factory;
     }
 
     public static TransactionService create(
-            Transactions3Service transactions3Service, JointTransactionConfiguration jointTransactionConfiguration) {
-        return new GenericUserFacingTransactionService(
-                transactions3Service, jointTransactionConfiguration.otherTransactionServices());
+            Transactions3Service transactions3Service, RemoteTransactionServiceCache remoteTransactionServiceCache) {
+        return new GenericUserFacingTransactionService(transactions3Service, remoteTransactionServiceCache);
     }
 
     @Override
@@ -89,7 +88,7 @@ public class GenericUserFacingTransactionService implements TransactionService {
                 public Long visitDependent(DependentState dependentState) {
                     PrimaryTransactionLocator locator = dependentState.primaryLocator();
                     Long theirMaybeCommitState =
-                            remotes.get(locator.namespace()).get(locator.startTimestamp());
+                            factory.getOrCreateForNamespace(locator.namespace()).get(locator.startTimestamp());
                     if (theirMaybeCommitState == null) {
                         // They're not committed yet, so we are not.
                         return null;

@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.api.ImmutableFullyCommittedState;
-import com.palantir.atlasdb.transaction.api.ImmutableJointTransactionConfiguration;
 import com.palantir.atlasdb.transaction.api.ImmutableRolledBackState;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
@@ -44,6 +43,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.serialization.ObjectMappers;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -60,9 +60,9 @@ public class TransactionServicesTest {
     private final CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
             keyValueService, timestampService, MetricsManagers.createForTests(), false);
     private final TransactionService transactionService = TransactionServices.createTransactionService(
-            keyValueService,
-            new TransactionSchemaManager(coordinationService),
-            ImmutableJointTransactionConfiguration.builder().build());
+            keyValueService, new TransactionSchemaManager(coordinationService), (_unused) -> {
+                throw new SafeRuntimeException("bad!");
+            });
 
     private long startTs;
     private long commitTs;
