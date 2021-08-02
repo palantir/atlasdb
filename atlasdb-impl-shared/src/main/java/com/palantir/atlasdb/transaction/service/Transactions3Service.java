@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
-public class Transactions3Service implements CombinedTransactionService {
+public final class Transactions3Service implements CombinedTransactionService {
     private final ObjectMapper objectMapper;
     private final KeyValueService kvs;
     private final TableReference transactionsTable;

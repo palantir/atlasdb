@@ -40,6 +40,7 @@ public abstract class InternalSchemaConfig {
      * transaction persistence.
      */
     @Value.Default
+    @SuppressWarnings("immutables:untype")
     public Optional<Integer> targetTransactionsSchemaVersion() {
         // TODO (jkong): Hack week!
         return Optional.of(3);

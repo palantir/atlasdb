@@ -50,7 +50,7 @@ public final class TransactionServices {
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
-        return createTransactionService(keyValueService, transactionSchemaManager, (_namespace) -> {
+        return createTransactionService(keyValueService, transactionSchemaManager, _namespace -> {
             throw new SafeIllegalStateException(
                     "This transaction service doesn't know how to create " + "connections to others.");
         });
