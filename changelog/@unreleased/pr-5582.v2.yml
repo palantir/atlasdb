@@ -1,0 +1,26 @@
+type: improvement
+improvement:
+  description: |-
+    remove background thread for tracing conf
+
+    **Goals (and why)**:
+
+    Currently all services that use atlas have a background thread which every minute checks on disk for a file for tracing prefs that only actually apply to cassandra. This moves this config to the actual KVS runtime config and removes this background thread entirely.
+
+    **Implementation Description (bullets)**: Remove unnecessary background thread and create an equivalent config structure in the cassandra kvs runtime config.
+
+    **Testing (What was existing testing like?  What have you done to improve it?)**: N/A
+
+    **Concerns (what feedback would you like?)**: N/A
+
+    **Where should we start reviewing?**: N/A
+
+    **Priority (whenever / two weeks / yesterday)**: normal
+
+    <!---
+    Please remember to:
+    - Add any necessary release notes (including breaking changes)
+    - Make sure the documentation is up to date for your change
+    --->
+  links:
+  - https://github.com/palantir/atlasdb/pull/5582
