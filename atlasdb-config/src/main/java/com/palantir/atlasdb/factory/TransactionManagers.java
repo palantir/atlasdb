@@ -476,7 +476,7 @@ public abstract class TransactionManagers {
         PersistentLockService persistentLockService =
                 createAndRegisterPersistentLockService(keyValueService, registrar(), config().initializeAsync());
 
-        // TODO (jkong): Fill the SRE in
+        // TODO (jkong): The cache can probably be re-used in a context like AtlasDB Proxy.
         TransactionComponents components = createTransactionComponents(
                 closeables,
                 metricsManager,
