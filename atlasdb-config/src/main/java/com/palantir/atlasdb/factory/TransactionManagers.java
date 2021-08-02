@@ -749,7 +749,9 @@ public abstract class TransactionManagers {
                         TransactionServices.createTransactionService(
                                 keyValueService,
                                 transactionSchemaManager,
-                                ImmutableJointTransactionConfiguration.builder().build())),
+                                ImmutableJointTransactionConfiguration.builder()
+                                        .otherTransactionServices(alternativeTransactionServices())
+                                        .build())),
                 closeables);
         Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
                 closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);

@@ -29,6 +29,7 @@ public interface TransactionCommittedState {
     interface FullyCommittedState extends TransactionCommittedState {
         long commitTimestamp();
 
+        @Override
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visitFullyCommitted(this);
         }
@@ -38,6 +39,7 @@ public interface TransactionCommittedState {
     @JsonSerialize(as = ImmutableRolledBackState.class)
     @JsonDeserialize(as = ImmutableRolledBackState.class)
     interface RolledBackState extends TransactionCommittedState {
+        @Override
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visitRolledBack(this);
         }
@@ -51,6 +53,7 @@ public interface TransactionCommittedState {
 
         PrimaryTransactionLocator primaryLocator();
 
+        @Override
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visitDependent(this);
         }
