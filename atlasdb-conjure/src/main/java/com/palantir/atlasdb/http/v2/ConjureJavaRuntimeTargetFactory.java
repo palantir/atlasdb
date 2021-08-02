@@ -27,14 +27,13 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
-import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
+import com.palantir.conjure.java.okhttp.NoOpHostEventsSink;
 import com.palantir.util.CachedTransformingSupplier;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
-    private static final HostMetricsRegistry HOST_METRICS_REGISTRY = new HostMetricsRegistry();
     private static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofMillis(100))
             .readTimeout(Duration.ofSeconds(65))
@@ -60,7 +59,10 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 Optional.empty(),
                 trustContext.orElseThrow(() -> new IllegalStateException("CJR requires a trust context")));
         T client = JaxRsClient.create(
-                type, addAtlasDbRemotingAgent(parameters.userAgent()), HOST_METRICS_REGISTRY, clientConfiguration);
+                type,
+                addAtlasDbRemotingAgent(parameters.userAgent()),
+                NoOpHostEventsSink.INSTANCE,
+                clientConfiguration);
         return wrapWithVersion(client);
     }
 
@@ -83,7 +85,7 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
                 serverListConfig -> JaxRsClient.create(
                         type,
                         addAtlasDbRemotingAgent(parameters.userAgent()),
-                        HOST_METRICS_REGISTRY,
+                        NoOpHostEventsSink.INSTANCE,
                         options.serverListToClient(serverListConfig)));
 
         return decorateFailoverProxy(type, clientSupplier);
@@ -102,7 +104,10 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
         ClientConfiguration clientConfiguration = clientOptions.serverListToClient(serverListConfig);
 
         T client = JaxRsClient.create(
-                type, addAtlasDbRemotingAgent(parameters.userAgent()), HOST_METRICS_REGISTRY, clientConfiguration);
+                type,
+                addAtlasDbRemotingAgent(parameters.userAgent()),
+                NoOpHostEventsSink.INSTANCE,
+                clientConfiguration);
         return decorateFailoverProxy(type, () -> client);
     }
 
