@@ -24,6 +24,7 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
@@ -32,6 +33,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.util.List;
 import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 @AutoDelegate
 public interface TransactionManager extends AutoCloseable {
@@ -429,6 +431,19 @@ public interface TransactionManager extends AutoCloseable {
     @Deprecated
     @Timed
     List<OpenTransaction> startTransactions(List<? extends PreCommitCondition> condition);
+
+    /**
+     * See {@link #startTransactions(List)}. This starts *one* transaction.
+     */
+    StartedTransactionContext startTransaction();
+
+    /**
+     * Here be dragons!
+     *
+     * TODO (jkong): Hmm.
+     */
+    Transaction createTransactionWithDependentContext(long dependentTimestamp,
+            LockImmutableTimestampResponse dependentImmutableTimestamp);
 
     /**
      * Frees resources used by this TransactionManager, and invokes any callbacks registered to run on close.

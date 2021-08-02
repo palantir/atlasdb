@@ -28,6 +28,8 @@ import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.StartedTransactionContext;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -36,6 +38,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -155,6 +158,17 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
 
     @Override
     public List<OpenTransaction> startTransactions(List<? extends PreCommitCondition> condition) {
+        throw new UnsupportedOperationException("Not supported on this transaction manager");
+    }
+
+    @Override
+    public StartedTransactionContext startTransaction() {
+        throw new UnsupportedOperationException("Not supported on this transaction manager");
+    }
+
+    @Override
+    public Transaction createTransactionWithDependentContext(
+            long dependentTimestamp, LockImmutableTimestampResponse dependentImmutableTimestamp) {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }
 

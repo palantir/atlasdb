@@ -14,17 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.joint;
+package com.palantir.atlasdb.transaction.api;
 
-import com.palantir.atlasdb.transaction.api.Transaction;
-import java.util.Map;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import org.immutables.value.Value;
 
-/**
- * The semantics of a {@link JointTransaction} is that a user may provide transaction tasks that operate across
- * multiple namespaces.
- */
 @Value.Immutable
-public interface JointTransaction {
-    Map<String, Transaction> constituentTransactions();
+public interface StartedTransactionContext {
+    Transaction startedTransaction();
+    LockImmutableTimestampResponse lockImmutableTimestampResponse();
 }

@@ -36,9 +36,11 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.ImmutableStartedTransactionContext;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.StartedTransactionContext;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -52,6 +54,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
@@ -208,6 +211,47 @@ import javax.validation.constraints.NotNull;
                     response.startTimestampAndPartition().timestamp()));
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
+    }
+
+    @Override
+    public StartedTransactionContext startTransaction() {
+        StartIdentifiedAtlasDbTransactionResponse startTransactionResponse =
+                timelockService.startIdentifiedAtlasDbTransactionBatch(1).get(0);
+        try {
+            recordImmutableTimestamp(startTransactionResponse.immutableTimestamp().getImmutableTimestamp());
+            cleaner.punch(startTransactionResponse.startTimestampAndPartition().timestamp());
+            Transaction transaction = createTransaction(
+                    startTransactionResponse.immutableTimestamp().getImmutableTimestamp(),
+                    () -> startTransactionResponse.startTimestampAndPartition().timestamp(),
+                    startTransactionResponse.immutableTimestamp().getLock(),
+                    PreCommitConditions.NO_OP);
+            return ImmutableStartedTransactionContext.builder()
+                    .startedTransaction(transaction)
+                    .lockImmutableTimestampResponse(startTransactionResponse.immutableTimestamp())
+                    .build();
+        } catch (Throwable t) {
+            timelockService.tryUnlock(
+                    ImmutableSet.of(startTransactionResponse.immutableTimestamp().getLock()));
+            lockWatchManager.removeTransactionStateFromCache(
+                    startTransactionResponse.startTimestampAndPartition().timestamp());
+            throw new RuntimeException(t);
+        }
+    }
+
+    @Override
+    public Transaction createTransactionWithDependentContext(
+            long dependentTimestamp,
+            LockImmutableTimestampResponse dependentImmutableTimestamp) {
+        return createTransaction(
+                translateForeignTimestamp(dependentImmutableTimestamp.getImmutableTimestamp()),
+                () -> translateForeignTimestamp(dependentTimestamp),
+                dependentImmutableTimestamp.getLock(),
+                PreCommitConditions.NO_OP);
+    }
+
+    private long translateForeignTimestamp(long immutableTimestamp) {
+        // TODO (jkong): Wow.
+        return immutableTimestamp;
     }
 
     private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
