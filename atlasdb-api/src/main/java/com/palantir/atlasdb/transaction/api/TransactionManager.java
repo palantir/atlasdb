@@ -33,7 +33,6 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.util.List;
 import java.util.function.Supplier;
-import org.immutables.value.Value;
 
 @AutoDelegate
 public interface TransactionManager extends AutoCloseable {
@@ -442,8 +441,8 @@ public interface TransactionManager extends AutoCloseable {
      *
      * TODO (jkong): Hmm.
      */
-    Transaction createTransactionWithDependentContext(long dependentTimestamp,
-            LockImmutableTimestampResponse dependentImmutableTimestamp);
+    Transaction createTransactionWithDependentContext(
+            long dependentTimestamp, LockImmutableTimestampResponse dependentImmutableTimestamp);
 
     /**
      * Frees resources used by this TransactionManager, and invokes any callbacks registered to run on close.

@@ -22,5 +22,6 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface StartedTransactionContext {
     Transaction startedTransaction();
+
     LockImmutableTimestampResponse lockImmutableTimestampResponse();
 }

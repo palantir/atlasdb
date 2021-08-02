@@ -20,20 +20,16 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public class RemoteTransactionServiceCacheImpl implements RemoteTransactionServiceCache {
     private final LoadingCache<String, TransactionService> remoteTransactionServices;
 
     public RemoteTransactionServiceCacheImpl(
-            LoadingCache<String, TransactionService> remoteTransactionServices) {
-        this.remoteTransactionServices = remoteTransactionServices;
-    }
-
-    public static RemoteTransactionServiceCache create(Function<String, TransactionService> transactionServiceFactory) {
-        return new RemoteTransactionServiceCacheImpl(Caffeine.newBuilder()
+            BiFunction<String, RemoteTransactionServiceCache, TransactionService> transactionServiceFactory) {
+        this.remoteTransactionServices = Caffeine.newBuilder()
                 .expireAfterAccess(5, TimeUnit.DAYS)
-                .build(transactionServiceFactory::apply));
+                .build(namespace -> transactionServiceFactory.apply(namespace, this));
     }
 
     @Override

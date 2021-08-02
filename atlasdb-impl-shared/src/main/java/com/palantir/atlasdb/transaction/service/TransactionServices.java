@@ -72,7 +72,8 @@ public final class TransactionServices {
                         createV3TransactionService(keyValueService, jointTransactionContext))));
     }
 
-    private static TransactionService createV3TransactionService(
+    // TODO (jkong): Naughty.
+    public static TransactionService createV3TransactionService(
             KeyValueService keyValueService, RemoteTransactionServiceCache jointTransactionContext) {
         return new PreStartHandlingTransactionService(GenericUserFacingTransactionService.create(
                 Transactions3Service.create(keyValueService), jointTransactionContext));
@@ -82,7 +83,7 @@ public final class TransactionServices {
         return new PreStartHandlingTransactionService(SimpleTransactionService.createV1(keyValueService));
     }
 
-    private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
+    public static TransactionService createV2TransactionService(KeyValueService keyValueService) {
         return new PreStartHandlingTransactionService(
                 WriteBatchingTransactionService.create(SimpleTransactionService.createV2(keyValueService)));
     }

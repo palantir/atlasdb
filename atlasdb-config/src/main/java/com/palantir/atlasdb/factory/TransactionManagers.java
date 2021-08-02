@@ -116,6 +116,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockWatchingCache;
 import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
 import com.palantir.atlasdb.transaction.api.RemoteTransactionServiceCache;
+import com.palantir.atlasdb.transaction.api.RemoteTransactionServiceCacheImpl;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -130,6 +131,7 @@ import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluat
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.transaction.service.UncoordinatedReadOnlyTransactionService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -182,7 +184,6 @@ import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -482,9 +483,22 @@ public abstract class TransactionManagers {
                 lockAndTimestampServices,
                 keyValueService,
                 runtime,
-                alternativeNamespace -> {
-                    throw new SafeRuntimeException("Not ready yet");
-                });
+                new RemoteTransactionServiceCacheImpl((namespace, serviceCache) -> {
+                    ServiceDiscoveringAtlasSupplier alternative = new ServiceDiscoveringAtlasSupplier(
+                            metricsManager,
+                            config().keyValueService(),
+                            runtime.map(AtlasDbRuntimeConfig::keyValueService),
+                            config().leader(),
+                            Optional.of(namespace),
+                            Optional.empty(),
+                            config().initializeAsync(),
+                            adapter);
+                    KeyValueService kvs = alternative.getKeyValueService();
+                    return new UncoordinatedReadOnlyTransactionService(ImmutableList.of(
+                            TransactionServices.createV1TransactionService(kvs),
+                            TransactionServices.createV2TransactionService(kvs),
+                            TransactionServices.createV3TransactionService(kvs, serviceCache)));
+                }));
         TransactionService transactionService = components.transactionService();
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);

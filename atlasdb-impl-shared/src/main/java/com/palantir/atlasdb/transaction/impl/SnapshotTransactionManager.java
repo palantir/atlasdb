@@ -218,7 +218,8 @@ import javax.validation.constraints.NotNull;
         StartIdentifiedAtlasDbTransactionResponse startTransactionResponse =
                 timelockService.startIdentifiedAtlasDbTransactionBatch(1).get(0);
         try {
-            recordImmutableTimestamp(startTransactionResponse.immutableTimestamp().getImmutableTimestamp());
+            recordImmutableTimestamp(
+                    startTransactionResponse.immutableTimestamp().getImmutableTimestamp());
             cleaner.punch(startTransactionResponse.startTimestampAndPartition().timestamp());
             Transaction transaction = createTransaction(
                     startTransactionResponse.immutableTimestamp().getImmutableTimestamp(),
@@ -230,8 +231,8 @@ import javax.validation.constraints.NotNull;
                     .lockImmutableTimestampResponse(startTransactionResponse.immutableTimestamp())
                     .build();
         } catch (Throwable t) {
-            timelockService.tryUnlock(
-                    ImmutableSet.of(startTransactionResponse.immutableTimestamp().getLock()));
+            timelockService.tryUnlock(ImmutableSet.of(
+                    startTransactionResponse.immutableTimestamp().getLock()));
             lockWatchManager.removeTransactionStateFromCache(
                     startTransactionResponse.startTimestampAndPartition().timestamp());
             throw new RuntimeException(t);
@@ -240,8 +241,7 @@ import javax.validation.constraints.NotNull;
 
     @Override
     public Transaction createTransactionWithDependentContext(
-            long dependentTimestamp,
-            LockImmutableTimestampResponse dependentImmutableTimestamp) {
+            long dependentTimestamp, LockImmutableTimestampResponse dependentImmutableTimestamp) {
         return createTransaction(
                 translateForeignTimestamp(dependentImmutableTimestamp.getImmutableTimestamp()),
                 () -> translateForeignTimestamp(dependentTimestamp),

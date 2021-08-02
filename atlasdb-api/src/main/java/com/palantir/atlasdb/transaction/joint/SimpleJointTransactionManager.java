@@ -29,8 +29,7 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
     private final String leadTransactionManagerIdentifier;
 
     public SimpleJointTransactionManager(
-            Map<String, TransactionManager> knownTransactionManagers,
-            String leadTransactionManagerIdentifier) {
+            Map<String, TransactionManager> knownTransactionManagers, String leadTransactionManagerIdentifier) {
         this.knownTransactionManagers = knownTransactionManagers;
         this.leadTransactionManagerIdentifier = leadTransactionManagerIdentifier;
     }
@@ -44,8 +43,7 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
         Map<String, Transaction> dependentTransactions = KeyedStream.stream(knownTransactionManagers)
                 .filterKeys(identifier -> !identifier.equals(leadTransactionManagerIdentifier))
                 .map(secondaryTxMgr -> secondaryTxMgr.createTransactionWithDependentContext(
-                        context.startedTransaction().getTimestamp(),
-                        context.lockImmutableTimestampResponse()))
+                        context.startedTransaction().getTimestamp(), context.lockImmutableTimestampResponse()))
                 .collectToMap();
         Map<String, Transaction> allTransactions = ImmutableMap.<String, Transaction>builder()
                 .putAll(dependentTransactions)
