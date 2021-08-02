@@ -44,7 +44,8 @@ public final class TransactionServices {
             TransactionSchemaManager transactionSchemaManager,
             JointTransactionConfiguration jointTransactionConfiguration) {
         if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
-            return createSplitKeyTransactionService(keyValueService, transactionSchemaManager, jointTransactionConfiguration);
+            return createSplitKeyTransactionService(
+                    keyValueService, transactionSchemaManager, jointTransactionConfiguration);
         }
         return createV1TransactionService(keyValueService);
     }
@@ -67,12 +68,10 @@ public final class TransactionServices {
 
     private static TransactionService createV3TransactionService(
             KeyValueService keyValueService, JointTransactionConfiguration jointTransactionConfiguration) {
-        return new PreStartHandlingTransactionService(
-                new GenericUserFacingTransactionService(
-                        ImmutableMap.of(
-                                jointTransactionConfiguration.myIdentifier(),
-                                Transactions3Service.create(keyValueService)),
-                        jointTransactionConfiguration.myIdentifier()));
+        return new PreStartHandlingTransactionService(new GenericUserFacingTransactionService(
+                ImmutableMap.of(
+                        jointTransactionConfiguration.myIdentifier(), Transactions3Service.create(keyValueService)),
+                jointTransactionConfiguration.myIdentifier()));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -93,8 +92,12 @@ public final class TransactionServices {
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
         CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
                 keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
-        return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService),
-                ImmutableJointTransactionConfiguration.builder().myIdentifier("me").build());
+        return createTransactionService(
+                keyValueService,
+                new TransactionSchemaManager(coordinationService),
+                ImmutableJointTransactionConfiguration.builder()
+                        .myIdentifier("me")
+                        .build());
     }
 
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(

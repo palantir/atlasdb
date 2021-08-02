@@ -41,8 +41,7 @@ public class LegacyTransactionServiceAdapter implements CombinedTransactionServi
     @Override
     public Optional<TransactionCommittedState> getImmediateState(long startTimestamp) {
         Long timestamp = legacyService.get(startTimestamp);
-        return Optional.ofNullable(timestamp)
-                .map(this::translateCommittedTimestamp);
+        return Optional.ofNullable(timestamp).map(this::translateCommittedTimestamp);
     }
 
     @Override
@@ -50,7 +49,6 @@ public class LegacyTransactionServiceAdapter implements CombinedTransactionServi
         return KeyedStream.stream(legacyService.get(startTimestamps))
                 .map(this::translateCommittedTimestamp)
                 .collectToMap();
-
     }
 
     @Override

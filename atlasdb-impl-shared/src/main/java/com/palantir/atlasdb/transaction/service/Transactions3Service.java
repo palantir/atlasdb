@@ -53,8 +53,9 @@ public class Transactions3Service implements CombinedTransactionService {
     public static Transactions3Service create(KeyValueService kvs) {
         return new Transactions3Service(
                 ObjectMappers.newSmileServerObjectMapper()
-                .configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true),
-                kvs, TransactionConstants.TRANSACTIONS3_TABLE);
+                        .configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true),
+                kvs,
+                TransactionConstants.TRANSACTIONS3_TABLE);
     }
 
     @Override
@@ -62,9 +63,10 @@ public class Transactions3Service implements CombinedTransactionService {
         Cell cell = getTransactionCell(startTimestamp);
         try {
             return Futures.transform(
-                    kvs.getAsync(transactionsTable, ImmutableMap.of(cell, 1L)),
-                    returnMap -> decodeTimestamp(startTimestamp, cell, returnMap),
-                    MoreExecutors.directExecutor()).get();
+                            kvs.getAsync(transactionsTable, ImmutableMap.of(cell, 1L)),
+                            returnMap -> decodeTimestamp(startTimestamp, cell, returnMap),
+                            MoreExecutors.directExecutor())
+                    .get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
@@ -76,15 +78,13 @@ public class Transactions3Service implements CombinedTransactionService {
     private Optional<TransactionCommittedState> decodeTimestamp(
             long _startTimestamp, Cell cell, Map<Cell, Value> returnMap) {
         Value value = returnMap.get(cell);
-        return Optional.ofNullable(value)
-                .map(Value::getContents)
-                .map(bytes -> {
-                    try {
-                        return objectMapper.readValue(bytes, TransactionCommittedState.class);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+        return Optional.ofNullable(value).map(Value::getContents).map(bytes -> {
+            try {
+                return objectMapper.readValue(bytes, TransactionCommittedState.class);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override
@@ -107,12 +107,8 @@ public class Transactions3Service implements CombinedTransactionService {
             long startTimestamp, TransactionCommittedState expected, TransactionCommittedState newProposal)
             throws KeyAlreadyExistsException {
         Cell key = getTransactionCell(startTimestamp);
-        kvs.checkAndSet(
-                CheckAndSetRequest.singleCell(
-                        transactionsTable,
-                        key,
-                        serializeUnchecked(expected),
-                        serializeUnchecked(newProposal)));
+        kvs.checkAndSet(CheckAndSetRequest.singleCell(
+                transactionsTable, key, serializeUnchecked(expected), serializeUnchecked(newProposal)));
     }
 
     @Override

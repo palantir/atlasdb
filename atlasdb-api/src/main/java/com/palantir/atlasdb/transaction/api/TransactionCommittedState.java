@@ -48,6 +48,7 @@ public interface TransactionCommittedState {
     @JsonDeserialize(as = ImmutableDependentState.class)
     interface DependentState extends TransactionCommittedState {
         long commitTimestamp();
+
         PrimaryTransactionLocator primaryLocator();
 
         default <T> T accept(Visitor<T> visitor) {
@@ -60,12 +61,15 @@ public interface TransactionCommittedState {
     @JsonDeserialize(as = ImmutablePrimaryTransactionLocator.class)
     interface PrimaryTransactionLocator {
         String namespace();
+
         long startTimestamp();
     }
 
     interface Visitor<T> {
         T visitFullyCommitted(FullyCommittedState fullyCommittedState);
+
         T visitRolledBack(RolledBackState rolledBackState);
+
         T visitDependent(DependentState dependentState);
     }
 }

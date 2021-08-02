@@ -43,9 +43,8 @@ public interface CombinedTransactionService extends AutoCloseable {
      */
     void putUnlessExists(long startTimestamp, TransactionCommittedState state) throws KeyAlreadyExistsException;
 
-    void checkAndSet(long startTimestamp,
-            TransactionCommittedState expected,
-            TransactionCommittedState newProposal) throws KeyAlreadyExistsException;
+    void checkAndSet(long startTimestamp, TransactionCommittedState expected, TransactionCommittedState newProposal)
+            throws KeyAlreadyExistsException;
 
     /**
      * Frees up resources associated with the transaction service.

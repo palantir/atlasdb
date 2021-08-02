@@ -60,7 +60,8 @@ public class TransactionServicesTest {
     private final CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
             keyValueService, timestampService, MetricsManagers.createForTests(), false);
     private final TransactionService transactionService = TransactionServices.createTransactionService(
-            keyValueService, new TransactionSchemaManager(coordinationService),
+            keyValueService,
+            new TransactionSchemaManager(coordinationService),
             ImmutableJointTransactionConfiguration.builder().myIdentifier("me").build());
 
     private long startTs;
@@ -137,10 +138,13 @@ public class TransactionServicesTest {
         transactionService.putUnlessExists(startTs, commitTs);
 
         Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTIONS3_TABLE);
-        assertThat(actualArgument.keySet()).containsExactly(TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs));
-        assertThat(actualArgument.values()).containsExactly(
-                ObjectMappers.newSmileServerObjectMapper().writeValueAsBytes(
-                        ImmutableFullyCommittedState.builder().commitTimestamp(commitTs).build()));
+        assertThat(actualArgument.keySet())
+                .containsExactly(TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs));
+        assertThat(actualArgument.values())
+                .containsExactly(ObjectMappers.newSmileServerObjectMapper()
+                        .writeValueAsBytes(ImmutableFullyCommittedState.builder()
+                                .commitTimestamp(commitTs)
+                                .build()));
 
         verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
         verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTIONS2_TABLE), anyMap());
@@ -153,10 +157,11 @@ public class TransactionServicesTest {
         transactionService.putUnlessExists(startTs, -1L);
 
         Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTIONS3_TABLE);
-        assertThat(actualArgument.keySet()).containsExactly(TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs));
-        assertThat(actualArgument.values()).containsExactly(
-                ObjectMappers.newSmileServerObjectMapper().writeValueAsBytes(
-                        ImmutableRolledBackState.builder().build()));
+        assertThat(actualArgument.keySet())
+                .containsExactly(TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs));
+        assertThat(actualArgument.values())
+                .containsExactly(ObjectMappers.newSmileServerObjectMapper()
+                        .writeValueAsBytes(ImmutableRolledBackState.builder().build()));
 
         verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
         verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTIONS2_TABLE), anyMap());
@@ -177,7 +182,8 @@ public class TransactionServicesTest {
             transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(version);
             ((TimestampManagementService) timestampService)
                     .fastForwardTimestamp(timestampService.getFreshTimestamp() + 1_000_000);
-            return transactionSchemaManager.getTransactionsSchemaVersion(timestampService.getFreshTimestamp()) == version;
+            return transactionSchemaManager.getTransactionsSchemaVersion(timestampService.getFreshTimestamp())
+                    == version;
         });
     }
 

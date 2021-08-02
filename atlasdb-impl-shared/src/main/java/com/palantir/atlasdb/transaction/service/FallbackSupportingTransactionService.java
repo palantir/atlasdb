@@ -28,8 +28,7 @@ public class FallbackSupportingTransactionService implements CombinedTransaction
     private final CombinedTransactionService secondary;
 
     public FallbackSupportingTransactionService(
-            CombinedTransactionService primary,
-            CombinedTransactionService secondary) {
+            CombinedTransactionService primary, CombinedTransactionService secondary) {
         this.primary = primary;
         this.secondary = secondary;
     }

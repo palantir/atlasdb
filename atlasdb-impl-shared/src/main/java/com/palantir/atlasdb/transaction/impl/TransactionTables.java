@@ -36,8 +36,9 @@ public final class TransactionTables {
     }
 
     public static void truncateTables(KeyValueService keyValueService) {
-        keyValueService.truncateTables(
-                ImmutableSet.of(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTIONS2_TABLE,
-                        TransactionConstants.TRANSACTIONS3_TABLE));
+        keyValueService.truncateTables(ImmutableSet.of(
+                TransactionConstants.TRANSACTION_TABLE,
+                TransactionConstants.TRANSACTIONS2_TABLE,
+                TransactionConstants.TRANSACTIONS3_TABLE));
     }
 }

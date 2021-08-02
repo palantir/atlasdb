@@ -43,8 +43,7 @@ public class GenericUserFacingTransactionService implements TransactionService {
     private final String defaultNamespace;
 
     public GenericUserFacingTransactionService(
-            Map<String, CombinedTransactionService> identifiedCombinedTransactionServices,
-            String defaultNamespace) {
+            Map<String, CombinedTransactionService> identifiedCombinedTransactionServices, String defaultNamespace) {
         this.identifiedCombinedTransactionServices = identifiedCombinedTransactionServices;
         this.defaultNamespace = defaultNamespace;
     }
@@ -80,16 +79,17 @@ public class GenericUserFacingTransactionService implements TransactionService {
                 @Override
                 public Long visitDependent(DependentState dependentState) {
                     PrimaryTransactionLocator locator = dependentState.primaryLocator();
-                    Optional<TransactionCommittedState> theirMaybeCommitState =
-                            identifiedCombinedTransactionServices.get(locator.namespace())
-                                    .getImmediateState(locator.startTimestamp());
+                    Optional<TransactionCommittedState> theirMaybeCommitState = identifiedCombinedTransactionServices
+                            .get(locator.namespace())
+                            .getImmediateState(locator.startTimestamp());
                     if (theirMaybeCommitState.isEmpty()) {
                         // They're not committed yet, so we are not.
                         return null;
                     }
                     TransactionCommittedState theirCommittedState = theirMaybeCommitState.get();
-                    return theirCommittedState.accept(this) == TransactionConstants.FAILED_COMMIT_TS ?
-                            TransactionConstants.FAILED_COMMIT_TS : locator.startTimestamp();
+                    return theirCommittedState.accept(this) == TransactionConstants.FAILED_COMMIT_TS
+                            ? TransactionConstants.FAILED_COMMIT_TS
+                            : locator.startTimestamp();
                 }
             });
         }
@@ -113,7 +113,9 @@ public class GenericUserFacingTransactionService implements TransactionService {
         if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
             state = ImmutableRolledBackState.builder().build();
         } else {
-            state = ImmutableFullyCommittedState.builder().commitTimestamp(commitTimestamp).build();
+            state = ImmutableFullyCommittedState.builder()
+                    .commitTimestamp(commitTimestamp)
+                    .build();
         }
         identifiedCombinedTransactionServices.get(defaultNamespace).putUnlessExists(startTimestamp, state);
     }
