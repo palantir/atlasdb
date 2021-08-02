@@ -422,7 +422,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.clientPool = clientPool;
         this.asyncKeyValueService = asyncKeyValueService;
         this.mutationTimestampProvider = mutationTimestampProvider;
-        this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
+        this.queryRunner =
+                new TracingQueryRunner(log, () -> runtimeConfigSupplier.get().tracing());
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);

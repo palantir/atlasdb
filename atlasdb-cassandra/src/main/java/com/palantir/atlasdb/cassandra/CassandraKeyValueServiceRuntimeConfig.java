@@ -129,6 +129,14 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return true;
     }
 
+    /**
+     * Config that controls which cassandra queries will be traced. The default is nothing is traced.
+     */
+    @Value.Default
+    public CassandraTracingConfig tracing() {
+        return ImmutableCassandraTracingConfig.builder().build();
+    }
+
     public static CassandraKeyValueServiceRuntimeConfig getDefault() {
         return ImmutableCassandraKeyValueServiceRuntimeConfig.builder().build();
     }

@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
@@ -46,18 +45,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
-    private static final ScheduledExecutorService scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory(AbstractKeyValueService.class.getSimpleName() + "-tracing-prefs", true));
     protected ExecutorService executor;
-
-    protected final TracingPrefsConfig tracingPrefs;
-    private final ScheduledFuture<?> tracingPrefsTask;
 
     /**
      * Note: This takes ownership of the given executor. It will be shutdown when the key
@@ -65,9 +56,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      */
     public AbstractKeyValueService(ExecutorService executor) {
         this.executor = executor;
-        this.tracingPrefs = new TracingPrefsConfig();
-        tracingPrefsTask = scheduledExecutor.scheduleWithFixedDelay(
-                this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
     }
 
     /**
@@ -171,7 +159,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void close() {
-        tracingPrefsTask.cancel(false);
         executor.shutdown();
     }
 
