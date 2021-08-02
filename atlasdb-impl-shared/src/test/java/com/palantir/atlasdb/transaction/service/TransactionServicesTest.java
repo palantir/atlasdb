@@ -62,7 +62,7 @@ public class TransactionServicesTest {
     private final TransactionService transactionService = TransactionServices.createTransactionService(
             keyValueService,
             new TransactionSchemaManager(coordinationService),
-            ImmutableJointTransactionConfiguration.builder().myIdentifier("me").build());
+            ImmutableJointTransactionConfiguration.builder().build());
 
     private long startTs;
     private long commitTs;

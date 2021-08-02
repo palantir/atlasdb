@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -113,6 +114,7 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.ImmutableJointTransactionConfiguration;
 import com.palantir.atlasdb.transaction.api.LockWatchingCache;
 import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -198,6 +200,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -288,6 +291,14 @@ public abstract class TransactionManagers {
 
     // TODO(fdesouza): Remove this once PDS-95791 is resolved.
     abstract Optional<LockDiagnosticComponents> lockDiagnosticComponents();
+
+    /**
+     * Other transaction services that we may need to know about, for whatever reason.
+     */
+    @Value.Default
+    Map<String, TransactionService> alternativeTransactionServices() {
+        return ImmutableMap.of();
+    }
 
     @Value.Default
     LockWatchingCache lockWatchingCache() {
@@ -730,11 +741,15 @@ public abstract class TransactionManagers {
                 getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
+        // TODO (jkong): Replace with something that
         TransactionService transactionService = initializeCloseable(
                 () -> AtlasDbMetrics.instrumentTimed(
                         metricsManager.getRegistry(),
                         TransactionService.class,
-                        TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
+                        TransactionServices.createTransactionService(
+                                keyValueService,
+                                transactionSchemaManager,
+                                ImmutableJointTransactionConfiguration.builder().build())),
                 closeables);
         Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
                 closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);

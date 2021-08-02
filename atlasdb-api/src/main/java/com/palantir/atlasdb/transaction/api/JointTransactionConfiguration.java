@@ -18,14 +18,13 @@ package com.palantir.atlasdb.transaction.api;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import java.util.Optional;
+import com.palantir.atlasdb.transaction.service.TransactionService;
+import java.util.Map;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableJointTransactionConfiguration.class)
 @JsonDeserialize(as = ImmutableJointTransactionConfiguration.class)
 public interface JointTransactionConfiguration {
-    String myIdentifier();
-
-    Optional<String> primaryNamespaceThatIAmSecondaryTo();
+    Map<String, TransactionService> otherTransactionServices();
 }

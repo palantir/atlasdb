@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.api.ImmutableFullyCommittedState;
 import com.palantir.atlasdb.transaction.api.ImmutableRolledBackState;
+import com.palantir.atlasdb.transaction.api.JointTransactionConfiguration;
 import com.palantir.atlasdb.transaction.api.TransactionCommittedState;
 import com.palantir.atlasdb.transaction.api.TransactionCommittedState.DependentState;
 import com.palantir.atlasdb.transaction.api.TransactionCommittedState.FullyCommittedState;
@@ -37,15 +38,24 @@ import org.jetbrains.annotations.Nullable;
 /**
  * This is meant to be a view into the transaction timelines for users that don't need joint transactions. If the
  * current namespace is a secondary namespace, it is assumed that synchronisation of timestamps has already happened.
+ *
+ * TODO (jkong): I'm a bit worried about performance, there are a ton of layers stacking up everywhere. But this is
+ * fine for hackweek.
  */
 public class GenericUserFacingTransactionService implements TransactionService {
-    private final Map<String, CombinedTransactionService> identifiedCombinedTransactionServices;
-    private final String defaultNamespace;
+    private final CombinedTransactionService local;
+    private final Map<String, TransactionService> remotes;
 
     public GenericUserFacingTransactionService(
-            Map<String, CombinedTransactionService> identifiedCombinedTransactionServices, String defaultNamespace) {
-        this.identifiedCombinedTransactionServices = identifiedCombinedTransactionServices;
-        this.defaultNamespace = defaultNamespace;
+            CombinedTransactionService local, Map<String, TransactionService> remotes) {
+        this.local = local;
+        this.remotes = remotes;
+    }
+
+    public static TransactionService create(
+            Transactions3Service transactions3Service, JointTransactionConfiguration jointTransactionConfiguration) {
+        return new GenericUserFacingTransactionService(
+                transactions3Service, jointTransactionConfiguration.otherTransactionServices());
     }
 
     @Override
@@ -61,8 +71,7 @@ public class GenericUserFacingTransactionService implements TransactionService {
     @Nullable
     @Override
     public Long get(long startTimestamp) {
-        Optional<TransactionCommittedState> dbState =
-                identifiedCombinedTransactionServices.get(defaultNamespace).getImmediateState(startTimestamp);
+        Optional<TransactionCommittedState> dbState = local.getImmediateState(startTimestamp);
         if (dbState.isPresent()) {
             TransactionCommittedState state = dbState.get();
             return state.accept(new Visitor<>() {
@@ -79,17 +88,15 @@ public class GenericUserFacingTransactionService implements TransactionService {
                 @Override
                 public Long visitDependent(DependentState dependentState) {
                     PrimaryTransactionLocator locator = dependentState.primaryLocator();
-                    Optional<TransactionCommittedState> theirMaybeCommitState = identifiedCombinedTransactionServices
-                            .get(locator.namespace())
-                            .getImmediateState(locator.startTimestamp());
-                    if (theirMaybeCommitState.isEmpty()) {
+                    Long theirMaybeCommitState =
+                            remotes.get(locator.namespace()).get(locator.startTimestamp());
+                    if (theirMaybeCommitState == null) {
                         // They're not committed yet, so we are not.
                         return null;
                     }
-                    TransactionCommittedState theirCommittedState = theirMaybeCommitState.get();
-                    return theirCommittedState.accept(this) == TransactionConstants.FAILED_COMMIT_TS
+                    return theirMaybeCommitState == TransactionConstants.FAILED_COMMIT_TS
                             ? TransactionConstants.FAILED_COMMIT_TS
-                            : locator.startTimestamp();
+                            : dependentState.commitTimestamp();
                 }
             });
         }
@@ -117,11 +124,12 @@ public class GenericUserFacingTransactionService implements TransactionService {
                     .commitTimestamp(commitTimestamp)
                     .build();
         }
-        identifiedCombinedTransactionServices.get(defaultNamespace).putUnlessExists(startTimestamp, state);
+        local.putUnlessExists(startTimestamp, state);
     }
 
     @Override
     public void close() {
-        identifiedCombinedTransactionServices.values().forEach(CombinedTransactionService::close);
+        // Responsibility for closing remotes is not on us
+        local.close();
     }
 }

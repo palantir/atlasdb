@@ -50,6 +50,14 @@ public final class TransactionServices {
         return createV1TransactionService(keyValueService);
     }
 
+    public static TransactionService createTransactionService(
+            KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
+        return createTransactionService(
+                keyValueService,
+                transactionSchemaManager,
+                ImmutableJointTransactionConfiguration.builder().build());
+    }
+
     private static TransactionService createSplitKeyTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
@@ -68,10 +76,8 @@ public final class TransactionServices {
 
     private static TransactionService createV3TransactionService(
             KeyValueService keyValueService, JointTransactionConfiguration jointTransactionConfiguration) {
-        return new PreStartHandlingTransactionService(new GenericUserFacingTransactionService(
-                ImmutableMap.of(
-                        jointTransactionConfiguration.myIdentifier(), Transactions3Service.create(keyValueService)),
-                jointTransactionConfiguration.myIdentifier()));
+        return new PreStartHandlingTransactionService(GenericUserFacingTransactionService.create(
+                Transactions3Service.create(keyValueService), jointTransactionConfiguration));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -95,9 +101,7 @@ public final class TransactionServices {
         return createTransactionService(
                 keyValueService,
                 new TransactionSchemaManager(coordinationService),
-                ImmutableJointTransactionConfiguration.builder()
-                        .myIdentifier("me")
-                        .build());
+                ImmutableJointTransactionConfiguration.builder().build());
     }
 
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
