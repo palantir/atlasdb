@@ -24,6 +24,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -33,12 +34,16 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.api.ImmutableFullyCommittedState;
+import com.palantir.atlasdb.transaction.api.ImmutableJointTransactionConfiguration;
+import com.palantir.atlasdb.transaction.api.ImmutableRolledBackState;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -55,7 +60,8 @@ public class TransactionServicesTest {
     private final CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
             keyValueService, timestampService, MetricsManagers.createForTests(), false);
     private final TransactionService transactionService = TransactionServices.createTransactionService(
-            keyValueService, new TransactionSchemaManager(coordinationService));
+            keyValueService, new TransactionSchemaManager(coordinationService),
+            ImmutableJointTransactionConfiguration.builder().myIdentifier("me").build());
 
     private long startTs;
     private long commitTs;
@@ -124,18 +130,54 @@ public class TransactionServicesTest {
         verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
     }
 
+    @Test
+    public void canCommitV3Transaction() throws JsonProcessingException {
+        forceInstallVersion(3);
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, commitTs);
+
+        Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTIONS3_TABLE);
+        assertThat(actualArgument.keySet()).containsExactly(TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs));
+        assertThat(actualArgument.values()).containsExactly(
+                ObjectMappers.newSmileServerObjectMapper().writeValueAsBytes(
+                        ImmutableFullyCommittedState.builder().commitTimestamp(commitTs).build()));
+
+        verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
+        verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTIONS2_TABLE), anyMap());
+    }
+
+    @Test
+    public void canFailV3Transaction() throws JsonProcessingException {
+        forceInstallVersion(3);
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, -1L);
+
+        Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTIONS3_TABLE);
+        assertThat(actualArgument.keySet()).containsExactly(TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs));
+        assertThat(actualArgument.values()).containsExactly(
+                ObjectMappers.newSmileServerObjectMapper().writeValueAsBytes(
+                        ImmutableRolledBackState.builder().build()));
+
+        verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
+        verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTIONS2_TABLE), anyMap());
+    }
+
     private void initializeTimestamps() {
         startTs = timestampService.getFreshTimestamp();
         commitTs = timestampService.getFreshTimestamp();
     }
 
     private void forceInstallV2() {
+        forceInstallVersion(2);
+    }
+
+    private void forceInstallVersion(int version) {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         Awaitility.await().atMost(Duration.ofSeconds(1)).until(() -> {
-            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(2);
+            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(version);
             ((TimestampManagementService) timestampService)
                     .fastForwardTimestamp(timestampService.getFreshTimestamp() + 1_000_000);
-            return transactionSchemaManager.getTransactionsSchemaVersion(timestampService.getFreshTimestamp()) == 2;
+            return transactionSchemaManager.getTransactionsSchemaVersion(timestampService.getFreshTimestamp()) == version;
         });
     }
 

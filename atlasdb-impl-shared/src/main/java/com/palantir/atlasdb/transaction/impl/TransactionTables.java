@@ -30,11 +30,14 @@ public final class TransactionTables {
                 TransactionConstants.TRANSACTION_TABLE,
                 TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes(),
                 TransactionConstants.TRANSACTIONS2_TABLE,
-                TransactionConstants.TRANSACTIONS2_TABLE_METADATA.persistToBytes()));
+                TransactionConstants.TRANSACTIONS2_TABLE_METADATA.persistToBytes(),
+                TransactionConstants.TRANSACTIONS3_TABLE,
+                TransactionConstants.TRANSACTIONS3_TABLE_METADATA.persistToBytes()));
     }
 
     public static void truncateTables(KeyValueService keyValueService) {
         keyValueService.truncateTables(
-                ImmutableSet.of(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTIONS2_TABLE));
+                ImmutableSet.of(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTIONS2_TABLE,
+                        TransactionConstants.TRANSACTIONS3_TABLE));
     }
 }

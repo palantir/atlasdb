@@ -32,6 +32,10 @@ public final class TransactionConstants {
     public static final TableReference TRANSACTION_TABLE = TableReference.createWithEmptyNamespace("_transactions");
     public static final TableReference TRANSACTIONS2_TABLE = TableReference.createWithEmptyNamespace("_transactions2");
 
+    // When we do this for prod we should probably just use a leading byte in the transactions2 table, and/or something
+    // that would not deserialize into a VAR_LONG. For hackweek I'll have multiple tables though.
+    public static final TableReference TRANSACTIONS3_TABLE = TableReference.createWithEmptyNamespace("_transactions3");
+
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;
@@ -45,8 +49,10 @@ public final class TransactionConstants {
 
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
     public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
+    public static final int JOINT_SUPPORTING_VERSION = 3;
     public static final ImmutableSet<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS =
-            ImmutableSet.of(DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION, TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+            ImmutableSet.of(DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION, TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+                    JOINT_SUPPORTING_VERSION);
 
     public static byte[] getValueForTimestamp(long transactionTimestamp) {
         return EncodingUtils.encodeVarLong(transactionTimestamp);
@@ -70,6 +76,20 @@ public final class TransactionConstants {
      * false-positive chances and a low index interval were found to be very beneficial for reads.
      */
     public static final TableMetadata TRANSACTIONS2_TABLE_METADATA = TableMetadata.internal()
+            .singleSafeRowComponent("start_ts_row", ValueType.BLOB)
+            .singleDynamicSafeColumn("start_ts_col", ValueType.BLOB, ValueType.BLOB)
+            .nameLogSafety(LogSafety.SAFE)
+            .sweepStrategy(SweepStrategy.NOTHING)
+            .explicitCompressionBlockSizeKB(64)
+            .denselyAccessedWideRows(true)
+            .build();
+
+    /**
+     * Metadata for the _transactions3 table.
+     *
+     * We took the same things from transactions2, as the partitioning / structure is similar.
+     */
+    public static final TableMetadata TRANSACTIONS3_TABLE_METADATA = TableMetadata.internal()
             .singleSafeRowComponent("start_ts_row", ValueType.BLOB)
             .singleDynamicSafeColumn("start_ts_col", ValueType.BLOB, ValueType.BLOB)
             .nameLogSafety(LogSafety.SAFE)

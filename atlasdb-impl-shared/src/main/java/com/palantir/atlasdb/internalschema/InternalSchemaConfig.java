@@ -39,7 +39,11 @@ public abstract class InternalSchemaConfig {
      * If unspecified, this AtlasDB installation should not attempt to install any new schema versions for
      * transaction persistence.
      */
-    public abstract Optional<Integer> targetTransactionsSchemaVersion();
+    @Value.Default
+    public Optional<Integer> targetTransactionsSchemaVersion() {
+        // TODO (jkong): Hack week!
+        return Optional.of(3);
+    }
 
     @Value.Check
     public void check() {

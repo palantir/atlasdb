@@ -25,6 +25,8 @@ import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.api.ImmutableJointTransactionConfiguration;
+import com.palantir.atlasdb.transaction.api.JointTransactionConfiguration;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -38,15 +40,19 @@ public final class TransactionServices {
     }
 
     public static TransactionService createTransactionService(
-            KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
+            KeyValueService keyValueService,
+            TransactionSchemaManager transactionSchemaManager,
+            JointTransactionConfiguration jointTransactionConfiguration) {
         if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
-            return createSplitKeyTransactionService(keyValueService, transactionSchemaManager);
+            return createSplitKeyTransactionService(keyValueService, transactionSchemaManager, jointTransactionConfiguration);
         }
         return createV1TransactionService(keyValueService);
     }
 
     private static TransactionService createSplitKeyTransactionService(
-            KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
+            KeyValueService keyValueService,
+            TransactionSchemaManager transactionSchemaManager,
+            JointTransactionConfiguration jointTransactionConfiguration) {
         // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
         return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
                 transactionSchemaManager::getTransactionsSchemaVersion,
@@ -54,7 +60,19 @@ public final class TransactionServices {
                         TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
                         createV1TransactionService(keyValueService),
                         TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                        createV2TransactionService(keyValueService))));
+                        createV2TransactionService(keyValueService),
+                        TransactionConstants.JOINT_SUPPORTING_VERSION,
+                        createV3TransactionService(keyValueService, jointTransactionConfiguration))));
+    }
+
+    private static TransactionService createV3TransactionService(
+            KeyValueService keyValueService, JointTransactionConfiguration jointTransactionConfiguration) {
+        return new PreStartHandlingTransactionService(
+                new GenericUserFacingTransactionService(
+                        ImmutableMap.of(
+                                jointTransactionConfiguration.myIdentifier(),
+                                Transactions3Service.create(keyValueService)),
+                        jointTransactionConfiguration.myIdentifier()));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -75,7 +93,8 @@ public final class TransactionServices {
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
         CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
                 keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
-        return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
+        return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService),
+                ImmutableJointTransactionConfiguration.builder().myIdentifier("me").build());
     }
 
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
