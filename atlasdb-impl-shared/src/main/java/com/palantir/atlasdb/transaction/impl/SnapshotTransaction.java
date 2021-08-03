@@ -1870,11 +1870,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public void runCommitPhaseNine(TransactionService transactionService, LockToken commitLocksToken, long commitTimestamp) {
+    public void runCommitPhaseNine(
+            TransactionService transactionService, LockToken commitLocksToken, long commitTimestamp) {
         // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
-        traced(
-                "commitPutCommitTs",
-                () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
+        traced("commitPutCommitTs", () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
     }
 
     @Override
@@ -1900,8 +1899,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
         // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
         // from underneath us.
-        timedAndTraced(
-                "readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
+        timedAndTraced("readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
 
         // Verify that our locks and pre-commit conditions are still valid before we actually commit;
         // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
@@ -1917,8 +1915,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // will hold these locks are sure to have start timestamps after our commit timestamp.
         // Timing is still useful, as this may perform operations pertaining to lock watches.
         return timedAndTraced(
-                "getCommitTimestamp",
-                () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
+                "getCommitTimestamp", () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
     }
 
     @Override
@@ -1926,8 +1923,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // Conflict checking. We can actually do this later without compromising correctness, but there is no
         // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
         timedAndTraced(
-                "commitCheckingForConflicts",
-                () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
+                "commitCheckingForConflicts", () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
 
         // Write to the targeted sweep queue. We must do this before writing to the key value service -
         // otherwise we may have hanging values that targeted sweep won't know about.

@@ -453,8 +453,5 @@ public interface Transaction {
     /**
      * Phase 9 does pUE to the KVS.
      */
-    void runCommitPhaseNine(TransactionService transactionService,
-            LockToken commitLocksToken,
-            long timestamp);
-
+    void runCommitPhaseNine(TransactionService transactionService, LockToken commitLocksToken, long timestamp);
 }

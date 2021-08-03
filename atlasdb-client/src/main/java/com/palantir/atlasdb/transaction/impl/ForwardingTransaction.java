@@ -239,8 +239,7 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
-    public void runCommitPhaseNine(
-            TransactionService transactionService, LockToken commitLocksToken, long timestamp) {
+    public void runCommitPhaseNine(TransactionService transactionService, LockToken commitLocksToken, long timestamp) {
         delegate().runCommitPhaseNine(transactionService, commitLocksToken, timestamp);
     }
 }
