@@ -106,7 +106,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 true,
                 transactionConfig,
                 ConflictTracer.NO_OP,
-                new SimpleTableLevelMetricsController(metricsManager));
+                new SimpleTableLevelMetricsController(metricsManager),
+                new IdentityTimestampTranslator());
     }
 
     @Override

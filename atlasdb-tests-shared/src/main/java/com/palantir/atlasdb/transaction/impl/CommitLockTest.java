@@ -181,7 +181,8 @@ public class CommitLockTest extends TransactionTestSetup {
                 true,
                 () -> TRANSACTION_CONFIG,
                 ConflictTracer.NO_OP,
-                new SimpleTableLevelMetricsController(metricsManager)) {
+                new SimpleTableLevelMetricsController(metricsManager),
+                new IdentityTimestampTranslator()) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

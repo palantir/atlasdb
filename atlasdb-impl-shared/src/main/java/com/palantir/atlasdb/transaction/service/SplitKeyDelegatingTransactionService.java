@@ -98,6 +98,26 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
         keyedServices.values().forEach(TransactionService::close);
     }
 
+    @Override
+    public void putDependentInformation(
+            long localStart, long localCommit, String foreignDependentName, long foreignDependentStart)
+            throws KeyAlreadyExistsException {
+        TransactionService service = getServiceForTimestamp(keyedServices, localStart)
+                .orElseThrow(() ->
+                        new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
+        service.putDependentInformation(localStart, localCommit, foreignDependentName, foreignDependentStart);
+    }
+
+    @Override
+    public void confirmDependentInformation(
+            long localStart, long localCommit, String foreignCommitIdentity, long foreignStart)
+            throws KeyAlreadyExistsException {
+        TransactionService service = getServiceForTimestamp(keyedServices, localStart)
+                .orElseThrow(() ->
+                        new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
+        service.confirmDependentInformation(localStart, localCommit, foreignCommitIdentity, foreignStart);
+    }
+
     private ListenableFuture<Long> getInternal(
             Map<T, ? extends AsyncTransactionService> keyedTransactionServices, long startTimestamp) {
         return getServiceForTimestamp(keyedTransactionServices, startTimestamp)

@@ -159,7 +159,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
-                new SimpleTableLevelMetricsController(metricsManager)) {
+                new SimpleTableLevelMetricsController(metricsManager),
+                new IdentityTimestampTranslator()) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

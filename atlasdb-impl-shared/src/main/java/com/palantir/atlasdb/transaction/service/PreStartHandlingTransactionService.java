@@ -91,6 +91,20 @@ public class PreStartHandlingTransactionService implements TransactionService {
         delegate.close();
     }
 
+    @Override
+    public void putDependentInformation(
+            long localStart, long localCommit, String foreignDependentName, long foreignDependentStart)
+            throws KeyAlreadyExistsException {
+        delegate.putDependentInformation(localStart, localCommit, foreignDependentName, foreignDependentStart);
+    }
+
+    @Override
+    public void confirmDependentInformation(
+            long localStart, long localCommit, String foreignCommitIdentity, long foreignStart)
+            throws KeyAlreadyExistsException {
+        delegate.confirmDependentInformation(localStart, localCommit, foreignCommitIdentity, foreignStart);
+    }
+
     private ListenableFuture<Long> getInternal(long startTimestamp, AsyncTransactionService asyncTransactionService) {
         if (!isTimestampValid(startTimestamp)) {
             return Futures.immediateFuture(AtlasDbConstants.STARTING_TS - 1);

@@ -85,4 +85,14 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      */
     @Override
     void close();
+
+    /**
+     * TODO (jkong): Bizarre nonsense.
+     */
+    void putDependentInformation(
+            long localStart, long localCommit, String foreignDependentName, long foreignDependentStart)
+            throws KeyAlreadyExistsException;
+
+    void confirmDependentInformation(long localStart, long localCommit, String foreignCommitIdentity, long foreignStart)
+            throws KeyAlreadyExistsException;
 }

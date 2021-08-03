@@ -19,7 +19,9 @@ package com.palantir.atlasdb.transaction.service;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.api.ImmutableDependentState;
 import com.palantir.atlasdb.transaction.api.ImmutableFullyCommittedState;
+import com.palantir.atlasdb.transaction.api.ImmutablePrimaryTransactionLocator;
 import com.palantir.atlasdb.transaction.api.ImmutableRolledBackState;
 import com.palantir.atlasdb.transaction.api.RemoteTransactionServiceCache;
 import com.palantir.atlasdb.transaction.api.TransactionCommittedState;
@@ -130,5 +132,38 @@ public class GenericUserFacingTransactionService implements TransactionService {
     public void close() {
         // Responsibility for closing remotes is not on us
         local.close();
+    }
+
+    @Override
+    public void putDependentInformation(
+            long localStart, long localCommit, String foreignDependentName, long foreignDependentStart)
+            throws KeyAlreadyExistsException {
+        local.putUnlessExists(
+                localStart,
+                ImmutableDependentState.builder()
+                        .commitTimestamp(localCommit)
+                        .primaryLocator(ImmutablePrimaryTransactionLocator.builder()
+                                .namespace(foreignDependentName)
+                                .startTimestamp(foreignDependentStart)
+                                .build())
+                        .build());
+    }
+
+    @Override
+    public void confirmDependentInformation(
+            long localStart, long localCommit, String foreignCommitIdentity, long foreignStart)
+            throws KeyAlreadyExistsException {
+        local.checkAndSet(
+                localStart,
+                ImmutableDependentState.builder()
+                        .commitTimestamp(localCommit)
+                        .primaryLocator(ImmutablePrimaryTransactionLocator.builder()
+                                .namespace(foreignCommitIdentity)
+                                .startTimestamp(foreignStart)
+                                .build())
+                        .build(),
+                ImmutableFullyCommittedState.builder()
+                        .commitTimestamp(localCommit)
+                        .build());
     }
 }

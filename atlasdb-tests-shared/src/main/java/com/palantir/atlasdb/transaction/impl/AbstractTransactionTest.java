@@ -153,7 +153,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 true,
                 () -> TRANSACTION_CONFIG,
                 ConflictTracer.NO_OP,
-                new SimpleTableLevelMetricsController(metricsManager));
+                new SimpleTableLevelMetricsController(metricsManager),
+                new IdentityTimestampTranslator());
     }
 
     @Test

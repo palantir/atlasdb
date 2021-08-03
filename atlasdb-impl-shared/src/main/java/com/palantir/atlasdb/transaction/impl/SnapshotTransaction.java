@@ -255,6 +255,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
+    protected final TimestampTranslator timestampTranslator;
 
     protected volatile boolean hasReads;
 
@@ -288,7 +289,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
-            TableLevelMetricsController tableLevelMetricsController) {
+            TableLevelMetricsController tableLevelMetricsController,
+            TimestampTranslator timestampTranslator) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -319,6 +321,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.tableLevelMetricsController = tableLevelMetricsController;
+        this.timestampTranslator = timestampTranslator;
     }
 
     protected TransactionScopedCache getCache() {
@@ -1854,7 +1857,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 runCommitPhaseEight(commitLocksToken);
 
-                runCommitPhaseNine(transactionService, commitLocksToken, commitTimestamp);
+                runCommitPhaseNine(commitLocksToken, commitTimestamp);
 
                 // Metrics
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
@@ -1870,10 +1873,44 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public void runCommitPhaseNine(
-            TransactionService transactionService, LockToken commitLocksToken, long commitTimestamp) {
+    public void runCommitPhaseNine(LockToken commitLocksToken, long commitTimestamp) {
         // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
-        traced("commitPutCommitTs", () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
+        traced(
+                "commitPutCommitTs",
+                () -> putCommitTimestamp(commitTimestamp, commitLocksToken, defaultTransactionService));
+    }
+
+    @Override
+    public void runCommitPhasePreNineDependently(
+            String foreignCommitIdentity, long foreignStartTimestamp, long foreignCommitTimestamp) {
+        // TODO (jkong): Tracing etc
+        try {
+            defaultTransactionService.putDependentInformation(
+                    getStartTimestamp(),
+                    timestampTranslator.translateForeignToLocal(foreignCommitTimestamp),
+                    foreignCommitIdentity,
+                    foreignStartTimestamp);
+        } catch (KeyAlreadyExistsException e) {
+            throw new TransactionCommitFailedException("Dependent commit failed", e);
+        } catch (Exception e) {
+            TransactionCommitFailedException commitFailedEx = new TransactionCommitFailedException(
+                    "This transaction failed writing the commit timestamp. "
+                            + "It might have been committed, but it may not have.",
+                    e);
+            log.error("failed to commit an atlasdb transaction", commitFailedEx);
+            transactionOutcomeMetrics.markPutUnlessExistsFailed();
+            throw commitFailedEx;
+        }
+    }
+
+    @Override
+    public void runCommitPhasePostNineDependently(
+            String foreignCommitIdentity, long foreignStartTimestamp, long foreignCommitTimestamp) {
+        defaultTransactionService.confirmDependentInformation(
+                getStartTimestamp(),
+                timestampTranslator.translateForeignToLocal(foreignCommitTimestamp),
+                foreignCommitIdentity,
+                foreignStartTimestamp);
     }
 
     @Override
@@ -1906,6 +1943,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // We check the pre-commit conditions first since they may operate similarly to read write conflict
         // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
         timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
+    }
+
+    @Override
+    public void runCommitPhaseSevenDependently(long foreignCommitTimestamp) {
+        runCommitPhaseSeven(timestampTranslator.translateForeignToLocal(foreignCommitTimestamp));
     }
 
     @Override
@@ -2569,22 +2611,27 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 // for putUnlessExists did a retry and we had committed already
                 return;
             }
-            Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
-            if (!expiredLocks.isEmpty()) {
-                transactionOutcomeMetrics.markLocksExpired();
-                throw new TransactionLockTimeoutException(
-                        "Our commit was already rolled back at commit time"
-                                + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
-                                + getExpiredLocksErrorString(commitLocksToken, expiredLocks),
-                        ex);
+            if (commitLocksToken == null) {
+                log.info("We were rolled back by someone else, even though we didn't write anything! That's really "
+                        + "unexpected, but oh well.");
             } else {
-                log.info(
-                        "This transaction has been rolled back by someone else, even though we believe we still hold "
-                                + "the locks. This is not expected to occur frequently.",
-                        immutableTimestampLock
-                                .map(token -> token.toSafeArg("immutableTimestampLock"))
-                                .orElseGet(() -> SafeArg.of("immutableTimestampLock", null)),
-                        commitLocksToken.toSafeArg("commitLocksToken"));
+                Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
+                if (!expiredLocks.isEmpty()) {
+                    transactionOutcomeMetrics.markLocksExpired();
+                    throw new TransactionLockTimeoutException(
+                            "Our commit was already rolled back at commit time"
+                                    + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
+                                    + getExpiredLocksErrorString(commitLocksToken, expiredLocks),
+                            ex);
+                } else {
+                    log.info(
+                            "This transaction has been rolled back by someone else, even though we believe we still"
+                                    + " hold the locks. This is not expected to occur frequently.",
+                            immutableTimestampLock
+                                    .map(token -> token.toSafeArg("immutableTimestampLock"))
+                                    .orElseGet(() -> SafeArg.of("immutableTimestampLock", null)),
+                            commitLocksToken.toSafeArg("commitLocksToken"));
+                }
             }
         } catch (TransactionFailedException e1) {
             throw e1;

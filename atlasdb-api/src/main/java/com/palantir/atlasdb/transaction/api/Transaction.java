@@ -445,6 +445,8 @@ public interface Transaction {
      */
     void runCommitPhaseSeven(long commitTimestamp);
 
+    void runCommitPhaseSevenDependently(long foreignCommitTimestamp);
+
     /**
      * Phase 8 checks locks.
      */
@@ -453,5 +455,17 @@ public interface Transaction {
     /**
      * Phase 9 does pUE to the KVS.
      */
-    void runCommitPhaseNine(TransactionService transactionService, LockToken commitLocksToken, long timestamp);
+    void runCommitPhaseNine(LockToken commitLocksToken, long timestamp);
+
+    /**
+     * Phase 9a
+     */
+    void runCommitPhasePreNineDependently(
+            String foreignCommitIdentity, long foreignStartTimestamp, long foreignCommitTimestamp);
+
+    /**
+     * Phase 9c
+     */
+    void runCommitPhasePostNineDependently(
+            String foreignCommitIdentity, long foreignStartTimestamp, long foreignCommitTimestamp);
 }

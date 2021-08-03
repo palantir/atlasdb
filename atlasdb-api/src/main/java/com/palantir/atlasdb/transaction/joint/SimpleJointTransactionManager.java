@@ -16,16 +16,27 @@
 
 package com.palantir.atlasdb.transaction.joint;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.api.StartedTransactionContext;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public class SimpleJointTransactionManager implements JointTransactionManager {
     private final Map<String, TransactionManager> knownTransactionManagers;
@@ -60,18 +71,163 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
             JointTransaction jointTransaction = ImmutableJointTransaction.builder()
                     .constituentTransactions(allTransactions)
                     .build();
-            task.execute(jointTransaction);
+            T userOutput = task.execute(jointTransaction);
 
             // user's task is done, and transactions have buffered writes.
-            // now to finish all the transactions:
-            // run the 1st part of the protocol
-            // then
-            // (1) PUE into others with dependent state. If ALL successful
-            // (2) PUE myself with done
-            // (3) CAS others (update?)
-            return null;
+            // now to finish all the transactions!
+            // first do the early stages
+
+            // This is a view executor, so not too expensive
+            Map<String, ExecutorService> namedExecutors = KeyedStream.stream(allTransactions)
+                    .map(_wat -> PTExecutors.newSingleThreadExecutor())
+                    .collectToMap();
+            CyclicBarrier barrier = new CyclicBarrier(allTransactions.size());
+            Map<String, ImmutablePhaseOneCommitOutput> phaseOneCommits = KeyedStream.stream(namedExecutors)
+                    .map((name, executor) -> executor.submit(() -> {
+                        try {
+                            Transaction responsibleTransaction = allTransactions.get(name);
+                            boolean shouldOperate = !responsibleTransaction.runCommitPhaseOne();
+                            uncheckedAwaitBarrier(barrier);
+                            if (shouldOperate) {
+                                responsibleTransaction.runCommitPhaseTwo();
+                            }
+                            uncheckedAwaitBarrier(barrier);
+                            boolean hasWrites = false;
+                            if (shouldOperate) {
+                                hasWrites = !responsibleTransaction.runCommitPhaseThree();
+                            }
+                            uncheckedAwaitBarrier(barrier);
+                            LockToken token = null;
+                            if (shouldOperate && !hasWrites) {
+                                token = responsibleTransaction.runCommitPhaseFour();
+                            }
+                            uncheckedAwaitBarrier(barrier);
+                            if (shouldOperate && !hasWrites) {
+                                responsibleTransaction.runCommitPhaseFive(
+                                        knownTransactionManagers.get(name).getTransactionService(), token);
+                            }
+                            uncheckedAwaitBarrier(barrier);
+                            if (!hasWrites) {
+                                return ImmutablePhaseOneCommitOutput.builder()
+                                        .shouldOperate(shouldOperate)
+                                        .hasWrites(false)
+                                        .build();
+                            }
+                            return ImmutablePhaseOneCommitOutput.builder()
+                                    .shouldOperate(shouldOperate)
+                                    .hasWrites(true)
+                                    .lockToken(token)
+                                    .build();
+                        } finally {
+                            barrier.reset();
+                        }
+                    }))
+                    .map(Futures::getUnchecked)
+                    .collectToMap();
+
+            // At this point, all prep up to getting a commit timestamp is done. We now do this on the lead, and push
+            // it to everyone else.
+            Transaction leadTransaction = context.startedTransaction();
+            PhaseOneCommitOutput leadPhaseOneCommitOutput = phaseOneCommits.get(leadTransactionManagerIdentifier);
+            long globalCommitTimestamp = leadPhaseOneCommitOutput
+                    .lockToken()
+                    .map(leadTransaction::runCommitPhaseSix)
+                    .orElseGet(() -> leadTransactionManager.getTimelockService().getFreshTimestamp());
+
+            // Now do phase seven and eight, plus the first part of 9...
+            // PUE into others with dependent state. If ALL successful, continue otherwise break.
+            KeyedStream.stream(namedExecutors)
+                    .map((name, executor) -> executor.submit(() -> {
+                        try {
+                            PhaseOneCommitOutput phaseOneCommitOutput = phaseOneCommits.get(name);
+                            Transaction responsibleTransaction = allTransactions.get(name);
+
+                            if (phaseOneCommitOutput.hasWrites()) {
+                                responsibleTransaction.runCommitPhaseSevenDependently(globalCommitTimestamp);
+                            }
+                            uncheckedAwaitBarrier(barrier);
+                            if (phaseOneCommitOutput.hasWrites()) {
+                                LockToken commitLocksToken = phaseOneCommitOutput
+                                        .lockToken()
+                                        .orElseThrow(() -> new SafeIllegalStateException(
+                                                "Not expecting lock token to be null if " + "we have writes!"));
+                                responsibleTransaction.runCommitPhaseEight(commitLocksToken);
+                            }
+                            uncheckedAwaitBarrier(barrier);
+
+                            // phase 9a
+                            if (!name.equals(leadTransactionManagerIdentifier) && phaseOneCommitOutput.hasWrites()) {
+                                responsibleTransaction.runCommitPhasePreNineDependently(
+                                        leadTransactionManagerIdentifier,
+                                        context.startedTransaction().getTimestamp(),
+                                        globalCommitTimestamp);
+                            }
+                            uncheckedAwaitBarrier(barrier);
+
+                            // phase 9b
+
+                            if (name.equals(leadTransactionManagerIdentifier)) {
+                                // IMPORTANT: Run this even if we didn't have writes in the lead transaction
+                                if (phaseOneCommitOutput.hasWrites()) {
+                                    LockToken commitLocksToken = phaseOneCommitOutput
+                                            .lockToken()
+                                            .orElseThrow(() -> new SafeIllegalStateException(
+                                                    "Not expecting lock token to be null if " + "we have writes!"));
+                                    responsibleTransaction.runCommitPhaseNine(commitLocksToken, globalCommitTimestamp);
+                                } else {
+                                    // TODO (jkong): Naughty
+                                    responsibleTransaction.runCommitPhaseNine(null, globalCommitTimestamp);
+                                }
+                            }
+
+                            uncheckedAwaitBarrier(barrier);
+
+                            // phase 9c
+                            // TODO (jkong): Technically the transaction is committed after phase 9 and a fail here
+                            //  still implies successful commit. But ok.
+
+                            if (!name.equals(leadTransactionManagerIdentifier) && phaseOneCommitOutput.hasWrites()) {
+                                responsibleTransaction.runCommitPhasePostNineDependently(
+                                        leadTransactionManagerIdentifier,
+                                        context.startedTransaction().getTimestamp(),
+                                        globalCommitTimestamp);
+                            }
+
+                            uncheckedAwaitBarrier(barrier);
+                            return null;
+                        } finally {
+                            barrier.reset();
+                        }
+                    }))
+                    .map(Futures::getUnchecked)
+                    .collectToMap();
+
+            return userOutput;
         } finally {
+            List<Transaction> orderedTransactions = ImmutableList.<Transaction>builder()
+                    .add(context.startedTransaction())
+                    .addAll(dependentTransactions.values().stream()
+                            .map(StartedTransactionContext::startedTransaction)
+                            .collect(Collectors.toList()))
+                    .build();
+            for (Transaction transaction : orderedTransactions) {
+                if (transaction.isUncommitted()) {
+                    transaction.abort();
+                }
+            }
+
             releaseLocks(leadTransactionManager, context, dependentTransactions);
+        }
+    }
+
+    private void uncheckedAwaitBarrier(CyclicBarrier barrier) {
+        try {
+            barrier.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (BrokenBarrierException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -90,5 +246,14 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                 .getTimelockService()
                 .tryUnlock(
                         ImmutableSet.of(context.lockImmutableTimestampResponse().getLock()));
+    }
+
+    @Value.Immutable
+    interface PhaseOneCommitOutput {
+        boolean shouldOperate();
+
+        boolean hasWrites();
+
+        Optional<LockToken> lockToken();
     }
 }

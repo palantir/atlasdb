@@ -106,6 +106,22 @@ public final class WriteBatchingTransactionService implements TransactionService
         delegate.close();
     }
 
+    @Override
+    public void putDependentInformation(
+            long localStart, long localCommit, String foreignDependentName, long foreignDependentStart)
+            throws KeyAlreadyExistsException {
+        // TODO (jkong): Autobatching?!
+        delegate.putDependentInformation(localStart, localCommit, foreignDependentName, foreignDependentStart);
+    }
+
+    @Override
+    public void confirmDependentInformation(
+            long localStart, long localCommit, String foreignCommitIdentity, long foreignStart)
+            throws KeyAlreadyExistsException {
+        // TODO (jkong): Autobatching
+        delegate.confirmDependentInformation(localStart, localCommit, foreignCommitIdentity, foreignStart);
+    }
+
     /**
      * Semantics for batch processing:
      *

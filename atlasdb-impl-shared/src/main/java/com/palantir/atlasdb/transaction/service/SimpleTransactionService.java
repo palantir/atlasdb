@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -109,6 +110,20 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     @Override
     public void close() {
         // we do not close the injected kvs
+    }
+
+    @Override
+    public void putDependentInformation(
+            long localStart, long localCommit, String foreignDependentName, long foreignDependentStart)
+            throws KeyAlreadyExistsException {
+        throw new UnsupportedOperationException("This transaction service doesn't support dependent information");
+    }
+
+    @Override
+    public void confirmDependentInformation(
+            long localStart, long localCommit, String foreignCommitIdentity, long foreignStart)
+            throws KeyAlreadyExistsException {
+        throw new UnsupportedOperationException("This transaction service doesn't support dependent information");
     }
 
     private ListenableFuture<Long> getInternal(long startTimestamp, AsyncCellGetter cellGetter) {

@@ -234,12 +234,32 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
+    public void runCommitPhaseSevenDependently(long foreignCommitTimestamp) {
+        delegate().runCommitPhaseSevenDependently(foreignCommitTimestamp);
+    }
+
+    @Override
     public void runCommitPhaseEight(LockToken commitLocksToken) {
         delegate().runCommitPhaseEight(commitLocksToken);
     }
 
     @Override
-    public void runCommitPhaseNine(TransactionService transactionService, LockToken commitLocksToken, long timestamp) {
-        delegate().runCommitPhaseNine(transactionService, commitLocksToken, timestamp);
+    public void runCommitPhaseNine(LockToken commitLocksToken, long timestamp) {
+        delegate().runCommitPhaseNine(commitLocksToken, timestamp);
+    }
+
+    @Override
+    public void runCommitPhasePreNineDependently(
+            String foreignCommitIdentity, long foreignStartTimestamp, long foreignCommitTimestamp) {
+        delegate()
+                .runCommitPhasePreNineDependently(foreignCommitIdentity, foreignStartTimestamp, foreignCommitTimestamp);
+    }
+
+    @Override
+    public void runCommitPhasePostNineDependently(
+            String foreignCommitIdentity, long foreignStartTimestamp, long foreignCommitTimestamp) {
+        delegate()
+                .runCommitPhasePostNineDependently(
+                        foreignCommitIdentity, foreignStartTimestamp, foreignCommitTimestamp);
     }
 }

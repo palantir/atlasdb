@@ -160,7 +160,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
-            TableLevelMetricsController tableLevelMetricsController) {
+            TableLevelMetricsController tableLevelMetricsController,
+            TimestampTranslator timestampTranslator) {
         super(
                 metricsManager,
                 keyValueService,
@@ -186,7 +187,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                timestampTranslator);
     }
 
     @Override
@@ -866,7 +868,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController) {
+                tableLevelMetricsController,
+                timestampTranslator) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());

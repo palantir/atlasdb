@@ -104,6 +104,7 @@ import javax.validation.constraints.NotNull;
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
     final TableLevelMetricsController tableLevelMetricsController;
+    final TimestampTranslator timestampTranslator;
 
     private final ConflictTracer conflictTracer;
 
@@ -155,6 +156,9 @@ import javax.validation.constraints.NotNull;
         this.tableLevelMetricsController =
                 new MemoizingTableLevelMetricsController(ToplistDeltaFilteringTableLevelMetricsController.create(
                         metricsManager, metricsFilterEvaluationContext));
+
+        // TODO (jkong): Implement this
+        this.timestampTranslator = new IdentityTimestampTranslator();
     }
 
     @Override
@@ -347,7 +351,8 @@ import javax.validation.constraints.NotNull;
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                timestampTranslator);
     }
 
     @Override
@@ -389,7 +394,8 @@ import javax.validation.constraints.NotNull;
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                timestampTranslator);
         try {
             return runTaskThrowOnConflict(
                     txn -> task.execute(txn, condition), new ReadTransaction(transaction, sweepStrategyManager));

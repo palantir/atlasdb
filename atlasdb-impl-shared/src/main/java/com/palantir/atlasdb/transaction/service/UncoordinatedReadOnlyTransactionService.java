@@ -72,4 +72,18 @@ public class UncoordinatedReadOnlyTransactionService implements TransactionServi
     public void close() {
         candidates.forEach(TransactionService::close);
     }
+
+    @Override
+    public void putDependentInformation(
+            long localStart, long localCommit, String foreignDependentName, long foreignDependentStart)
+            throws KeyAlreadyExistsException {
+        throw new UnsupportedOperationException("Cannot write");
+    }
+
+    @Override
+    public void confirmDependentInformation(
+            long localStart, long localCommit, String foreignCommitIdentity, long foreignStart)
+            throws KeyAlreadyExistsException {
+        throw new UnsupportedOperationException("Cannot write");
+    }
 }

@@ -434,7 +434,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         true,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
-                        tableLevelMetricsController),
+                        tableLevelMetricsController,
+                        new IdentityTimestampTranslator()),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -2136,7 +2137,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         validateLocksOnReads,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
-                        tableLevelMetricsController),
+                        tableLevelMetricsController,
+                        new IdentityTimestampTranslator()),
                 pathTypeTracker);
     }
 
