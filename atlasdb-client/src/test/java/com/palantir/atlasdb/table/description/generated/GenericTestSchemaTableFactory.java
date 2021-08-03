@@ -19,20 +19,17 @@ public final class GenericTestSchemaTableFactory {
     private final Namespace namespace;
 
     private GenericTestSchemaTableFactory(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
     public static GenericTestSchemaTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         return new GenericTestSchemaTableFactory(sharedTriggers, namespace);
     }
 
-    public static GenericTestSchemaTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static GenericTestSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new GenericTestSchemaTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -44,29 +41,51 @@ public final class GenericTestSchemaTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public GenericRangeScanTestTable getGenericRangeScanTestTable(Transaction t,
-            GenericRangeScanTestTable.GenericRangeScanTestTrigger... triggers) {
+    public GenericRangeScanTestTable getGenericRangeScanTestTable(
+            Transaction t, GenericRangeScanTestTable.GenericRangeScanTestTrigger... triggers) {
         return GenericRangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public RangeScanTestTable getRangeScanTestTable(Transaction t,
-            RangeScanTestTable.RangeScanTestTrigger... triggers) {
+    public RangeScanTestTable getRangeScanTestTable(
+            Transaction t, RangeScanTestTable.RangeScanTestTrigger... triggers) {
         return RangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends GenericRangeScanTestTable.GenericRangeScanTestTrigger, RangeScanTestTable.RangeScanTestTrigger {
+    public SerializableRangeScanTestTable getSerializableRangeScanTestTable(
+            Transaction t, SerializableRangeScanTestTable.SerializableRangeScanTestTrigger... triggers) {
+        return SerializableRangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
+
+    public interface SharedTriggers
+            extends GenericRangeScanTestTable.GenericRangeScanTestTrigger,
+                    RangeScanTestTable.RangeScanTestTrigger,
+                    SerializableRangeScanTestTable.SerializableRangeScanTestTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
         public void putGenericRangeScanTest(
-                Multimap<GenericRangeScanTestTable.GenericRangeScanTestRow, ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue> newRows) {
+                Multimap<
+                                GenericRangeScanTestTable.GenericRangeScanTestRow,
+                                ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue>
+                        newRows) {
             // do nothing
         }
 
         @Override
         public void putRangeScanTest(
-                Multimap<RangeScanTestTable.RangeScanTestRow, ? extends RangeScanTestTable.RangeScanTestNamedColumnValue<?>> newRows) {
+                Multimap<
+                                RangeScanTestTable.RangeScanTestRow,
+                                ? extends RangeScanTestTable.RangeScanTestNamedColumnValue<?>>
+                        newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putSerializableRangeScanTest(
+                Multimap<
+                                SerializableRangeScanTestTable.SerializableRangeScanTestRow,
+                                ? extends SerializableRangeScanTestTable.SerializableRangeScanTestNamedColumnValue<?>>
+                        newRows) {
             // do nothing
         }
     }

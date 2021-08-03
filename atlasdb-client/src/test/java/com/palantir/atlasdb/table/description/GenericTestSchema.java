@@ -17,6 +17,7 @@ package com.palantir.atlasdb.table.description;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.io.File;
 
 public class GenericTestSchema implements AtlasSchema {
@@ -43,6 +44,21 @@ public class GenericTestSchema implements AtlasSchema {
                 columns();
                 column("column1", "c", ValueType.VAR_LONG);
 
+                rangeScanAllowed();
+            }
+        });
+
+        schema.addTableDefinition("serializableRangeScanTest", new TableDefinition() {
+            {
+                javaTableName("SerializableRangeScanTest");
+
+                rowName();
+                rowComponent("component1", ValueType.STRING);
+
+                columns();
+                column("column1", "c", ValueType.VAR_LONG);
+
+                conflictHandler(ConflictHandler.SERIALIZABLE);
                 rangeScanAllowed();
             }
         });

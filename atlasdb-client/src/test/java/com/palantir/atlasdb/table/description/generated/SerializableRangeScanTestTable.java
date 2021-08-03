@@ -87,32 +87,32 @@ import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings({"all", "deprecation"})
-public final class RangeScanTestTable implements
-        AtlasDbMutablePersistentTable<RangeScanTestTable.RangeScanTestRow,
-                                         RangeScanTestTable.RangeScanTestNamedColumnValue<?>,
-                                         RangeScanTestTable.RangeScanTestRowResult>,
-        AtlasDbNamedMutableTable<RangeScanTestTable.RangeScanTestRow,
-                                    RangeScanTestTable.RangeScanTestNamedColumnValue<?>,
-                                    RangeScanTestTable.RangeScanTestRowResult> {
+public final class SerializableRangeScanTestTable implements
+        AtlasDbMutablePersistentTable<SerializableRangeScanTestTable.SerializableRangeScanTestRow,
+                                         SerializableRangeScanTestTable.SerializableRangeScanTestNamedColumnValue<?>,
+                                         SerializableRangeScanTestTable.SerializableRangeScanTestRowResult>,
+        AtlasDbNamedMutableTable<SerializableRangeScanTestTable.SerializableRangeScanTestRow,
+                                    SerializableRangeScanTestTable.SerializableRangeScanTestNamedColumnValue<?>,
+                                    SerializableRangeScanTestTable.SerializableRangeScanTestRowResult> {
     private final Transaction t;
-    private final List<RangeScanTestTrigger> triggers;
-    private final static String rawTableName = "rangeScanTest";
+    private final List<SerializableRangeScanTestTrigger> triggers;
+    private final static String rawTableName = "serializableRangeScanTest";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(RangeScanTestNamedColumn.values());
+    private final static ColumnSelection allColumns = getColumnSelection(SerializableRangeScanTestNamedColumn.values());
 
-    static RangeScanTestTable of(Transaction t, Namespace namespace) {
-        return new RangeScanTestTable(t, namespace, ImmutableList.<RangeScanTestTrigger>of());
+    static SerializableRangeScanTestTable of(Transaction t, Namespace namespace) {
+        return new SerializableRangeScanTestTable(t, namespace, ImmutableList.<SerializableRangeScanTestTrigger>of());
     }
 
-    static RangeScanTestTable of(Transaction t, Namespace namespace, RangeScanTestTrigger trigger, RangeScanTestTrigger... triggers) {
-        return new RangeScanTestTable(t, namespace, ImmutableList.<RangeScanTestTrigger>builder().add(trigger).add(triggers).build());
+    static SerializableRangeScanTestTable of(Transaction t, Namespace namespace, SerializableRangeScanTestTrigger trigger, SerializableRangeScanTestTrigger... triggers) {
+        return new SerializableRangeScanTestTable(t, namespace, ImmutableList.<SerializableRangeScanTestTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static RangeScanTestTable of(Transaction t, Namespace namespace, List<RangeScanTestTrigger> triggers) {
-        return new RangeScanTestTable(t, namespace, triggers);
+    static SerializableRangeScanTestTable of(Transaction t, Namespace namespace, List<SerializableRangeScanTestTrigger> triggers) {
+        return new SerializableRangeScanTestTable(t, namespace, triggers);
     }
 
-    private RangeScanTestTable(Transaction t, Namespace namespace, List<RangeScanTestTrigger> triggers) {
+    private SerializableRangeScanTestTable(Transaction t, Namespace namespace, List<SerializableRangeScanTestTrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -136,19 +136,19 @@ public final class RangeScanTestTable implements
 
     /**
      * <pre>
-     * RangeScanTestRow {
+     * SerializableRangeScanTestRow {
      *   {@literal String component1};
      * }
      * </pre>
      */
-    public static final class RangeScanTestRow implements Persistable, Comparable<RangeScanTestRow> {
+    public static final class SerializableRangeScanTestRow implements Persistable, Comparable<SerializableRangeScanTestRow> {
         private final String component1;
 
-        public static RangeScanTestRow of(String component1) {
-            return new RangeScanTestRow(component1);
+        public static SerializableRangeScanTestRow of(String component1) {
+            return new SerializableRangeScanTestRow(component1);
         }
 
-        private RangeScanTestRow(String component1) {
+        private SerializableRangeScanTestRow(String component1) {
             this.component1 = component1;
         }
 
@@ -156,20 +156,20 @@ public final class RangeScanTestTable implements
             return component1;
         }
 
-        public static Function<RangeScanTestRow, String> getComponent1Fun() {
-            return new Function<RangeScanTestRow, String>() {
+        public static Function<SerializableRangeScanTestRow, String> getComponent1Fun() {
+            return new Function<SerializableRangeScanTestRow, String>() {
                 @Override
-                public String apply(RangeScanTestRow row) {
+                public String apply(SerializableRangeScanTestRow row) {
                     return row.component1;
                 }
             };
         }
 
-        public static Function<String, RangeScanTestRow> fromComponent1Fun() {
-            return new Function<String, RangeScanTestRow>() {
+        public static Function<String, SerializableRangeScanTestRow> fromComponent1Fun() {
+            return new Function<String, SerializableRangeScanTestRow>() {
                 @Override
-                public RangeScanTestRow apply(String row) {
-                    return RangeScanTestRow.of(row);
+                public SerializableRangeScanTestRow apply(String row) {
+                    return SerializableRangeScanTestRow.of(row);
                 }
             };
         }
@@ -180,13 +180,13 @@ public final class RangeScanTestTable implements
             return EncodingUtils.add(component1Bytes);
         }
 
-        public static final Hydrator<RangeScanTestRow> BYTES_HYDRATOR = new Hydrator<RangeScanTestRow>() {
+        public static final Hydrator<SerializableRangeScanTestRow> BYTES_HYDRATOR = new Hydrator<SerializableRangeScanTestRow>() {
             @Override
-            public RangeScanTestRow hydrateFromBytes(byte[] __input) {
+            public SerializableRangeScanTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String component1 = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
-                return new RangeScanTestRow(component1);
+                return new SerializableRangeScanTestRow(component1);
             }
         };
 
@@ -208,7 +208,7 @@ public final class RangeScanTestTable implements
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            RangeScanTestRow other = (RangeScanTestRow) obj;
+            SerializableRangeScanTestRow other = (SerializableRangeScanTestRow) obj;
             return Objects.equals(component1, other.component1);
         }
 
@@ -219,14 +219,14 @@ public final class RangeScanTestTable implements
         }
 
         @Override
-        public int compareTo(RangeScanTestRow o) {
+        public int compareTo(SerializableRangeScanTestRow o) {
             return ComparisonChain.start()
                 .compare(this.component1, o.component1)
                 .result();
         }
     }
 
-    public interface RangeScanTestNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface SerializableRangeScanTestNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
@@ -235,7 +235,7 @@ public final class RangeScanTestTable implements
      * }
      * </pre>
      */
-    public static final class Column1 implements RangeScanTestNamedColumnValue<Long> {
+    public static final class Column1 implements SerializableRangeScanTestNamedColumnValue<Long> {
         private final Long value;
 
         public static Column1 of(Long value) {
@@ -288,40 +288,40 @@ public final class RangeScanTestTable implements
         }
     }
 
-    public interface RangeScanTestTrigger {
-        public void putRangeScanTest(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> newRows);
+    public interface SerializableRangeScanTestTrigger {
+        public void putSerializableRangeScanTest(Multimap<SerializableRangeScanTestRow, ? extends SerializableRangeScanTestNamedColumnValue<?>> newRows);
     }
 
-    public static final class RangeScanTestRowResult implements TypedRowResult {
+    public static final class SerializableRangeScanTestRowResult implements TypedRowResult {
         private final RowResult<byte[]> row;
 
-        public static RangeScanTestRowResult of(RowResult<byte[]> row) {
-            return new RangeScanTestRowResult(row);
+        public static SerializableRangeScanTestRowResult of(RowResult<byte[]> row) {
+            return new SerializableRangeScanTestRowResult(row);
         }
 
-        private RangeScanTestRowResult(RowResult<byte[]> row) {
+        private SerializableRangeScanTestRowResult(RowResult<byte[]> row) {
             this.row = row;
         }
 
         @Override
-        public RangeScanTestRow getRowName() {
-            return RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+        public SerializableRangeScanTestRow getRowName() {
+            return SerializableRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
         }
 
-        public static Function<RangeScanTestRowResult, RangeScanTestRow> getRowNameFun() {
-            return new Function<RangeScanTestRowResult, RangeScanTestRow>() {
+        public static Function<SerializableRangeScanTestRowResult, SerializableRangeScanTestRow> getRowNameFun() {
+            return new Function<SerializableRangeScanTestRowResult, SerializableRangeScanTestRow>() {
                 @Override
-                public RangeScanTestRow apply(RangeScanTestRowResult rowResult) {
+                public SerializableRangeScanTestRow apply(SerializableRangeScanTestRowResult rowResult) {
                     return rowResult.getRowName();
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, RangeScanTestRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
+        public static Function<RowResult<byte[]>, SerializableRangeScanTestRowResult> fromRawRowResultFun() {
+            return new Function<RowResult<byte[]>, SerializableRangeScanTestRowResult>() {
                 @Override
-                public RangeScanTestRowResult apply(RowResult<byte[]> rowResult) {
-                    return new RangeScanTestRowResult(rowResult);
+                public SerializableRangeScanTestRowResult apply(RowResult<byte[]> rowResult) {
+                    return new SerializableRangeScanTestRowResult(rowResult);
                 }
             };
         }
@@ -339,10 +339,10 @@ public final class RangeScanTestTable implements
             return value.getValue();
         }
 
-        public static Function<RangeScanTestRowResult, Long> getColumn1Fun() {
-            return new Function<RangeScanTestRowResult, Long>() {
+        public static Function<SerializableRangeScanTestRowResult, Long> getColumn1Fun() {
+            return new Function<SerializableRangeScanTestRowResult, Long>() {
                 @Override
-                public Long apply(RangeScanTestRowResult rowResult) {
+                public Long apply(SerializableRangeScanTestRowResult rowResult) {
                     return rowResult.getColumn1();
                 }
             };
@@ -357,7 +357,7 @@ public final class RangeScanTestTable implements
         }
     }
 
-    public enum RangeScanTestNamedColumn {
+    public enum SerializableRangeScanTestNamedColumn {
         COLUMN1 {
             @Override
             public byte[] getShortName() {
@@ -367,36 +367,36 @@ public final class RangeScanTestTable implements
 
         public abstract byte[] getShortName();
 
-        public static Function<RangeScanTestNamedColumn, byte[]> toShortName() {
-            return new Function<RangeScanTestNamedColumn, byte[]>() {
+        public static Function<SerializableRangeScanTestNamedColumn, byte[]> toShortName() {
+            return new Function<SerializableRangeScanTestNamedColumn, byte[]>() {
                 @Override
-                public byte[] apply(RangeScanTestNamedColumn namedColumn) {
+                public byte[] apply(SerializableRangeScanTestNamedColumn namedColumn) {
                     return namedColumn.getShortName();
                 }
             };
         }
     }
 
-    public static ColumnSelection getColumnSelection(Collection<RangeScanTestNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, RangeScanTestNamedColumn.toShortName()));
+    public static ColumnSelection getColumnSelection(Collection<SerializableRangeScanTestNamedColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, SerializableRangeScanTestNamedColumn.toShortName()));
     }
 
-    public static ColumnSelection getColumnSelection(RangeScanTestNamedColumn... cols) {
+    public static ColumnSelection getColumnSelection(SerializableRangeScanTestNamedColumn... cols) {
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends RangeScanTestNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends RangeScanTestNamedColumnValue<?>>>builder()
+    private static final Map<String, Hydrator<? extends SerializableRangeScanTestNamedColumnValue<?>>> shortNameToHydrator =
+            ImmutableMap.<String, Hydrator<? extends SerializableRangeScanTestNamedColumnValue<?>>>builder()
                 .put("c", Column1.BYTES_HYDRATOR)
                 .build();
 
-    public Map<RangeScanTestRow, Long> getColumn1s(Collection<RangeScanTestRow> rows) {
-        Map<Cell, RangeScanTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (RangeScanTestRow row : rows) {
+    public Map<SerializableRangeScanTestRow, Long> getColumn1s(Collection<SerializableRangeScanTestRow> rows) {
+        Map<Cell, SerializableRangeScanTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (SerializableRangeScanTestRow row : rows) {
             cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<RangeScanTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<SerializableRangeScanTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
             Long val = Column1.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
@@ -404,92 +404,92 @@ public final class RangeScanTestTable implements
         return ret;
     }
 
-    public void putColumn1(RangeScanTestRow row, Long value) {
+    public void putColumn1(SerializableRangeScanTestRow row, Long value) {
         put(ImmutableMultimap.of(row, Column1.of(value)));
     }
 
-    public void putColumn1(Map<RangeScanTestRow, Long> map) {
-        Map<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<RangeScanTestRow, Long> e : map.entrySet()) {
+    public void putColumn1(Map<SerializableRangeScanTestRow, Long> map) {
+        Map<SerializableRangeScanTestRow, SerializableRangeScanTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SerializableRangeScanTestRow, Long> e : map.entrySet()) {
             toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<RangeScanTestRow, ? extends RangeScanTestNamedColumnValue<?>> rows) {
+    public void put(Multimap<SerializableRangeScanTestRow, ? extends SerializableRangeScanTestNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
         t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (RangeScanTestTrigger trigger : triggers) {
-            trigger.putRangeScanTest(rows);
+        for (SerializableRangeScanTestTrigger trigger : triggers) {
+            trigger.putSerializableRangeScanTest(rows);
         }
     }
 
-    public void deleteColumn1(RangeScanTestRow row) {
+    public void deleteColumn1(SerializableRangeScanTestRow row) {
         deleteColumn1(ImmutableSet.of(row));
     }
 
-    public void deleteColumn1(Iterable<RangeScanTestRow> rows) {
+    public void deleteColumn1(Iterable<SerializableRangeScanTestRow> rows) {
         byte[] col = PtBytes.toCachedBytes("c");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
     @Override
-    public void delete(RangeScanTestRow row) {
+    public void delete(SerializableRangeScanTestRow row) {
         delete(ImmutableSet.of(row));
     }
 
     @Override
-    public void delete(Iterable<RangeScanTestRow> rows) {
+    public void delete(Iterable<SerializableRangeScanTestRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
         cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
         t.delete(tableRef, cells);
     }
 
-    public Optional<RangeScanTestRowResult> getRow(RangeScanTestRow row) {
+    public Optional<SerializableRangeScanTestRowResult> getRow(SerializableRangeScanTestRow row) {
         return getRow(row, allColumns);
     }
 
-    public Optional<RangeScanTestRowResult> getRow(RangeScanTestRow row, ColumnSelection columns) {
+    public Optional<SerializableRangeScanTestRowResult> getRow(SerializableRangeScanTestRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.empty();
         } else {
-            return Optional.of(RangeScanTestRowResult.of(rowResult));
+            return Optional.of(SerializableRangeScanTestRowResult.of(rowResult));
         }
     }
 
     @Override
-    public List<RangeScanTestRowResult> getRows(Iterable<RangeScanTestRow> rows) {
+    public List<SerializableRangeScanTestRowResult> getRows(Iterable<SerializableRangeScanTestRow> rows) {
         return getRows(rows, allColumns);
     }
 
     @Override
-    public List<RangeScanTestRowResult> getRows(Iterable<RangeScanTestRow> rows, ColumnSelection columns) {
+    public List<SerializableRangeScanTestRowResult> getRows(Iterable<SerializableRangeScanTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<RangeScanTestRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+        List<SerializableRangeScanTestRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(RangeScanTestRowResult.of(row));
+            rowResults.add(SerializableRangeScanTestRowResult.of(row));
         }
         return rowResults;
     }
 
     @Override
-    public List<RangeScanTestNamedColumnValue<?>> getRowColumns(RangeScanTestRow row) {
+    public List<SerializableRangeScanTestNamedColumnValue<?>> getRowColumns(SerializableRangeScanTestRow row) {
         return getRowColumns(row, allColumns);
     }
 
     @Override
-    public List<RangeScanTestNamedColumnValue<?>> getRowColumns(RangeScanTestRow row, ColumnSelection columns) {
+    public List<SerializableRangeScanTestNamedColumnValue<?>> getRowColumns(SerializableRangeScanTestRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<RangeScanTestNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<SerializableRangeScanTestNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -498,24 +498,24 @@ public final class RangeScanTestTable implements
     }
 
     @Override
-    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<RangeScanTestRow> rows) {
+    public Multimap<SerializableRangeScanTestRow, SerializableRangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<SerializableRangeScanTestRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
-    public Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<RangeScanTestRow> rows, ColumnSelection columns) {
+    public Multimap<SerializableRangeScanTestRow, SerializableRangeScanTestNamedColumnValue<?>> getRowsMultimap(Iterable<SerializableRangeScanTestRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
-    private Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowsMultimapInternal(Iterable<RangeScanTestRow> rows, ColumnSelection columns) {
+    private Multimap<SerializableRangeScanTestRow, SerializableRangeScanTestNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SerializableRangeScanTestRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<RangeScanTestRow, RangeScanTestNamedColumnValue<?>> rowMap = HashMultimap.create();
+    private static Multimap<SerializableRangeScanTestRow, SerializableRangeScanTestNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<SerializableRangeScanTestRow, SerializableRangeScanTestNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            SerializableRangeScanTestRow row = SerializableRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -524,12 +524,12 @@ public final class RangeScanTestTable implements
     }
 
     @Override
-    public Map<RangeScanTestRow, BatchingVisitable<RangeScanTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<RangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<SerializableRangeScanTestRow, BatchingVisitable<SerializableRangeScanTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<SerializableRangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<RangeScanTestRow, BatchingVisitable<RangeScanTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<SerializableRangeScanTestRow, BatchingVisitable<SerializableRangeScanTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<RangeScanTestNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            SerializableRangeScanTestRow row = SerializableRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<SerializableRangeScanTestNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -538,22 +538,22 @@ public final class RangeScanTestTable implements
     }
 
     @Override
-    public Iterator<Map.Entry<RangeScanTestRow, RangeScanTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<RangeScanTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+    public Iterator<Map.Entry<SerializableRangeScanTestRow, SerializableRangeScanTestNamedColumnValue<?>>> getRowsColumnRange(Iterable<SerializableRangeScanTestRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            RangeScanTestNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            SerializableRangeScanTestRow row = SerializableRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            SerializableRangeScanTestNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
             return Maps.immutableEntry(row, colValue);
         });
     }
 
     @Override
-    public Map<RangeScanTestRow, Iterator<RangeScanTestNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<RangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<SerializableRangeScanTestRow, Iterator<SerializableRangeScanTestNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<SerializableRangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<RangeScanTestRow, Iterator<RangeScanTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<SerializableRangeScanTestRow, Iterator<SerializableRangeScanTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            Iterator<RangeScanTestNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+            SerializableRangeScanTestRow row = SerializableRangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<SerializableRangeScanTestNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -572,26 +572,26 @@ public final class RangeScanTestTable implements
         return Iterables.transform(ranges, this::optimizeRangeRequest);
     }
 
-    public BatchingVisitableView<RangeScanTestRowResult> getRange(RangeRequest range) {
-        return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
+    public BatchingVisitableView<SerializableRangeScanTestRowResult> getRange(RangeRequest range) {
+        return BatchingVisitables.transform(t.getRange(tableRef, optimizeRangeRequest(range)), new Function<RowResult<byte[]>, SerializableRangeScanTestRowResult>() {
             @Override
-            public RangeScanTestRowResult apply(RowResult<byte[]> input) {
-                return RangeScanTestRowResult.of(input);
+            public SerializableRangeScanTestRowResult apply(RowResult<byte[]> input) {
+                return SerializableRangeScanTestRowResult.of(input);
             }
         });
     }
 
     @Deprecated
-    public IterableView<BatchingVisitable<RangeScanTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
+    public IterableView<BatchingVisitable<SerializableRangeScanTestRowResult>> getRanges(Iterable<RangeRequest> ranges) {
         Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, optimizeRangeRequests(ranges));
         return IterableView.of(rangeResults).transform(
-                new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<RangeScanTestRowResult>>() {
+                new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<SerializableRangeScanTestRowResult>>() {
             @Override
-            public BatchingVisitable<RangeScanTestRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
-                return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, RangeScanTestRowResult>() {
+            public BatchingVisitable<SerializableRangeScanTestRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
+                return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, SerializableRangeScanTestRowResult>() {
                     @Override
-                    public RangeScanTestRowResult apply(RowResult<byte[]> row) {
-                        return RangeScanTestRowResult.of(row);
+                    public SerializableRangeScanTestRowResult apply(RowResult<byte[]> row) {
+                        return SerializableRangeScanTestRowResult.of(row);
                     }
                 });
             }
@@ -600,7 +600,7 @@ public final class RangeScanTestTable implements
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
                                    int concurrencyLevel,
-                                   BiFunction<RangeRequest, BatchingVisitable<RangeScanTestRowResult>, T> visitableProcessor) {
+                                   BiFunction<RangeRequest, BatchingVisitable<SerializableRangeScanTestRowResult>, T> visitableProcessor) {
         return t.getRanges(ImmutableGetRangesQuery.<T>builder()
                             .tableRef(tableRef)
                             .rangeRequests(ranges)
@@ -608,25 +608,25 @@ public final class RangeScanTestTable implements
                             .concurrencyLevel(concurrencyLevel)
                             .visitableProcessor((rangeRequest, visitable) ->
                                     visitableProcessor.apply(rangeRequest,
-                                            BatchingVisitables.transform(visitable, RangeScanTestRowResult::of)))
+                                            BatchingVisitables.transform(visitable, SerializableRangeScanTestRowResult::of)))
                             .build());
     }
 
     public <T> Stream<T> getRanges(Iterable<RangeRequest> ranges,
-                                   BiFunction<RangeRequest, BatchingVisitable<RangeScanTestRowResult>, T> visitableProcessor) {
+                                   BiFunction<RangeRequest, BatchingVisitable<SerializableRangeScanTestRowResult>, T> visitableProcessor) {
         return t.getRanges(ImmutableGetRangesQuery.<T>builder()
                             .tableRef(tableRef)
                             .rangeRequests(ranges)
                             .rangeRequestOptimizer(this::optimizeRangeRequest)
                             .visitableProcessor((rangeRequest, visitable) ->
                                     visitableProcessor.apply(rangeRequest,
-                                            BatchingVisitables.transform(visitable, RangeScanTestRowResult::of)))
+                                            BatchingVisitables.transform(visitable, SerializableRangeScanTestRowResult::of)))
                             .build());
     }
 
-    public Stream<BatchingVisitable<RangeScanTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
+    public Stream<BatchingVisitable<SerializableRangeScanTestRowResult>> getRangesLazy(Iterable<RangeRequest> ranges) {
         Stream<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRangesLazy(tableRef, optimizeRangeRequests(ranges));
-        return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, RangeScanTestRowResult::of));
+        return rangeResults.map(visitable -> BatchingVisitables.transform(visitable, SerializableRangeScanTestRowResult::of));
     }
 
     public void deleteRange(RangeRequest range) {
@@ -635,10 +635,10 @@ public final class RangeScanTestTable implements
 
     public void deleteRanges(Iterable<RangeRequest> ranges) {
         BatchingVisitables.concat(getRanges(ranges))
-                          .transform(RangeScanTestRowResult.getRowNameFun())
-                          .batchAccept(1000, new AbortingVisitor<List<RangeScanTestRow>, RuntimeException>() {
+                          .transform(SerializableRangeScanTestRowResult.getRowNameFun())
+                          .batchAccept(1000, new AbortingVisitor<List<SerializableRangeScanTestRow>, RuntimeException>() {
             @Override
-            public boolean visit(List<RangeScanTestRow> rows) {
+            public boolean visit(List<SerializableRangeScanTestRow> rows) {
                 delete(rows);
                 return true;
             }
@@ -743,5 +743,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Kk820OBu61QOpf2Klq3yTQ==";
+    static String __CLASS_HASH = "S7n1Yg2zfjD9NmmHwJCORQ==";
 }
