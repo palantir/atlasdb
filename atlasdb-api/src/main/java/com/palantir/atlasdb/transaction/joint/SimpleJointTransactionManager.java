@@ -50,7 +50,9 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                 .collectToMap();
         try {
             Map<String, Transaction> allTransactions = ImmutableMap.<String, Transaction>builder()
-                    .putAll(dependentTransactions)
+                    .putAll(KeyedStream.stream(dependentTransactions)
+                            .map(StartedTransactionContext::startedTransaction)
+                            .collectToMap())
                     .put(leadTransactionManagerIdentifier, context.startedTransaction())
                     .build();
 
@@ -84,7 +86,9 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
         tokensToUnlock.forEach((namespace, token) -> {
             knownTransactionManagers.get(namespace).getTimelockService().tryUnlock(ImmutableSet.of(token));
         });
-        leadTransactionManager.getTimelockService().tryUnlock(ImmutableSet.of(context.lockImmutableTimestampResponse()
-                .getLock()));
+        leadTransactionManager
+                .getTimelockService()
+                .tryUnlock(
+                        ImmutableSet.of(context.lockImmutableTimestampResponse().getLock()));
     }
 }
