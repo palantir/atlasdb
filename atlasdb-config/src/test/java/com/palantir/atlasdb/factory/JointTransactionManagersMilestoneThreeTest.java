@@ -265,7 +265,7 @@ public class JointTransactionManagersMilestoneThreeTest {
     }
 
     @Test
-    public void transitiveDependentLocatorsEndingInRollbackAreRolledBac2k() {
+    public void readRollbackTransitively() {
         JointTransactionManager jtm =
                 new SimpleJointTransactionManager(ImmutableMap.of("one", txMgr1, "two", txMgr2), "one");
 
