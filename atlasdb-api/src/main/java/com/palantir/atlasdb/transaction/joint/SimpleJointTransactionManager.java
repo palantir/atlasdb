@@ -17,11 +17,14 @@
 package com.palantir.atlasdb.transaction.joint;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.StartedTransactionContext;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockToken;
 import java.util.Map;
 
 public class SimpleJointTransactionManager implements JointTransactionManager {
@@ -40,29 +43,48 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
         // start transactions, create a joint transaction
         TransactionManager leadTransactionManager = knownTransactionManagers.get(leadTransactionManagerIdentifier);
         StartedTransactionContext context = leadTransactionManager.startTransaction();
-        Map<String, Transaction> dependentTransactions = KeyedStream.stream(knownTransactionManagers)
+        Map<String, StartedTransactionContext> dependentTransactions = KeyedStream.stream(knownTransactionManagers)
                 .filterKeys(identifier -> !identifier.equals(leadTransactionManagerIdentifier))
                 .map(secondaryTxMgr -> secondaryTxMgr.createTransactionWithDependentContext(
                         context.startedTransaction().getTimestamp(), context.lockImmutableTimestampResponse()))
                 .collectToMap();
-        Map<String, Transaction> allTransactions = ImmutableMap.<String, Transaction>builder()
-                .putAll(dependentTransactions)
-                .put(leadTransactionManagerIdentifier, context.startedTransaction())
-                .build();
+        try {
+            Map<String, Transaction> allTransactions = ImmutableMap.<String, Transaction>builder()
+                    .putAll(dependentTransactions)
+                    .put(leadTransactionManagerIdentifier, context.startedTransaction())
+                    .build();
 
-        // give the user the stuff (task.execute something)
-        JointTransaction jointTransaction = ImmutableJointTransaction.builder()
-                .constituentTransactions(allTransactions)
-                .build();
-        task.execute(jointTransaction);
+            // give the user the stuff (task.execute something)
+            JointTransaction jointTransaction = ImmutableJointTransaction.builder()
+                    .constituentTransactions(allTransactions)
+                    .build();
+            task.execute(jointTransaction);
 
-        // user's task is done, and transactions have buffered writes.
-        // now to finish all the transactions:
-        // run the 1st part of the protocol
-        // then
-        // (1) PUE into others with dependent state. If ALL successful
-        // (2) PUE myself with done
-        // (3) CAS others (update?)
-        return null;
+            // user's task is done, and transactions have buffered writes.
+            // now to finish all the transactions:
+            // run the 1st part of the protocol
+            // then
+            // (1) PUE into others with dependent state. If ALL successful
+            // (2) PUE myself with done
+            // (3) CAS others (update?)
+            return null;
+        } finally {
+            releaseLocks(leadTransactionManager, context, dependentTransactions);
+        }
+    }
+
+    private void releaseLocks(
+            TransactionManager leadTransactionManager,
+            StartedTransactionContext context,
+            Map<String, StartedTransactionContext> dependentTransactions) {
+        Map<String, LockToken> tokensToUnlock = KeyedStream.stream(dependentTransactions)
+                .map(StartedTransactionContext::lockImmutableTimestampResponse)
+                .map(LockImmutableTimestampResponse::getLock)
+                .collectToMap();
+        tokensToUnlock.forEach((namespace, token) -> {
+            knownTransactionManagers.get(namespace).getTimelockService().tryUnlock(ImmutableSet.of(token));
+        });
+        leadTransactionManager.getTimelockService().tryUnlock(ImmutableSet.of(context.lockImmutableTimestampResponse()
+                .getLock()));
     }
 }
