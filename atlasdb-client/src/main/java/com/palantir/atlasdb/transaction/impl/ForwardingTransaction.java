@@ -31,6 +31,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.lock.v2.LockToken;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -195,5 +196,51 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
         return delegate().getAsync(tableRef, cells);
+    }
+
+    @Override
+    public boolean runCommitPhaseOne() {
+        return delegate().runCommitPhaseOne();
+    }
+
+    @Override
+    public void runCommitPhaseTwo() {
+        delegate().runCommitPhaseTwo();
+    }
+
+    @Override
+    public boolean runCommitPhaseThree() {
+        return delegate().runCommitPhaseThree();
+    }
+
+    @Override
+    public LockToken runCommitPhaseFour() {
+        return delegate().runCommitPhaseFour();
+    }
+
+    @Override
+    public void runCommitPhaseFive(TransactionService transactionService, LockToken commitLocksToken) {
+        delegate().runCommitPhaseFive(transactionService, commitLocksToken);
+    }
+
+    @Override
+    public long runCommitPhaseSix(LockToken commitLocksToken) {
+        return delegate().runCommitPhaseSix(commitLocksToken);
+    }
+
+    @Override
+    public void runCommitPhaseSeven(long commitTimestamp) {
+        delegate().runCommitPhaseSeven(commitTimestamp);
+    }
+
+    @Override
+    public void runCommitPhaseEight(LockToken commitLocksToken) {
+        delegate().runCommitPhaseEight(commitLocksToken);
+    }
+
+    @Override
+    public void runCommitPhaseNine(
+            TransactionService transactionService, LockToken commitLocksToken, long timestamp) {
+        delegate().runCommitPhaseNine(transactionService, commitLocksToken, timestamp);
     }
 }

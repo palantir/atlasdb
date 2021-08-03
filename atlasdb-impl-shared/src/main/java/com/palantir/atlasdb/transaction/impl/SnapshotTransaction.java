@@ -1726,9 +1726,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
-    public void commit(TransactionService transactionService) {
+    public boolean runCommitPhaseOne() {
         if (state.get() == State.COMMITTED) {
-            return;
+            return true;
         }
         if (state.get() == State.FAILED) {
             throw new SafeIllegalStateException("this transaction has already failed");
@@ -1747,15 +1747,56 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 || getTransactionType() == TransactionType.HARD_DELETE) {
             cleaner.queueCellsForScrubbing(getCellsToQueueForScrubbing(), getStartTimestamp());
         }
+        return false;
+    }
+
+    @Override
+    public void runCommitPhaseTwo() {
+        if (numWriters.get() > 0) {
+            // After we set state to committing we need to make sure no one is still writing.
+            throw new SafeIllegalStateException("Cannot commit while other threads are still calling put.");
+        }
+
+        checkConstraints();
+    }
+
+    @Override
+    public boolean runCommitPhaseThree() {
+        if (!hasWrites()) {
+            if (hasReads() || hasAnyInvolvedTables()) {
+                // verify any pre-commit conditions on the transaction
+                preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
+
+                // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
+                // to ensure that sweep hasn't thoroughly deleted cells we tried to read
+                if (validationNecessaryForInvolvedTablesOnCommit()) {
+                    throwIfImmutableTsOrCommitLocksExpired(null);
+                }
+
+                // if the cache has been used, we must work out which values can be flushed to the central cache by
+                // obtaining a commit update, which is obtained via the get commit timestamp request.
+                if (getCache().hasUpdates()) {
+                    timedAndTraced(
+                            "getCommitTimestampForCaching",
+                            () -> timelockService.getCommitTimestamp(
+                                    getStartTimestamp(), LockToken.of(UUID.randomUUID())));
+                }
+                return true;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void commit(TransactionService transactionService) {
+        if (runCommitPhaseOne()) {
+            return;
+        }
 
         boolean success = false;
         try {
-            if (numWriters.get() > 0) {
-                // After we set state to committing we need to make sure no one is still writing.
-                throw new SafeIllegalStateException("Cannot commit while other threads are still calling put.");
-            }
-
-            checkConstraints();
+            runCommitPhaseTwo();
             commitWrites(transactionService);
             if (perfLogger.isDebugEnabled()) {
                 long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
@@ -1793,27 +1834,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void commitWrites(TransactionService transactionService) {
-        if (!hasWrites()) {
-            if (hasReads() || hasAnyInvolvedTables()) {
-                // verify any pre-commit conditions on the transaction
-                preCommitCondition.throwIfConditionInvalid(getStartTimestamp());
-
-                // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
-                // to ensure that sweep hasn't thoroughly deleted cells we tried to read
-                if (validationNecessaryForInvolvedTablesOnCommit()) {
-                    throwIfImmutableTsOrCommitLocksExpired(null);
-                }
-
-                // if the cache has been used, we must work out which values can be flushed to the central cache by
-                // obtaining a commit update, which is obtained via the get commit timestamp request.
-                if (getCache().hasUpdates()) {
-                    timedAndTraced(
-                            "getCommitTimestampForCaching",
-                            () -> timelockService.getCommitTimestamp(
-                                    getStartTimestamp(), LockToken.of(UUID.randomUUID())));
-                }
-                return;
-            }
+        if (runCommitPhaseThree()) {
+            // Done!
             return;
         }
 
@@ -1822,70 +1844,103 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // This must happen before conflict checking, otherwise we could complete the checks and then have someone
             // else write underneath us before we proceed (thus missing a write/write conflict).
             // Timing still useful to distinguish bad lock percentiles from user-generated lock requests.
-            LockToken commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
+            LockToken commitLocksToken = runCommitPhaseFour();
             try {
-                // Conflict checking. We can actually do this later without compromising correctness, but there is no
-                // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
-                timedAndTraced(
-                        "commitCheckingForConflicts",
-                        () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
+                runCommitPhaseFive(transactionService, commitLocksToken);
 
-                // Write to the targeted sweep queue. We must do this before writing to the key value service -
-                // otherwise we may have hanging values that targeted sweep won't know about.
-                timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writesByTable, getStartTimestamp()));
+                long commitTimestamp = runCommitPhaseSix(commitLocksToken);
 
-                // Write to the key value service. We must do this before getting the commit timestamp - otherwise
-                // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
-                timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
+                runCommitPhaseSeven(commitTimestamp);
 
-                // Now that all writes are done, get the commit timestamp
-                // We must do this before we check that our locks are still valid to ensure that other transactions that
-                // will hold these locks are sure to have start timestamps after our commit timestamp.
-                // Timing is still useful, as this may perform operations pertaining to lock watches.
-                long commitTimestamp = timedAndTraced(
-                        "getCommitTimestamp",
-                        () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
-                commitTsForScrubbing = commitTimestamp;
+                runCommitPhaseEight(commitLocksToken);
 
-                // Punch on commit so that if hard delete is the only thing happening on a system,
-                // we won't block forever waiting for the unreadable timestamp to advance past the
-                // scrub timestamp (same as the hard delete transaction's start timestamp).
-                // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
-                // might well cost more.
-                // Not timed as this is generally an asynchronous operation.
-                traced("microsForPunch", () -> cleaner.punch(commitTimestamp));
+                runCommitPhaseNine(transactionService, commitLocksToken, commitTimestamp);
 
-                // Serializable transactions need to check their reads haven't changed, by reading again at
-                // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
-                // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
-                // from underneath us.
-                timedAndTraced(
-                        "readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
-
-                // Verify that our locks and pre-commit conditions are still valid before we actually commit;
-                // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
-                // We check the pre-commit conditions first since they may operate similarly to read write conflict
-                // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
-                timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
-
-                // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
-                // timed.
-                traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
-
-                // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
-                traced(
-                        "commitPutCommitTs",
-                        () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
-
+                // Metrics
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
                 getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN)
                         .update(byteCount.get());
             } finally {
                 // Not timed because tryUnlock() is an asynchronous operation.
+                // We can orchestrate this from the joint TM.
                 traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
             }
         });
+    }
+
+    @Override
+    public void runCommitPhaseNine(TransactionService transactionService, LockToken commitLocksToken, long commitTimestamp) {
+        // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
+        traced(
+                "commitPutCommitTs",
+                () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
+    }
+
+    @Override
+    public void runCommitPhaseEight(LockToken commitLocksToken) {
+        // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
+        // timed.
+        traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+    }
+
+    @Override
+    public void runCommitPhaseSeven(long commitTimestamp) {
+        commitTsForScrubbing = commitTimestamp;
+
+        // Punch on commit so that if hard delete is the only thing happening on a system,
+        // we won't block forever waiting for the unreadable timestamp to advance past the
+        // scrub timestamp (same as the hard delete transaction's start timestamp).
+        // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
+        // might well cost more.
+        // Not timed as this is generally an asynchronous operation.
+        traced("microsForPunch", () -> cleaner.punch(commitTimestamp));
+
+        // Serializable transactions need to check their reads haven't changed, by reading again at
+        // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
+        // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
+        // from underneath us.
+        timedAndTraced(
+                "readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
+
+        // Verify that our locks and pre-commit conditions are still valid before we actually commit;
+        // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
+        // We check the pre-commit conditions first since they may operate similarly to read write conflict
+        // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
+        timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
+    }
+
+    @Override
+    public long runCommitPhaseSix(LockToken commitLocksToken) {
+        // Now that all writes are done, get the commit timestamp
+        // We must do this before we check that our locks are still valid to ensure that other transactions that
+        // will hold these locks are sure to have start timestamps after our commit timestamp.
+        // Timing is still useful, as this may perform operations pertaining to lock watches.
+        return timedAndTraced(
+                "getCommitTimestamp",
+                () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
+    }
+
+    @Override
+    public void runCommitPhaseFive(TransactionService transactionService, LockToken commitLocksToken) {
+        // Conflict checking. We can actually do this later without compromising correctness, but there is no
+        // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
+        timedAndTraced(
+                "commitCheckingForConflicts",
+                () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
+
+        // Write to the targeted sweep queue. We must do this before writing to the key value service -
+        // otherwise we may have hanging values that targeted sweep won't know about.
+        timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writesByTable, getStartTimestamp()));
+
+        // Write to the key value service. We must do this before getting the commit timestamp - otherwise
+        // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
+        timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
+    }
+
+    @Override
+    public LockToken runCommitPhaseFour() {
+        return timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
     }
 
     private void traced(String spanName, Runnable runnable) {

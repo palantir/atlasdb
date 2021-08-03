@@ -20,6 +20,8 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
@@ -74,6 +76,12 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureLockResponse lock(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
         return dialogueDelegate.lock(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureLockImmutableTimestampResponse lockSpecificImmutableTimestamp(
+            AuthHeader authHeader, String namespace, ConjureLockImmutableTimestampRequest request) {
+        return dialogueDelegate.lockSpecificImmutableTimestamp(authHeader, namespace, request);
     }
 
     @Override

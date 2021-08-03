@@ -22,7 +22,7 @@ public interface JointTransactionManager {
     /**
      * Runs the given {@link JointTransactionTask}.
      *
-     * TODO (jkong): relax this?
+     * TODO (jkong): relax this? Or at the bare minimum, enforce this
      * This task must be an autocommit task - that is, users are not allowed to manually commit or abort the
      * constituent transactions that users will receive in their map.
      *

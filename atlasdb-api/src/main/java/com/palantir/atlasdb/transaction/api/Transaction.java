@@ -27,6 +27,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.lock.v2.LockToken;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -401,4 +402,59 @@ public interface Transaction {
     default void markTableInvolved(TableReference tableRef) {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Does evil magic. The results of running all phases of the commit should not be different from doing a commit().
+     * After phase 1, the transaction should have entered the COMMITTING state.
+     * Returns true if the remainder of commit should not be run.
+     */
+    boolean runCommitPhaseOne();
+
+    /**
+     * Phase 2 checks constraints.
+     */
+    @Idempotent
+    void runCommitPhaseTwo();
+
+    /**
+     * Phase 3 handles read only transactions. It returns true iff we don't need to run the later phases of commit
+     * checking
+     * on this transaction.
+     * Note that a read transaction should still verify that any connected write transactions commit successfully
+     * before we accept it as committed.
+     */
+    boolean runCommitPhaseThree();
+
+    /**
+     * Phase 4 acquires locks on a write transaction.
+     */
+    LockToken runCommitPhaseFour();
+
+    /**
+     * Phase 5 writes things to the kvs.
+     */
+    void runCommitPhaseFive(TransactionService transactionService, LockToken commitLocksToken);
+
+    /**
+     * Phase 6 gets the commit timestamp.
+     */
+    long runCommitPhaseSix(LockToken commitLocksToken);
+
+    /**
+     * Phase 7, given the commit timestamp, punches and performs a read/write conflict check (if needed).
+     */
+    void runCommitPhaseSeven(long commitTimestamp);
+
+    /**
+     * Phase 8 checks locks.
+     */
+    void runCommitPhaseEight(LockToken commitLocksToken);
+
+    /**
+     * Phase 9 does pUE to the KVS.
+     */
+    void runCommitPhaseNine(TransactionService transactionService,
+            LockToken commitLocksToken,
+            long timestamp);
+
 }
