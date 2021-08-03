@@ -131,7 +131,7 @@ import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluat
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
-import com.palantir.atlasdb.transaction.service.UncoordinatedReadOnlyTransactionService;
+import com.palantir.atlasdb.transaction.service.UncoordinatedTransactionService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -494,7 +494,7 @@ public abstract class TransactionManagers {
                             config().initializeAsync(),
                             adapter);
                     KeyValueService kvs = alternative.getKeyValueService();
-                    return new UncoordinatedReadOnlyTransactionService(ImmutableList.of(
+                    return new UncoordinatedTransactionService(ImmutableList.of(
                             TransactionServices.createV1TransactionService(kvs),
                             TransactionServices.createV2TransactionService(kvs),
                             TransactionServices.createV3TransactionService(kvs, serviceCache)));

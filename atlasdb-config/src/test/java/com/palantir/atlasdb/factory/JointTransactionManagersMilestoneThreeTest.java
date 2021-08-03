@@ -265,6 +265,71 @@ public class JointTransactionManagersMilestoneThreeTest {
     }
 
     @Test
+    public void transitiveDependentLocatorsEndingInRollbackAreRolledBac2k() {
+        JointTransactionManager jtm =
+                new SimpleJointTransactionManager(ImmutableMap.of("one", txMgr1, "two", txMgr2), "one");
+
+        AtomicLong timestamp = new AtomicLong();
+        jtm.runTaskThrowOnConflict(managers -> {
+            Transaction txn1 = managers.constituentTransactions().get("one");
+
+            RangeScanTestTable table1 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn1);
+
+            table1.putColumn1(TEST_ROW, 1L);
+            timestamp.set(txn1.getTimestamp());
+            return null;
+        });
+
+        Transactions3Service namespace1Service = Transactions3Service.create(registry.getKeyValueService("one"));
+        TransactionCommittedState transactionCommittedState =
+                namespace1Service.get(ImmutableList.of(timestamp.get())).get(timestamp.get());
+        long commitTimestamp = transactionCommittedState.accept(new Visitor<>() {
+            @Override
+            public Long visitFullyCommitted(FullyCommittedState fullyCommittedState) {
+                return fullyCommittedState.commitTimestamp();
+            }
+
+            @Override
+            public Long visitRolledBack(RolledBackState rolledBackState) {
+                throw new SafeIllegalStateException("Not expecting a rolled-back state!");
+            }
+
+            @Override
+            public Long visitDependent(DependentState dependentState) {
+                throw new SafeIllegalStateException("Not expecting a dependent state!");
+            }
+        });
+
+        namespace1Service.checkAndSet(
+                timestamp.get(),
+                transactionCommittedState,
+                ImmutableDependentState.builder()
+                        .commitTimestamp(commitTimestamp)
+                        .primaryLocator(ImmutablePrimaryTransactionLocator.builder()
+                                .namespace("two")
+                                .startTimestamp(9L)
+                                .build())
+                        .build());
+
+        Transactions3Service namespace2Service = Transactions3Service.create(registry.getKeyValueService("two"));
+        namespace2Service.putUnlessExists(
+                9L,
+                ImmutableDependentState.builder()
+                        .commitTimestamp(commitTimestamp)
+                        .primaryLocator(ImmutablePrimaryTransactionLocator.builder()
+                                .namespace("three")
+                                .startTimestamp(6L)
+                                .build())
+                        .build());
+
+        Map<RangeScanTestRow, Long> ns1 = txMgr1.runTaskThrowOnConflict(txn -> {
+            RangeScanTestTable table1 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn);
+            return table1.getColumn1s(ImmutableSet.of(TEST_ROW));
+        });
+        assertThat(ns1).isEmpty();
+    }
+
+    @Test
     public void jointTransactionWritesVisibleInBothNamespaces() {
         JointTransactionManager jtm =
                 new SimpleJointTransactionManager(ImmutableMap.of("one", txMgr1, "two", txMgr2), "one");

@@ -118,14 +118,42 @@ public class GenericUserFacingTransactionService implements TransactionService {
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         TransactionCommittedState state;
-        if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-            state = ImmutableRolledBackState.builder().build();
-        } else {
+        if (commitTimestamp != TransactionConstants.FAILED_COMMIT_TS) {
             state = ImmutableFullyCommittedState.builder()
                     .commitTimestamp(commitTimestamp)
                     .build();
+            local.putUnlessExists(startTimestamp, state);
+            return;
         }
-        local.putUnlessExists(startTimestamp, state);
+        // Rolling back: chase down
+        try {
+            local.putUnlessExists(
+                    startTimestamp, ImmutableRolledBackState.builder().build());
+        } catch (KeyAlreadyExistsException e) {
+            TransactionCommittedState existingState =
+                    local.getImmediateState(startTimestamp).orElseThrow();
+            existingState.accept(new Visitor<Void>() {
+                @Override
+                public Void visitFullyCommitted(FullyCommittedState fullyCommittedState) {
+                    throw e;
+                }
+
+                @Override
+                public Void visitRolledBack(RolledBackState rolledBackState) {
+                    throw e;
+                }
+
+                @Override
+                public Void visitDependent(DependentState dependentState) {
+                    factory.getOrCreateForNamespace(
+                                    dependentState.primaryLocator().namespace())
+                            .putUnlessExists(
+                                    dependentState.primaryLocator().startTimestamp(),
+                                    TransactionConstants.FAILED_COMMIT_TS);
+                    return null;
+                }
+            });
+        }
     }
 
     @Override

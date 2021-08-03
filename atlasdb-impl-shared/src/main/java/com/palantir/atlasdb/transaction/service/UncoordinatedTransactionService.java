@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.service;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +27,10 @@ import java.util.Objects;
 import java.util.Optional;
 import org.jetbrains.annotations.Nullable;
 
-public class UncoordinatedReadOnlyTransactionService implements TransactionService {
+public class UncoordinatedTransactionService implements TransactionService {
     private final List<TransactionService> candidates;
 
-    public UncoordinatedReadOnlyTransactionService(List<TransactionService> candidates) {
+    public UncoordinatedTransactionService(List<TransactionService> candidates) {
         this.candidates = candidates;
     }
 
@@ -65,7 +66,17 @@ public class UncoordinatedReadOnlyTransactionService implements TransactionServi
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        throw new UnsupportedOperationException("Cannot write");
+        if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
+            // TODO (jkong): There must be a better way to do this
+            // TODO (jkong): XXX THIS ONE IS NOT STRICTLY CORRECT IF IT RACES WITH LEGITIMATE PUTS!
+            // Probably the correct way to do this is to have a read only view of the SchemaMetadataService
+            // and then use that to figure out which schema is correct. Or only allow joint transactions between
+            // nodes on transactions3.
+            // Need to work on this after hackweek.
+            candidates.forEach(service -> service.putUnlessExists(startTimestamp, commitTimestamp));
+        } else {
+            throw new UnsupportedOperationException("Cannot write");
+        }
     }
 
     @Override
