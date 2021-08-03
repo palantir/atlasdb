@@ -29,7 +29,6 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.StartedTransactionContext;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -167,7 +166,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
-    public Transaction createTransactionWithDependentContext(
+    public StartedTransactionContext createTransactionWithDependentContext(
             long dependentTimestamp, LockImmutableTimestampResponse dependentImmutableTimestamp) {
         throw new UnsupportedOperationException("Not supported on this transaction manager");
     }

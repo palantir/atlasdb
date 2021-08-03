@@ -441,7 +441,7 @@ public interface TransactionManager extends AutoCloseable {
      *
      * TODO (jkong): Hmm.
      */
-    Transaction createTransactionWithDependentContext(
+    StartedTransactionContext createTransactionWithDependentContext(
             long dependentTimestamp, LockImmutableTimestampResponse dependentImmutableTimestamp);
 
     /**

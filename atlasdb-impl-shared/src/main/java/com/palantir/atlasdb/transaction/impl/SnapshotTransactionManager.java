@@ -240,13 +240,20 @@ import javax.validation.constraints.NotNull;
     }
 
     @Override
-    public Transaction createTransactionWithDependentContext(
+    public StartedTransactionContext createTransactionWithDependentContext(
             long dependentTimestamp, LockImmutableTimestampResponse dependentImmutableTimestamp) {
-        return createTransaction(
-                translateForeignTimestamp(dependentImmutableTimestamp.getImmutableTimestamp()),
+        LockImmutableTimestampResponse dependentImmutableTimestampLock =
+                timelockService.lockSpecificImmutableTimestamp(
+                        translateForeignTimestamp(dependentImmutableTimestamp.getImmutableTimestamp()));
+        Transaction transaction = createTransaction(
+                dependentImmutableTimestampLock.getImmutableTimestamp(),
                 () -> translateForeignTimestamp(dependentTimestamp),
-                dependentImmutableTimestamp.getLock(),
+                dependentImmutableTimestampLock.getLock(),
                 PreCommitConditions.NO_OP);
+        return ImmutableStartedTransactionContext.builder()
+                .startedTransaction(transaction)
+                .lockImmutableTimestampResponse(dependentImmutableTimestampLock)
+                .build();
     }
 
     private long translateForeignTimestamp(long immutableTimestamp) {
