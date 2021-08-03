@@ -84,6 +84,11 @@ public final class InstrumentedTimelockService implements TimelockService {
     }
 
     @Override
+    public LockImmutableTimestampResponse lockSpecificImmutableTimestamp(long userTimestamp) {
+        return executeWithRecord(() -> timelockService.lockSpecificImmutableTimestamp(userTimestamp));
+    }
+
+    @Override
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         return executeWithRecord(() -> timelockService.startIdentifiedAtlasDbTransactionBatch(count));
     }

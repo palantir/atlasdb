@@ -18,6 +18,8 @@ package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
@@ -46,6 +48,12 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
     @Override
     public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
         return conjureTimelockService.startTransactions(AUTH_HEADER, namespace, request);
+    }
+
+    @Override
+    public ConjureLockImmutableTimestampResponse lockSpecificImmutableTimestamp(
+            ConjureLockImmutableTimestampRequest request) {
+        return conjureTimelockService.lockSpecificImmutableTimestamp(AUTH_HEADER, namespace, request);
     }
 
     @Override

@@ -111,6 +111,11 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     @Override
+    public LockImmutableTimestampResponse lockSpecificImmutableTimestamp(long userTimestamp) {
+        return lockLeaseService.lockSpecificImmutableTimestamp(userTimestamp);
+    }
+
+    @Override
     public LockResponse lock(LockRequest request) {
         return lockLeaseService.lock(request);
     }

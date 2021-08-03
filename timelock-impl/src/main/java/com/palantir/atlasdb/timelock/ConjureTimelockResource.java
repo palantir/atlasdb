@@ -26,6 +26,8 @@ import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
@@ -48,8 +50,10 @@ import com.palantir.lock.ByteArrayLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.client.ImmutableIdentifiedLockRequest;
+import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableWaitForLocksRequest;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockResponseV2.Visitor;
 import com.palantir.lock.v2.LockToken;
@@ -127,6 +131,22 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                                     ConjureLockToken.of(success.getToken().getRequestId()), success.getLease())),
                             failure -> ConjureLockResponse.unsuccessful(UnsuccessfulLockResponse.of()))),
                     MoreExecutors.directExecutor());
+        });
+    }
+
+    @Override
+    public ListenableFuture<ConjureLockImmutableTimestampResponse> lockSpecificImmutableTimestamp(
+            AuthHeader authHeader, String namespace, ConjureLockImmutableTimestampRequest request) {
+        return handleExceptions(() -> {
+            LockImmutableTimestampResponse response = forNamespace(namespace)
+                    .lockSpecificImmutableTimestamp(
+                            ImmutableIdentifiedTimeLockRequest.builder()
+                                    .requestId(request.getRequestId())
+                                    .build(),
+                            request.getTimestamp());
+            return Futures.immediateFuture(ConjureLockImmutableTimestampResponse.builder()
+                    .immutableTimestamp(response)
+                    .build());
         });
     }
 
@@ -236,6 +256,12 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         @Override
         public ConjureLockResponse lock(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
             return unwrap(resource.lock(authHeader, namespace, request));
+        }
+
+        @Override
+        public ConjureLockImmutableTimestampResponse lockSpecificImmutableTimestamp(
+                AuthHeader authHeader, String namespace, ConjureLockImmutableTimestampRequest request) {
+            return unwrap(resource.lockSpecificImmutableTimestamp(authHeader, namespace, request));
         }
 
         @Override

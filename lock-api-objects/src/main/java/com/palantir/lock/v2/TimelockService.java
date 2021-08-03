@@ -46,6 +46,8 @@ public interface TimelockService {
     // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
     LockImmutableTimestampResponse lockImmutableTimestamp();
 
+    LockImmutableTimestampResponse lockSpecificImmutableTimestamp(long userTimestamp);
+
     List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count);
 
     long getImmutableTimestamp();

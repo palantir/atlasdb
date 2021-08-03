@@ -107,6 +107,14 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
+    public LockImmutableTimestampResponse lockSpecificImmutableTimestamp(long userTimestamp) {
+        LockImmutableTimestampResponse response =
+                executeOnTimeLock(() -> delegate.lockSpecificImmutableTimestamp(userTimestamp));
+        lockRefresher.registerLocks(ImmutableSet.of(response.getLock()));
+        return response;
+    }
+
+    @Override
     public List<StartIdentifiedAtlasDbTransactionResponse> startIdentifiedAtlasDbTransactionBatch(int count) {
         List<StartIdentifiedAtlasDbTransactionResponse> responses =
                 executeOnTimeLock(() -> delegate.startIdentifiedAtlasDbTransactionBatch(count));

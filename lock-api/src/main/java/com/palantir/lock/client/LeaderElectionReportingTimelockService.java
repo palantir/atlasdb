@@ -21,6 +21,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampRequest;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
@@ -127,6 +129,12 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
         return runTimed(() -> delegate.startTransactions(request), response -> response.getLockWatchUpdate()
                 .logId());
+    }
+
+    @Override
+    public ConjureLockImmutableTimestampResponse lockSpecificImmutableTimestamp(
+            ConjureLockImmutableTimestampRequest request) {
+        return delegate.lockSpecificImmutableTimestamp(request);
     }
 
     public LeaderElectionStatistics getStatistics() {

@@ -85,6 +85,10 @@ public class LegacyTimelockService implements TimelockService {
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
         long immutableLockTs = timestampService.getFreshTimestamp();
+        return lockImmutableTimestampAt(immutableLockTs);
+    }
+
+    private LockImmutableTimestampResponse lockImmutableTimestampAt(long immutableLockTs) {
         LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
         com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
                         ImmutableSortedMap.of(lockDesc, LockMode.READ))
@@ -111,6 +115,11 @@ public class LegacyTimelockService implements TimelockService {
             }
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
+    }
+
+    @Override
+    public LockImmutableTimestampResponse lockSpecificImmutableTimestamp(long userTimestamp) {
+        return lockImmutableTimestampAt(userTimestamp);
     }
 
     @Override

@@ -94,6 +94,15 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
+    public LockImmutableTimestampResponse lockSpecificImmutableTimestamp(
+            IdentifiedTimeLockRequest request, long timestamp) {
+        Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
+                lockImmutableTimestampWithLease(request.getRequestId(), timestamp);
+
+        return leasedLockImmutableTimestampResponse.value();
+    }
+
+    @Override
     public long getImmutableTimestamp() {
         long timestamp = timestampService.getFreshTimestamp();
         return lockService.getImmutableTimestamp().orElse(timestamp);
@@ -186,6 +195,18 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         Leased<LockToken> leasedLock =
                 lockService.lockImmutableTimestamp(requestId, timestamp).get();
         long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
+
+        LockImmutableTimestampResponse lockImmutableTimestampResponse =
+                LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
+
+        return Leased.of(lockImmutableTimestampResponse, leasedLock.lease());
+    }
+
+    // TODO (jkong): Horrible
+    private Leased<LockImmutableTimestampResponse> lockImmutableTimestampWithLease(UUID requestId, long lowerBound) {
+        Leased<LockToken> leasedLock =
+                lockService.lockImmutableTimestamp(requestId, lowerBound).get();
+        long immutableTs = lockService.getImmutableTimestamp().orElse(lowerBound);
 
         LockImmutableTimestampResponse lockImmutableTimestampResponse =
                 LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());

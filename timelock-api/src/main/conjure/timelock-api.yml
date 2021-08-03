@@ -54,6 +54,13 @@ types:
           timestamps: PartitionedTimestamps
           lease: Lease
           lockWatchUpdate: LockWatchStateUpdate
+      ConjureLockImmutableTimestampRequest:
+        fields:
+          requestId: uuid
+          timestamp: Long
+      ConjureLockImmutableTimestampResponse:
+        fields:
+          immutableTimestamp: LockImmutableTimestampResponse
       ConjureGetFreshTimestampsRequest:
         fields:
           numTimestamps: integer
@@ -146,6 +153,12 @@ services:
           namespace: string
           request: ConjureLockRequest
         returns: ConjureLockResponse
+      lockSpecificImmutableTimestamp:
+        http: POST /lsit/{namespace}
+        args:
+          namespace: string
+          request: ConjureLockImmutableTimestampRequest
+        returns: ConjureLockImmutableTimestampResponse
       waitForLocks:
         http: POST /wl/{namespace}
         args:

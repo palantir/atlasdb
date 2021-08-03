@@ -57,6 +57,9 @@ public interface AsyncTimelockService extends ManagedTimestampService, LockWatch
 
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
+    // TODO (jkong): Bad decomp!
+    LockImmutableTimestampResponse lockSpecificImmutableTimestamp(IdentifiedTimeLockRequest request, long timestamp);
+
     StartAtlasDbTransactionResponse deprecatedStartTransaction(IdentifiedTimeLockRequest request);
 
     StartAtlasDbTransactionResponseV3 startTransaction(StartIdentifiedAtlasDbTransactionRequest request);

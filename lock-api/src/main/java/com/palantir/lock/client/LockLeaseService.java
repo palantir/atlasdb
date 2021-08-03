@@ -18,6 +18,7 @@ package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.timelock.api.ConjureLockImmutableTimestampRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
@@ -63,6 +64,13 @@ class LockLeaseService implements AutoCloseable {
 
     LockImmutableTimestampResponse lockImmutableTimestamp() {
         return startTransactions(1).immutableTimestamp();
+    }
+
+    LockImmutableTimestampResponse lockSpecificImmutableTimestamp(long userTimestamp) {
+        return delegate.lockSpecificImmutableTimestamp(ConjureLockImmutableTimestampRequest.builder()
+                        .timestamp(userTimestamp)
+                        .build())
+                .getImmutableTimestamp();
     }
 
     StartTransactionResponseV4 startTransactions(int batchSize) {
