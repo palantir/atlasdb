@@ -755,6 +755,15 @@ public abstract class TransactionManagers {
                 getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
+        // TODO (jkong): [MILESTONE 5] Force version to three
+        if (runtimeConfigSupplier.get().debugFlagInstallTransactionsThree()) {
+            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(3);
+            lockAndTimestampServices
+                    .managedTimestampService()
+                    .fastForwardTimestamp(
+                            lockAndTimestampServices.managedTimestampService().getFreshTimestamp() + 100_000_000L);
+        }
+
         // TODO (jkong): What if I need to write dependent transactions?
         TransactionService transactionService = initializeCloseable(
                 () -> AtlasDbMetrics.instrumentTimed(

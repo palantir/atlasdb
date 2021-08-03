@@ -88,6 +88,11 @@ public abstract class AtlasDbRuntimeConfig {
         return AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE;
     }
 
+    @Value.Default
+    public boolean debugFlagInstallTransactionsThree() {
+        return false;
+    }
+
     public abstract Optional<KeyValueServiceRuntimeConfig> keyValueService();
 
     /**

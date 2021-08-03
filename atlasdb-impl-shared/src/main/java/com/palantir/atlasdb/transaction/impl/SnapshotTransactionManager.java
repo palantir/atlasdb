@@ -157,7 +157,7 @@ import javax.validation.constraints.NotNull;
                 new MemoizingTableLevelMetricsController(ToplistDeltaFilteringTableLevelMetricsController.create(
                         metricsManager, metricsFilterEvaluationContext));
 
-        // TODO (jkong): Implement this
+        // TODO (jkong): [MILESTONE 4] Implement this
         this.timestampTranslator = new IdentityTimestampTranslator();
     }
 

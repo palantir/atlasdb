@@ -19,11 +19,13 @@ package com.palantir.atlasdb.transaction.joint;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.api.StartedTransactionContext;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -35,6 +37,7 @@ import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
@@ -59,6 +62,7 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                 .map(secondaryTxMgr -> secondaryTxMgr.createTransactionWithDependentContext(
                         context.startedTransaction().getTimestamp(), context.lockImmutableTimestampResponse()))
                 .collectToMap();
+        Map<String, LockToken> tokensToUnlock = Maps.newConcurrentMap();
         try {
             Map<String, Transaction> allTransactions = ImmutableMap.<String, Transaction>builder()
                     .putAll(KeyedStream.stream(dependentTransactions)
@@ -79,10 +83,12 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
 
             // This is a view executor, so not too expensive
             Map<String, ExecutorService> namedExecutors = KeyedStream.stream(allTransactions)
-                    .map(_wat -> PTExecutors.newSingleThreadExecutor())
+                    .map((name, $) ->
+                            PTExecutors.newSingleThreadExecutor(new NamedThreadFactory(name + "-runner", false)))
                     .collectToMap();
             CyclicBarrier barrier = new CyclicBarrier(allTransactions.size());
-            Map<String, ImmutablePhaseOneCommitOutput> phaseOneCommits = KeyedStream.stream(namedExecutors)
+            Map<String, Future<ImmutablePhaseOneCommitOutput>> phaseOneCommitFutures = KeyedStream.stream(
+                            namedExecutors)
                     .map((name, executor) -> executor.submit(() -> {
                         try {
                             Transaction responsibleTransaction = allTransactions.get(name);
@@ -98,11 +104,12 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                             }
                             uncheckedAwaitBarrier(barrier);
                             LockToken token = null;
-                            if (shouldOperate && !hasWrites) {
+                            if (shouldOperate && hasWrites) {
                                 token = responsibleTransaction.runCommitPhaseFour();
+                                tokensToUnlock.put(name, token);
                             }
                             uncheckedAwaitBarrier(barrier);
-                            if (shouldOperate && !hasWrites) {
+                            if (shouldOperate && hasWrites) {
                                 responsibleTransaction.runCommitPhaseFive(
                                         knownTransactionManagers.get(name).getTransactionService(), token);
                             }
@@ -122,6 +129,9 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                             barrier.reset();
                         }
                     }))
+                    .collectToMap();
+
+            Map<String, ImmutablePhaseOneCommitOutput> phaseOneCommits = KeyedStream.stream(phaseOneCommitFutures)
                     .map(Futures::getUnchecked)
                     .collectToMap();
 
@@ -136,7 +146,7 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
 
             // Now do phase seven and eight, plus the first part of 9...
             // PUE into others with dependent state. If ALL successful, continue otherwise break.
-            KeyedStream.stream(namedExecutors)
+            Map<String, Future<Object>> phaseTwoFutures = KeyedStream.stream(namedExecutors)
                     .map((name, executor) -> executor.submit(() -> {
                         try {
                             PhaseOneCommitOutput phaseOneCommitOutput = phaseOneCommits.get(name);
@@ -199,8 +209,8 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                             barrier.reset();
                         }
                     }))
-                    .map(Futures::getUnchecked)
                     .collectToMap();
+            KeyedStream.stream(phaseTwoFutures).map(Futures::getUnchecked).collectToMap();
 
             return userOutput;
         } finally {
@@ -217,6 +227,9 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
             }
 
             releaseLocks(leadTransactionManager, context, dependentTransactions);
+            tokensToUnlock.forEach((namespace, token) -> {
+                knownTransactionManagers.get(namespace).getTimelockService().tryUnlock(ImmutableSet.of(token));
+            });
         }
     }
 
