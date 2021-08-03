@@ -52,7 +52,7 @@ public final class TransactionServices {
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
         return createTransactionService(keyValueService, transactionSchemaManager, _namespace -> {
             throw new SafeIllegalStateException(
-                    "This transaction service doesn't know how to create " + "connections to others.");
+                    "This transaction service doesn't know how to create connections to others.");
         });
     }
 
