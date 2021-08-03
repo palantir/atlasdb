@@ -34,6 +34,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -87,7 +89,7 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                             PTExecutors.newSingleThreadExecutor(new NamedThreadFactory(name + "-runner", false)))
                     .collectToMap();
             CyclicBarrier barrier = new CyclicBarrier(allTransactions.size());
-            Map<String, Future<ImmutablePhaseOneCommitOutput>> phaseOneCommitFutures = KeyedStream.stream(
+            Map<String, Future<ImmutablePrePhaseOneCommitOutput>> prePhaseOneCommitFutures = KeyedStream.stream(
                             namedExecutors)
                     .map((name, executor) -> executor.submit(() -> {
                         try {
@@ -103,15 +105,51 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                                 hasWrites = !responsibleTransaction.runCommitPhaseThree();
                             }
                             uncheckedAwaitBarrier(barrier);
-                            LockToken token = null;
-                            if (shouldOperate && hasWrites) {
-                                token = responsibleTransaction.runCommitPhaseFour();
-                                tokensToUnlock.put(name, token);
-                            }
-                            uncheckedAwaitBarrier(barrier);
+                            return ImmutablePrePhaseOneCommitOutput.builder()
+                                    .shouldOperate(shouldOperate)
+                                    .hasWrites(hasWrites)
+                                    .build();
+                        } finally {
+                            barrier.reset();
+                        }
+                    }))
+                    .collectToMap();
+
+            // TreeMap
+            SortedMap<String, ImmutablePrePhaseOneCommitOutput> prePhaseOneCommitOutputs = KeyedStream.stream(
+                            prePhaseOneCommitFutures)
+                    .map(Futures::getUnchecked)
+                    .collectTo(TreeMap::new);
+
+            Map<String, LockToken> commitLockTokens = Maps.newConcurrentMap();
+
+            // We now do commit phase 4 sequentially: this ensures sorting.
+            for (Map.Entry<String, ImmutablePrePhaseOneCommitOutput> entry : prePhaseOneCommitOutputs.entrySet()) {
+                boolean shouldOperate = entry.getValue().shouldOperate();
+                boolean hasWrites = entry.getValue().hasWrites();
+
+                if (shouldOperate && hasWrites) {
+                    LockToken lockTokenForNamespace =
+                            allTransactions.get(entry.getKey()).runCommitPhaseFour();
+                    tokensToUnlock.put(entry.getKey(), lockTokenForNamespace);
+                    commitLockTokens.put(entry.getKey(), lockTokenForNamespace);
+                }
+            }
+
+            Map<String, Future<ImmutablePhaseOneCommitOutput>> phaseOneCommitFutures = KeyedStream.stream(
+                            namedExecutors)
+                    .map((name, executor) -> executor.submit(() -> {
+                        try {
+                            ImmutablePrePhaseOneCommitOutput prePhaseOneCommitOutput =
+                                    prePhaseOneCommitOutputs.get(name);
+                            boolean shouldOperate = prePhaseOneCommitOutput.shouldOperate();
+                            boolean hasWrites = prePhaseOneCommitOutput.hasWrites();
+                            Transaction responsibleTransaction = allTransactions.get(name);
+
                             if (shouldOperate && hasWrites) {
                                 responsibleTransaction.runCommitPhaseFive(
-                                        knownTransactionManagers.get(name).getTransactionService(), token);
+                                        knownTransactionManagers.get(name).getTransactionService(),
+                                        commitLockTokens.get(name));
                             }
                             uncheckedAwaitBarrier(barrier);
                             if (!hasWrites) {
@@ -123,7 +161,7 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                             return ImmutablePhaseOneCommitOutput.builder()
                                     .shouldOperate(shouldOperate)
                                     .hasWrites(true)
-                                    .lockToken(token)
+                                    .lockToken(commitLockTokens.get(name))
                                     .build();
                         } finally {
                             barrier.reset();
@@ -268,5 +306,12 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
         boolean hasWrites();
 
         Optional<LockToken> lockToken();
+    }
+
+    @Value.Immutable
+    interface PrePhaseOneCommitOutput {
+        boolean shouldOperate();
+
+        boolean hasWrites();
     }
 }
