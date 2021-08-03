@@ -182,6 +182,9 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                     .map(leadTransaction::runCommitPhaseSix)
                     .orElseGet(() -> leadTransactionManager.getTimelockService().getFreshTimestamp());
 
+            boolean didAnyoneDoWrites =
+                    phaseOneCommits.values().stream().anyMatch(ImmutablePhaseOneCommitOutput::hasWrites);
+
             // Now do phase seven and eight, plus the first part of 9...
             // PUE into others with dependent state. If ALL successful, continue otherwise break.
             Map<String, Future<Object>> phaseTwoFutures = KeyedStream.stream(namedExecutors)
@@ -190,15 +193,20 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                             PhaseOneCommitOutput phaseOneCommitOutput = phaseOneCommits.get(name);
                             Transaction responsibleTransaction = allTransactions.get(name);
 
-                            if (phaseOneCommitOutput.hasWrites()) {
-                                responsibleTransaction.runCommitPhaseSevenDependently(globalCommitTimestamp);
+                            if (didAnyoneDoWrites) {
+                                if (name.equals(leadTransactionManagerIdentifier)) {
+                                    responsibleTransaction.runCommitPhaseSeven(globalCommitTimestamp);
+                                } else {
+                                    responsibleTransaction.runCommitPhaseSevenDependently(globalCommitTimestamp);
+                                }
                             }
+
                             uncheckedAwaitBarrier(barrier);
                             if (phaseOneCommitOutput.hasWrites()) {
                                 LockToken commitLocksToken = phaseOneCommitOutput
                                         .lockToken()
                                         .orElseThrow(() -> new SafeIllegalStateException(
-                                                "Not expecting lock token to be null if " + "we have writes!"));
+                                                "Not expecting lock token to be null if we have writes!"));
                                 responsibleTransaction.runCommitPhaseEight(commitLocksToken);
                             }
                             uncheckedAwaitBarrier(barrier);
@@ -223,7 +231,7 @@ public class SimpleJointTransactionManager implements JointTransactionManager {
                                                     "Not expecting lock token to be null if " + "we have writes!"));
                                     responsibleTransaction.runCommitPhaseNine(commitLocksToken, globalCommitTimestamp);
                                 } else {
-                                    // TODO (jkong): Naughty
+                                    // TODO (jkong): Still needed.
                                     responsibleTransaction.runCommitPhaseNine(null, globalCommitTimestamp);
                                 }
                             }

@@ -28,12 +28,16 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.memory.ImmutableInstancedKeyValueServiceConfig;
 import com.palantir.atlasdb.memory.InMemoryKeyValueServiceRegistry;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
 import com.palantir.atlasdb.table.description.generated.GenericTestSchemaTableFactory;
 import com.palantir.atlasdb.table.description.generated.RangeScanTestTable;
 import com.palantir.atlasdb.table.description.generated.RangeScanTestTable.RangeScanTestRow;
+import com.palantir.atlasdb.table.description.generated.SerializableRangeScanTestTable;
+import com.palantir.atlasdb.table.description.generated.SerializableRangeScanTestTable.SerializableRangeScanTestRow;
+import com.palantir.atlasdb.table.description.generated.SerializableRangeScanTestTable.SerializableRangeScanTestRowResult;
 import com.palantir.atlasdb.transaction.api.ImmutableRolledBackState;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionCommittedState.DependentState;
@@ -65,8 +69,10 @@ import org.junit.Test;
  * These transaction managers operate with the assumption that their clocks have already been synchronized, i.e.
  * the identity timestamp translator is the correct behaviour.
  */
-public class NaiveJointTransactionManagersTest {
+public class JointTransactionManagersMilestoneThreeTest {
     private static final RangeScanTestRow TEST_ROW = RangeScanTestRow.of("tom");
+    private static final SerializableRangeScanTestRow SERIALIZABLE_TEST_ROW =
+            SerializableRangeScanTestRow.of("serializable");
     private final InMemoryKeyValueServiceRegistry registry = new InMemoryKeyValueServiceRegistry();
 
     private TransactionManager txMgr1;
@@ -496,6 +502,128 @@ public class NaiveJointTransactionManagersTest {
         assertThat(totals)
                 .as("the database is kept consistent, no non-transactional writes were seen")
                 .allMatch(l -> l == 200L);
+    }
+
+    @Test
+    public void readWriteConflictInLeadSpaceIsAConflict() {
+        JointTransactionManager jtm =
+                new SimpleJointTransactionManager(ImmutableMap.of("one", txMgr1, "two", txMgr2), "one");
+
+        ExecutorService executorService = PTExecutors.newCachedThreadPool();
+        CountDownLatch twoCanStart = new CountDownLatch(1);
+        CountDownLatch oneCanFinish = new CountDownLatch(1);
+
+        Future<List<SerializableRangeScanTestRowResult>> firstTransaction =
+                executorService.submit(() -> jtm.runTaskThrowOnConflict(managers -> {
+                    twoCanStart.countDown();
+                    Transaction txn1 = managers.constituentTransactions().get("one");
+                    Transaction txn2 = managers.constituentTransactions().get("two");
+
+                    SerializableRangeScanTestTable table1 =
+                            GenericTestSchemaTableFactory.of().getSerializableRangeScanTestTable(txn1);
+                    SerializableRangeScanTestTable table2 =
+                            GenericTestSchemaTableFactory.of().getSerializableRangeScanTestTable(txn2);
+
+                    List<SerializableRangeScanTestRowResult> rowResults = new ArrayList<>();
+                    table1.getRange(RangeRequest.all()).batchAccept(10, item -> {
+                        rowResults.addAll(item);
+                        return true;
+                    });
+                    table2.putColumn1(SERIALIZABLE_TEST_ROW, 4L);
+                    oneCanFinish.await();
+                    return rowResults;
+                }));
+
+        Future<Object> secondTransaction = executorService.submit(() -> {
+            twoCanStart.await();
+            jtm.runTaskThrowOnConflict(managers -> {
+                Transaction txn1 = managers.constituentTransactions().get("one");
+                SerializableRangeScanTestTable table1 =
+                        GenericTestSchemaTableFactory.of().getSerializableRangeScanTestTable(txn1);
+
+                table1.putColumn1(SERIALIZABLE_TEST_ROW, 3L);
+                return null;
+            });
+            oneCanFinish.countDown();
+            return null;
+        });
+        assertThatThrownBy(() -> Futures.getUnchecked(firstTransaction)).isInstanceOf(RuntimeException.class);
+        Futures.getUnchecked(secondTransaction);
+        Map<SerializableRangeScanTestRow, Long> ns1 = jtm.runTaskThrowOnConflict(managers -> {
+            SerializableRangeScanTestTable table1 = GenericTestSchemaTableFactory.of()
+                    .getSerializableRangeScanTestTable(
+                            managers.constituentTransactions().get("one"));
+            return table1.getColumn1s(ImmutableSet.of(SERIALIZABLE_TEST_ROW));
+        });
+        assertThat(ns1).containsOnly(Maps.immutableEntry(SERIALIZABLE_TEST_ROW, 3L));
+        Map<SerializableRangeScanTestRow, Long> ns2 = jtm.runTaskThrowOnConflict(managers -> {
+            SerializableRangeScanTestTable table2 = GenericTestSchemaTableFactory.of()
+                    .getSerializableRangeScanTestTable(
+                            managers.constituentTransactions().get("two"));
+            return table2.getColumn1s(ImmutableSet.of(SERIALIZABLE_TEST_ROW));
+        });
+        assertThat(ns2).isEmpty();
+    }
+
+    @Test
+    public void readWriteConflictInSecondarySpaceIsAConflict() {
+        JointTransactionManager jtm =
+                new SimpleJointTransactionManager(ImmutableMap.of("one", txMgr1, "two", txMgr2), "one");
+
+        ExecutorService executorService = PTExecutors.newCachedThreadPool();
+        CountDownLatch twoCanStart = new CountDownLatch(1);
+        CountDownLatch oneCanFinish = new CountDownLatch(1);
+
+        Future<List<SerializableRangeScanTestRowResult>> firstTransaction =
+                executorService.submit(() -> jtm.runTaskThrowOnConflict(managers -> {
+                    twoCanStart.countDown();
+                    Transaction txn1 = managers.constituentTransactions().get("one");
+                    Transaction txn2 = managers.constituentTransactions().get("two");
+
+                    SerializableRangeScanTestTable table1 =
+                            GenericTestSchemaTableFactory.of().getSerializableRangeScanTestTable(txn1);
+                    SerializableRangeScanTestTable table2 =
+                            GenericTestSchemaTableFactory.of().getSerializableRangeScanTestTable(txn2);
+
+                    List<SerializableRangeScanTestRowResult> rowResults = new ArrayList<>();
+                    table1.putColumn1(SERIALIZABLE_TEST_ROW, 4L);
+                    table2.getRange(RangeRequest.all()).batchAccept(10, item -> {
+                        rowResults.addAll(item);
+                        return true;
+                    });
+                    oneCanFinish.await();
+                    return rowResults;
+                }));
+
+        Future<Object> secondTransaction = executorService.submit(() -> {
+            twoCanStart.await();
+            jtm.runTaskThrowOnConflict(managers -> {
+                Transaction txn2 = managers.constituentTransactions().get("two");
+                SerializableRangeScanTestTable table2 =
+                        GenericTestSchemaTableFactory.of().getSerializableRangeScanTestTable(txn2);
+
+                table2.putColumn1(SERIALIZABLE_TEST_ROW, 3L);
+                return null;
+            });
+            oneCanFinish.countDown();
+            return null;
+        });
+        assertThatThrownBy(() -> Futures.getUnchecked(firstTransaction)).isInstanceOf(RuntimeException.class);
+        Futures.getUnchecked(secondTransaction);
+        Map<SerializableRangeScanTestRow, Long> ns1 = jtm.runTaskThrowOnConflict(managers -> {
+            SerializableRangeScanTestTable table1 = GenericTestSchemaTableFactory.of()
+                    .getSerializableRangeScanTestTable(
+                            managers.constituentTransactions().get("one"));
+            return table1.getColumn1s(ImmutableSet.of(SERIALIZABLE_TEST_ROW));
+        });
+        assertThat(ns1).isEmpty();
+        Map<SerializableRangeScanTestRow, Long> ns2 = jtm.runTaskThrowOnConflict(managers -> {
+            SerializableRangeScanTestTable table2 = GenericTestSchemaTableFactory.of()
+                    .getSerializableRangeScanTestTable(
+                            managers.constituentTransactions().get("two"));
+            return table2.getColumn1s(ImmutableSet.of(SERIALIZABLE_TEST_ROW));
+        });
+        assertThat(ns2).containsOnly(Maps.immutableEntry(SERIALIZABLE_TEST_ROW, 3L));
     }
 
     private void assertRowUnwrittenInBothNamespaces(JointTransactionManager jtm) {
