@@ -20,12 +20,17 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 
 public final class InMemoryKeyValueServiceRegistry {
-    private final LoadingCache<String, KeyValueService> keyValueServices =
-            Caffeine.newBuilder().build(_unused -> new InMemoryKeyValueService(false));
+    private final LoadingCache<String, KeyValueService> keyValueServices = Caffeine.newBuilder()
+            .build(_unused -> {
+                InMemoryKeyValueService inMemoryKeyValueService = new InMemoryKeyValueService(false);
+                TransactionTables.createTables(inMemoryKeyValueService);
+                return inMemoryKeyValueService;
+            });
     private final LoadingCache<String, ManagedTimestampService> timestampServices =
             Caffeine.newBuilder().build(_unused -> new InMemoryTimestampService());
 

@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -38,16 +39,23 @@ import com.palantir.atlasdb.table.description.generated.RangeScanTestTable.Range
 import com.palantir.atlasdb.table.description.generated.SerializableRangeScanTestTable;
 import com.palantir.atlasdb.table.description.generated.SerializableRangeScanTestTable.SerializableRangeScanTestRow;
 import com.palantir.atlasdb.table.description.generated.SerializableRangeScanTestTable.SerializableRangeScanTestRowResult;
+import com.palantir.atlasdb.transaction.api.ImmutableDependentState;
+import com.palantir.atlasdb.transaction.api.ImmutableFullyCommittedState;
+import com.palantir.atlasdb.transaction.api.ImmutablePrimaryTransactionLocator;
 import com.palantir.atlasdb.transaction.api.ImmutableRolledBackState;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionCommittedState;
 import com.palantir.atlasdb.transaction.api.TransactionCommittedState.DependentState;
+import com.palantir.atlasdb.transaction.api.TransactionCommittedState.FullyCommittedState;
 import com.palantir.atlasdb.transaction.api.TransactionCommittedState.RolledBackState;
+import com.palantir.atlasdb.transaction.api.TransactionCommittedState.Visitor;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.joint.JointTransactionManager;
 import com.palantir.atlasdb.transaction.joint.SimpleJointTransactionManager;
 import com.palantir.atlasdb.transaction.service.Transactions3Service;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.ArrayList;
 import java.util.List;
@@ -119,6 +127,141 @@ public class JointTransactionManagersMilestoneThreeTest {
                         .build()))
                 .build()
                 .serializable();
+    }
+
+    @Test
+    public void transitiveDependentLocatorsEndingInCommittedAreCommitted() {
+        JointTransactionManager jtm =
+                new SimpleJointTransactionManager(ImmutableMap.of("one", txMgr1, "two", txMgr2), "one");
+
+        AtomicLong timestamp = new AtomicLong();
+        jtm.runTaskThrowOnConflict(managers -> {
+            Transaction txn1 = managers.constituentTransactions().get("one");
+
+            RangeScanTestTable table1 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn1);
+
+            table1.putColumn1(TEST_ROW, 1L);
+            timestamp.set(txn1.getTimestamp());
+            return null;
+        });
+
+        Transactions3Service namespace1Service = Transactions3Service.create(registry.getKeyValueService("one"));
+        TransactionCommittedState transactionCommittedState =
+                namespace1Service.get(ImmutableList.of(timestamp.get())).get(timestamp.get());
+        long commitTimestamp = transactionCommittedState.accept(new Visitor<>() {
+            @Override
+            public Long visitFullyCommitted(FullyCommittedState fullyCommittedState) {
+                return fullyCommittedState.commitTimestamp();
+            }
+
+            @Override
+            public Long visitRolledBack(RolledBackState rolledBackState) {
+                throw new SafeIllegalStateException("Not expecting a rolled-back state!");
+            }
+
+            @Override
+            public Long visitDependent(DependentState dependentState) {
+                throw new SafeIllegalStateException("Not expecting a dependent state!");
+            }
+        });
+
+        namespace1Service.checkAndSet(
+                timestamp.get(),
+                transactionCommittedState,
+                ImmutableDependentState.builder()
+                        .commitTimestamp(commitTimestamp)
+                        .primaryLocator(ImmutablePrimaryTransactionLocator.builder()
+                                .namespace("two")
+                                .startTimestamp(9L)
+                                .build())
+                        .build());
+
+        Transactions3Service namespace2Service = Transactions3Service.create(registry.getKeyValueService("two"));
+        namespace2Service.putUnlessExists(
+                9L,
+                ImmutableDependentState.builder()
+                        .commitTimestamp(commitTimestamp)
+                        .primaryLocator(ImmutablePrimaryTransactionLocator.builder()
+                                .namespace("three")
+                                .startTimestamp(6L)
+                                .build())
+                        .build());
+        Transactions3Service namespace3Service = Transactions3Service.create(registry.getKeyValueService("three"));
+        namespace3Service.putUnlessExists(
+                6L, ImmutableFullyCommittedState.builder().commitTimestamp(7L).build());
+
+        Map<RangeScanTestRow, Long> ns1 = txMgr1.runTaskThrowOnConflict(txn -> {
+            RangeScanTestTable table1 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn);
+            return table1.getColumn1s(ImmutableSet.of(TEST_ROW));
+        });
+        assertThat(ns1).containsOnly(Maps.immutableEntry(TEST_ROW, 1L));
+    }
+
+    @Test
+    public void transitiveDependentLocatorsEndingInRollbackAreRolledBack() {
+        JointTransactionManager jtm =
+                new SimpleJointTransactionManager(ImmutableMap.of("one", txMgr1, "two", txMgr2), "one");
+
+        AtomicLong timestamp = new AtomicLong();
+        jtm.runTaskThrowOnConflict(managers -> {
+            Transaction txn1 = managers.constituentTransactions().get("one");
+
+            RangeScanTestTable table1 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn1);
+
+            table1.putColumn1(TEST_ROW, 1L);
+            timestamp.set(txn1.getTimestamp());
+            return null;
+        });
+
+        Transactions3Service namespace1Service = Transactions3Service.create(registry.getKeyValueService("one"));
+        TransactionCommittedState transactionCommittedState =
+                namespace1Service.get(ImmutableList.of(timestamp.get())).get(timestamp.get());
+        long commitTimestamp = transactionCommittedState.accept(new Visitor<>() {
+            @Override
+            public Long visitFullyCommitted(FullyCommittedState fullyCommittedState) {
+                return fullyCommittedState.commitTimestamp();
+            }
+
+            @Override
+            public Long visitRolledBack(RolledBackState rolledBackState) {
+                throw new SafeIllegalStateException("Not expecting a rolled-back state!");
+            }
+
+            @Override
+            public Long visitDependent(DependentState dependentState) {
+                throw new SafeIllegalStateException("Not expecting a dependent state!");
+            }
+        });
+
+        namespace1Service.checkAndSet(
+                timestamp.get(),
+                transactionCommittedState,
+                ImmutableDependentState.builder()
+                        .commitTimestamp(commitTimestamp)
+                        .primaryLocator(ImmutablePrimaryTransactionLocator.builder()
+                                .namespace("two")
+                                .startTimestamp(9L)
+                                .build())
+                        .build());
+
+        Transactions3Service namespace2Service = Transactions3Service.create(registry.getKeyValueService("two"));
+        namespace2Service.putUnlessExists(
+                9L,
+                ImmutableDependentState.builder()
+                        .commitTimestamp(commitTimestamp)
+                        .primaryLocator(ImmutablePrimaryTransactionLocator.builder()
+                                .namespace("three")
+                                .startTimestamp(6L)
+                                .build())
+                        .build());
+        Transactions3Service namespace3Service = Transactions3Service.create(registry.getKeyValueService("three"));
+        namespace3Service.putUnlessExists(6L, ImmutableRolledBackState.builder().build());
+
+        Map<RangeScanTestRow, Long> ns1 = txMgr1.runTaskThrowOnConflict(txn -> {
+            RangeScanTestTable table1 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn);
+            return table1.getColumn1s(ImmutableSet.of(TEST_ROW));
+        });
+        assertThat(ns1).isEmpty();
     }
 
     @Test
@@ -275,6 +418,55 @@ public class JointTransactionManagersMilestoneThreeTest {
 
     // This guarantees start1 < start2 < finish2 < finish1
     @Test
+    public void singularDominatingWriteInLeadSpaceWithConventionalLeadTransactionManagerIsAConflict() {
+        JointTransactionManager jtm =
+                new SimpleJointTransactionManager(ImmutableMap.of("one", txMgr1, "two", txMgr2), "one");
+
+        ExecutorService executorService = PTExecutors.newCachedThreadPool();
+        CountDownLatch twoCanStart = new CountDownLatch(1);
+        CountDownLatch oneCanFinish = new CountDownLatch(1);
+
+        Future<Object> firstTransaction = executorService.submit(() -> jtm.runTaskThrowOnConflict(managers -> {
+            twoCanStart.countDown();
+            Transaction txn1 = managers.constituentTransactions().get("one");
+            Transaction txn2 = managers.constituentTransactions().get("two");
+
+            RangeScanTestTable table1 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn1);
+            RangeScanTestTable table2 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn2);
+
+            table1.putColumn1(TEST_ROW, 1L);
+            table2.putColumn1(TEST_ROW, 2L);
+            oneCanFinish.await();
+            return null;
+        }));
+        Future<Object> secondTransaction = executorService.submit(() -> {
+            twoCanStart.await();
+            txMgr1.runTaskThrowOnConflict(txn -> {
+                RangeScanTestTable table1 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn);
+                table1.putColumn1(TEST_ROW, 3L);
+                return null;
+            });
+            oneCanFinish.countDown();
+            return null;
+        });
+        assertThatThrownBy(() -> Futures.getUnchecked(firstTransaction)).isInstanceOf(RuntimeException.class);
+        Futures.getUnchecked(secondTransaction);
+        Map<RangeScanTestRow, Long> ns1 = jtm.runTaskThrowOnConflict(managers -> {
+            RangeScanTestTable table1 = GenericTestSchemaTableFactory.of()
+                    .getRangeScanTestTable(managers.constituentTransactions().get("one"));
+            return table1.getColumn1s(ImmutableSet.of(TEST_ROW));
+        });
+        assertThat(ns1).containsOnly(Maps.immutableEntry(TEST_ROW, 3L));
+        Map<RangeScanTestRow, Long> ns2 = jtm.runTaskThrowOnConflict(managers -> {
+            RangeScanTestTable table2 = GenericTestSchemaTableFactory.of()
+                    .getRangeScanTestTable(managers.constituentTransactions().get("two"));
+            return table2.getColumn1s(ImmutableSet.of(TEST_ROW));
+        });
+        assertThat(ns2).isEmpty();
+    }
+
+    // This guarantees start1 < start2 < finish2 < finish1
+    @Test
     public void singularDominatingWriteInSecondarySpaceIsAConflict() {
         JointTransactionManager jtm =
                 new SimpleJointTransactionManager(ImmutableMap.of("one", txMgr1, "two", txMgr2), "one");
@@ -302,6 +494,56 @@ public class JointTransactionManagersMilestoneThreeTest {
                 Transaction txn2 = managers.constituentTransactions().get("two");
 
                 RangeScanTestTable table2 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn2);
+
+                table2.putColumn1(TEST_ROW, 4L);
+                return null;
+            });
+            oneCanFinish.countDown();
+            return null;
+        });
+        assertThatThrownBy(() -> Futures.getUnchecked(firstTransaction)).isInstanceOf(RuntimeException.class);
+        Futures.getUnchecked(secondTransaction);
+        Map<RangeScanTestRow, Long> ns1 = jtm.runTaskThrowOnConflict(managers -> {
+            RangeScanTestTable table1 = GenericTestSchemaTableFactory.of()
+                    .getRangeScanTestTable(managers.constituentTransactions().get("one"));
+            return table1.getColumn1s(ImmutableSet.of(TEST_ROW));
+        });
+        assertThat(ns1).isEmpty();
+        Map<RangeScanTestRow, Long> ns2 = jtm.runTaskThrowOnConflict(managers -> {
+            RangeScanTestTable table2 = GenericTestSchemaTableFactory.of()
+                    .getRangeScanTestTable(managers.constituentTransactions().get("two"));
+            return table2.getColumn1s(ImmutableSet.of(TEST_ROW));
+        });
+        assertThat(ns2).containsOnly(Maps.immutableEntry(TEST_ROW, 4L));
+    }
+
+    // This guarantees start1 < start2 < finish2 < finish1
+    @Test
+    public void singularDominatingWriteInSecondarySpaceWithConventionalSecondaryTransactionManagerIsAConflict() {
+        JointTransactionManager jtm =
+                new SimpleJointTransactionManager(ImmutableMap.of("one", txMgr1, "two", txMgr2), "one");
+
+        ExecutorService executorService = PTExecutors.newCachedThreadPool();
+        CountDownLatch twoCanStart = new CountDownLatch(1);
+        CountDownLatch oneCanFinish = new CountDownLatch(1);
+
+        Future<Object> firstTransaction = executorService.submit(() -> jtm.runTaskThrowOnConflict(managers -> {
+            twoCanStart.countDown();
+            Transaction txn1 = managers.constituentTransactions().get("one");
+            Transaction txn2 = managers.constituentTransactions().get("two");
+
+            RangeScanTestTable table1 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn1);
+            RangeScanTestTable table2 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn2);
+
+            table1.putColumn1(TEST_ROW, 1L);
+            table2.putColumn1(TEST_ROW, 2L);
+            oneCanFinish.await();
+            return null;
+        }));
+        Future<Object> secondTransaction = executorService.submit(() -> {
+            twoCanStart.await();
+            txMgr2.runTaskThrowOnConflict(txn -> {
+                RangeScanTestTable table2 = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn);
 
                 table2.putColumn1(TEST_ROW, 4L);
                 return null;
