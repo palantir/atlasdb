@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Snapshot;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -54,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,6 +64,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import one.util.streamex.EntryStream;
+import one.util.streamex.StreamEx;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
 import org.slf4j.Logger;
@@ -310,9 +315,33 @@ public class CassandraService implements AutoCloseable {
         return hosts;
     }
 
+    @VisibleForTesting
+    Set<InetSocketAddress> maybeFilterSlowHosts(Set<InetSocketAddress> desiredHosts) {
+        Map<InetSocketAddress, Snapshot> latencies = StreamEx.of(desiredHosts)
+                .mapToEntry(currentPools::get)
+                .mapValues(CassandraClientPoolingContainer::getLatency)
+                .mapValues(Histogram::getSnapshot)
+                .toMap();
+
+        OptionalDouble averageLatency = EntryStream.of(latencies)
+                .values()
+                .mapToDouble(Snapshot::get99thPercentile)
+                .average();
+        if (!averageLatency.isPresent()) {
+            return desiredHosts;
+        }
+        return EntryStream.of(latencies)
+                .mapValues(Snapshot::get99thPercentile)
+                .mapValues(p99 -> p99 / averageLatency.getAsDouble())
+                .filterValues(p99 -> p99 >= 10.0)
+                .keys()
+                .toSet();
+    }
+
     private Optional<InetSocketAddress> getRandomHostByActiveConnections(Set<InetSocketAddress> desiredHosts) {
 
-        Set<InetSocketAddress> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
+        Set<InetSocketAddress> localFastHosts = maybeFilterSlowHosts(desiredHosts);
+        Set<InetSocketAddress> localFilteredHosts = maybeFilterLocalHosts(localFastHosts);
 
         Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools = KeyedStream.stream(
                         ImmutableMap.copyOf(currentPools))

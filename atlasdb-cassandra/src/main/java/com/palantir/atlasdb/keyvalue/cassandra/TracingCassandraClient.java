@@ -44,7 +44,7 @@ import org.apache.thrift.TException;
 public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     private final CassandraClient client;
 
-    public TracingCassandraClient(CassandraClient client) {
+    public  TracingCassandraClient(CassandraClient client) {
         this.client = client;
     }
 

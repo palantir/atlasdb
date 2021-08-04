@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -67,6 +68,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private final int poolNumber;
     private final CassandraClientPoolMetrics poolMetrics;
     private final TimedRunner timedRunner;
+    private final Histogram latency;
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
@@ -81,6 +83,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.poolMetrics = poolMetrics;
         this.clientPool = createClientPool();
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
+        this.latency =
+                metricsManager.registerOrGetHistogram(CassandraClientPoolingContainer.class, "hostLatency-" + host);
     }
 
     public InetSocketAddress getHost() {
@@ -107,6 +111,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         return clientPool.getMaxTotal();
     }
 
+    public Histogram getLatency() {
+        return latency;
+    }
+
     @Override
     public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<CassandraClient, V, K> fn)
             throws K {
@@ -117,8 +125,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                         + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
                         + " - " + count.getAndIncrement());
         try {
+            long startTime = System.currentTimeMillis();
             openRequests.getAndIncrement();
-            return runWithGoodResource(fn);
+            V value = runWithGoodResource(fn);
+            latency.update(System.currentTimeMillis() - startTime);
+            return value;
         } catch (Throwable t) {
             log.warn("Error occurred talking to host '{}': {}", SafeArg.of("host", CassandraLogHelper.host(host)), t);
             if (t instanceof NoSuchElementException && t.getMessage().contains("Pool exhausted")) {
