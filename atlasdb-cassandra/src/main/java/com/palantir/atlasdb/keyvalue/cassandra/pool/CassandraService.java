@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import com.codahale.metrics.Histogram;
+import com.codahale.metrics.ExponentiallyDecayingReservoir;
 import com.codahale.metrics.Snapshot;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
@@ -320,12 +320,12 @@ public class CassandraService implements AutoCloseable {
         Map<InetSocketAddress, Snapshot> latencies = StreamEx.of(desiredHosts)
                 .mapToEntry(currentPools::get)
                 .mapValues(CassandraClientPoolingContainer::getLatency)
-                .mapValues(Histogram::getSnapshot)
+                .mapValues(ExponentiallyDecayingReservoir::getSnapshot)
                 .toMap();
 
         OptionalDouble averageLatency = EntryStream.of(latencies)
                 .values()
-                .mapToDouble(Snapshot::get99thPercentile)
+                .mapToDouble(Snapshot::getMedian)
                 .average();
         if (!averageLatency.isPresent()) {
             return desiredHosts;

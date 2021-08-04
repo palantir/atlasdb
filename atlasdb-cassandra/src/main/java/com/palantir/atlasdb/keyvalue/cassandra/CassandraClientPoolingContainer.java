@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.codahale.metrics.ExponentiallyDecayingReservoir;
 import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Histogram;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -68,7 +68,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private final int poolNumber;
     private final CassandraClientPoolMetrics poolMetrics;
     private final TimedRunner timedRunner;
-    private final Histogram latency;
+    private final ExponentiallyDecayingReservoir latency;
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
@@ -83,8 +83,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.poolMetrics = poolMetrics;
         this.clientPool = createClientPool();
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
-        this.latency =
-                metricsManager.registerOrGetHistogram(CassandraClientPoolingContainer.class, "hostLatency-" + host);
+        this.latency = new ExponentiallyDecayingReservoir();
     }
 
     public InetSocketAddress getHost() {
@@ -111,7 +110,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         return clientPool.getMaxTotal();
     }
 
-    public Histogram getLatency() {
+    public ExponentiallyDecayingReservoir getLatency() {
         return latency;
     }
 
