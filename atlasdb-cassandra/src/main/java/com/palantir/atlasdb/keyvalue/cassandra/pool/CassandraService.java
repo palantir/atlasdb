@@ -56,7 +56,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalDouble;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import one.util.streamex.DoubleStreamEx;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 import org.apache.cassandra.thrift.EndpointDetails;
@@ -323,17 +323,12 @@ public class CassandraService implements AutoCloseable {
                 .mapValues(ExponentiallyDecayingReservoir::getSnapshot)
                 .toMap();
 
-        OptionalDouble averageLatency = EntryStream.of(latencies)
-                .values()
-                .mapToDouble(Snapshot::getMedian)
-                .average();
-        if (!averageLatency.isPresent()) {
-            return desiredHosts;
-        }
+        DoubleStreamEx p99s = EntryStream.of(latencies).values().mapToDouble(Snapshot::get99thPercentile);
+
         return EntryStream.of(latencies)
                 .mapValues(Snapshot::get99thPercentile)
-                .mapValues(p99 -> p99 / averageLatency.getAsDouble())
-                .filterValues(p99 -> p99 >= 10.0)
+                .mapValues(p99 -> p99 / p99s.append(-1 * p99).average().getAsDouble())
+                .removeValues(p99 -> p99 >= 10.0)
                 .keys()
                 .toSet();
     }
