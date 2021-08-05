@@ -381,4 +381,9 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
                 localHostWeighting() >= 0.0 && localHostWeighting() <= 1.0,
                 "'localHostWeighting' must be between 0 and 1 inclusive");
     }
+
+    @Value.Default
+    default double slowHostThreshold() {
+        return Double.MAX_VALUE;
+    }
 }

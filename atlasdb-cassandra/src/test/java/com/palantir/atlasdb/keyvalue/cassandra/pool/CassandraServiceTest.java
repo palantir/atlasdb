@@ -40,9 +40,38 @@ public class CassandraServiceTest {
     private static final String HOSTNAME_3 = "3.0.0.0";
     private static final InetSocketAddress HOST_1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
     private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+    private static final InetSocketAddress HOST_3 = new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT);
 
     private CassandraKeyValueServiceConfig config;
     private Blacklist blacklist;
+
+    @Test
+    public void shouldRemoveTenTimesSlowerHosts() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2, HOST_3);
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 1.0);
+        cassandra.getPools().get(HOST_1).getLatency().update(10);
+        cassandra.getPools().get(HOST_2).getLatency().update(10);
+        cassandra.getPools().get(HOST_3).getLatency().update(100);
+        assertThat(cassandra.maybeFilterSlowHosts(hosts)).containsExactly(HOST_1, HOST_2);
+    }
+
+    @Test
+    public void shouldKeepSlowHostsThatAreNotTenTimesSlower() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2, HOST_3);
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 1.0);
+        cassandra.getPools().get(HOST_1).getLatency().update(10);
+        cassandra.getPools().get(HOST_2).getLatency().update(10);
+        cassandra.getPools().get(HOST_3).getLatency().update(99);
+        assertThat(cassandra.maybeFilterSlowHosts(hosts)).containsExactly(HOST_1, HOST_2);
+    }
+
+    @Test
+    public void queriesHostThatHaveNotBeenQueried() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2, HOST_3);
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 1.0);
+        cassandra.getPools().get(HOST_3).getLatency().update(100);
+        assertThat(cassandra.maybeFilterSlowHosts(hosts)).containsExactly(HOST_1, HOST_2);
+    }
 
     @Test
     public void shouldOnlyReturnLocalHosts() {
@@ -176,6 +205,7 @@ public class CassandraServiceTest {
                         .addAllThriftHosts(servers)
                         .build())
                 .localHostWeighting(weighting)
+                .slowHostThreshold(10.0)
                 .build();
 
         blacklist = new Blacklist(config);

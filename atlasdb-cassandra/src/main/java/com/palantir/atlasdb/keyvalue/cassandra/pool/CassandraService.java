@@ -63,7 +63,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import one.util.streamex.DoubleStreamEx;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 import org.apache.cassandra.thrift.EndpointDetails;
@@ -315,20 +314,43 @@ public class CassandraService implements AutoCloseable {
         return hosts;
     }
 
+    private static double getAverageWithoutSelf(double sum, double self, int count) {
+        return (sum - self) / (count - 1);
+    }
+
     @VisibleForTesting
     Set<InetSocketAddress> maybeFilterSlowHosts(Set<InetSocketAddress> desiredHosts) {
+
+        if (config.slowHostThreshold() == Double.MAX_VALUE) {
+            return desiredHosts;
+        }
+
         Map<InetSocketAddress, Snapshot> latencies = StreamEx.of(desiredHosts)
                 .mapToEntry(currentPools::get)
                 .mapValues(CassandraClientPoolingContainer::getLatency)
                 .mapValues(ExponentiallyDecayingReservoir::getSnapshot)
                 .toMap();
 
-        DoubleStreamEx p99s = EntryStream.of(latencies).values().mapToDouble(Snapshot::get99thPercentile);
+        double totalP99s = EntryStream.of(latencies)
+                .values()
+                .mapToDouble(Snapshot::get99thPercentile)
+                .map(value -> Math.max(1, value)) // Otherwise the average will always be 1 if all but one host is 0
+                .sum();
 
         return EntryStream.of(latencies)
                 .mapValues(Snapshot::get99thPercentile)
-                .mapValues(p99 -> p99 / p99s.append(-1 * p99).average().getAsDouble())
-                .removeValues(p99 -> p99 >= 10.0)
+                .mapValues(p99 -> p99 / getAverageWithoutSelf(totalP99s, p99, desiredHosts.size()))
+                .removeKeyValue((host, p99) -> {
+                    if (p99 >= config.slowHostThreshold()) {
+                        log.warn(
+                                "Removing slow host due to p99s being slower than other hosts",
+                                SafeArg.of("p99", p99),
+                                SafeArg.of("slowHostThreshold", config.slowHostThreshold()),
+                                SafeArg.of("host", host));
+                        return true;
+                    }
+                    return false;
+                })
                 .keys()
                 .toSet();
     }
