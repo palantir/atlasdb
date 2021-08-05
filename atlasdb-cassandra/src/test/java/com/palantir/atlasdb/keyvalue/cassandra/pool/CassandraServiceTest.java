@@ -62,7 +62,7 @@ public class CassandraServiceTest {
         cassandra.getPools().get(HOST_1).getLatency().update(10);
         cassandra.getPools().get(HOST_2).getLatency().update(10);
         cassandra.getPools().get(HOST_3).getLatency().update(99);
-        assertThat(cassandra.maybeFilterSlowHosts(hosts)).containsExactly(HOST_1, HOST_2);
+        assertThat(cassandra.maybeFilterSlowHosts(hosts)).containsExactly(HOST_1, HOST_2, HOST_3);
     }
 
     @Test
