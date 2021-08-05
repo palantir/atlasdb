@@ -166,7 +166,7 @@ public final class Throwables {
     @SuppressWarnings("unchecked")
     public static <K extends Throwable> void rewrapAndThrowIfInstance(String newMessage, Throwable t, Class<K> clazz)
             throws K {
-        if ((t != null) && clazz.isAssignableFrom(t.getClass())) {
+        if (clazz.isInstance(t)) {
             K kt = (K) t;
             K wrapped = Throwables.rewrap(newMessage, kt);
             throw wrapped;
@@ -181,14 +181,10 @@ public final class Throwables {
      */
     @SuppressWarnings("unchecked")
     public static <K extends Throwable> void throwIfInstance(Throwable t, Class<K> clazz) throws K {
-        if (isInstance(t, clazz)) {
+        if (clazz.isInstance(t)) {
             K kt = (K) t;
             throw kt;
         }
-    }
-
-    private static <K extends Throwable> boolean isInstance(Throwable t, Class<K> clazz) {
-        return (t != null) && clazz.isAssignableFrom(t.getClass());
     }
 
     /**
