@@ -19,6 +19,7 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeLoggable;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
@@ -69,12 +70,19 @@ public final class Throwables {
         throwable.initCause(cause);
         return throwable;
     }
+    
+    private static String extractMessageSafely(Throwable ex) {
+        if (ex instanceof SafeLoggable) {
+            return ((SafeLoggable) ex).getLogMessage();
+        }
+        return ex.getMessage();
+    }
 
     /**
      * If Throwable is a RuntimeException or Error, rewrap and throw it. If not, throw a PalantirRuntimeException.
      */
     public static RuntimeException rewrapAndThrowUncheckedException(Throwable ex) {
-        throw rewrapAndThrowUncheckedException(ex.getMessage(), ex);
+        throw rewrapAndThrowUncheckedException(extractMessageSafely(ex), ex);
     }
 
     /**
@@ -97,8 +105,9 @@ public final class Throwables {
     public static Throwable unwrapIfPossible(Throwable ex) {
         if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
             return ex.getCause();
+        } else {
+            return ex;
         }
-        return ex;
     }
 
     private static RuntimeException createAtlasDbDependencyException(Throwable ex) {
@@ -145,7 +154,7 @@ public final class Throwables {
      * clazz is a supertype of t.
      */
     public static <K extends Throwable> void rewrapAndThrowIfInstance(Throwable t, Class<K> clazz) throws K {
-        rewrapAndThrowIfInstance(t == null ? "null" : t.getMessage(), t, clazz);
+        rewrapAndThrowIfInstance(t == null ? "null" : extractMessageSafely(t), t, clazz);
     }
 
     /**
@@ -189,7 +198,7 @@ public final class Throwables {
      */
     public static <T extends Throwable> T rewrap(T throwable) {
         Preconditions.checkNotNull(throwable);
-        return rewrap(throwable.getMessage(), throwable);
+        return rewrap(extractMessageSafely(throwable), throwable);
     }
 
     /**
