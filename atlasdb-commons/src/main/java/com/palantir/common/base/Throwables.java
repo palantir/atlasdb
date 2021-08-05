@@ -70,7 +70,7 @@ public final class Throwables {
         throwable.initCause(cause);
         return throwable;
     }
-    
+
     private static String extractMessageSafely(Throwable ex) {
         if (ex instanceof SafeLoggable) {
             return ((SafeLoggable) ex).getLogMessage();
