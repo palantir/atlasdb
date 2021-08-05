@@ -85,6 +85,7 @@ public class CassandraClientPoolTest {
     @Before
     public void setup() {
         config = mock(CassandraKeyValueServiceConfig.class);
+        when(config.slowHostThreshold()).thenReturn(Double.MAX_VALUE);
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
         when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
