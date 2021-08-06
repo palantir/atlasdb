@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
-import com.codahale.metrics.ExponentiallyDecayingReservoir;
-import com.codahale.metrics.Snapshot;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -39,6 +37,10 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.keyvalue.cassandra.routing.BlacklistHostFilter;
+import com.palantir.atlasdb.keyvalue.cassandra.routing.InOrderHostFilter;
+import com.palantir.atlasdb.keyvalue.cassandra.routing.LocalHostFilter;
+import com.palantir.atlasdb.keyvalue.cassandra.routing.SlowHostFilter;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -56,15 +58,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import one.util.streamex.EntryStream;
-import one.util.streamex.StreamEx;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
 import org.slf4j.Logger;
@@ -90,7 +89,7 @@ public class CassandraService implements AutoCloseable {
     private final Supplier<Optional<HostLocation>> myLocationSupplier;
     private final Supplier<Map<String, String>> hostnameByIpSupplier;
 
-    private final Random random = new Random();
+    private final InOrderHostFilter hostFilter;
 
     public CassandraService(
             MetricsManager metricsManager,
@@ -105,6 +104,10 @@ public class CassandraService implements AutoCloseable {
 
         Supplier<Map<String, String>> hostnamesByIpSupplier = new HostnamesByIpSupplier(this::getRandomGoodHost);
         this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 2, TimeUnit.MINUTES);
+        hostFilter = new InOrderHostFilter(ImmutableList.of(
+                new BlacklistHostFilter(blacklist),
+                new SlowHostFilter(config.slowHostThreshold(), currentPools),
+                new LocalHostFilter(this::getLocalHosts)));
     }
 
     @Override
@@ -274,14 +277,7 @@ public class CassandraService implements AutoCloseable {
             return Optional.empty();
         }
 
-        Set<InetSocketAddress> livingHosts = blacklist.filterBlacklistedHostsFrom(filteredHosts);
-        if (livingHosts.isEmpty()) {
-            log.info("There are no known live hosts in the connection pool matching the predicate. We're choosing"
-                    + " one at random in a last-ditch attempt at forward progress.");
-            livingHosts = filteredHosts;
-        }
-
-        Optional<InetSocketAddress> randomLivingHost = getRandomHostByActiveConnections(livingHosts);
+        Optional<InetSocketAddress> randomLivingHost = getRandomHostByActiveConnections(filteredHosts);
         return randomLivingHost.map(pools::get);
     }
 
@@ -302,67 +298,13 @@ public class CassandraService implements AutoCloseable {
         return currentPools;
     }
 
-    @VisibleForTesting
-    Set<InetSocketAddress> maybeFilterLocalHosts(Set<InetSocketAddress> hosts) {
-        if (random.nextDouble() < config.localHostWeighting()) {
-            Set<InetSocketAddress> localFilteredHosts = Sets.intersection(localHosts, hosts);
-            if (!localFilteredHosts.isEmpty()) {
-                return localFilteredHosts;
-            }
-        }
-
-        return hosts;
-    }
-
-    private static double getAverageWithoutSelf(double sum, double self, int count) {
-        return (sum - self) / (count - 1);
-    }
-
-    @VisibleForTesting
-    Set<InetSocketAddress> maybeFilterSlowHosts(Set<InetSocketAddress> desiredHosts) {
-
-        if (config.slowHostThreshold() == Double.MAX_VALUE) {
-            return desiredHosts;
-        }
-
-        Map<InetSocketAddress, Snapshot> latencies = StreamEx.of(desiredHosts)
-                .mapToEntry(currentPools::get)
-                .mapValues(CassandraClientPoolingContainer::getLatency)
-                .mapValues(ExponentiallyDecayingReservoir::getSnapshot)
-                .toMap();
-
-        double totalP99s = EntryStream.of(latencies)
-                .values()
-                .mapToDouble(Snapshot::get99thPercentile)
-                .map(value -> Math.max(1, value)) // Otherwise the average will always be 1 if all but one host is 0
-                .sum();
-
-        return EntryStream.of(latencies)
-                .mapValues(Snapshot::get99thPercentile)
-                .mapValues(p99 -> p99 / getAverageWithoutSelf(totalP99s, p99, desiredHosts.size()))
-                .removeKeyValue((host, p99) -> {
-                    if (p99 >= config.slowHostThreshold()) {
-                        log.warn(
-                                "Removing slow host due to p99s being slower than other hosts",
-                                SafeArg.of("p99", p99),
-                                SafeArg.of("slowHostThreshold", config.slowHostThreshold()),
-                                SafeArg.of("host", host));
-                        return true;
-                    }
-                    return false;
-                })
-                .keys()
-                .toSet();
-    }
-
     private Optional<InetSocketAddress> getRandomHostByActiveConnections(Set<InetSocketAddress> desiredHosts) {
 
-        Set<InetSocketAddress> localFastHosts = maybeFilterSlowHosts(desiredHosts);
-        Set<InetSocketAddress> localFilteredHosts = maybeFilterLocalHosts(localFastHosts);
+        Set<InetSocketAddress> filteredHosts = hostFilter.filter(desiredHosts);
 
         Map<InetSocketAddress, CassandraClientPoolingContainer> matchingPools = KeyedStream.stream(
                         ImmutableMap.copyOf(currentPools))
-                .filterKeys(localFilteredHosts::contains)
+                .filterKeys(filteredHosts::contains)
                 .collectToMap();
         if (matchingPools.isEmpty()) {
             return Optional.empty();
