@@ -69,6 +69,13 @@ public class HikariCpConnectionManagerTest {
     }
 
     @Test
+    public void testIsClosedWhenManagerClosed() throws SQLException {
+        assertThat(manager.isClosed()).isFalse();
+        manager.close();
+        assertThat(manager.isClosed()).isTrue();
+    }
+
+    @Test
     public void testCantGetConnectionIfPoolExhausted() throws SQLException {
         //noinspection unused - try-with-resources gets & closes connections
         try (Connection conn1 = manager.getConnection();
