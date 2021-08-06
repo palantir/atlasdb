@@ -74,6 +74,14 @@ public class CassandraServiceTest {
     }
 
     @Test
+    public void shouldKeepSlowHostIfOnlyHost() {
+        ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1);
+        CassandraService cassandra = clientPoolWithServersAndParams(hosts, 1.0);
+        cassandra.getPools().get(HOST_1).getLatency().update(10000);
+        assertThat(cassandra.maybeFilterSlowHosts(hosts)).containsExactly(HOST_1);
+    }
+
+    @Test
     public void shouldOnlyReturnLocalHosts() {
         ImmutableSet<InetSocketAddress> hosts = ImmutableSet.of(HOST_1, HOST_2);
         ImmutableSet<InetSocketAddress> localHosts = ImmutableSet.of(HOST_1);
