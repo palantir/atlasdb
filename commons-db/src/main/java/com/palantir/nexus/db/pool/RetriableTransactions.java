@@ -171,6 +171,10 @@ public final class RetriableTransactions {
                                     now,
                                     e);
                         }
+                        if (cm.isClosed()) {
+                            log.warn("Aborting tx retry, underlying connection is closed", e);
+                            return TransactionResult.failure(e);
+                        }
                         if (shouldStillRetry(startTimeMs, attemptTimeMs)) {
                             long attemptLengthMs = now - attemptTimeMs;
                             long totalLengthMs = now - startTimeMs;
