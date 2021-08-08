@@ -172,7 +172,7 @@ public final class RetriableTransactions {
                                     e);
                         }
                         if (cm.isClosed()) {
-                            log.warn("Aborting tx retry, underlying connection is closed", e);
+                            log.error("Aborting transaction retry, underlying connection manager is closed", e);
                             return TransactionResult.failure(e);
                         }
                         if (shouldStillRetry(startTimeMs, attemptTimeMs)) {
