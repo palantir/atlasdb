@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.Set;
@@ -58,9 +59,12 @@ public abstract class CassandraTracingConfig {
 
     @Value.Check
     protected void check() {
-        // This does not actually validate anything but mimics the old behavior where enabling tracing
-        // would log a warning.
         if (enabled()) {
+            Preconditions.checkArgument(
+                    traceProbability() > 0, "trace-probability must be greater than 0 if tracing is enabled");
+
+            // Just log a warning once. In witchcraft runtime config is reparsed every 5 seconds which means this
+            // would log every 5 seconds.
             if (loggedWarning.compareAndSet(false, true)) {
                 log.warn(
                         "Tracing is enabled. This incurs a large performance hit and should only be used for short"
