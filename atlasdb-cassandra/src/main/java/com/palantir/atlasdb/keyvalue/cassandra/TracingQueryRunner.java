@@ -20,8 +20,8 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraTracingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.nio.ByteBuffer;
-import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 public class TracingQueryRunner {
     private final Logger log;
     private final Supplier<CassandraTracingConfig> tracingPrefs;
-    private final Random random = new Random();
 
     public TracingQueryRunner(Logger log, Supplier<CassandraTracingConfig> tracingPrefs) {
         this.log = log;
@@ -77,9 +76,18 @@ public class TracingQueryRunner {
     }
 
     private boolean shouldTraceQuery(Set<TableReference> tableRefs) {
-        for (TableReference tableRef : tableRefs) {
-            if (tracingPrefs.get().shouldTraceQuery(tableRef.getQualifiedName(), random)) {
+        CassandraTracingConfig prefs = tracingPrefs.get();
+        if (!prefs.enabled()) {
+            return false;
+        }
+        if (prefs.tablesToTrace().isEmpty()
+                || tableRefs.stream().map(TableReference::getQualifiedName).anyMatch(prefs.tablesToTrace()::contains)) {
+            if (prefs.traceProbability() >= 1.0) {
                 return true;
+            } else {
+                if (ThreadLocalRandom.current().nextDouble() <= prefs.traceProbability()) {
+                    return true;
+                }
             }
         }
         return false;
@@ -92,7 +100,7 @@ public class TracingQueryRunner {
     }
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
-        if (failed || duration > tracingPrefs.get().minDurationToLogMs()) {
+        if (failed || duration > tracingPrefs.get().minDurationToLog().toMilliseconds()) {
             log.info(
                     "Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
                     tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),

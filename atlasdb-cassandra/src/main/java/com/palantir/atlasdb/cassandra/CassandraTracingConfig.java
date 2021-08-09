@@ -19,9 +19,9 @@ package com.palantir.atlasdb.cassandra;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.immutables.value.Value;
@@ -50,29 +50,10 @@ public abstract class CassandraTracingConfig {
     @JsonProperty("tables-to-trace")
     public abstract Set<String> tablesToTrace();
 
-    @JsonProperty("min-duration-to-log-ms")
+    @JsonProperty("min-duration-to-log")
     @Value.Default
-    public int minDurationToLogMs() {
-        return 0;
-    }
-
-    public boolean shouldTraceQuery(String tablename, Random random) {
-        if (!enabled()) {
-            return false;
-        }
-        if (tablesToTrace().contains(tablename)) {
-            if (traceProbability() == 1.0) {
-                return true;
-            } else {
-                if (random.nextDouble() <= traceProbability()) {
-                    return true;
-                }
-            }
-        }
-        if (tablesToTrace().isEmpty()) {
-            return true; // accept enabled = true but no tables specified to mean trace all tables
-        }
-        return false;
+    public HumanReadableDuration minDurationToLog() {
+        return HumanReadableDuration.milliseconds(0);
     }
 
     @Value.Check
@@ -86,7 +67,7 @@ public abstract class CassandraTracingConfig {
                                 + " periods of debugging. [trace-probability = {}, min-duration-to-log-ms = {},"
                                 + " tables-to-trace = {}]",
                         SafeArg.of("trace-probability", traceProbability()),
-                        SafeArg.of("min-duration-to-log-ms", minDurationToLogMs()),
+                        SafeArg.of("min-duration-to-log", minDurationToLog()),
                         UnsafeArg.of("tables-to-trace", tablesToTrace()));
             }
         }

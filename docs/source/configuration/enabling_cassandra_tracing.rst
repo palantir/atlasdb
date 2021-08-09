@@ -41,9 +41,9 @@ config is located. Assuming the Atlas runtime config is located at
            tracing:
              enabled: true
              trace-probability: 1.0
-             min-duration-to-log-ms: 0
+             min-duration-to-log: "0ms"
              tables-to-trace:
-               - "_transactions"
+               - "_transactions2"
                - "namespaceOne.table_7"
                - "namespaceTwo.table_3"
 
