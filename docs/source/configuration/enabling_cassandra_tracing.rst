@@ -62,7 +62,7 @@ tracing. For namespaced tables the table entry must be ``<namespace>.<table>``.
 Like ``trace-probability``, this is also a pre-filter. If the list is empty,
 all tables are eligible.
 
-``tracing.min-duration-to-log-ms`` - the minimum amount of time a traced query
+``tracing.min-duration-to-log`` - the minimum amount of time a traced query
 has to take to actually be logged. This is a post-filter and so the trace is
 still done (and thus still incurs a performance hit) even if you do not log it.
 
