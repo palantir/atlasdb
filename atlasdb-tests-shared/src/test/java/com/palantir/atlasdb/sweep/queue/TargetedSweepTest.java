@@ -37,6 +37,7 @@ import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -72,14 +73,28 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     @Test
     public void committedWritesAreAddedToSweepQueue() {
         List<WriteReference> table1Writes = ImmutableList.of(
-                WriteReference.write(TABLE_CONS, Cell.create("a".getBytes(), "b".getBytes())),
-                WriteReference.write(TABLE_CONS, Cell.create("a".getBytes(), "c".getBytes())),
-                WriteReference.tombstone(TABLE_CONS, Cell.create("a".getBytes(), "d".getBytes())),
-                WriteReference.write(TABLE_CONS, Cell.create("b".getBytes(), "d".getBytes())));
+                WriteReference.write(
+                        TABLE_CONS,
+                        Cell.create("a".getBytes(StandardCharsets.UTF_8), "b".getBytes(StandardCharsets.UTF_8))),
+                WriteReference.write(
+                        TABLE_CONS,
+                        Cell.create("a".getBytes(StandardCharsets.UTF_8), "c".getBytes(StandardCharsets.UTF_8))),
+                WriteReference.tombstone(
+                        TABLE_CONS,
+                        Cell.create("a".getBytes(StandardCharsets.UTF_8), "d".getBytes(StandardCharsets.UTF_8))),
+                WriteReference.write(
+                        TABLE_CONS,
+                        Cell.create("b".getBytes(StandardCharsets.UTF_8), "d".getBytes(StandardCharsets.UTF_8))));
         List<WriteReference> table2Writes = ImmutableList.of(
-                WriteReference.write(TABLE_THOR, Cell.create("w".getBytes(), "x".getBytes())),
-                WriteReference.write(TABLE_THOR, Cell.create("y".getBytes(), "z".getBytes())),
-                WriteReference.tombstone(TABLE_THOR, Cell.create("z".getBytes(), "z".getBytes())));
+                WriteReference.write(
+                        TABLE_THOR,
+                        Cell.create("w".getBytes(StandardCharsets.UTF_8), "x".getBytes(StandardCharsets.UTF_8))),
+                WriteReference.write(
+                        TABLE_THOR,
+                        Cell.create("y".getBytes(StandardCharsets.UTF_8), "z".getBytes(StandardCharsets.UTF_8))),
+                WriteReference.tombstone(
+                        TABLE_THOR,
+                        Cell.create("z".getBytes(StandardCharsets.UTF_8), "z".getBytes(StandardCharsets.UTF_8))));
 
         long startTimestamp = txManager.runTaskWithRetry(txn -> {
             table1Writes.forEach(write -> put(txn, write));

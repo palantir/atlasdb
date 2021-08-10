@@ -25,7 +25,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
@@ -51,7 +50,7 @@ public class AutobatchersTests {
         DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(list -> {
                     enqueueLatch.countDown();
                     if (guard.compareAndSet(0, 1)) {
-                        Uninterruptibles.sleepUninterruptibly(30, TimeUnit.SECONDS);
+                        Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30));
                     }
                     list.forEach(element -> element.result().set(new Object()));
                 })

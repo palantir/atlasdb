@@ -19,6 +19,8 @@ package com.palantir.timelock.history;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndUseCase;
@@ -36,11 +38,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class PaxosLogHistoryProvider {
-    private static final Logger log = LoggerFactory.getLogger(PaxosLogHistoryProvider.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(PaxosLogHistoryProvider.class);
 
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
 

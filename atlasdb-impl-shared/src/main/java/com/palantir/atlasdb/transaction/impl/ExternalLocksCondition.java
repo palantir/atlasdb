@@ -21,15 +21,15 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ExternalLocksCondition implements AdvisoryLocksCondition {
 
-    private static final Logger log = LoggerFactory.getLogger(ExternalLocksCondition.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(ExternalLocksCondition.class);
 
     private final LockService lockService;
     private final Set<HeldLocksToken> lockTokens;

@@ -1,14 +1,5 @@
 package com.palantir.atlasdb.todo.generated;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
@@ -22,10 +13,19 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SnapshotsMetadataCleanupTask implements OnCleanupTask {
 
-    private static final Logger log = LoggerFactory.getLogger(SnapshotsMetadataCleanupTask.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SnapshotsMetadataCleanupTask.class);
 
     private final TodoSchemaTableFactory tables;
 

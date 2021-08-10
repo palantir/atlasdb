@@ -25,6 +25,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftQueryWeighers.QueryWeigher;
 import com.palantir.atlasdb.qos.metrics.QosMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -44,12 +46,10 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class QosCassandraClient implements AutoDelegate_CassandraClient {
-    private static final Logger log = LoggerFactory.getLogger(QosCassandraClient.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(QosCassandraClient.class);
 
     private final CassandraClient client;
     private final QosMetrics metrics;

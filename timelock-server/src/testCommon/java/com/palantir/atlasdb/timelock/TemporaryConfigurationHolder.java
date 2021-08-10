@@ -19,7 +19,8 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
 import java.io.File;
-import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Locale;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
@@ -62,7 +63,8 @@ public class TemporaryConfigurationHolder extends ExternalResource {
                         temporaryFolder.newFolder(appendPort("legacy")).getAbsolutePath())
                 .withSqliteDataDirectory(
                         temporaryFolder.newFolder(appendPort("sqlite")).getAbsolutePath());
-        template.process(variablesWithFolders, new FileWriter(temporaryConfigFile));
+        template.process(
+                variablesWithFolders, Files.newBufferedWriter(temporaryConfigFile.toPath(), StandardCharsets.UTF_8));
     }
 
     private String appendPort(String legacy) {

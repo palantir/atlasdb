@@ -18,6 +18,8 @@ package com.palantir.timelock.utils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -26,8 +28,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class KubernetesHostnames {
 
@@ -39,7 +39,7 @@ public final class KubernetesHostnames {
         }
     });
 
-    private static final Logger log = LoggerFactory.getLogger(KubernetesHostnames.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(KubernetesHostnames.class);
     private static final String POD_HOSTNAME_TEMPLATE = "%s-%d.%s.%s";
 
     private final Supplier<String> currentHostnameSupplier;
