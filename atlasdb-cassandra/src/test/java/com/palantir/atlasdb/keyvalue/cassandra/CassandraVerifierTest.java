@@ -50,9 +50,8 @@ public class CassandraVerifierTest {
     private CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
 
     @Before
-    public void beforeEach(){
+    public void beforeEach() {
         CassandraVerifier.sanityCheckedDatacenters.invalidateAll();
-
     }
 
     @Test
@@ -250,7 +249,10 @@ public class CassandraVerifierTest {
     private void setTopology(EndpointDetails... details) throws TException {
         when(client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE))
                 .thenReturn(ImmutableList.of(mockRangeWithDetails(details)));
-        when(config.servers()).thenReturn(ImmutableDefaultConfig.builder().addThriftHosts(InetSocketAddress.createUnresolved(HOST_1, 8080)).build());
+        when(config.servers())
+                .thenReturn(ImmutableDefaultConfig.builder()
+                        .addThriftHosts(InetSocketAddress.createUnresolved(HOST_1, 8080))
+                        .build());
     }
 
     private TokenRange mockRangeWithDetails(EndpointDetails... details) {
