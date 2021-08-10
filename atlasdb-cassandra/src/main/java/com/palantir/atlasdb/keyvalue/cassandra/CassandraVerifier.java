@@ -26,6 +26,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
@@ -59,7 +60,7 @@ public final class CassandraVerifier {
             + "and running the appropriate repairs; talking to support first is recommended. "
             + "If you're running in some sort of environment where nodes have no known correlated "
             + "failure patterns, you can set the 'ignoreNodeTopologyChecks' KVS config option.";
-    private static final Cache<CassandraKeyValueServiceConfig, Set<String>> sanityCheckedDatacenters =
+    private static final Cache<CassandraServersConfig, Set<String>> sanityCheckedDatacenters =
             Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(60)).build();
 
     private CassandraVerifier() {
@@ -72,7 +73,7 @@ public final class CassandraVerifier {
     };
 
     static Set<String> sanityCheckDatacenters(CassandraClient client, CassandraKeyValueServiceConfig config) {
-        return sanityCheckedDatacenters.get(config, kvsConfig -> {
+        return sanityCheckedDatacenters.get(config.servers(), kvsConfig -> {
             try {
                 return sanityCheckDatacentersInternal(client, kvsConfig);
             } catch (TException e) {
