@@ -73,9 +73,9 @@ public final class CassandraVerifier {
     };
 
     static Set<String> sanityCheckDatacenters(CassandraClient client, CassandraKeyValueServiceConfig config) {
-        return sanityCheckedDatacenters.get(config.servers(), kvsConfig -> {
+        return sanityCheckedDatacenters.get(config.servers(), _kvsConfig -> {
             try {
-                return sanityCheckDatacentersInternal(client, kvsConfig);
+                return sanityCheckDatacentersInternal(client, config);
             } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
             }
