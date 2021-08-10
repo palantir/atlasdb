@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -60,7 +61,9 @@ public final class CassandraVerifier {
             + "and running the appropriate repairs; talking to support first is recommended. "
             + "If you're running in some sort of environment where nodes have no known correlated "
             + "failure patterns, you can set the 'ignoreNodeTopologyChecks' KVS config option.";
-    private static final Cache<CassandraServersConfig, Set<String>> sanityCheckedDatacenters =
+
+    @VisibleForTesting
+    static final Cache<CassandraServersConfig, Set<String>> sanityCheckedDatacenters =
             Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(60)).build();
 
     private CassandraVerifier() {
