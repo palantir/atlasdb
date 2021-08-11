@@ -28,6 +28,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.datastax.driver.core.utils.Bytes;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -79,6 +80,7 @@ import java.util.stream.IntStream;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlResult;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
 import org.junit.ClassRule;
@@ -96,7 +98,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final long STARTING_ATLAS_TIMESTAMP = 10_000_000;
     private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
     private static final TableReference NEVER_SEEN = TableReference.createFromFullyQualifiedName("ns.never_seen");
+
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
+    private static final Cell CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column"));
+
     private static final String ASYNC = "async";
     private static final String SYNC = "sync";
     private static final TableReference ATLAS_DEFAULT_TABLE_REFERENCE =
@@ -300,6 +305,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         keyValueService.delete(tableReference, ImmutableListMultimap.of(CELL, 8L));
 
         putDummyValueAtCellAndTimestamp(tableReference, CELL, 8L, STARTING_ATLAS_TIMESTAMP - 1);
+        putDummyValueAtCellAndTimestamp(tableReference, CELL_2, 8L, STARTING_ATLAS_TIMESTAMP - 1);
+
+        getAllData(tableReference);
         Map<Cell, Value> results = keyValueService.get(tableReference, ImmutableMap.of(CELL, 8L + 1));
 
         assertThat(results).doesNotContainKey(CELL);
@@ -505,6 +513,49 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                     .build();
             return input.execute_cql3_query(cqlQuery, Compression.NONE, ConsistencyLevel.QUORUM);
         });
+    }
+
+    private void getAllData(
+            TableReference tableReference) throws TException {
+        CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
+
+        // retrieve keys
+        CqlResult partition = ckvs.getClientPool().runWithRetry(input -> {
+            CqlQuery cqlQuery = CqlQuery.builder()
+                    .safeQueryFormat("SELECT TOKEN(key) FROM \"%s\".\"%s\" WHERE TOKEN(key) >= "
+                            + "%s and TOKEN(key) < %s LIMIT 1")
+                    .addArgs(
+                            SafeArg.of("keyspace", CASSANDRA.getConfig().getKeyspaceOrThrow()),
+                            LoggingArgs.internalTableName(tableReference),
+                            SafeArg.of("blobRange", "0x0000000000000000"),
+                            SafeArg.of("blobRange", "0xffffffffffffffff"))
+                    .build();
+            CqlResult cqlResult = input.execute_cql3_query(cqlQuery, Compression.NONE, ConsistencyLevel.QUORUM);
+            System.out.println(cqlResult);
+            return cqlResult;
+        });
+        String value = Bytes.toHexString(partition.getRows().get(0).getColumns().get(0).value);
+
+        // column scan
+        ckvs.getClientPool().runWithRetry(input -> {
+            CqlQuery cqlQuery = CqlQuery.builder()
+                    .safeQueryFormat("SELECT column1 FROM \"%s\".\"%s\" WHERE KEY = %S AND column1 >= "
+                            + "%s AND column1 < %s")
+                    .addArgs(
+                            SafeArg.of("keyspace", CASSANDRA.getConfig().getKeyspaceOrThrow()),
+                            LoggingArgs.internalTableName(tableReference),
+                            SafeArg.of("key", value),
+                            SafeArg.of("startInclusive", "0x0000000000000000"),
+                            SafeArg.of("endExclusive", "0xFFFF000000000000"))
+                    .build();
+            CqlResult cqlResult = input.execute_cql3_query(cqlQuery, Compression.NONE, ConsistencyLevel.QUORUM);
+            System.out.println(cqlResult);
+            return cqlResult;
+        });
+
+
+
+
     }
 
     private static String convertBytesToHexString(byte[] bytes) {
