@@ -54,8 +54,10 @@ import com.palantir.tracing.DetachedSpan;
 import com.palantir.tracing.TagTranslator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -449,6 +451,12 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         })) {
             return delegate().getRowKeysInRange(tableRef, startRow, endRow, maxResults);
         }
+    }
+
+    @Override
+    public Iterator<Entry<Cell, Value>> getCellIterator(
+            TableReference tableReference, byte[] startRow, byte[] startColumn, int limit, int startTimeStamp) {
+        return null;
     }
 
     @Override

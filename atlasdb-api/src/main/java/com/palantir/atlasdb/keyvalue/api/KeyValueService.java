@@ -27,8 +27,10 @@ import com.palantir.processors.DoDelegate;
 import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -663,4 +665,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @DoDelegate
     @Deprecated
     List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults);
+
+    Iterator<Entry<Cell, Value>> getCellIterator(
+            TableReference tableReference, byte[] startRow, byte[] startColumn, int limit, int startTimeStamp);
 }

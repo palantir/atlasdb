@@ -63,6 +63,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -618,6 +619,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     .map(Bytes::asNewByteArray)
                     .collect(Collectors.toList());
         }
+    }
+
+    @Override
+    public Iterator<Entry<Cell, Value>> getCellIterator(
+            TableReference tableReference, byte[] startRow, byte[] startColumn, int limit, int startTimeStamp) {
+        return null;
     }
 
     private static IllegalArgumentException tableMappingException(TableReference tableReference) {

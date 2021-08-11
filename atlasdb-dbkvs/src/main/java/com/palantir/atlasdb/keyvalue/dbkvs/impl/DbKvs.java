@@ -114,6 +114,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -1210,6 +1211,12 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
         throw new UnsupportedOperationException("getRowKeysInRange is only supported for Cassandra.");
+    }
+
+    @Override
+    public Iterator<Entry<Cell, Value>> getCellIterator(
+            TableReference tableReference, byte[] startRow, byte[] startColumn, int limit, int startTimeStamp) {
+        throw new UnsupportedOperationException("getCellIterator is only supported for Cassandra.");
     }
 
     @Override

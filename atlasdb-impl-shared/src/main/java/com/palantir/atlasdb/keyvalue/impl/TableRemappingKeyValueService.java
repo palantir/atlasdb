@@ -45,8 +45,10 @@ import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -444,6 +446,12 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    @Override
+    public Iterator<Entry<Cell, Value>> getCellIterator(
+            TableReference tableReference, byte[] startRow, byte[] startColumn, int limit, int startTimeStamp) {
+        return delegate().getCellIterator(tableReference, startRow, startColumn, limit, startTimeStamp);
     }
 
     @Override

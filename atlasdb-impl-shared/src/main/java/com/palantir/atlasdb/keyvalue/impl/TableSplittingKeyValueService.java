@@ -48,8 +48,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
@@ -390,6 +392,12 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
         return getDelegate(tableRef).getRowKeysInRange(tableRef, startRow, endRow, maxResults);
+    }
+
+    @Override
+    public Iterator<Entry<Cell, Value>> getCellIterator(
+            TableReference tableReference, byte[] startRow, byte[] startColumn, int limit, int startTimeStamp) {
+        return null;
     }
 
     @Override

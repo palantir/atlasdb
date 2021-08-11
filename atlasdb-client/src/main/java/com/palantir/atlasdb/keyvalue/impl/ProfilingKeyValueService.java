@@ -45,8 +45,10 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
@@ -512,6 +514,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
         return maybeLog(
                 () -> delegate.getRowKeysInRange(tableRef, startRow, endRow, maxResults),
                 logTimeAndTable("getRowKeysInRange", tableRef));
+    }
+
+    @Override
+    public Iterator<Entry<Cell, Value>> getCellIterator(
+            TableReference tableReference, byte[] startRow, byte[] startColumn, int limit, int startTimeStamp) {
+        return null;
     }
 
     @Override

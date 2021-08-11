@@ -906,6 +906,73 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
+    private RowColumnRangeIterator getCellIteratorForSingleHost(
+            InetSocketAddress host,
+            TableReference tableRef,
+            byte[] row,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            long startTs) {
+        try {
+            RowColumnRangeExtractor.RowColumnRangeResult firstPage = getRowsColumnRangeForSingleHost(
+                    host, tableRef, ImmutableList.of(row), batchColumnRangeSelection, startTs);
+
+            Map<Cell, Value> results =
+                    Iterables.getOnlyElement(firstPage.getResults().values());
+            Column lastColumn = Iterables.getOnlyElement(
+                    firstPage.getRowsToLastCompositeColumns().values());
+
+            // Map<byte[], byte[]> incompleteRowsToNextColumns = new HashMap<>();
+
+            byte[] col = CassandraKeyValueServices.decomposeName(lastColumn).getLhSide();
+            boolean completedCell = (results != null) && results.containsKey(Cell.create(row, col));
+
+            // If we read a version of the cell before our start timestamp, it will be the most recent version
+            // readable to us and we can continue to the next column. Otherwise we have to continue reading
+            // this column.
+            boolean endOfRange = isEndOfColumnRange(
+                    completedCell, col, firstPage.getRowsToRawColumnCount().get(row), batchColumnRangeSelection);
+            byte[] nextCol = null;
+            if (!endOfRange) {
+                nextCol = getNextColumnRangeColumn(completedCell, col);
+            }
+
+            LocalRowColumnRangeIterator ret;
+            Iterator<Map.Entry<Cell, Value>> resultIterator;
+            if (results != null) {
+                resultIterator = results.entrySet().iterator();
+            } else {
+                resultIterator = Collections.emptyIterator();
+            }
+            if (nextCol == null) {
+                byte[] nextRow = null;
+                List<byte[]> maybeRow = getRowKeysInRange(
+                        tableRef, RangeRequests.nextLexicographicName(row), RangeRequests.oneAfterMaximumName(), 1);
+                if (maybeRow.size() == 1) {
+                    nextRow = Iterables.getOnlyElement(maybeRow);
+                }
+                if (nextRow == null) {
+                    ret = new LocalRowColumnRangeIterator(resultIterator);
+                } else {
+                    // todo(snanda): does this work??
+                    BatchColumnRangeSelection newColumnRange = BatchColumnRangeSelection.create(
+                            PtBytes.EMPTY_BYTE_ARRAY,
+                            RangeRequests.oneAfterMaximumName(),
+                            batchColumnRangeSelection.getBatchHint());
+                    ret = new LocalRowColumnRangeIterator(Iterators.concat(
+                            resultIterator, getRowColumnRange(host, tableRef, nextRow, newColumnRange, startTs)));
+                }
+            } else {
+                BatchColumnRangeSelection newColumnRange = BatchColumnRangeSelection.create(
+                        nextCol, batchColumnRangeSelection.getEndCol(), batchColumnRangeSelection.getBatchHint());
+                ret = new LocalRowColumnRangeIterator(Iterators.concat(
+                        resultIterator, getRowColumnRange(host, tableRef, row, newColumnRange, startTs)));
+            }
+            return ret;
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
     private RowColumnRangeExtractor.RowColumnRangeResult getRowsColumnRangeForSingleHost(
             InetSocketAddress host,
             TableReference tableRef,
@@ -1363,6 +1430,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
         RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.QUORUM, tableRef);
         return rowGetter.getRowKeysInRange(startRow, endRow, maxResults);
+    }
+
+    @Override
+    public Iterator<Map.Entry<Cell, Value>> getCellIterator(
+            TableReference tableReference, byte[] startRow, byte[] startColumn, int limit, int startTimeStamp) {
+        InetSocketAddress host = Iterables.getOnlyElement(
+                HostPartitioner.partitionByHost(clientPool, ImmutableList.of(startRow), Functions.identity())
+                        .keySet());
+        return getCellIteratorForSingleHost(
+                host,
+                tableReference,
+                startRow,
+                BatchColumnRangeSelection.create(startColumn, PtBytes.EMPTY_BYTE_ARRAY, limit),
+                startTimeStamp);
     }
 
     private CqlExecutor newInstrumentedCqlExecutor() {

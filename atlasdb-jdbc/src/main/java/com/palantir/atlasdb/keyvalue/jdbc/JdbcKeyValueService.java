@@ -110,8 +110,10 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
@@ -1010,6 +1012,12 @@ public final class JdbcKeyValueService implements KeyValueService {
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
         throw new UnsupportedOperationException("getRowKeysInRange is only supported for Cassandra.");
+    }
+
+    @Override
+    public Iterator<Entry<Cell, Value>> getCellIterator(
+            TableReference tableReference, byte[] startRow, byte[] startColumn, int limit, int startTimeStamp) {
+        throw new UnsupportedOperationException("getCellIterator is only supported for Cassandra.");
     }
 
     @Override
