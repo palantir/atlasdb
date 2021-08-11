@@ -84,10 +84,8 @@ public class TracingQueryRunner {
                 || tableRefs.stream().map(TableReference::getQualifiedName).anyMatch(prefs.tablesToTrace()::contains)) {
             if (prefs.traceProbability() >= 1.0) {
                 return true;
-            } else {
-                if (ThreadLocalRandom.current().nextDouble() <= prefs.traceProbability()) {
-                    return true;
-                }
+            } else if (ThreadLocalRandom.current().nextDouble() <= prefs.traceProbability()) {
+                return true;
             }
         }
         return false;
