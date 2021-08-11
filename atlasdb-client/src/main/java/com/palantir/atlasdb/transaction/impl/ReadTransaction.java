@@ -31,6 +31,7 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -153,6 +154,13 @@ public class ReadTransaction extends ForwardingTransaction {
     @Override
     public void delete(TableReference tableRef, Set<Cell> keys) {
         throw new SafeIllegalArgumentException("This is a read only transaction.");
+    }
+
+    @Override
+    public List<byte[]> getRowKeysInRange(
+            TableReference tableRef, byte[] startRowInclusive, byte[] endRowInclusive, int maxResults) {
+        checkTableName(tableRef);
+        return delegate().getRowKeysInRange(tableRef, startRowInclusive, endRowInclusive, maxResults);
     }
 
     @Override

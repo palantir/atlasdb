@@ -1242,6 +1242,27 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
+    public void testGetRowKeysLocalWritesBeforeAreRead() {
+        List<byte[]> rows = generateRows(5);
+        rows.sort(PtBytes::compareTo);
+
+        List<Cell> cellsWrittenOriginally = generateCells(rows, generateColumns(5));
+
+        Transaction t1 = startTransactionWithSerializableConflictChecking();
+        byte[] newValue1 = PtBytes.toBytes("find a way");
+
+        cellsWrittenOriginally.forEach(cell -> t1.put(TEST_TABLE, ImmutableMap.of(cell, newValue1)));
+        List<byte[]> rowKeysInRange = t1.getRowKeysInRange(
+                TEST_TABLE,
+                PtBytes.EMPTY_BYTE_ARRAY,
+                RangeRequests.nextLexicographicName(rows.get(rows.size() - 1)),
+                1000);
+
+        assertThat(rowKeysInRange).containsExactlyInAnyOrderElementsOf(rows);
+        assertThatCode(t1::commit).doesNotThrowAnyException();
+    }
+
+    @Test
     public void testGetSortedColumnsLocalWritesAfterAreNotReadButDoNotTriggerConflict() {
         List<byte[]> rows = generateRows(5);
         List<Cell> cellsWrittenOriginally = generateCells(rows, generateColumns(5));

@@ -515,8 +515,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         });
     }
 
-    private void getAllData(
-            TableReference tableReference) throws TException {
+    private void getAllData(TableReference tableReference) throws TException {
         CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
 
         // retrieve keys
@@ -539,8 +538,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         // column scan
         ckvs.getClientPool().runWithRetry(input -> {
             CqlQuery cqlQuery = CqlQuery.builder()
-                    .safeQueryFormat("SELECT column1 FROM \"%s\".\"%s\" WHERE KEY = %S AND column1 >= "
-                            + "%s AND column1 < %s")
+                    .safeQueryFormat(
+                            "SELECT column1 FROM \"%s\".\"%s\" WHERE KEY = %S AND column1 >= " + "%s AND column1 < %s")
                     .addArgs(
                             SafeArg.of("keyspace", CASSANDRA.getConfig().getKeyspaceOrThrow()),
                             LoggingArgs.internalTableName(tableReference),
@@ -552,10 +551,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             System.out.println(cqlResult);
             return cqlResult;
         });
-
-
-
-
     }
 
     private static String convertBytesToHexString(byte[] bytes) {

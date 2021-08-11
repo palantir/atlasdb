@@ -28,6 +28,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -401,4 +402,8 @@ public interface Transaction {
     default void markTableInvolved(TableReference tableRef) {
         throw new UnsupportedOperationException();
     }
+
+    @Idempotent
+    List<byte[]> getRowKeysInRange(
+            TableReference tableRef, byte[] startRowInclusive, byte[] endRowInclusive, int maxResults);
 }

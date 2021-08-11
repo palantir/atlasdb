@@ -1762,6 +1762,37 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void getRowsCanGetRows() {
+        List<byte[]> rows = ImmutableList.of(ROW_FOO, ROW_BAR);
+        List<byte[]> columns = ImmutableList.of(COL_A, COL_B);
+
+        List<Cell> cells = rows.stream()
+                .map(row -> columns.stream().map(col -> Cell.create(row, col)).collect(Collectors.toList()))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+        putCellsInTable(cells, TABLE);
+        List<byte[]> entries = getRowKeys(TABLE, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 2);
+        Assertions.assertThat(entries).containsExactlyInAnyOrderElementsOf(rows);
+    }
+
+    @Test
+    public void getRowsCanLimitResults() {
+        List<byte[]> rows = ImmutableList.of(ROW_FOO, ROW_BAR);
+        List<byte[]> columns = ImmutableList.of(COL_A, COL_B);
+
+        List<Cell> cells = rows.stream()
+                .map(row -> columns.stream().map(col -> Cell.create(row, col)).collect(Collectors.toList()))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+        putCellsInTable(cells, TABLE);
+
+        List<byte[]> entries = getRowKeys(TABLE, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1);
+        Assertions.assertThat(entries).containsExactly(ROW_BAR);
+    }
+
+    @Test
     public void getSortedColumnsValidatesLocksOncePerBatch() {
         List<byte[]> rows = LongStream.range(0, 1000).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
 
@@ -2061,6 +2092,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     tx.getSortedColumns(table, rows, batchColumnRangeSelection);
             return Streams.stream(sortedColumns).map(Map.Entry::getKey).collect(Collectors.toList());
         });
+    }
+
+    private List<byte[]> getRowKeys(TableReference table, byte[] start, byte[] end, int limit) {
+        return serializableTxManager.runTaskWithRetry(tx -> tx.getRowKeysInRange(table, start, end, limit));
     }
 
     private void putCellsInTable(List<Cell> cells, TableReference table) {

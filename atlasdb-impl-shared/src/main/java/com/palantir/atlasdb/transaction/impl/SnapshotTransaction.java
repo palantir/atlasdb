@@ -362,6 +362,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
+    public List<byte[]> getRowKeysInRange(
+            TableReference tableRef, byte[] startRowInclusive, byte[] endRowInclusive, int maxResults) {
+        List<byte[]> remoteRowKeysInRange =
+                keyValueService.getRowKeysInRange(tableRef, startRowInclusive, endRowInclusive, maxResults);
+        List<byte[]> localRowKeysInRange = getLocalRowKeysInRange(tableRef, startRowInclusive, endRowInclusive);
+
+        List<byte[]> allRows = new ArrayList<>(ImmutableSet.<byte[]>builder()
+                .addAll(remoteRowKeysInRange)
+                .addAll(localRowKeysInRange)
+                .build());
+        allRows.sort(PtBytes::compareTo);
+        checkGetPreconditions(tableRef);
+        return allRows.stream().limit(maxResults).collect(Collectors.toUnmodifiableList());
+    }
+
+    @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
         if (columnSelection.allColumnsSelected()) {
@@ -1273,6 +1289,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         writes = writes.headMap(endCell);
         return writes;
+    }
+
+    private List<byte[]> getLocalRowKeysInRange(TableReference tableReference, byte[] startRow, byte[] endRow) {
+        SortedMap<Cell, byte[]> writes = getLocalWrites(tableReference);
+
+        Set<byte[]> allLocalRows =
+                writes.keySet().stream().map(Cell::getRowName).collect(Collectors.toSet());
+
+        return allLocalRows.stream()
+                .filter(row -> PtBytes.compareTo(startRow, row) <= 0 && PtBytes.compareTo(row, endRow) <= 0)
+                .collect(Collectors.toList());
     }
 
     private SortedMap<Cell, byte[]> postFilterPages(

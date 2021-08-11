@@ -190,6 +190,12 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     @Override
+    public List<byte[]> getRowKeysInRange(
+            TableReference tableRef, byte[] startRowInclusive, byte[] endRowInclusive, int maxResults) {
+        return super.getRowKeysInRange(tableRef, startRowInclusive, endRowInclusive, maxResults);
+    }
+
+    @Override
     @Idempotent
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {

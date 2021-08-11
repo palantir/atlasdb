@@ -32,6 +32,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -185,6 +186,12 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public void markTableInvolved(TableReference tableRef) {
         delegate().markTableInvolved(tableRef);
+    }
+
+    @Override
+    public List<byte[]> getRowKeysInRange(
+            TableReference tableRef, byte[] startRowInclusive, byte[] endRowInclusive, int maxResults) {
+        return delegate().getRowKeysInRange(tableRef, startRowInclusive, endRowInclusive, maxResults);
     }
 
     @Override
