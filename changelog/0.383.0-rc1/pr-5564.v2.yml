@@ -1,6 +1,0 @@
-type: improvement
-improvement:
-  description: |-
-    Add logging around sanityCheckRingConsistency.
-  links:
-  - https://github.com/palantir/atlasdb/pull/5564
