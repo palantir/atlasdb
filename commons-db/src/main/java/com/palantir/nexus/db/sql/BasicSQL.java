@@ -591,11 +591,9 @@ public abstract class BasicSQL {
                         + "Error state: {} "
                         + "Error cause: {}",
                 SafeArg.of("elapsedTime", elapsedTime),
-                SafeArg.of("message", cause.getMessage()), // $NON-NLS-1$
                 SafeArg.of("errorCode", cause.getErrorCode()), // $NON-NLS-1$
                 SafeArg.of("SQLState", cause.getSQLState()), // $NON-NLS-1$
-                SafeArg.of("nextException", cause.getNextException()), // $NON-NLS-1$
-                new Exception("Just for a stack trace"));
+                new Exception("Just for a stack trace", cause));
         Thread.currentThread().interrupt();
         throw new PalantirInterruptedException("SQL call interrupted", cause); // $NON-NLS-1$
     }
