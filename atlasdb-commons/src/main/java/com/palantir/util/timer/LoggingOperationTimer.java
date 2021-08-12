@@ -15,31 +15,32 @@
  */
 package com.palantir.util.timer;
 
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.jmx.OperationTimer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class LoggingOperationTimer implements OperationTimer {
-    private final Logger delegate;
+    private final SafeLogger delegate;
 
-    private LoggingOperationTimer(Logger l) {
+    private LoggingOperationTimer(SafeLogger l) {
         delegate = l;
     }
 
-    public Logger getDelegate() {
+    public SafeLogger getDelegate() {
         return delegate;
     }
 
-    public static LoggingOperationTimer create(Logger log) {
+    public static LoggingOperationTimer create(SafeLogger log) {
         return new LoggingOperationTimer(log);
     }
 
     public static LoggingOperationTimer create(Class<?> clazz) {
-        return new LoggingOperationTimer(LoggerFactory.getLogger(clazz.getName()));
+        return new LoggingOperationTimer(SafeLoggerFactory.get(clazz.getName()));
     }
 
     public static LoggingOperationTimer create(String categoryName) {
-        return new LoggingOperationTimer(LoggerFactory.getLogger(categoryName));
+        return new LoggingOperationTimer(SafeLoggerFactory.get(categoryName));
     }
 
     private final class TimeBegin implements TimingState {
@@ -53,7 +54,10 @@ public final class LoggingOperationTimer implements OperationTimer {
         @Override
         public void end() {
             if (delegate.isTraceEnabled()) {
-                delegate.trace("Duration [{}] ms : {}", System.currentTimeMillis() - tBegin, msg);
+                delegate.trace(
+                        "Duration [{}] ms : {}",
+                        SafeArg.of("duration", System.currentTimeMillis() - tBegin),
+                        SafeArg.of("messaeg", msg));
             }
         }
     }

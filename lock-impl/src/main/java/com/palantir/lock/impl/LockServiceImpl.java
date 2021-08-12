@@ -568,7 +568,10 @@ public final class LockServiceImpl
         // Note: The construction of params is pushed into the branches, as it may be expensive.
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
             SlowLockLogger.logger.warn(
-                    slowLockLogMessage, constructSlowLockLogParams(lockId, currentHolder, durationMillis));
+                    slowLockLogMessage,
+                    SafeArg.of("durationMillis", durationMillis),
+                    UnsafeArg.of("lockId", lockId),
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
             log.debug(slowLockLogMessage, constructSlowLockLogParams(lockId, currentHolder, durationMillis));
         }

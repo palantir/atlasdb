@@ -15,15 +15,15 @@
  */
 package com.palantir.nexus.db.monitoring.timer;
 
+import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
 import com.palantir.util.jmx.OperationTimer;
 import com.palantir.util.jmx.OperationTimer.TimingState;
 import com.palantir.util.timer.LoggingOperationTimer;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 final class SqlStatsSqlTimer implements SqlTimer {
-    private static final Logger logger = SqlLoggers.LOGGER;
+    private static final SafeLogger logger = SqlLoggers.LOGGER;
     private final OperationTimer timer = LoggingOperationTimer.create(logger);
 
     @Override
