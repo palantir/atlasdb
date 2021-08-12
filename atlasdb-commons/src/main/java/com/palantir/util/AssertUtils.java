@@ -17,6 +17,7 @@ package com.palantir.util;
 
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -71,6 +72,12 @@ public class AssertUtils {
         }
     }
 
+    public static void assertAndLog(SafeLogger log, boolean cheapTest, String msg) {
+        if (!cheapTest) {
+            assertAndLogWithException(log, false, msg, getDebuggingException());
+        }
+    }
+
     /**
      * @deprecated Use {@link #assertAndLog(Logger, boolean, String)} instead.
      * This will make sure log events go to your logger instead of a hard-to-filter default.
@@ -105,6 +112,12 @@ public class AssertUtils {
     public static void assertAndLogWithException(Logger log, boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
             assertAndLogWithException(log, cheapTest, msg, t, new Object[] {});
+        }
+    }
+
+    public static void assertAndLogWithException(SafeLogger log, boolean cheapTest, String msg, Throwable t) {
+        if (!cheapTest) {
+            log.error(msg, t);
         }
     }
 
