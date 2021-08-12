@@ -25,11 +25,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.thrift.TException;
+import org.junit.Before;
 import org.junit.Test;
 
 public class CassandraVerifierTest {
@@ -45,6 +48,11 @@ public class CassandraVerifierTest {
 
     private CassandraClient client = mock(CassandraClient.class);
     private CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
+
+    @Before
+    public void beforeEach() {
+        CassandraVerifier.sanityCheckedDatacenters.invalidateAll();
+    }
 
     @Test
     public void unsetTopologyAndHighRfThrows() throws TException {
@@ -241,6 +249,10 @@ public class CassandraVerifierTest {
     private void setTopology(EndpointDetails... details) throws TException {
         when(client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE))
                 .thenReturn(ImmutableList.of(mockRangeWithDetails(details)));
+        when(config.servers())
+                .thenReturn(ImmutableDefaultConfig.builder()
+                        .addThriftHosts(InetSocketAddress.createUnresolved(HOST_1, 8080))
+                        .build());
     }
 
     private TokenRange mockRangeWithDetails(EndpointDetails... details) {
