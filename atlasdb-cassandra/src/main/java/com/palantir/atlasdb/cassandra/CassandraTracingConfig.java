@@ -63,8 +63,8 @@ public abstract class CassandraTracingConfig {
             Preconditions.checkArgument(
                     traceProbability() > 0, "trace-probability must be greater than 0 if tracing is enabled");
 
-            // Just log a warning once. In witchcraft runtime config is reparsed every 5 seconds which means this
-            // would log every 5 seconds.
+            // Just log a warning once. In witchcraft runtime config is reparsed every second which means this would
+            // log every second.
             if (loggedWarning.compareAndSet(false, true)) {
                 log.warn(
                         "Tracing is enabled. This incurs a large performance hit and should only be used for short"
