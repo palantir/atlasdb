@@ -57,7 +57,7 @@ public final class LoggingOperationTimer implements OperationTimer {
                 delegate.trace(
                         "Duration [{}] ms : {}",
                         SafeArg.of("duration", System.currentTimeMillis() - tBegin),
-                        SafeArg.of("messaeg", msg));
+                        SafeArg.of("message", msg));
             }
         }
     }
