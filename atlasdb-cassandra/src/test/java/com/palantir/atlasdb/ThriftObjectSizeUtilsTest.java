@@ -17,6 +17,7 @@ package com.palantir.atlasdb;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.base.Utf8;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils;
@@ -95,7 +96,7 @@ public class ThriftObjectSizeUtilsTest {
     @Test
     public void getSizeForNonEmptyByteBuffer() {
         assertThat(ThriftObjectSizeUtils.getByteBufferSize(ByteBuffer.wrap(TEST_NAME.getBytes(StandardCharsets.UTF_8))))
-                .isEqualTo(TEST_NAME.getBytes(StandardCharsets.UTF_8).length);
+                .isEqualTo(Utf8.encodedLength(TEST_NAME));
     }
 
     @Test
@@ -142,7 +143,7 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForMutationWithDeletionContainingSuperColumn() {
-        long nonEmptyDeletionSize = Long.BYTES + TEST_NAME.getBytes(StandardCharsets.UTF_8).length + NULL_SIZE;
+        long nonEmptyDeletionSize = Long.BYTES + Utf8.encodedLength(TEST_NAME) + NULL_SIZE;
         assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
                         .setDeletion(new Deletion().setSuper_column(TEST_NAME.getBytes(StandardCharsets.UTF_8)))))
                 .isEqualTo(NULL_SIZE + nonEmptyDeletionSize);
@@ -158,7 +159,7 @@ public class ThriftObjectSizeUtilsTest {
 
     @Test
     public void getSizeForMutationWithDeletionContainingNonEmptySlicePredicate() {
-        long deletionSize = Long.BYTES + NULL_SIZE + (TEST_NAME.getBytes(StandardCharsets.UTF_8).length + NULL_SIZE);
+        long deletionSize = Long.BYTES + NULL_SIZE + (Utf8.encodedLength(TEST_NAME) + NULL_SIZE);
         assertThat(ThriftObjectSizeUtils.getMutationSize(new Mutation()
                         .setDeletion(new Deletion()
                                 .setPredicate(new SlicePredicate()
@@ -192,7 +193,7 @@ public class ThriftObjectSizeUtilsTest {
     public void getSizeForKeySliceWithKeySetSetButColumnsNotSet() {
         assertThat(ThriftObjectSizeUtils.getKeySliceSize(
                         new KeySlice().setKey(TEST_NAME.getBytes(StandardCharsets.UTF_8))))
-                .isEqualTo(NULL_SIZE + TEST_NAME.getBytes(StandardCharsets.UTF_8).length);
+                .isEqualTo(NULL_SIZE + Utf8.encodedLength(TEST_NAME));
     }
 
     @Test
@@ -200,7 +201,7 @@ public class ThriftObjectSizeUtilsTest {
         assertThat(ThriftObjectSizeUtils.getKeySliceSize(new KeySlice()
                         .setKey(TEST_NAME.getBytes(StandardCharsets.UTF_8))
                         .setColumns(ImmutableList.of(EMPTY_COLUMN_OR_SUPERCOLUMN))))
-                .isEqualTo(TEST_NAME.getBytes(StandardCharsets.UTF_8).length + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
+                .isEqualTo(Utf8.encodedLength(TEST_NAME) + EMPTY_COLUMN_OR_SUPERCOLUMN_SIZE);
     }
 
     @Test
