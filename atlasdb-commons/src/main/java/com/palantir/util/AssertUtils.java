@@ -117,7 +117,7 @@ public class AssertUtils {
 
     public static void assertAndLogWithException(SafeLogger log, boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
-            log.error(msg, t);
+            log.error("An error occurred", SafeArg.of("message", msg), t);
         }
     }
 
