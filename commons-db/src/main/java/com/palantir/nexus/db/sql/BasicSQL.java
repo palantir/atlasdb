@@ -26,6 +26,7 @@ import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.sql.BasicSQLString.FinalSQLString;
@@ -585,14 +586,15 @@ public abstract class BasicSQL {
         SqlLoggers.CANCEL_LOGGER.info(
                 "We got an execution exception that was an interrupt, most likely from someone " //$NON-NLS-1$
                         + "incorrectly ignoring an interrupt. "
-                        + "Elapsed time: {}\n"
-                        + "Error message: {} "
-                        + "Error code: {} "
-                        + "Error state: {} "
-                        + "Error cause: {}",
+                        + "Elapsed time: "
+                        + "Error message: "
+                        + "Error code: "
+                        + "Error state: "
+                        + "Error cause: ",
                 SafeArg.of("elapsedTime", elapsedTime),
                 SafeArg.of("errorCode", cause.getErrorCode()), // $NON-NLS-1$
                 SafeArg.of("SQLState", cause.getSQLState()), // $NON-NLS-1$
+                UnsafeArg.of("SQLException", cause.getNextException()), // $NON-NLS-1$
                 new Exception("Just for a stack trace", cause));
         Thread.currentThread().interrupt();
         throw new PalantirInterruptedException("SQL call interrupted", cause); // $NON-NLS-1$
