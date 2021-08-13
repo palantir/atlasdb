@@ -585,12 +585,7 @@ public abstract class BasicSQL {
         }
         SqlLoggers.CANCEL_LOGGER.info(
                 "We got an execution exception that was an interrupt, most likely from someone " //$NON-NLS-1$
-                        + "incorrectly ignoring an interrupt. "
-                        + "Elapsed time: "
-                        + "Error message: "
-                        + "Error code: "
-                        + "Error state: "
-                        + "Error cause: ",
+                        + "incorrectly ignoring an interrupt. ",
                 SafeArg.of("elapsedTime", elapsedTime),
                 SafeArg.of("errorCode", cause.getErrorCode()), // $NON-NLS-1$
                 SafeArg.of("SQLState", cause.getSQLState()), // $NON-NLS-1$
