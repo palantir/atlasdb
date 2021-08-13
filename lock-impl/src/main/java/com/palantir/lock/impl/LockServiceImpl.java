@@ -78,6 +78,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 import java.io.IOException;
@@ -126,7 +128,7 @@ public final class LockServiceImpl
                 LockServiceImplMBean {
 
     private static final Logger log = LoggerFactory.getLogger(LockServiceImpl.class);
-    private static final Logger requestLogger = LoggerFactory.getLogger("lock.request");
+    private static final SafeLogger requestLogger = SafeLoggerFactory.get("lock.request");
     private static final String GRANT_MESSAGE = "Lock client {} tried to use a lock grant that"
             + " doesn't correspond to any held locks (grantId: {});"
             + " it's likely that this lock grant has expired due to timeout";
@@ -566,7 +568,10 @@ public final class LockServiceImpl
         // Note: The construction of params is pushed into the branches, as it may be expensive.
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
             SlowLockLogger.logger.warn(
-                    slowLockLogMessage, constructSlowLockLogParams(lockId, currentHolder, durationMillis));
+                    slowLockLogMessage,
+                    SafeArg.of("durationMillis", durationMillis),
+                    UnsafeArg.of("lockId", lockId),
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
             log.debug(slowLockLogMessage, constructSlowLockLogParams(lockId, currentHolder, durationMillis));
         }
