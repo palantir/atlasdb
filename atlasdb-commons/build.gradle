@@ -10,6 +10,9 @@ dependencies {
     compile group: 'net.jpountz.lz4', name: 'lz4'
     compile group: 'com.palantir.common', name: 'streams'
     compile group: 'com.palantir.safe-logging', name: 'preconditions'
+    api 'com.palantir.safe-logging:logger', {
+        because 'API dependency due to AssertUtils.assertAndLog(SafeLogger...'
+    }
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.google.errorprone:error_prone_annotations'
