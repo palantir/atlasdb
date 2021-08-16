@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: AssertUtils declares a safe-logging logger API dependency to prevent
+    compilation failures across assertAndLog overloads
+  links:
+  - https://github.com/palantir/atlasdb/pull/5596
