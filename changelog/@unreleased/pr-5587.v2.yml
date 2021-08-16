@@ -1,5 +1,5 @@
 type: fix
-improvement:
+fix:
   description: |-
     Fixed an issue where closing an underlying Hikari ConnectionManager may cause a RetriableTransaction to spin rapidly producing a large volume of log spam.
   links:
