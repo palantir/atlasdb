@@ -107,14 +107,10 @@ public class ThrowablesTest {
         SafeRewrappableException rewrapped1 = Throwables.rewrap(original);
         assertThat(rewrapped1.getLogMessage()).doesNotContain("secret");
 
-        SafeRewrappableException rewrapped2 = null;
-        try {
-            Throwables.rewrapAndThrowIfInstance(rewrapped1, SafeRewrappableException.class);
-        } catch (SafeRewrappableException ex) {
-            rewrapped2 = ex;
-        }
-        assertThat(rewrapped2).isNotNull();
-        assertThat(rewrapped2.getLogMessage()).doesNotContain("secret");
+        assertThatThrownBy(() -> Throwables.rewrapAndThrowIfInstance(original, SafeRewrappableException.class))
+                .isExactlyInstanceOf(SafeRewrappableException.class)
+                .extracting(ex -> ((SafeRewrappableException) ex).getLogMessage())
+                .isEqualTo("alpha");
     }
 
     // only has a (string, throwable) constructor
