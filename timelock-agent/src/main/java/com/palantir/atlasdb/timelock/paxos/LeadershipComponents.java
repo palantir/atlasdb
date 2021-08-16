@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.Renewable;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.leader.proxy.LeadershipCoordinator;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -31,7 +32,9 @@ import com.palantir.timelock.paxos.NamespaceTracker;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
@@ -43,6 +46,7 @@ public class LeadershipComponents {
 
     private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = new ConcurrentHashMap<>();
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
+    private final CompositeRenewable componentRenewer = new CompositeRenewable();
 
     private final NetworkClientFactories.Factory<LeadershipContext> leadershipContextFactory;
     private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
@@ -62,11 +66,19 @@ public class LeadershipComponents {
         Closeable closeableInstance = (Closeable) instance;
         closer.register(closeableInstance);
 
+        // permitted given the proxy returned implements Renewable, and this needs to be supported
+        Renewable renewableInstance = (Renewable) instance;
+        componentRenewer.addRenewable(renewableInstance);
+
         return context.leadershipMetrics().instrument(clazz, instance);
     }
 
     public void registerClientForLeaderElectionHealthCheck(Client client) {
         getOrCreateNewLeadershipContext(client).leadershipMetrics().registerLeaderElectionHealthCheck();
+    }
+
+    public void renewRenewables() {
+        componentRenewer.renew();
     }
 
     public void shutdown() {
@@ -155,5 +167,18 @@ public class LeadershipComponents {
         abstract TimelockLeadershipMetrics leadershipMetrics();
 
         abstract List<Closeable> closeables();
+    }
+
+    private class CompositeRenewable implements Renewable {
+        private final Set<Renewable> renewables = new HashSet<>();
+
+        void addRenewable(Renewable renewable) {
+            renewables.add(renewable);
+        }
+
+        @Override
+        public void renew() {
+            renewables.forEach(Renewable::renew);
+        }
     }
 }
