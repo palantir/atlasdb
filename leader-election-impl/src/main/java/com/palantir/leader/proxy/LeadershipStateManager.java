@@ -20,6 +20,7 @@ import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
@@ -112,6 +113,28 @@ public class LeadershipStateManager<T> {
             } else {
                 maybeValidLeadershipTokenRef.set(leadershipToken);
                 log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
+            }
+        }
+    }
+
+    void recreateDelegateMaintainingCurrentLeader() {
+        T existingDelegate = delegateRef.get();
+        T newDelegate = delegateSupplier.get();
+        if (delegateRef.compareAndSet(existingDelegate, newDelegate)) {
+            // We're done. We might be replaced if a genuine leader election happened and raced us, but that does a
+            // hard set.
+            if (log.isDebugEnabled()) {
+                log.debug("Recreating an underlying delegate of a leadership proxy.",
+                        new SafeRuntimeException("I exist to show you the stack trace"));
+            } else {
+                log.info("Recreating an underlying delegate of a leadership proxy.");
+            }
+            closeDelegate(existingDelegate);
+        } else {
+            // Someone else (a concurrent call to recreateProxy, or a genuine leader election) raced with us
+            if (log.isDebugEnabled()) {
+                log.debug("A call to recreate a delegate while maintaining the current leader raced and lost.",
+                        new SafeRuntimeException("I exist to show you the stack trace"));
             }
         }
     }

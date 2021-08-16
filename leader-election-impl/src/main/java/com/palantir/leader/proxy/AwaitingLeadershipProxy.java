@@ -29,6 +29,7 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.Renewable;
 import com.palantir.leader.proxy.LeadershipStateManager.LeadershipState;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -79,7 +80,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         AwaitingLeadershipProxy<U> proxy =
                 new AwaitingLeadershipProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
         return (U) Proxy.newProxyInstance(
-                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy);
+                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass,
+                                                                 Closeable.class,
+                                                                 Renewable.class}, proxy);
     }
 
     @Override
@@ -88,6 +91,12 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             log.debug("Closing leadership proxy");
             isClosed = true;
             leadershipStateManager.close();
+            return null;
+        }
+
+        if (method.getName().equals("renew") && args.length == 0) {
+            log.debug("Renewing object backed by leadership proxy");
+            leadershipStateManager.recreateDelegateMaintainingCurrentLeader();
             return null;
         }
 
