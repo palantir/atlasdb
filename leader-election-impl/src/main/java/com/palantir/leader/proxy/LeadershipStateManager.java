@@ -118,13 +118,17 @@ public class LeadershipStateManager<T> {
     }
 
     void recreateDelegateMaintainingCurrentLeader() {
+        if (isClosed) {
+            return;
+        }
         T existingDelegate = delegateRef.get();
         T newDelegate = delegateSupplier.get();
         if (delegateRef.compareAndSet(existingDelegate, newDelegate)) {
             // We're done. We might be replaced if a genuine leader election happened and raced us, but that does a
             // hard set.
             if (log.isDebugEnabled()) {
-                log.debug("Recreating an underlying delegate of a leadership proxy.",
+                log.debug(
+                        "Recreating an underlying delegate of a leadership proxy.",
                         new SafeRuntimeException("I exist to show you the stack trace"));
             } else {
                 log.info("Recreating an underlying delegate of a leadership proxy.");
@@ -133,7 +137,8 @@ public class LeadershipStateManager<T> {
         } else {
             // Someone else (a concurrent call to recreateProxy, or a genuine leader election) raced with us
             if (log.isDebugEnabled()) {
-                log.debug("A call to recreate a delegate while maintaining the current leader raced and lost.",
+                log.debug(
+                        "A call to recreate a delegate while maintaining the current leader raced and lost.",
                         new SafeRuntimeException("I exist to show you the stack trace"));
             }
         }

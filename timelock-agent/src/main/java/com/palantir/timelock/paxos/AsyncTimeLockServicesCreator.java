@@ -84,7 +84,11 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         leadershipComponents.registerClientForLeaderElectionHealthCheck(client);
 
         return TimeLockServices.create(
-                asyncTimelockService, lockService, asyncTimelockService, asyncTimelockResource, asyncTimelockService,
+                asyncTimelockService,
+                lockService,
+                asyncTimelockService,
+                asyncTimelockResource,
+                asyncTimelockService,
                 leadershipComponents::renewRenewables);
     }
 

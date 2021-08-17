@@ -80,9 +80,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         AwaitingLeadershipProxy<U> proxy =
                 new AwaitingLeadershipProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
         return (U) Proxy.newProxyInstance(
-                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass,
-                                                                 Closeable.class,
-                                                                 Renewable.class}, proxy);
+                interfaceClass.getClassLoader(),
+                new Class<?>[] {interfaceClass, Closeable.class, Renewable.class},
+                proxy);
     }
 
     @Override

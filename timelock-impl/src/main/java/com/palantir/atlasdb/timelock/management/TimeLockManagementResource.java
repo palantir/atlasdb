@@ -60,7 +60,9 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
             RedirectRetryTargeter redirectRetryTargeter,
             Function<String, TimeLockServices> timelockServicesFactory) {
         return new TimeLockManagementResource(
-                createNamespaceLoaders(persistentNamespaceContext), timelockNamespaces, redirectRetryTargeter,
+                createNamespaceLoaders(persistentNamespaceContext),
+                timelockNamespaces,
+                redirectRetryTargeter,
                 timelockServicesFactory);
     }
 

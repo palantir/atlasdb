@@ -366,16 +366,21 @@ public class TimeLockAgent {
         return healthCheckResponseMap.get(client).isLeader();
     }
 
-    private void registerManagementResource(
-            Function<String, TimeLockServices> timeLockServicesFactory) {
+    private void registerManagementResource(Function<String, TimeLockServices> timeLockServicesFactory) {
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
                     TimeLockManagementResource.undertow(
-                            timestampStorage.persistentNamespaceContext(), namespaces, redirectRetryTargeter(), timeLockServicesFactory));
+                            timestampStorage.persistentNamespaceContext(),
+                            namespaces,
+                            redirectRetryTargeter(),
+                            timeLockServicesFactory));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
-                    timestampStorage.persistentNamespaceContext(), namespaces, redirectRetryTargeter(), timeLockServicesFactory));
+                    timestampStorage.persistentNamespaceContext(),
+                    namespaces,
+                    redirectRetryTargeter(),
+                    timeLockServicesFactory));
         }
     }
 
