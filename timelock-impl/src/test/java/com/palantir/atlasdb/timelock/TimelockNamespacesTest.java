@@ -167,9 +167,13 @@ public class TimelockNamespacesTest {
         namespaces.invalidateResourcesForClient(client);
         verify(services).close();
 
-        services = namespaces.get(client);
+        TimeLockServices newServices = namespaces.get(client);
+        assertThat(newServices)
+                .as("should have gotten a new set of delegates")
+                .isNotEqualTo(services);
+
         namespaces.invalidateResourcesForClient(client);
-        verify(services).close();
+        verify(newServices).close();
     }
 
     @Test
