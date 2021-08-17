@@ -19,9 +19,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeLoggable;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeExceptions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -90,6 +98,21 @@ public class ThrowablesTest {
                 .isEqualTo(uncheckedException);
     }
 
+    @Test
+    public void testDoesNotLeakUnsafeMessage() {
+        SafeRewrappableException original =
+                new SafeRewrappableException("alpha", null, UnsafeArg.of("property", "secret"));
+        assertThat(original.getMessage()).contains("secret");
+
+        SafeRewrappableException rewrapped1 = Throwables.rewrap(original);
+        assertThat(rewrapped1.getLogMessage()).doesNotContain("secret");
+
+        assertThatThrownBy(() -> Throwables.rewrapAndThrowIfInstance(original, SafeRewrappableException.class))
+                .isExactlyInstanceOf(SafeRewrappableException.class)
+                .extracting(ex -> ((SafeRewrappableException) ex).getLogMessage())
+                .isEqualTo("alpha");
+    }
+
     // only has a (string, throwable) constructor
     public void throwTwoArgConstructorException() throws TwoArgConstructorException {
         throw new TwoArgConstructorException("Told you so", new IOException("Contained"));
@@ -123,6 +146,33 @@ public class ThrowablesTest {
             } else {
                 noUsefulConstructorCalled = true;
             }
+        }
+    }
+
+    static class SafeRewrappableException extends RuntimeException implements SafeLoggable {
+        private final String logMessage;
+        private final List<Arg<?>> arguments;
+
+        public SafeRewrappableException(@CompileTimeConstant String message, Throwable cause) {
+            super(SafeExceptions.renderMessage(message), cause);
+            this.logMessage = message;
+            this.arguments = Collections.emptyList();
+        }
+
+        public SafeRewrappableException(@CompileTimeConstant String message, Throwable cause, Arg<?>... arguments) {
+            super(SafeExceptions.renderMessage(message, arguments), cause);
+            this.logMessage = message;
+            this.arguments = Collections.unmodifiableList(Arrays.asList(arguments));
+        }
+
+        @Override
+        public String getLogMessage() {
+            return logMessage;
+        }
+
+        @Override
+        public List<Arg<?>> getArgs() {
+            return arguments;
         }
     }
 }

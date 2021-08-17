@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |-
+    `Throwables.rewrap()` and variants use the `SafeLoggable` message if available
+    to avoid leaking unsafe data.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5585
