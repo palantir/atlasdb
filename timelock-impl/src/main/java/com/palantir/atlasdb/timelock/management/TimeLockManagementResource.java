@@ -94,6 +94,14 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         });
     }
 
+    @Override
+    public ListenableFuture<Void> invalidateResources(AuthHeader authHeader, Set<String> namespaces) {
+        return handleExceptions(() -> {
+            namespaces.forEach(timelockNamespaces::invalidateResourcesForClient);
+            return Futures.immediateFuture(null);
+        });
+    }
+
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
         return exceptionHandler.handleExceptions(supplier);
     }
@@ -127,6 +135,11 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         @Override
         public void achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
             unwrap(resource.achieveConsensus(authHeader, namespaces));
+        }
+
+        @Override
+        public void invalidateResources(AuthHeader authHeader, Set<String> namespaces) {
+            unwrap(resource.invalidateResources(authHeader, namespaces));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
