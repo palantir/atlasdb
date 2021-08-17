@@ -1036,21 +1036,17 @@ public abstract class TransactionManagers {
                 timelockRequestBatcherProviders,
                 schemas);
         return withMetrics(
-                metricsManager, withCorroboratingTimestampService(
-                        config.namespace(),
-                        metricsManager,
-                        withRefreshingLockService(lockAndTimestampServices)));
+                metricsManager,
+                withCorroboratingTimestampService(
+                        config.namespace(), metricsManager, withRefreshingLockService(lockAndTimestampServices)));
     }
 
     private static LockAndTimestampServices withCorroboratingTimestampService(
             Optional<String> userNamespace,
             MetricsManager metricsManager,
             LockAndTimestampServices lockAndTimestampServices) {
-        TimelockService timelockService =
-                TimestampCorroboratingTimelockService.create(
-                        userNamespace,
-                        metricsManager.getTaggedRegistry(),
-                        lockAndTimestampServices.timelock());
+        TimelockService timelockService = TimestampCorroboratingTimelockService.create(
+                userNamespace, metricsManager.getTaggedRegistry(), lockAndTimestampServices.timelock());
         TimestampService corroboratingTimestampService = new TimelockTimestampServiceAdapter(timelockService);
 
         return ImmutableLockAndTimestampServices.builder()

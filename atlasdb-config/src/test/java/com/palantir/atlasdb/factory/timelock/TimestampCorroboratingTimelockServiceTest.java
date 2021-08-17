@@ -155,20 +155,20 @@ public class TimestampCorroboratingTimelockServiceTest {
         when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
         TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
         timelockService = TimestampCorroboratingTimelockService.create(
-                Optional.of(NAMESPACE_1),
-                taggedMetricRegistry,
-                rawTimelockService);
+                Optional.of(NAMESPACE_1), taggedMetricRegistry, rawTimelockService);
 
         timelockService.getFreshTimestamp();
         assertThrowsClocksWentBackwardsException(timelockService::getFreshTimestamp);
         assertThrowsClocksWentBackwardsException(timelockService::getFreshTimestamp);
 
         assertThat(TimestampViolationsMetrics.of(taggedMetricRegistry)
-                .timestampsGoingBackwards(NAMESPACE_1)
-                .getCount()).isEqualTo(2);
+                        .timestampsGoingBackwards(NAMESPACE_1)
+                        .getCount())
+                .isEqualTo(2);
         assertThat(TimestampViolationsMetrics.of(taggedMetricRegistry)
-                .timestampsGoingBackwards(NAMESPACE_2)
-                .getCount()).isEqualTo(0);
+                        .timestampsGoingBackwards(NAMESPACE_2)
+                        .getCount())
+                .isEqualTo(0);
     }
 
     @Test
@@ -176,9 +176,7 @@ public class TimestampCorroboratingTimelockServiceTest {
         when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
         TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
         timelockService = TimestampCorroboratingTimelockService.create(
-                Optional.of(NAMESPACE_1),
-                taggedMetricRegistry,
-                rawTimelockService);
+                Optional.of(NAMESPACE_1), taggedMetricRegistry, rawTimelockService);
 
         timelockService.getFreshTimestamp();
         assertThat(taggedMetricRegistry.getMetrics()).isEmpty();

@@ -49,20 +49,17 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     private final AtomicLong lowerBoundFromTransactions = new AtomicLong(Long.MIN_VALUE);
 
     @VisibleForTesting
-    TimestampCorroboratingTimelockService(
-            Runnable timestampViolationCallback,
-            TimelockService delegate) {
+    TimestampCorroboratingTimelockService(Runnable timestampViolationCallback, TimelockService delegate) {
         this.timestampViolationCallback = timestampViolationCallback;
         this.delegate = delegate;
     }
 
     public static TimelockService create(
-            Optional<String> userNamespace,
-            TaggedMetricRegistry taggedMetricRegistry,
-            TimelockService delegate) {
+            Optional<String> userNamespace, TaggedMetricRegistry taggedMetricRegistry, TimelockService delegate) {
         return new TimestampCorroboratingTimelockService(
-                () -> TimestampViolationsMetrics.of(taggedMetricRegistry).timestampsGoingBackwards(
-                        userNamespace.orElse("[unknown or un-namespaced]")).inc(),
+                () -> TimestampViolationsMetrics.of(taggedMetricRegistry)
+                        .timestampsGoingBackwards(userNamespace.orElse("[unknown or un-namespaced]"))
+                        .inc(),
                 delegate);
     }
 
