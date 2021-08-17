@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: TimeLock now supports an endpoint which allows for the in-memory TimeLock
+    state of a service to be reset. This may be useful for e.g. restore workflows,
+    during which lock watch caches may need to be invalidated.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5600
