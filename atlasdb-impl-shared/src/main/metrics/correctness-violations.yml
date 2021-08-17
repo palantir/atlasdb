@@ -1,0 +1,14 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.correctness'
+
+namespaces:
+  timestampViolations:
+    docs: Correctness violations pertaining to irregularities with timestamps.
+    metrics:
+      timestampsGoingBackwards:
+        type: counter
+        tags:
+          - namespace
+        docs: >-
+          Number of observations of timestamps going backwards (i.e. a request got a lower timestamp than another
+          request that finished before this request started).

@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.correctness.TimestampViolationsMetrics;
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
@@ -24,8 +26,10 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
@@ -39,16 +43,24 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampCorroboratingTimelockService.class);
     private static final String CLOCKS_WENT_BACKWARDS_MESSAGE = "It appears that clocks went backwards!";
 
+    private final Runnable timestampViolationCallback;
     private final TimelockService delegate;
     private final AtomicLong lowerBoundFromTimestamps = new AtomicLong(Long.MIN_VALUE);
     private final AtomicLong lowerBoundFromTransactions = new AtomicLong(Long.MIN_VALUE);
 
-    private TimestampCorroboratingTimelockService(TimelockService delegate) {
+    @VisibleForTesting
+    TimestampCorroboratingTimelockService(Runnable timestampViolationCallback, TimelockService delegate) {
+        this.timestampViolationCallback = timestampViolationCallback;
         this.delegate = delegate;
     }
 
-    public static TimelockService create(TimelockService delegate) {
-        return new TimestampCorroboratingTimelockService(delegate);
+    public static TimelockService create(
+            Optional<String> userNamespace, TaggedMetricRegistry taggedMetricRegistry, TimelockService delegate) {
+        return new TimestampCorroboratingTimelockService(
+                () -> TimestampViolationsMetrics.of(taggedMetricRegistry)
+                        .timestampsGoingBackwards(userNamespace.orElse("[unknown or un-namespaced]"))
+                        .inc(),
+                delegate);
     }
 
     @Override
@@ -104,8 +116,9 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         return ImmutableTimestampBounds.of(threadLocalLowerBoundFromTimestamps, threadLocalLowerBoundFromTransactions);
     }
 
-    private static void checkTimestamp(TimestampBounds bounds, OperationType type, long freshTimestamp) {
+    private void checkTimestamp(TimestampBounds bounds, OperationType type, long freshTimestamp) {
         if (freshTimestamp <= Math.max(bounds.boundFromTimestamps(), bounds.boundFromTransactions())) {
+            timestampViolationCallback.run();
             throw clocksWentBackwards(bounds, type, freshTimestamp);
         }
     }
