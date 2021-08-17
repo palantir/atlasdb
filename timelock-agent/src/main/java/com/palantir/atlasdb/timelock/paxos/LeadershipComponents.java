@@ -46,7 +46,7 @@ public class LeadershipComponents {
 
     private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = new ConcurrentHashMap<>();
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
-    private final CompositeRenewable componentRenewer = new CompositeRenewable();
+    private final CompositeRenewable compositeRenewable = new CompositeRenewable();
 
     private final NetworkClientFactories.Factory<LeadershipContext> leadershipContextFactory;
     private final LocalAndRemotes<HealthCheckPinger> healthCheckPingers;
@@ -68,7 +68,7 @@ public class LeadershipComponents {
 
         // permitted given the proxy returned implements Renewable, and this needs to be supported
         Renewable renewableInstance = (Renewable) instance;
-        componentRenewer.addRenewable(renewableInstance);
+        compositeRenewable.addRenewable(renewableInstance);
 
         return context.leadershipMetrics().instrument(clazz, instance);
     }
@@ -78,7 +78,7 @@ public class LeadershipComponents {
     }
 
     public void renewRenewables() {
-        componentRenewer.renew();
+        compositeRenewable.renew();
     }
 
     public void shutdown() {
@@ -169,7 +169,7 @@ public class LeadershipComponents {
         abstract List<Closeable> closeables();
     }
 
-    private class CompositeRenewable implements Renewable {
+    private static class CompositeRenewable implements Renewable {
         private final Set<Renewable> renewables = new HashSet<>();
 
         void addRenewable(Renewable renewable) {

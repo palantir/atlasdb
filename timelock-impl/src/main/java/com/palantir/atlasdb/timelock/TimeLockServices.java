@@ -15,25 +15,28 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import com.palantir.leader.Renewable;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface TimeLockServices {
+public interface TimeLockServices extends Renewable {
     static TimeLockServices create(
             TimestampService timestampService,
             LockService lockService,
             AsyncTimelockService timelockService,
             AsyncTimelockResource timelockResource,
-            TimestampManagementService timestampManagementService) {
+            TimestampManagementService timestampManagementService,
+            Runnable renewalCallback) {
         return ImmutableTimeLockServices.builder()
                 .timestampService(timestampService)
                 .lockService(lockService)
                 .timestampManagementService(timestampManagementService)
                 .timelockService(timelockService)
                 .timelockResource(timelockResource)
+                .renewalCallback(renewalCallback)
                 .build();
     }
 
@@ -46,4 +49,11 @@ public interface TimeLockServices {
     AsyncTimelockService getTimelockService();
 
     TimestampManagementService getTimestampManagementService();
+
+    Runnable renewalCallback();
+
+    @Override
+    default void renew() {
+        renewalCallback().run();
+    }
 }

@@ -19,3 +19,11 @@ services:
         docs: |
           The operation of achieving consensus on all namespaces is NOT atomic. In the case of failures, it can
           be assumed that consensus was achieved on some namespaces.
+
+      renewResources:
+        http: POST /renew
+        args:
+          namespaces: set<string>
+        docs: |
+          Re-creates resources for a given TimeLock namespace. Does not actually cause a leader election. This operation
+          is NOT atomic with respect to user requests that access multiple distinct resources on TimeLock server.

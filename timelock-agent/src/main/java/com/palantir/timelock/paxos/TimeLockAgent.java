@@ -297,7 +297,7 @@ public class TimeLockAgent {
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
-        registerManagementResource();
+        registerManagementResource(namespaces::get);
         // Finally, register the health check, and endpoints associated with the clients.
         TimeLockResource resource = TimeLockResource.create(namespaces);
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
@@ -366,15 +366,16 @@ public class TimeLockAgent {
         return healthCheckResponseMap.get(client).isLeader();
     }
 
-    private void registerManagementResource() {
+    private void registerManagementResource(
+            Function<String, TimeLockServices> timeLockServicesFactory) {
         if (undertowRegistrar.isPresent()) {
             registerCorruptionHandlerWrappedService(
                     undertowRegistrar.get(),
                     TimeLockManagementResource.undertow(
-                            timestampStorage.persistentNamespaceContext(), namespaces, redirectRetryTargeter()));
+                            timestampStorage.persistentNamespaceContext(), namespaces, redirectRetryTargeter(), timeLockServicesFactory));
         } else {
             registrar.accept(TimeLockManagementResource.jersey(
-                    timestampStorage.persistentNamespaceContext(), namespaces, redirectRetryTargeter()));
+                    timestampStorage.persistentNamespaceContext(), namespaces, redirectRetryTargeter(), timeLockServicesFactory));
         }
     }
 

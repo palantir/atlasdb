@@ -23,6 +23,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
+import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
@@ -32,6 +33,7 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.paxos.Client;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -39,38 +41,45 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     private final Set<PersistentNamespaceLoader> namespaceLoaders;
     private final TimelockNamespaces timelockNamespaces;
     private final ConjureResourceExceptionHandler exceptionHandler;
+    private final Function<String, TimeLockServices> timelockServicesFactory;
 
     private TimeLockManagementResource(
             Set<PersistentNamespaceLoader> namespaceLoaders,
             TimelockNamespaces timelockNamespaces,
-            RedirectRetryTargeter redirectRetryTargeter) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, TimeLockServices> timelockServicesFactory) {
         this.namespaceLoaders = namespaceLoaders;
         this.timelockNamespaces = timelockNamespaces;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
+        this.timelockServicesFactory = timelockServicesFactory;
     }
 
     public static TimeLockManagementResource create(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
-            RedirectRetryTargeter redirectRetryTargeter) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, TimeLockServices> timelockServicesFactory) {
         return new TimeLockManagementResource(
-                createNamespaceLoaders(persistentNamespaceContext), timelockNamespaces, redirectRetryTargeter);
+                createNamespaceLoaders(persistentNamespaceContext), timelockNamespaces, redirectRetryTargeter,
+                timelockServicesFactory);
     }
 
     public static UndertowService undertow(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
-            RedirectRetryTargeter redirectRetryTargeter) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, TimeLockServices> timelockServicesFactory) {
         return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(
-                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter));
+                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter, timelockServicesFactory));
     }
 
     public static TimeLockManagementService jersey(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
-            RedirectRetryTargeter redirectRetryTargeter) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            Function<String, TimeLockServices> timelockServicesFactory) {
         return new JerseyAdapter(TimeLockManagementResource.create(
-                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter));
+                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter, timelockServicesFactory));
     }
 
     @Override
@@ -90,6 +99,14 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
             for (String namespace : namespaces) {
                 NamespacedConsensus.achieveConsensusForNamespace(timelockNamespaces, namespace);
             }
+            return Futures.immediateFuture(null);
+        });
+    }
+
+    @Override
+    public ListenableFuture<Void> renewResources(AuthHeader authHeader, Set<String> namespaces) {
+        return handleExceptions(() -> {
+            namespaces.stream().map(timelockServicesFactory).forEach(TimeLockServices::renew);
             return Futures.immediateFuture(null);
         });
     }
@@ -127,6 +144,11 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         @Override
         public void achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
             unwrap(resource.achieveConsensus(authHeader, namespaces));
+        }
+
+        @Override
+        public void renewResources(AuthHeader authHeader, Set<String> namespaces) {
+            unwrap(resource.renewResources(authHeader, namespaces));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
