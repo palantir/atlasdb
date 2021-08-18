@@ -113,7 +113,7 @@ public class PaxosTimestampBoundStoreTest {
                     TimelockPaxosMetrics.of(PaxosUseCase.TIMESTAMP, MetricsManagers.createForTests()),
                     PaxosUseCase.TIMESTAMP,
                     Paths.get(root, i + "legacy"),
-                    SqliteConnections.getPooledDataSource(Paths.get(root, i + "sqlite")),
+                    SqliteConnections.getDefaultConfiguredPooledDataSource(Paths.get(root, i + "sqlite")),
                     UUID.randomUUID(),
                     true,
                     OrderableSlsVersion.valueOf("0.0.0"),

@@ -48,7 +48,8 @@ public class SqliteNamespaceLoaderTest {
 
     @Before
     public void setup() {
-        dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
+                tempFolder.getRoot().toPath());
         namespaceLoader = SqliteNamespaceLoader.create(dataSource);
     }
 

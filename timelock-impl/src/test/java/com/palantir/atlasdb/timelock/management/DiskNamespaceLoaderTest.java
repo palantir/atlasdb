@@ -64,7 +64,7 @@ public class DiskNamespaceLoaderTest {
 
         Path rootFolderPath = tempFolder.getRoot().toPath();
         PersistentNamespaceContext persistentNamespaceContext = PersistentNamespaceContexts.timestampBoundPaxos(
-                rootFolderPath, SqliteConnections.getPooledDataSource(rootFolderPath));
+                rootFolderPath, SqliteConnections.getDefaultConfiguredPooledDataSource(rootFolderPath));
 
         TimelockNamespaces namespaces =
                 new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);

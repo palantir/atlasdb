@@ -77,11 +77,11 @@ public final class TimeLockCorruptionTestSetup implements TestRule {
     }
 
     private void setup() throws Throwable {
-        localDataSource = SqliteConnections.getPooledDataSource(
+        localDataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.newFolder("randomFile1").toPath());
-        remoteDataSource1 = SqliteConnections.getPooledDataSource(
+        remoteDataSource1 = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.newFolder("randomFile2").toPath());
-        remoteDataSource2 = SqliteConnections.getPooledDataSource(
+        remoteDataSource2 = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.newFolder("randomFile3").toPath());
 
         defaultLocalServer = createLogComponentsForServer(localDataSource);

@@ -33,8 +33,8 @@ public class PersistedSchemaVersionTest {
 
     @Before
     public void setup() {
-        schemaVersion = PersistedSchemaVersion.create(
-                SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath()));
+        schemaVersion = PersistedSchemaVersion.create(SqliteConnections.getDefaultConfiguredPooledDataSource(
+                tempFolder.getRoot().toPath()));
     }
 
     @Test

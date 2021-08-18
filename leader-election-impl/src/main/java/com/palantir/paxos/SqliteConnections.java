@@ -32,12 +32,18 @@ import org.sqlite.javax.SQLiteConnectionPoolDataSource;
  */
 public final class SqliteConnections {
     private static final String DEFAULT_SQLITE_DATABASE_NAME = "sqliteData.db";
+    public static final SqliteConnectionConfig DEFAULT_SQLITE_CONNECTION_CONFIG =
+            ImmutableSqliteConnectionConfig.builder().build();
 
     private SqliteConnections() {
         // no
     }
 
-    public static HikariDataSource getPooledDataSource(Path path) {
+    public static HikariDataSource getDefaultConfiguredPooledDataSource(Path path) {
+        return getPooledDataSource(path, DEFAULT_SQLITE_CONNECTION_CONFIG);
+    }
+
+    public static HikariDataSource getPooledDataSource(Path path, SqliteConnectionConfig sqliteConnectionConfig) {
         createDirectoryIfNotExists(path);
         String target = String.format(
                 "jdbc:sqlite:%s", path.resolve(DEFAULT_SQLITE_DATABASE_NAME).toString());
@@ -51,9 +57,8 @@ public final class SqliteConnections {
         dataSource.setUrl(target);
         dataSource.setConfig(config);
 
-        HikariConfig hikariConfig = new HikariConfig();
+        HikariConfig hikariConfig = sqliteConnectionConfig.getHikariConfig();
         hikariConfig.setDataSource(dataSource);
-        hikariConfig.setMaximumPoolSize(1);
         return new HikariDataSource(hikariConfig);
     }
 
