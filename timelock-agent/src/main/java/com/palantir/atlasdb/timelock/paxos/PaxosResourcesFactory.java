@@ -323,7 +323,8 @@ public final class PaxosResourcesFactory {
         @Value.Derived
         default HikariDataSource sqliteDataSource() {
             return SqliteConnections.getPooledDataSource(
-                    install().paxos().sqlitePersistence().dataDirectory().toPath());
+                    install().paxos().sqlitePersistence().dataDirectory().toPath(),
+                    install().paxos().sqlitePersistence().connectionConfig());
         }
 
         @Value.Derived

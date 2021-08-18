@@ -19,6 +19,8 @@ package com.palantir.timelock.config;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.paxos.SqliteConnectionConfig;
+import com.palantir.paxos.SqliteConnections;
 import java.io.File;
 import org.immutables.value.Value;
 
@@ -38,4 +40,10 @@ public interface SqlitePaxosPersistenceConfiguration {
      */
     @JsonProperty("data-directory")
     File dataDirectory();
+
+    @JsonProperty("sqlite-connection-config")
+    @Value.Default
+    default SqliteConnectionConfig connectionConfig() {
+        return SqliteConnections.DEFAULT_SQLITE_CONNECTION_CONFIG;
+    }
 }
