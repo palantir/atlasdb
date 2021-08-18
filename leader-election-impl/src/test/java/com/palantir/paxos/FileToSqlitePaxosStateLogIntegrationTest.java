@@ -46,7 +46,7 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
     @Before
     public void setup() throws IOException {
         source = new PaxosStateLogImpl<>(tempFolder.newFolder("source").getPath());
-        DataSource targetSource = SqliteConnections.getPooledDataSource(
+        DataSource targetSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.newFolder("target").toPath());
         target = SqlitePaxosStateLog.create(NAMESPACE, targetSource);
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetSource);

@@ -56,7 +56,7 @@ public class SqliteHistoryQueriesTest {
 
     @Before
     public void setup() {
-        dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.getRoot().toPath());
         learnerLog = SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_LEARNER), dataSource);
         acceptorLog =
                 SqlitePaxosStateLog.create(ImmutableNamespaceAndUseCase.of(CLIENT, USE_CASE_ACCEPTOR), dataSource);

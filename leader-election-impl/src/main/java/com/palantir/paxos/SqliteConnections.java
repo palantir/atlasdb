@@ -39,7 +39,7 @@ public final class SqliteConnections {
         // no
     }
 
-    public static HikariDataSource getPooledDataSource(Path path) {
+    public static HikariDataSource getDefaultConfiguredPooledDataSource(Path path) {
         return getPooledDataSource(path, DEFAULT_SQLITE_CONNECTION_CONFIG);
     }
 

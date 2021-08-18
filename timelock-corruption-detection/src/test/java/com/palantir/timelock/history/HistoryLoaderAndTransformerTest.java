@@ -55,7 +55,7 @@ public class HistoryLoaderAndTransformerTest {
     @Before
     public void setup() {
         DataSource dataSource =
-                SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
+                SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.getRoot().toPath());
         learnerLog = SqlitePaxosStateLog.create(
                 ImmutableNamespaceAndUseCase.of(
                         DEFAULT_CLIENT,

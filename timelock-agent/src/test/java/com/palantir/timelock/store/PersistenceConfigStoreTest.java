@@ -46,7 +46,7 @@ public class PersistenceConfigStoreTest {
     @Before
     public void setup() {
         SqliteBlobStore blobStore = SqliteBlobStore.create(
-                SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath()));
+                SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.getRoot().toPath()));
         ObjectMapper objectMapper = ObjectMappers.newServerObjectMapper();
         objectMapper.registerSubtypes(InMemoryAtlasDbConfig.class);
         persistenceConfigStore = new PersistenceConfigStore(objectMapper, blobStore);

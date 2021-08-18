@@ -39,7 +39,7 @@ public class LogVerificationProgressStateTest {
 
     @Before
     public void setup() {
-        dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.getRoot().toPath());
         log = LogVerificationProgressState.create(dataSource);
     }
 

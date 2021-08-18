@@ -50,7 +50,7 @@ public class PaxosLogHistoryProgressTrackerTest {
     @Before
     public void setup() {
         DataSource dataSource =
-                SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
+                SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.getRoot().toPath());
         log = LogVerificationProgressState.create(dataSource);
         progressTracker = new PaxosLogHistoryProgressTracker(dataSource, SQLITE_PAXOS_STATE_LOG_HISTORY);
     }

@@ -64,7 +64,7 @@ public class LocalPaxosComponentsTest {
     @Before
     public void setUp() throws IOException {
         legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
-        sqlite = SqliteConnections.getPooledDataSource(
+        sqlite = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 TEMPORARY_FOLDER.newFolder("sqlite").toPath());
         paxosComponents = createPaxosComponents(true);
     }
