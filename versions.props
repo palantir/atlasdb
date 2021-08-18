@@ -13,6 +13,7 @@ com.google.auto:auto-common = 1.1.2
 com.google.code.findbugs:findbugs-annotations = 3.0.1
 com.google.code.findbugs:jsr305 = 3.0.2
 com.google.dagger:* = 2.38.1
+# Ksp version is temporary, can be removed once Maven calms down.
 com.google.devtools.ksp:symbol-processing-api = 1.5.21-1.0.0-beta07
 com.google.errorprone:* = 2.7.1
 com.google.guava:* = 30.1.1-jre
