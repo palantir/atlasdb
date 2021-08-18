@@ -53,7 +53,8 @@ public class TimeLockAgentPersistedConfigTest {
 
     @Before
     public void setup() {
-        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
+                tempFolder.getRoot().toPath());
     }
 
     @Test

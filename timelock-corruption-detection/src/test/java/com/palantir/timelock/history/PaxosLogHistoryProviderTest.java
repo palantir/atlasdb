@@ -79,7 +79,8 @@ public class PaxosLogHistoryProviderTest {
     @Before
     public void setup() {
         remote = mock(TimeLockPaxosHistoryProvider.class);
-        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
+                tempFolder.getRoot().toPath());
 
         learnerLog = createLearnerLog(ImmutableNamespaceAndUseCase.of(DEFAULT_CLIENT, USE_CASE_LEARNER));
         acceptorLog = createAcceptorLog(ImmutableNamespaceAndUseCase.of(DEFAULT_CLIENT, USE_CASE_ACCEPTOR));
