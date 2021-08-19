@@ -27,7 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.correctness.TimestampViolationsMetrics;
+import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
@@ -161,11 +161,11 @@ public class TimestampCorroboratingTimelockServiceTest {
         assertThrowsClocksWentBackwardsException(timelockService::getFreshTimestamp);
         assertThrowsClocksWentBackwardsException(timelockService::getFreshTimestamp);
 
-        assertThat(TimestampViolationsMetrics.of(taggedMetricRegistry)
+        assertThat(TimestampCorrectnessMetrics.of(taggedMetricRegistry)
                         .timestampsGoingBackwards(NAMESPACE_1)
                         .getCount())
                 .isEqualTo(2);
-        assertThat(TimestampViolationsMetrics.of(taggedMetricRegistry)
+        assertThat(TimestampCorrectnessMetrics.of(taggedMetricRegistry)
                         .timestampsGoingBackwards(NAMESPACE_2)
                         .getCount())
                 .isEqualTo(0);
