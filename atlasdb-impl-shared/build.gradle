@@ -6,7 +6,7 @@ libsDirName = file('build/artifacts')
 
 license {
   exclude '**/TargetedSweepProgressMetrics.java'
-  exclude '**/TimestampViolationsMetrics.java'
+  exclude '**/TimestampCorrectnessMetrics.java'
 }
 
 dependencies {
