@@ -46,7 +46,6 @@ io.netty:* = 4.1.49.Final
 io.undertow:undertow-core = 2.2.10.Final
 io.vavr:* = 0.10.3
 joda-time:joda-time = 2.10.10
-junit:junit = 4.13.2
 net.jcip:jcip-annotations = 1.0
 net.jpountz.lz4:lz4 = 1.3.0
 one.util:streamex = 0.7.3
