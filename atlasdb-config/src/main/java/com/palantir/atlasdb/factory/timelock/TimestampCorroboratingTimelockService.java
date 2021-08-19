@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.factory.timelock;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.correctness.TimestampViolationsMetrics;
+import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
@@ -57,7 +57,7 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     public static TimelockService create(
             Optional<String> userNamespace, TaggedMetricRegistry taggedMetricRegistry, TimelockService delegate) {
         return new TimestampCorroboratingTimelockService(
-                () -> TimestampViolationsMetrics.of(taggedMetricRegistry)
+                () -> TimestampCorrectnessMetrics.of(taggedMetricRegistry)
                         .timestampsGoingBackwards(userNamespace.orElse("[unknown or un-namespaced]"))
                         .inc(),
                 delegate);
