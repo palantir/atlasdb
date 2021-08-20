@@ -345,6 +345,7 @@ public final class LockServiceImpl
         return result.getToken();
     }
 
+    @SuppressWarnings("Finally") // If we couldn't unlock locks, intentionally panic; don't return the user's response.
     @Override
     // We're concerned about sanitizing logs at the info level and above. This method just logs at debug and info.
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {

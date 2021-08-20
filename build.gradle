@@ -112,7 +112,6 @@ allprojects {
                 'EmptyBlockTag',
                 'EqualsGetClass',
                 'ExtendsErrorOrThrowable',
-                'Finally',
                 'FutureReturnValueIgnored',
                 'GetClassOnEnum',
                 'HidingField',
