@@ -112,9 +112,9 @@ public class CassandraAsyncKeyValueServiceTests {
     private void setUpVisibleCells(Cell... cells) {
         for (Cell cell : cells) {
             when(cqlClient.executeQuery(buildGetQuerySpec(buildGetQueryParameter(cell))))
-                    .thenReturn(Futures.immediateFuture(
-                            Optional.of(Value.create(RandomBytes.ofLength(10),
-                                    ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE)))));
+                    .thenReturn(Futures.immediateFuture(Optional.of(Value.create(
+                            RandomBytes.ofLength(10),
+                            ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE)))));
         }
     }
 
