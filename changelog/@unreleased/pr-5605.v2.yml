@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Fix compilation errors in generated code of reusable persisters for
+    dynamic column values
+  links:
+  - https://github.com/palantir/atlasdb/pull/5605
