@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -152,6 +153,31 @@ public class TimelockNamespacesTest {
         assertThat(TimelockNamespaces.IS_VALID_NAME.test("lw")).isFalse();
         assertThat(TimelockNamespaces.IS_VALID_NAME.test("tlblah")).isTrue();
         assertThat(TimelockNamespaces.IS_VALID_NAME.test("lwbleh")).isTrue();
+    }
+
+    @Test
+    public void invalidationDelegatesClosure() {
+        // This is required to ensure we get different mock objects on each invocation (well, each of the first two).
+        when(serviceFactory.apply(any()))
+                .thenReturn(mock(TimeLockServices.class))
+                .thenReturn(mock(TimeLockServices.class));
+
+        String client = uniqueClient();
+        TimeLockServices services = namespaces.get(client);
+        namespaces.invalidateResourcesForClient(client);
+        verify(services).close();
+
+        TimeLockServices newServices = namespaces.get(client);
+        assertThat(newServices).as("should have gotten a new set of delegates").isNotEqualTo(services);
+
+        namespaces.invalidateResourcesForClient(client);
+        verify(newServices).close();
+    }
+
+    @Test
+    public void handlesInvalidationOfNonexistentClients() {
+        assertThatCode(() -> namespaces.invalidateResourcesForClient("somethingUnknown"))
+                .doesNotThrowAnyException();
     }
 
     private void createMaximumNumberOfClients() {

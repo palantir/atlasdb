@@ -25,10 +25,13 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.http.v2.ClientOptionsConstants;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
@@ -39,10 +42,11 @@ import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
-import com.palantir.atlasdb.timelock.suite.DbTimeLockSingleLeaderPaxosSuite;
+import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.ConjureLockV1Request;
 import com.palantir.lock.ConjureSimpleHeldLocksToken;
@@ -87,7 +91,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule
     public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> DbTimeLockSingleLeaderPaxosSuite.DB_TIMELOCK_CLUSTER);
+            ParameterInjector.withFallBackConfiguration(() -> MultiLeaderPaxosSuite.MULTI_LEADER_PAXOS);
 
     @Parameterized.Parameter
     public TestableTimelockCluster cluster;
@@ -615,6 +619,147 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                     .as("timestamps should contiguously increase per namespace if there are no elections.")
                     .isEqualTo(responseFromBatchedEndpoint.getInclusiveUpper() + 1);
         });
+    }
+
+    @Test
+    public void invalidateChangesLeaderIdentifier() {
+        LeaderTime timeBeforeInvalidation = client.conjureTimelockService().leaderTime(AUTH_HEADER, client.namespace());
+        invalidateMainClientResources();
+        LeaderTime timeAfterInvalidation = client.conjureTimelockService().leaderTime(AUTH_HEADER, client.namespace());
+
+        assertThat(timeBeforeInvalidation.id()).isNotEqualTo(timeAfterInvalidation.id());
+    }
+
+    @Test
+    public void invalidateForcesLocksInTheRelevantNamespaceToBeReleased() {
+        ConjureLockResponse lockResponse = client.conjureTimelockService()
+                .lock(
+                        AUTH_HEADER,
+                        client.namespace(),
+                        ConjureLockRequest.builder()
+                                .requestId(UUID.randomUUID())
+                                .addAllLockDescriptors(ImmutableList.of(
+                                        ConjureLockDescriptor.of(Bytes.from(PtBytes.toBytes("apple")))))
+                                .acquireTimeoutMs(1_000)
+                                .clientDescription("tester")
+                                .build());
+        Optional<ConjureLockToken> token = lockResponse.accept(ToConjureLockTokenVisitor.INSTANCE);
+        assertThat(token).as("could acquire an uncontended lock").isPresent();
+
+        Set<ConjureLockToken> refreshedTokens = client.conjureTimelockService()
+                .refreshLocks(
+                        AUTH_HEADER,
+                        client.namespace(),
+                        ConjureRefreshLocksRequest.builder().tokens(token.get()).build())
+                .getRefreshedTokens();
+        assertThat(refreshedTokens)
+                .as("should still have the lock, as there were no intervening actions")
+                .containsExactly(token.get());
+
+        invalidateMainClientResources();
+
+        refreshedTokens = client.conjureTimelockService()
+                .refreshLocks(
+                        AUTH_HEADER,
+                        client.namespace(),
+                        ConjureRefreshLocksRequest.builder().tokens(token.get()).build())
+                .getRefreshedTokens();
+        assertThat(refreshedTokens)
+                .as("should no longer have the lock, because resources were invalidated")
+                .isEmpty();
+    }
+
+    @Test
+    public void invalidateDoesNotAffectLocksInOtherNamespaces() {
+        ConjureLockResponse lockResponse = client.conjureTimelockService()
+                .lock(
+                        AUTH_HEADER,
+                        client.namespace(),
+                        ConjureLockRequest.builder()
+                                .requestId(UUID.randomUUID())
+                                .addAllLockDescriptors(ImmutableList.of(
+                                        ConjureLockDescriptor.of(Bytes.from(PtBytes.toBytes("apple")))))
+                                .acquireTimeoutMs(1_000)
+                                .clientDescription("tester")
+                                .build());
+        Optional<ConjureLockToken> token = lockResponse.accept(ToConjureLockTokenVisitor.INSTANCE);
+        invalidateClientResources("anotherNamespace");
+
+        Set<ConjureLockToken> refreshedTokens = client.conjureTimelockService()
+                .refreshLocks(
+                        AUTH_HEADER,
+                        client.namespace(),
+                        ConjureRefreshLocksRequest.builder().tokens(token.get()).build())
+                .getRefreshedTokens();
+        assertThat(refreshedTokens)
+                .as("should still have the lock, because invalidation was in a different namespace")
+                .containsExactly(token.get());
+    }
+
+    @Test
+    public void startTransactionHandlesInvalidatesCorrectly() {
+        ConjureStartTransactionsResponse responseBeforeInvalidation = client.namespacedConjureTimelockService()
+                .startTransactions(ConjureStartTransactionsRequest.builder()
+                        .numTransactions(10)
+                        .requestId(UUID.randomUUID())
+                        .requestorId(UUID.randomUUID())
+                        .build());
+
+        invalidateMainClientResources();
+
+        ConjureStartTransactionsResponse responseAfterInvalidation = client.namespacedConjureTimelockService()
+                .startTransactions(ConjureStartTransactionsRequest.builder()
+                        .numTransactions(10)
+                        .requestId(UUID.randomUUID())
+                        .requestorId(UUID.randomUUID())
+                        .build());
+
+        assertThat(responseBeforeInvalidation.getTimestamps().stream().max().orElseThrow())
+                .as("timestamps must strictly increase")
+                .isLessThan(
+                        responseAfterInvalidation.getTimestamps().stream().min().orElseThrow());
+        assertThat(responseBeforeInvalidation.getLockWatchUpdate().logId())
+                .as("lock watch log IDs must change following an invalidation")
+                .isNotEqualTo(responseAfterInvalidation.getLockWatchUpdate().logId());
+    }
+
+    @Test
+    public void invalidateDoesNotAffectLockWatchesInOtherNamespaces() {
+        ConjureStartTransactionsResponse responseBeforeInvalidation = client.namespacedConjureTimelockService()
+                .startTransactions(ConjureStartTransactionsRequest.builder()
+                        .numTransactions(10)
+                        .requestId(UUID.randomUUID())
+                        .requestorId(UUID.randomUUID())
+                        .build());
+
+        invalidateClientResources("someoneElse");
+
+        ConjureStartTransactionsResponse responseAfterInvalidation = client.namespacedConjureTimelockService()
+                .startTransactions(ConjureStartTransactionsRequest.builder()
+                        .numTransactions(10)
+                        .requestId(UUID.randomUUID())
+                        .requestorId(UUID.randomUUID())
+                        .build());
+
+        assertThat(responseBeforeInvalidation.getTimestamps().stream().max().orElseThrow())
+                .as("timestamps must strictly increase")
+                .isLessThan(
+                        responseAfterInvalidation.getTimestamps().stream().min().orElseThrow());
+        assertThat(responseBeforeInvalidation.getLockWatchUpdate().logId())
+                .as("lock watch log IDs had no reason to change")
+                .isEqualTo(responseAfterInvalidation.getLockWatchUpdate().logId());
+    }
+
+    private void invalidateMainClientResources() {
+        invalidateClientResources(client.namespace());
+    }
+
+    private void invalidateClientResources(String namespace) {
+        // Ensure that a leader is elected for this namespace.
+        cluster.client(namespace).getFreshTimestamp();
+        cluster.currentLeaderFor(namespace)
+                .timeLockManagementService()
+                .invalidateResources(AUTH_HEADER, ImmutableSet.of(namespace));
     }
 
     private void assertSanityOfNamespacesServed(
