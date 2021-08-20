@@ -93,4 +93,26 @@ public class TableRendererTest {
             }
         };
     }
+
+    @Test
+    public void testReusablePersistersInDynamicColumns() {
+        TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
+        String renderedTableDefinition =
+                renderer.render("table", getTableWithUserSpecifiedPersisterInDynamicColumns(TABLE_REF), NO_INDICES);
+        assertThat(renderedTableDefinition)
+                .contains("private static final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER =");
+    }
+
+    private TableDefinition getTableWithUserSpecifiedPersisterInDynamicColumns(TableReference tableRef) {
+        return new TableDefinition() {
+            {
+                javaTableName(tableRef.getTablename());
+                rowName();
+                rowComponent("rowName", ValueType.STRING);
+                dynamicColumns();
+                columnComponent("colName", ValueType.STRING);
+                value(JsonNodePersister.class);
+            }
+        };
+    }
 }
