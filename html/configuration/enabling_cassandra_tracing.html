@@ -195,9 +195,8 @@
 your Cassandra cluster, you’ll want to enable tracing.  To learn more
 about tracing itself check out DataStax’s <a class="reference external" href="http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2">Request tracing in Cassandra
 1.2</a> and <a class="reference external" href="https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html">TRACING</a>.</p>
-<p>To enable tracing you need to provide a configuration file called
-<code class="docutils literal notranslate"><span class="pre">atlas_tracing.prefs</span></code> and place it in the <code class="docutils literal notranslate"><span class="pre">user.dir</span></code> directory of your
-Java process, which is the directory from which java was executed.</p>
+<p>To enable tracing you need to set the key <code class="docutils literal notranslate"><span class="pre">tracing.enabled</span></code> to <code class="docutils literal notranslate"><span class="pre">true</span></code>
+in the Cassandra KVS runtime config block.</p>
 <p>When a query is traced, you will see the following line your log file:
 <code class="docutils literal notranslate"><span class="pre">Traced</span> <span class="pre">a</span> <span class="pre">call</span> <span class="pre">to</span> <span class="pre">&lt;table-name&gt;</span> <span class="pre">that</span> <span class="pre">took</span> <span class="pre">&lt;duration&gt;</span> <span class="pre">ms.</span> <span class="pre">It</span> <span class="pre">will</span> <span class="pre">appear</span> <span class="pre">in</span> <span class="pre">system_traces</span> <span class="pre">with</span> <span class="pre">UUID=&lt;session-id-of-trace&gt;</span></code></p>
 <div class="admonition warning">
@@ -207,37 +206,46 @@ Leaving tracing enabled on a production instance is not recommended due to perfo
 Ensure you disable tracing after your performance profiling is completed.</p>
 </div>
 </section>
-<section id="the-prefs-file">
-<h2>The Prefs File<a class="headerlink" href="#the-prefs-file" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">atlas_tracing.prefs</span></code> is a standard java properties file with
-the following parameters:</p>
-<div class="highlight-properties notranslate"><div class="highlight"><pre><span></span><span class="c"># enables tracing</span>
-<span class="c"># this will cause a significant performance hit while enabled</span>
-<span class="c"># ensure you disable tracing after your performance profiling is completed</span>
-<span class="na">tracing_enabled</span><span class="o">:</span> <span class="s">true</span>
-
-<span class="c"># the probability we trace an eligible query</span>
-<span class="c"># this is a pre-filter and a good tool to use to ensure you&#39;re not tracing</span>
-<span class="c"># frequently enough to incur performance degradation</span>
-<span class="na">trace_probability</span><span class="o">:</span> <span class="s">1.0</span>
-
-<span class="c"># a comma-separated list of tables whose queries are eligible for tracing</span>
-<span class="c"># for namespaced tables the table entry must be &lt;namespace&gt;.&lt;table&gt;</span>
-<span class="c"># like &quot;trace_probability&quot;, this is also a pre-filter</span>
-<span class="na">tables_to_trace</span><span class="o">:</span> <span class="s">_transactions,namespaceOne.table_7,namespaceTwo.table_3</span>
-
-<span class="c"># the minimum amount of time a traced query has to take to actually be logged</span>
-<span class="c"># this is a post-filter and so the trace is still done (and thus still incurs</span>
-<span class="c"># a performance hit) even if you do not log it</span>
-<span class="na">min_duration_to_log_ms</span><span class="o">:</span> <span class="s">1000</span>
+<section id="example-cassandra-config-with-tracing-enabled">
+<h2>Example Cassandra Config with Tracing Enabled<a class="headerlink" href="#example-cassandra-config-with-tracing-enabled" title="Permalink to this headline">¶</a></h2>
+<p>Consult the documentation for your service for where the Cassandra runtime
+config is located. Assuming the Atlas runtime config is located at
+<code class="docutils literal notranslate"><span class="pre">conf.runtime.atlas</span></code>, you can control tracing with the following config:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">conf</span><span class="p">:</span>
+  <span class="nt">runtime</span><span class="p">:</span>
+    <span class="nt">atlas</span><span class="p">:</span>
+      <span class="nt">keyValueService</span><span class="p">:</span>
+        <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
+        <span class="nt">tracing</span><span class="p">:</span>
+          <span class="nt">enabled</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+          <span class="nt">trace-probability</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1.0</span>
+          <span class="nt">min-duration-to-log</span><span class="p">:</span> <span class="s">&quot;0ms&quot;</span>
+          <span class="nt">tables-to-trace</span><span class="p">:</span>
+            <span class="p p-Indicator">-</span> <span class="s">&quot;_transactions2&quot;</span>
+            <span class="p p-Indicator">-</span> <span class="s">&quot;namespaceOne.table_7&quot;</span>
+            <span class="p p-Indicator">-</span> <span class="s">&quot;namespaceTwo.table_3&quot;</span>
 </pre></div>
 </div>
+<p>Tracing config paramters:</p>
+<p><code class="docutils literal notranslate"><span class="pre">tracing.enabled</span></code> - enables tracing. This will cause a significant performace
+hit while enabled. Ensure you disable tracing after your performance profiling
+is completed.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tracing.trace-probability</span></code> - the probability to trace an eligible query.
+This is a pre-filter and a good tool to use to ensure you’re not tracing
+frequently enough to incur performance degradation.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tracing.tables-to-trace</span></code> - a list of tables whose queries are eligible for
+tracing. For namespaced tables the table entry must be <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;.&lt;table&gt;</span></code>.
+Like <code class="docutils literal notranslate"><span class="pre">trace-probability</span></code>, this is also a pre-filter. If the list is empty,
+all tables are eligible.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tracing.min-duration-to-log</span></code> - the minimum amount of time a traced query
+has to take to actually be logged. This is a post-filter and so the trace is
+still done (and thus still incurs a performance hit) even if you do not log it.</p>
 </section>
 <section id="understanding-namespaced-tables-in-cassandra">
 <h2>Understanding Namespaced Tables in Cassandra<a class="headerlink" href="#understanding-namespaced-tables-in-cassandra" title="Permalink to this headline">¶</a></h2>
 <p>In Cassandra, an AtlasDB namespaced table will look like <code class="docutils literal notranslate"><span class="pre">&lt;keyspace&gt;.&lt;namespace&gt;__&lt;table-name&gt;</span></code>.
-As described in the prefs file’s comment, to trace said table you would want to
-write it in the form of <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;.&lt;table-name&gt;</span></code> in the comma-separated list.</p>
+As described above, to trace said table you would want to write it in the form
+of <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;.&lt;table-name&gt;</span></code> in the <code class="docutils literal notranslate"><span class="pre">tables-to-trace</span></code> list.</p>
 </section>
 </section>
 
