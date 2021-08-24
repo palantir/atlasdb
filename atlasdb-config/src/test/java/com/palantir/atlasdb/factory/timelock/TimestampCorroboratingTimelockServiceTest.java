@@ -16,37 +16,28 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.v2.*;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.*;
 
 public class TimestampCorroboratingTimelockServiceTest {
     private static final LockImmutableTimestampResponse LOCK_IMMUTABLE_TIMESTAMP_RESPONSE =
@@ -63,7 +54,7 @@ public class TimestampCorroboratingTimelockServiceTest {
     public void setUp() {
         callback = mock(Runnable.class);
         rawTimelockService = mock(TimelockService.class);
-        timelockService = new TimestampCorroboratingTimelockService(callback, rawTimelockService);
+        timelockService = new TimestampCorroboratingTimelockService(false, callback, rawTimelockService);
     }
 
     @Test
@@ -180,6 +171,15 @@ public class TimestampCorroboratingTimelockServiceTest {
 
         timelockService.getFreshTimestamp();
         assertThat(taggedMetricRegistry.getMetrics()).isEmpty();
+    }
+
+    @Test
+    public void metricsIncrementedForSmokeTest() {
+        when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
+        timelockService = new TimestampCorroboratingTimelockService(true, callback, rawTimelockService);
+
+        timelockService.getFreshTimestamp();
+        verify(callback).run();
     }
 
     private StartIdentifiedAtlasDbTransactionResponse makeResponse(long timestamp) {

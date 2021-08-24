@@ -30,6 +30,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
@@ -43,13 +44,16 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampCorroboratingTimelockService.class);
     private static final String CLOCKS_WENT_BACKWARDS_MESSAGE = "It appears that clocks went backwards!";
 
+    private final boolean reportViolationForSmokeTest;
     private final Runnable timestampViolationCallback;
     private final TimelockService delegate;
     private final AtomicLong lowerBoundFromTimestamps = new AtomicLong(Long.MIN_VALUE);
     private final AtomicLong lowerBoundFromTransactions = new AtomicLong(Long.MIN_VALUE);
 
     @VisibleForTesting
-    TimestampCorroboratingTimelockService(Runnable timestampViolationCallback, TimelockService delegate) {
+    TimestampCorroboratingTimelockService(
+            boolean reportViolationForSmokeTest, Runnable timestampViolationCallback, TimelockService delegate) {
+        this.reportViolationForSmokeTest = reportViolationForSmokeTest;
         this.timestampViolationCallback = timestampViolationCallback;
         this.delegate = delegate;
     }
@@ -57,6 +61,7 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     public static TimelockService create(
             Optional<String> userNamespace, TaggedMetricRegistry taggedMetricRegistry, TimelockService delegate) {
         return new TimestampCorroboratingTimelockService(
+                ThreadLocalRandom.current().nextInt(10) == 0,
                 () -> TimestampCorrectnessMetrics.of(taggedMetricRegistry)
                         .timestampsGoingBackwards(userNamespace.orElse("[unknown or un-namespaced]"))
                         .inc(),
@@ -105,9 +110,17 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         TimestampBounds timestampBounds = getTimestampBounds();
         T timestampContainer = timestampContainerSupplier.get();
 
+        maybeReportViolationForTest();
+
         checkTimestamp(timestampBounds, operationType, lowerBoundExtractor.applyAsLong(timestampContainer));
         updateLowerBound(operationType, upperBoundExtractor.applyAsLong(timestampContainer));
         return timestampContainer;
+    }
+
+    private void maybeReportViolationForTest() {
+        if (reportViolationForSmokeTest) {
+            timestampViolationCallback.run();
+        }
     }
 
     private TimestampBounds getTimestampBounds() {
