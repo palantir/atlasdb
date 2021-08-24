@@ -17,12 +17,12 @@ package com.palantir.common.proxy;
 
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("ProxyNonConstantType")
 public final class PredicateSwitchedProxy<T> extends AbstractInvocationHandler {
@@ -30,7 +30,7 @@ public final class PredicateSwitchedProxy<T> extends AbstractInvocationHandler {
     private final T secondService;
     private final Supplier<Boolean> shouldUseFirstService;
 
-    private static final Logger log = LoggerFactory.getLogger(PredicateSwitchedProxy.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(PredicateSwitchedProxy.class);
 
     private PredicateSwitchedProxy(T firstService, T secondService, Supplier<Boolean> shouldUseFirstService) {
         this.firstService = firstService;

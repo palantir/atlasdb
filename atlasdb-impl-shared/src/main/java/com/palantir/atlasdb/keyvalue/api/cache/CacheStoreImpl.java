@@ -20,17 +20,17 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 final class CacheStoreImpl implements CacheStore {
-    private static final Logger log = LoggerFactory.getLogger(CacheStoreImpl.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CacheStoreImpl.class);
 
     private final int maxCacheCount;
     private final SnapshotStore snapshotStore;

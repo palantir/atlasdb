@@ -181,6 +181,8 @@ import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.DelegatingManagedTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -208,14 +210,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.ws.rs.ClientErrorException;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Value.Immutable
 @StagedBuilderStyle
 public abstract class TransactionManagers {
     private static final int LOGGING_INTERVAL = 60;
-    private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TransactionManagers.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
     abstract AtlasDbConfig config();
@@ -1036,13 +1036,17 @@ public abstract class TransactionManagers {
                 timelockRequestBatcherProviders,
                 schemas);
         return withMetrics(
-                metricsManager, withCorroboratingTimestampService(withRefreshingLockService(lockAndTimestampServices)));
+                metricsManager,
+                withCorroboratingTimestampService(
+                        config.namespace(), metricsManager, withRefreshingLockService(lockAndTimestampServices)));
     }
 
     private static LockAndTimestampServices withCorroboratingTimestampService(
+            Optional<String> userNamespace,
+            MetricsManager metricsManager,
             LockAndTimestampServices lockAndTimestampServices) {
-        TimelockService timelockService =
-                TimestampCorroboratingTimelockService.create(lockAndTimestampServices.timelock());
+        TimelockService timelockService = TimestampCorroboratingTimelockService.create(
+                userNamespace, metricsManager.getTaggedRegistry(), lockAndTimestampServices.timelock());
         TimestampService corroboratingTimestampService = new TimelockTimestampServiceAdapter(timelockService);
 
         return ImmutableLockAndTimestampServices.builder()

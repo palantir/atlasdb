@@ -37,6 +37,8 @@ import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timelock.feedback.LeaderElectionDuration;
 import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -55,11 +57,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LeaderElectionReportingTimelockService implements NamespacedConjureTimelockService {
-    private static final Logger log = LoggerFactory.getLogger(LeaderElectionReportingTimelockService.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(LeaderElectionReportingTimelockService.class);
 
     private final NamespacedConjureTimelockService delegate;
     private volatile LeaderElectionMetrics metrics;

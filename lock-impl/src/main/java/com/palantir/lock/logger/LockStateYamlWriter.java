@@ -16,12 +16,13 @@
 package com.palantir.lock.logger;
 
 import com.palantir.lock.LockDescriptor;
-import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Tag;
@@ -43,7 +44,8 @@ class LockStateYamlWriter implements Closeable {
      * Creates a LockStateYamlWriter for the given file in append mode.
      */
     public static LockStateYamlWriter create(File file) throws IOException {
-        return new LockStateYamlWriter(new BufferedWriter(new FileWriter(file, true)));
+        return new LockStateYamlWriter(Files.newBufferedWriter(
+                file.toPath(), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND));
     }
 
     /**

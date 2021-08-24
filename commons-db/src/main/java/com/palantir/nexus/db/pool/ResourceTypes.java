@@ -51,6 +51,11 @@ public final class ResourceTypes {
                         }
 
                         @Override
+                        public boolean isClosed() {
+                            return delegate.isClosed();
+                        }
+
+                        @Override
                         public void init() throws SQLException {
                             delegate.init();
                         }

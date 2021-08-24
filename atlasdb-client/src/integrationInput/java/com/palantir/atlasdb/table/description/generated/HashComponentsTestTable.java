@@ -786,5 +786,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "MN894g1QUud7iE9/rlUtAA==";
+    static String __CLASS_HASH = "f9YdA/BXtBTIWOZBN9hoWg==";
 }

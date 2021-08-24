@@ -114,4 +114,10 @@ public interface PaxosInstallConfiguration {
     default boolean doDataDirectoriesExist() {
         return dataDirectory().isDirectory();
     }
+
+    static Builder builder() {
+        return new Builder();
+    }
+
+    class Builder extends ImmutablePaxosInstallConfiguration.Builder {}
 }

@@ -36,8 +36,8 @@ public class SqliteBlobStoreTest {
 
     @Before
     public void setup() {
-        blobStore = SqliteBlobStore.create(
-                SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath()));
+        blobStore = SqliteBlobStore.create(SqliteConnections.getDefaultConfiguredPooledDataSource(
+                tempFolder.getRoot().toPath()));
     }
 
     @Test

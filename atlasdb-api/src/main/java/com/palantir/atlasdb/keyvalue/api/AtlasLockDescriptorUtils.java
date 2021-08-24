@@ -21,17 +21,18 @@ import com.google.common.primitives.Bytes;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import okio.ByteString;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class AtlasLockDescriptorUtils {
-    private static final Logger log = LoggerFactory.getLogger(AtlasLockDescriptorUtils.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AtlasLockDescriptorUtils.class);
     private static final int CELL_BLOWUP_THRESHOLD = 100;
 
     private AtlasLockDescriptorUtils() {
@@ -72,7 +73,7 @@ public final class AtlasLockDescriptorUtils {
         if (endOfTableName == -1) {
             return Optional.empty();
         }
-        String fullyQualifiedName = new String(rawBytes, 0, endOfTableName);
+        String fullyQualifiedName = new String(rawBytes, 0, endOfTableName, StandardCharsets.UTF_8);
         TableReference tableRef = TableReference.createFromFullyQualifiedName(fullyQualifiedName);
         ByteString remainingBytes = ByteString.of(rawBytes, endOfTableName + 1, rawBytes.length - (endOfTableName + 1));
         return Optional.of(ImmutableTableRefAndRemainder.of(tableRef, remainingBytes));

@@ -239,7 +239,7 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 50);
 
         for (int i = 0; i < 10; i++) {
-            clockTime = 100 + i;
+            clockTime = 100L + i;
             waitForProgressToRecompute();
             assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 50);
         }

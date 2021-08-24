@@ -17,6 +17,7 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -358,16 +359,13 @@ public class AtlasDbConfigTest {
     }
 
     @Test
-    public void globalNamespaceAlwaysReportsConflictsIfPresentForKvs() {
-        assertThatThrownBy(() -> ImmutableAtlasDbConfig.builder()
-                        .namespace(OTHER_CLIENT)
-                        .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
-                        .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
-                        .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
-                        .build())
-                .isInstanceOf(IllegalStateException.class)
-                .satisfies(
-                        exception -> assertThat(exception.getMessage()).contains("atlas root-level namespace config"));
+    public void allowGlobalNamespaceAndKvsToDifferWhenFlagged() {
+        assertThatNoException().isThrownBy(() -> ImmutableAtlasDbConfig.builder()
+                .namespace(OTHER_CLIENT)
+                .keyValueService(KVS_CONFIG_WITH_NAMESPACE)
+                .timelock(TIMELOCK_CONFIG_WITH_OTHER_CLIENT)
+                .enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces(true)
+                .build());
     }
 
     @Test

@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -24,12 +27,17 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -41,11 +49,9 @@ import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.commons.lang3.Validate;
 import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class CassandraVerifier {
-    private static final Logger log = LoggerFactory.getLogger(CassandraVerifier.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraVerifier.class);
     private static final KsDef SIMPLE_RF_TEST_KS_DEF = new KsDef(
                     CassandraConstants.SIMPLE_RF_TEST_KEYSPACE, CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of())
             .setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1"));
@@ -56,6 +62,10 @@ public final class CassandraVerifier {
             + "If you're running in some sort of environment where nodes have no known correlated "
             + "failure patterns, you can set the 'ignoreNodeTopologyChecks' KVS config option.";
 
+    @VisibleForTesting
+    static final Cache<CassandraServersConfig, Set<String>> sanityCheckedDatacenters =
+            Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(60)).build();
+
     private CassandraVerifier() {
         // Utility class
     }
@@ -65,8 +75,18 @@ public final class CassandraVerifier {
         return null;
     };
 
-    static Set<String> sanityCheckDatacenters(CassandraClient client, CassandraKeyValueServiceConfig config)
-            throws TException {
+    static Set<String> sanityCheckDatacenters(CassandraClient client, CassandraKeyValueServiceConfig config) {
+        return sanityCheckedDatacenters.get(config.servers(), _kvsConfig -> {
+            try {
+                return sanityCheckDatacentersInternal(client, config);
+            } catch (TException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        });
+    }
+
+    private static Set<String> sanityCheckDatacentersInternal(
+            CassandraClient client, CassandraKeyValueServiceConfig config) throws TException {
         createSimpleRfTestKeyspaceIfNotExists(client);
 
         Multimap<String, String> datacenterToRack = HashMultimap.create();
@@ -264,7 +284,7 @@ public final class CassandraVerifier {
         });
     }
 
-    static KsDef createKsDefForFresh(CassandraClient client, CassandraKeyValueServiceConfig config) throws TException {
+    static KsDef createKsDefForFresh(CassandraClient client, CassandraKeyValueServiceConfig config) {
         KsDef ksDef = new KsDef(config.getKeyspaceOrThrow(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
         Set<String> dcs = sanityCheckDatacenters(client, config);
         ksDef.setStrategy_options(Maps.asMap(dcs, ignore -> String.valueOf(config.replicationFactor())));
@@ -273,7 +293,7 @@ public final class CassandraVerifier {
     }
 
     static KsDef checkAndSetReplicationFactor(
-            CassandraClient client, KsDef ksDef, CassandraKeyValueServiceConfig config) throws TException {
+            CassandraClient client, KsDef ksDef, CassandraKeyValueServiceConfig config) {
         KsDef result = ksDef;
         Set<String> datacenters;
         if (Objects.equals(result.getStrategy_class(), CassandraConstants.SIMPLE_STRATEGY)) {
@@ -288,7 +308,7 @@ public final class CassandraVerifier {
     }
 
     private static Set<String> getDcForSimpleStrategy(
-            CassandraClient client, KsDef ksDef, CassandraKeyValueServiceConfig config) throws TException {
+            CassandraClient client, KsDef ksDef, CassandraKeyValueServiceConfig config) {
         checkKsDefRfEqualsOne(ksDef, config);
         Set<String> datacenters = sanityCheckDatacenters(client, config);
         checkOneDatacenter(config, datacenters);

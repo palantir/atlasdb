@@ -56,7 +56,7 @@ public final class PaxosConsensusTestUtils {
         List<AtomicBoolean> failureToggles = new ArrayList<>();
         ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-        DataSource sqliteDataSource = SqliteConnections.getPooledDataSource(getSqlitePath());
+        DataSource sqliteDataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(getSqlitePath());
 
         RuntimeException exception = new SafeRuntimeException("mock server failure");
         SplittingPaxosStateLog.LegacyOperationMarkers noop = ImmutableLegacyOperationMarkers.builder()

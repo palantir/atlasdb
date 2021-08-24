@@ -256,6 +256,11 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         }
     }
 
+    @Override
+    public boolean isClosed() {
+        return state.type == StateType.CLOSED;
+    }
+
     /**
      * Initializes a connection to the provided database.
      */

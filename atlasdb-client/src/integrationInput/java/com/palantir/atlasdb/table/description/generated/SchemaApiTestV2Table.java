@@ -34,10 +34,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRendererV2")
-@SuppressWarnings({
-        "all",
-        "deprecation"
-})
+@SuppressWarnings({"all", "deprecation"})
 public class SchemaApiTestV2Table {
     private static final String rawTableName = "SchemaApiTest";
 
@@ -76,14 +73,15 @@ public class SchemaApiTestV2Table {
     public Optional<Long> getColumn1(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] bytes = row.persistToBytes();
-        ColumnSelection colSelection = 
-                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
+        ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
 
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), colSelection).get(bytes);
+        RowResult<byte[]> rowResult =
+                t.getRows(tableRef, ImmutableSet.of(bytes), colSelection).get(bytes);
         if (rowResult == null) {
-             return Optional.empty();
+            return Optional.empty();
         } else {
-             return Optional.of(SchemaApiTestTable.SchemaApiTestRowResult.of(rowResult).getColumn1());
+            return Optional.of(
+                    SchemaApiTestTable.SchemaApiTestRowResult.of(rowResult).getColumn1());
         }
     }
 
@@ -93,22 +91,18 @@ public class SchemaApiTestV2Table {
      * If the column does not exist for a key, the entry will be omitted from the map.
      */
     public Map<String, Long> getColumn1(Iterable<String> rowKeys) {
-        ColumnSelection colSelection = 
-                 ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
-        List<SchemaApiTestTable.SchemaApiTestRow> rows = Lists
-                .newArrayList(rowKeys)
-                .stream()
+        ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
+        List<SchemaApiTestTable.SchemaApiTestRow> rows = Lists.newArrayList(rowKeys).stream()
                 .map(SchemaApiTestTable.SchemaApiTestRow::of)
                 .collect(Collectors.toList());
 
-        NavigableMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), colSelection);
-        return results
-                .values()
-                .stream()
+        NavigableMap<byte[], RowResult<byte[]>> results =
+                t.getRows(tableRef, Persistables.persistAll(rows), colSelection);
+        return results.values().stream()
                 .map(entry -> SchemaApiTestTable.SchemaApiTestRowResult.of(entry))
                 .collect(Collectors.toMap(
-                     entry -> entry.getRowName().getComponent1(), 
-                     SchemaApiTestTable.SchemaApiTestRowResult::getColumn1));
+                        entry -> entry.getRowName().getComponent1(),
+                        SchemaApiTestTable.SchemaApiTestRowResult::getColumn1));
     }
 
     /**
@@ -117,18 +111,18 @@ public class SchemaApiTestV2Table {
      * do not use for large amounts of data. The order of results is preserved in the map.
      */
     public LinkedHashMap<String, Long> getSmallRowRangeColumn1(RangeRequest rangeRequest) {
-        ColumnSelection colSelection =
-                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
+        ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
-        Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
-                "Must not request columns other than Column1.");
+        Preconditions.checkArgument(
+                rangeRequest.getColumnNames().size() <= 1, "Must not request columns other than Column1.");
 
         LinkedHashMap<String, Long> resultsMap = new LinkedHashMap<>();
         BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
-                .immutableCopy().forEach(entry -> {
-                     SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
-                          SchemaApiTestTable.SchemaApiTestRowResult.of(entry);
-                     resultsMap.put(resultEntry.getRowName().getComponent1(), resultEntry.getColumn1());
+                .immutableCopy()
+                .forEach(entry -> {
+                    SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
+                            SchemaApiTestTable.SchemaApiTestRowResult.of(entry);
+                    resultsMap.put(resultEntry.getRowName().getComponent1(), resultEntry.getColumn1());
                 });
         return resultsMap;
     }
@@ -138,11 +132,12 @@ public class SchemaApiTestV2Table {
      * (if that column exists for the row-key). As the Column1 values are all loaded in memory,
      * do not use for large amounts of data. The order of results is preserved in the map.
      */
-    public LinkedHashMap<String, Long> getSmallRowRangeColumn1(String startInclusive,
-            String endExclusive) {
+    public LinkedHashMap<String, Long> getSmallRowRangeColumn1(String startInclusive, String endExclusive) {
         RangeRequest rangeRequest = RangeRequest.builder()
-                .startRowInclusive(SchemaApiTestTable.SchemaApiTestRow.of(startInclusive).persistToBytes())
-                .endRowExclusive(SchemaApiTestTable.SchemaApiTestRow.of(endExclusive).persistToBytes())
+                .startRowInclusive(
+                        SchemaApiTestTable.SchemaApiTestRow.of(startInclusive).persistToBytes())
+                .endRowExclusive(
+                        SchemaApiTestTable.SchemaApiTestRow.of(endExclusive).persistToBytes())
                 .build();
         return getSmallRowRangeColumn1(rangeRequest);
     }
@@ -152,24 +147,25 @@ public class SchemaApiTestV2Table {
      * at column Column1 (if that column exists). As the Column1 entries are all loaded in memory,
      * do not use for large values of sizeLimit. The order of results is preserved in the map.
      */
-    public LinkedHashMap<String, Long> getSmallRowRangeColumn1(RangeRequest rangeRequest,
-            int sizeLimit) {
-        ColumnSelection colSelection =
-                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
-        rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).batchHint(sizeLimit).build();
-        Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
-                "Must not request columns other than Column1.");
+    public LinkedHashMap<String, Long> getSmallRowRangeColumn1(RangeRequest rangeRequest, int sizeLimit) {
+        ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
+        rangeRequest = rangeRequest
+                .getBuilder()
+                .retainColumns(colSelection)
+                .batchHint(sizeLimit)
+                .build();
+        Preconditions.checkArgument(
+                rangeRequest.getColumnNames().size() <= 1, "Must not request columns other than Column1.");
 
         LinkedHashMap<String, Long> resultsMap = new LinkedHashMap<>();
-        BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
-                .batchAccept(sizeLimit, batch -> {
-                     batch.forEach(entry -> {
-                         SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
-                              SchemaApiTestTable.SchemaApiTestRowResult.of(entry);
-                         resultsMap.put(resultEntry.getRowName().getComponent1(), resultEntry.getColumn1());
-                     });
-                     return false; // stops the traversal after the first batch
-                });
+        BatchingVisitableView.of(t.getRange(tableRef, rangeRequest)).batchAccept(sizeLimit, batch -> {
+            batch.forEach(entry -> {
+                SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
+                        SchemaApiTestTable.SchemaApiTestRowResult.of(entry);
+                resultsMap.put(resultEntry.getRowName().getComponent1(), resultEntry.getColumn1());
+            });
+            return false; // stops the traversal after the first batch
+        });
         return resultsMap;
     }
 
@@ -179,14 +175,15 @@ public class SchemaApiTestV2Table {
     public Optional<StringValue> getColumn2(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] bytes = row.persistToBytes();
-        ColumnSelection colSelection = 
-                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
+        ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
 
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), colSelection).get(bytes);
+        RowResult<byte[]> rowResult =
+                t.getRows(tableRef, ImmutableSet.of(bytes), colSelection).get(bytes);
         if (rowResult == null) {
-             return Optional.empty();
+            return Optional.empty();
         } else {
-             return Optional.of(SchemaApiTestTable.SchemaApiTestRowResult.of(rowResult).getColumn2());
+            return Optional.of(
+                    SchemaApiTestTable.SchemaApiTestRowResult.of(rowResult).getColumn2());
         }
     }
 
@@ -196,22 +193,18 @@ public class SchemaApiTestV2Table {
      * If the column does not exist for a key, the entry will be omitted from the map.
      */
     public Map<String, StringValue> getColumn2(Iterable<String> rowKeys) {
-        ColumnSelection colSelection = 
-                 ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
-        List<SchemaApiTestTable.SchemaApiTestRow> rows = Lists
-                .newArrayList(rowKeys)
-                .stream()
+        ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
+        List<SchemaApiTestTable.SchemaApiTestRow> rows = Lists.newArrayList(rowKeys).stream()
                 .map(SchemaApiTestTable.SchemaApiTestRow::of)
                 .collect(Collectors.toList());
 
-        NavigableMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), colSelection);
-        return results
-                .values()
-                .stream()
+        NavigableMap<byte[], RowResult<byte[]>> results =
+                t.getRows(tableRef, Persistables.persistAll(rows), colSelection);
+        return results.values().stream()
                 .map(entry -> SchemaApiTestTable.SchemaApiTestRowResult.of(entry))
                 .collect(Collectors.toMap(
-                     entry -> entry.getRowName().getComponent1(), 
-                     SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
+                        entry -> entry.getRowName().getComponent1(),
+                        SchemaApiTestTable.SchemaApiTestRowResult::getColumn2));
     }
 
     /**
@@ -220,18 +213,18 @@ public class SchemaApiTestV2Table {
      * do not use for large amounts of data. The order of results is preserved in the map.
      */
     public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(RangeRequest rangeRequest) {
-        ColumnSelection colSelection =
-                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
+        ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
         rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).build();
-        Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
-                "Must not request columns other than Column2.");
+        Preconditions.checkArgument(
+                rangeRequest.getColumnNames().size() <= 1, "Must not request columns other than Column2.");
 
         LinkedHashMap<String, StringValue> resultsMap = new LinkedHashMap<>();
         BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
-                .immutableCopy().forEach(entry -> {
-                     SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
-                          SchemaApiTestTable.SchemaApiTestRowResult.of(entry);
-                     resultsMap.put(resultEntry.getRowName().getComponent1(), resultEntry.getColumn2());
+                .immutableCopy()
+                .forEach(entry -> {
+                    SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
+                            SchemaApiTestTable.SchemaApiTestRowResult.of(entry);
+                    resultsMap.put(resultEntry.getRowName().getComponent1(), resultEntry.getColumn2());
                 });
         return resultsMap;
     }
@@ -241,11 +234,12 @@ public class SchemaApiTestV2Table {
      * (if that column exists for the row-key). As the Column2 values are all loaded in memory,
      * do not use for large amounts of data. The order of results is preserved in the map.
      */
-    public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(String startInclusive,
-            String endExclusive) {
+    public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(String startInclusive, String endExclusive) {
         RangeRequest rangeRequest = RangeRequest.builder()
-                .startRowInclusive(SchemaApiTestTable.SchemaApiTestRow.of(startInclusive).persistToBytes())
-                .endRowExclusive(SchemaApiTestTable.SchemaApiTestRow.of(endExclusive).persistToBytes())
+                .startRowInclusive(
+                        SchemaApiTestTable.SchemaApiTestRow.of(startInclusive).persistToBytes())
+                .endRowExclusive(
+                        SchemaApiTestTable.SchemaApiTestRow.of(endExclusive).persistToBytes())
                 .build();
         return getSmallRowRangeColumn2(rangeRequest);
     }
@@ -255,24 +249,25 @@ public class SchemaApiTestV2Table {
      * at column Column2 (if that column exists). As the Column2 entries are all loaded in memory,
      * do not use for large values of sizeLimit. The order of results is preserved in the map.
      */
-    public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(RangeRequest rangeRequest,
-            int sizeLimit) {
-        ColumnSelection colSelection =
-                ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
-        rangeRequest = rangeRequest.getBuilder().retainColumns(colSelection).batchHint(sizeLimit).build();
-        Preconditions.checkArgument(rangeRequest.getColumnNames().size() <= 1,
-                "Must not request columns other than Column2.");
+    public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(RangeRequest rangeRequest, int sizeLimit) {
+        ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
+        rangeRequest = rangeRequest
+                .getBuilder()
+                .retainColumns(colSelection)
+                .batchHint(sizeLimit)
+                .build();
+        Preconditions.checkArgument(
+                rangeRequest.getColumnNames().size() <= 1, "Must not request columns other than Column2.");
 
         LinkedHashMap<String, StringValue> resultsMap = new LinkedHashMap<>();
-        BatchingVisitableView.of(t.getRange(tableRef, rangeRequest))
-                .batchAccept(sizeLimit, batch -> {
-                     batch.forEach(entry -> {
-                         SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
-                              SchemaApiTestTable.SchemaApiTestRowResult.of(entry);
-                         resultsMap.put(resultEntry.getRowName().getComponent1(), resultEntry.getColumn2());
-                     });
-                     return false; // stops the traversal after the first batch
-                });
+        BatchingVisitableView.of(t.getRange(tableRef, rangeRequest)).batchAccept(sizeLimit, batch -> {
+            batch.forEach(entry -> {
+                SchemaApiTestTable.SchemaApiTestRowResult resultEntry =
+                        SchemaApiTestTable.SchemaApiTestRowResult.of(entry);
+                resultsMap.put(resultEntry.getRowName().getComponent1(), resultEntry.getColumn2());
+            });
+            return false; // stops the traversal after the first batch
+        });
         return resultsMap;
     }
 

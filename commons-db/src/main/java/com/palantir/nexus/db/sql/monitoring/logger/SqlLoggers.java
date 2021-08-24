@@ -15,14 +15,14 @@
  */
 package com.palantir.nexus.db.sql.monitoring.logger;
 
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressFBWarnings("SLF4J_LOGGER_SHOULD_BE_PRIVATE")
 public class SqlLoggers {
-    public static final Logger LOGGER = LoggerFactory.getLogger("com.palantir.nexus.db.SQL");
-    public static final Logger CANCEL_LOGGER = LoggerFactory.getLogger("com.palantir.nexus.db.SQL.cancel");
-    public static final Logger SQL_EXCEPTION_LOG =
-            LoggerFactory.getLogger("sqlException.com.palantir.nexus.db.sql.BasicSQL");
+    public static final SafeLogger LOGGER = SafeLoggerFactory.get("com.palantir.nexus.db.SQL");
+    public static final SafeLogger CANCEL_LOGGER = SafeLoggerFactory.get("com.palantir.nexus.db.SQL.cancel");
+    public static final SafeLogger SQL_EXCEPTION_LOG =
+            SafeLoggerFactory.get("sqlException.com.palantir.nexus.db.sql.BasicSQL");
 }

@@ -47,6 +47,8 @@ import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,11 +59,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class KvTableMappingService implements TableMappingService {
-    private static final Logger log = LoggerFactory.getLogger(KvTableMappingService.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(KvTableMappingService.class);
 
     public static final TableMetadata NAMESPACE_TABLE_METADATA = TableMetadata.internal()
             .rowMetadata(NameMetadataDescription.create(ImmutableList.of(

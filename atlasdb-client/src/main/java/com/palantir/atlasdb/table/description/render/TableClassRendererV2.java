@@ -45,6 +45,7 @@ import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.persist.Persistables;
+import com.palantir.goethe.Goethe;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -112,7 +113,7 @@ public class TableClassRendererV2 {
                 .indent("    ")
                 .build();
 
-        return javaFile.toString();
+        return Goethe.formatAsString(javaFile);
     }
 
     private TypeSpec buildTypeSpec() {

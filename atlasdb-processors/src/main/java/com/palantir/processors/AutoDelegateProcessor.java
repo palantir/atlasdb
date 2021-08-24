@@ -18,6 +18,7 @@ package com.palantir.processors;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapMaker;
+import com.palantir.goethe.Goethe;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -197,10 +198,11 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
     private void generateCode(TypeToExtend typeToExtend) throws IOException {
         String newTypeName = PREFIX + typeToExtend.getSimpleName();
-        TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(newTypeName);
-        typeBuilder.addTypeVariables(typeToExtend.getTypeParameterElements().stream()
-                .map(TypeVariableName::get)
-                .collect(Collectors.toList()));
+        TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(newTypeName)
+                .addOriginatingElement(typeToExtend.getTypeElement())
+                .addTypeVariables(typeToExtend.getTypeParameterElements().stream()
+                        .map(TypeVariableName::get)
+                        .collect(Collectors.toList()));
 
         // Add modifiers
         TypeMirror typeMirror = typeToExtend.getType();
@@ -235,9 +237,10 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
             typeBuilder.addMethod(method.build());
         }
 
-        JavaFile.builder(typeToExtend.getPackageName(), typeBuilder.build())
-                .build()
-                .writeTo(filer);
+        Goethe.formatAndEmit(
+                JavaFile.builder(typeToExtend.getPackageName(), typeBuilder.build())
+                        .build(),
+                filer);
     }
 
     /**

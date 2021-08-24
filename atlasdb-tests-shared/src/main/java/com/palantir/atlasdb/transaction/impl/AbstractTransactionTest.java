@@ -204,11 +204,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     // we want PK violations on the Transaction table
     @Test
     public void testPrimaryKeyViolation() {
-        Cell cell = Cell.create("r1".getBytes(), TransactionConstants.COMMIT_TS_COLUMN);
-        keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, ImmutableMap.of(cell, "v1".getBytes()));
+        Cell cell = Cell.create("r1".getBytes(StandardCharsets.UTF_8), TransactionConstants.COMMIT_TS_COLUMN);
+        keyValueService.putUnlessExists(
+                TransactionConstants.TRANSACTION_TABLE, ImmutableMap.of(cell, "v1".getBytes(StandardCharsets.UTF_8)));
 
         assertThatThrownBy(() -> keyValueService.putUnlessExists(
-                        TransactionConstants.TRANSACTION_TABLE, ImmutableMap.of(cell, "v2".getBytes())))
+                        TransactionConstants.TRANSACTION_TABLE,
+                        ImmutableMap.of(cell, "v2".getBytes(StandardCharsets.UTF_8))))
                 .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
@@ -449,8 +451,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row2", "col2", "", 0);
 
         final RangeRequest allRange = RangeRequest.builder().build();
-        final RangeRequest oneRange =
-                RangeRequest.builder().startRowInclusive("row2".getBytes()).build();
+        final RangeRequest oneRange = RangeRequest.builder()
+                .startRowInclusive("row2".getBytes(StandardCharsets.UTF_8))
+                .build();
         final RangeRequest allRangeBatch = RangeRequest.builder().batchHint(3).build();
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges =
                 keyValueService.getFirstBatchForRanges(
@@ -482,7 +485,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row2", "col2", "", 0);
 
         RangeRequest allRange = RangeRequest.builder()
-                .prefixRange("row1".getBytes())
+                .prefixRange("row1".getBytes(StandardCharsets.UTF_8))
                 .batchHint(3)
                 .build();
         for (int i = 0; i < 1000; i++) {

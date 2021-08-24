@@ -29,6 +29,8 @@ public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T
 
     private final Function<Collection<T>, T> aggregator;
     private final Supplier<VersionedType<T>> memoizedValue;
+
+    // Only accessed in the context of the memoized supplier
     private volatile long version = UNINITIALIZED_VERSION;
 
     private final ConcurrentMap<Integer, T> latestValues = new ConcurrentHashMap<>();
@@ -63,6 +65,7 @@ public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T
         latestValues.put(key, value);
     }
 
+    @SuppressWarnings("NonAtomicVolatileUpdate") // Accessed by 1 thread at a time, but needed for visibility.
     private VersionedType<T> recalculate() {
         version++;
         return VersionedType.of(aggregator.apply(latestValues.values()), version);

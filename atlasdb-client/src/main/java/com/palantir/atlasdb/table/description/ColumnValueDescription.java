@@ -349,8 +349,9 @@ public final class ColumnValueDescription {
                 + ", com.palantir.atlasdb.table.description.ColumnValueDescription.Compression." + compression + ")";
     }
 
-    public String getInstantiateReusablePersisterCode() {
-        return "private final " + canonicalClassName + " REUSABLE_PERSISTER = " + "new " + canonicalClassName + "();";
+    public String getInstantiateReusablePersisterCode(boolean isStatic) {
+        return "private " + (isStatic ? "static " : "") + "final " + canonicalClassName + " REUSABLE_PERSISTER = new "
+                + canonicalClassName + "();";
     }
 
     @SuppressWarnings("unchecked")

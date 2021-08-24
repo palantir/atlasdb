@@ -26,17 +26,17 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import java.util.Optional;
 import java.util.function.LongSupplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @AutoService(AtlasDbFactory.class)
 public class JdbcAtlasDbFactory implements AtlasDbFactory<KeyValueServiceConfig> {
-    private static final Logger log = LoggerFactory.getLogger(JdbcAtlasDbFactory.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(JdbcAtlasDbFactory.class);
 
     @Override
     public String getType() {

@@ -18,11 +18,11 @@ package com.palantir.atlasdb.timelock.transaction.timestamp;
 
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.PartitionedTimestamps;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampRange;
 import java.util.UUID;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A {@link ClientAwareManagedTimestampService} that also verifies that it is not known to not be the leader before
@@ -30,8 +30,8 @@ import org.slf4j.LoggerFactory;
  */
 public class LeadershipGuardedClientAwareManagedTimestampService
         implements ClientAwareManagedTimestampService, AutoCloseable {
-    private static final Logger log =
-            LoggerFactory.getLogger(LeadershipGuardedClientAwareManagedTimestampService.class);
+    private static final SafeLogger log =
+            SafeLoggerFactory.get(LeadershipGuardedClientAwareManagedTimestampService.class);
 
     private final ClientAwareManagedTimestampService delegate;
     private volatile boolean isClosed = false;

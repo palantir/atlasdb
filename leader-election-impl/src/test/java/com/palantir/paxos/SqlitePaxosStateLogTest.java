@@ -53,7 +53,8 @@ public class SqlitePaxosStateLogTest {
 
     @Before
     public void setup() {
-        dataSource = SqliteConnections.getPooledDataSource(tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
+                tempFolder.getRoot().toPath());
         stateLog = SqlitePaxosStateLog.create(wrap(CLIENT_1, USE_CASE_1), dataSource);
     }
 

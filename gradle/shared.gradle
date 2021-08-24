@@ -28,9 +28,11 @@ task testJarForPublishing(type: Jar) {
 libsDirName = file('build/artifacts')
 
 dependencies {
-    // Dont add Java8 compile/runtime dependencies here as commons-executors needs to be compatible with Java6 clients
     compile group: 'com.google.code.findbugs', name: 'jsr305'
     compile group: 'com.google.code.findbugs', name: 'findbugs-annotations'
+
+    implementation 'com.palantir.safe-logging:logger'
+
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'
 }

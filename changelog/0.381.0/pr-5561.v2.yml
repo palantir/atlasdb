@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: |-
+    Config: Allow connecting to different timelock namespace than KVS
+
+    There is currently no way to connect to a different timelock namespace than the configured KVS namespace. When using postgres/oracle as a DB-based KVS, the KVS namespace is set to their database name (such as 'db' or 'opgid' or something), which is undesirable as a timelock namespace.
+
+    This simply extends an existing config option to allow for the timelock namespace to differ.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5561
