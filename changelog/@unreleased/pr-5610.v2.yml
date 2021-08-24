@@ -1,0 +1,9 @@
+type: manualTask
+manualTask:
+  description: |-
+    [CL/DNM] Lie about timestamp violation for smoke test
+
+    **Goals (and why)**:
+    For a tenth of users, report timestamp violation metric, to verify that automated alerting works.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5610
