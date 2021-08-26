@@ -130,7 +130,7 @@ public final class TransactionConflictDetectionManagerTest {
     }
 
     private void whenDisableReadWriteConflict(ConflictHandler initial) throws Exception {
-        when(delegate.load(TABLE_REFERENCE)).thenReturn(Optional.of(initial));
+        when(delegate.load(TABLE_REFERENCE)).thenReturn(Optional.ofNullable(initial));
         conflictDetectionManager.disableReadWriteConflict(TABLE_REFERENCE);
     }
 }
