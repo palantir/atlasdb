@@ -26,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import org.junit.Before;
@@ -64,7 +63,7 @@ public final class TransactionConflictDetectionManagerTest {
     @Test
     public void testDisableReadWriteConflict_throwsIfDelegateValueIsNull() {
         assertThatLoggableExceptionThrownBy(() -> whenDisableReadWriteConflict(null))
-                .isExactlyInstanceOf(SafeNullPointerException.class)
+                .isExactlyInstanceOf(SafeIllegalStateException.class)
                 .hasLogMessage("Conflict handler cannot be null when overwriting");
     }
 
