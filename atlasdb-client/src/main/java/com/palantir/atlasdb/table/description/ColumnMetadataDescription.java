@@ -34,6 +34,10 @@ public class ColumnMetadataDescription {
                 new NameMetadataDescription(), ColumnValueDescription.forType(ValueType.BLOB)));
     }
 
+    public static void main(String[] args) {
+        new ColumnMetadataDescription();
+    }
+
     public ColumnMetadataDescription(Iterable<NamedColumnDescription> namedColumns) {
         this.namedColumns = ImmutableSet.copyOf(namedColumns);
         this.dynamicColumn = null;

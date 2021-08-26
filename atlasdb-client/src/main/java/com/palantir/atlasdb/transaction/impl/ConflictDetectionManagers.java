@@ -21,6 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,10 +31,10 @@ public final class ConflictDetectionManagers {
     private ConflictDetectionManagers() {}
 
     public static ConflictDetectionManager createWithNoConflictDetection() {
-        return new ConflictDetectionManager(new CacheLoader<TableReference, ConflictHandler>() {
+        return new ConflictDetectionManager(new CacheLoader<>() {
             @Override
-            public ConflictHandler load(TableReference tableReference) throws Exception {
-                return ConflictHandler.IGNORE_ALL;
+            public Optional<ConflictHandler> load(TableReference tableReference) throws Exception {
+                return Optional.of(ConflictHandler.IGNORE_ALL);
             }
         });
     }
@@ -63,21 +64,18 @@ public final class ConflictDetectionManagers {
     }
 
     private static ConflictDetectionManager create(KeyValueService kvs, boolean warmCache) {
-        ConflictDetectionManager conflictDetectionManager =
-                new ConflictDetectionManager(new CacheLoader<TableReference, ConflictHandler>() {
-                    @Override
-                    public ConflictHandler load(TableReference tableReference) throws Exception {
-                        byte[] metadata = kvs.getMetadataForTable(tableReference);
-                        if (metadata == null) {
-                            log.error(
-                                    "Tried to make a transaction over a table that has no metadata: {}.",
-                                    tableReference);
-                            return null;
-                        } else {
-                            return getConflictHandlerFromMetadata(metadata);
-                        }
-                    }
-                });
+        ConflictDetectionManager conflictDetectionManager = new ConflictDetectionManager(new CacheLoader<>() {
+            @Override
+            public Optional<ConflictHandler> load(TableReference tableReference) throws Exception {
+                byte[] metadata = kvs.getMetadataForTable(tableReference);
+                if (metadata == null) {
+                    log.error("Tried to make a transaction over a table that has no metadata: {}.", tableReference);
+                    return Optional.empty();
+                } else {
+                    return Optional.of(getConflictHandlerFromMetadata(metadata));
+                }
+            }
+        });
         if (warmCache) {
             // kick off an async thread that attempts to fully warm this cache
             // if it fails (e.g. probably this user has way too many tables), that's okay,
@@ -91,9 +89,9 @@ public final class ConflictDetectionManagers {
                                                     log.debug("Metadata was null for a table. likely because the table"
                                                             + " is currently  being created. Skipping warming"
                                                             + " cache for the table.");
-                                                    return null;
+                                                    return Optional.empty();
                                                 } else {
-                                                    return getConflictHandlerFromMetadata(metadata);
+                                                    return Optional.of(getConflictHandlerFromMetadata(metadata));
                                                 }
                                             }));
                                 } catch (Throwable t) {
