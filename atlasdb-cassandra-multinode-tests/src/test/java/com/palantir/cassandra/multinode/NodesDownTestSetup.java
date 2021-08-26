@@ -47,7 +47,8 @@ public abstract class NodesDownTestSetup {
 
     static void initializeKvsAndDegradeCluster(List<Class<?>> tests, List<String> nodesToKill) throws Exception {
         for (Class<?> test : tests) {
-            test.getMethod("initialize", CassandraKeyValueService.class).invoke(test.newInstance(), createKvs(test));
+            test.getMethod("initialize", CassandraKeyValueService.class)
+                    .invoke(test.getDeclaredConstructor().newInstance(), createKvs(test));
         }
         degradeCassandraCluster(nodesToKill);
     }
