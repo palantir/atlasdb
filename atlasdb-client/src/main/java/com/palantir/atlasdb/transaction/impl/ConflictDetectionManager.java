@@ -38,7 +38,6 @@ public class ConflictDetectionManager {
      *  and I'm fine with just documenting this behavior.
      *
      *  (This has always been the behavior of this class; I'm simply calling it out)
-     * @param loader
      */
     public ConflictDetectionManager(CacheLoader<TableReference, Optional<ConflictHandler>> loader) {
         this.cache = CacheBuilder.newBuilder().maximumSize(100_000).build(loader);
