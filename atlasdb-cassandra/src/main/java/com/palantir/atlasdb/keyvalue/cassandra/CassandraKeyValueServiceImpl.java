@@ -114,6 +114,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -858,7 +859,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             Map<byte[], Map<Cell, Value>> results = firstPage.getResults();
             Map<byte[], Column> rowsToLastCompositeColumns = firstPage.getRowsToLastCompositeColumns();
-            Map<byte[], byte[]> incompleteRowsToNextColumns = new HashMap<>();
+            IdentityHashMap<byte[], byte[]> incompleteRowsToNextColumns = new IdentityHashMap<>();
             for (Map.Entry<byte[], Column> e : rowsToLastCompositeColumns.entrySet()) {
                 byte[] row = e.getKey();
                 byte[] col =
