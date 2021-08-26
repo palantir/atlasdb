@@ -107,7 +107,6 @@ allprojects {
                 'CloseableProvides',
                 'DangerousCompletableFutureUsage',
                 'DnsLookup',
-                'DoNotMock',
                 'EmptyBlockTag',
                 'EqualsGetClass',
                 'ExtendsErrorOrThrowable',

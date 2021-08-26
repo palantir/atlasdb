@@ -40,6 +40,7 @@ import java.util.concurrent.TimeoutException;
 import org.junit.Before;
 import org.junit.Test;
 
+@SuppressWarnings("DoNotMock") // we are just using mocks as proxies that always throw
 public class BlockingTimeLimitedLockServiceTest {
     private static final long BLOCKING_TIME_LIMIT_MILLIS = 10L;
     private static final long TEST_CURRENT_TIME_MILLIS = 42L;
