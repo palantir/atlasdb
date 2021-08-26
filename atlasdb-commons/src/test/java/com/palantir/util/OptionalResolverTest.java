@@ -54,7 +54,8 @@ public class OptionalResolverTest {
 
     @Test
     public void resolvesToValueIfOneOptionalPresentAndOneIsNull() {
-        assertThat(OptionalResolver.resolve(PRESENT_OPTIONAL_1, null)).isEqualTo(STRING_1);
+        assertThat(OptionalResolver.resolve(PRESENT_OPTIONAL_1, Optional.empty()))
+                .isEqualTo(STRING_1);
     }
 
     @Test
