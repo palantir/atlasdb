@@ -71,7 +71,7 @@ class RowColumnRangeExtractor {
     private final IdentityHashMap<byte[], LinkedHashMap<Cell, Value>> collector = new IdentityHashMap<>();
     private final IdentityHashMap<byte[], Column> rowsToLastCompositeColumns = new IdentityHashMap<>();
     private final IdentityHashMap<byte[], Integer> rowsToRawColumnCount = new IdentityHashMap<>();
-    private final Set<byte[]> emptyRows = Collections.newSetFromMap(new IdentityHashMap<>()) ;
+    private final Set<byte[]> emptyRows = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Counter notLatestVisibleValueCellFilterCounter;
 
     RowColumnRangeExtractor(MetricsManager metricsManager) {
