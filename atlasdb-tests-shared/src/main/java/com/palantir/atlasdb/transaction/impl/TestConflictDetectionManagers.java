@@ -20,16 +20,18 @@ import com.google.common.cache.CacheLoader;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.Map;
+import java.util.Optional;
 
 public final class TestConflictDetectionManagers {
     private TestConflictDetectionManagers() {}
 
     @VisibleForTesting
-    static ConflictDetectionManager createWithStaticConflictDetection(Map<TableReference, ConflictHandler> staticMap) {
-        return new ConflictDetectionManager(new CacheLoader<TableReference, ConflictHandler>() {
+    static ConflictDetectionManager createWithStaticConflictDetection(
+            Map<TableReference, Optional<ConflictHandler>> staticMap) {
+        return new ConflictDetectionManager(new CacheLoader<>() {
             @Override
-            public ConflictHandler load(TableReference tableReference) throws Exception {
-                return staticMap.getOrDefault(tableReference, ConflictHandler.RETRY_ON_WRITE_WRITE);
+            public Optional<ConflictHandler> load(TableReference tableReference) throws Exception {
+                return staticMap.getOrDefault(tableReference, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE));
             }
         });
     }

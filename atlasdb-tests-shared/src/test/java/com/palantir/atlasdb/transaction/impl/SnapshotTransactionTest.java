@@ -2119,7 +2119,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         NoOpCleaner.INSTANCE,
                         startTs,
                         TestConflictDetectionManagers.createWithStaticConflictDetection(
-                                ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
+                                ImmutableMap.of(TABLE, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE))),
                         SweepStrategyManagers.createDefault(keyValueService),
                         lockImmutableTimestampResponse.getImmutableTimestamp(),
                         Optional.of(lockImmutableTimestampResponse.getLock()),

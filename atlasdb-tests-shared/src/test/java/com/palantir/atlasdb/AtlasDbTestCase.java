@@ -48,6 +48,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import org.junit.After;
@@ -137,7 +138,7 @@ public class AtlasDbTestCase {
     }
 
     protected void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
-        txManager.overrideConflictHandlerForTable(table, conflictHandler);
+        txManager.overrideConflictHandlerForTable(table, Optional.of(conflictHandler));
     }
 
     protected void setConstraintCheckingMode(AtlasDbConstraintCheckingMode mode) {
