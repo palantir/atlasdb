@@ -23,17 +23,17 @@ import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableCassandraTracingConfig.class)
 @JsonSerialize(as = ImmutableCassandraTracingConfig.class)
 public abstract class CassandraTracingConfig {
-    private static final Logger log = LoggerFactory.getLogger(CassandraTracingConfig.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraTracingConfig.class);
     private static final AtomicBoolean loggedWarning = new AtomicBoolean();
 
     @JsonProperty("enabled")
