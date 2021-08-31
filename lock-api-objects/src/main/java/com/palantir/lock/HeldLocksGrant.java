@@ -138,7 +138,7 @@ public final class HeldLocksGrant implements ExpiringToken, Serializable {
     }
 
     public List<LockWithMode> getLocksWithMode() {
-        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), HeldLocksGrant::toLockWithModeFunction));
+        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), HeldLocksGrant::toLockWithMode));
     }
 
     /**
@@ -204,7 +204,7 @@ public final class HeldLocksGrant implements ExpiringToken, Serializable {
         throw new InvalidObjectException("proxy required");
     }
 
-    private static LockWithMode toLockWithModeFunction(Map.Entry<LockDescriptor, LockMode> input) {
+    private static LockWithMode toLockWithMode(Map.Entry<LockDescriptor, LockMode> input) {
         return new LockWithMode(input.getKey(), input.getValue());
     }
 

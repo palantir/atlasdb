@@ -154,7 +154,6 @@ allprojects {
                 'TooManyArguments',
                 'TypeParameterUnusedInFormals',
                 'UndefinedEquals',
-//                'UnnecessaryLambda',
                 'UnrecognisedJavadocTag',
                 'UseCorrectAssertInTests',
                 'ValidateConstantMessage',

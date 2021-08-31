@@ -132,7 +132,7 @@ public final class HeldLocksToken implements ExpiringToken, Serializable {
     }
 
     public List<LockWithMode> getLocks() {
-        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), HeldLocksToken::toLockWithModeFunction));
+        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), HeldLocksToken::toLockWithMode));
     }
 
     /**
@@ -211,7 +211,7 @@ public final class HeldLocksToken implements ExpiringToken, Serializable {
         return new SerializationProxy(this);
     }
 
-    private static LockWithMode toLockWithModeFunction(Map.Entry<LockDescriptor, LockMode> input) {
+    private static LockWithMode toLockWithMode(Map.Entry<LockDescriptor, LockMode> input) {
         return new LockWithMode(input.getKey(), input.getValue());
     }
 

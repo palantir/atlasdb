@@ -55,7 +55,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     private static final String TMP_FILE_SUFFIX = ".tmp";
     private static final SafeLogger log = SafeLoggerFactory.get(PaxosStateLogImpl.class);
 
-    private static boolean nameIsALongPredicate(File file) {
+    private static boolean checkNameIsALong(File file) {
         if (file == null) {
             return false;
         }
@@ -257,7 +257,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         if (files == null) {
             return ImmutableList.of();
         }
-        return new ArrayList<>(Collections2.filter(Arrays.asList(files), PaxosStateLogImpl::nameIsALongPredicate));
+        return new ArrayList<>(Collections2.filter(Arrays.asList(files), PaxosStateLogImpl::checkNameIsALong));
     }
 
     /**

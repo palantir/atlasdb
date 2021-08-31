@@ -109,7 +109,7 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
         this.writeSizeThreshold = writeSizeThreshold;
         this.isEnabled = isEnabled;
         this.flushExecutor.scheduleWithFixedDelay(
-                this::createFlushTask, FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
+                this::flushTask, FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override
@@ -229,7 +229,7 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
         recordModifications(CLEAR_WEIGHT);
     }
 
-    private void createFlushTask() {
+    private void flushTask() {
         if (!shouldFlush()) {
             log.debug(
                     "Not flushing since the total number modifications is less than threshold — {} < {} "

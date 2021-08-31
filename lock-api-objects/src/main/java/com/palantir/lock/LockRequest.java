@@ -125,7 +125,7 @@ public final class LockRequest implements Serializable {
     }
 
     public List<LockWithMode> getLocks() {
-        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), LockRequest::toLockWithModeFunction));
+        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), LockRequest::toLockWithMode));
     }
 
     /**
@@ -240,7 +240,7 @@ public final class LockRequest implements Serializable {
         return new SerializationProxy(this);
     }
 
-    private static LockWithMode toLockWithModeFunction(Map.Entry<LockDescriptor, LockMode> input) {
+    private static LockWithMode toLockWithMode(Map.Entry<LockDescriptor, LockMode> input) {
         return new LockWithMode(input.getKey(), input.getValue());
     }
     /**

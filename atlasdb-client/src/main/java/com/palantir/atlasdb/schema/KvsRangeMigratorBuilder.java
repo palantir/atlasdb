@@ -56,10 +56,10 @@ public class KvsRangeMigratorBuilder {
         writeKvs = null;
         migrationTimestamp = -1;
         checkpointer = null;
-        rowTransform = KvsRangeMigratorBuilder::getIdentityTransform;
+        rowTransform = KvsRangeMigratorBuilder::transformIdentity;
     }
 
-    private static Map<Cell, byte[]> getIdentityTransform(RowResult<byte[]> input) {
+    private static Map<Cell, byte[]> transformIdentity(RowResult<byte[]> input) {
         return Maps2.fromEntries(input.getCells());
     }
 
