@@ -270,10 +270,9 @@ class LockServerSync extends AbstractQueuedSynchronizer {
     }
 
     synchronized Optional<LockClient> getWriteClient() {
-        if (getState() > 0) {
-            return Optional.of(clients.fromIndex(writeLockHolder));
-        } else {
+        if (getState() <= 0) {
             return Optional.empty();
         }
+        return Optional.of(clients.fromIndex(writeLockHolder));
     }
 }
