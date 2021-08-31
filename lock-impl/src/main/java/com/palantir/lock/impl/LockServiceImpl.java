@@ -1148,19 +1148,17 @@ public final class LockServiceImpl
 
         LockServerSync sync = readWriteLock.getSync();
         List<LockClient> readHolders;
-        LockClient writeHolders;
+        Optional<LockClient> writeHolder;
         boolean isFrozen;
-        boolean writeMode;
         synchronized (sync) {
             readHolders = sync.getReadClients();
-            writeHolders = sync.getLockHolder();
+            writeHolder = sync.getWriteClient();
             isFrozen = sync.isFrozen();
-            writeMode = readHolders.isEmpty();
         }
 
-        List<LockClient> lockHolders = getLockHolders(readHolders, writeHolders);
+        List<LockClient> lockHolders = getLockHolders(readHolders, writeHolder);
         ImmutableLockState.Builder lockState = ImmutableLockState.builder()
-                .isWriteLocked(writeMode)
+                .isWriteLocked(writeHolder.isPresent())
                 .exactCurrentLockHolders(lockHolders)
                 .isFrozen(isFrozen);
         heldLocksTokenMap.keySet().stream()
@@ -1172,10 +1170,8 @@ public final class LockServiceImpl
         return lockState.build();
     }
 
-    private List<LockClient> getLockHolders(List<LockClient> readHolders, LockClient writeHolders) {
-        return readHolders.isEmpty()
-                ? Optional.ofNullable(writeHolders).map(ImmutableList::of).orElseGet(ImmutableList::of)
-                : readHolders;
+    private List<LockClient> getLockHolders(List<LockClient> readHolders, Optional<LockClient> writeHolder) {
+        return readHolders.isEmpty() ? writeHolder.map(ImmutableList::of).orElseGet(ImmutableList::of) : readHolders;
     }
 
     /**
