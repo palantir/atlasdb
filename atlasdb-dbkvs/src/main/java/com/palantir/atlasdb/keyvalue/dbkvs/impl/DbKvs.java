@@ -108,7 +108,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -723,7 +723,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
 
     private TokenBackedBasicResultsPage<RowResult<Set<Long>>, Token> getTimestampsPageInternal(
             DbReadTable table, RangeRequest range, long timestamp, long batchSize, Token token) {
-        Set<byte[]> rows = new HashSet<>();
+        Set<byte[]> rows = Collections.newSetFromMap(new IdentityHashMap<>());
         int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
 
         try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {

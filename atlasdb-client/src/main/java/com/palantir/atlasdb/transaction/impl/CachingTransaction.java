@@ -37,7 +37,9 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -84,7 +86,7 @@ public class CachingTransaction extends ForwardingTransaction {
             cacheLoadedRows(tableRef, loaded.values());
             return loaded;
         } else {
-            Set<byte[]> toLoad = new HashSet<>();
+            Set<byte[]> toLoad = Collections.newSetFromMap(new IdentityHashMap<>());
             ImmutableSortedMap.Builder<byte[], RowResult<byte[]>> inCache =
                     ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
             for (byte[] row : rows) {
