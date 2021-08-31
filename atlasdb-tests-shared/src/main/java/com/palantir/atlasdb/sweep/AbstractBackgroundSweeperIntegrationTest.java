@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.LongSupplier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,7 +61,6 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
-    private static final LongSupplier TS_SUPPLIER = () -> 150L;
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService kvs;
@@ -94,7 +92,13 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
-        SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, TS_SUPPLIER, TS_SUPPLIER, txService, ssm, cellsSweeper);
+        SweepTaskRunner sweepRunner = new SweepTaskRunner(
+                kvs,
+                AbstractBackgroundSweeperIntegrationTest::getTimestamp,
+                AbstractBackgroundSweeperIntegrationTest::getTimestamp,
+                txService,
+                ssm,
+                cellsSweeper);
         LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
         specificTableSweeper = SpecificTableSweeper.create(
                 txManager,
@@ -200,5 +204,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         }
         kvs.put(tableRef, cells, startTs);
         txService.putUnlessExists(startTs, commitTs);
+    }
+
+    private static long getTimestamp() {
+        return 150L;
     }
 }
