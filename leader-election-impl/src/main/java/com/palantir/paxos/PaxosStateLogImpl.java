@@ -15,7 +15,6 @@
  */
 package com.palantir.paxos;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
@@ -56,18 +55,16 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
     private static final String TMP_FILE_SUFFIX = ".tmp";
     private static final SafeLogger log = SafeLoggerFactory.get(PaxosStateLogImpl.class);
 
-    private static Predicate<File> nameIsALongPredicate() {
-        return file -> {
-            if (file == null) {
-                return false;
-            }
-            try {
-                getSeqFromFilename(file);
-                return true;
-            } catch (NumberFormatException e) {
-                return false;
-            }
-        };
+    private static boolean nameIsALongPredicate(File file) {
+        if (file == null) {
+            return false;
+        }
+        try {
+            getSeqFromFilename(file);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     private static Comparator<File> nameAsLongComparator() {
@@ -260,7 +257,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         if (files == null) {
             return ImmutableList.of();
         }
-        return new ArrayList<>(Collections2.filter(Arrays.asList(files), nameIsALongPredicate()));
+        return new ArrayList<>(Collections2.filter(Arrays.asList(files), PaxosStateLogImpl::nameIsALongPredicate));
     }
 
     /**

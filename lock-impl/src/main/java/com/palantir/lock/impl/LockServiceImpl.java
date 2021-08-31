@@ -22,7 +22,6 @@ import static com.palantir.lock.LockGroupBehavior.LOCK_ALL_OR_NONE;
 import static com.palantir.lock.LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
@@ -144,9 +143,6 @@ public final class LockServiceImpl
 
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
-
-    private static final Function<HeldLocksToken, String> TOKEN_TO_ID =
-            from -> from.getTokenId().toString(Character.MAX_RADIX);
 
     @Immutable
     public static class HeldLocks<T extends ExpiringToken> {
@@ -727,7 +723,8 @@ public final class LockServiceImpl
         }
         ImmutableSet<HeldLocksToken> tokenSet = tokens.build();
         if (log.isTraceEnabled()) {
-            log.trace(".getTokens({}) returns {}", client, Collections2.transform(tokenSet, TOKEN_TO_ID));
+            log.trace(
+                    ".getTokens({}) returns {}", client, Collections2.transform(tokenSet, LockServiceImpl::tokenToId));
         }
         return tokenSet;
     }
@@ -746,8 +743,8 @@ public final class LockServiceImpl
         if (log.isTraceEnabled()) {
             log.trace(
                     ".refreshTokens({}) returns {}",
-                    Iterables.transform(tokens, TOKEN_TO_ID),
-                    Collections2.transform(refreshedTokenSet, TOKEN_TO_ID));
+                    Iterables.transform(tokens, LockServiceImpl::tokenToId),
+                    Collections2.transform(refreshedTokenSet, LockServiceImpl::tokenToId));
         }
         return refreshedTokenSet;
     }
@@ -1285,6 +1282,10 @@ public final class LockServiceImpl
         } catch (SecurityException ex) {
             requestLogger.error("Cannot rename LockServer threads", ex);
         }
+    }
+
+    private static String tokenToId(HeldLocksToken from) {
+        return from.getTokenId().toString(Character.MAX_RADIX);
     }
 
     private final class LockReapRunner implements AutoCloseable {

@@ -103,6 +103,7 @@ allprojects {
         options.compilerArgs += ['-Werror']
         // temporarily relax constraints until we can fix all violations
         options.errorprone.disable 'ArrayAsKeyOfSetOrMap',
+                'CloseableProvides',
                 'DangerousCompletableFutureUsage',
                 'DnsLookup',
                 'DoNotMock',
@@ -153,7 +154,7 @@ allprojects {
                 'TooManyArguments',
                 'TypeParameterUnusedInFormals',
                 'UndefinedEquals',
-                'UnnecessaryLambda',
+//                'UnnecessaryLambda',
                 'UnrecognisedJavadocTag',
                 'UseCorrectAssertInTests',
                 'ValidateConstantMessage',
