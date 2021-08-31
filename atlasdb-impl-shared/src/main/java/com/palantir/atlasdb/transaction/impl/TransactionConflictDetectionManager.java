@@ -37,9 +37,10 @@ public final class TransactionConflictDetectionManager {
 
     public void disableReadWriteConflict(TableReference tableRef) {
         conflictHandlers.compute(tableRef, (tableReference, nullableCurrentValue) -> {
-            ConflictHandler conflictHandler = delegate.get(tableReference);
-            Preconditions.checkNotNull(conflictHandler, "Conflict handler cannot be null when overwriting");
-            Optional<ConflictHandler> newValue = Optional.of(getDisabledReadWriteConflictHandler(conflictHandler));
+            Optional<ConflictHandler> conflictHandler = delegate.get(tableReference);
+            Preconditions.checkState(conflictHandler.isPresent(), "Conflict handler cannot be null when overwriting");
+            Optional<ConflictHandler> newValue =
+                    Optional.of(getDisabledReadWriteConflictHandler(conflictHandler.get()));
 
             Preconditions.checkState(
                     nullableCurrentValue == null || nullableCurrentValue.equals(newValue),
@@ -68,8 +69,6 @@ public final class TransactionConflictDetectionManager {
 
     @Nullable
     public ConflictHandler get(TableReference tableReference) {
-        return conflictHandlers
-                .computeIfAbsent(tableReference, tableRef -> Optional.ofNullable(delegate.get(tableRef)))
-                .orElse(null);
+        return conflictHandlers.computeIfAbsent(tableReference, delegate::get).orElse(null);
     }
 }

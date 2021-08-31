@@ -52,7 +52,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     static final TransactionConfig TRANSACTION_CONFIG =
             ImmutableTransactionConfig.builder().build();
 
-    private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
+    private final Map<TableReference, Optional<ConflictHandler>> conflictHandlerOverrides = new HashMap<>();
     private final WrapperWithTracker<Transaction> transactionWrapper;
     private final WrapperWithTracker<KeyValueService> keyValueServiceWrapper;
     private Optional<Long> unreadableTs = Optional.empty();
@@ -258,7 +258,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
-    public void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
+    public void overrideConflictHandlerForTable(TableReference table, Optional<ConflictHandler> conflictHandler) {
         conflictHandlerOverrides.put(table, conflictHandler);
     }
 
@@ -272,8 +272,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         unreadableTs = Optional.of(timestamp);
     }
 
-    private Map<TableReference, ConflictHandler> getConflictHandlerWithOverrides() {
-        Map<TableReference, ConflictHandler> conflictHandlersWithOverrides = new HashMap<>();
+    private Map<TableReference, Optional<ConflictHandler>> getConflictHandlerWithOverrides() {
+        Map<TableReference, Optional<ConflictHandler>> conflictHandlersWithOverrides = new HashMap<>();
         conflictHandlersWithOverrides.putAll(conflictDetectionManager.getCachedValues());
         conflictHandlersWithOverrides.putAll(conflictHandlerOverrides);
         return conflictHandlersWithOverrides;

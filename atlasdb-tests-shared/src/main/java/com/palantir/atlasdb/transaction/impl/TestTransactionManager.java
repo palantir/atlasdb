@@ -19,13 +19,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.util.Optional;
 
 public interface TestTransactionManager extends TransactionManager {
     Transaction commitAndStartNewTransaction(Transaction txn);
 
     Transaction createNewTransaction();
 
-    void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler);
+    void overrideConflictHandlerForTable(TableReference table, Optional<ConflictHandler> conflictHandler);
 
     void setUnreadableTimestamp(long timestamp);
 }
