@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix wrong write lock status reported by the getLockState
+  links:
+  - https://github.com/palantir/atlasdb/pull/5618
