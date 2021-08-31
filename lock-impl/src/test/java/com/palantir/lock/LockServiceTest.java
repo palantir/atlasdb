@@ -595,6 +595,18 @@ public abstract class LockServiceTest {
         assertThat(server.getLockState(lock1).isWriteLocked()).isTrue();
     }
 
+    @Test
+    public void testGetLockStateQuicklyAfterReadRelease() throws Exception {
+        LockResponse response1 = server.lockWithFullLockResponse(
+                client,
+                LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.READ)).build());
+        assertThat(response1.success()).isTrue();
+        assertThat(server.getLockState(lock1).isWriteLocked()).isFalse();
+
+        assertThat(server.unlock(response1.getLockRefreshToken())).isTrue();
+        assertThat(server.getLockState(lock1).isWriteLocked()).isFalse();
+    }
+
     /**
      * Tests lock responses
      */
