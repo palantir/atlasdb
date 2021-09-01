@@ -37,7 +37,6 @@ import io.dropwizard.jackson.Jackson;
 import io.dropwizard.testing.DropwizardTestSupport;
 import java.io.File;
 import java.io.IOException;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.rules.ExternalResource;
 
@@ -50,14 +49,6 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     static final UserAgent WIREMOCK_USER_AGENT = UserAgent.of(UserAgent.Agent.of("wiremock", "1.1.1"));
-
-    private static final Function<Integer, WireMockConfiguration> WIRE_MOCK_CONFIG_FACTORY =
-            port -> WireMockConfiguration.wireMockConfig()
-                    .dynamicPort()
-                    .httpsPort(port)
-                    .keystorePath("var/security/keyStore.jks")
-                    .keystorePassword("keystore")
-                    .keyManagerPassword("keystore");
 
     private final Supplier<String> configFilePathSupplier;
 
@@ -72,7 +63,7 @@ public class TimeLockServerHolder extends ExternalResource {
 
     TimeLockServerHolder(Supplier<String> configFilePathSupplier, TemplateVariables variables) {
         this.configFilePathSupplier = configFilePathSupplier;
-        this.wireMockServer = new WireMockServer(WIRE_MOCK_CONFIG_FACTORY.apply(variables.getLocalProxyPort()));
+        this.wireMockServer = new WireMockServer(wireMockConfiguration(variables.getLocalProxyPort()));
         this.wireMock = new WireMock(wireMockServer);
         this.proxyPort = variables.getLocalProxyPort();
         this.timelockPort = variables.getLocalServerPort();
@@ -167,5 +158,14 @@ public class TimeLockServerHolder extends ExternalResource {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static WireMockConfiguration wireMockConfiguration(int port) {
+        return WireMockConfiguration.wireMockConfig()
+                .dynamicPort()
+                .httpsPort(port)
+                .keystorePath("var/security/keyStore.jks")
+                .keystorePassword("keystore")
+                .keyManagerPassword("keystore");
     }
 }
