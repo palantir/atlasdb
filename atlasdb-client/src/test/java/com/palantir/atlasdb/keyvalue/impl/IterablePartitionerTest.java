@@ -20,12 +20,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.Lists;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
 
 @RunWith(Parameterized.class)
 public class IterablePartitionerTest {
@@ -46,10 +46,10 @@ public class IterablePartitionerTest {
         this.tableName = tableName;
     }
 
-    @SuppressWarnings("CompileTimeConstant")
+    @SuppressWarnings("Slf4jConstantLogMessage")
     @Test
     public void testWithLogging() {
-        SafeLogger mockLogger = Mockito.mock(SafeLogger.class);
+        Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(true);
 
         simplePartition(mockLogger, LARGE_PUT_SIZE);
@@ -67,7 +67,7 @@ public class IterablePartitionerTest {
 
     @Test
     public void testWithoutLogging() {
-        SafeLogger mockLogger = Mockito.mock(SafeLogger.class);
+        Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(false);
 
         simplePartition(mockLogger, LARGE_PUT_SIZE);
@@ -79,7 +79,7 @@ public class IterablePartitionerTest {
 
     @Test
     public void smallPutsDoNotLog() {
-        SafeLogger mockLogger = Mockito.mock(SafeLogger.class);
+        Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(true);
 
         simplePartition(mockLogger, SMALL_PUT_SIZE);
@@ -88,7 +88,7 @@ public class IterablePartitionerTest {
         Mockito.verifyNoMoreInteractions(mockLogger);
     }
 
-    private void simplePartition(SafeLogger mockLogger, long approximatePutSize) {
+    private void simplePartition(Logger mockLogger, long approximatePutSize) {
         Iterable<List<Integer>> partitions = IterablePartitioner.partitionByCountAndBytes(
                 Lists.newArrayList(1, 2, 3), 2, MAXIMUM_PUT_SIZE, tableName, foo -> approximatePutSize, mockLogger);
         int i = 1;

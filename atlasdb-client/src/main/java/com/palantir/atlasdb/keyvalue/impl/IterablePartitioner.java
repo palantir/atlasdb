@@ -25,14 +25,14 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class IterablePartitioner {
-    private static final SafeLogger log = SafeLoggerFactory.get(IterablePartitioner.class);
+    private static final Logger log = LoggerFactory.getLogger(IterablePartitioner.class);
 
     private static final String ENTRY_TOO_BIG_MESSAGE = "Encountered an entry of approximate size {} bytes,"
             + " larger than maximum size of {} defined per entire batch,"
@@ -81,7 +81,7 @@ public final class IterablePartitioner {
             final long maximumBytesPerPartition,
             final String tableNameForLoggingPurposesOnly,
             final Function<T, Long> sizingFunction,
-            final SafeLogger log) {
+            final Logger log) {
         return () -> new UnmodifiableIterator<List<T>>() {
             PeekingIterator<T> pi = Iterators.peekingIterator(iterable.iterator());
             private int remainingEntries = Iterables.size(iterable);
@@ -109,9 +109,9 @@ public final class IterablePartitioner {
                             TableReference.createWithEmptyNamespace(tableNameForLoggingPurposesOnly))) {
                         log.warn(
                                 ENTRY_TOO_BIG_MESSAGE,
-                                SafeArg.of("size", sizingFunction.apply(firstEntry)),
-                                SafeArg.of("maximumBytesPerPartition", maximumBytesPerPartition),
-                                UnsafeArg.of("tableName", tableNameForLoggingPurposesOnly));
+                                sizingFunction.apply(firstEntry),
+                                maximumBytesPerPartition,
+                                tableNameForLoggingPurposesOnly);
                     } else {
                         final String longerMessage =
                                 ENTRY_TOO_BIG_MESSAGE + " This can potentially cause out-of-memory errors.";
