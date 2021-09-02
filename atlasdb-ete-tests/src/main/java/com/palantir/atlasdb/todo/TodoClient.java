@@ -47,6 +47,10 @@ import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.InputStream;
@@ -59,11 +63,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TodoClient {
-    private static final Logger log = LoggerFactory.getLogger(TodoClient.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TodoClient.class);
 
     private final TransactionManager transactionManager;
     private final Supplier<KeyValueService> kvs;
@@ -142,13 +144,19 @@ public class TodoClient {
             maybeRow.ifPresent(latestSnapshot -> {
                 Long latestStreamId = maybeRow.get().getStreamId();
 
-                log.info("Marking stream {}, ref {}, as unused", latestStreamId, PtBytes.toString(streamReference));
+                log.info(
+                        "Marking stream {}, ref {}, as unused",
+                        SafeArg.of("latestStreamId", latestStreamId),
+                        UnsafeArg.of("streamReference", PtBytes.toString(streamReference)));
                 Map<Long, byte[]> theMap = ImmutableMap.of(latestStreamId, streamReference);
                 streamStore.unmarkStreamsAsUsed(transaction, theMap);
             });
 
             streamStore.markStreamAsUsed(transaction, newStreamId, streamReference);
-            log.info("Marked stream {} as used with reference {}", newStreamId, PtBytes.toString(streamReference));
+            log.info(
+                    "Marked stream {} as used with reference {}",
+                    SafeArg.of("newStreamId", newStreamId),
+                    UnsafeArg.of("streamReference", PtBytes.toString(streamReference)));
 
             // Record the latest snapshot
             latestSnapshotTable.putStreamId(row, newStreamId);
@@ -161,7 +169,7 @@ public class TodoClient {
         log.info("Storing stream...");
         Pair<Long, Sha256Hash> storedStream = streamStore.storeStream(snapshot);
         Long newStreamId = storedStream.getLhSide();
-        log.info("Stored stream with ID {}", newStreamId);
+        log.info("Stored stream with ID {}", SafeArg.of("newStreamId", newStreamId));
         return newStreamId;
     }
 

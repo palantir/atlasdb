@@ -19,6 +19,10 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,11 +31,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class RetriableTransactions {
-    private static final Logger log = LoggerFactory.getLogger(RetriableTransactions.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(RetriableTransactions.class);
 
     private RetriableTransactions() {
         // hidden
@@ -166,9 +168,9 @@ public final class RetriableTransactions {
                             log.trace(
                                     "Got exception for retriable write transaction, startTimeMs = {}, attemptTimeMs ="
                                             + " {}, now = {}",
-                                    startTimeMs,
-                                    attemptTimeMs,
-                                    now,
+                                    SafeArg.of("startTimeMs", startTimeMs),
+                                    SafeArg.of("attemptTimeMs", attemptTimeMs),
+                                    SafeArg.of("now", now),
                                     e);
                         }
                         if (cm.isClosed()) {
@@ -181,8 +183,8 @@ public final class RetriableTransactions {
                             log.info(
                                     "Swallowing possible transient exception for retriable transaction, last attempt"
                                             + " took {} ms, total attempts have taken {}",
-                                    attemptLengthMs,
-                                    totalLengthMs,
+                                    SafeArg.of("attemptLengthMs", attemptLengthMs),
+                                    SafeArg.of("totalLengthMs", totalLengthMs),
                                     e);
                             continue;
                         }
@@ -262,7 +264,10 @@ public final class RetriableTransactions {
             }
 
             private void squelch(SQLException e) {
-                log.warn("Squelching SQLException while trying to clean up retriable write transaction id {}", id, e);
+                log.warn(
+                        "Squelching SQLException while trying to clean up retriable write transaction id {}",
+                        UnsafeArg.of("id", id),
+                        e);
             }
         }
         return new LexicalHelper().run();
@@ -315,7 +320,9 @@ public final class RetriableTransactions {
             }
             // Great, that worked, fallthrough to below but don't commit.
         } catch (SQLException e) {
-            log.info("The table {} has not been created yet, so we will try to create it.", TABLE_NAME);
+            log.info(
+                    "The table {} has not been created yet, so we will try to create it.",
+                    UnsafeArg.of("tableName", TABLE_NAME));
             log.debug(
                     "To check whether the table exists we tried to use it. This caused an exception indicating that it"
                             + " did not exist. The exception was: ",

@@ -23,9 +23,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
 
 public class PostgresVersionCheckTest {
 
@@ -42,7 +42,7 @@ public class PostgresVersionCheckTest {
 
     @SuppressWarnings("Slf4jConstantLogMessage")
     private static void verifyLowVersionLogsError(String lowVersion) {
-        Logger log = mock(Logger.class);
+        SafeLogger log = mock(SafeLogger.class);
         String expectedMessage = "The minimum supported version is";
         assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion(lowVersion, log))
                 .isInstanceOf(AssertionError.class)
@@ -50,8 +50,8 @@ public class PostgresVersionCheckTest {
         verify(log)
                 .error(
                         eq("Assertion with exception!"),
-                        eq(lowVersion),
-                        eq(PostgresVersionCheck.MIN_POSTGRES_VERSION),
+                        eq(SafeArg.of("version", lowVersion)),
+                        eq(SafeArg.of("minVersion", PostgresVersionCheck.MIN_POSTGRES_VERSION)),
                         isA(SafeArg.class),
                         Mockito.any(Exception.class));
         verifyNoMoreInteractions(log);
@@ -59,20 +59,20 @@ public class PostgresVersionCheckTest {
 
     @Test
     public void shouldFailOn_9_5_0() {
-        assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion("9.5.0", mock(Logger.class)))
+        assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion("9.5.0", mock(SafeLogger.class)))
                 .hasMessageContaining("Versions 9.5.0 and 9.5.1 contain a known bug");
     }
 
     @Test
     public void shouldFailOn_9_5_1() {
-        assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion("9.5.1", mock(Logger.class)))
+        assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion("9.5.1", mock(SafeLogger.class)))
                 .hasMessageContaining("Versions 9.5.0 and 9.5.1 contain a known bug");
     }
 
     @Test
     @SuppressWarnings("Slf4jConstantLogMessage")
     public void shouldBeFineOn_9_6_12() {
-        Logger log = mock(Logger.class);
+        SafeLogger log = mock(SafeLogger.class);
         PostgresVersionCheck.checkDatabaseVersion("9.6.12", log);
         verifyNoMoreInteractions(log);
     }

@@ -29,6 +29,9 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.paxos.TimeLockAgent;
@@ -47,15 +50,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 import org.eclipse.jetty.util.component.LifeCycle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Provides a way of launching an embedded TimeLock server using Dropwizard. Should only be used in tests.
  */
 public class TimeLockServerLauncher extends Application<CombinedTimeLockServerConfiguration> {
 
-    private static final Logger log = LoggerFactory.getLogger(TimeLockServerLauncher.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TimeLockServerLauncher.class);
 
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of("TimeLockServerLauncher", "0.0.0"));
 
@@ -91,10 +92,12 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
 
         log.info(
                 "Paxos configuration\n{}",
-                environment
-                        .getObjectMapper()
-                        .writerWithDefaultPrettyPrinter()
-                        .writeValueAsString(configuration.install().paxos()));
+                UnsafeArg.of(
+                        "paxosConfig",
+                        environment
+                                .getObjectMapper()
+                                .writerWithDefaultPrettyPrinter()
+                                .writeValueAsString(configuration.install().paxos())));
         TimeLockAgent timeLockAgent = TimeLockAgent.create(
                 metricsManager,
                 configuration.install(),

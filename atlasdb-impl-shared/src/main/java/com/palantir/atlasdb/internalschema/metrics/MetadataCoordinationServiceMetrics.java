@@ -24,15 +24,15 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.monitoring.TrackerUtils;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampService;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class MetadataCoordinationServiceMetrics {
-    private static final Logger log = LoggerFactory.getLogger(MetadataCoordinationServiceMetrics.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(MetadataCoordinationServiceMetrics.class);
 
     private MetadataCoordinationServiceMetrics() {
         // utility class

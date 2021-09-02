@@ -19,7 +19,10 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -33,8 +36,6 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Thread Safe
@@ -42,7 +43,7 @@ import org.slf4j.LoggerFactory;
 public class SoftCache<K, V> extends MBeanCache<K, V> {
     private static final int INITIAL_SIZE = 1000;
 
-    private static final Logger log = LoggerFactory.getLogger(SoftCache.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SoftCache.class);
 
     protected final Map<K, CacheEntry<V>> cacheEntries;
 
@@ -96,7 +97,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
             // (it could have already been replaced by a new entry)
             if (entry != null && entry.valueRef == ref) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Removing from cache reference with key: {}", key);
+                    log.debug("Removing from cache reference with key: {}", UnsafeArg.of("key", key));
                 }
 
                 cacheEntries.remove(key);
@@ -185,7 +186,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         if (entry == null) {
             mbean.misses.incrementAndGet();
             if (log.isTraceEnabled()) {
-                log.trace("Cache miss (not cached) on {}", key);
+                log.trace("Cache miss (not cached) on {}", UnsafeArg.of("key", key));
             }
             return null;
         }
@@ -197,7 +198,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         if (!entry.isValid()) {
             mbean.misses.incrementAndGet();
             if (log.isTraceEnabled()) {
-                log.trace("Cache miss (stale entry) on {}", key);
+                log.trace("Cache miss (stale entry) on {}", UnsafeArg.of("key", key));
             }
             cacheEntries.remove(key);
             return null;
@@ -205,7 +206,7 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
 
         // c) fresh and valid, return value
         if (log.isTraceEnabled()) {
-            log.trace("Cache hit on {}", key);
+            log.trace("Cache hit on {}", UnsafeArg.of("key", key));
         }
         mbean.hits.incrementAndGet();
         return ret;
@@ -270,7 +271,10 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
     public final void cleanup() {
         mbean.cleanups.incrementAndGet();
         if (log.isTraceEnabled()) {
-            log.trace("cleanup() called on {} of size: {}", getName(), cacheEntries.size());
+            log.trace(
+                    "cleanup() called on {} of size: {}",
+                    UnsafeArg.of("name", getName()),
+                    SafeArg.of("size", cacheEntries.size()));
         }
 
         int i = 0;
@@ -283,7 +287,10 @@ public class SoftCache<K, V> extends MBeanCache<K, V> {
         }
 
         if (log.isTraceEnabled()) {
-            log.trace("cleanup() finished on {}.  {} keys were cleaned up. ", getName(), i);
+            log.trace(
+                    "cleanup() finished on {}.  {} keys were cleaned up. ",
+                    UnsafeArg.of("name", getName()),
+                    SafeArg.of("cleanedUpCount", i));
         }
     }
 

@@ -19,11 +19,12 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 
 public class PostgresTableInitializer implements DbTableInitializer {
-    private static final Logger log = LoggerFactory.getLogger(PostgresTableInitializer.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(PostgresTableInitializer.class);
 
     private final ConnectionSupplier connectionSupplier;
 
@@ -69,7 +70,7 @@ public class PostgresTableInitializer implements DbTableInitializer {
             connectionSupplier.get().executeUnregisteredQuery(sql);
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains(errorToIgnore)) {
-                log.error("Error occurred trying to execute the Postgres query {}", sql, e);
+                log.error("Error occurred trying to execute the Postgres query {}", UnsafeArg.of("sql", sql), e);
                 throw e;
             }
         }

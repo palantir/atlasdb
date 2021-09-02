@@ -41,6 +41,9 @@ import com.palantir.atlasdb.table.description.render.TableRendererV2;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -55,8 +58,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Defines a schema.
@@ -69,7 +70,7 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings("checkstyle:Indentation")
 public class Schema {
-    private static final Logger log = LoggerFactory.getLogger(Schema.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(Schema.class);
 
     private final String name;
     private final String packageName;
@@ -248,7 +249,7 @@ public class Schema {
             try {
                 entry.getValue().validate();
             } catch (Exception e) {
-                log.error("Failed to validate table {}.", entry.getKey(), e);
+                log.error("Failed to validate table {}.", UnsafeArg.of("tableName", entry.getKey()), e);
                 throw e;
             }
         }
@@ -259,7 +260,7 @@ public class Schema {
                 def.toIndexMetadata(indexEntry.getKey()).getTableMetadata();
                 def.validate();
             } catch (Exception e) {
-                log.error("Failed to validate index {}.", indexEntry.getKey(), e);
+                log.error("Failed to validate index {}.", UnsafeArg.of("indexName", indexEntry.getKey()), e);
                 throw e;
             }
         }

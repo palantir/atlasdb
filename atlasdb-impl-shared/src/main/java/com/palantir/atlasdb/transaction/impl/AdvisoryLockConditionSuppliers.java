@@ -23,14 +23,15 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class AdvisoryLockConditionSuppliers {
 
-    private static final Logger log = LoggerFactory.getLogger(AdvisoryLockConditionSuppliers.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AdvisoryLockConditionSuppliers.class);
 
     private static final int NUM_RETRIES = 10;
 
@@ -81,7 +82,7 @@ public final class AdvisoryLockConditionSuppliers {
                         log.warn("Could not lock successfully", ex);
                         ++failureCount;
                         if (failureCount >= NUM_RETRIES) {
-                            log.warn("Failing after {} tries", failureCount, ex);
+                            log.warn("Failing after {} tries", SafeArg.of("failureCount", failureCount), ex);
                             throw ex;
                         }
                         break;

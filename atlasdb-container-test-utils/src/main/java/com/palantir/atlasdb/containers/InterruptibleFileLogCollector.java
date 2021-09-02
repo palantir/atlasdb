@@ -19,7 +19,11 @@ import com.palantir.docker.compose.connection.ContainerName;
 import com.palantir.docker.compose.execution.DockerCompose;
 import com.palantir.docker.compose.logging.LogCollector;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,12 +32,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public class InterruptibleFileLogCollector implements LogCollector {
-    private static final Logger log = LoggerFactory.getLogger(InterruptibleFileLogCollector.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(InterruptibleFileLogCollector.class);
 
     private static final long STOP_TIMEOUT_IN_MILLIS = 50;
 
@@ -66,7 +68,10 @@ public class InterruptibleFileLogCollector implements LogCollector {
                 .map(ContainerName::semanticName)
                 .forEachOrdered(container -> executor.execute(() -> {
                     File outputFile = new File(logDirectory, container + ".log");
-                    log.info("Writing logs for container '{}' to '{}'", container, outputFile.getAbsolutePath());
+                    log.info(
+                            "Writing logs for container '{}' to '{}'",
+                            SafeArg.of("container", container),
+                            UnsafeArg.of("outputPath", outputFile.getAbsolutePath()));
                     try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
                         dockerCompose.writeLogs(container, outputStream);
                     } catch (IOException e) {

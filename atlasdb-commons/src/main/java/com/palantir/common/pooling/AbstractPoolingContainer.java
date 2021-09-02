@@ -19,20 +19,22 @@ import com.google.common.base.Function;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.EmptyQueue;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.Nonnull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class will pool resources up to the passedLimit.  It will never block and instead will always allocate a new
  * resource if there are none in the pool.
  */
 public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T> {
-    private static final Logger log = LoggerFactory.getLogger(AbstractPoolingContainer.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AbstractPoolingContainer.class);
 
     private volatile Queue<T> pool;
     protected final AtomicLong allocatedResources = new AtomicLong();
@@ -144,7 +146,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
         }
         boolean wasReturned = returnToQueue(resource);
         if (!wasReturned) {
-            log.debug("Pool full, releasing resource: {}", resource);
+            log.debug("Pool full, releasing resource: {}", UnsafeArg.of("resource", resource));
             allocatedResources.decrementAndGet();
             try {
                 cleanupForDiscard(resource);
@@ -159,9 +161,9 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
         if (log.isDebugEnabled()) {
             log.debug(
                     "Allocated {} instances, {} remaining in pool, {} max pool size",
-                    getAllocatedResources(),
-                    pool.size(),
-                    getMaxPoolSize());
+                    SafeArg.of("resourceCount", getAllocatedResources()),
+                    SafeArg.of("poolRemaining", pool.size()),
+                    SafeArg.of("poolMax", getMaxPoolSize()));
         }
     }
 
@@ -191,7 +193,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
             allocatedResources.decrementAndGet();
             try {
                 cleanupForDiscard(item);
-                log.debug("Discarded: {}", item);
+                log.debug("Discarded: {}", UnsafeArg.of("item", item));
             } catch (RuntimeException e) {
                 log.error("should not throw here", e);
             }
@@ -206,7 +208,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
             discardFromPool(currentPool);
         }
         if (ret) {
-            log.debug("Returned: {}", resource);
+            log.debug("Returned: {}", UnsafeArg.of("resource", resource));
         }
         return ret;
     }

@@ -190,7 +190,7 @@ import org.slf4j.LoggerFactory;
  * different rows and using range scans.
  */
 public class SnapshotTransaction extends AbstractTransaction implements ConstraintCheckingTransaction {
-    private static final Logger log = LoggerFactory.getLogger(SnapshotTransaction.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransaction.class);
     private static final Logger perfLogger = LoggerFactory.getLogger("dualschema.perf");
     private static final SafeLogger constraintLogger = SafeLoggerFactory.get("dualschema.constraints");
 
@@ -1952,7 +1952,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             final String baseMsg = "Locks acquired as part of the transaction protocol are no longer valid. ";
             String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
             TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
-            log.warn(baseMsg + "{}", expiredLocksErrorString, ex);
+            log.warn(baseMsg + "{}", UnsafeArg.of("expiredLocksErrorString", expiredLocksErrorString), ex);
             transactionOutcomeMetrics.markLocksExpired();
             throw ex;
         }
@@ -2115,7 +2115,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Cell key = e.getKey();
             long theirStartTimestamp = e.getValue();
             AssertUtils.assertAndLog(
-                    log, theirStartTimestamp != getStartTimestamp(), "Timestamp reuse is bad:%d", getStartTimestamp());
+                    log, theirStartTimestamp != getStartTimestamp(), "Timestamp reuse is bad:" + getStartTimestamp());
 
             Long theirCommitTimestamp = commitTimestamps.get(theirStartTimestamp);
             if (theirCommitTimestamp == null || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
@@ -2126,7 +2126,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
 
             AssertUtils.assertAndLog(
-                    log, theirCommitTimestamp != getStartTimestamp(), "Timestamp reuse is bad:%d", getStartTimestamp());
+                    log, theirCommitTimestamp != getStartTimestamp(), "Timestamp reuse is bad:" + getStartTimestamp());
             if (theirStartTimestamp > getStartTimestamp()) {
                 dominatingWrites.add(Cells.createConflictWithMetadata(
                         keyValueService, tableRef, key, theirStartTimestamp, theirCommitTimestamp));

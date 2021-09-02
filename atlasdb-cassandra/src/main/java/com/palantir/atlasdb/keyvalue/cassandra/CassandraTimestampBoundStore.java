@@ -91,7 +91,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private CassandraTimestampBoundStore(CassandraClientPool clientPool, CassandraKeyValueService kvs) {
         DebugLogger.logger.info(
                 "Creating CassandraTimestampBoundStore object on thread {}. This should only happen once.",
-                Thread.currentThread().getName());
+                SafeArg.of("thread", Thread.currentThread().getName()));
         this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
         this.kvs = kvs;
     }
@@ -125,7 +125,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                         if (result == null) {
                             DebugLogger.logger.info(
                                     "[GET] Null result, setting timestamp limit to {}",
-                                    CassandraTimestampUtils.INITIAL_VALUE);
+                                    SafeArg.of("newLimit", CassandraTimestampUtils.INITIAL_VALUE));
                             cas(client, null, CassandraTimestampUtils.INITIAL_VALUE);
                             return CassandraTimestampUtils.INITIAL_VALUE;
                         }
@@ -152,14 +152,15 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     }
                 });
 
-        DebugLogger.logger.debug("[GET] Setting cached timestamp limit to {}.", currentLimit);
+        DebugLogger.logger.debug(
+                "[GET] Setting cached timestamp limit to {}.", SafeArg.of("currentLimit", currentLimit));
         currentLimit = upperLimit;
         return currentLimit;
     }
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
-        DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
+        DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", SafeArg.of("limit", limit));
 
         clientPool.runWithRetry(new FunctionCheckedException<CassandraClient, Void, RuntimeException>() {
             @GuardedBy("CassandraTimestampBoundStore.this")
@@ -175,7 +176,10 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private void cas(CassandraClient client, Long oldVal, long newVal) {
         final CASResult result;
         try {
-            DebugLogger.logger.info("[CAS] Trying to set upper limit from {} to {}.", oldVal, newVal);
+            DebugLogger.logger.info(
+                    "[CAS] Trying to set upper limit from {} to {}.",
+                    SafeArg.of("oldLimit", oldVal),
+                    SafeArg.of("newLimit", newVal));
             result = client.cas(
                     AtlasDbConstants.TIMESTAMP_TABLE,
                     getRowName(),
@@ -226,7 +230,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             DebugLogger.logger.error("Thread dump: {}", SafeArg.of("threadDump", ThreadDumps.programmaticThreadDump()));
             throw err;
         } else {
-            DebugLogger.logger.debug("[CAS] Setting cached limit to {}.", newVal);
+            DebugLogger.logger.debug("[CAS] Setting cached limit to {}.", SafeArg.of("newLimit", newVal));
             currentLimit = newVal;
         }
     }

@@ -15,16 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.VersionStrings;
-import org.slf4j.Logger;
 
 public final class PostgresVersionCheck {
     static final String MIN_POSTGRES_VERSION = "9.6";
 
     private PostgresVersionCheck() {}
 
-    public static void checkDatabaseVersion(String version, Logger log) {
+    public static void checkDatabaseVersion(String version, SafeLogger log) {
         boolean checkPasses =
                 version.matches("^[\\.0-9]+$") && VersionStrings.compareVersions(version, MIN_POSTGRES_VERSION) >= 0;
         if (VersionStrings.compareVersions(version, "9.5") >= 0
@@ -42,7 +43,7 @@ public final class PostgresVersionCheck {
                         + " The minimum supported version is %s."
                         + " If you absolutely need to use an older version of postgres,"
                         + " please contact Palantir support for assistance.",
-                version,
-                MIN_POSTGRES_VERSION);
+                SafeArg.of("version", version),
+                SafeArg.of("minVersion", MIN_POSTGRES_VERSION));
     }
 }

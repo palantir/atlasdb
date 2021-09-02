@@ -19,8 +19,12 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -30,8 +34,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Utilities for creating and propagating exceptions.
@@ -42,7 +44,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class Throwables {
 
-    private static Logger log = LoggerFactory.getLogger(Throwables.class);
+    private static SafeLogger log = SafeLoggerFactory.get(Throwables.class);
 
     private Throwables() {
         /* uninstantiable */
@@ -204,7 +206,10 @@ public final class Throwables {
      */
     public static <T extends Throwable> T rewrap(final String newMessage, final T throwable) {
         Preconditions.checkNotNull(throwable);
-        log.info("Rewrapping throwable {} with newMessage {}", throwable, newMessage);
+        log.info(
+                "Rewrapping throwable {} with newMessage {}",
+                UnsafeArg.of("throwable", throwable),
+                UnsafeArg.of("newMessage", newMessage));
         try {
             Constructor<?>[] constructors = throwable.getClass().getConstructors();
             // First see if we can create the exception in a way that lets us preserve the message text
@@ -224,7 +229,10 @@ public final class Throwables {
         } catch (Exception e) {
             // If something goes wrong when we try to rewrap the exception,
             // we should log and throw a runtime exception.
-            log.error("Unexpected error encountered while rewrapping throwable of class {}", throwable.getClass(), e);
+            log.error(
+                    "Unexpected error encountered while rewrapping throwable of class {}",
+                    SafeArg.of("throwableClass", throwable.getClass()),
+                    e);
             throw createPalantirRuntimeException(newMessage, throwable);
         }
     }

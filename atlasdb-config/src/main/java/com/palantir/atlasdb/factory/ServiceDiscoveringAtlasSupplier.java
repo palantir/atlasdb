@@ -24,6 +24,10 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -38,11 +42,9 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ServiceDiscoveringAtlasSupplier {
-    private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(ServiceDiscoveringAtlasSupplier.class);
 
     private static String timestampServiceCreationInfo = null;
 
@@ -91,7 +93,7 @@ public class ServiceDiscoveringAtlasSupplier {
         log.info(
                 "[timestamp-service-creation] Fetching timestamp service from "
                         + "thread {}. This should only happen once.",
-                Thread.currentThread().getName());
+                SafeArg.of("threadName", Thread.currentThread().getName()));
 
         if (timestampServiceCreationInfo == null) {
             timestampServiceCreationInfo = ThreadDumps.programmaticThreadDump();
@@ -152,7 +154,7 @@ public class ServiceDiscoveringAtlasSupplier {
                         + " config. This means that you may soon encounter the MultipleRunningTimestampServices error."
                         + " Thread dumps from both fetches of the timestamp service have been outputted to {}. If you"
                         + " encounter a MultipleRunningTimestampServices error, please send this file to support.",
-                    path);
+                    UnsafeArg.of("path", path));
         } else {
             log.warn(
                     "[timestamp-service-creation] Timestamp service fetched for a second time. This is only OK if "
@@ -162,7 +164,7 @@ public class ServiceDiscoveringAtlasSupplier {
                             + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
                             + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
                             + "support.",
-                    path);
+                    UnsafeArg.of("path", path));
         }
     }
 

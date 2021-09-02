@@ -31,8 +31,12 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
@@ -43,11 +47,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.stream.Collectors;
 
 final class ValidatingTransactionScopedCache implements TransactionScopedCache {
-    private static final Logger log = LoggerFactory.getLogger(ValidatingTransactionScopedCache.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(ValidatingTransactionScopedCache.class);
 
     private final TransactionScopedCache delegate;
     private final Random random;
@@ -191,11 +194,11 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
         }
     }
 
-    private void failAndLog(Object... args) {
+    private void failAndLog(Arg<?>... args) {
         log.error(
                 "Reading from lock watch cache returned a different result to a remote read - this indicates there "
                         + "is a corruption bug in the caching logic",
-                args);
+                Arrays.stream(args).collect(Collectors.toList()));
         failureCallback.run();
         throw new TransactionLockWatchFailedException(
                 "Failed lock watch cache validation - will retry without caching");

@@ -15,6 +15,7 @@
  */
 package com.palantir.util;
 
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -23,6 +24,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +81,12 @@ public class AssertUtils {
         }
     }
 
+    public static void assertAndLog(SafeLogger log, boolean cheapTest, String msg, Arg<?>... args) {
+        if (!cheapTest) {
+            assertAndLogWithException(log, false, msg, getDebuggingException(), args);
+        }
+    }
+
     /**
      * @deprecated Use {@link #assertAndLog(Logger, boolean, String)} instead.
      * This will make sure log events go to your logger instead of a hard-to-filter default.
@@ -118,6 +127,17 @@ public class AssertUtils {
     public static void assertAndLogWithException(SafeLogger log, boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
             log.error("An error occurred", SafeArg.of("message", msg), t);
+        }
+    }
+
+    public static void assertAndLogWithException(
+            SafeLogger log, boolean cheapTest, String msg, Throwable t, Arg<?>... args) {
+        if (!cheapTest) {
+            log.error(
+                    "An error occurred",
+                    Stream.concat(Stream.of(SafeArg.of("message", msg)), Arrays.stream(args))
+                            .collect(Collectors.toList()),
+                    t);
         }
     }
 

@@ -20,12 +20,13 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LockServerLock implements ClientAwareReadWriteLock {
-    private static final Logger log = LoggerFactory.getLogger(LockServerLock.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(LockServerLock.class);
 
     private final LockDescriptor descriptor;
     private final LockServerSync sync;
@@ -78,7 +79,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
 
     static IllegalMonitorStateException throwIllegalMonitorStateException(String message) {
         IllegalMonitorStateException ex = new IllegalMonitorStateException(message);
-        log.error("Illegal monitor state exception: {}", message, ex);
+        log.error("Illegal monitor state exception: {}", UnsafeArg.of("message", message), ex);
         throw ex;
     }
 

@@ -35,6 +35,9 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,12 +48,10 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ExecutionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CachingTransaction extends ForwardingTransaction {
 
-    private static final Logger log = LoggerFactory.getLogger(CachingTransaction.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CachingTransaction.class);
     private static final long DEFAULT_MAX_CACHED_CELLS = 10_000_000;
 
     private final Transaction delegate;
@@ -239,7 +240,7 @@ public class CachingTransaction extends ForwardingTransaction {
             super.commit();
         } finally {
             if (log.isDebugEnabled()) {
-                log.debug("CachingTransaction cache stats on commit: {}", cellCache.stats());
+                log.debug("CachingTransaction cache stats on commit: {}", SafeArg.of("stats", cellCache.stats()));
             }
         }
     }
@@ -250,7 +251,9 @@ public class CachingTransaction extends ForwardingTransaction {
             super.commit(txService);
         } finally {
             if (log.isDebugEnabled()) {
-                log.debug("CachingTransaction cache stats on commit(txService): {}", cellCache.stats());
+                log.debug(
+                        "CachingTransaction cache stats on commit(txService): {}",
+                        SafeArg.of("stats", cellCache.stats()));
             }
         }
     }
@@ -261,7 +264,7 @@ public class CachingTransaction extends ForwardingTransaction {
             super.abort();
         } finally {
             if (log.isDebugEnabled()) {
-                log.debug("CachingTransaction cache stats on abort: {}", cellCache.stats());
+                log.debug("CachingTransaction cache stats on abort: {}", SafeArg.of("stats", cellCache.stats()));
             }
         }
     }
