@@ -46,7 +46,7 @@ public class IterablePartitionerTest {
         this.tableName = tableName;
     }
 
-    @SuppressWarnings("Slf4jConstantLogMessage")
+    @SuppressWarnings("CompileTimeConstant")
     @Test
     public void testWithLogging() {
         SafeLogger mockLogger = Mockito.mock(SafeLogger.class);

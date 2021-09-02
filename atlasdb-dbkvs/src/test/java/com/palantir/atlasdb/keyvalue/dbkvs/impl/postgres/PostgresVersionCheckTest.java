@@ -40,7 +40,7 @@ public class PostgresVersionCheckTest {
         verifyLowVersionLogsError("9.5.2");
     }
 
-    @SuppressWarnings("Slf4jConstantLogMessage")
+    @SuppressWarnings("CompileTimeConstant")
     private static void verifyLowVersionLogsError(String lowVersion) {
         SafeLogger log = mock(SafeLogger.class);
         String expectedMessage = "The minimum supported version is";

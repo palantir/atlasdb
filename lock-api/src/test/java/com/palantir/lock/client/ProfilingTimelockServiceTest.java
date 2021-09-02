@@ -199,7 +199,7 @@ public class ProfilingTimelockServiceTest {
 
     @SuppressWarnings({
         "unchecked", // Captors of generics
-        "Slf4jConstantLogMessage"
+        "CompileTimeConstant"
     }) // Logger verify
     private void verifyLoggerInvokedOnceWithSpecificProfile(String operation, Duration duration) {
         // XXX Maybe there's a better way? The approaches I tried didn't work because of conflict with other methods
@@ -220,7 +220,7 @@ public class ProfilingTimelockServiceTest {
 
     @SuppressWarnings({
         "unchecked", // Captors of generics
-        "Slf4jConstantLogMessage"
+        "CompileTimeConstant"
     }) // Logger verify
     private void verifyLoggerInvokedOnceWithException(Exception exception) {
         ArgumentCaptor<Arg<Optional<Exception>>> exceptionCaptor = ArgumentCaptor.forClass(Arg.class);
@@ -228,7 +228,7 @@ public class ProfilingTimelockServiceTest {
         assertThat(exceptionCaptor.getValue().getValue()).contains(exception);
     }
 
-    @SuppressWarnings("Slf4jConstantLogMessage") // only for tests
+    @SuppressWarnings("CompileTimeConstant") // only for tests
     private void verifyLoggerInvokedSpecificNumberOfTimes(int times) {
         verify(logger, times(times)).info(any(String.class), any(), any(), any(), any(), any(Arg.class));
     }
