@@ -86,7 +86,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "deprecation"})
 public final class AuditedDataTable implements
         AtlasDbMutablePersistentTable<AuditedDataTable.AuditedDataRow,
                                          AuditedDataTable.AuditedDataNamedColumnValue<?>,
@@ -681,5 +681,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "tsp9JwSFs0a0IXVAyipFyw==";
+    static String __CLASS_HASH = "3dnqqHdi4s83XI/7WEOh5g==";
 }

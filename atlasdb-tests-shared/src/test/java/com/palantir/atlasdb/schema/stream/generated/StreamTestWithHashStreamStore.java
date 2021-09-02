@@ -1,6 +1,5 @@
 package com.palantir.atlasdb.schema.stream.generated;
 
-import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -73,7 +72,7 @@ import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
 
 @Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "deprecation"})
 public final class StreamTestWithHashStreamStore extends AbstractPersistentStreamStore {
     public static final int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
     public static final int IN_MEMORY_THRESHOLD = 4000; // streams under this size are kept in memory when loaded
@@ -85,7 +84,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     private final StreamTestTableFactory tables;
 
     private StreamTestWithHashStreamStore(TransactionManager txManager, StreamTestTableFactory tables) {
-        this(txManager, tables, () -> StreamStorePersistenceConfigurations.DEFAULT_CONFIG);
+        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
     }
 
     private StreamTestWithHashStreamStore(TransactionManager txManager, StreamTestTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
