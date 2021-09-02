@@ -86,7 +86,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "deprecation"})
 public final class LatestSnapshotTable implements
         AtlasDbMutablePersistentTable<LatestSnapshotTable.LatestSnapshotRow,
                                          LatestSnapshotTable.LatestSnapshotNamedColumnValue<?>,
@@ -681,5 +681,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "IRj0RA+8Q0W/0gWZp8Mr+w==";
+    static String __CLASS_HASH = "uDjDzxHTwUPFE6axOmFPNw==";
 }

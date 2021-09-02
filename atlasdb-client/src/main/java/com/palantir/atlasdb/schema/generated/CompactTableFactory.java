@@ -18,20 +18,18 @@ public final class CompactTableFactory {
 
     private final Namespace namespace;
 
-    private CompactTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+    private CompactTableFactory(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
     public static CompactTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         return new CompactTableFactory(sharedTriggers, namespace);
     }
 
-    public static CompactTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static CompactTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new CompactTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -43,18 +41,20 @@ public final class CompactTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public CompactMetadataTable getCompactMetadataTable(Transaction t,
-            CompactMetadataTable.CompactMetadataTrigger... triggers) {
+    public CompactMetadataTable getCompactMetadataTable(
+            Transaction t, CompactMetadataTable.CompactMetadataTrigger... triggers) {
         return CompactMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends CompactMetadataTable.CompactMetadataTrigger {
-    }
+    public interface SharedTriggers extends CompactMetadataTable.CompactMetadataTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
         public void putCompactMetadata(
-                Multimap<CompactMetadataTable.CompactMetadataRow, ? extends CompactMetadataTable.CompactMetadataNamedColumnValue<?>> newRows) {
+                Multimap<
+                                CompactMetadataTable.CompactMetadataRow,
+                                ? extends CompactMetadataTable.CompactMetadataNamedColumnValue<?>>
+                        newRows) {
             // do nothing
         }
     }

@@ -86,7 +86,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "deprecation"})
 public final class TableClearsTable implements
         AtlasDbMutablePersistentTable<TableClearsTable.TableClearsRow,
                                          TableClearsTable.TableClearsNamedColumnValue<?>,
@@ -681,5 +681,5 @@ public final class TableClearsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lAs81CkqCmiiCpWFVIgJNg==";
+    static String __CLASS_HASH = "ZTQrUhB7dvmc+eZsO+E7CA==";
 }
