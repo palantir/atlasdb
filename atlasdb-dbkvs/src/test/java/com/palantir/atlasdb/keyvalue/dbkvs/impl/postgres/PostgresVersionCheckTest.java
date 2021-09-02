@@ -17,11 +17,11 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import org.junit.Test;
@@ -49,10 +49,16 @@ public class PostgresVersionCheckTest {
                 .hasMessageContaining(expectedMessage);
         verify(log)
                 .error(
-                        eq("Assertion with exception!"),
-                        eq(SafeArg.of("version", lowVersion)),
-                        eq(SafeArg.of("minVersion", PostgresVersionCheck.MIN_POSTGRES_VERSION)),
-                        isA(SafeArg.class),
+                        eq("An error occurred"),
+                        eq(ImmutableList.of(
+                                SafeArg.of(
+                                        "message",
+                                        "Your key value service currently uses version %s of postgres."
+                                                + " The minimum supported version is %s."
+                                                + " If you absolutely need to use an older version of postgres,"
+                                                + " please contact Palantir support for assistance."),
+                                SafeArg.of("version", lowVersion),
+                                SafeArg.of("minVersion", PostgresVersionCheck.MIN_POSTGRES_VERSION))),
                         Mockito.any(Exception.class));
         verifyNoMoreInteractions(log);
     }

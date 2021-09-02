@@ -127,6 +127,7 @@ public class AssertUtils {
     public static void assertAndLogWithException(SafeLogger log, boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
             log.error("An error occurred", SafeArg.of("message", msg), t);
+            assert false : msg;
         }
     }
 
@@ -138,6 +139,7 @@ public class AssertUtils {
                     Stream.concat(Stream.of(SafeArg.of("message", msg)), Arrays.stream(args))
                             .collect(Collectors.toList()),
                     t);
+            assert false : msg;
         }
     }
 
