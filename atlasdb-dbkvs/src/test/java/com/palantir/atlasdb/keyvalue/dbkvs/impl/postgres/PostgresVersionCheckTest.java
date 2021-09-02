@@ -17,15 +17,15 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
 
 public class PostgresVersionCheckTest {
 
@@ -40,45 +40,39 @@ public class PostgresVersionCheckTest {
         verifyLowVersionLogsError("9.5.2");
     }
 
-    @SuppressWarnings("CompileTimeConstant")
+    @SuppressWarnings("Slf4jConstantLogMessage")
     private static void verifyLowVersionLogsError(String lowVersion) {
-        SafeLogger log = mock(SafeLogger.class);
+        Logger log = mock(Logger.class);
         String expectedMessage = "The minimum supported version is";
         assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion(lowVersion, log))
                 .isInstanceOf(AssertionError.class)
                 .hasMessageContaining(expectedMessage);
         verify(log)
                 .error(
-                        eq("An error occurred"),
-                        eq(ImmutableList.of(
-                                SafeArg.of(
-                                        "message",
-                                        "Your key value service currently uses version %s of postgres."
-                                                + " The minimum supported version is %s."
-                                                + " If you absolutely need to use an older version of postgres,"
-                                                + " please contact Palantir support for assistance."),
-                                SafeArg.of("version", lowVersion),
-                                SafeArg.of("minVersion", PostgresVersionCheck.MIN_POSTGRES_VERSION))),
+                        eq("Assertion with exception!"),
+                        eq(lowVersion),
+                        eq(PostgresVersionCheck.MIN_POSTGRES_VERSION),
+                        isA(SafeArg.class),
                         Mockito.any(Exception.class));
         verifyNoMoreInteractions(log);
     }
 
     @Test
     public void shouldFailOn_9_5_0() {
-        assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion("9.5.0", mock(SafeLogger.class)))
+        assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion("9.5.0", mock(Logger.class)))
                 .hasMessageContaining("Versions 9.5.0 and 9.5.1 contain a known bug");
     }
 
     @Test
     public void shouldFailOn_9_5_1() {
-        assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion("9.5.1", mock(SafeLogger.class)))
+        assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion("9.5.1", mock(Logger.class)))
                 .hasMessageContaining("Versions 9.5.0 and 9.5.1 contain a known bug");
     }
 
     @Test
     @SuppressWarnings("Slf4jConstantLogMessage")
     public void shouldBeFineOn_9_6_12() {
-        SafeLogger log = mock(SafeLogger.class);
+        Logger log = mock(Logger.class);
         PostgresVersionCheck.checkDatabaseVersion("9.6.12", log);
         verifyNoMoreInteractions(log);
     }
