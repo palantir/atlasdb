@@ -35,9 +35,12 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import java.util.concurrent.Semaphore;
 import java.util.function.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 public class PostgresDdlTable implements DbDdlTable {
+    private static final Logger oldLog = LoggerFactory.getLogger(PostgresDdlTable.class);
     private static final SafeLogger log = SafeLoggerFactory.get(PostgresDdlTable.class);
     private static final int POSTGRES_NAME_LENGTH_LIMIT = 63;
     public static final int ATLASDB_POSTGRES_TABLE_NAME_LIMIT =
@@ -130,7 +133,7 @@ public class PostgresDdlTable implements DbDdlTable {
     public void checkDatabaseVersion() {
         AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery("SHOW server_version");
         String version = result.get(0).getString("server_version");
-        PostgresVersionCheck.checkDatabaseVersion(version, log);
+        PostgresVersionCheck.checkDatabaseVersion(version, oldLog);
     }
 
     @Override
