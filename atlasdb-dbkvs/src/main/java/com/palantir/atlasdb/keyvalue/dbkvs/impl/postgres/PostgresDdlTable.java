@@ -42,6 +42,7 @@ import org.slf4j.helpers.MessageFormatter;
 public class PostgresDdlTable implements DbDdlTable {
     @SuppressWarnings("ConsistentLoggerName")
     private static final Logger oldLog = LoggerFactory.getLogger(PostgresDdlTable.class);
+
     private static final SafeLogger log = SafeLoggerFactory.get(PostgresDdlTable.class);
     private static final int POSTGRES_NAME_LENGTH_LIMIT = 63;
     public static final int ATLASDB_POSTGRES_TABLE_NAME_LIMIT =
