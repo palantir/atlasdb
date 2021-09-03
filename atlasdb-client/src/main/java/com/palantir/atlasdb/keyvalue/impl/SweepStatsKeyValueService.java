@@ -109,7 +109,7 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
         this.writeSizeThreshold = writeSizeThreshold;
         this.isEnabled = isEnabled;
         this.flushExecutor.scheduleWithFixedDelay(
-                createFlushTask(), FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
+                this::flushTask, FLUSH_DELAY_SECONDS, FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override
@@ -229,44 +229,42 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
         recordModifications(CLEAR_WEIGHT);
     }
 
-    private Runnable createFlushTask() {
-        return () -> {
-            if (!shouldFlush()) {
-                log.debug(
-                        "Not flushing since the total number modifications is less than threshold — {} < {} "
-                                + "— and total size of modifications is less than threshold — {} < {}",
-                        SafeArg.of("total modification count", totalModifications),
-                        SafeArg.of("count threshold", writeThreshold),
-                        SafeArg.of("total modifications size", totalModificationsSize),
-                        SafeArg.of("size threshold", writeSizeThreshold));
-                return;
-            }
+    private void flushTask() {
+        if (!shouldFlush()) {
+            log.debug(
+                    "Not flushing since the total number modifications is less than threshold — {} < {} "
+                            + "— and total size of modifications is less than threshold — {} < {}",
+                    SafeArg.of("total modification count", totalModifications),
+                    SafeArg.of("count threshold", writeThreshold),
+                    SafeArg.of("total modifications size", totalModificationsSize),
+                    SafeArg.of("size threshold", writeSizeThreshold));
+            return;
+        }
 
-            try {
-                if (flushLock.tryLock()) {
-                    try {
-                        if (shouldFlush()) {
-                            // snapshot current values while holding the lock and flush
-                            totalModifications.set(0);
-                            totalModificationsSize.set(0);
-                            Multiset<TableReference> localWritesByTable = ImmutableMultiset.copyOf(writesByTable);
-                            writesByTable.clear();
-                            Set<TableReference> localClearedTables = ImmutableSet.copyOf(clearedTables);
-                            clearedTables.clear();
+        try {
+            if (flushLock.tryLock()) {
+                try {
+                    if (shouldFlush()) {
+                        // snapshot current values while holding the lock and flush
+                        totalModifications.set(0);
+                        totalModificationsSize.set(0);
+                        Multiset<TableReference> localWritesByTable = ImmutableMultiset.copyOf(writesByTable);
+                        writesByTable.clear();
+                        Set<TableReference> localClearedTables = ImmutableSet.copyOf(clearedTables);
+                        clearedTables.clear();
 
-                            // apply back pressure by only allowing one flush at a time
-                            flushWrites(localWritesByTable, localClearedTables);
-                        }
-                    } finally {
-                        flushLock.unlock();
+                        // apply back pressure by only allowing one flush at a time
+                        flushWrites(localWritesByTable, localClearedTables);
                     }
-                }
-            } catch (Throwable t) {
-                if (!Thread.interrupted()) {
-                    log.warn("Error occurred while flushing sweep stats: {}", t, t);
+                } finally {
+                    flushLock.unlock();
                 }
             }
-        };
+        } catch (Throwable t) {
+            if (!Thread.interrupted()) {
+                log.warn("Error occurred while flushing sweep stats: {}", t, t);
+            }
+        }
     }
 
     private boolean shouldFlush() {

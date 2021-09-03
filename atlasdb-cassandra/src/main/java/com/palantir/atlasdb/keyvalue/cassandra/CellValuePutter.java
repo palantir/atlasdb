@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -39,8 +38,6 @@ import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.Mutation;
 
 public class CellValuePutter {
-    private static final Function<Map.Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION =
-            input -> input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
     private final LongSupplier timestampOverrideSupplier;
 
@@ -95,6 +92,10 @@ public class CellValuePutter {
         taskRunner.runAllTasksCancelOnFailure(tasks);
     }
 
+    private static Long getEntrySize(Map.Entry<Cell, Value> input) {
+        return input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
+    }
+
     private void putForSingleHost(
             String kvsMethodName,
             final InetSocketAddress host,
@@ -114,7 +115,7 @@ public class CellValuePutter {
                 }
 
                 for (List<Map.Entry<Cell, Value>> partition : IterablePartitioner.partitionByCountAndBytes(
-                        values, mutationBatchCount, mutationBatchSizeBytes, tableRef, ENTRY_SIZING_FUNCTION)) {
+                        values, mutationBatchCount, mutationBatchSizeBytes, tableRef, CellValuePutter::getEntrySize)) {
                     MutationMap map = new MutationMap();
                     for (Map.Entry<Cell, Value> e : partition) {
                         Cell cell = e.getKey();
