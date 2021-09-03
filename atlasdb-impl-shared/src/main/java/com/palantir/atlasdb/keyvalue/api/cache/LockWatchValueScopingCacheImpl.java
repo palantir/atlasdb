@@ -131,7 +131,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             return;
         }
 
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
+        CommitUpdate commitUpdate = eventCache.getSpanningCommitUpdate(startTimestamp);
         cacheStore.createReadOnlyCache(startTs, commitUpdate);
 
         commitUpdate.accept(new Visitor<Void>() {

@@ -38,7 +38,8 @@ public final class FilteringValueCacheSnapshotTest {
     private static final CacheValue VALUE_2 = createValue(20);
 
     private final ValueCacheSnapshot delegate = ValueCacheSnapshotImpl.of(
-            HashMap.of(TABLE_CELL_1, CacheEntry.unlocked(VALUE_1), TABLE_CELL_2, CacheEntry.unlocked(VALUE_2)),
+            HashMap.of(
+                    TABLE_CELL_1, CacheEntry.unlocked(VALUE_1, -1L), TABLE_CELL_2, CacheEntry.unlocked(VALUE_2, -1L)),
             HashSet.of(TABLE),
             ImmutableSet.of(TABLE));
 
@@ -79,12 +80,12 @@ public final class FilteringValueCacheSnapshotTest {
 
     private static void assertThatValueIsUnlocked(ValueCacheSnapshot delegate, CellReference cell, CacheValue value) {
         assertThat(delegate.isUnlocked(cell)).isTrue();
-        assertThat(delegate.getValue(cell)).hasValue(CacheEntry.unlocked(value));
+        assertThat(delegate.getValue(cell)).hasValue(CacheEntry.unlocked(value, -1L));
     }
 
     private static void assertThatValueIsLocked(ValueCacheSnapshot snapshot, CellReference cell) {
         assertThat(snapshot.isUnlocked(cell)).isFalse();
-        assertThat(snapshot.getValue(cell)).hasValue(CacheEntry.locked());
+        assertThat(snapshot.getValue(cell)).hasValue(CacheEntry.locked(0));
     }
 
     private static CellReference createTableCell(Cell cell) {

@@ -44,7 +44,7 @@ final class FilteringValueCacheSnapshot implements ValueCacheSnapshot {
     @Override
     public Optional<CacheEntry> getValue(CellReference cellReference) {
         if (!lockedCells.isUnlocked(cellReference)) {
-            return Optional.of(CacheEntry.locked());
+            return Optional.of(CacheEntry.locked(-1L));
         } else {
             return delegate.getValue(cellReference);
         }

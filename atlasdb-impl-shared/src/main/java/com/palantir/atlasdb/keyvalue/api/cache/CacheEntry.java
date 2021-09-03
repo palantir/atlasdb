@@ -31,17 +31,21 @@ public interface CacheEntry {
 
     CacheValue value();
 
-    static CacheEntry locked() {
+    long sequence();
+
+    static CacheEntry locked(long sequence) {
         return ImmutableCacheEntry.builder()
                 .status(Status.LOCKED)
                 .value(CacheValue.empty())
+                .sequence(sequence)
                 .build();
     }
 
-    static CacheEntry unlocked(CacheValue value) {
+    static CacheEntry unlocked(CacheValue value, long sequence) {
         return ImmutableCacheEntry.builder()
                 .status(Status.UNLOCKED)
                 .value(value)
+                .sequence(sequence)
                 .build();
     }
 

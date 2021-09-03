@@ -209,7 +209,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
                 .map(RowResult::getCells)
                 .flatMap(Streams::stream)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        valueStore.cacheRemoteReads(tableReference, rowsReadAsCells);
+        valueStore.cacheRemoteRowReads(tableReference, rowsReadAsCells);
         cacheEmptyReads(tableReference, cacheMisses, rowsReadAsCells);
         NavigableMap<byte[], RowResult<byte[]>> result = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
         result.putAll(remoteReadValues);

@@ -72,12 +72,12 @@ public final class ValueStoreImplTest {
 
         verify(metrics, times(2)).increaseCacheSize(EXPECTED_SIZE);
 
-        assertExpectedValue(CELL_1, CacheEntry.unlocked(VALUE_1));
-        assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_3));
+        assertExpectedValue(CELL_1, CacheEntry.unlocked(VALUE_1, -1L));
+        assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_3, -1L));
 
         valueStore.applyEvent(LOCK_EVENT);
-        assertExpectedValue(CELL_1, CacheEntry.locked());
-        assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_3));
+        assertExpectedValue(CELL_1, CacheEntry.locked(0));
+        assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_3, -1L));
 
         verify(metrics).decreaseCacheSize(EXPECTED_SIZE);
     }
@@ -87,7 +87,7 @@ public final class ValueStoreImplTest {
         valueStore.applyEvent(WATCH_EVENT);
         valueStore.applyEvent(LOCK_EVENT);
 
-        assertExpectedValue(CELL_1, CacheEntry.locked());
+        assertExpectedValue(CELL_1, CacheEntry.locked(0));
 
         valueStore.applyEvent(UNLOCK_EVENT);
         assertThat(valueStore.getSnapshot().getValue(TABLE_CELL)).isEmpty();
@@ -139,8 +139,8 @@ public final class ValueStoreImplTest {
 
         valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
         valueStore.putValue(CellReference.of(TABLE, CELL_3), VALUE_3);
-        assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_2));
-        assertExpectedValue(CELL_3, CacheEntry.unlocked(VALUE_3));
+        assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_2, -1L));
+        assertExpectedValue(CELL_3, CacheEntry.unlocked(VALUE_3, -1L));
 
         verify(metrics, times(2)).increaseCacheSize(EXPECTED_SIZE);
     }

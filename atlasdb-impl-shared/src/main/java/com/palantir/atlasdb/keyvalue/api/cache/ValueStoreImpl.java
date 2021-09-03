@@ -31,8 +31,8 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import com.palantir.lock.watch.UnlockEvent;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.Set;
@@ -89,14 +89,15 @@ final class ValueStoreImpl implements ValueStore {
 
     @Override
     public void putValue(CellReference cellReference, CacheValue value) {
-        values.with(map -> map.put(cellReference, CacheEntry.unlocked(value), (oldValue, newValue) -> {
-            Preconditions.checkState(
-                    oldValue.status().isUnlocked() && oldValue.equals(newValue),
-                    "Trying to cache a value which is either locked or is not equal to a currently cached value",
-                    UnsafeArg.of("table", cellReference.tableRef()),
-                    UnsafeArg.of("cell", cellReference.cell()),
-                    UnsafeArg.of("oldValue", oldValue),
-                    UnsafeArg.of("newValue", newValue));
+        values.with(map -> map.put(cellReference, CacheEntry.unlocked(value, -1L), (oldValue, newValue) -> {
+            if (!(oldValue.status().isUnlocked() && oldValue.equals(newValue))) {
+                throw new SafeIllegalStateException(
+                        "Trying to cache a value which is either locked or is not equal to a currently cached value",
+                        UnsafeArg.of("table", cellReference.tableRef()),
+                        UnsafeArg.of("cell", cellReference.cell()),
+                        UnsafeArg.of("oldValue", oldValue),
+                        UnsafeArg.of("newValue", newValue));
+            }
             metrics.decreaseCacheSize(
                     EntryWeigher.INSTANCE.weigh(cellReference, oldValue.value().size()));
             return newValue;
@@ -110,13 +111,13 @@ final class ValueStoreImpl implements ValueStore {
         return ValueCacheSnapshotImpl.of(values.getSnapshot(), watchedTables.getSnapshot(), allowedTables);
     }
 
-    private void putLockedCell(CellReference cellReference) {
+    private void putLockedCell(CellReference cellReference, long sequence) {
         if (values.apply(map -> map.get(cellReference).toJavaOptional())
                 .filter(CacheEntry::isUnlocked)
                 .isPresent()) {
             loadedValues.invalidate(cellReference);
         }
-        values.with(map -> map.put(cellReference, CacheEntry.locked()));
+        values.with(map -> map.put(cellReference, CacheEntry.locked(sequence)));
     }
 
     private void clearLockedCell(CellReference cellReference) {
@@ -131,8 +132,10 @@ final class ValueStoreImpl implements ValueStore {
         return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 
-    private void applyLockedDescriptors(Set<LockDescriptor> lockDescriptors) {
-        lockDescriptors.stream().flatMap(this::extractCandidateCells).forEach(this::putLockedCell);
+    private void applyLockedDescriptors(Set<LockDescriptor> lockDescriptors, long sequence) {
+        lockDescriptors.stream()
+                .flatMap(this::extractCandidateCells)
+                .forEach(cellReference -> putLockedCell(cellReference, sequence));
     }
 
     private TableReference extractTableReference(LockWatchReference lockWatchReference) {
@@ -142,7 +145,7 @@ final class ValueStoreImpl implements ValueStore {
     private final class LockWatchVisitor implements LockWatchEvent.Visitor<Void> {
         @Override
         public Void visit(LockEvent lockEvent) {
-            applyLockedDescriptors(lockEvent.lockDescriptors());
+            applyLockedDescriptors(lockEvent.lockDescriptors(), lockEvent.sequence());
             return null;
         }
 
@@ -159,7 +162,7 @@ final class ValueStoreImpl implements ValueStore {
             lockWatchCreatedEvent.references().stream()
                     .map(ValueStoreImpl.this::extractTableReference)
                     .forEach(tableReference -> watchedTables.with(tables -> tables.add(tableReference)));
-            applyLockedDescriptors(lockWatchCreatedEvent.lockDescriptors());
+            applyLockedDescriptors(lockWatchCreatedEvent.lockDescriptors(), lockWatchCreatedEvent.sequence());
             return null;
         }
     }

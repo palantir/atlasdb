@@ -98,6 +98,32 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
+    public synchronized CommitUpdate getSpanningCommitUpdate(long startTs) {
+        Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
+        Optional<CommitInfo> maybeCommitInfo = timestampStateStore.getCommitInfo(startTs);
+
+        assertTrue(
+                maybeCommitInfo.isPresent()
+                        && startVersion.isPresent()
+                        && eventLog.getLatestKnownVersion().isPresent(),
+                "start or commit info not processed for start timestamp");
+
+        CommitInfo commitInfo = maybeCommitInfo.get();
+
+        VersionBounds versionBounds = VersionBounds.builder()
+                .startVersion(startVersion)
+                .endVersion(eventLog.getLatestKnownVersion().get())
+                .build();
+
+        return eventLog.getEventsBetweenVersions(versionBounds)
+                .toCommitUpdate(
+                        startVersion.get(),
+                        CommitInfo.of(
+                                commitInfo.commitLockToken(),
+                                eventLog.getLatestKnownVersion().get()));
+    }
+
+    @Override
     public synchronized TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
         TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);

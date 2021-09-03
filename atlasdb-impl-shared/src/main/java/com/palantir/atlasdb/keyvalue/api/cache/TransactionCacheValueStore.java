@@ -35,6 +35,8 @@ interface TransactionCacheValueStore {
 
     void cacheRemoteReads(TableReference tableReference, Map<Cell, byte[]> remoteReadValues);
 
+    void cacheRemoteRowReads(TableReference table, Map<Cell, byte[]> remoteReadValues);
+
     void cacheEmptyReads(TableReference tableReference, Set<Cell> emptyCells);
 
     Map<Cell, CacheValue> getCachedValues(TableReference table, Set<Cell> cells);

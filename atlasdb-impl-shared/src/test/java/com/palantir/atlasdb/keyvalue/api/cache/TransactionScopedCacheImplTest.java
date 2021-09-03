@@ -134,7 +134,7 @@ public final class TransactionScopedCacheImplTest {
     public void lockedCellsAreNeverCached() {
         TransactionScopedCache cache = TransactionScopedCacheImpl.create(
                 ValueCacheSnapshotImpl.of(
-                        HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked()),
+                        HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked(0)),
                         HashSet.of(TABLE),
                         ImmutableSet.of(TABLE)),
                 metrics);
@@ -241,8 +241,8 @@ public final class TransactionScopedCacheImplTest {
                         cell -> new Tuple2<>(
                                 CellReference.of(TABLE, cell),
                                 emptyCells
-                                        ? CacheEntry.unlocked(CacheValue.empty())
-                                        : CacheEntry.unlocked(createValue(cell)))),
+                                        ? CacheEntry.unlocked(CacheValue.empty(), -1L)
+                                        : CacheEntry.unlocked(createValue(cell), -1L))),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
         return TransactionScopedCacheImpl.create(snapshot, metrics);
@@ -414,7 +414,7 @@ public final class TransactionScopedCacheImplTest {
 
     private static ValueCacheSnapshot snapshotWithSingleValue() {
         return ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)),
+                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1, -1L)),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
     }

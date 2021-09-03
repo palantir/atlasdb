@@ -141,7 +141,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void getRowsReadsRemotelyOnceWhenValidating() {
         ValueCacheSnapshot snapshot = ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, createCell(1, 1)), CacheEntry.unlocked(VALUE_1)),
+                HashMap.of(CellReference.of(TABLE, createCell(1, 1)), CacheEntry.unlocked(VALUE_1, -1L)),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshot, metrics);
@@ -170,7 +170,7 @@ public final class ValidatingTransactionScopedCacheTest {
     @Test
     public void getRowsValidates() {
         ValueCacheSnapshot snapshot = ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, createCell(1, 1)), CacheEntry.unlocked(VALUE_1)),
+                HashMap.of(CellReference.of(TABLE, createCell(1, 1)), CacheEntry.unlocked(VALUE_1, -1L)),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshot, metrics);
@@ -194,7 +194,7 @@ public final class ValidatingTransactionScopedCacheTest {
 
     private static ValueCacheSnapshot snapshotWithSingleValue() {
         return ValueCacheSnapshotImpl.of(
-                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)),
+                HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1, -1L)),
                 HashSet.of(TABLE),
                 ImmutableSet.of(TABLE));
     }

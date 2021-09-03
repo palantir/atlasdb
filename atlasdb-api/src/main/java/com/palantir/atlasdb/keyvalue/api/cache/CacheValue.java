@@ -21,9 +21,11 @@ import java.util.Optional;
 
 public final class CacheValue {
     private final Optional<byte[]> value;
+    private final boolean fromRows;
 
-    private CacheValue(Optional<byte[]> value) {
+    private CacheValue(Optional<byte[]> value, boolean fromRows) {
         this.value = value;
+        this.fromRows = fromRows;
     }
 
     // This is optional as we also want to cache reads where there is no value present.
@@ -32,11 +34,15 @@ public final class CacheValue {
     }
 
     public static CacheValue of(byte[] value) {
-        return new CacheValue(Optional.of(value));
+        return new CacheValue(Optional.of(value), false);
+    }
+
+    public static CacheValue fromRows(byte[] value) {
+        return new CacheValue(Optional.of(value), true);
     }
 
     public static CacheValue empty() {
-        return new CacheValue(Optional.empty());
+        return new CacheValue(Optional.empty(), false);
     }
 
     public int size() {

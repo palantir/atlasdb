@@ -68,6 +68,11 @@ class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
+    public CommitUpdate getSpanningCommitUpdate(long startTs) {
+        return mainCache.getCommitUpdate(startTs);
+    }
+
+    @Override
     public TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return mainCache.getUpdateForTransactions(startTimestamps, version);

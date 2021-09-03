@@ -65,6 +65,16 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     @Override
+    public void cacheRemoteRowReads(TableReference table, Map<Cell, byte[]> remoteReadValues) {
+        if (snapshot.isWatched(table)) {
+            KeyedStream.stream(remoteReadValues)
+                    .mapKeys(cell -> CellReference.of(table, cell))
+                    .map(CacheValue::fromRows)
+                    .forEach(this::cacheRemoteReadInternal);
+        }
+    }
+
+    @Override
     public void cacheEmptyReads(TableReference table, Set<Cell> emptyCells) {
         if (snapshot.isWatched(table)) {
             emptyCells.stream()

@@ -50,6 +50,7 @@ public interface LockWatchEventCache {
      */
     CommitUpdate getCommitUpdate(long startTs);
 
+    CommitUpdate getSpanningCommitUpdate(long startTs);
     /**
      * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since
      * that version, and a map associating each start timestamp with its respective lock watch state version.
