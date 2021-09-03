@@ -160,7 +160,7 @@ public class TimeLockServerHolder extends ExternalResource {
         }
     }
 
-    private static WireMockConfiguration wireMockConfiguration(int port) {
+    private static WireMockConfiguration wireMockConfiguration(Integer port) {
         return WireMockConfiguration.wireMockConfig()
                 .dynamicPort()
                 .httpsPort(port)
