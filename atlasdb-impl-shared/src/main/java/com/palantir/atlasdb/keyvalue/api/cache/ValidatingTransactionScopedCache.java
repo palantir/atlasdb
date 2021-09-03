@@ -102,7 +102,11 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
             return Futures.transform(
                     cacheReads,
                     reads -> {
-                        validateCacheReads(tableReference, AtlasFutures.getDone(remoteReads), reads);
+                        validateCacheReads(
+                                tableReference,
+                                AtlasFutures.getDone(remoteReads),
+                                reads,
+                                () -> delegate.get(tableReference, cells, valueLoader));
                         return reads;
                     },
                     MoreExecutors.directExecutor());
@@ -168,8 +172,12 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     }
 
     private void validateCacheReads(
-            TableReference tableReference, Map<Cell, byte[]> remoteReads, Map<Cell, byte[]> cacheReads) {
+            TableReference tableReference,
+            Map<Cell, byte[]> remoteReads,
+            Map<Cell, byte[]> cacheReads,
+            Runnable runnable) {
         if (!ByteArrayUtilities.areMapsEqual(remoteReads, cacheReads)) {
+            runnable.run();
             failAndLog(
                     SafeArg.of("endpoint", "get"),
                     UnsafeArg.of("table", tableReference),

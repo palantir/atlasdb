@@ -18,23 +18,28 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionCacheValueStoreImpl.LocalCacheEntry.Status;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.immutables.value.Value;
 
 @NotThreadSafe
-final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore {
+public final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore {
+    public static final AtomicBoolean theJankinator = new AtomicBoolean(true);
+
     private final ValueCacheSnapshot snapshot;
     private final Map<CellReference, LocalCacheEntry> localUpdates;
 
@@ -102,6 +107,10 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
                     // no-op - hits contain the same values as stored in the snapshot
             }
         });
+
+        while (theJankinator.get()) {
+            Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(20));
+        }
 
         return newStore;
     }

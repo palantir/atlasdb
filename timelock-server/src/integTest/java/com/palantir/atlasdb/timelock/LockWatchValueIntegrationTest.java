@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -35,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionCacheValueStoreImpl;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
@@ -54,6 +56,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
@@ -419,6 +422,30 @@ public final class LockWatchValueIntegrationTest {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
+    }
+
+    @Test
+    public void victoryRoad() throws InterruptedException {
+        createTransactionManager(1.0);
+
+        ExecutorService executor = Executors.newFixedThreadPool(5);
+
+        CountDownLatch latch = new CountDownLatch(1);
+
+        executor.submit(() -> txnManager.runTaskThrowOnConflict(txn -> {
+            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            latch.countDown();
+            return null;
+        }));
+
+        latch.await();
+        Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(1));
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, randomData()));
+            TransactionCacheValueStoreImpl.theJankinator.set(false);
+            return null;
+        });
     }
 
     private void randomTask() {
