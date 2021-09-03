@@ -19,20 +19,17 @@ public final class IndexTestTableFactory {
     private final Namespace namespace;
 
     private IndexTestTableFactory(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
     public static IndexTestTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         return new IndexTestTableFactory(sharedTriggers, namespace);
     }
 
-    public static IndexTestTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static IndexTestTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new IndexTestTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -48,24 +45,22 @@ public final class IndexTestTableFactory {
         return DataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public TwoColumnsTable getTwoColumnsTable(Transaction t,
-            TwoColumnsTable.TwoColumnsTrigger... triggers) {
+    public TwoColumnsTable getTwoColumnsTable(Transaction t, TwoColumnsTable.TwoColumnsTrigger... triggers) {
         return TwoColumnsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends DataTable.DataTrigger, TwoColumnsTable.TwoColumnsTrigger {
-    }
+    public interface SharedTriggers extends DataTable.DataTrigger, TwoColumnsTable.TwoColumnsTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putData(
-                Multimap<DataTable.DataRow, ? extends DataTable.DataNamedColumnValue<?>> newRows) {
+        public void putData(Multimap<DataTable.DataRow, ? extends DataTable.DataNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
         public void putTwoColumns(
-                Multimap<TwoColumnsTable.TwoColumnsRow, ? extends TwoColumnsTable.TwoColumnsNamedColumnValue<?>> newRows) {
+                Multimap<TwoColumnsTable.TwoColumnsRow, ? extends TwoColumnsTable.TwoColumnsNamedColumnValue<?>>
+                        newRows) {
             // do nothing
         }
     }

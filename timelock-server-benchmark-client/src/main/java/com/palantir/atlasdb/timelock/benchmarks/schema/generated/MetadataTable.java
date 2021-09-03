@@ -86,7 +86,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings("all")
+@SuppressWarnings({"all", "deprecation"})
 public final class MetadataTable implements
         AtlasDbMutablePersistentTable<MetadataTable.MetadataRow,
                                          MetadataTable.MetadataNamedColumnValue<?>,
@@ -771,5 +771,5 @@ public final class MetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "dkVfxVk7XZMFHy54L2X7ZQ==";
+    static String __CLASS_HASH = "dODm8JfCNENQMGubJd/7+g==";
 }
