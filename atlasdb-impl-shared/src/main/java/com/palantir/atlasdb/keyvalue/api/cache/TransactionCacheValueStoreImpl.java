@@ -155,7 +155,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
     }
 
     private void cacheRemoteReadInternal(CellReference cell, CacheValue value) {
-        if (snapshot.isUnlocked(cell)) {
+        if (snapshot.isWatched(cell.tableRef()) && snapshot.isUnlocked(cell)) {
             localUpdates.put(cell, LocalCacheEntry.read(value));
         }
     }
