@@ -71,6 +71,7 @@ import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.ServiceDiscoveringDatabaseTimeLockSupplier;
+import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
@@ -109,6 +110,7 @@ public class TimeLockAgent {
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
     private final Refreshable<TimeLockRuntimeConfiguration> runtime;
+    private final ClusterConfiguration cluster;
     private final Consumer<Object> registrar;
     private final Optional<Consumer<UndertowService>> undertowRegistrar;
     private final PaxosResources paxosResources;
@@ -128,6 +130,7 @@ public class TimeLockAgent {
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Refreshable<TimeLockRuntimeConfiguration> runtime,
+            ClusterConfiguration cluster,
             UserAgent userAgent,
             int threadPoolSize,
             long blockingTimeoutMs,
@@ -135,13 +138,13 @@ public class TimeLockAgent {
             Optional<Consumer<UndertowService>> undertowRegistrar,
             OrderableSlsVersion timeLockVersion,
             ObjectMapper objectMapper) {
-        verifyIsNewServiceInvariant(install);
+        verifyIsNewServiceInvariant(install, cluster);
 
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider =
-                createTimeLockDialogueServiceProvider(metricsManager, install, userAgent);
+                createTimeLockDialogueServiceProvider(metricsManager, cluster, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
                 ImmutableTimelockPaxosInstallationContext.of(
-                        install, userAgent, timeLockDialogueServiceProvider, timeLockVersion);
+                        install, cluster, userAgent, timeLockDialogueServiceProvider, timeLockVersion);
 
         // Upgrading the schema version should generally happen BEFORE any migration has started. Keep this in
         // mind for any potential live migrations
@@ -165,6 +168,7 @@ public class TimeLockAgent {
                 metricsManager,
                 install,
                 runtime,
+                cluster,
                 undertowRegistrar,
                 threadPoolSize,
                 blockingTimeoutMs,
@@ -178,14 +182,14 @@ public class TimeLockAgent {
     }
 
     private static TimeLockDialogueServiceProvider createTimeLockDialogueServiceProvider(
-            MetricsManager metricsManager, TimeLockInstallConfiguration install, UserAgent userAgent) {
+            MetricsManager metricsManager, ClusterConfiguration cluster, UserAgent userAgent) {
         DialogueClients.ReloadingFactory baseFactory = DialogueClients.create(
                         Refreshable.only(ServicesConfigBlock.builder().build()))
                 .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking"));
         ServerListConfig timeLockServerListConfig = ImmutableServerListConfig.builder()
-                .addAllServers(PaxosRemotingUtils.getRemoteServerPaths(install))
-                .sslConfiguration(install.cluster().cluster().security())
-                .proxyConfiguration(install.cluster().cluster().proxyConfiguration())
+                .addAllServers(PaxosRemotingUtils.getRemoteServerPaths(cluster))
+                .sslConfiguration(cluster.cluster().security())
+                .proxyConfiguration(cluster.cluster().proxyConfiguration())
                 .build();
         return TimeLockDialogueServiceProvider.create(
                 metricsManager.getTaggedRegistry(),
@@ -203,6 +207,7 @@ public class TimeLockAgent {
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Refreshable<TimeLockRuntimeConfiguration> runtime,
+            ClusterConfiguration cluster,
             Optional<Consumer<UndertowService>> undertowRegistrar,
             int threadPoolSize,
             long blockingTimeoutMs,
@@ -214,6 +219,7 @@ public class TimeLockAgent {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
+        this.cluster = cluster;
         this.undertowRegistrar = undertowRegistrar;
         this.registrar = registrar;
         this.paxosResources = paxosResources;
@@ -229,7 +235,7 @@ public class TimeLockAgent {
                 metricsManager, lockLog, paxosResources.leadershipComponents(), install.lockDiagnosticConfig());
 
         this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
-                new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
+                new TimeLockActivityCheckerFactory(cluster, metricsManager, userAgent).getTimeLockActivityCheckers());
 
         this.feedbackHandler = new FeedbackHandler(
                 metricsManager, () -> runtime.get().adjudication().enabled());
@@ -391,10 +397,11 @@ public class TimeLockAgent {
     }
 
     @VisibleForTesting
-    static void verifyIsNewServiceInvariant(TimeLockInstallConfiguration install) {
+    static void verifyIsNewServiceInvariant(TimeLockInstallConfiguration install, ClusterConfiguration cluster) {
         if (!install.paxos().ignoreNewServiceCheck()) {
             TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
-                    install.isNewServiceNode(), install.paxos().doDataDirectoriesExist());
+                    install.isNewService() || cluster.isNewServiceNode(),
+                    install.paxos().doDataDirectoriesExist());
         }
     }
 
@@ -496,10 +503,8 @@ public class TimeLockAgent {
     }
 
     private RedirectRetryTargeter redirectRetryTargeter() {
-        URL localServer = PaxosRemotingUtils.convertAddressToUrl(
-                install, install.cluster().localServer());
-        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(
-                install, install.cluster().clusterMembers());
+        URL localServer = PaxosRemotingUtils.convertAddressToUrl(cluster);
+        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(cluster);
         return RedirectRetryTargeter.create(localServer, clusterUrls);
     }
 
@@ -521,13 +526,13 @@ public class TimeLockAgent {
     }
 
     private LeaderConfig createLeaderConfig() {
-        List<String> uris = install.cluster().clusterMembers();
+        List<String> uris = cluster.clusterMembers();
         Path leaderPaxosDataDirectory = install.paxos().dataDirectory().toPath().resolve(LEADER_PAXOS_NAMESPACE);
 
         return ImmutableLeaderConfig.builder()
                 .addLeaders(uris.toArray(new String[0]))
-                .localServer(install.cluster().localServer())
-                .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
+                .localServer(cluster.localServer())
+                .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(cluster))
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
                 .learnerLogDir(leaderPaxosDataDirectory
                         .resolve(LEARNER_SUBDIRECTORY_PATH)

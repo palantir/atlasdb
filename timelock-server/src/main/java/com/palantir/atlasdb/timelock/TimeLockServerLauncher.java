@@ -31,6 +31,7 @@ import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -95,10 +96,12 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                         .getObjectMapper()
                         .writerWithDefaultPrettyPrinter()
                         .writeValueAsString(configuration.install().paxos()));
+        TimeLockRuntimeConfiguration runtime = configuration.runtime();
         TimeLockAgent timeLockAgent = TimeLockAgent.create(
                 metricsManager,
                 configuration.install(),
-                Refreshable.only(configuration.runtime()), // this won't actually live reload
+                Refreshable.only(runtime), // this won't actually live reload
+                runtime.cluster(),
                 USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),

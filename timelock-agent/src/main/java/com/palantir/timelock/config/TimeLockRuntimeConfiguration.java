@@ -38,6 +38,8 @@ public abstract class TimeLockRuntimeConfiguration {
         return ImmutablePaxosRuntimeConfiguration.builder().build();
     }
 
+    public abstract ClusterConfiguration cluster();
+
     /**
      * The maximum number of client namespaces to allow. Each distinct client consumes some amount of memory and disk
      * space.

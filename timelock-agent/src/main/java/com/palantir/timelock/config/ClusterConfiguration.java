@@ -52,6 +52,11 @@ public interface ClusterConfiguration {
         return false;
     }
 
+    @Value.Derived
+    default boolean isNewServiceNode() {
+        return knownNewServers().contains(localServer());
+    }
+
     @Value.Check
     default void checkClusterMembersIncludesLocalServer() {
         Preconditions.checkArgument(

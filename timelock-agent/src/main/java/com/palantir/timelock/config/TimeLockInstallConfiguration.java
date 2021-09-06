@@ -32,10 +32,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 @JsonIgnoreProperties(value = "asyncLock")
 public interface TimeLockInstallConfiguration {
-
     PaxosInstallConfiguration paxos();
-
-    ClusterConfiguration cluster();
 
     @Value.Default
     default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {
@@ -61,9 +58,8 @@ public interface TimeLockInstallConfiguration {
     }
 
     @Value.Derived
-    default boolean isNewServiceNode() {
-        return paxos().isNewService()
-                || cluster().knownNewServers().contains(cluster().localServer());
+    default boolean isNewService() {
+        return paxos().isNewService();
     }
 
     static Builder builder() {
