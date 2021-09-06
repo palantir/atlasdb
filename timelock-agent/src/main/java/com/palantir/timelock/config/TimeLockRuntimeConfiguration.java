@@ -38,6 +38,7 @@ public abstract class TimeLockRuntimeConfiguration {
         return ImmutablePaxosRuntimeConfiguration.builder().build();
     }
 
+    @JsonProperty("cluster-config-not-live-reloaded")
     public abstract ClusterConfiguration cluster();
 
     /**

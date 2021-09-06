@@ -503,8 +503,8 @@ public class TimeLockAgent {
     }
 
     private RedirectRetryTargeter redirectRetryTargeter() {
-        URL localServer = PaxosRemotingUtils.convertAddressToUrl(cluster);
-        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(cluster);
+        URL localServer = PaxosRemotingUtils.convertAddressToUrl(cluster, cluster.localServer());
+        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(cluster, cluster.clusterMembers());
         return RedirectRetryTargeter.create(localServer, clusterUrls);
     }
 

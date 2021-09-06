@@ -63,19 +63,17 @@ public final class PaxosRemotingUtils {
         return addresses.stream().map(address -> addProtocol(cluster, address)).collect(Collectors.toList());
     }
 
-    public static URL convertAddressToUrl(ClusterConfiguration cluster) {
+    public static URL convertAddressToUrl(ClusterConfiguration cluster, String address) {
         try {
-            return UriBuilder.fromPath(addProtocol(cluster, cluster.localServer()))
-                    .build()
-                    .toURL();
+            return UriBuilder.fromPath(addProtocol(cluster, address)).build().toURL();
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static List<URL> convertAddressesToUrls(ClusterConfiguration cluster) {
-        return cluster.clusterMembers().stream()
-                .map(address -> convertAddressToUrl(cluster))
+    public static List<URL> convertAddressesToUrls(ClusterConfiguration cluster, List<String> addresses) {
+        return addresses.stream()
+                .map(address -> convertAddressToUrl(cluster, address))
                 .collect(Collectors.toList());
     }
 }

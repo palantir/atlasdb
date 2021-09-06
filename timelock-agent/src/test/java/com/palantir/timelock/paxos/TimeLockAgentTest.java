@@ -133,10 +133,9 @@ public class TimeLockAgentTest {
     public void newServiceNotSetNoDataDirectoryThrows() {
         assertThatThrownBy(() -> TimeLockAgent.verifyIsNewServiceInvariant(
                         TimeLockInstallConfiguration.builder()
-                                .cluster(CLUSTER_CONFIG)
                                 .paxos(createPaxosInstall(false, false))
                                 .build(),
-                        runtime.get()))
+                        CLUSTER_CONFIG))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
@@ -144,10 +143,9 @@ public class TimeLockAgentTest {
     public void newServiceSetNoDataDirectoryExistsThrows() {
         assertThatThrownBy(() -> TimeLockAgent.verifyIsNewServiceInvariant(
                         TimeLockInstallConfiguration.builder()
-                                .cluster(CLUSTER_CONFIG)
                                 .paxos(createPaxosInstall(true, true))
                                 .build(),
-                        runtime.get()))
+                        CLUSTER_CONFIG))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
@@ -155,10 +153,9 @@ public class TimeLockAgentTest {
     public void newServiceNotSetNoDataDirectoryDoesNotThrowWhenIgnoreFlagSet() {
         assertThatCode(() -> TimeLockAgent.verifyIsNewServiceInvariant(
                         TimeLockInstallConfiguration.builder()
-                                .cluster(CLUSTER_CONFIG)
                                 .paxos(createPaxosInstall(false, false, true))
                                 .build(),
-                        runtime.get()))
+                        CLUSTER_CONFIG))
                 .doesNotThrowAnyException();
     }
 
@@ -166,10 +163,9 @@ public class TimeLockAgentTest {
     public void newServiceSetNoDataDirectoryExistsDoesNotThrowWhenIgnoreFlagSet() {
         assertThatCode(() -> TimeLockAgent.verifyIsNewServiceInvariant(
                         TimeLockInstallConfiguration.builder()
-                                .cluster(CLUSTER_CONFIG)
                                 .paxos(createPaxosInstall(true, true, true))
                                 .build(),
-                        runtime.get()))
+                        CLUSTER_CONFIG))
                 .doesNotThrowAnyException();
     }
 
@@ -201,13 +197,12 @@ public class TimeLockAgentTest {
 
         assertThatThrownBy(() -> TimeLockAgent.verifyIsNewServiceInvariant(
                         TimeLockInstallConfiguration.builder()
-                                .cluster(differentClusterConfig)
                                 .paxos(PaxosInstallConfiguration.builder()
                                         .dataDirectory(mockFile)
                                         .isNewService(false)
                                         .build())
                                 .build(),
-                        runtime.get()))
+                        CLUSTER_CONFIG))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -241,10 +236,9 @@ public class TimeLockAgentTest {
         PaxosInstallConfiguration installConfiguration = configBuilder.build();
         assertThatThrownBy(() -> TimeLockAgent.verifyIsNewServiceInvariant(
                         TimeLockInstallConfiguration.builder()
-                                .cluster(CLUSTER_CONFIG)
                                 .paxos(installConfiguration)
                                 .build(),
-                        runtime.get()))
+                        CLUSTER_CONFIG))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }
