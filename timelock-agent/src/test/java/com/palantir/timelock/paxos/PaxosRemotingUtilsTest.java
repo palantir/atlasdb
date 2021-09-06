@@ -16,8 +16,6 @@
 package com.palantir.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
@@ -25,7 +23,6 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
-import com.palantir.timelock.config.PaxosInstallConfiguration;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Paths;
@@ -141,11 +138,5 @@ public class PaxosRemotingUtilsTest {
     public void convertAddressToUrlCreatesComponentsCorrectly_Ssl() throws MalformedURLException {
         assertThat(PaxosRemotingUtils.convertAddressToUrl(SSL_CLUSTER, "foo:42/api/bar/baz/bzzt"))
                 .isEqualTo(new URL("https", "foo", 42, "/api/bar/baz/bzzt"));
-    }
-
-    private static PaxosInstallConfiguration createPaxosConfiguration() {
-        PaxosInstallConfiguration installConfiguration = mock(PaxosInstallConfiguration.class);
-        when(installConfiguration.isNewService()).thenReturn(true);
-        return installConfiguration;
     }
 }
