@@ -138,7 +138,8 @@ public class TimeLockAgent {
             Optional<Consumer<UndertowService>> undertowRegistrar,
             OrderableSlsVersion timeLockVersion,
             ObjectMapper objectMapper) {
-        verifyIsNewServiceInvariant(install, cluster);
+
+        verifyConfigurationSanity(install, cluster);
 
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider =
                 createTimeLockDialogueServiceProvider(metricsManager, cluster, userAgent);
@@ -179,6 +180,11 @@ public class TimeLockAgent {
                 installationContext.sqliteDataSource());
         agent.createAndRegisterResources();
         return agent;
+    }
+
+    private static void verifyConfigurationSanity(TimeLockInstallConfiguration install, ClusterConfiguration cluster) {
+        verifyTopologyOffersHighAvailability(install, cluster);
+        verifyIsNewServiceInvariant(install, cluster);
     }
 
     private static TimeLockDialogueServiceProvider createTimeLockDialogueServiceProvider(
@@ -403,6 +409,29 @@ public class TimeLockAgent {
                     install.isNewService() || cluster.isNewServiceNode(),
                     install.paxos().doDataDirectoriesExist());
         }
+    }
+
+    @VisibleForTesting
+    static void verifyTopologyOffersHighAvailability(
+            TimeLockInstallConfiguration install, ClusterConfiguration cluster) {
+        if (install.cluster().enableNonstandardAndPossiblyDangerousTopology()
+                || cluster.enableNonstandardAndPossiblyDangerousTopology()) {
+            return;
+        }
+
+        Preconditions.checkArgument(
+                cluster.clusterMembers().size() >= 3,
+                "This TimeLock cluster is set up to use an insufficient (< 3) number of servers, which is not a"
+                        + " standard configuration! With fewer than three servers, your service will not have high"
+                        + " availability. In the event a node goes down, timelock will become unresponsive, meaning"
+                        + " that ALL your AtlasDB clients will become unable to perform transactions. Furthermore, if"
+                        + " 1-node, your TimeLock  cluster has NO resilience to failures of the underlying storage"
+                        + " layer; if your disks fail, the timestamp information may be IRRECOVERABLY COMPROMISED,"
+                        + " meaning that your AtlasDB deployments may become completely unusable."
+                        + " If you know what you are doing and you want to run in this configuration, you must set"
+                        + " 'enableNonstandardAndPossiblyDangerousTopology' to true.",
+                SafeArg.of("clusterSize", cluster.clusterMembers().size()),
+                SafeArg.of("minimumClusterSize", 3));
     }
 
     static void verifySchemaVersion(PersistedSchemaVersion persistedSchemaVersion) {

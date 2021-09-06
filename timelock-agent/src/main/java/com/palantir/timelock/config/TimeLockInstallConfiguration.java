@@ -32,7 +32,11 @@ import org.immutables.value.Value;
 @Value.Immutable
 @JsonIgnoreProperties(value = "asyncLock")
 public interface TimeLockInstallConfiguration {
+
     PaxosInstallConfiguration paxos();
+
+    @Deprecated
+    ClusterInstallConfiguration cluster();
 
     @Value.Default
     default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {
