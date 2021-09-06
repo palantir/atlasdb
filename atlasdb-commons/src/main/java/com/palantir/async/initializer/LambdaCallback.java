@@ -23,11 +23,8 @@ import java.util.function.Consumer;
  * Convenience class for creating callbacks using lambda expressions.
  */
 public final class LambdaCallback<R> extends Callback<R> {
-    private static final BiConsumer<Object, Throwable> FAIL = (ignore, throwable) -> {
-        throw Throwables.rewrapAndThrowUncheckedException(throwable);
-    };
-
     private final Consumer<R> initialize;
+
     private final BiConsumer<R, Throwable> onInitializationFailure;
 
     private LambdaCallback(Consumer<R> initialize, BiConsumer<R, Throwable> onInitializationFailure) {
@@ -44,7 +41,7 @@ public final class LambdaCallback<R> extends Callback<R> {
      * @return the desired Callback object.
      */
     public static <R> Callback<R> singleAttempt(Consumer<R> initialize, BiConsumer<R, Throwable> onInitFailureCleanup) {
-        return new LambdaCallback<>(initialize, onInitFailureCleanup.andThen(FAIL));
+        return new LambdaCallback<>(initialize, onInitFailureCleanup.andThen(LambdaCallback::fail));
     }
 
     /**
@@ -76,5 +73,9 @@ public final class LambdaCallback<R> extends Callback<R> {
     @Override
     public void cleanup(R resource, Throwable initFailure) {
         onInitializationFailure.accept(resource, initFailure);
+    }
+
+    private static void fail(Object ignore, Throwable throwable) {
+        throw Throwables.rewrapAndThrowUncheckedException(throwable);
     }
 }

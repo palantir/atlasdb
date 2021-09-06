@@ -18,20 +18,17 @@ public final class SweepTableFactory {
 
     private final Namespace namespace;
 
-    private SweepTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+    private SweepTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
     public static SweepTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
-            Namespace namespace) {
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
         return new SweepTableFactory(sharedTriggers, namespace);
     }
 
-    public static SweepTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static SweepTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new SweepTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -43,18 +40,20 @@ public final class SweepTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
-    public SweepPriorityTable getSweepPriorityTable(Transaction t,
-            SweepPriorityTable.SweepPriorityTrigger... triggers) {
+    public SweepPriorityTable getSweepPriorityTable(
+            Transaction t, SweepPriorityTable.SweepPriorityTrigger... triggers) {
         return SweepPriorityTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends SweepPriorityTable.SweepPriorityTrigger {
-    }
+    public interface SharedTriggers extends SweepPriorityTable.SweepPriorityTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
         public void putSweepPriority(
-                Multimap<SweepPriorityTable.SweepPriorityRow, ? extends SweepPriorityTable.SweepPriorityNamedColumnValue<?>> newRows) {
+                Multimap<
+                                SweepPriorityTable.SweepPriorityRow,
+                                ? extends SweepPriorityTable.SweepPriorityNamedColumnValue<?>>
+                        newRows) {
             // do nothing
         }
     }

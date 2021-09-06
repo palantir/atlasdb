@@ -51,11 +51,11 @@ public class TransactionRangeMigratorBuilder {
         readTxManager = null;
         txManager = null;
         checkpointer = null;
-        rowTransform = getIdentityTransform();
+        rowTransform = TransactionRangeMigratorBuilder::transformIdentity;
     }
 
-    private static Function<RowResult<byte[]>, Map<Cell, byte[]>> getIdentityTransform() {
-        return input -> Maps2.fromEntries(input.getCells());
+    private static Map<Cell, byte[]> transformIdentity(RowResult<byte[]> input) {
+        return Maps2.fromEntries(input.getCells());
     }
 
     public TransactionRangeMigratorBuilder srcTable(TableReference table) {

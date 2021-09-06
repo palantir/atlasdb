@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -46,9 +45,6 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class HeldLocksToken implements ExpiringToken, Serializable {
     private static final long serialVersionUID = 0x99b3bb32bb98f83aL;
-
-    private static final Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode> TO_LOCK_WITH_MODE_FUNCTION =
-            input -> new LockWithMode(input.getKey(), input.getValue());
 
     private final BigInteger tokenId;
     private final LockClient client;
@@ -136,7 +132,7 @@ public final class HeldLocksToken implements ExpiringToken, Serializable {
     }
 
     public List<LockWithMode> getLocks() {
-        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), TO_LOCK_WITH_MODE_FUNCTION));
+        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), HeldLocksToken::toLockWithMode));
     }
 
     /**
@@ -213,6 +209,10 @@ public final class HeldLocksToken implements ExpiringToken, Serializable {
 
     private Object writeReplace() {
         return new SerializationProxy(this);
+    }
+
+    private static LockWithMode toLockWithMode(Map.Entry<LockDescriptor, LockMode> input) {
+        return new LockWithMode(input.getKey(), input.getValue());
     }
 
     static class SerializationProxy implements Serializable {

@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -47,9 +46,6 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class HeldLocksGrant implements ExpiringToken, Serializable {
     private static final long serialVersionUID = 0xcdf42e080ef965dcL;
-
-    private static final Function<Map.Entry<LockDescriptor, LockMode>, LockWithMode> TO_LOCK_WITH_MODE_FUNCTION =
-            input -> new LockWithMode(input.getKey(), input.getValue());
 
     private final BigInteger grantId;
     private final long creationDateMs;
@@ -142,7 +138,7 @@ public final class HeldLocksGrant implements ExpiringToken, Serializable {
     }
 
     public List<LockWithMode> getLocksWithMode() {
-        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), TO_LOCK_WITH_MODE_FUNCTION));
+        return ImmutableList.copyOf(Iterables.transform(lockMap.entries(), HeldLocksGrant::toLockWithMode));
     }
 
     /**
@@ -206,6 +202,10 @@ public final class HeldLocksGrant implements ExpiringToken, Serializable {
 
     private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {
         throw new InvalidObjectException("proxy required");
+    }
+
+    private static LockWithMode toLockWithMode(Map.Entry<LockDescriptor, LockMode> input) {
+        return new LockWithMode(input.getKey(), input.getValue());
     }
 
     private Object writeReplace() {

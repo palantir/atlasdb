@@ -42,16 +42,16 @@ public final class RowResults {
 
     public static <T> IterableView<RowResult<T>> viewOfEntries(
             Iterable<Map.Entry<byte[], NavigableMap<byte[], T>>> mapEntries) {
-        return IterableView.of(mapEntries).transform(RowResults.<T>createRowResultFunction());
+        return IterableView.of(mapEntries).transform(RowResults::createRowResult);
     }
 
     public static <T> Iterator<RowResult<T>> viewOfEntries(
             Iterator<Map.Entry<byte[], NavigableMap<byte[], T>>> mapEntries) {
-        return Iterators.transform(mapEntries, createRowResultFunction());
+        return Iterators.transform(mapEntries, RowResults::createRowResult);
     }
 
-    private static <T> Function<Map.Entry<byte[], NavigableMap<byte[], T>>, RowResult<T>> createRowResultFunction() {
-        return entry -> RowResult.create(entry.getKey(), entry.getValue());
+    private static <T> RowResult<T> createRowResult(Map.Entry<byte[], NavigableMap<byte[], T>> entry) {
+        return RowResult.create(entry.getKey(), entry.getValue());
     }
 
     public static <T> IterableView<Map.Entry<byte[], SortedMap<byte[], T>>> entriesViewFromRows(
