@@ -16,9 +16,13 @@
 
 package com.palantir.timelock.config;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@JsonDeserialize(as = ImmutableClusterInstallConfiguration.class)
+@JsonSerialize(as = ImmutableClusterInstallConfiguration.class)
 public interface ClusterInstallConfiguration {
     @Value.Default
     default boolean enableNonstandardAndPossiblyDangerousTopology() {

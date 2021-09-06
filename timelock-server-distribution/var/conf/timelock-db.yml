@@ -2,18 +2,18 @@ install:
   paxos:
     data-directory: "var/data/paxos"
     is-new-service: false
-  cluster:
-    cluster:
-      uris:
-      - "localhost:8421"
-    local-server: "localhost:8421"
-    enableNonstandardAndPossiblyDangerousTopology: true
   timestampBoundPersistence:
     type: database
     key-value-service:
       type: "memory"
 
 runtime:
+  cluster:
+    cluster:
+      uris:
+        - "localhost:8421"
+    local-server: "localhost:8421"
+    enableNonstandardAndPossiblyDangerousTopology: true
   paxos:
 
 server:

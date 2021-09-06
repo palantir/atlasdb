@@ -1,4 +1,8 @@
 install:
+  paxos:
+    is-new-service: true
+
+runtime:
   cluster:
     local-server: <HOSTNAME>:8080
     cluster:
@@ -12,10 +16,6 @@ install:
         - n3:8080
         - n4:8080
         - n5:8080
-  paxos:
-    is-new-service: true
-
-runtime: {}
 
 server:
   applicationConnectors:

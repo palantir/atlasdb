@@ -2,6 +2,9 @@ install:
   paxos:
     data-directory: "${dataDirectory}"
     is-new-service: false
+  timestampBoundPersistence:
+
+runtime:
   cluster:
     cluster:
       security:
@@ -15,9 +18,6 @@ install:
       - "localhost:9061"
       - "localhost:9062"
     local-server: "localhost:${localServerPort?c}"
-  timestampBoundPersistence:
-
-runtime:
   paxos:
 
 server:

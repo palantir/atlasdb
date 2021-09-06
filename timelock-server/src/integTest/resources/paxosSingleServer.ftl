@@ -7,6 +7,9 @@ install:
   paxos:
     data-directory: "${dataDirectory}"
     is-new-service: false
+  timestampBoundPersistence:
+
+runtime:
   cluster:
     cluster:
       security:
@@ -19,9 +22,6 @@ install:
       - "localhost:${localServerPort?c}"
     local-server: "localhost:${localServerPort?c}"
     enableNonstandardAndPossiblyDangerousTopology: true
-  timestampBoundPersistence:
-
-runtime:
   paxos:
     timestamp-paxos:
       use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
