@@ -5,19 +5,6 @@ install:
       data-directory: "${sqliteDataDirectory}"
     is-new-service: false
     leader-mode: ${leaderMode}
-  cluster:
-    cluster:
-      security:
-        trustStorePath: "var/security/trustStore.jks"
-        trustStoreType: "JKS"
-        keyStorePath: "var/security/keyStore.jks"
-        keyStorePassword: "keystore"
-        keyStoreType: "JKS"
-      uris:
-<#list serverProxyPorts as serverProxyPort>
-      - "localhost:${serverProxyPort?c}"
-</#list>
-    local-server: "localhost:${localProxyPort?c}"
   timestampBoundPersistence:
     type: database
     key-value-service:
@@ -38,6 +25,19 @@ runtime:
     timestamp-paxos:
       use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
     enable-batching-for-single-leader: ${clientPaxos.batchSingleLeader?c}
+  cluster:
+    cluster:
+      security:
+        trustStorePath: "var/security/trustStore.jks"
+        trustStoreType: "JKS"
+        keyStorePath: "var/security/keyStore.jks"
+        keyStorePassword: "keystore"
+        keyStoreType: "JKS"
+      uris:
+<#list serverProxyPorts as serverProxyPort>
+      - "localhost:${serverProxyPort?c}"
+</#list>
+    local-server: "localhost:${localProxyPort?c}"
 
 logging:
   appenders:

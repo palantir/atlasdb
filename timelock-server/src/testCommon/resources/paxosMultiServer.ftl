@@ -5,6 +5,14 @@ install:
       data-directory: "${sqliteDataDirectory}"
     is-new-service: false
     leader-mode: ${leaderMode}
+  timestampBoundPersistence:
+
+runtime:
+  paxos:
+    leader-ping-response-wait-in-ms: 1000
+    timestamp-paxos:
+      use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
+    enable-batching-for-single-leader: ${clientPaxos.batchSingleLeader?c}
   cluster:
     cluster:
       security:
@@ -18,14 +26,6 @@ install:
       - "localhost:${serverProxyPort?c}"
 </#list>
     local-server: "localhost:${localProxyPort?c}"
-  timestampBoundPersistence:
-
-runtime:
-  paxos:
-    leader-ping-response-wait-in-ms: 1000
-    timestamp-paxos:
-      use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
-    enable-batching-for-single-leader: ${clientPaxos.batchSingleLeader?c}
 
 logging:
   appenders:
