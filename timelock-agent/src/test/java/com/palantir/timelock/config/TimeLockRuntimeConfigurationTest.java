@@ -27,15 +27,22 @@ import org.junit.Test;
 public class TimeLockRuntimeConfigurationTest {
     private static final String SERVER_A = "horses-for-courses:1234";
     public static final String SERVER_B = "paddock-and-chips:2345";
+    private static final ClusterConfiguration CLUSTER_CONFIG = ImmutableDefaultClusterConfiguration.builder()
+            .localServer(SERVER_A)
+            .cluster(PartialServiceConfiguration.of(
+                    ImmutableList.of(SERVER_A, SERVER_B, "the-mane-event:3456"), Optional.empty()))
+            .addKnownNewServers(SERVER_B)
+            .build();
 
     @Test
     public void canCreateWithZeroClients() {
-        ImmutableTimeLockRuntimeConfiguration.builder().build();
+        ImmutableTimeLockRuntimeConfiguration.builder().cluster(CLUSTER_CONFIG).build();
     }
 
     @Test
     public void canSpecifyPositiveLockLoggerTimeout() {
         ImmutableTimeLockRuntimeConfiguration.builder()
+                .cluster(CLUSTER_CONFIG)
                 .slowLockLogTriggerMillis(1L)
                 .build();
     }
@@ -43,6 +50,7 @@ public class TimeLockRuntimeConfigurationTest {
     @Test
     public void throwOnNegativeLeaderPingResponseWait() {
         assertThatThrownBy(() -> ImmutableTimeLockRuntimeConfiguration.builder()
+                        .cluster(CLUSTER_CONFIG)
                         .slowLockLogTriggerMillis(-1L)
                         .build())
                 .isInstanceOf(IllegalStateException.class);

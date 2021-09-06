@@ -36,7 +36,11 @@ public interface TimeLockInstallConfiguration {
     PaxosInstallConfiguration paxos();
 
     @Deprecated
-    ClusterInstallConfiguration cluster();
+    @Value.Default
+    default ClusterInstallConfiguration cluster() {
+        return ImmutableClusterInstallConfiguration.builder().build();
+    }
+    ;
 
     @Value.Default
     default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {

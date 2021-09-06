@@ -103,6 +103,7 @@ public class TimeLockAgentTest {
         assertThatThrownBy(() ->
                         TimeLockAgent.getKeyValueServiceRuntimeConfig(ImmutableTimeLockRuntimeConfiguration.builder()
                                 .timestampBoundPersistence(mock(TsBoundPersisterRuntimeConfiguration.class))
+                                .cluster(CLUSTER_CONFIG)
                                 .build()))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Should not initialise DB Timelock with non-database runtime configuration");
@@ -110,8 +111,9 @@ public class TimeLockAgentTest {
 
     @Test
     public void getKeyValueServiceRuntimeConfigReturnsEmptyIfNotProvided() {
-        assertThat(TimeLockAgent.getKeyValueServiceRuntimeConfig(
-                        ImmutableTimeLockRuntimeConfiguration.builder().build()))
+        assertThat(TimeLockAgent.getKeyValueServiceRuntimeConfig(ImmutableTimeLockRuntimeConfiguration.builder()
+                        .cluster(CLUSTER_CONFIG)
+                        .build()))
                 .isEmpty();
     }
 
@@ -125,6 +127,7 @@ public class TimeLockAgentTest {
                         .timestampBoundPersistence(ImmutableDatabaseTsBoundPersisterRuntimeConfiguration.builder()
                                 .keyValueServiceRuntimeConfig(runtimeConfig)
                                 .build())
+                        .cluster(CLUSTER_CONFIG)
                         .build()))
                 .contains(runtimeConfig);
     }
@@ -202,7 +205,7 @@ public class TimeLockAgentTest {
                                         .isNewService(false)
                                         .build())
                                 .build(),
-                        CLUSTER_CONFIG))
+                        differentClusterConfig))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
