@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: ClusterConfiguration moved from TimeLockInstallConfig to TimeLockRuntimeConfig.
+    Note that the ClusterConfiguration will still not be live re-loaded.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5624
