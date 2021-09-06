@@ -37,7 +37,7 @@ runtime:
 <#list serverProxyPorts as serverProxyPort>
       - "localhost:${serverProxyPort?c}"
 </#list>
-    Flocal-server: "localhost:${localProxyPort?c}"
+    local-server: "localhost:${localProxyPort?c}"
 
 logging:
   appenders:
