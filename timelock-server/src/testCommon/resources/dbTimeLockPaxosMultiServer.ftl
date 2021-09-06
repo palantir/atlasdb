@@ -25,7 +25,7 @@ runtime:
     timestamp-paxos:
       use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
     enable-batching-for-single-leader: ${clientPaxos.batchSingleLeader?c}
-  cluster:
+  cluster-config-not-live-reloaded:
     cluster:
       security:
         trustStorePath: "var/security/trustStore.jks"
@@ -37,7 +37,7 @@ runtime:
 <#list serverProxyPorts as serverProxyPort>
       - "localhost:${serverProxyPort?c}"
 </#list>
-    local-server: "localhost:${localProxyPort?c}"
+    Flocal-server: "localhost:${localProxyPort?c}"
 
 logging:
   appenders:

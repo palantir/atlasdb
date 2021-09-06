@@ -5,7 +5,7 @@ install:
   timestampBoundPersistence:
 
 runtime:
-  cluster:
+  cluster-config-not-live-reloaded:
     cluster:
       security:
         trustStorePath: "var/security/trustStore.jks"

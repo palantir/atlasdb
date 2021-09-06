@@ -3,7 +3,7 @@ install:
     is-new-service: true
 
 runtime:
-  cluster:
+  cluster-config-not-live-reloaded:
     local-server: <HOSTNAME>:8080
     cluster:
       security:

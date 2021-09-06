@@ -20,7 +20,7 @@ install:
         dbPassword: palpal
 
 runtime:
-  cluster:
+  cluster-config-not-live-reloaded:
     cluster:
       uris:
         - "localhost:8421"

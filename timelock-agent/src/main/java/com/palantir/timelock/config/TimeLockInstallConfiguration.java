@@ -40,7 +40,6 @@ public interface TimeLockInstallConfiguration {
     default ClusterInstallConfiguration cluster() {
         return ImmutableClusterInstallConfiguration.builder().build();
     }
-    ;
 
     @Value.Default
     default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {

@@ -3,7 +3,7 @@ install:
     is-new-service: true
 
 runtime:
-  cluster:
+  cluster-config-not-live-reloaded:
     local-server: SERVER1:9421
     cluster:
       security:

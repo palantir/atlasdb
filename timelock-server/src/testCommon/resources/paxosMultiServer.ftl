@@ -13,7 +13,7 @@ runtime:
     timestamp-paxos:
       use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
     enable-batching-for-single-leader: ${clientPaxos.batchSingleLeader?c}
-  cluster:
+  cluster-config-not-live-reloaded:
     cluster:
       security:
         trustStorePath: "var/security/trustStore.jks"
