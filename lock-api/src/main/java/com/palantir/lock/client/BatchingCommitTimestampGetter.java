@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -31,6 +32,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -39,7 +41,8 @@ import org.immutables.value.Value;
 /**
  * This class batches getCommitTimestamps requests to TimeLock server for a single client/namespace.
  * */
-final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
+public final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
+    public static final AtomicLong magicTimestamp = new AtomicLong(-1L);
     private final DisruptorAutobatcher<Request, Long> autobatcher;
 
     private BatchingCommitTimestampGetter(DisruptorAutobatcher<Request, Long> autobatcher) {
@@ -94,7 +97,17 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
                                 .writesToken(batchElement.argument().commitLocksToken())
                                 .build())
                 .collect(Collectors.toList());
-        cache.processCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
+
+        if (magicTimestamp.get() != -1L) {
+            cache.processCommitTimestampsUpdate(
+                    ImmutableSet.of(TransactionUpdate.builder()
+                            .from(transactionUpdates.stream().findFirst().get())
+                            .commitTs(magicTimestamp.get())
+                            .build()),
+                    response.getLockWatchUpdate());
+        } else {
+            cache.processCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
+        }
         return timestamps;
     }
 

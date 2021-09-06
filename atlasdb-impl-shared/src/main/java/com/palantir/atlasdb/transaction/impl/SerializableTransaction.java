@@ -76,6 +76,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.Maps2;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.client.BatchingCommitTimestampGetter;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -102,8 +103,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -122,6 +126,10 @@ import org.immutables.value.Value;
  */
 public class SerializableTransaction extends SnapshotTransaction {
     private static final SafeLogger log = SafeLoggerFactory.get(SerializableTransaction.class);
+    public static final CountDownLatch theJankinator = new CountDownLatch(1);
+    public static final CountDownLatch theJankinatorsBrother = new CountDownLatch(1);
+    public static final AtomicLong theMagicTimestamp = new AtomicLong();
+    public static final AtomicBoolean iAmFirst = new AtomicBoolean(true);
 
     private static final int BATCH_SIZE = 1000;
 
@@ -168,7 +176,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 lockWatchManager,
                 transactionService,
                 cleaner,
-                startTimeStamp,
+                iAmFirst.get() ? startTimeStamp : theMagicTimestamp::get,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTimestamp,
@@ -519,6 +527,15 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     protected void throwIfReadWriteConflictForSerializable(long commitTimestamp) {
+        if (iAmFirst.getAndSet(false)) {
+            try {
+                theJankinatorsBrother.countDown();
+                BatchingCommitTimestampGetter.magicTimestamp.set(commitTimestamp + 1);
+                theJankinator.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         Transaction ro = getReadOnlyTransaction(commitTimestamp);
         verifyRanges(ro);
         verifyColumnRanges(ro);

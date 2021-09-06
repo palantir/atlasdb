@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -36,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
-import com.palantir.atlasdb.keyvalue.api.cache.TransactionCacheValueStoreImpl;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
@@ -47,6 +45,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.SerializableTransaction;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
@@ -431,21 +430,35 @@ public final class LockWatchValueIntegrationTest {
         ExecutorService executor = Executors.newFixedThreadPool(5);
 
         CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch latch2 = new CountDownLatch(1);
 
-        executor.submit(() -> txnManager.runTaskThrowOnConflict(txn -> {
-            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-            latch.countDown();
-            return null;
-        }));
+        executor.submit(() -> {
+            txnManager.runTaskThrowOnConflict(txn -> {
+                txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+                txn.put(TABLE_REF, ImmutableMap.of(CELL_2, randomData()));
+                latch.countDown();
+                try {
+                    latch2.await();
+                } catch (InterruptedException e) {
+                    // pass
+                }
+                return null;
+            });
+            System.out.println("lol");
+        });
 
         latch.await();
-        Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(1));
+        // SerializableTransaction.theJankinatorsBrother.await();
 
         txnManager.runTaskThrowOnConflict(txn -> {
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, randomData()));
-            TransactionCacheValueStoreImpl.theJankinator.set(false);
+            latch2.countDown();
+            SerializableTransaction.theJankinatorsBrother.await();
             return null;
         });
+        SerializableTransaction.theJankinator.countDown();
+        executor.shutdown();
+        executor.awaitTermination(100, TimeUnit.SECONDS);
     }
 
     private void randomTask() {
