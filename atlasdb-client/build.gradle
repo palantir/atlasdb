@@ -66,12 +66,14 @@ dependencies {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
-  compile group: 'com.squareup', name:'javapoet'
+  
   compile group: 'com.squareup.okio', name: 'okio'
   compile group: 'org.hdrhistogram', name: 'HdrHistogram'
   compile group: 'com.palantir.common', name: 'streams'
   compile group: 'com.github.rholder', name: 'guava-retrying'
   compile group: 'org.rocksdb', name: 'rocksdbjni'
+  
+  implementation group: 'com.squareup', name:'javapoet'
   implementation group: 'com.palantir.goethe', name: 'goethe'
 
   annotationProcessor group: 'org.immutables', name: 'value'
