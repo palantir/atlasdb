@@ -69,7 +69,10 @@ public interface SweeperService {
 
     /**
      * Sweeps a table, but intentionally probabilistically skips a fraction of eligible entries to prevent issues that
-     * might arise from having too many consecutive deletes in the underlying KVS.
+     * might arise from having too many consecutive deletes in the underlying KVS. This is expected to be safe to
+     * invoke at least twice without cleanup at the KVS level, but generally the expected usage is to run once, and
+     * then invoke {@link #sweepTable(String, Optional, Optional, Optional, Optional, Optional)} to clean any
+     * skipped values once KVS cleanup is done.
      *
      * @param tableName the table to sweep, in the format namespace.table_name (e.g. myapp.users)
      * @param startRow (Optional) the row to start from, encoded as a hex string (e.g. 12345abcde)

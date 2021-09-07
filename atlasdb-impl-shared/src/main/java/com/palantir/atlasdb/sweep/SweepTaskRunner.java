@@ -64,8 +64,7 @@ public class SweepTaskRunner {
     private final CellsSweeper cellsSweeper;
     private final Optional<LegacySweepMetrics> metricsManager;
     private final CommitTsCache commitTsCache;
-    private final BooleanSupplier skipCellVersion =
-            () -> ThreadLocalRandom.current().nextInt(100) == 0;
+    private final BooleanSupplier skipCellVersion;
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
@@ -81,7 +80,8 @@ public class SweepTaskRunner {
                 transactionService,
                 sweepStrategyManager,
                 cellsSweeper,
-                null);
+                null,
+                () -> ThreadLocalRandom.current().nextInt(100) == 0);
     }
 
     public SweepTaskRunner(
@@ -91,13 +91,15 @@ public class SweepTaskRunner {
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper,
-            LegacySweepMetrics metricsManager) {
+            LegacySweepMetrics metricsManager,
+            BooleanSupplier skipCellVersion) {
         this.keyValueService = keyValueService;
         this.specialTimestampsSupplier = new SpecialTimestampsSupplier(unreadableTsSupplier, immutableTsSupplier);
         this.sweepStrategyManager = sweepStrategyManager;
         this.cellsSweeper = cellsSweeper;
         this.metricsManager = Optional.ofNullable(metricsManager);
         this.commitTsCache = CommitTsCache.create(transactionService);
+        this.skipCellVersion = skipCellVersion;
     }
 
     /**
@@ -285,12 +287,12 @@ public class SweepTaskRunner {
                     currentBatchSentinels.clear();
                     currentCellTimestamps =
                             currentCellTimestamps.subList(numberOfTimestampsForThisBatch, currentCellTimestamps.size());
+                    addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
                 }
-                addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
             }
         }
 
-        if (!currentBatch.isEmpty() && runType == RunType.FULL) {
+        if (!currentBatch.isEmpty() && runType != RunType.DRY) {
             cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
         }
         numberOfSweptCells += currentBatch.size();

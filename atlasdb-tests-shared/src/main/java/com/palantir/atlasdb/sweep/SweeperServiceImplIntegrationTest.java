@@ -33,7 +33,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
 
     @Override
     @Test
-    public void smokeTest() throws Exception {
+    public void smokeTest() {
         createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
         putManyCells(TABLE_1, 100, 110);
         putManyCells(TABLE_1, 103, 113);

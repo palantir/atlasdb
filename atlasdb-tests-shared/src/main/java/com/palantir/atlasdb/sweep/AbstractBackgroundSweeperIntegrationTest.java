@@ -20,11 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
@@ -45,14 +47,19 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.SingleLockService;
 import com.palantir.timestamp.InMemoryTimestampService;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.BooleanSupplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,6 +81,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     private TransactionService txService;
     SpecificTableSweeper specificTableSweeper;
     AdjustableSweepBatchConfigSource sweepBatchConfigSource;
+    DeterministicTrueSupplier skipCellVersion = new DeterministicTrueSupplier();
 
     @Before
     public void setup() {
@@ -98,7 +106,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 AbstractBackgroundSweeperIntegrationTest::getTimestamp,
                 txService,
                 ssm,
-                cellsSweeper);
+                cellsSweeper,
+                null,
+                skipCellVersion);
         LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
         specificTableSweeper = SpecificTableSweeper.create(
                 txManager,
@@ -157,6 +167,174 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 .isTrue();
     }
 
+    @Test
+    public void previouslyConservativeSweepsEverythingWhenNothingIsSkipped() {
+        skipCellVersion.setPeriod(Integer.MAX_VALUE);
+        createTable(TABLE_1, SweepStrategy.THOROUGH);
+        putManyCells(TABLE_1, 100, 101);
+        putManyCells(TABLE_1, 103, 104);
+        putManyCells(TABLE_1, 107, 109);
+
+        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
+        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
+                TABLE_1.getQualifiedName(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty());
+
+        verifyTableSwept(TABLE_1, 58, false);
+    }
+
+    @Test
+    public void previouslyConservativeSweepsConservativelyWhenTableIsConservative() {
+        skipCellVersion.setPeriod(Integer.MAX_VALUE);
+        createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
+        putManyCells(TABLE_1, 100, 101);
+        putManyCells(TABLE_1, 103, 104);
+        putManyCells(TABLE_1, 107, 109);
+
+        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
+        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
+                TABLE_1.getQualifiedName(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty());
+
+        verifyTableSwept(TABLE_1, 75, true);
+    }
+
+    @Test
+    public void previouslyConservativeErasesExistingSentinelsInThoroughTable() {
+        skipCellVersion.setPeriod(Integer.MAX_VALUE);
+        createTable(TABLE_1, SweepStrategy.THOROUGH);
+
+        Map<Cell, byte[]> sentinelWrites = IntStream.range(0, 100)
+                .mapToObj(PtBytes::toBytes)
+                .map(bytes -> Cell.create(bytes, bytes))
+                .collect(Collectors.toMap(cell -> cell, _ignore -> PtBytes.EMPTY_BYTE_ARRAY));
+        kvs.put(TABLE_1, sentinelWrites, Value.INVALID_VALUE_TIMESTAMP);
+        Map<Cell, Long> readMap = KeyedStream.stream(sentinelWrites)
+                .map(_ignore -> Long.MAX_VALUE)
+                .collectToMap();
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
+
+        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
+        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
+                TABLE_1.getQualifiedName(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty());
+
+        assertThat(kvs.get(TABLE_1, readMap)).isEmpty();
+    }
+
+    @Test
+    public void previouslyConservativeRetainsExistingSentinelsInConservativeTable() {
+        skipCellVersion.setPeriod(Integer.MAX_VALUE);
+        createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
+
+        Map<Cell, byte[]> sentinelWrites = IntStream.range(0, 100)
+                .mapToObj(PtBytes::toBytes)
+                .map(bytes -> Cell.create(bytes, bytes))
+                .collect(Collectors.toMap(cell -> cell, _ignore -> PtBytes.EMPTY_BYTE_ARRAY));
+        kvs.put(TABLE_1, sentinelWrites, Value.INVALID_VALUE_TIMESTAMP);
+        Map<Cell, Long> readMap = KeyedStream.stream(sentinelWrites)
+                .map(_ignore -> Long.MAX_VALUE)
+                .collectToMap();
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
+
+        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
+        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
+                TABLE_1.getQualifiedName(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty());
+
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
+    }
+
+    @Test
+    public void previouslyConservativeRespectsSkipPeriodWhenErasingSentinels() {
+        skipCellVersion.setPeriod(4);
+        createTable(TABLE_1, SweepStrategy.THOROUGH);
+
+        Map<Cell, byte[]> sentinelWrites = IntStream.range(0, 100)
+                .mapToObj(PtBytes::toBytes)
+                .map(bytes -> Cell.create(bytes, bytes))
+                .collect(Collectors.toMap(cell -> cell, _ignore -> PtBytes.EMPTY_BYTE_ARRAY));
+        kvs.put(TABLE_1, sentinelWrites, Value.INVALID_VALUE_TIMESTAMP);
+        Map<Cell, Long> readMap = KeyedStream.stream(sentinelWrites)
+                .map(_ignore -> Long.MAX_VALUE)
+                .collectToMap();
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
+
+        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
+        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
+                TABLE_1.getQualifiedName(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty());
+
+        // Impl specific, documenting here -- exact last row will be swept twice, so the sentinel will be erased on
+        // second pass-through; this is fine, not worth the risk of modifying behaviour
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(24);
+    }
+
+    @Test
+    public void previouslyConservativeRespectsSkipPeriodWhenSweepingNormally() {
+        skipCellVersion.setPeriod(3);
+        createTable(TABLE_1, SweepStrategy.THOROUGH);
+
+        Map<Cell, byte[]> writes = KeyedStream.of(IntStream.range(0, 100).boxed())
+                .mapKeys(PtBytes::toBytes)
+                .mapKeys(bytes -> Cell.create(bytes, bytes))
+                .map(count -> count < 80 ? PtBytes.toBytes(count) : PtBytes.EMPTY_BYTE_ARRAY)
+                .collectToMap();
+        kvs.put(TABLE_1, writes, 100L);
+        txService.putUnlessExists(100L, 101L);
+        kvs.put(TABLE_1, writes, 103L);
+        txService.putUnlessExists(103L, 104L);
+
+        Map<Cell, Long> readMap =
+                KeyedStream.stream(writes).map(_ignore -> 102L).collectToMap();
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
+
+        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
+        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
+                TABLE_1.getQualifiedName(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty());
+
+        // deletes all but a third of the entries at the lower timestamp
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(33);
+        // also deletes all but a third of the deletes at the higher timestamp
+        assertThat(kvs
+                        .get(
+                                TABLE_1,
+                                KeyedStream.stream(readMap)
+                                        .map(_ignore -> Long.MAX_VALUE)
+                                        .collectToMap())
+                        .values()
+                        .stream()
+                        .map(Value::getTimestamp)
+                        .filter(timestamp -> timestamp == 100L)
+                        .collect(Collectors.toList()))
+                .hasSize(7);
+    }
+
     protected abstract KeyValueService getKeyValueService();
 
     void verifyTableSwept(TableReference tableRef, int expectedCells, boolean conservative) {
@@ -166,10 +344,16 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             while (iter.hasNext()) {
                 RowResult<Set<Long>> rr = iter.next();
                 numCells += rr.getColumns().size();
-                assertThat(rr.getColumns().values().stream()
-                                .allMatch(s -> s.size() == 1 || (conservative && s.size() == 2 && s.contains(-1L))))
-                        .describedAs("Found unswept values in %s!", tableRef.getQualifiedName())
-                        .isTrue();
+                if (conservative) {
+                    assertThat(rr.getColumns().values().stream().allMatch(s -> s.size() == 2 && s.contains(-1L)))
+                            .describedAs(
+                                    "Expected a sentinel and exactly one other value!", tableRef.getQualifiedName())
+                            .isTrue();
+                } else {
+                    assertThat(rr.getColumns().values().stream().allMatch(s -> s.size() <= 1 && !s.contains(-1L)))
+                            .describedAs("Expected at most one, non-sentinel, value!", tableRef.getQualifiedName())
+                            .isTrue();
+                }
             }
             assertThat(numCells).isEqualTo(expectedCells);
         }
@@ -190,6 +374,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 }.toTableMetadata().persistToBytes());
     }
 
+    /**
+     * Magic number alert! This will add 75 entries of which 17 will be deletes
+     */
     void putManyCells(TableReference tableRef, long startTs, long commitTs) {
         Map<Cell, byte[]> cells = new HashMap<>();
         for (int i = 0; i < 50; ++i) {
@@ -208,5 +395,22 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     private static long getTimestamp() {
         return 150L;
+    }
+
+    private static final class DeterministicTrueSupplier implements BooleanSupplier {
+        private int truePeriod = 1;
+        private long count = 0;
+
+        private DeterministicTrueSupplier() {}
+
+        public void setPeriod(int period) {
+            truePeriod = period;
+        }
+
+        @Override
+        public boolean getAsBoolean() {
+            ++count;
+            return count % truePeriod == 0;
+        }
     }
 }
