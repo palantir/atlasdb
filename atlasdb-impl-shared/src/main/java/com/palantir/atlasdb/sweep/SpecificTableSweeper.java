@@ -120,13 +120,14 @@ public class SpecificTableSweeper {
         TableReference tableRef = tableToSweep.getTableRef();
         byte[] startRow = tableToSweep.getStartRow();
 
-        SweepResults results = runOneIteration(tableRef, startRow, batchConfig);
+        SweepResults results = runOneIteration(tableRef, startRow, batchConfig, SweepTaskRunner.RunType.FULL);
         processSweepResults(tableToSweep, results);
     }
 
-    SweepResults runOneIteration(TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig) {
+    SweepResults runOneIteration(
+            TableReference tableRef, byte[] startRow, SweepBatchConfig batchConfig, SweepTaskRunner.RunType runType) {
         try {
-            SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow);
+            SweepResults results = sweepRunner.run(tableRef, batchConfig, startRow, runType);
             logSweepPerformance(tableRef, startRow, results);
 
             return results;

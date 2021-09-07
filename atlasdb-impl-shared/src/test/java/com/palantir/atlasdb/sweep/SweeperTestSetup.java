@@ -153,6 +153,6 @@ public class SweeperTestSetup {
     }
 
     protected void setupTaskRunner(TableReference tableRef, SweepResults results) {
-        doReturn(results).when(sweepTaskRunner).run(eq(tableRef), any(), any());
+        doReturn(results).when(sweepTaskRunner).run(eq(tableRef), any(), any(), any());
     }
 }

@@ -47,7 +47,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
 /**
@@ -62,6 +64,8 @@ public class SweepTaskRunner {
     private final CellsSweeper cellsSweeper;
     private final Optional<LegacySweepMetrics> metricsManager;
     private final CommitTsCache commitTsCache;
+    private final BooleanSupplier skipCellVersion =
+            () -> ThreadLocalRandom.current().nextInt(100) == 0;
 
     public SweepTaskRunner(
             KeyValueService keyValueService,
@@ -99,7 +103,7 @@ public class SweepTaskRunner {
     /**
      * Represents the type of run to be conducted by the sweep runner.
      */
-    private enum RunType {
+    public enum RunType {
         /**
          * A DRY run is expect to not mutate any tables (with the exception of the sweep.progress table)
          * but will determine and report back all the values that *would* have been swept.
@@ -110,15 +114,22 @@ public class SweepTaskRunner {
          * A FULL run will execute all followers / sentinel additions / and deletions on the
          * cells that qualify for sweeping.
          */
-        FULL
+        FULL,
+
+        /**
+         * A WAS_CONSERVATIVE_NOW_THOROUGH run is a FULL run that will intentionally retain ~1% of entries for cells
+         * to avoid issues that could arise due to too many consecutive deletes in the underlying KVS from sweep
+         * potentially deleting many consecutive legacy sentinels.
+         */
+        WAS_CONSERVATIVE_NOW_THOROUGH
     }
 
     public SweepResults dryRun(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow) {
         return runInternal(tableRef, batchConfig, startRow, RunType.DRY);
     }
 
-    public SweepResults run(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow) {
-        return runInternal(tableRef, batchConfig, startRow, RunType.FULL);
+    public SweepResults run(TableReference tableRef, SweepBatchConfig batchConfig, byte[] startRow, RunType runType) {
+        return runInternal(tableRef, batchConfig, startRow, runType);
     }
 
     public long getConservativeSweepTimestamp() {
@@ -254,23 +265,28 @@ public class SweepTaskRunner {
             List<Long> currentCellTimestamps = ImmutableList.copyOf(cell.sortedTimestamps());
 
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
-                currentBatch.putAll(cell.cell(), currentCellTimestamps);
+                addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
             } else {
                 while (currentBatch.size() + currentCellTimestamps.size() >= deleteBatchSize) {
                     int numberOfTimestampsForThisBatch = deleteBatchSize - currentBatch.size();
 
-                    currentBatch.putAll(cell.cell(), currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch));
-                    if (runType == RunType.FULL) {
+                    addCurrentCellTimestamps(
+                            currentBatch,
+                            cell.cell(),
+                            currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch),
+                            runType);
+
+                    if (runType != RunType.DRY) {
                         cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
                     }
-                    numberOfSweptCells += currentBatch.size();
 
+                    numberOfSweptCells += currentBatch.size();
                     currentBatch.clear();
                     currentBatchSentinels.clear();
                     currentCellTimestamps =
                             currentCellTimestamps.subList(numberOfTimestampsForThisBatch, currentCellTimestamps.size());
                 }
-                currentBatch.putAll(cell.cell(), currentCellTimestamps);
+                addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
             }
         }
 
@@ -280,5 +296,17 @@ public class SweepTaskRunner {
         numberOfSweptCells += currentBatch.size();
 
         return numberOfSweptCells;
+    }
+
+    private Multimap<Cell, Long> addCurrentCellTimestamps(
+            Multimap<Cell, Long> currentBatch, Cell currentCell, List<Long> currentCellTimestamps, RunType runType) {
+        if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH) {
+            currentCellTimestamps.stream()
+                    .filter(_ignore -> !skipCellVersion.getAsBoolean())
+                    .forEach(timestamp -> currentBatch.put(currentCell, timestamp));
+        } else {
+            currentBatch.putAll(currentCell, currentCellTimestamps);
+        }
+        return currentBatch;
     }
 }

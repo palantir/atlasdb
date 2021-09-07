@@ -202,7 +202,7 @@ public class TodoClient {
                 .deleteBatchSize(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
                 .maxCellTsPairsToExamine(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
                 .build();
-        return sweepTaskRunner.get().run(table, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY);
+        return sweepTaskRunner.get().run(table, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY, SweepTaskRunner.RunType.FULL);
     }
 
     public long numAtlasDeletes(TableReference tableRef) {
