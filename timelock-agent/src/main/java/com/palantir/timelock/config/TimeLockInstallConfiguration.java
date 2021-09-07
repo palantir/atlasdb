@@ -35,6 +35,9 @@ public interface TimeLockInstallConfiguration {
 
     PaxosInstallConfiguration paxos();
 
+    /**
+     * The ClusterInstallConfiguration has been moved to {@link TimeLockRuntimeConfiguration#clusterSnapshot()}.
+     */
     @Deprecated
     @Value.Default
     default ClusterInstallConfiguration cluster() {

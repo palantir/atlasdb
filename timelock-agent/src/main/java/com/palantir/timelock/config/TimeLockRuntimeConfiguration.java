@@ -46,7 +46,7 @@ public abstract class TimeLockRuntimeConfiguration {
      * accessing ClusterConfiguration via {@code TimeLockRuntimeConfiguration.cluster()}.
      * */
     @JsonProperty("cluster-config-not-live-reloaded")
-    public abstract ClusterConfiguration cluster();
+    public abstract ClusterConfiguration clusterSnapshot();
 
     /**
      * The maximum number of client namespaces to allow. Each distinct client consumes some amount of memory and disk

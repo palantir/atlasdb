@@ -101,7 +101,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 metricsManager,
                 configuration.install(),
                 Refreshable.only(runtime), // this won't actually live reload
-                runtime.cluster(),
+                runtime.clusterSnapshot(),
                 USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),

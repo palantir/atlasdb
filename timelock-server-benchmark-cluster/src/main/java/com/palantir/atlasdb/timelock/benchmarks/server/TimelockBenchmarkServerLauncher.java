@@ -54,7 +54,7 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
                 MetricsManagers.of(environment.metrics(), SharedTaggedMetricRegistries.getSingleton()),
                 configuration.install(),
                 Refreshable.only(runtime), // This won't actually live reload.
-                runtime.cluster(),
+                runtime.clusterSnapshot(),
                 USER_AGENT,
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
                 CombinedTimeLockServerConfiguration.blockingTimeoutMs(),

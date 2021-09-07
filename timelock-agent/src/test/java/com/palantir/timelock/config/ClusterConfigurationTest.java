@@ -43,7 +43,9 @@ public class ClusterConfigurationTest {
         assertThatIllegalArgumentException().isThrownBy(builder::build);
     }
 
-    // Todo(snanda): Remove ignore when ClusterInstallConfig is killed
+    // TODO(snanda): These tests are ignored for now as the config check has been moved to
+    //  TimeLockAgent#verifyTopologyOffersHighAvailability. The tests will be valid when ClusterInstallConfiguration
+    //  is killed.
     @Ignore
     @Test
     public void shouldThrowIfConfigurationContainsOneServerAndDisclaimerNotEnabled() {

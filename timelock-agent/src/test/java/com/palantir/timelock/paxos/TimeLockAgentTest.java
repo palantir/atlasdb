@@ -28,6 +28,8 @@ import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.ClusterConfiguration;
+import com.palantir.timelock.config.DefaultClusterConfiguration;
+import com.palantir.timelock.config.ImmutableClusterInstallConfiguration;
 import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterRuntimeConfiguration;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
@@ -103,7 +105,7 @@ public class TimeLockAgentTest {
         assertThatThrownBy(() ->
                         TimeLockAgent.getKeyValueServiceRuntimeConfig(ImmutableTimeLockRuntimeConfiguration.builder()
                                 .timestampBoundPersistence(mock(TsBoundPersisterRuntimeConfiguration.class))
-                                .cluster(CLUSTER_CONFIG)
+                                .clusterSnapshot(CLUSTER_CONFIG)
                                 .build()))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Should not initialise DB Timelock with non-database runtime configuration");
@@ -112,7 +114,7 @@ public class TimeLockAgentTest {
     @Test
     public void getKeyValueServiceRuntimeConfigReturnsEmptyIfNotProvided() {
         assertThat(TimeLockAgent.getKeyValueServiceRuntimeConfig(ImmutableTimeLockRuntimeConfiguration.builder()
-                        .cluster(CLUSTER_CONFIG)
+                        .clusterSnapshot(CLUSTER_CONFIG)
                         .build()))
                 .isEmpty();
     }
@@ -127,7 +129,7 @@ public class TimeLockAgentTest {
                         .timestampBoundPersistence(ImmutableDatabaseTsBoundPersisterRuntimeConfiguration.builder()
                                 .keyValueServiceRuntimeConfig(runtimeConfig)
                                 .build())
-                        .cluster(CLUSTER_CONFIG)
+                        .clusterSnapshot(CLUSTER_CONFIG)
                         .build()))
                 .contains(runtimeConfig);
     }
@@ -169,6 +171,52 @@ public class TimeLockAgentTest {
                                 .paxos(createPaxosInstall(true, true, true))
                                 .build(),
                         CLUSTER_CONFIG))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void throwIfStartedWithLessThanThreeServers_DangerousTopologyNotEnabled() {
+        DefaultClusterConfiguration dangerousTopologyConfig = ImmutableDefaultClusterConfiguration.builder()
+                .localServer(SERVER_A)
+                .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, SERVER_B), Optional.empty()))
+                .build();
+        assertThatThrownBy(() -> TimeLockAgent.verifyTopologyOffersHighAvailability(
+                        TimeLockInstallConfiguration.builder()
+                                .paxos(createPaxosInstall(false, true, false))
+                                .build(),
+                        dangerousTopologyConfig))
+                .isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
+    public void doNotIfStartedWithLessThanThreeServers_DangerousTopologyEnabledInInstallConfig() {
+        DefaultClusterConfiguration dangerousTopologyConfig = ImmutableDefaultClusterConfiguration.builder()
+                .localServer(SERVER_A)
+                .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, SERVER_B), Optional.empty()))
+                .build();
+        assertThatCode(() -> TimeLockAgent.verifyTopologyOffersHighAvailability(
+                        TimeLockInstallConfiguration.builder()
+                                .paxos(createPaxosInstall(false, true, false))
+                                .cluster(ImmutableClusterInstallConfiguration.builder()
+                                        .enableNonstandardAndPossiblyDangerousTopology(true)
+                                        .build())
+                                .build(),
+                        dangerousTopologyConfig))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void doNotIfStartedWithLessThanThreeServers_DangerousTopologyEnabledInRuntimeConfig() {
+        DefaultClusterConfiguration dangerousTopologyConfig = ImmutableDefaultClusterConfiguration.builder()
+                .localServer(SERVER_A)
+                .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, SERVER_B), Optional.empty()))
+                .enableNonstandardAndPossiblyDangerousTopology(true)
+                .build();
+        assertThatCode(() -> TimeLockAgent.verifyTopologyOffersHighAvailability(
+                        TimeLockInstallConfiguration.builder()
+                                .paxos(createPaxosInstall(false, true, false))
+                                .build(),
+                        dangerousTopologyConfig))
                 .doesNotThrowAnyException();
     }
 
