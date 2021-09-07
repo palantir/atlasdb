@@ -51,6 +51,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 
 /**
  * Sweeps one individual table.
@@ -162,6 +163,11 @@ public class SweepTaskRunner {
         SweepStrategy sweepStrategy = SweepStrategy.from(
                 TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
         Optional<Sweeper> maybeSweeper = sweepStrategy.getSweeperStrategy().map(Sweeper::of);
+        if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH) {
+            Preconditions.checkState(
+                    sweepStrategy.getSweeperStrategy().equals(Optional.of(SweepStrategy.SweeperStrategy.THOROUGH)),
+                    "it is not safe to run this type of sweep on conservatively swept tables");
+        }
         return maybeSweeper
                 .map(sweeper -> doRun(tableRef, batchConfig, startRow, runType, sweeper))
                 .orElseGet(SweepResults::createEmptySweepResultWithNoMoreToSweep);
@@ -267,18 +273,28 @@ public class SweepTaskRunner {
             List<Long> currentCellTimestamps = ImmutableList.copyOf(cell.sortedTimestamps());
 
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
-                addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
+                boolean safeToDeleteLast =
+                        addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
+                if (!safeToDeleteLast) {
+                    currentBatch.remove(cell.cell(), currentCellTimestamps.get(currentCellTimestamps.size() - 1));
+                }
             } else {
+                boolean safeToDeleteLast = true;
                 while (currentBatch.size() + currentCellTimestamps.size() >= deleteBatchSize) {
                     int numberOfTimestampsForThisBatch = deleteBatchSize - currentBatch.size();
 
-                    addCurrentCellTimestamps(
-                            currentBatch,
-                            cell.cell(),
-                            currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch),
-                            runType);
+                    safeToDeleteLast = safeToDeleteLast
+                            && addCurrentCellTimestamps(
+                                    currentBatch,
+                                    cell.cell(),
+                                    currentCellTimestamps.subList(0, numberOfTimestampsForThisBatch),
+                                    runType);
 
                     if (runType != RunType.DRY) {
+                        if (!safeToDeleteLast && numberOfTimestampsForThisBatch == currentCellTimestamps.size()) {
+                            currentBatch.remove(
+                                    cell.cell(), currentCellTimestamps.get(currentCellTimestamps.size() - 1));
+                        }
                         cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
                     }
 
@@ -287,7 +303,12 @@ public class SweepTaskRunner {
                     currentBatchSentinels.clear();
                     currentCellTimestamps =
                             currentCellTimestamps.subList(numberOfTimestampsForThisBatch, currentCellTimestamps.size());
+                }
+                if (!currentCellTimestamps.isEmpty()) {
                     addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
+                    if (!safeToDeleteLast) {
+                        currentBatch.remove(cell.cell(), currentCellTimestamps.get(currentCellTimestamps.size() - 1));
+                    }
                 }
             }
         }
@@ -300,15 +321,21 @@ public class SweepTaskRunner {
         return numberOfSweptCells;
     }
 
-    private Multimap<Cell, Long> addCurrentCellTimestamps(
+    /**
+     * @return true, if it is safe to delete the last entry for this cell; in case it's a delete. This is not safe if
+     * any entry for this cell has been skipped
+     */
+    private boolean addCurrentCellTimestamps(
             Multimap<Cell, Long> currentBatch, Cell currentCell, List<Long> currentCellTimestamps, RunType runType) {
         if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH) {
-            currentCellTimestamps.stream()
+            List<Long> versionsToDelete = currentCellTimestamps.stream()
                     .filter(_ignore -> !skipCellVersion.getAsBoolean())
-                    .forEach(timestamp -> currentBatch.put(currentCell, timestamp));
+                    .collect(Collectors.toList());
+            currentBatch.putAll(currentCell, versionsToDelete);
+            return versionsToDelete.size() == currentCellTimestamps.size();
         } else {
             currentBatch.putAll(currentCell, currentCellTimestamps);
         }
-        return currentBatch;
+        return true;
     }
 }

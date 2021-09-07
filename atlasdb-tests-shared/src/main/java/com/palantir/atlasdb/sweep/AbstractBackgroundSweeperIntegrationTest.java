@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
@@ -188,26 +189,6 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     }
 
     @Test
-    public void previouslyConservativeSweepsConservativelyWhenTableIsConservative() {
-        skipCellVersion.setPeriod(Integer.MAX_VALUE);
-        createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
-        putManyCells(TABLE_1, 100, 101);
-        putManyCells(TABLE_1, 103, 104);
-        putManyCells(TABLE_1, 107, 109);
-
-        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
-        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
-                TABLE_1.getQualifiedName(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty());
-
-        verifyTableSwept(TABLE_1, 75, true);
-    }
-
-    @Test
     public void previouslyConservativeErasesExistingSentinelsInThoroughTable() {
         skipCellVersion.setPeriod(Integer.MAX_VALUE);
         createTable(TABLE_1, SweepStrategy.THOROUGH);
@@ -235,30 +216,19 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     }
 
     @Test
-    public void previouslyConservativeRetainsExistingSentinelsInConservativeTable() {
-        skipCellVersion.setPeriod(Integer.MAX_VALUE);
+    public void previouslyConservativeThrowsIfTableIsStillConservativelySwept() {
         createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
 
-        Map<Cell, byte[]> sentinelWrites = IntStream.range(0, 100)
-                .mapToObj(PtBytes::toBytes)
-                .map(bytes -> Cell.create(bytes, bytes))
-                .collect(Collectors.toMap(cell -> cell, _ignore -> PtBytes.EMPTY_BYTE_ARRAY));
-        kvs.put(TABLE_1, sentinelWrites, Value.INVALID_VALUE_TIMESTAMP);
-        Map<Cell, Long> readMap = KeyedStream.stream(sentinelWrites)
-                .map(_ignore -> Long.MAX_VALUE)
-                .collectToMap();
-        assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
-
         SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
-        sweeperService.sweepPreviouslyConservativeNowThoroughTable(
-                TABLE_1.getQualifiedName(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty());
-
-        assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
+        assertThatThrownBy(() -> sweeperService.sweepPreviouslyConservativeNowThoroughTable(
+                        TABLE_1.getQualifiedName(),
+                        Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("it is not safe to run this type of sweep on conservatively swept tables");
     }
 
     @Test
@@ -292,13 +262,13 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     @Test
     public void previouslyConservativeRespectsSkipPeriodWhenSweepingNormally() {
-        skipCellVersion.setPeriod(3);
+        skipCellVersion.setPeriod(9);
         createTable(TABLE_1, SweepStrategy.THOROUGH);
 
-        Map<Cell, byte[]> writes = KeyedStream.of(IntStream.range(0, 100).boxed())
+        Map<Cell, byte[]> writes = KeyedStream.of(IntStream.range(0, 1000).boxed())
                 .mapKeys(PtBytes::toBytes)
                 .mapKeys(bytes -> Cell.create(bytes, bytes))
-                .map(count -> count < 80 ? PtBytes.toBytes(count) : PtBytes.EMPTY_BYTE_ARRAY)
+                .map(count -> count < 500 ? PtBytes.toBytes(count) : PtBytes.EMPTY_BYTE_ARRAY)
                 .collectToMap();
         kvs.put(TABLE_1, writes, 100L);
         txService.putUnlessExists(100L, 101L);
@@ -307,7 +277,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
         Map<Cell, Long> readMap =
                 KeyedStream.stream(writes).map(_ignore -> 102L).collectToMap();
-        assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(1000);
 
         SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
         sweeperService.sweepPreviouslyConservativeNowThoroughTable(
@@ -318,21 +288,20 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 Optional.empty(),
                 Optional.empty());
 
-        // deletes all but a third of the entries at the lower timestamp
-        assertThat(kvs.get(TABLE_1, readMap)).hasSize(33);
-        // also deletes all but a third of the deletes at the higher timestamp
-        assertThat(kvs
-                        .get(
-                                TABLE_1,
-                                KeyedStream.stream(readMap)
-                                        .map(_ignore -> Long.MAX_VALUE)
-                                        .collectToMap())
-                        .values()
-                        .stream()
+        // deletes all but a ninth of the entries at the lower timestamp
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(110);
+        Map<Cell, Long> readsAtMaxTs =
+                KeyedStream.stream(readMap).map(_ignore -> Long.MAX_VALUE).collectToMap();
+        // none of the cells at lower timestamp became visible
+        assertThat(kvs.get(TABLE_1, readsAtMaxTs).values().stream()
                         .map(Value::getTimestamp)
                         .filter(timestamp -> timestamp == 100L)
                         .collect(Collectors.toList()))
-                .hasSize(7);
+                .hasSize(0);
+        // 500 cannot be completely removed because they are not deletes, 111 of the remaining 500 have either of the
+        // two versions skipped from sweep, which results in a version here (also allow off-by-one discrepancy as
+        // mentioned in the test above)
+        assertThat(kvs.get(TABLE_1, readsAtMaxTs)).hasSize(500 + 111);
     }
 
     protected abstract KeyValueService getKeyValueService();
