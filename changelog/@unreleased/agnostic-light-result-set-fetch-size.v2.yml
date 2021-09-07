@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Increase default max fetch size for AgnosticLightResultSetImpl
+  links:
+    - https://github.com/palantir/atlasdb/pull/5625
