@@ -305,7 +305,8 @@ public class SweepTaskRunner {
                             currentCellTimestamps.subList(numberOfTimestampsForThisBatch, currentCellTimestamps.size());
                 }
                 if (!currentCellTimestamps.isEmpty()) {
-                    addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
+                    safeToDeleteLast = safeToDeleteLast
+                            && addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
                     if (!safeToDeleteLast) {
                         currentBatch.remove(cell.cell(), currentCellTimestamps.get(currentCellTimestamps.size() - 1));
                     }

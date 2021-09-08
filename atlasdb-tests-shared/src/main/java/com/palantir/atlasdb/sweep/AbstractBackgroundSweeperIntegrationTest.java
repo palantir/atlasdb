@@ -289,7 +289,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 Optional.empty());
 
         // deletes all but a ninth of the entries at the lower timestamp
-        assertThat(kvs.get(TABLE_1, readMap)).hasSize(110);
+        assertThat(kvs.get(TABLE_1, readMap)).hasSize(111);
         Map<Cell, Long> readsAtMaxTs =
                 KeyedStream.stream(readMap).map(_ignore -> Long.MAX_VALUE).collectToMap();
         // none of the cells at lower timestamp became visible
@@ -299,8 +299,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                         .collect(Collectors.toList()))
                 .hasSize(0);
         // 500 cannot be completely removed because they are not deletes, 111 of the remaining 500 have either of the
-        // two versions skipped from sweep, which results in a version here (also allow off-by-one discrepancy as
-        // mentioned in the test above)
+        // two versions skipped from sweep, which results in a version here
         assertThat(kvs.get(TABLE_1, readsAtMaxTs)).hasSize(500 + 111);
     }
 
