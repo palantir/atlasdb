@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ClusterConfigurationTest {
@@ -42,11 +43,16 @@ public class ClusterConfigurationTest {
         assertThatIllegalArgumentException().isThrownBy(builder::build);
     }
 
+    // TODO(snanda): These tests are ignored for now as the config check has been moved to
+    //  TimeLockAgent#verifyTopologyOffersHighAvailability. The tests will be valid when ClusterInstallConfiguration
+    //  is killed.
+    @Ignore
     @Test
     public void shouldThrowIfConfigurationContainsOneServerAndDisclaimerNotEnabled() {
         assertConfigurationWithFixedNumberOfServersIsInvalidWithoutDisclaimer(1);
     }
 
+    @Ignore
     @Test
     public void shouldThrowIfConfigurationContainsTwoServersAndDisclaimerNotEnabled() {
         assertConfigurationWithFixedNumberOfServersIsInvalidWithoutDisclaimer(2);
