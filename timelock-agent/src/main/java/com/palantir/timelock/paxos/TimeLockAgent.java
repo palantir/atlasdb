@@ -75,6 +75,7 @@ import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.RestrictedTimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockPersistenceInvariants;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
@@ -141,6 +142,10 @@ public class TimeLockAgent {
 
         verifyConfigurationSanity(install, cluster);
 
+        // Restricting access to user-provided runtime config
+        Refreshable<TimeLockRuntimeConfiguration> restrictedRuntime =
+                runtime.map(RestrictedTimeLockRuntimeConfiguration::new);
+
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider =
                 createTimeLockDialogueServiceProvider(metricsManager, cluster, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
@@ -163,12 +168,12 @@ public class TimeLockAgent {
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
                 metricsManager,
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, restrictedRuntime::get));
 
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,
                 install,
-                runtime,
+                restrictedRuntime,
                 cluster,
                 undertowRegistrar,
                 threadPoolSize,
