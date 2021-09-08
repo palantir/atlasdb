@@ -61,7 +61,6 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
         putManyCells(TABLE_1, 103, 104);
         putManyCells(TABLE_1, 107, 109);
 
-        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
         sweeperService.sweepPreviouslyConservativeNowThoroughTable(
                 TABLE_1.getQualifiedName(),
                 Optional.empty(),
@@ -88,7 +87,6 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 .collectToMap();
         assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
 
-        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
         sweeperService.sweepPreviouslyConservativeNowThoroughTable(
                 TABLE_1.getQualifiedName(),
                 Optional.empty(),
@@ -104,7 +102,6 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
     public void previouslyConservativeThrowsIfTableIsStillConservativelySwept() {
         createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
 
-        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
         assertThatThrownBy(() -> sweeperService.sweepPreviouslyConservativeNowThoroughTable(
                         TABLE_1.getQualifiedName(),
                         Optional.empty(),
@@ -131,7 +128,6 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 .collectToMap();
         assertThat(kvs.get(TABLE_1, readMap)).hasSize(100);
 
-        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
         sweeperService.sweepPreviouslyConservativeNowThoroughTable(
                 TABLE_1.getQualifiedName(),
                 Optional.empty(),
@@ -164,7 +160,6 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 KeyedStream.stream(writes).map(_ignore -> 102L).collectToMap();
         assertThat(kvs.get(TABLE_1, readMap)).hasSize(1000);
 
-        SweeperService sweeperService = new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource);
         sweeperService.sweepPreviouslyConservativeNowThoroughTable(
                 TABLE_1.getQualifiedName(),
                 Optional.empty(),
