@@ -175,7 +175,7 @@ public class TimeLockAgentTest {
     }
 
     @Test
-    public void throwIfStartedWithLessThanThreeServers_DangerousTopologyNotEnabled() {
+    public void throwsIfStartedWithLessThanThreeServers_dangerousTopologyNotEnabled() {
         DefaultClusterConfiguration dangerousTopologyConfig = ImmutableDefaultClusterConfiguration.builder()
                 .localServer(SERVER_A)
                 .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, SERVER_B), Optional.empty()))
@@ -189,7 +189,7 @@ public class TimeLockAgentTest {
     }
 
     @Test
-    public void doNotIfStartedWithLessThanThreeServers_DangerousTopologyEnabledInInstallConfig() {
+    public void doesNotThrowIfStartedWithLessThanThreeServers_dangerousTopologyEnabledInInstallConfig() {
         DefaultClusterConfiguration dangerousTopologyConfig = ImmutableDefaultClusterConfiguration.builder()
                 .localServer(SERVER_A)
                 .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, SERVER_B), Optional.empty()))
@@ -206,7 +206,7 @@ public class TimeLockAgentTest {
     }
 
     @Test
-    public void doNotIfStartedWithLessThanThreeServers_DangerousTopologyEnabledInRuntimeConfig() {
+    public void doesNotThrowIfStartedWithLessThanThreeServers_dangerousTopologyEnabledInRuntimeConfig() {
         DefaultClusterConfiguration dangerousTopologyConfig = ImmutableDefaultClusterConfiguration.builder()
                 .localServer(SERVER_A)
                 .cluster(PartialServiceConfiguration.of(ImmutableList.of(SERVER_A, SERVER_B), Optional.empty()))
