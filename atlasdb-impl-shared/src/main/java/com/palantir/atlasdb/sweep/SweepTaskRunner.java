@@ -275,9 +275,7 @@ public class SweepTaskRunner {
             if (currentBatch.size() + currentCellTimestamps.size() < deleteBatchSize) {
                 boolean safeToDeleteLast =
                         addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
-                if (!safeToDeleteLast) {
-                    currentBatch.remove(cell.cell(), currentCellTimestamps.get(currentCellTimestamps.size() - 1));
-                }
+                removeLatestVersionIfNecessary(currentBatch, cell, currentCellTimestamps, safeToDeleteLast);
             } else {
                 boolean safeToDeleteLast = true;
                 while (currentBatch.size() + currentCellTimestamps.size() >= deleteBatchSize) {
@@ -291,10 +289,7 @@ public class SweepTaskRunner {
                                     runType);
 
                     if (runType != RunType.DRY) {
-                        if (!safeToDeleteLast && numberOfTimestampsForThisBatch == currentCellTimestamps.size()) {
-                            currentBatch.remove(
-                                    cell.cell(), currentCellTimestamps.get(currentCellTimestamps.size() - 1));
-                        }
+                        removeLatestVersionIfNecessary(currentBatch, cell, currentCellTimestamps, safeToDeleteLast);
                         cellsSweeper.sweepCells(tableRef, currentBatch, currentBatchSentinels);
                     }
 
@@ -307,9 +302,7 @@ public class SweepTaskRunner {
                 if (!currentCellTimestamps.isEmpty()) {
                     safeToDeleteLast = safeToDeleteLast
                             && addCurrentCellTimestamps(currentBatch, cell.cell(), currentCellTimestamps, runType);
-                    if (!safeToDeleteLast) {
-                        currentBatch.remove(cell.cell(), currentCellTimestamps.get(currentCellTimestamps.size() - 1));
-                    }
+                    removeLatestVersionIfNecessary(currentBatch, cell, currentCellTimestamps, safeToDeleteLast);
                 }
             }
         }
@@ -320,6 +313,16 @@ public class SweepTaskRunner {
         numberOfSweptCells += currentBatch.size();
 
         return numberOfSweptCells;
+    }
+
+    private void removeLatestVersionIfNecessary(
+            Multimap<Cell, Long> currentBatch,
+            CellToSweep cell,
+            List<Long> currentCellTimestamps,
+            boolean safeToDeleteLast) {
+        if (!safeToDeleteLast) {
+            currentBatch.remove(cell.cell(), currentCellTimestamps.get(currentCellTimestamps.size() - 1));
+        }
     }
 
     /**
@@ -334,9 +337,8 @@ public class SweepTaskRunner {
                     .collect(Collectors.toList());
             currentBatch.putAll(currentCell, versionsToDelete);
             return versionsToDelete.size() == currentCellTimestamps.size();
-        } else {
-            currentBatch.putAll(currentCell, currentCellTimestamps);
         }
+        currentBatch.putAll(currentCell, currentCellTimestamps);
         return true;
     }
 }

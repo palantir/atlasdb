@@ -74,6 +74,11 @@ public interface SweeperService {
      * then invoke {@link #sweepTable(String, Optional, Optional, Optional, Optional, Optional)} to clean any
      * skipped values once KVS cleanup, such as compactions, is done.
      *
+     * Implementation must respect the usual sweep guarantee: no (possibly in-flight) transaction may as a result of
+     * this operation read a version (or lack of one) of a cell different than it would have read if this operation had
+     * not run, and still succeed. In particular, this means that if any version of a cell is retained, then also the
+     * latest version prior to the sweep timestamp of the same cell must not be removed (even if it is a delete).
+     *
      * @param tableName the table to sweep, in the format namespace.table_name (e.g. myapp.users)
      * @param startRow (Optional) the row to start from, encoded as a hex string (e.g. 12345abcde)
      * @param fullSweep (Optional; default true) whether to sweep the full table; if false just runs one batch

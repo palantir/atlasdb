@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BooleanSupplier;
 import org.junit.After;
 import org.junit.Before;
@@ -75,7 +76,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     protected TransactionService txService;
     SpecificTableSweeper specificTableSweeper;
     AdjustableSweepBatchConfigSource sweepBatchConfigSource;
-    DeterministicTrueSupplier skipCellVersion = new DeterministicTrueSupplier();
+    PeriodicTrueSupplier skipCellVersion = new PeriodicTrueSupplier();
 
     @Before
     public void setup() {
@@ -223,20 +224,28 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         return 150L;
     }
 
-    protected static final class DeterministicTrueSupplier implements BooleanSupplier {
+    protected static final class PeriodicTrueSupplier implements BooleanSupplier {
         private int truePeriod = 1;
         private long count = 0;
+        private boolean deterministic = true;
 
-        private DeterministicTrueSupplier() {}
+        private PeriodicTrueSupplier() {}
 
         public void setPeriod(int period) {
             truePeriod = period;
         }
 
+        public void makeNonDeterministic() {
+            deterministic = false;
+        }
+
         @Override
         public boolean getAsBoolean() {
-            ++count;
-            return count % truePeriod == 0;
+            if (deterministic) {
+                ++count;
+                return count % truePeriod == 0;
+            }
+            return ThreadLocalRandom.current().nextInt(100) == 0;
         }
     }
 }
