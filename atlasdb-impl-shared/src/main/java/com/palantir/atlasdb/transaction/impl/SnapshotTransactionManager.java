@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -101,6 +102,7 @@ import javax.validation.constraints.NotNull;
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
     final TableLevelMetricsController tableLevelMetricsController;
+    private final Counter openTransactionCounter;
 
     private final ConflictTracer conflictTracer;
 
@@ -152,6 +154,8 @@ import javax.validation.constraints.NotNull;
         this.tableLevelMetricsController =
                 new MemoizingTableLevelMetricsController(ToplistDeltaFilteringTableLevelMetricsController.create(
                         metricsManager, metricsFilterEvaluationContext));
+        this.openTransactionCounter =
+                metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
     }
 
     @Override
@@ -189,17 +193,20 @@ import javax.validation.constraints.NotNull;
             recordImmutableTimestamp(immutableTs);
             cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
 
-            return Streams.zip(responses.stream(), conditions.stream(), (response, condition) -> {
-                        LockToken immutableTsLock =
-                                response.immutableTimestamp().getLock();
-                        Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
-                                response.startTimestampAndPartition().timestamp());
+            List<OpenTransaction> transactions = Streams.zip(
+                            responses.stream(), conditions.stream(), (response, condition) -> {
+                                LockToken immutableTsLock =
+                                        response.immutableTimestamp().getLock();
+                                Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
+                                        response.startTimestampAndPartition().timestamp());
 
-                        Transaction transaction =
-                                createTransaction(immutableTs, startTimestampSupplier, immutableTsLock, condition);
-                        return new OpenTransactionImpl(transaction, immutableTsLock);
-                    })
+                                Transaction transaction = createTransaction(
+                                        immutableTs, startTimestampSupplier, immutableTsLock, condition);
+                                return new OpenTransactionImpl(transaction, immutableTsLock);
+                            })
                     .collect(Collectors.toList());
+            openTransactionCounter.inc(transactions.size());
+            return transactions;
         } catch (Throwable t) {
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
@@ -241,6 +248,7 @@ import javax.validation.constraints.NotNull;
                 lockWatchManager.removeTransactionStateFromCache(getTimestamp());
                 postTaskContext = postTaskTimer.time();
                 timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
+                openTransactionCounter.dec();
             }
             scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
             postTaskContext.stop();
