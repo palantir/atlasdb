@@ -53,11 +53,35 @@ public final class SweeperServiceImpl implements SweeperService {
         SweepBatchConfig config =
                 buildConfigWithOverrides(maxCellTsPairsToExamine, candidateBatchSize, deleteBatchSize);
 
-        return SweepTableResponse.from(runSweep(fullSweep, tableRef, decodedStartRow, config));
+        return SweepTableResponse.from(
+                runSweep(fullSweep, tableRef, decodedStartRow, config, SweepTaskRunner.RunType.FULL));
+    }
+
+    @Override
+    public SweepTableResponse sweepPreviouslyConservativeNowThoroughTable(
+            String tableName,
+            Optional<String> startRow,
+            Optional<Boolean> fullSweep,
+            Optional<Integer> maxCellTsPairsToExamine,
+            Optional<Integer> candidateBatchSize,
+            Optional<Integer> deleteBatchSize) {
+        TableReference tableRef = getTableRef(tableName);
+        checkTableExists(tableName, tableRef);
+
+        byte[] decodedStartRow = startRow.map(PtBytes::decodeHexString).orElse(PtBytes.EMPTY_BYTE_ARRAY);
+        SweepBatchConfig config =
+                buildConfigWithOverrides(maxCellTsPairsToExamine, candidateBatchSize, deleteBatchSize);
+
+        return SweepTableResponse.from(runSweep(
+                fullSweep, tableRef, decodedStartRow, config, SweepTaskRunner.RunType.WAS_CONSERVATIVE_NOW_THOROUGH));
     }
 
     private SweepResults runSweep(
-            Optional<Boolean> fullSweep, TableReference tableRef, byte[] decodedStartRow, SweepBatchConfig config) {
+            Optional<Boolean> fullSweep,
+            TableReference tableRef,
+            byte[] decodedStartRow,
+            SweepBatchConfig config,
+            SweepTaskRunner.RunType runType) {
         if (!fullSweep.isPresent()) {
             log.warn("fullSweep parameter was not specified, defaulting to true");
         }
@@ -72,7 +96,7 @@ public final class SweeperServiceImpl implements SweeperService {
                     SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
                     SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
                     UnsafeArg.of("decodedStartRow", decodedStartRow));
-            return runFullSweepWithoutSavingResults(tableRef, decodedStartRow, config);
+            return runFullSweepWithoutSavingResults(tableRef, decodedStartRow, config, runType);
         } else {
             log.info(
                     "Running sweep of a single batch on table {}, "
@@ -83,7 +107,7 @@ public final class SweeperServiceImpl implements SweeperService {
                     SafeArg.of("candidateBatchSize", config.candidateBatchSize()),
                     SafeArg.of("deleteBatchSize", config.deleteBatchSize()),
                     UnsafeArg.of("decodedStartRow", decodedStartRow));
-            return runOneBatchWithoutSavingResults(tableRef, decodedStartRow, config);
+            return runOneBatchWithoutSavingResults(tableRef, decodedStartRow, config, runType);
         }
     }
 
@@ -115,12 +139,15 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     private SweepResults runFullSweepWithoutSavingResults(
-            TableReference tableRef, byte[] startRow, SweepBatchConfig sweepBatchConfig) {
+            TableReference tableRef,
+            byte[] startRow,
+            SweepBatchConfig sweepBatchConfig,
+            SweepTaskRunner.RunType runType) {
         SweepResults cumulativeResults = SweepResults.createEmptySweepResult(Optional.of(startRow));
 
         while (cumulativeResults.getNextStartRow().isPresent()) {
             SweepResults results = runOneBatchWithoutSavingResults(
-                    tableRef, cumulativeResults.getNextStartRow().get(), sweepBatchConfig);
+                    tableRef, cumulativeResults.getNextStartRow().get(), sweepBatchConfig, runType);
 
             specificTableSweeper.updateTimeMetricsOneIteration(
                     results.getTimeInMillis(), results.getTimeElapsedSinceStartedSweeping());
@@ -131,7 +158,10 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     private SweepResults runOneBatchWithoutSavingResults(
-            TableReference tableRef, byte[] startRow, SweepBatchConfig sweepBatchConfig) {
-        return specificTableSweeper.runOneIteration(tableRef, startRow, sweepBatchConfig);
+            TableReference tableRef,
+            byte[] startRow,
+            SweepBatchConfig sweepBatchConfig,
+            SweepTaskRunner.RunType runType) {
+        return specificTableSweeper.runOneIteration(tableRef, startRow, sweepBatchConfig, runType);
     }
 }

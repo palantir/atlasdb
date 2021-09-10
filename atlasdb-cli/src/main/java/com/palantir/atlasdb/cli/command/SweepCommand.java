@@ -181,7 +181,8 @@ public class SweepCommand extends SingleBackendCommand {
                         : sweepRunner.run(
                                 tableToSweep,
                                 batchConfig,
-                                accumulatedResults.getNextStartRow().get());
+                                accumulatedResults.getNextStartRow().get(),
+                                SweepTaskRunner.RunType.FULL);
 
                 accumulatedResults = accumulatedResults.accumulateWith(newResults);
                 printer.info(
