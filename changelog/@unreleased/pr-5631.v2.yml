@@ -1,5 +1,5 @@
 type: improvement
 improvement:
-  description: Add metrics for cache instance count
+  description: Add metric for tracking the count of transaction caches stored in the transaction map, connected to memory leaks such as PDS-185998 and PDS-209612
   links:
   - https://github.com/palantir/atlasdb/pull/5631
