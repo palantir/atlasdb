@@ -51,6 +51,7 @@ final class CacheStoreImpl implements CacheStore {
         this.maxCacheCount = maxCacheCount;
         this.cacheMap = new ConcurrentHashMap<>();
         this.validationProbability = validationProbability;
+        metrics.setTransactionCacheInstanceCountGauge(cacheMap::size);
     }
 
     @Override
