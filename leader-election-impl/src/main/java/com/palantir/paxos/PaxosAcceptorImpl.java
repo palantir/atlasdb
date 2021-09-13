@@ -16,15 +16,15 @@
 package com.palantir.paxos;
 
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentSkipListMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class PaxosAcceptorImpl implements PaxosAcceptor {
-    private static final Logger log = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(PaxosAcceptorImpl.class);
 
     public static PaxosAcceptor newAcceptor(String logDir) {
         PaxosStateLog<PaxosAcceptorState> stateLog = new PaxosStateLogImpl<>(logDir);
@@ -61,7 +61,7 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
-            log.error("log read failed for request: {}", seq, e);
+            log.error("log read failed for request: {}", SafeArg.of("seq", seq), e);
             return PaxosPromise.reject(pid);
         }
 

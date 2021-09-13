@@ -36,6 +36,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.UpdateExecutor;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.WhereClauses;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.sql.SQLException;
@@ -43,11 +47,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class OracleOverflowWriteTable implements DbWriteTable {
-    private static final Logger log = LoggerFactory.getLogger(OracleOverflowWriteTable.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(OracleOverflowWriteTable.class);
 
     private final OracleDdlConfig config;
     private final ConnectionSupplier conns;
@@ -240,9 +242,9 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         try {
             log.debug(
                     "Got connection for delete on table {}: {}, autocommit={}",
-                    shortTableName,
-                    conn.getUnderlyingConnection(),
-                    conn.getUnderlyingConnection().getAutoCommit());
+                    UnsafeArg.of("shortTableName", shortTableName),
+                    UnsafeArg.of("connection", conn.getUnderlyingConnection()),
+                    SafeArg.of("autocommit", conn.getUnderlyingConnection().getAutoCommit()));
         } catch (PalantirSqlException | SQLException e) {
             //
         }
@@ -328,9 +330,9 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         try {
             log.debug(
                     "Got connection for deleteAllTimestamps on table {}: {}, autocommit={}",
-                    shortTableName,
-                    conn.getUnderlyingConnection(),
-                    conn.getUnderlyingConnection().getAutoCommit());
+                    UnsafeArg.of("shortTableName", shortTableName),
+                    UnsafeArg.of("connection", conn.getUnderlyingConnection()),
+                    SafeArg.of("autocommit", conn.getUnderlyingConnection().getAutoCommit()));
         } catch (PalantirSqlException | SQLException e) {
             //
         }

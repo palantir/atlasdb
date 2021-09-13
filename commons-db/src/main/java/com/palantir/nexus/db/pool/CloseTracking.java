@@ -18,16 +18,17 @@ package com.palantir.nexus.db.pool;
 import com.google.common.base.FinalizableReferenceQueue;
 import com.google.common.base.FinalizableWeakReference;
 import com.google.common.collect.Sets;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.ResourceCreationLocation;
 import java.sql.Connection;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class CloseTracking {
-    private static final Logger log = LoggerFactory.getLogger(CloseTracking.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(CloseTracking.class);
 
     private CloseTracking() {
         // nope
@@ -75,7 +76,10 @@ public final class CloseTracking {
         @SuppressWarnings("BadAssert") // only fail close check with asserts enabled
         public synchronized void check() {
             if (!closed) {
-                log.error("{} never closed!", typeName, createTrace);
+                log.error(
+                        "{} never closed!",
+                        UnsafeArg.of("typeName", typeName),
+                        UnsafeArg.of("createTrace", createTrace));
                 assert false : typeName + " never closed!" + "\n" + Arrays.toString(createTrace.getStackTrace());
             }
         }

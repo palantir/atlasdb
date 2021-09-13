@@ -16,7 +16,10 @@
 package com.palantir.util;
 
 import com.google.common.collect.Collections2;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.ReferenceQueue;
@@ -48,13 +51,11 @@ import javax.management.StringValueExp;
 import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.remote.JMXServiceURL;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  */
 public final class JMXUtils {
-    private static final Logger log = LoggerFactory.getLogger(JMXUtils.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(JMXUtils.class);
 
     private JMXUtils() {
         /* empty */
@@ -98,9 +99,9 @@ public final class JMXUtils {
             server.registerMBean(mbean, on);
         } catch (InstanceAlreadyExistsException e) {
             // The bean was registered concurrently; log a warning, but don't fail tests
-            log.warn("Failed to register mbean for name {}", objectName, e);
+            log.warn("Failed to register mbean for name {}", UnsafeArg.of("name", objectName), e);
         } catch (Exception e) {
-            log.warn("Unexpected exception registering mbean for name {}", objectName, e);
+            log.warn("Unexpected exception registering mbean for name {}", UnsafeArg.of("name", objectName), e);
         }
     }
 
@@ -139,7 +140,7 @@ public final class JMXUtils {
             server.registerMBean(weakMBean, on);
             return bean;
         } catch (final Exception e) {
-            log.warn("Failed to register mbean for name {}", objectName, e);
+            log.warn("Failed to register mbean for name {}", UnsafeArg.of("name", objectName), e);
             return null;
         }
     }

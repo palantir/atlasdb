@@ -19,16 +19,17 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import java.util.Optional;
 import java.util.function.LongSupplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
-    Logger log = LoggerFactory.getLogger(AtlasDbFactory.class);
+    SafeLogger log = SafeLoggerFactory.get(AtlasDbFactory.class);
 
     long NO_OP_FAST_FORWARD_TIMESTAMP = Long.MIN_VALUE + 1; // Note: Long.MIN_VALUE itself is not allowed.
     boolean DEFAULT_INITIALIZE_ASYNC = false;
@@ -81,7 +82,9 @@ public interface AtlasDbFactory<MERGED_CONFIG extends KeyValueServiceConfig> {
     default TimestampStoreInvalidator createTimestampStoreInvalidator(
             KeyValueService rawKvs, Optional<TableReference> tableReferenceOverride) {
         return () -> {
-            log.warn("AtlasDB doesn't yet support automated migration for KVS type {}.", getType());
+            log.warn(
+                    "AtlasDB doesn't yet support automated migration for KVS type {}.",
+                    SafeArg.of("kvsType", getType()));
             return NO_OP_FAST_FORWARD_TIMESTAMP;
         };
     }

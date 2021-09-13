@@ -24,14 +24,14 @@ import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.function.Supplier;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("unchecked") // Mocks of known types
 public class TrackerUtilsTest {
-    private static final Logger log = LoggerFactory.getLogger(TrackerUtilsTest.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(TrackerUtilsTest.class);
     private static final String SHORT_NAME = "shortName";
 
     private final Supplier<Long> testSupplier = mock(Supplier.class);

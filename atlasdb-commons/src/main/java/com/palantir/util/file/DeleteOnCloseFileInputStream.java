@@ -15,15 +15,16 @@
  */
 package com.palantir.util.file;
 
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DeleteOnCloseFileInputStream extends FileInputStream {
-    private static final Logger log = LoggerFactory.getLogger(DeleteOnCloseFileInputStream.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DeleteOnCloseFileInputStream.class);
 
     private File file;
     private boolean closed = false;
@@ -44,9 +45,9 @@ public class DeleteOnCloseFileInputStream extends FileInputStream {
         } finally {
             if (!closed) {
                 if (!file.delete()) {
-                    log.warn("Failed to delete file {}", file.getAbsolutePath());
+                    log.warn("Failed to delete file {}", UnsafeArg.of("file", file.getAbsolutePath()));
                 } else if (log.isDebugEnabled()) {
-                    log.debug("Successfully deleted file {}", file.getAbsolutePath());
+                    log.debug("Successfully deleted file {}", UnsafeArg.of("file", file.getAbsolutePath()));
                 }
                 closed = true;
             }

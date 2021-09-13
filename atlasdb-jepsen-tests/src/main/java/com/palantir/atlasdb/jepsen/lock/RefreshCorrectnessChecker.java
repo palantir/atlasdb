@@ -27,13 +27,15 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This checker verifies that refreshes of locks do not cause two processes to simultaneously hold the same lock.
@@ -41,7 +43,7 @@ import org.slf4j.LoggerFactory;
  */
 public class RefreshCorrectnessChecker implements Checker {
 
-    private static final Logger log = LoggerFactory.getLogger(RefreshCorrectnessChecker.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(RefreshCorrectnessChecker.class);
 
     @Override
     public CheckerResult check(List<Event> events) {
@@ -113,14 +115,14 @@ public class RefreshCorrectnessChecker implements Checker {
                                         "A {} request for lock {} by process {} invoked at time {} was granted at "
                                                 + "time {}, but another process was granted the lock between {} and {} "
                                                 + "(last known time the lock was held by {})",
-                                        invokeEvent.function(),
-                                        invokeEvent.value(),
-                                        invokeEvent.process(),
-                                        invokeEvent.time(),
-                                        event.time(),
-                                        lastLockTime,
-                                        invokeEvent.time(),
-                                        invokeEvent.process());
+                                        UnsafeArg.of("function", invokeEvent.function()),
+                                        UnsafeArg.of("value", invokeEvent.value()),
+                                        SafeArg.of("process", invokeEvent.process()),
+                                        SafeArg.of("invokeTime", invokeEvent.time()),
+                                        SafeArg.of("eventTime", event.time()),
+                                        SafeArg.of("lastLockTime", lastLockTime),
+                                        SafeArg.of("invokeTime2", invokeEvent.time()),
+                                        SafeArg.of("process2", invokeEvent.process()));
                                 errors.add(invokeEvent);
                                 errors.add(event);
                             }

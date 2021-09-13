@@ -35,6 +35,8 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.util.VersionStrings;
@@ -42,11 +44,9 @@ import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class OracleDdlTable implements DbDdlTable {
-    private static final Logger log = LoggerFactory.getLogger(OracleDdlTable.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(OracleDdlTable.class);
     private static final String MIN_ORACLE_VERSION = "11.2.0.2.3";
 
     private final OracleDdlConfig config;
@@ -181,7 +181,11 @@ public final class OracleDdlTable implements DbDdlTable {
                             shortTableName);
         } catch (PalantirSqlException ex) {
             if (!isPrimaryKeyViolation(ex)) {
-                log.error("Error occurred trying to create table mapping {} -> {}", fullTableName, shortTableName, ex);
+                log.error(
+                        "Error occurred trying to create table mapping {} -> {}",
+                        UnsafeArg.of("fullTableName", fullTableName),
+                        UnsafeArg.of("shortTableName", shortTableName),
+                        ex);
                 dropTableInternal(fullTableName, shortTableName);
                 throw ex;
             }
@@ -275,8 +279,8 @@ public final class OracleDdlTable implements DbDdlTable {
                             + " of oracle. The minimum supported version is {}"
                             + ". If you absolutely need to use an older version of oracle,"
                             + " please contact Palantir support for assistance.",
-                    version,
-                    MIN_ORACLE_VERSION);
+                    SafeArg.of("version", version),
+                    SafeArg.of("minVersion", MIN_ORACLE_VERSION));
         }
     }
 
@@ -289,7 +293,7 @@ public final class OracleDdlTable implements DbDdlTable {
                             needsOverflow ? TableValueStyle.OVERFLOW.getId() : TableValueStyle.RAW.getId());
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains(OracleErrorConstants.ORACLE_CONSTRAINT_VIOLATION_ERROR)) {
-                log.error("Error occurred trying to execute the Oracle query {}.", sql, e);
+                log.error("Error occurred trying to execute the Oracle query {}.", UnsafeArg.of("sql", sql), e);
                 throw e;
             }
         }
@@ -300,7 +304,7 @@ public final class OracleDdlTable implements DbDdlTable {
             conns.get().executeUnregisteredQuery(sql);
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains(errorToIgnore)) {
-                log.error("Error occurred trying to execute the Oracle query {}.", sql, e);
+                log.error("Error occurred trying to execute the Oracle query {}.", UnsafeArg.of("sql", sql), e);
                 throw e;
             }
         }

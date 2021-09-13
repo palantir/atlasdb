@@ -27,6 +27,8 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -34,11 +36,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class NextTableToSweepProvider {
-    private static final Logger log = LoggerFactory.getLogger(NextTableToSweepProvider.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(NextTableToSweepProvider.class);
 
     private final LockService lockService;
     private final StreamStoreRemappingSweepPriorityCalculator calculator;
@@ -109,19 +109,19 @@ public class NextTableToSweepProvider {
                 if (sweepLockForTable.haveLocks()) {
                     log.info(
                             "Decided to start sweeping {} because {}.",
-                            LoggingArgs.safeTableOrPlaceholder(tableRefToSweep),
-                            reason);
+                            LoggingArgs.tableRef(LoggingArgs.safeTableOrPlaceholder(tableRefToSweep)),
+                            SafeArg.of("reason", reason));
                     return Optional.of(TableToSweep.newTable(tableRefToSweep, sweepLockForTable));
                 }
             } catch (InterruptedException e) {
                 log.info(
                         "Got interrupted while attempting to lock {} for sweeping.",
-                        LoggingArgs.safeTableOrPlaceholder(tableRefToSweep),
+                        LoggingArgs.tableRef(LoggingArgs.safeTableOrPlaceholder(tableRefToSweep)),
                         e);
             }
             log.info(
                     "Did not start sweeping {}, because it is being swept elsewhere. Another table will be chosen.",
-                    LoggingArgs.safeTableOrPlaceholder(tableRefToSweep));
+                    LoggingArgs.tableRef(LoggingArgs.safeTableOrPlaceholder(tableRefToSweep)));
         }
 
         return Optional.empty();

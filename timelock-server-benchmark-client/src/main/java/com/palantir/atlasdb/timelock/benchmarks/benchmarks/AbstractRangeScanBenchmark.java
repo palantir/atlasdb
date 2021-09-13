@@ -25,14 +25,15 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.random.RandomBytes;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A base class for implementing range scan benchmarks. A primary function of this class is to store metadata
@@ -42,7 +43,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractRangeScanBenchmark.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AbstractRangeScanBenchmark.class);
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -70,12 +71,12 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
         Optional<String> existingBucket = getExistingBucketForParameters();
         if (existingBucket.isPresent()) {
             this.bucket = existingBucket.get();
-            log.info("found existing test data under bucket {}", bucket);
+            log.info("found existing test data under bucket {}", UnsafeArg.of("bucket", bucket));
             return;
         }
 
         this.bucket = UUID.randomUUID().toString();
-        log.info("creating new test data under bucket {}", bucket);
+        log.info("creating new test data under bucket {}", UnsafeArg.of("bucket", bucket));
 
         writeData();
 

@@ -21,12 +21,12 @@ import com.codahale.metrics.Clock;
 import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
 
 public final class TrackerUtils {
     // We cache underlying calls, in case a hyper-aggressive metrics client repeatedly queries the values.
@@ -56,7 +56,7 @@ public final class TrackerUtils {
      * @return a caching, exception-handling gauge
      */
     public static <T> Gauge<T> createCachingExceptionHandlingGauge(
-            Logger logger, Clock clock, String shortName, Supplier<T> supplier) {
+            SafeLogger logger, Clock clock, String shortName, Supplier<T> supplier) {
         return createCachingReducingGauge(logger, clock, shortName, supplier, null, (previous, current) -> current);
     }
 
@@ -74,12 +74,12 @@ public final class TrackerUtils {
      * @return a caching, monotonically increasing gauge
      */
     public static Gauge<Long> createCachingMonotonicIncreasingGauge(
-            Logger logger, Clock clock, String shortName, Supplier<Long> supplier) {
+            SafeLogger logger, Clock clock, String shortName, Supplier<Long> supplier) {
         return createCachingReducingGauge(logger, clock, shortName, supplier, Long.MIN_VALUE, Math::max);
     }
 
     private static <T> Gauge<T> createCachingReducingGauge(
-            Logger logger,
+            SafeLogger logger,
             Clock clock,
             String shortName,
             Supplier<T> supplier,
