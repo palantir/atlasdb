@@ -114,8 +114,8 @@ public final class CacheMetrics {
                 () -> () -> cacheSize.getCount() / (double) maximumCacheSize);
     }
 
-    public void setCacheInstanceCountGauge(Gauge<Integer> getCacheMapCount) {
+    public void setTransactionCacheInstanceCountGauge(Gauge<Integer> getCacheMapCount) {
         metricsManager.registerOrGetGauge(
-                CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_INSTANCE_COUNT, () -> getCacheMapCount);
+                CacheMetrics.class, AtlasDbMetricNames.LW_TRANSACTION_CACHE_INSTANCE_COUNT, () -> getCacheMapCount);
     }
 }

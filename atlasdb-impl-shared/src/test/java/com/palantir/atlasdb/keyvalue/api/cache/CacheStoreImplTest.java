@@ -123,7 +123,7 @@ public final class CacheStoreImplTest {
     @SuppressWarnings("unchecked")
     private int getTransactionCacheInstanceCount() {
         ArgumentCaptor<Gauge<Integer>> cacheInstanceCount = ArgumentCaptor.forClass(Gauge.class);
-        verify(metrics).setCacheInstanceCountGauge(cacheInstanceCount.capture());
+        verify(metrics).setTransactionCacheInstanceCountGauge(cacheInstanceCount.capture());
         return cacheInstanceCount.getValue().getValue();
     }
 }
