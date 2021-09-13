@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: Fixed a memory leak that occurred where cleanup tasks from failed transactions
+    maintained a reference to the transaction (as opposed to just the information
+    needed for the cleanup task), preventing them from being garbage collected. This
+    is significant as writes and, in the case of serializable transactions, reads,
+    are retained in the transaction objects.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5632
