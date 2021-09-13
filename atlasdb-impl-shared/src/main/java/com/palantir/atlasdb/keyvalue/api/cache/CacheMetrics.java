@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -111,5 +112,10 @@ public final class CacheMetrics {
                 CacheMetrics.class,
                 AtlasDbMetricNames.LW_CACHE_RATIO_USED,
                 () -> () -> cacheSize.getCount() / (double) maximumCacheSize);
+    }
+
+    public void setCacheInstanceCountGauge(Gauge<Integer> getCacheMapCount) {
+        metricsManager.registerOrGetGauge(
+                CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_INSTANCE_COUNT, () -> getCacheMapCount);
     }
 }
