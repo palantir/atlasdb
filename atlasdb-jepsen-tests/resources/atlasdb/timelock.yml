@@ -1,5 +1,9 @@
 install:
-  cluster:
+  paxos:
+    is-new-service: true
+
+runtime:
+  cluster-config-not-live-reloaded:
     local-server: <HOSTNAME>:8080
     cluster:
       security:
@@ -12,10 +16,6 @@ install:
         - n3:8080
         - n4:8080
         - n5:8080
-  paxos:
-    is-new-service: true
-
-runtime: {}
 
 server:
   applicationConnectors:

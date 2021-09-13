@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: The number of open transactions are now tracked in a metric, `com.palantir.atlasdb.transaction.impl.SnapshotTransactionManager.openTransactionCounter`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5630

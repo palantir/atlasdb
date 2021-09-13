@@ -1,0 +1,11 @@
+type: feature
+feature:
+  description: AtlasDB sweeper service (``/sweep``) now exposes a new endpoint (``sweep-previously-conservative-now-thorough-table``)
+    that can be used to safely sweep tables that were previously used with conservative
+    sweep and now use thorough sweep, by intentionally leaving a small fraction of
+    the data. This was previously not safe, as sweeping away too many consecutive
+    legacy sentinels can cause range scan failures in Cassandra. Once compactions
+    have been completed, it should be safe to run an iteration of full sweep to remove
+    all the left over sweepable values.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5628

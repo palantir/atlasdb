@@ -26,6 +26,8 @@ import org.immutables.value.Value;
 
 /**
  * Dynamic (live-reloaded) portions of TimeLock's configuration.
+ *
+ * Note that the {@link ClusterConfiguration} is an exception to above rule.
  */
 @JsonDeserialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @JsonSerialize(as = ImmutableTimeLockRuntimeConfiguration.class)
@@ -37,6 +39,14 @@ public abstract class TimeLockRuntimeConfiguration {
     public PaxosRuntimeConfiguration paxos() {
         return ImmutablePaxosRuntimeConfiguration.builder().build();
     }
+
+    /**
+     * As of now, TimeLock is not equipped to handle live-changes in the cluster configuration. For this reason,
+     * TimeLock must be initialized with a snapshot of the clusterConfiguration which is not live-reloaded instead of
+     * accessing ClusterConfiguration via {@code TimeLockRuntimeConfiguration.cluster()}.
+     * */
+    @JsonProperty("cluster-config-not-live-reloaded")
+    public abstract ClusterConfiguration clusterSnapshot();
 
     /**
      * The maximum number of client namespaces to allow. Each distinct client consumes some amount of memory and disk

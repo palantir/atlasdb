@@ -53,6 +53,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BooleanSupplier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,9 +73,10 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             .candidateBatchSize(15)
             .maxCellTsPairsToExamine(1000)
             .build();
-    private TransactionService txService;
+    protected TransactionService txService;
     SpecificTableSweeper specificTableSweeper;
     AdjustableSweepBatchConfigSource sweepBatchConfigSource;
+    PeriodicTrueSupplier skipCellVersion = new PeriodicTrueSupplier();
 
     @Before
     public void setup() {
@@ -98,7 +101,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 AbstractBackgroundSweeperIntegrationTest::getTimestamp,
                 txService,
                 ssm,
-                cellsSweeper);
+                cellsSweeper,
+                null,
+                skipCellVersion);
         LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
         specificTableSweeper = SpecificTableSweeper.create(
                 txManager,
@@ -166,10 +171,16 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             while (iter.hasNext()) {
                 RowResult<Set<Long>> rr = iter.next();
                 numCells += rr.getColumns().size();
-                assertThat(rr.getColumns().values().stream()
-                                .allMatch(s -> s.size() == 1 || (conservative && s.size() == 2 && s.contains(-1L))))
-                        .describedAs("Found unswept values in %s!", tableRef.getQualifiedName())
-                        .isTrue();
+                if (conservative) {
+                    assertThat(rr.getColumns().values().stream().allMatch(s -> s.size() == 2 && s.contains(-1L)))
+                            .describedAs(
+                                    "Expected a sentinel and exactly one other value!", tableRef.getQualifiedName())
+                            .isTrue();
+                } else {
+                    assertThat(rr.getColumns().values().stream().allMatch(s -> s.size() <= 1 && !s.contains(-1L)))
+                            .describedAs("Expected at most one, non-sentinel, value!", tableRef.getQualifiedName())
+                            .isTrue();
+                }
             }
             assertThat(numCells).isEqualTo(expectedCells);
         }
@@ -190,6 +201,9 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 }.toTableMetadata().persistToBytes());
     }
 
+    /**
+     * Magic number alert! This will add 75 entries of which 17 will be deletes
+     */
     void putManyCells(TableReference tableRef, long startTs, long commitTs) {
         Map<Cell, byte[]> cells = new HashMap<>();
         for (int i = 0; i < 50; ++i) {
@@ -208,5 +222,30 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     private static long getTimestamp() {
         return 150L;
+    }
+
+    protected static final class PeriodicTrueSupplier implements BooleanSupplier {
+        private int truePeriod = 1;
+        private long count = 0;
+        private boolean deterministic = true;
+
+        private PeriodicTrueSupplier() {}
+
+        public void setPeriod(int period) {
+            truePeriod = period;
+        }
+
+        public void makeNonDeterministic() {
+            deterministic = false;
+        }
+
+        @Override
+        public boolean getAsBoolean() {
+            if (deterministic) {
+                ++count;
+                return count % truePeriod == 0;
+            }
+            return ThreadLocalRandom.current().nextInt(100) == 0;
+        }
     }
 }

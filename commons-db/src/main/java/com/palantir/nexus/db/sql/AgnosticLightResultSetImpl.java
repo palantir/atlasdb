@@ -121,11 +121,7 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
 
     protected static final int INITIAL_FETCH_SIZE = 10;
 
-    // NOTE: the following was decreased from its original setting of 1000,
-    // which seemed to cause the server to churn through huge amounts of memory
-    // quickly on certain workloads. Documentation suggests that values over 50
-    // are not useful.
-    protected static final int DEFAULT_MAX_FETCH_SIZE = 50;
+    protected static final int DEFAULT_MAX_FETCH_SIZE = 1000;
 
     /**
      * Geometrically increases the fetch size, so that we don't have to GC a lot

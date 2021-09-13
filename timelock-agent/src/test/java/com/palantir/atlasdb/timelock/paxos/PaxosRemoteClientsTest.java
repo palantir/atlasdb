@@ -60,11 +60,6 @@ public class PaxosRemoteClientsTest {
                 .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)
                 .build();
         installConfiguration = TimeLockInstallConfiguration.builder()
-                .cluster(ImmutableDefaultClusterConfiguration.builder()
-                        .localServer("a:1")
-                        .cluster(
-                                PartialServiceConfiguration.of(ImmutableList.of("a:1", "b:2", "c:3"), Optional.empty()))
-                        .build())
                 .paxos(paxosInstallConfiguration) // Normally awful, but too onerous to set up
                 .timestampBoundPersistence(
                         ImmutablePaxosTsBoundPersisterConfiguration.builder().build())
@@ -74,6 +69,11 @@ public class PaxosRemoteClientsTest {
                 .thenAnswer(invocation -> mock(invocation.getArgument(1)));
         context = ImmutableTimelockPaxosInstallationContext.builder()
                 .install(installConfiguration)
+                .cluster(ImmutableDefaultClusterConfiguration.builder()
+                        .localServer("a:1")
+                        .cluster(
+                                PartialServiceConfiguration.of(ImmutableList.of("a:1", "b:2", "c:3"), Optional.empty()))
+                        .build())
                 .dialogueServiceProvider(dialogueServiceProvider)
                 .userAgent(UserAgent.of(UserAgent.Agent.of("aaa", "1.2.3")))
                 .timeLockVersion(OrderableSlsVersion.valueOf("0.0.0"))

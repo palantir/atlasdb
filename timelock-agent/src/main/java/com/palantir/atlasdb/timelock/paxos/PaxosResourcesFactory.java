@@ -32,6 +32,7 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -287,6 +288,9 @@ public final class PaxosResourcesFactory {
         TimeLockInstallConfiguration install();
 
         @Value.Parameter
+        ClusterConfiguration cluster();
+
+        @Value.Parameter
         UserAgent userAgent();
 
         @Value.Parameter
@@ -307,12 +311,12 @@ public final class PaxosResourcesFactory {
 
         @Value.Derived
         default List<String> clusterAddresses() {
-            return PaxosRemotingUtils.getClusterAddresses(install());
+            return PaxosRemotingUtils.getClusterAddresses(cluster());
         }
 
         @Value.Derived
         default List<String> remoteUris() {
-            return PaxosRemotingUtils.getRemoteServerPaths(install());
+            return PaxosRemotingUtils.getRemoteServerPaths(cluster());
         }
 
         @Value.Derived
@@ -329,7 +333,7 @@ public final class PaxosResourcesFactory {
 
         @Value.Derived
         default Optional<TrustContext> trustContext() {
-            return PaxosRemotingUtils.getSslConfigurationOptional(install())
+            return PaxosRemotingUtils.getSslConfigurationOptional(cluster())
                     .map(SslSocketFactories::createTrustContext);
         }
 

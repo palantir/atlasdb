@@ -71,9 +71,11 @@ import com.palantir.paxos.Client;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.ServiceDiscoveringDatabaseTimeLockSupplier;
+import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.RestrictedTimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockPersistenceInvariants;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
@@ -109,6 +111,7 @@ public class TimeLockAgent {
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
     private final Refreshable<TimeLockRuntimeConfiguration> runtime;
+    private final ClusterConfiguration cluster;
     private final Consumer<Object> registrar;
     private final Optional<Consumer<UndertowService>> undertowRegistrar;
     private final PaxosResources paxosResources;
@@ -128,6 +131,7 @@ public class TimeLockAgent {
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Refreshable<TimeLockRuntimeConfiguration> runtime,
+            ClusterConfiguration cluster,
             UserAgent userAgent,
             int threadPoolSize,
             long blockingTimeoutMs,
@@ -135,13 +139,18 @@ public class TimeLockAgent {
             Optional<Consumer<UndertowService>> undertowRegistrar,
             OrderableSlsVersion timeLockVersion,
             ObjectMapper objectMapper) {
-        verifyIsNewServiceInvariant(install);
+
+        verifyConfigurationSanity(install, cluster);
+
+        // Restricting access to user-provided runtime config
+        Refreshable<TimeLockRuntimeConfiguration> restrictedRuntime =
+                runtime.map(RestrictedTimeLockRuntimeConfiguration::new);
 
         TimeLockDialogueServiceProvider timeLockDialogueServiceProvider =
-                createTimeLockDialogueServiceProvider(metricsManager, install, userAgent);
+                createTimeLockDialogueServiceProvider(metricsManager, cluster, userAgent);
         PaxosResourcesFactory.TimelockPaxosInstallationContext installationContext =
                 ImmutableTimelockPaxosInstallationContext.of(
-                        install, userAgent, timeLockDialogueServiceProvider, timeLockVersion);
+                        install, cluster, userAgent, timeLockDialogueServiceProvider, timeLockVersion);
 
         // Upgrading the schema version should generally happen BEFORE any migration has started. Keep this in
         // mind for any potential live migrations
@@ -159,12 +168,13 @@ public class TimeLockAgent {
         PaxosResources paxosResources = PaxosResourcesFactory.create(
                 installationContext,
                 metricsManager,
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, restrictedRuntime::get));
 
         TimeLockAgent agent = new TimeLockAgent(
                 metricsManager,
                 install,
-                runtime,
+                restrictedRuntime,
+                cluster,
                 undertowRegistrar,
                 threadPoolSize,
                 blockingTimeoutMs,
@@ -177,15 +187,20 @@ public class TimeLockAgent {
         return agent;
     }
 
+    private static void verifyConfigurationSanity(TimeLockInstallConfiguration install, ClusterConfiguration cluster) {
+        verifyTopologyOffersHighAvailability(install, cluster);
+        verifyIsNewServiceInvariant(install, cluster);
+    }
+
     private static TimeLockDialogueServiceProvider createTimeLockDialogueServiceProvider(
-            MetricsManager metricsManager, TimeLockInstallConfiguration install, UserAgent userAgent) {
+            MetricsManager metricsManager, ClusterConfiguration cluster, UserAgent userAgent) {
         DialogueClients.ReloadingFactory baseFactory = DialogueClients.create(
                         Refreshable.only(ServicesConfigBlock.builder().build()))
                 .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking"));
         ServerListConfig timeLockServerListConfig = ImmutableServerListConfig.builder()
-                .addAllServers(PaxosRemotingUtils.getRemoteServerPaths(install))
-                .sslConfiguration(install.cluster().cluster().security())
-                .proxyConfiguration(install.cluster().cluster().proxyConfiguration())
+                .addAllServers(PaxosRemotingUtils.getRemoteServerPaths(cluster))
+                .sslConfiguration(cluster.cluster().security())
+                .proxyConfiguration(cluster.cluster().proxyConfiguration())
                 .build();
         return TimeLockDialogueServiceProvider.create(
                 metricsManager.getTaggedRegistry(),
@@ -203,6 +218,7 @@ public class TimeLockAgent {
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Refreshable<TimeLockRuntimeConfiguration> runtime,
+            ClusterConfiguration cluster,
             Optional<Consumer<UndertowService>> undertowRegistrar,
             int threadPoolSize,
             long blockingTimeoutMs,
@@ -214,6 +230,7 @@ public class TimeLockAgent {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
+        this.cluster = cluster;
         this.undertowRegistrar = undertowRegistrar;
         this.registrar = registrar;
         this.paxosResources = paxosResources;
@@ -229,7 +246,7 @@ public class TimeLockAgent {
                 metricsManager, lockLog, paxosResources.leadershipComponents(), install.lockDiagnosticConfig());
 
         this.noSimultaneousServiceCheck = NoSimultaneousServiceCheck.create(
-                new TimeLockActivityCheckerFactory(install, metricsManager, userAgent).getTimeLockActivityCheckers());
+                new TimeLockActivityCheckerFactory(cluster, metricsManager, userAgent).getTimeLockActivityCheckers());
 
         this.feedbackHandler = new FeedbackHandler(
                 metricsManager, () -> runtime.get().adjudication().enabled());
@@ -391,11 +408,35 @@ public class TimeLockAgent {
     }
 
     @VisibleForTesting
-    static void verifyIsNewServiceInvariant(TimeLockInstallConfiguration install) {
+    static void verifyIsNewServiceInvariant(TimeLockInstallConfiguration install, ClusterConfiguration cluster) {
         if (!install.paxos().ignoreNewServiceCheck()) {
             TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
-                    install.isNewServiceNode(), install.paxos().doDataDirectoriesExist());
+                    install.isNewService() || cluster.isNewServiceNode(),
+                    install.paxos().doDataDirectoriesExist());
         }
+    }
+
+    @VisibleForTesting
+    static void verifyTopologyOffersHighAvailability(
+            TimeLockInstallConfiguration install, ClusterConfiguration cluster) {
+        if (install.cluster().enableNonstandardAndPossiblyDangerousTopology()
+                || cluster.enableNonstandardAndPossiblyDangerousTopology()) {
+            return;
+        }
+
+        Preconditions.checkArgument(
+                cluster.clusterMembers().size() >= 3,
+                "This TimeLock cluster is set up to use an insufficient (< 3) number of servers, which is not a"
+                        + " standard configuration! With fewer than three servers, your service will not have high"
+                        + " availability. In the event a node goes down, timelock will become unresponsive, meaning"
+                        + " that ALL your AtlasDB clients will become unable to perform transactions. Furthermore, if"
+                        + " 1-node, your TimeLock  cluster has NO resilience to failures of the underlying storage"
+                        + " layer; if your disks fail, the timestamp information may be IRRECOVERABLY COMPROMISED,"
+                        + " meaning that your AtlasDB deployments may become completely unusable."
+                        + " If you know what you are doing and you want to run in this configuration, you must set"
+                        + " 'enableNonstandardAndPossiblyDangerousTopology' to true.",
+                SafeArg.of("clusterSize", cluster.clusterMembers().size()),
+                SafeArg.of("minimumClusterSize", 3));
     }
 
     static void verifySchemaVersion(PersistedSchemaVersion persistedSchemaVersion) {
@@ -496,10 +537,8 @@ public class TimeLockAgent {
     }
 
     private RedirectRetryTargeter redirectRetryTargeter() {
-        URL localServer = PaxosRemotingUtils.convertAddressToUrl(
-                install, install.cluster().localServer());
-        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(
-                install, install.cluster().clusterMembers());
+        URL localServer = PaxosRemotingUtils.convertAddressToUrl(cluster, cluster.localServer());
+        List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(cluster, cluster.clusterMembers());
         return RedirectRetryTargeter.create(localServer, clusterUrls);
     }
 
@@ -521,13 +560,13 @@ public class TimeLockAgent {
     }
 
     private LeaderConfig createLeaderConfig() {
-        List<String> uris = install.cluster().clusterMembers();
+        List<String> uris = cluster.clusterMembers();
         Path leaderPaxosDataDirectory = install.paxos().dataDirectory().toPath().resolve(LEADER_PAXOS_NAMESPACE);
 
         return ImmutableLeaderConfig.builder()
                 .addLeaders(uris.toArray(new String[0]))
-                .localServer(install.cluster().localServer())
-                .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
+                .localServer(cluster.localServer())
+                .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(cluster))
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
                 .learnerLogDir(leaderPaxosDataDirectory
                         .resolve(LEARNER_SUBDIRECTORY_PATH)
