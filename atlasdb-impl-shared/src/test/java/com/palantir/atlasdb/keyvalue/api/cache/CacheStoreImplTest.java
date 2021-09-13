@@ -19,7 +19,9 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
+import com.codahale.metrics.Gauge;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
@@ -27,6 +29,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 public final class CacheStoreImplTest {
     private static final StartTimestamp TIMESTAMP_1 = StartTimestamp.of(1L);
@@ -51,6 +54,7 @@ public final class CacheStoreImplTest {
         assertThat(cacheStore.getCache(TIMESTAMP_2)).isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void multipleCallsToGetReturnsTheSameCache() {
         SnapshotStore snapshotStore = new SnapshotStoreImpl();
@@ -66,6 +70,10 @@ public final class CacheStoreImplTest {
         TransactionScopedCache cache2 = cacheStore.getCache(TIMESTAMP_2);
 
         assertThat(cacheStore.getCache(TIMESTAMP_1)).isEqualTo(cache1).isNotEqualTo(cache2);
+
+        ArgumentCaptor<Gauge<Integer>> cacheInstanceCount = ArgumentCaptor.forClass(Gauge.class);
+        verify(metrics).setCacheInstanceCountGauge(cacheInstanceCount.capture());
+        assertThat(cacheInstanceCount.getValue()).extracting(Gauge::getValue).isEqualTo(2);
     }
 
     @Test
