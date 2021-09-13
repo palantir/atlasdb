@@ -52,9 +52,9 @@ public final class CacheStoreImplTest {
                 ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
         cacheStore.createCache(TIMESTAMP_2);
         assertThat(cacheStore.getCache(TIMESTAMP_2)).isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
+        assertThat(getTransactionCacheInstanceCount()).isEqualTo(1);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void multipleCallsToGetReturnsTheSameCache() {
         SnapshotStore snapshotStore = new SnapshotStoreImpl();
@@ -70,10 +70,7 @@ public final class CacheStoreImplTest {
         TransactionScopedCache cache2 = cacheStore.getCache(TIMESTAMP_2);
 
         assertThat(cacheStore.getCache(TIMESTAMP_1)).isEqualTo(cache1).isNotEqualTo(cache2);
-
-        ArgumentCaptor<Gauge<Integer>> cacheInstanceCount = ArgumentCaptor.forClass(Gauge.class);
-        verify(metrics).setCacheInstanceCountGauge(cacheInstanceCount.capture());
-        assertThat(cacheInstanceCount.getValue()).extracting(Gauge::getValue).isEqualTo(2);
+        assertThat(getTransactionCacheInstanceCount()).isEqualTo(2);
     }
 
     @Test
@@ -93,6 +90,7 @@ public final class CacheStoreImplTest {
                 .isExactlyInstanceOf(TransactionFailedRetriableException.class)
                 .hasMessage("Exceeded maximum concurrent caches; transaction can be retried, but with caching "
                         + "disabled");
+        assertThat(getTransactionCacheInstanceCount()).isEqualTo(2);
     }
 
     @Test
@@ -107,6 +105,7 @@ public final class CacheStoreImplTest {
         assertThat(cacheStore.getCache(TIMESTAMP_1)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
         cacheStore.createCache(TIMESTAMP_1);
         assertThat(cacheStore.getCache(TIMESTAMP_1)).isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
+        assertThat(getTransactionCacheInstanceCount()).isEqualTo(1);
     }
 
     @Test
@@ -118,5 +117,13 @@ public final class CacheStoreImplTest {
         cacheStore.createCache(TIMESTAMP_2);
         assertThat(cacheStore.getCache(TIMESTAMP_1)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
         assertThat(cacheStore.getCache(TIMESTAMP_2)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
+        assertThat(getTransactionCacheInstanceCount()).isEqualTo(0);
+    }
+
+    @SuppressWarnings("unchecked")
+    private int getTransactionCacheInstanceCount() {
+        ArgumentCaptor<Gauge<Integer>> cacheInstanceCount = ArgumentCaptor.forClass(Gauge.class);
+        verify(metrics).setCacheInstanceCountGauge(cacheInstanceCount.capture());
+        return cacheInstanceCount.getValue().getValue();
     }
 }
