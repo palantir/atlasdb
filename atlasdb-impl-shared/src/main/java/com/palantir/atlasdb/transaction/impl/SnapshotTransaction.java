@@ -1479,7 +1479,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void runTaskOnDeleteExecutor(Consumer<KeyValueService> task) {
         // Do not inline this without thinking carefully about exactly what this means
         KeyValueService theKeyValueService = keyValueService;
-        deleteExecutor.submit(() -> task.accept(theKeyValueService));
+        deleteExecutor.execute(() -> task.accept(theKeyValueService));
     }
 
     private static boolean isSweepSentinel(Value value) {
