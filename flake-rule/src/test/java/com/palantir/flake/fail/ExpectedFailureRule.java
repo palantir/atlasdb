@@ -15,14 +15,15 @@
  */
 package com.palantir.flake.fail;
 
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ExpectedFailureRule implements TestRule {
-    private static final Logger log = LoggerFactory.getLogger(ExpectedFailureRule.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(ExpectedFailureRule.class);
 
     @Override
     public Statement apply(Statement base, Description description) {
@@ -44,7 +45,9 @@ public class ExpectedFailureRule implements TestRule {
                             String.format("%s was expected to fail, but passed!", getTestName(description)));
                 } catch (Throwable t) {
                     // PASS - a failure was expected
-                    log.info("Test {} failed, which is in line with expectations.", getTestName(description));
+                    log.info(
+                            "Test {} failed, which is in line with expectations.",
+                            SafeArg.of("testName", getTestName(description)));
                 }
             }
         };

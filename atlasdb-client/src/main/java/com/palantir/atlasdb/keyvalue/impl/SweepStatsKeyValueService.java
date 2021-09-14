@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityNamedColumn;
@@ -43,6 +44,8 @@ import com.palantir.common.persist.Persistables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampService;
 import java.util.Collection;
 import java.util.Map;
@@ -55,8 +58,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This kvs wrapper tracks the approximate number of writes to every table
@@ -65,7 +66,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
-    private static final Logger log = LoggerFactory.getLogger(SweepStatsKeyValueService.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(SweepStatsKeyValueService.class);
     private static final int CLEAR_WEIGHT = 1 << 14; // 16384
     private static final long FLUSH_DELAY_SECONDS = 42;
 
@@ -262,7 +263,7 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
             }
         } catch (Throwable t) {
             if (!Thread.interrupted()) {
-                log.warn("Error occurred while flushing sweep stats: {}", t, t);
+                log.warn("Error occurred while flushing sweep stats: {}", UnsafeArg.of("throwable", t), t);
             }
         }
     }
@@ -311,7 +312,11 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
                                 .hydrateFromBytes(oldValue.getContents())
                                 .getValue();
                 long newValue = clears.contains(tableRef) ? writes.count(tableRef) : oldCount + writes.count(tableRef);
-                log.debug("Sweep priority for {} has {} writes (was {})", tableRef, newValue, oldCount);
+                log.debug(
+                        "Sweep priority for {} has {} writes (was {})",
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("newValue", newValue),
+                        SafeArg.of("oldCount", oldCount));
                 newWriteCounts.put(
                         cell, SweepPriorityTable.WriteCount.of(newValue).persistValue());
             }
@@ -331,7 +336,11 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
                 // ignore problems when sweep or transaction tables don't exist
                 log.warn("Ignoring failed sweep stats flush due to ", e);
             }
-            log.warn("Unable to flush sweep stats for writes {} and clears {}: ", writes, clears, e);
+            log.warn(
+                    "Unable to flush sweep stats for writes {} and clears {}: ",
+                    UnsafeArg.of("writes", writes),
+                    UnsafeArg.of("clears", clears),
+                    e);
             throw e;
         }
     }

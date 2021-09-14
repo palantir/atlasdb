@@ -26,6 +26,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -36,7 +40,10 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 public class PostgresDdlTable implements DbDdlTable {
-    private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);
+    @SuppressWarnings("ConsistentLoggerName")
+    private static final Logger oldLog = LoggerFactory.getLogger(PostgresDdlTable.class);
+
+    private static final SafeLogger log = SafeLoggerFactory.get(PostgresDdlTable.class);
     private static final int POSTGRES_NAME_LENGTH_LIMIT = 63;
     public static final int ATLASDB_POSTGRES_TABLE_NAME_LIMIT =
             POSTGRES_NAME_LENGTH_LIMIT - AtlasDbConstants.PRIMARY_KEY_CONSTRAINT_PREFIX.length();
@@ -85,9 +92,9 @@ public class PostgresDdlTable implements DbDdlTable {
             } else if (prefixedTableName.length() > ATLASDB_POSTGRES_TABLE_NAME_LIMIT) {
                 log.error(
                         FAILED_TO_CREATE_TABLE_MESSAGE,
-                        prefixedTableName,
-                        ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
-                        ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
+                        UnsafeArg.of("prefixedTableName", prefixedTableName),
+                        SafeArg.of("limit", ATLASDB_POSTGRES_TABLE_NAME_LIMIT),
+                        SafeArg.of("limit2", ATLASDB_POSTGRES_TABLE_NAME_LIMIT),
                         e);
                 String exceptionMsg = MessageFormatter.arrayFormat(FAILED_TO_CREATE_TABLE_MESSAGE, new Object[] {
                             prefixedTableName, ATLASDB_POSTGRES_TABLE_NAME_LIMIT, ATLASDB_POSTGRES_TABLE_NAME_LIMIT
@@ -128,7 +135,7 @@ public class PostgresDdlTable implements DbDdlTable {
     public void checkDatabaseVersion() {
         AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery("SHOW server_version");
         String version = result.get(0).getString("server_version");
-        PostgresVersionCheck.checkDatabaseVersion(version, log);
+        PostgresVersionCheck.checkDatabaseVersion(version, oldLog);
     }
 
     @Override

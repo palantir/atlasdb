@@ -23,6 +23,8 @@ import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,8 +32,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Disallows the same cell from being written twice with different values within
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * are allowed.
  */
 public class NoDuplicateWritesTransaction extends ForwardingTransaction {
-    private static final Logger log = LoggerFactory.getLogger(NoDuplicateWritesTransaction.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(NoDuplicateWritesTransaction.class);
 
     final Transaction delegate;
     final ImmutableSet<TableReference> noDoubleWritesTables;

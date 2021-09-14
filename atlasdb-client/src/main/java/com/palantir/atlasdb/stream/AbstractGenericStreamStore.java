@@ -27,7 +27,11 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.ByteArrayIOStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -41,11 +45,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class AbstractGenericStreamStore<T> implements GenericStreamStore<T> {
-    protected static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
+    protected static final SafeLogger log = SafeLoggerFactory.get(AbstractGenericStreamStore.class);
 
     @CheckForNull
     protected final TransactionManager txnMgr;
@@ -101,7 +103,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
         try {
             return compression.decompress(tryGetStream(transaction, id, metadata));
         } catch (FileNotFoundException e) {
-            log.error("Error opening temp file for stream {}", id, e);
+            log.error("Error opening temp file for stream {}", UnsafeArg.of("stream", id), e);
             throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
         }
     }
@@ -169,17 +171,20 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
             writeStreamToFile(transaction, id, metadata, file);
             return file;
         } catch (IOException e) {
-            log.error("Could not create temp file for stream id {}", id, e);
+            log.error("Could not create temp file for stream id {}", UnsafeArg.of("stream", id), e);
             throw Throwables.rewrapAndThrowUncheckedException("Could not create file to create stream.", e);
         }
     }
 
     private void checkStreamStored(T id, StreamMetadata metadata) {
         if (metadata == null) {
-            log.error("Error loading stream {} because it was never stored.", id);
+            log.error("Error loading stream {} because it was never stored.", UnsafeArg.of("stream", id));
             throw new IllegalArgumentException("Unable to load stream " + id + " because it was never stored.");
         } else if (metadata.getStatus() != Status.STORED) {
-            log.error("Error loading stream {} because it has status {}", id, metadata.getStatus());
+            log.error(
+                    "Error loading stream {} because it has status {}",
+                    UnsafeArg.of("stream", id),
+                    SafeArg.of("status", metadata.getStatus()));
             throw new SafeIllegalArgumentException("Could not get stream because it was not fully stored.");
         }
     }
@@ -190,7 +195,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
         try {
             tryWriteStreamToFile(transaction, id, metadata, fos);
         } catch (IOException e) {
-            log.error("Could not finish streaming blocks to file for stream {}", id, e);
+            log.error("Could not finish streaming blocks to file for stream {}", UnsafeArg.of("stream", id), e);
             throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks while opening a stream.", e);
         } finally {
             try {

@@ -29,13 +29,14 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * LockStore manages {@link LockEntry} objects, specifically for the "Backup Lock" (to be taken out by backup and
@@ -77,7 +78,7 @@ public class LockStoreImpl implements LockStore {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger(LockStoreImpl.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(LockStoreImpl.class);
     private static final String BACKUP_LOCK_NAME = "BackupLock";
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
@@ -195,7 +196,7 @@ public class LockStoreImpl implements LockStore {
                             "Encountered a CheckAndSetException when creating the LockStore. This means that two"
                                 + " LockStore objects were created near-simultaneously, and is probably not a problem."
                                 + " For the record, we observed these values: {}",
-                            values,
+                            UnsafeArg.of("values", values),
                             e);
                 }
             }

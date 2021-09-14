@@ -21,11 +21,12 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.exception.PalantirSqlException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 
 public class OracleTableInitializer implements DbTableInitializer {
-    private static final Logger log = LoggerFactory.getLogger(OracleTableInitializer.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(OracleTableInitializer.class);
 
     private final ConnectionSupplier connectionSupplier;
     private final OracleDdlConfig config;
@@ -94,7 +95,7 @@ public class OracleTableInitializer implements DbTableInitializer {
             connectionSupplier.get().executeUnregisteredQuery(sql);
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains(errorToIgnore)) {
-                log.error("Error occurred trying to execute the query {}", sql, e);
+                log.error("Error occurred trying to execute the query {}", UnsafeArg.of("sql", sql), e);
                 throw e;
             }
         }

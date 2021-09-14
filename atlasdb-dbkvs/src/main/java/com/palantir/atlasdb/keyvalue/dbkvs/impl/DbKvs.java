@@ -85,6 +85,7 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -93,6 +94,9 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -128,11 +132,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class DbKvs extends AbstractKeyValueService implements DbKeyValueService {
-    private static final Logger log = LoggerFactory.getLogger(DbKvs.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DbKvs.class);
 
     public static final String ROW = "row_name";
     public static final String COL = "col_name";
@@ -716,8 +718,8 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         } finally {
             log.debug(
                     "Call to KVS.getTimestampsPage on table {} took {} ms.",
-                    tableRef,
-                    watch.elapsed(TimeUnit.MILLISECONDS));
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("elapsed", watch.elapsed(TimeUnit.MILLISECONDS)));
         }
     }
 
@@ -956,8 +958,8 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         } finally {
             log.debug(
                     "Call to KVS.getFirstRowColumnRangePage on table {} took {} ms.",
-                    tableRef,
-                    watch.elapsed(TimeUnit.MILLISECONDS));
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("elapsed", watch.elapsed(TimeUnit.MILLISECONDS)));
         }
     }
 

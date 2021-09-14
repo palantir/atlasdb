@@ -22,12 +22,16 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.HeldLocksToken;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,11 +39,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class RangeVisitor {
-    private static final Logger log = LoggerFactory.getLogger(RangeVisitor.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(RangeVisitor.class);
     private final TransactionManager txManager;
     private final TableReference tableRef;
     private byte[] startRow = new byte[0];
@@ -125,9 +127,9 @@ public class RangeVisitor {
                 counter.addAndGet(numVisited);
                 log.info(
                         "Visited {} rows from {} in {} ms.",
-                        numVisited,
-                        tableRef.getQualifiedName(),
-                        System.currentTimeMillis() - startTime);
+                        SafeArg.of("numVisisted", numVisited),
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("duration", System.currentTimeMillis() - startTime));
             } catch (InterruptedException e) {
                 throw Throwables.rewrapAndThrowUncheckedException(e);
             }

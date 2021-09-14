@@ -31,6 +31,9 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
@@ -39,12 +42,10 @@ import com.palantir.util.OptionalResolver;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadableKvsConfig> {
-    private static Logger log = LoggerFactory.getLogger(CassandraAtlasDbFactory.class);
+    private static SafeLogger log = SafeLoggerFactory.get(CassandraAtlasDbFactory.class);
     private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
             CassandraKeyValueServiceRuntimeConfig.getDefault();
 
@@ -104,7 +105,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory<CassandraReloadab
                                     "Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of"
                                         + " type CassandraKeyValueServiceRuntimeConfig, found {}. Using latest valid"
                                         + " CassandraKeyValueServiceRuntimeConfig.",
-                                    config.getClass());
+                                    SafeArg.of("configClass", config.getClass()));
                             return latestValidRuntimeConfig;
                         }
 

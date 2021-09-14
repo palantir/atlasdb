@@ -30,6 +30,9 @@ import com.palantir.lock.impl.ClientAwareReadWriteLock;
 import com.palantir.lock.impl.LockServerLock;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.impl.LockServiceStateDebugger;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,12 +46,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 public class LockServiceStateLogger {
-    private static Logger log = LoggerFactory.getLogger(LockServiceStateLogger.class);
+    private static SafeLogger log = SafeLoggerFactory.get(LockServiceStateLogger.class);
 
     @VisibleForTesting
     static final String LOCKSTATE_FILE_PREFIX = "lockstate-";
@@ -232,7 +233,7 @@ public class LockServiceStateLogger {
         File file = new File(outputDir, fileName);
 
         if (!file.createNewFile()) {
-            log.error(FILE_NOT_CREATED_LOG_ERROR, file.getAbsolutePath());
+            log.error(FILE_NOT_CREATED_LOG_ERROR, UnsafeArg.of("file", file.getAbsolutePath()));
             throw new IllegalStateException(MessageFormatter.format(FILE_NOT_CREATED_LOG_ERROR, file.getAbsolutePath())
                     .getMessage());
         }

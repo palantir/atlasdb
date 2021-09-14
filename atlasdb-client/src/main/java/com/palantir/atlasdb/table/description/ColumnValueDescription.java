@@ -36,20 +36,21 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistables;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import org.apache.commons.lang3.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Immutable
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public final class ColumnValueDescription {
-    private static final Logger log = LoggerFactory.getLogger(ColumnValueDescription.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(ColumnValueDescription.class);
 
     public enum Format {
         PROTO,
@@ -392,7 +393,9 @@ public final class ColumnValueDescription {
             builder.setProtoMessageName(protoDescriptor.getName());
             builder.setProtoFileDescriptorTree(persistFileDescriptorTree(protoDescriptor.getFile()));
             if (protoDescriptor.getContainingType() != null) {
-                log.error("proto descriptors should be top level types: {}", protoDescriptor.getName());
+                log.error(
+                        "proto descriptors should be top level types: {}",
+                        UnsafeArg.of("protoDescriptorName", protoDescriptor.getName()));
             }
         }
         return builder;

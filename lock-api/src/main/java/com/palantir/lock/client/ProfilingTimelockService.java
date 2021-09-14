@@ -31,6 +31,8 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampRange;
 import java.time.Duration;
 import java.util.List;
@@ -40,8 +42,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Logs operations on an underlying {@link TimelockService} that take a long time (defined as longer than
@@ -59,14 +59,14 @@ import org.slf4j.LoggerFactory;
  * clients.
  */
 public class ProfilingTimelockService implements AutoCloseable, TimelockService {
-    private static final Logger log = LoggerFactory.getLogger(ProfilingTimelockService.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(ProfilingTimelockService.class);
 
     @VisibleForTesting
     static final Duration SLOW_THRESHOLD = Duration.ofSeconds(1);
 
     private static final Duration LOGGING_TIME_WINDOW = Duration.ofSeconds(10);
 
-    private final Logger logger;
+    private final SafeLogger logger;
     private final TimelockService delegate;
     private final Supplier<Stopwatch> stopwatchSupplier;
 
@@ -75,7 +75,7 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
 
     @VisibleForTesting
     ProfilingTimelockService(
-            Logger logger,
+            SafeLogger logger,
             TimelockService delegate,
             Supplier<Stopwatch> stopwatchSupplier,
             BooleanSupplier loggingPermissionSupplier) {

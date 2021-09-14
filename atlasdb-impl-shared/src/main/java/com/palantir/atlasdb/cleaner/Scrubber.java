@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.UniformRowNamePartitioner;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -50,7 +51,11 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,8 +74,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.GuardedBy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Scrubs individuals cells on-demand.
@@ -82,7 +85,7 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class Scrubber {
-    private static final Logger log = LoggerFactory.getLogger(Scrubber.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(Scrubber.class);
     private static final int MAX_RETRY_ATTEMPTS = 100;
     private static final int RETRY_SLEEP_INTERVAL_IN_MILLIS = 1000;
     private static final int MAX_DELETES_IN_BATCH = 10_000;
@@ -205,7 +208,9 @@ public class Scrubber {
                     runBackgroundScrubTask(txManager);
 
                     long sleepDuration = backgroundScrubFrequencyMillisSupplier.get();
-                    log.debug("Sleeping {} millis until next execution of scrub task", sleepDuration);
+                    log.debug(
+                            "Sleeping {} millis until next execution of scrub task",
+                            SafeArg.of("sleepDuration", sleepDuration));
                     Thread.sleep(sleepDuration);
                 } catch (InterruptedException e) {
                     break;
@@ -247,9 +252,9 @@ public class Scrubber {
                 aggressiveScrub ? immutableTimestamp : Math.min(unreadableTimestamp, immutableTimestamp);
         log.debug(
                 "Scrub task immutableTimestamp: {}, unreadableTimestamp: {}, maxScrubTimestamp: {}",
-                immutableTimestamp,
-                unreadableTimestamp,
-                maxScrubTimestamp);
+                SafeArg.of("immutableTimestamp", immutableTimestamp),
+                SafeArg.of("unreadableTimestamp", unreadableTimestamp),
+                SafeArg.of("maxScrubTimestamp", maxScrubTimestamp));
         final int batchSize = (int) Math.ceil(batchSizeSupplier.get() * ((double) threadCount / readThreadCount));
 
         List<byte[]> rangeBoundaries = new ArrayList<>();
@@ -279,8 +284,8 @@ public class Scrubber {
                         int totalRead = totalCellsRead.addAndGet(numCellsRead);
                         log.debug(
                                 "Scrub task processed {} cells in a batch, total {} processed so far.",
-                                numCellsRead,
-                                totalRead);
+                                SafeArg.of("numCellsRead", numCellsRead),
+                                SafeArg.of("totalRead", totalRead));
                         if (!isScrubEnabled.get()) {
                             log.debug("Stopping scrub for banned hours.");
                             break;
@@ -298,8 +303,8 @@ public class Scrubber {
 
         log.debug(
                 "Scrub background task running at timestamp {} processed a total of {} cells",
-                maxScrubTimestamp,
-                totalCellsRead.get());
+                SafeArg.of("maxScrubTimestamp", maxScrubTimestamp),
+                SafeArg.of("totalCellsRead", totalCellsRead.get()));
 
         log.debug("Finished scrub task");
     }
@@ -309,7 +314,7 @@ public class Scrubber {
             final Multimap<TableReference, Cell> tableNameToCell,
             final long scrubTimestamp,
             final long commitTimestamp) {
-        log.debug("Scrubbing a total of {} cells immediately.", tableNameToCell.size());
+        log.debug("Scrubbing a total of {} cells immediately.", SafeArg.of("count", tableNameToCell.size()));
 
         // Note that if the background scrub thread is also running at the same time, it will try to scrub
         // the same cells as the current thread (since these cells were queued for scrubbing right before
@@ -320,8 +325,8 @@ public class Scrubber {
             try {
                 log.debug(
                         "Sleeping because immutable timestamp {} has not advanced to at least commit timestamp {}",
-                        nextImmutableTimestamp,
-                        commitTimestamp);
+                        SafeArg.of("nextImmutableTimestamp", nextImmutableTimestamp),
+                        SafeArg.of("commitTimestamp", commitTimestamp));
                 Thread.sleep(AtlasDbConstants.SCRUBBER_RETRY_DELAY_MILLIS);
             } catch (InterruptedException e) {
                 log.error("Interrupted while waiting for immutableTimestamp to advance past commitTimestamp", e);
@@ -337,7 +342,7 @@ public class Scrubber {
             }
 
             final Callable<Void> c = () -> {
-                log.debug("Scrubbing {} cells immediately.", batchMultimap.size());
+                log.debug("Scrubbing {} cells immediately.", SafeArg.of("count", batchMultimap.size()));
                 // Here we don't need to check scrub timestamps because we guarantee that scrubImmediately is called
                 // AFTER the transaction commits
                 scrubCells(txManager, batchMultimap, scrubTimestamp, TransactionType.AGGRESSIVE_HARD_DELETE);
@@ -395,7 +400,7 @@ public class Scrubber {
                         + " before we could roll it back.";
                 log.error(
                         "This isn't a bug but it should be very infrequent. {}",
-                        msg,
+                        SafeArg.of("msg", msg),
                         new TransactionFailedRetriableException(msg, e));
             }
             commitTimestamp = transactionService.get(startTimestamp);
@@ -421,7 +426,7 @@ public class Scrubber {
             SortedMap<Long, Multimap<TableReference, Cell>> scrubTimestampToTableNameToCell,
             TransactionManager txManager,
             long maxScrubTimestamp) {
-        log.trace("Attempting to scrub cells: {}", scrubTimestampToTableNameToCell);
+        log.trace("Attempting to scrub cells: {}", UnsafeArg.of("cells", scrubTimestampToTableNameToCell));
 
         if (log.isDebugEnabled()) {
             int numCells = 0;
@@ -430,7 +435,10 @@ public class Scrubber {
                 tables.addAll(v.keySet());
                 numCells += v.size();
             }
-            log.debug("Attempting to scrub {} cells from tables {}", numCells, tables);
+            log.debug(
+                    "Attempting to scrub {} cells from tables {}",
+                    SafeArg.of("numCells", numCells),
+                    UnsafeArg.of("tables", tables));
         }
 
         if (scrubTimestampToTableNameToCell.size() == 0) {
@@ -494,7 +502,7 @@ public class Scrubber {
             scrubberStore.markCellsAsScrubbed(failedWrites, batchSizeSupplier.get());
         }
 
-        log.trace("Finished scrubbing cells: {}", scrubTimestampToTableNameToCell);
+        log.trace("Finished scrubbing cells: {}", UnsafeArg.of("cells", scrubTimestampToTableNameToCell));
 
         if (log.isDebugEnabled()) {
             Set<TableReference> tables = new HashSet<>();
@@ -505,11 +513,11 @@ public class Scrubber {
             long maxTimestamp = Collections.max(scrubTimestampToTableNameToCell.keySet());
             log.debug(
                     "Finished scrubbing {} cells at {} timestamps ({}...{}) from tables {}",
-                    numCellsReadFromScrubTable,
-                    scrubTimestampToTableNameToCell.size(),
-                    minTimestamp,
-                    maxTimestamp,
-                    tables);
+                    SafeArg.of("numCellsReadFromScrubTable", numCellsReadFromScrubTable),
+                    SafeArg.of("tableCount", scrubTimestampToTableNameToCell.size()),
+                    SafeArg.of("minTimestamp", minTimestamp),
+                    SafeArg.of("maxTimestamp", maxTimestamp),
+                    UnsafeArg.of("tables", tables));
         }
 
         return numCellsReadFromScrubTable;
@@ -527,8 +535,8 @@ public class Scrubber {
             TableReference tableRef = entry.getKey();
             log.debug(
                     "Attempting to immediately scrub {} cells from table {}",
-                    entry.getValue().size(),
-                    tableRef);
+                    SafeArg.of("cellCount", entry.getValue().size()),
+                    LoggingArgs.tableRef(tableRef));
             for (List<Cell> cells : Iterables.partition(entry.getValue(), batchSizeSupplier.get())) {
                 Multimap<Cell, Long> allTimestamps =
                         keyValueService.getAllTimestamps(tableRef, ImmutableSet.copyOf(cells), scrubTimestamp);
@@ -547,8 +555,8 @@ public class Scrubber {
             }
             log.debug(
                     "Immediately scrubbed {} cells from table {}",
-                    entry.getValue().size(),
-                    tableRef);
+                    SafeArg.of("cellCount", entry.getValue().size()),
+                    LoggingArgs.tableRef(tableRef));
         }
         scrubberStore.markCellsAsScrubbed(allCellsToMarkScrubbed, batchSizeSupplier.get());
         lazyWriteMetric(AtlasDbMetricNames.SCRUBBED_CELLS, allCellsToMarkScrubbed.size());

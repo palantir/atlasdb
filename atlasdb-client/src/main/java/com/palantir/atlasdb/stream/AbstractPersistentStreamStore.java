@@ -32,6 +32,7 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.IOException;
@@ -184,7 +185,11 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                     .setHash(ByteString.EMPTY)
                     .build();
             storeMetadataAndIndex(id, metadata);
-            log.error("Could not store stream {}. Failed after {} bytes.", id, length, e);
+            log.error(
+                    "Could not store stream {}. Failed after {} bytes.",
+                    SafeArg.of("stream", id),
+                    SafeArg.of("length", length),
+                    e);
             throw Throwables.rewrapAndThrowUncheckedException("Failed to store stream.", e);
         }
 

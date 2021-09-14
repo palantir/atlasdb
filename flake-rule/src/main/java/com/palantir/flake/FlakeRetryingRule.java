@@ -17,13 +17,14 @@ package com.palantir.flake;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Arrays;
 import java.util.Optional;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A {@link TestRule} that retries methods and classes annotated with the {@link ShouldRetry} annotation.
@@ -52,7 +53,7 @@ import org.slf4j.LoggerFactory;
  * Note: Please be very careful about ordering when chaining this with other JUnit test rules.
  */
 public class FlakeRetryingRule implements TestRule {
-    private static final Logger log = LoggerFactory.getLogger(FlakeRetryingRule.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(FlakeRetryingRule.class);
 
     @Override
     public Statement apply(Statement base, Description description) {
@@ -88,10 +89,10 @@ public class FlakeRetryingRule implements TestRule {
                 base.evaluate();
                 log.info(
                         "Test {}.{} succeeded on attempt {} of {}.",
-                        description.getClassName(),
-                        description.getMethodName(),
-                        attempt,
-                        retryAnnotation.numAttempts());
+                        SafeArg.of("testClass", description.getClassName()),
+                        SafeArg.of("testMethod", description.getMethodName()),
+                        SafeArg.of("attempt", attempt),
+                        SafeArg.of("maxAttempts", retryAnnotation.numAttempts()));
                 return;
             } catch (Throwable t) {
                 if (Arrays.stream(retryAnnotation.retryableExceptions()).anyMatch(type -> causeHasType(t, type))) {
@@ -111,10 +112,10 @@ public class FlakeRetryingRule implements TestRule {
             ShouldRetry retryAnnotation, Description description, int attempt, Throwable throwable) {
         log.info(
                 "Test {}.{} failed on attempt {} of {}.",
-                description.getClassName(),
-                description.getMethodName(),
-                attempt,
-                retryAnnotation.numAttempts(),
+                SafeArg.of("testClass", description.getClassName()),
+                SafeArg.of("testMethod", description.getMethodName()),
+                SafeArg.of("attempt", attempt),
+                SafeArg.of("maxAttempts", retryAnnotation.numAttempts()),
                 throwable);
         if (attempt == retryAnnotation.numAttempts()) {
             throw Throwables.propagate(throwable);
