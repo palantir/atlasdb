@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Performance Ideas &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Transaction Protocol" href="transaction_protocol.html" />
     <link rel="prev" title="Isolation Levels" href="isolation_levels.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
@@ -113,86 +61,42 @@
 <li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="index.html">Transactions</a> &raquo;</li>
-        
       <li>Performance Ideas</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/transactions/performance_ideas.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="performance-ideas">
-<h1>Performance Ideas<a class="headerlink" href="#performance-ideas" title="Permalink to this headline">¶</a></h1>
+<h1>Performance Ideas<a class="headerlink" href="#performance-ideas" title="Permalink to this headline"></a></h1>
 <section id="intended-use">
-<h2>Intended Use<a class="headerlink" href="#intended-use" title="Permalink to this headline">¶</a></h2>
+<h2>Intended Use<a class="headerlink" href="#intended-use" title="Permalink to this headline"></a></h2>
 <p>AtlasDB is designed to be an OLTP distributed transactional DB. This
 means that it is good at writing small chunks of work very quickly with
 full ACID support. Below are some ideas of how to design your write path
 to get the most out of AtlasDB.</p>
 </section>
 <section id="short-lived-writes">
-<h2>Short-Lived Writes<a class="headerlink" href="#short-lived-writes" title="Permalink to this headline">¶</a></h2>
+<h2>Short-Lived Writes<a class="headerlink" href="#short-lived-writes" title="Permalink to this headline"></a></h2>
 <p>A long lived writing transaction may cause problems in the following
 cases</p>
 <ul class="simple">
@@ -213,7 +117,7 @@ and doesn’t check for conflicts/expired locks until commit time. If your
 transaction takes tens of seconds, it’s time to break it up.</p>
 </section>
 <section id="advisory-locking-prevents-write-write-conflicts">
-<h2>Advisory Locking Prevents Write/Write Conflicts<a class="headerlink" href="#advisory-locking-prevents-write-write-conflicts" title="Permalink to this headline">¶</a></h2>
+<h2>Advisory Locking Prevents Write/Write Conflicts<a class="headerlink" href="#advisory-locking-prevents-write-write-conflicts" title="Permalink to this headline"></a></h2>
 <p>If you want to ensure that your transaction doesn’t run into a conflict
 then advisory locking is for you. The main reason you would want this is
 when the input into your transaction is not immutable. An example of
@@ -231,14 +135,14 @@ means that either your commitTs falls between their startTs and commitTs
 or vice versa)</p>
 </section>
 <section id="limit-write-size">
-<h2>Limit Write Size<a class="headerlink" href="#limit-write-size" title="Permalink to this headline">¶</a></h2>
+<h2>Limit Write Size<a class="headerlink" href="#limit-write-size" title="Permalink to this headline"></a></h2>
 <p>The entirety of the write set is buffered in memory before you commit.
 You will trigger warn and error logging at 10MB and 100MB respectively
 if you write too much data. If you keep a transaction under 10MB, you
 should be good to go.</p>
 </section>
 <section id="limit-row-size">
-<h2>Limit Row Size<a class="headerlink" href="#limit-row-size" title="Permalink to this headline">¶</a></h2>
+<h2>Limit Row Size<a class="headerlink" href="#limit-row-size" title="Permalink to this headline"></a></h2>
 <p>Every row should be able to be loaded into memory. A good rule of thumb
 is to make sure that no row will be bigger than 10MB. If you imagine
 that your rows will become bigger than this then you should maybe use
@@ -247,7 +151,7 @@ total row size across all the cells possibly stored in many different
 transactions.</p>
 </section>
 <section id="prefilter-columns-when-possible">
-<h2>Prefilter Columns When Possible<a class="headerlink" href="#prefilter-columns-when-possible" title="Permalink to this headline">¶</a></h2>
+<h2>Prefilter Columns When Possible<a class="headerlink" href="#prefilter-columns-when-possible" title="Permalink to this headline"></a></h2>
 <p>When we query the underlying data store for a getRow call for a named
 table, usually we issue a bunch of getCell calls instead for each column
 name in the table. getCell usually has to load less data off disk so
@@ -256,14 +160,14 @@ those cells to be there, you should restrict the columns you are
 selecting by using a ColumnSelection.</p>
 </section>
 <section id="lookups-may-be-faster-than-range-scans">
-<h2>Lookups May Be Faster Than Range Scans<a class="headerlink" href="#lookups-may-be-faster-than-range-scans" title="Permalink to this headline">¶</a></h2>
+<h2>Lookups May Be Faster Than Range Scans<a class="headerlink" href="#lookups-may-be-faster-than-range-scans" title="Permalink to this headline"></a></h2>
 <p>Some data stores have optimizations for doing an explicit lookup of a
 row name like using bloom filters. These bloom filters are useless when
 doing a range scan. This means that you may have to do more disk reads
 to do a range scan than a lookup.</p>
 </section>
 <section id="highly-overwritten-dynamic-columns-need-garbage-collection">
-<h2>Highly Overwritten Dynamic Columns Need Garbage Collection<a class="headerlink" href="#highly-overwritten-dynamic-columns-need-garbage-collection" title="Permalink to this headline">¶</a></h2>
+<h2>Highly Overwritten Dynamic Columns Need Garbage Collection<a class="headerlink" href="#highly-overwritten-dynamic-columns-need-garbage-collection" title="Permalink to this headline"></a></h2>
 <p>This one is a little tricky to explain. On some data stores
 (hem…Cassandra…hmm) loading a row for a dynamic table basically
 means loading the whole row across all history. This means that if you
@@ -272,7 +176,7 @@ filtering them away. If you minimize overwrites (or you clean up old
 values frequently) then you can avoid this extra I/O.</p>
 </section>
 <section id="snapshot-isolation">
-<h2>Snapshot Isolation<a class="headerlink" href="#snapshot-isolation" title="Permalink to this headline">¶</a></h2>
+<h2>Snapshot Isolation<a class="headerlink" href="#snapshot-isolation" title="Permalink to this headline"></a></h2>
 <p>This isn’t a performance consideration, but is worth noting that
 snapshot isolation only detects and throws on WRITE/WRITE conflicts.
 This means that if you need to ensure that a value has not changed, you
@@ -298,14 +202,14 @@ using “materialized conflicts” or “advisory locking” or Serializable
 depending on which is best for you.</p>
 </section>
 <section id="transactions-should-have-immutable-inputs">
-<h2>Transactions Should Have Immutable Inputs<a class="headerlink" href="#transactions-should-have-immutable-inputs" title="Permalink to this headline">¶</a></h2>
+<h2>Transactions Should Have Immutable Inputs<a class="headerlink" href="#transactions-should-have-immutable-inputs" title="Permalink to this headline"></a></h2>
 <p>If your input is immutable it means that your transaction can be retried
 easily. This is just good programming practice and ensures you are using
 transactions correctly. If you are porting legacy code and this isn’t
 possible then see above section about advisory locking.</p>
 </section>
 <section id="ignore-conflicts-when-possible">
-<h2>Ignore Conflicts When Possible<a class="headerlink" href="#ignore-conflicts-when-possible" title="Permalink to this headline">¶</a></h2>
+<h2>Ignore Conflicts When Possible<a class="headerlink" href="#ignore-conflicts-when-possible" title="Permalink to this headline"></a></h2>
 <p>The cost of doing conflict detection is an extra read done at commit
 time to ensure that no one has written a newer value to that cell.</p>
 <p>Here is an example of where I can safely use IGNORE_ALL. Let’s say that
@@ -316,7 +220,7 @@ can just use <code class="docutils literal notranslate"><span class="pre">TableC
 <code class="docutils literal notranslate"><span class="pre">IGNORE_ALL</span></code> for table B.</p>
 </section>
 <section id="tombstones-and-range-scans">
-<h2>Tombstones and Range Scans<a class="headerlink" href="#tombstones-and-range-scans" title="Permalink to this headline">¶</a></h2>
+<h2>Tombstones and Range Scans<a class="headerlink" href="#tombstones-and-range-scans" title="Permalink to this headline"></a></h2>
 <p>Since each delete is a tombstone that lives in the db if a table
 contains 99% deletes then range queries will have to keep paging through
 these deleted values before it finds any non-deleted values. This may
@@ -332,7 +236,7 @@ doesn’t have an index with that order.</p>
 future, but this is not currently planned.</p>
 </section>
 <section id="conflict-detection">
-<h2>Conflict Detection<a class="headerlink" href="#conflict-detection" title="Permalink to this headline">¶</a></h2>
+<h2>Conflict Detection<a class="headerlink" href="#conflict-detection" title="Permalink to this headline"></a></h2>
 <p>Conflicts are at the cell level, but write locking is at the row level
 Normally lock contention in atlasdb is very low. If two transactions
 write to the same cell there will be a small amount of lock contention
@@ -349,50 +253,33 @@ free up the underlying resources when you intend to no longer run transactions.<
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="transaction_protocol.html" class="btn btn-neutral float-right" title="Transaction Protocol" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="isolation_levels.html" class="btn btn-neutral float-left" title="Isolation Levels" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="transaction_protocol.html" class="btn btn-neutral float-right" title="Transaction Protocol" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

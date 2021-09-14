@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Backup and Restore &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Command Line Utilities" href="clis.html" />
     <link rel="prev" title="Cluster Management" href="index.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
@@ -114,98 +62,54 @@
 <li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="index.html">Cluster Management</a> &raquo;</li>
-        
       <li>Backup and Restore</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/backup-restore.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="backup-and-restore">
-<span id="backup-restore"></span><h1>Backup and Restore<a class="headerlink" href="#backup-and-restore" title="Permalink to this headline">¶</a></h1>
+<span id="backup-restore"></span><h1>Backup and Restore<a class="headerlink" href="#backup-and-restore" title="Permalink to this headline"></a></h1>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
 <p>Backup and restore for AtlasDB are non-trivial operations that are not satisfied by simply backing up and restoring the underyling key value store you are using to store your data in.  This page describes how to take advantage of built in AtlasDB utilities, namely the Atlas CLI, in order to perform a live consistent point in time backup and subsequent restore of that backup from total data loss.</p>
 </section>
 <section id="the-backup-lock">
-<h2>The Backup Lock<a class="headerlink" href="#the-backup-lock" title="Permalink to this headline">¶</a></h2>
+<h2>The Backup Lock<a class="headerlink" href="#the-backup-lock" title="Permalink to this headline"></a></h2>
 <p>When taking backups, the Backup Lock must be held, to guard against the danger of a background sweeper running concurrently with your backup and deleting data, thus making your backup inconsistent.
 The lock must be obtained prior to obtaining the backup timestamp, and released once you have finished backing up data.</p>
 </section>
 <section id="using-the-atlas-cli">
-<h2>Using the Atlas CLI<a class="headerlink" href="#using-the-atlas-cli" title="Permalink to this headline">¶</a></h2>
+<h2>Using the Atlas CLI<a class="headerlink" href="#using-the-atlas-cli" title="Permalink to this headline"></a></h2>
 <p>The set of tasks described in this page rely heavily on having a functioning Atlas CLI.  Please see <a class="reference internal" href="clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a> for information in how to deploy and use a functioning Atlas CLI utility.</p>
 </section>
 <section id="cassandra-and-other-distributed-systems">
-<h2>Cassandra and Other Distributed Systems<a class="headerlink" href="#cassandra-and-other-distributed-systems" title="Permalink to this headline">¶</a></h2>
+<h2>Cassandra and Other Distributed Systems<a class="headerlink" href="#cassandra-and-other-distributed-systems" title="Permalink to this headline"></a></h2>
 <p>A large part of taking a point in time backup of atlas is taking a backup of your underlying storage.  Many distributed systems, like cassandra, do not provide point in time backup utilities across multiple nodes.  Cassandra in particular can have each of its nodes “snapshot” at different real and logical points in time in a way that can affect the correctness or completeness of your atlas backup.  The steps in this page will attempt to address when this becomes a concern and how we can address it in our process.</p>
 </section>
 <section id="taking-a-backup">
-<h2>Taking a Backup<a class="headerlink" href="#taking-a-backup" title="Permalink to this headline">¶</a></h2>
+<h2>Taking a Backup<a class="headerlink" href="#taking-a-backup" title="Permalink to this headline"></a></h2>
 <section id="obtain-the-backup-lock">
-<h3>1. Obtain the Backup Lock<a class="headerlink" href="#obtain-the-backup-lock" title="Permalink to this headline">¶</a></h3>
+<h3>1. Obtain the Backup Lock<a class="headerlink" href="#obtain-the-backup-lock" title="Permalink to this headline"></a></h3>
 <p>Call the <code class="docutils literal notranslate"><span class="pre">persistent-lock/acquire-backup-lock</span></code> endpoint, supplying your reason as a string:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ curl -X POST --header <span class="s1">&#39;Accept: application/json&#39;</span> <span class="s1">&#39;&lt;product-base-url&gt;/persistent-lock/acquire-backup-lock?reason=manual-backup&#39;</span>
 </pre></div>
@@ -213,14 +117,14 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 <p>If the request succeeds, you will receive a <code class="docutils literal notranslate"><span class="pre">PersistentLockId</span></code> back. It is essential that you save this lock somewhere, so that you can release it later in the process.</p>
 </section>
 <section id="obtain-a-backup-timestamp">
-<h3>2. Obtain a backup timestamp<a class="headerlink" href="#obtain-a-backup-timestamp" title="Permalink to this headline">¶</a></h3>
+<h3>2. Obtain a backup timestamp<a class="headerlink" href="#obtain-a-backup-timestamp" title="Permalink to this headline"></a></h3>
 <p>We need to define what the logical point in time of our backup is going to be.  We will call this the backup timestamp.  Any transactions that occur after the backup timestamp will not be valid or included in our “logical” backup of atlas, even if they complete succesfully before the rest of the backup completes.  To get the backup timestamp simply fetch a fresh timestamp using the CLI:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/backup.timestamp
 </pre></div>
 </div>
 </section>
 <section id="back-up-the-underlying-kvs">
-<h3>3. Back up the underlying KVS<a class="headerlink" href="#back-up-the-underlying-kvs" title="Permalink to this headline">¶</a></h3>
+<h3>3. Back up the underlying KVS<a class="headerlink" href="#back-up-the-underlying-kvs" title="Permalink to this headline"></a></h3>
 <p>Next, we back-up the underlying key value service we’re using.  For the purposes of this documention, we will assume you can backup your specific key value service.</p>
 <p>Common KVS layers:</p>
 <ul class="simple">
@@ -229,7 +133,7 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 </ul>
 </section>
 <section id="obtain-the-fast-forward-timestamp">
-<h3>4. Obtain the fast-forward timestamp<a class="headerlink" href="#obtain-the-fast-forward-timestamp" title="Permalink to this headline">¶</a></h3>
+<h3>4. Obtain the fast-forward timestamp<a class="headerlink" href="#obtain-the-fast-forward-timestamp" title="Permalink to this headline"></a></h3>
 <p>Finally, we take the fast-forward timestamp.  Like the backup timestamp, the fast-forward timestamp is simply another fresh one that we fetch from atlas.  The purpose of this timestamp is to have a logical point in time for which we can guarantee that any reads or writes that took place during the backup process happened before this.  Fetching it is similar to that of the backup timestamp:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/fast-forward.timestamp
 </pre></div>
@@ -237,7 +141,7 @@ The lock must be obtained prior to obtaining the backup timestamp, and released 
 <p>These two timestamp files and the entirety of your underlying storage’s backup are your entire atlasdb backup.</p>
 </section>
 <section id="release-the-backup-lock">
-<h3>5. Release the Backup Lock<a class="headerlink" href="#release-the-backup-lock" title="Permalink to this headline">¶</a></h3>
+<h3>5. Release the Backup Lock<a class="headerlink" href="#release-the-backup-lock" title="Permalink to this headline"></a></h3>
 <p>Call the <code class="docutils literal notranslate"><span class="pre">persistent-lock/release-backup-lock</span></code> endpoint, passing back the <code class="docutils literal notranslate"><span class="pre">PersistentLockId</span></code> that you received in step 1.
 For example (replace the serialised <code class="docutils literal notranslate"><span class="pre">PersistentLockId</span></code> with your own from step 1):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ curl -X POST --header <span class="s1">&#39;content-type: application/json&#39;</span> <span class="s1">&#39;&lt;product-base-url&gt;/persistent-lock/release-backup-lock&#39;</span> -d <span class="s1">&#39;&quot;9dbae91b-a35c-4938-82fe-58fb31772738&quot;&#39;</span>
@@ -246,7 +150,7 @@ For example (replace the serialised <code class="docutils literal notranslate"><
 </section>
 </section>
 <section id="restoring-from-a-backup">
-<h2>Restoring from a Backup<a class="headerlink" href="#restoring-from-a-backup" title="Permalink to this headline">¶</a></h2>
+<h2>Restoring from a Backup<a class="headerlink" href="#restoring-from-a-backup" title="Permalink to this headline"></a></h2>
 <p>The steps of a restore are assumed to be run entirely offline and on a complete empty key value service, i.e. if you’re running against Cassandra, the keyspace being used should not exist and no other processes should attempt to create or interact with that keyspace during the duration of this process.</p>
 <p>First, restore your underlying key value service.  As mentioned <a class="reference external" href="#cassandra-and-other-distributed-systems">above</a>, there are concerns around your underyling storage not being consistent across its distributed nodes.  In particular, we need to ensure a consistent view of atlas’ _transactions table in order to provide a guarantee that our restore process happens correctly.  The actual steps to ensure this will vary between systems, but for cassandra this simply means running a full repair of that table on every node in your cluster.  An example of this on a single node is:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ./bin/nodetool repair --partitioner-range --full -- &lt;atlas-keyspace&gt; _transactions
@@ -266,50 +170,33 @@ For example (replace the serialised <code class="docutils literal notranslate"><
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="clis.html" class="btn btn-neutral float-right" title="Command Line Utilities" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Cluster Management" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="clis.html" class="btn btn-neutral float-right" title="Command Line Utilities" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

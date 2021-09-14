@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Migration to Timelock Server &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
         <script src="../../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
-    
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Manual Migration to Timelock Server" href="manual-migration.html" />
     <link rel="prev" title="Timelock Server Installation" href="installation.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
@@ -122,79 +70,34 @@
 <li class="toctree-l1"><a class="reference internal" href="../../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="../index.html">Services</a> &raquo;</li>
-        
           <li><a href="index.html">External Timelock Service</a> &raquo;</li>
-        
       <li>Migration to Timelock Server</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/timelock_service/migration.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="migration-to-timelock-server">
-<span id="timelock-migration"></span><h1>Migration to Timelock Server<a class="headerlink" href="#migration-to-timelock-server" title="Permalink to this headline">¶</a></h1>
+<span id="timelock-migration"></span><h1>Migration to Timelock Server<a class="headerlink" href="#migration-to-timelock-server" title="Permalink to this headline"></a></h1>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>The scope of this document covers migrations of AtlasDB-using services from using an embedded timestamp and lock
@@ -202,14 +105,14 @@ service to using TimeLock. In particular, migrations of the timestamp bound pers
 here, and attempting to do this procedure incorrectly runs a risk of <strong>SEVERE DATA CORRUPTION</strong>.</p>
 </div>
 <section id="why-migration">
-<h2>Why Migration?<a class="headerlink" href="#why-migration" title="Permalink to this headline">¶</a></h2>
+<h2>Why Migration?<a class="headerlink" href="#why-migration" title="Permalink to this headline"></a></h2>
 <p>AtlasDB assumes that timestamps returned by the timestamp service are monotonically increasing. In order to preserve
 this guarantee when moving from an embedded timestamp service to an external timestamp service, we need to ensure
 that timestamps issued by the external timestamp service are larger than those issued by the embedded one.
 Otherwise, this can lead to serious data corruption.</p>
 </section>
 <section id="automated-migration">
-<h2>Automated Migration<a class="headerlink" href="#automated-migration" title="Permalink to this headline">¶</a></h2>
+<h2>Automated Migration<a class="headerlink" href="#automated-migration" title="Permalink to this headline"></a></h2>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>If your service is highly available, you MUST shut down ALL nodes of your service after step 2 before bringing up any
@@ -230,7 +133,7 @@ is at least 0.253.2.</p></li>
 Note that the service may not elect a leader until a timestamp or lock request for some client is actually made.</p></li>
 </ol>
 <section id="verification">
-<h3>Verification<a class="headerlink" href="#verification" title="Permalink to this headline">¶</a></h3>
+<h3>Verification<a class="headerlink" href="#verification" title="Permalink to this headline"></a></h3>
 <p>It may be useful to verify that an automatic migration was carried out successfully. In addition to simply performing
 smoke tests of your clients and checking that they still work, there are a few other ways of checking that the
 migration occurred correctly.</p>
@@ -281,50 +184,33 @@ occur precisely once, and the value should match that as retrieved by the aforem
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="manual-migration.html" class="btn btn-neutral float-right" title="Manual Migration to Timelock Server" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="installation.html" class="btn btn-neutral float-left" title="Timelock Server Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="manual-migration.html" class="btn btn-neutral float-right" title="Manual Migration to Timelock Server" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

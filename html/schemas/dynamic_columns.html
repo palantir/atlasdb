@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Dynamic Columns &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Streams" href="streams.html" />
     <link rel="prev" title="Cassandra Best Practices" href="best_practices.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Schemas</a><ul class="current">
@@ -118,77 +66,33 @@
 <li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="index.html">Schemas</a> &raquo;</li>
-        
       <li>Dynamic Columns</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/schemas/dynamic_columns.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="dynamic-columns">
-<h1>Dynamic Columns<a class="headerlink" href="#dynamic-columns" title="Permalink to this headline">¶</a></h1>
+<h1>Dynamic Columns<a class="headerlink" href="#dynamic-columns" title="Permalink to this headline"></a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This document discusses AtlasDB’s dynamic columns. This is a separate concept from Cassandra’s dynamic columns;
@@ -197,7 +101,7 @@ we are storing a fixed-columns or dynamic columns table! Throughout this documen
 used unqualified, we refer to AtlasDB dynamic columns.</p>
 </div>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
 <p>AtlasDB offers support for <em>dynamic columns</em> - in tables where these are enabled, rows that can have an arbitrary number
 of columns, each with a (typed) column name. A table with dynamic columns may be reasoned about as a
 <code class="docutils literal notranslate"><span class="pre">Map&lt;RowKey,</span> <span class="pre">SortedMap&lt;Tuple&lt;Col1,</span> <span class="pre">Col2...</span> <span class="pre">ColN&gt;,</span> <span class="pre">Value&gt;&gt;</span></code>. It may also be thought of as a collection of key-value
@@ -218,7 +122,7 @@ Also, key-value pairs in an individual row will be returned in <em>lexicographic
 intended to be a description of the todo) the <em>value</em>.</p>
 </section>
 <section id="query-capabilities">
-<h2>Query Capabilities<a class="headerlink" href="#query-capabilities" title="Permalink to this headline">¶</a></h2>
+<h2>Query Capabilities<a class="headerlink" href="#query-capabilities" title="Permalink to this headline"></a></h2>
 <p>Dynamic Columns are useful for avoiding row range scans, especially in key-value services where these
 are expensive (like Cassandra - its caching optimisations are rendered ineffectual for row range scans). Furthermore,
 when considering whether a query without row range scans will be performant, it is worth considering how each row is
@@ -305,9 +209,9 @@ do indeed begin with J.</p></li>
 <p>Notice, though, that all of the queries apart from 9 can be answered without a row range scan.</p>
 </section>
 <section id="using-dynamic-columns">
-<h2>Using Dynamic Columns<a class="headerlink" href="#using-dynamic-columns" title="Permalink to this headline">¶</a></h2>
+<h2>Using Dynamic Columns<a class="headerlink" href="#using-dynamic-columns" title="Permalink to this headline"></a></h2>
 <section id="storage">
-<h3>Storage<a class="headerlink" href="#storage" title="Permalink to this headline">¶</a></h3>
+<h3>Storage<a class="headerlink" href="#storage" title="Permalink to this headline"></a></h3>
 <p>One can use the standard <code class="docutils literal notranslate"><span class="pre">put</span></code> method. This can be used to add one or more columns to a row.</p>
 <div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="p">.</span><span class="na">of</span><span class="p">().</span><span class="na">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
 
@@ -321,7 +225,7 @@ do indeed begin with J.</p></li>
 will logically overwrite the existing value.</p>
 </section>
 <section id="retrieval">
-<h3>Retrieval<a class="headerlink" href="#retrieval" title="Permalink to this headline">¶</a></h3>
+<h3>Retrieval<a class="headerlink" href="#retrieval" title="Permalink to this headline"></a></h3>
 <p>Typically, one should use <code class="docutils literal notranslate"><span class="pre">getRowsColumnRange</span></code>. This takes a collection of rows and column key ranges, and returns a
 map of row-keys to <code class="docutils literal notranslate"><span class="pre">BatchingVisitables</span></code> of column values. These may in turn be traversed using the
 <code class="docutils literal notranslate"><span class="pre">BatchingVisitable</span></code> API. For example, the code below is an implementation of query 1 for an arbitrary String
@@ -355,7 +259,7 @@ memory!</p>
 </section>
 </section>
 <section id="data-representation-cassandra">
-<h2>Data Representation (Cassandra)<a class="headerlink" href="#data-representation-cassandra" title="Permalink to this headline">¶</a></h2>
+<h2>Data Representation (Cassandra)<a class="headerlink" href="#data-representation-cassandra" title="Permalink to this headline"></a></h2>
 <p>A row with dynamic columns is stored as a single Cassandra-level row. Recall the Atlas schema:</p>
 <div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">CREATE</span> <span class="n">TABLE</span> <span class="n">atlasete</span><span class="p">.</span><span class="na">default__todo</span> <span class="p">(</span>
     <span class="n">key</span> <span class="n">blob</span><span class="p">,</span>
@@ -373,7 +277,7 @@ refers to the Atlas timestamp at which a write occurred. The clustering order of
 encoded in the <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p>
 </section>
 <section id="when-not-to-use-dynamic-columns">
-<h2>When Not To Use Dynamic Columns<a class="headerlink" href="#when-not-to-use-dynamic-columns" title="Permalink to this headline">¶</a></h2>
+<h2>When Not To Use Dynamic Columns<a class="headerlink" href="#when-not-to-use-dynamic-columns" title="Permalink to this headline"></a></h2>
 <p>Using (Atlas) dynamic columns creates wide rows in Cassandra, because every dynamic column key and value are stored
 with the same row key. This may add limits to the scalability of the data, because all data for a single row key will
 be stored on a single machine in the cluster.</p>
@@ -381,11 +285,11 @@ be stored on a single machine in the cluster.</p>
 keys.</p>
 </section>
 <section id="appendix-sample-query-implementations">
-<h2>Appendix: Sample Query Implementations<a class="headerlink" href="#appendix-sample-query-implementations" title="Permalink to this headline">¶</a></h2>
+<h2>Appendix: Sample Query Implementations<a class="headerlink" href="#appendix-sample-query-implementations" title="Permalink to this headline"></a></h2>
 <p>We present possible implementations of some of the queries (or generalisations of them) described above.
 Note that an implementation of query 1 has been included in the “Retrieval” section.</p>
 <section id="query-3-size-lower-to-upper-limit-n">
-<h3>Query 3 (Size Lower to Upper, Limit N)<a class="headerlink" href="#query-3-size-lower-to-upper-limit-n" title="Permalink to this headline">¶</a></h3>
+<h3>Query 3 (Size Lower to Upper, Limit N)<a class="headerlink" href="#query-3-size-lower-to-upper-limit-n" title="Permalink to this headline"></a></h3>
 <p>Assume the existence of variables <code class="docutils literal notranslate"><span class="pre">lower</span></code> and <code class="docutils literal notranslate"><span class="pre">upper</span></code> (inclusive bounds for the size range; 10 and 15 in the
 sample query), <code class="docutils literal notranslate"><span class="pre">person</span></code> (the person to run the query for) and <code class="docutils literal notranslate"><span class="pre">limit</span></code> (the maximum number of records we want to
 return).</p>
@@ -412,7 +316,7 @@ return).</p>
 </div>
 </section>
 <section id="query-6-size-lowersize-to-uppersize-cost-lowercost-to-uppercost">
-<h3>Query 6 (Size lowerSize to upperSize, Cost lowerCost to upperCost)<a class="headerlink" href="#query-6-size-lowersize-to-uppersize-cost-lowercost-to-uppercost" title="Permalink to this headline">¶</a></h3>
+<h3>Query 6 (Size lowerSize to upperSize, Cost lowerCost to upperCost)<a class="headerlink" href="#query-6-size-lowersize-to-uppersize-cost-lowercost-to-uppercost" title="Permalink to this headline"></a></h3>
 <p>Assume the existence of variables <code class="docutils literal notranslate"><span class="pre">lowerSize</span></code>, <code class="docutils literal notranslate"><span class="pre">upperSize</span></code>, <code class="docutils literal notranslate"><span class="pre">lowerCost</span></code> and <code class="docutils literal notranslate"><span class="pre">upperCost</span></code> which are inclusive bounds for the
 size and cost ranges respectively. We also assume the existence of <code class="docutils literal notranslate"><span class="pre">person</span></code> (the person to run the query for).</p>
 <div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">TodoTable</span> <span class="n">todoTable</span> <span class="o">=</span> <span class="n">TodoSchemaTableFactory</span><span class="p">.</span><span class="na">of</span><span class="p">().</span><span class="na">getTodoTable</span><span class="p">(</span><span class="n">tx</span><span class="p">);</span>
@@ -441,7 +345,7 @@ size and cost ranges respectively. We also assume the existence of <code class="
 </div>
 </section>
 <section id="query-8-smallest-for-multiple-row-keys">
-<h3>Query 8 (Smallest for Multiple Row Keys)<a class="headerlink" href="#query-8-smallest-for-multiple-row-keys" title="Permalink to this headline">¶</a></h3>
+<h3>Query 8 (Smallest for Multiple Row Keys)<a class="headerlink" href="#query-8-smallest-for-multiple-row-keys" title="Permalink to this headline"></a></h3>
 <p>Assume the existence of a Set of Strings, <code class="docutils literal notranslate"><span class="pre">personSet</span></code>. This corresponds to person identifiers.</p>
 <div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Todo</span><span class="o">&gt;&gt;</span> <span class="n">results</span> <span class="o">=</span> <span class="n">Maps</span><span class="p">.</span><span class="na">newConcurrentMap</span><span class="p">();</span>
 <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span> <span class="n">Long</span><span class="o">&gt;</span> <span class="n">smallestSizes</span> <span class="o">=</span> <span class="n">Maps</span><span class="p">.</span><span class="na">newConcurrentMap</span><span class="p">();</span>
@@ -491,50 +395,33 @@ size and cost ranges respectively. We also assume the existence of <code class="
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="streams.html" class="btn btn-neutral float-right" title="Streams" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="best_practices.html" class="btn btn-neutral float-left" title="Cassandra Best Practices" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="streams.html" class="btn btn-neutral float-right" title="Streams" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

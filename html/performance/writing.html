@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Writing Benchmarks &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Miscellaneous" href="../miscellaneous/index.html" />
     <link rel="prev" title="Using The AtlasDB Perf Cli" href="benchmarking.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
@@ -112,81 +60,37 @@
 <li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="index.html">Performance Testing</a> &raquo;</li>
-        
       <li>Writing Benchmarks</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/performance/writing.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="writing-benchmarks">
-<span id="performance-writing"></span><h1>Writing Benchmarks<a class="headerlink" href="#writing-benchmarks" title="Permalink to this headline">¶</a></h1>
+<span id="performance-writing"></span><h1>Writing Benchmarks<a class="headerlink" href="#writing-benchmarks" title="Permalink to this headline"></a></h1>
 <p>The benchmarks are written using the <a class="reference external" href="http://openjdk.java.net/projects/code-tools/jmh/">Java Benchmarking Harness</a> (JMH) bundled with OpenJDK.  To get started understanding JMH take a look at the <a class="reference external" href="http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/">JMH Samples</a>.  Our benchmarks are found in the <code class="docutils literal notranslate"><span class="pre">atlasdb-perf</span></code> project.</p>
 <p>Be sure to read <a class="reference internal" href="understanding.html#understanding"><span class="std std-ref">Understanding Performance Benchmarking</span></a> before attempting to write a benchmark.</p>
 <section id="how-the-atlasdb-perf-cli-works">
-<h2>How the AtlasDB-Perf CLI Works<a class="headerlink" href="#how-the-atlasdb-perf-cli-works" title="Permalink to this headline">¶</a></h2>
+<h2>How the AtlasDB-Perf CLI Works<a class="headerlink" href="#how-the-atlasdb-perf-cli-works" title="Permalink to this headline"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.java</span></code> contains the main method that the CLI runs.
 It checks the provided options, sets up docker containers (if needed), and gathers the URIs of benchmarks via reflection.
 Once it does all that, it kicks off JMH in the method <code class="docutils literal notranslate"><span class="pre">AtlasDbPerfCli.runJmh()</span></code>.
@@ -218,7 +122,7 @@ Similarly, methods in a State object can have functions marked as <code class="d
 Check the JMH source code for <code class="docutils literal notranslate"><span class="pre">Scope</span></code> and <code class="docutils literal notranslate"><span class="pre">Level</span></code> for more information.</p>
 </section>
 <section id="writing-a-new-benchmark">
-<h2>Writing a New Benchmark<a class="headerlink" href="#writing-a-new-benchmark" title="Permalink to this headline">¶</a></h2>
+<h2>Writing a New Benchmark<a class="headerlink" href="#writing-a-new-benchmark" title="Permalink to this headline"></a></h2>
 <p>When writing a new benchmark, first consider exactly what you want to test.
 If you are looking to test an API endpoint, it might be appropriate to write several benchmarks with each one covering a relevant case.
 A good example is the <code class="docutils literal notranslate"><span class="pre">KvsGetRangeBenchmarks.java</span></code> suite, which tests AtlasDB’s <code class="docutils literal notranslate"><span class="pre">getRange()</span></code> in several different ways.</p>
@@ -232,7 +136,7 @@ Validation that does not include client/server calls generally has a negligible 
 </div>
 </section>
 <section id="benchmarking-with-a-custom-key-value-store-kvs">
-<h2>Benchmarking With a Custom Key Value Store (KVS)<a class="headerlink" href="#benchmarking-with-a-custom-key-value-store-kvs" title="Permalink to this headline">¶</a></h2>
+<h2>Benchmarking With a Custom Key Value Store (KVS)<a class="headerlink" href="#benchmarking-with-a-custom-key-value-store-kvs" title="Permalink to this headline"></a></h2>
 <p>To run the benchmark suite on a custom KVS, simply follow these steps:</p>
 <ol class="arabic simple">
 <li><p>Extend <code class="docutils literal notranslate"><span class="pre">KeyValueServiceInstrumentation</span></code> with the proper configurations, e.g., see <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueServiceInstrumentation.java</span></code>.</p></li>
@@ -244,50 +148,33 @@ Validation that does not include client/server calls generally has a negligible 
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="../miscellaneous/index.html" class="btn btn-neutral float-right" title="Miscellaneous" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="benchmarking.html" class="btn btn-neutral float-left" title="Using The AtlasDB Perf Cli" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../miscellaneous/index.html" class="btn btn-neutral float-right" title="Miscellaneous" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

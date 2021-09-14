@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Service Management &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
         <script src="../../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
-    
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Performance Testing" href="../../performance/index.html" />
     <link rel="prev" title="Paxos and AtlasDB" href="paxos.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
@@ -122,81 +70,36 @@
 <li class="toctree-l1"><a class="reference internal" href="../../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="../index.html">Services</a> &raquo;</li>
-        
           <li><a href="index.html">External Timelock Service</a> &raquo;</li>
-        
       <li>Service Management</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/timelock_service/service-management.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="service-management">
-<span id="timelock-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this headline">¶</a></h1>
+<span id="timelock-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this headline"></a></h1>
 <section id="namespace-changes">
-<h2>Namespace Changes<a class="headerlink" href="#namespace-changes" title="Permalink to this headline">¶</a></h2>
+<h2>Namespace Changes<a class="headerlink" href="#namespace-changes" title="Permalink to this headline"></a></h2>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>Be careful when changing namespaces - doing this process incorrectly may result in <strong>SEVERE DATA CORRUPTION</strong>.
@@ -208,13 +111,13 @@ documentation for how to do this; external users can use <a class="reference int
 old timestamp bound is carried over to the new namespace. This is to preserve the guarantee of the timestamp service
 that timestamps must be increasing.</p>
 <section id="step-1-shut-down-clients">
-<h3>Step 1: Shut Down Clients<a class="headerlink" href="#step-1-shut-down-clients" title="Permalink to this headline">¶</a></h3>
+<h3>Step 1: Shut Down Clients<a class="headerlink" href="#step-1-shut-down-clients" title="Permalink to this headline"></a></h3>
 <p>Shut down all instances of the TimeLock client for which you wish to change the namespace.
 This is done to ensure that the timestamp bound does not advance further while we are doing the other steps.
 Leave TimeLock running; you’ll need it for the remaining steps.</p>
 </section>
 <section id="step-2-get-a-fresh-timestamp-for-the-old-namespace">
-<h3>Step 2: Get a Fresh Timestamp for the Old Namespace<a class="headerlink" href="#step-2-get-a-fresh-timestamp-for-the-old-namespace" title="Permalink to this headline">¶</a></h3>
+<h3>Step 2: Get a Fresh Timestamp for the Old Namespace<a class="headerlink" href="#step-2-get-a-fresh-timestamp-for-the-old-namespace" title="Permalink to this headline"></a></h3>
 <p>If we get a fresh timestamp for the old namespace, we know that all timestamps old clients have seen must be strictly
 less than the fresh timestamp. This may be obtained through the fresh timestamp endpoint.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -iXPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/old_namespace <span class="se">\</span>
@@ -226,7 +129,7 @@ either a HTTP 503 or 308. In this case, try the same request on other nodes unti
 <p>Note down the value of the timestamp returned. From here on out, we’ll refer to this as <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
 </section>
 <section id="step-3-fast-forward-on-the-new-namespace">
-<h3>Step 3: Fast Forward on the New Namespace<a class="headerlink" href="#step-3-fast-forward-on-the-new-namespace" title="Permalink to this headline">¶</a></h3>
+<h3>Step 3: Fast Forward on the New Namespace<a class="headerlink" href="#step-3-fast-forward-on-the-new-namespace" title="Permalink to this headline"></a></h3>
 <p>We now want to fast forward the new namespace to <code class="docutils literal notranslate"><span class="pre">TS</span></code>. This may be done through the timestamp management endpoints
 on TimeLock.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST &lt;protocol&gt;://&lt;host:&lt;port&gt;/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS
@@ -240,7 +143,7 @@ a value strictly larger than <code class="docutils literal notranslate"><span cl
 of the timestamp service as far as clients are concerned have been preserved.</p>
 </section>
 <section id="step-4-optional-cleanup-on-timelock">
-<h3>Step 4 (Optional): Cleanup on TimeLock<a class="headerlink" href="#step-4-optional-cleanup-on-timelock" title="Permalink to this headline">¶</a></h3>
+<h3>Step 4 (Optional): Cleanup on TimeLock<a class="headerlink" href="#step-4-optional-cleanup-on-timelock" title="Permalink to this headline"></a></h3>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This section is written under the assumption you are using Paxos for timestamp bound persistence.</p>
@@ -258,50 +161,33 @@ result in <strong>SEVERE DATA CORRUPTION</strong>.</p>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="../../performance/index.html" class="btn btn-neutral float-right" title="Performance Testing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="paxos.html" class="btn btn-neutral float-left" title="Paxos and AtlasDB" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../performance/index.html" class="btn btn-neutral float-right" title="Performance Testing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Targeted Sweep &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
         <script src="../../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
-    
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Services" href="../../services/index.html" />
     <link rel="prev" title="Background Sweep Inner Workings and Logs" href="standard/sweep-logs.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
@@ -119,86 +67,41 @@
 <li class="toctree-l1"><a class="reference internal" href="../../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="../index.html">Cluster Management</a> &raquo;</li>
-        
           <li><a href="../sweep.html">AtlasDB Sweep</a> &raquo;</li>
-        
       <li>Targeted Sweep</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/sweep/targeted-sweep.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="targeted-sweep">
-<span id="id1"></span><h1>Targeted Sweep<a class="headerlink" href="#targeted-sweep" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Targeted Sweep<a class="headerlink" href="#targeted-sweep" title="Permalink to this headline"></a></h1>
 <p>Targeted sweep persists the information about each transactional write as it is performed, and then uses this information to delete all older versions of each of the cells using a single ranged tombstone.</p>
 <section id="persisting-to-the-sweep-queue">
-<h2>Persisting to the Sweep Queue<a class="headerlink" href="#persisting-to-the-sweep-queue" title="Permalink to this headline">¶</a></h2>
+<h2>Persisting to the Sweep Queue<a class="headerlink" href="#persisting-to-the-sweep-queue" title="Permalink to this headline"></a></h2>
 <p>As long as <code class="docutils literal notranslate"><span class="pre">enableSweepQueueWrites</span></code> is enabled, whenever a transaction is about to commit, the necessary information for deleting stale versions of cells is persisted to the sweep queue.</p>
 </section>
 <section id="running-background-targeted-sweep">
-<h2>Running Background Targeted Sweep<a class="headerlink" href="#running-background-targeted-sweep" title="Permalink to this headline">¶</a></h2>
+<h2>Running Background Targeted Sweep<a class="headerlink" href="#running-background-targeted-sweep" title="Permalink to this headline"></a></h2>
 <p>Background targeted sweep can be enabled in the live reloadable runtime targeted sweep configuration.
 As long as targeted sweep is enabled, background threads will read the information persisted in the sweep queue, and will use ranged tombstones to delete any stale versions of the cells that have been written to.</p>
 <div class="admonition warning">
@@ -209,7 +112,7 @@ In this case, running standard sweep may be necessary, to delete any stale versi
 </div>
 </section>
 <section id="configuration-options">
-<h2>Configuration Options<a class="headerlink" href="#configuration-options" title="Permalink to this headline">¶</a></h2>
+<h2>Configuration Options<a class="headerlink" href="#configuration-options" title="Permalink to this headline"></a></h2>
 <p>Targeted sweep uses a combination of <a class="reference internal" href="../../configuration/index.html#atlas-config"><span class="std std-ref">install and runtime AtlasDB configurations</span></a>.
 In both cases, these configuration options are specified within a <code class="docutils literal notranslate"><span class="pre">targetedSweep</span></code> context.</p>
 <table class="colwidths-given docutils align-default">
@@ -277,7 +180,7 @@ thread (which is the default) and 8 shards, one should add the following blocks 
 in an attempt to increase parallelism will only work if the number of shards is also increased.</p>
 </section>
 <section id="changing-sweep-strategy-for-a-table">
-<h2>Changing Sweep Strategy for a Table<a class="headerlink" href="#changing-sweep-strategy-for-a-table" title="Permalink to this headline">¶</a></h2>
+<h2>Changing Sweep Strategy for a Table<a class="headerlink" href="#changing-sweep-strategy-for-a-table" title="Permalink to this headline"></a></h2>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>Consult with the AtlasDB team before changing the sweep strategy of a table. Doing this incorrectly can invalidate
@@ -303,7 +206,7 @@ hold the immutable timestamp lock (as if we were using the THOROUGH sweep strate
 correctness implications: any read-only transactions that may ever run concurrently with targeted sweep will also check
 the immutable timestamp lock.</p>
 <section id="conservative-to-thorough">
-<h3>CONSERVATIVE to THOROUGH<a class="headerlink" href="#conservative-to-thorough" title="Permalink to this headline">¶</a></h3>
+<h3>CONSERVATIVE to THOROUGH<a class="headerlink" href="#conservative-to-thorough" title="Permalink to this headline"></a></h3>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>You should not change user transactions from read-only to read-write and the sweep strategy from conservative to
@@ -329,7 +232,7 @@ before any is restarted with the new table metadata). In this case, it is also p
 moving away from the use of read-only transactions.</p>
 </section>
 <section id="thorough-to-conservative">
-<h3>THOROUGH to CONSERVATIVE<a class="headerlink" href="#thorough-to-conservative" title="Permalink to this headline">¶</a></h3>
+<h3>THOROUGH to CONSERVATIVE<a class="headerlink" href="#thorough-to-conservative" title="Permalink to this headline"></a></h3>
 <dl class="simple">
 <dt>The process here needs to account for the existence of old entries written to the THOROUGH sweep queue.</dt><dd><ol class="arabic simple">
 <li><p>Roll service nodes from a version with THOROUGH sweep strategy to one with THOROUGH_MIGRATION.
@@ -355,50 +258,33 @@ consulting the <code class="docutils literal notranslate"><span class="pre">mill
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="../../services/index.html" class="btn btn-neutral float-right" title="Services" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="standard/sweep-logs.html" class="btn btn-neutral float-left" title="Background Sweep Inner Workings and Logs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../services/index.html" class="btn btn-neutral float-right" title="Services" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

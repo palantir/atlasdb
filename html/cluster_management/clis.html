@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Command Line Utilities &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Console" href="console.html" />
     <link rel="prev" title="Backup and Restore" href="backup-restore.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
@@ -114,85 +62,41 @@
 <li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="index.html">Cluster Management</a> &raquo;</li>
-        
       <li>Command Line Utilities</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/clis.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="command-line-utilities">
-<span id="clis"></span><h1>Command Line Utilities<a class="headerlink" href="#command-line-utilities" title="Permalink to this headline">¶</a></h1>
+<span id="clis"></span><h1>Command Line Utilities<a class="headerlink" href="#command-line-utilities" title="Permalink to this headline"></a></h1>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
 <p>For certain pieces of common functionality AtlasDB offers command line
 scripts. These scripts can be used to help automate common maintance
 tasks as well as help resolve problems encountered during operation.</p>
 </section>
 <section id="download-the-cli">
-<h2>Download The CLI<a class="headerlink" href="#download-the-cli" title="Permalink to this headline">¶</a></h2>
+<h2>Download The CLI<a class="headerlink" href="#download-the-cli" title="Permalink to this headline"></a></h2>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>If you are working with Oracle KVS (whether directly, or as part of a migration) and are using a version of
@@ -204,7 +108,7 @@ You can find the versions <a class="reference external" href="https://palantir.b
 You can use the CLI by unpacking the tar ball and running the executable in <code class="docutils literal notranslate"><span class="pre">service/bin/atlasdb-cli</span></code>.</p>
 </section>
 <section id="general-cli-options">
-<h2>General CLI Options<a class="headerlink" href="#general-cli-options" title="Permalink to this headline">¶</a></h2>
+<h2>General CLI Options<a class="headerlink" href="#general-cli-options" title="Permalink to this headline"></a></h2>
 <table class="colwidths-given docutils align-default">
 <colgroup>
 <col style="width: 8%" />
@@ -258,32 +162,32 @@ and then pass in this flag to the CLI.</p></td>
 </table>
 </section>
 <section id="compiling-the-cli">
-<h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this headline">¶</a></h2>
+<h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this headline"></a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli-distribution:distTar
 </pre></div>
 </div>
 <p>This will create a tar file in <code class="docutils literal notranslate"><span class="pre">atlasdb-cli-distribution/build/distributions</span></code>, which you can untar on the machine where your AtlasDB client is installed.</p>
 </section>
 <section id="built-in-commands">
-<h2>Built-In Commands<a class="headerlink" href="#built-in-commands" title="Permalink to this headline">¶</a></h2>
+<h2>Built-In Commands<a class="headerlink" href="#built-in-commands" title="Permalink to this headline"></a></h2>
 <p>The following useful commands come with the vanilla atlasdb-cli.</p>
 <section id="sweep">
-<h3>sweep<a class="headerlink" href="#sweep" title="Permalink to this headline">¶</a></h3>
+<h3>sweep<a class="headerlink" href="#sweep" title="Permalink to this headline"></a></h3>
 <p>Sweep old table rows.
 This can be useful for improving performance if having too many dead cells is impacting read times.
 The command allows you to specify a namespace or a specific set of tables.
 For more information, check out <a class="reference internal" href="sweep/standard/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">the sweep CLI documentation</span></a>, or run <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">sweep</span></code>.</p>
 </section>
 <section id="timestamp">
-<h3>timestamp<a class="headerlink" href="#timestamp" title="Permalink to this headline">¶</a></h3>
+<h3>timestamp<a class="headerlink" href="#timestamp" title="Permalink to this headline"></a></h3>
 <p>Read or recalculate the immutable timestamp. Run <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">timestamp</span></code> for more information.</p>
 </section>
 <section id="migrate">
-<span id="clis-migrate"></span><h3>migrate<a class="headerlink" href="#migrate" title="Permalink to this headline">¶</a></h3>
+<span id="clis-migrate"></span><h3>migrate<a class="headerlink" href="#migrate" title="Permalink to this headline"></a></h3>
 <p>Migrate data from one KVS to another. See <a class="reference internal" href="kvs-migration.html#kvs-migration"><span class="std std-ref">KVS migration</span></a> for details.</p>
 </section>
 <section id="read-punch-table">
-<h3>read-punch-table<a class="headerlink" href="#read-punch-table" title="Permalink to this headline">¶</a></h3>
+<h3>read-punch-table<a class="headerlink" href="#read-punch-table" title="Permalink to this headline"></a></h3>
 <p>Given an epoch time, in millis, the CLI reads the timestamp added to the punch table right before it.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --config config.yml read-punch-table --epoch
 </pre></div>
@@ -291,7 +195,7 @@ For more information, check out <a class="reference internal" href="sweep/standa
 </section>
 </section>
 <section id="offline-clis">
-<span id="id1"></span><h2>Offline CLIs<a class="headerlink" href="#offline-clis" title="Permalink to this headline">¶</a></h2>
+<span id="id1"></span><h2>Offline CLIs<a class="headerlink" href="#offline-clis" title="Permalink to this headline"></a></h2>
 <p>Due to their potentially destructive nature if run concurrently with active AtlasDB services, there are a number of CLIs which can only be run when AtlasDB is offline. These are:</p>
 <blockquote>
 <div><ul class="simple">
@@ -308,7 +212,7 @@ If using <a class="reference internal" href="../services/timelock_service/index.
 Otherwise, offline CLIs will start an embedded timestamp and lock server.
 Once the CLI has completed, you can resume your AtlasDB clients.</p>
 <section id="running-commands-without-any-servers-being-up">
-<h3>Running commands without any servers being up<a class="headerlink" href="#running-commands-without-any-servers-being-up" title="Permalink to this headline">¶</a></h3>
+<h3>Running commands without any servers being up<a class="headerlink" href="#running-commands-without-any-servers-being-up" title="Permalink to this headline"></a></h3>
 <p>If you want a command to run without any servers being up, you can either use the <code class="docutils literal notranslate"><span class="pre">--offline</span></code> flag, or pass in a configuration file without leader, lock, or timestamp blocks.
 Either option will start an embedded timestamp and lock server.
 Note that if you are using external Timelock Services, as stated above we require the Timelock Services to be up when running offline CLIs.
@@ -316,7 +220,7 @@ We do not support running CLIs with Timelock down, as we will not have enough in
 </section>
 </section>
 <section id="writing-your-own">
-<h2>Writing Your Own<a class="headerlink" href="#writing-your-own" title="Permalink to this headline">¶</a></h2>
+<h2>Writing Your Own<a class="headerlink" href="#writing-your-own" title="Permalink to this headline"></a></h2>
 <p>You can write a new CLI by extending <code class="docutils literal notranslate"><span class="pre">SingleBackendCommand.java</span></code> which
 offers default AtlasDB configuration and connection out of the box.</p>
 </section>
@@ -324,50 +228,33 @@ offers default AtlasDB configuration and connection out of the box.</p>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="console.html" class="btn btn-neutral float-right" title="Console" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="backup-restore.html" class="btn btn-neutral float-left" title="Backup and Restore" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="console.html" class="btn btn-neutral float-right" title="Console" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

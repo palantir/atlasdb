@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Standard Sweep &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
         <script src="../../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
-    
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Background Sweep" href="standard/background-sweep.html" />
     <link rel="prev" title="Freeing space after sweep" href="freeing-space.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
@@ -125,82 +73,37 @@
 <li class="toctree-l1"><a class="reference internal" href="../../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="../index.html">Cluster Management</a> &raquo;</li>
-        
           <li><a href="../sweep.html">AtlasDB Sweep</a> &raquo;</li>
-        
       <li>Standard Sweep</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/sweep/standard-sweep.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="standard-sweep">
-<span id="id1"></span><h1>Standard Sweep<a class="headerlink" href="#standard-sweep" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Standard Sweep<a class="headerlink" href="#standard-sweep" title="Permalink to this headline"></a></h1>
 <p>Standard sweep scans a table to find rows with multiple versions, then deletes the older versions from the database.</p>
 <section id="ways-to-use-standard-sweep">
-<h2>Ways to use Standard Sweep<a class="headerlink" href="#ways-to-use-standard-sweep" title="Permalink to this headline">¶</a></h2>
+<h2>Ways to use Standard Sweep<a class="headerlink" href="#ways-to-use-standard-sweep" title="Permalink to this headline"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="standard/background-sweep.html#background-sweep"><span class="std std-ref">Background sweep process</span></a> scheduled periodically:
 Under normal use, the sweep job is intended to run at a constant interval as a background sweep process that does not consume significant system resources.
@@ -212,11 +115,11 @@ Given that the background sweep job chooses which tables it sweeps, you can ensu
 </ul>
 </section>
 <section id="tracking-sweep-progress">
-<h2>Tracking Sweep Progress<a class="headerlink" href="#tracking-sweep-progress" title="Permalink to this headline">¶</a></h2>
+<h2>Tracking Sweep Progress<a class="headerlink" href="#tracking-sweep-progress" title="Permalink to this headline"></a></h2>
 <p>In order to track sweep’s general workflow, and which log lines you should expect, see <a class="reference internal" href="standard/sweep-logs.html#sweep-logs"><span class="std std-ref">Sweep Logs</span></a>.</p>
 </section>
 <section id="tunable-configuration-options">
-<span id="sweep-tunable-parameters"></span><h2>Tunable Configuration Options<a class="headerlink" href="#tunable-configuration-options" title="Permalink to this headline">¶</a></h2>
+<span id="sweep-tunable-parameters"></span><h2>Tunable Configuration Options<a class="headerlink" href="#tunable-configuration-options" title="Permalink to this headline"></a></h2>
 <p>The following optional parameters can be tuned to optimize Sweep performance for a specific AtlasDB instance.
 You may set them as part of your <a class="reference internal" href="../../configuration/index.html#atlas-config"><span class="std std-ref">AtlasDB runtime configuration</span></a>, or as a CLI option if you are running sweep using the CLI.
 Note that some of these parameters are just used as a hint. Sweep dynamically modifies these parameters according to successful or failed runs.</p>
@@ -273,7 +176,7 @@ Note that some of these parameters are just used as a hint. Sweep dynamically mo
 </tbody>
 </table>
 <section id="batch-parameters">
-<h3>Batch Parameters<a class="headerlink" href="#batch-parameters" title="Permalink to this headline">¶</a></h3>
+<h3>Batch Parameters<a class="headerlink" href="#batch-parameters" title="Permalink to this headline"></a></h3>
 <p>Following is more information about when each of the batching parameters is useful.
 In short, the recommendation is:</p>
 <ul class="simple">
@@ -281,7 +184,7 @@ In short, the recommendation is:</p>
 <li><p>Decrease <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> if there is memory pressure on the KVS.</p></li>
 </ul>
 <section id="memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit">
-<h4>Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit<a class="headerlink" href="#memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit" title="Permalink to this headline">¶</a></h4>
+<h4>Memory pressure on AtlasDB client: decrease candidateBatchHint and readLimit<a class="headerlink" href="#memory-pressure-on-atlasdb-client-decrease-candidatebatchhint-and-readlimit" title="Permalink to this headline"></a></h4>
 <p><code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> specifies the number of values to load from the KVS on each round-trip. <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> specifies the number of values that should be swept in a batch, potentially fetching them through multiple KVS round-trips.
 If each batch takes little time, it’s advisable to increase the <code class="docutils literal notranslate"><span class="pre">readLimit</span></code> and <code class="docutils literal notranslate"><span class="pre">deleteBatchHint</span></code>, to make sweep’s batches bigger.
 If the client is OOMing, it’s advisable to decrease the <code class="docutils literal notranslate"><span class="pre">readLimit</span></code>, to have a lower number of values per batches.
@@ -289,7 +192,7 @@ Since each batch contains at least <code class="docutils literal notranslate"><s
 Note that since sweep still needs to sweep at least a full row on every batch, it might be the case that the client is OOMing because the row it’s trying to sweep is very large. Please contact the AtlasDB team if you think you’re hitting this issue.</p>
 </section>
 <section id="memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint">
-<h4>Memory pressure in the backing KVS: decrease candidateBatchHint<a class="headerlink" href="#memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint" title="Permalink to this headline">¶</a></h4>
+<h4>Memory pressure in the backing KVS: decrease candidateBatchHint<a class="headerlink" href="#memory-pressure-in-the-backing-kvs-decrease-candidatebatchhint" title="Permalink to this headline"></a></h4>
 <p>The sweep job works by requesting <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> values from the KVS in each round-trip.
 In some rare cases, the Cassandra KVS will not be able to fetch <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> values, likely due to specific cells being overwritten many times and/or containing very large values.
 If that happens, KVS requests from AtlasDB will fail and sweep will reduce <code class="docutils literal notranslate"><span class="pre">candidateBatchHint</span></code> automatically, trying to fetch fewer values in the following round-trips to the KVS.
@@ -298,7 +201,7 @@ If subsequent KVS round-trips are successful, the value of <code class="docutils
 </section>
 </section>
 <section id="priority-overrides">
-<span id="sweep-priority-overrides"></span><h3>Priority Overrides<a class="headerlink" href="#priority-overrides" title="Permalink to this headline">¶</a></h3>
+<span id="sweep-priority-overrides"></span><h3>Priority Overrides<a class="headerlink" href="#priority-overrides" title="Permalink to this headline"></a></h3>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Specifying <code class="docutils literal notranslate"><span class="pre">priorityTables</span></code> can be useful for influencing sweep’s behaviour in the short run.
@@ -358,50 +261,33 @@ sweep, but you still want to be able to carry out a manual sweep. Note that spec
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="standard/background-sweep.html" class="btn btn-neutral float-right" title="Background Sweep" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="freeing-space.html" class="btn btn-neutral float-left" title="Freeing space after sweep" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="standard/background-sweep.html" class="btn btn-neutral float-right" title="Background Sweep" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

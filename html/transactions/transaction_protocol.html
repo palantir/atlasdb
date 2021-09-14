@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Transaction Protocol &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Life of a Transaction" href="life_of_a_transaction.html" />
     <link rel="prev" title="Performance Ideas" href="performance_ideas.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
@@ -113,77 +61,33 @@
 <li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="index.html">Transactions</a> &raquo;</li>
-        
       <li>Transaction Protocol</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/transactions/transaction_protocol.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="transaction-protocol">
-<span id="id1"></span><h1>Transaction Protocol<a class="headerlink" href="#transaction-protocol" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Transaction Protocol<a class="headerlink" href="#transaction-protocol" title="Permalink to this headline"></a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The AtlasDB transaction protocol is inspired by, but different from
@@ -197,7 +101,7 @@ write-write conflict for any cells that you write that were modified in transact
 that committed at a timestamp between your start timestamp and your
 commit timestamp.</p>
 <section id="write-protocol">
-<h2>Write Protocol<a class="headerlink" href="#write-protocol" title="Permalink to this headline">¶</a></h2>
+<h2>Write Protocol<a class="headerlink" href="#write-protocol" title="Permalink to this headline"></a></h2>
 <ol class="arabic simple">
 <li><p>Complete all reads using the transaction’s start timestamp.  This is necessary to
 determine the writes required by the transaction. Buffer writes in memory
@@ -220,7 +124,7 @@ with our commit timestamp.</p></li>
 </ol>
 </section>
 <section id="read-protocol">
-<h2>Read Protocol<a class="headerlink" href="#read-protocol" title="Permalink to this headline">¶</a></h2>
+<h2>Read Protocol<a class="headerlink" href="#read-protocol" title="Permalink to this headline"></a></h2>
 <p>Let’s assume we are reading Cell c.</p>
 <ol class="arabic">
 <li><p>Read from the KV store and get the most recent data with TS &lt;
@@ -239,7 +143,7 @@ next highest TS for the cell.</p>
 </ol>
 </section>
 <section id="immutable-timestamp">
-<h2>Immutable Timestamp<a class="headerlink" href="#immutable-timestamp" title="Permalink to this headline">¶</a></h2>
+<h2>Immutable Timestamp<a class="headerlink" href="#immutable-timestamp" title="Permalink to this headline"></a></h2>
 <p>The point in time right before the oldest currently executing
 transaction is referred to as the immutable timestamp. This is because
 nothing before this point in time will change. (All writes are available
@@ -279,7 +183,7 @@ written by T.</p></li>
 </ul>
 </section>
 <section id="cleaning-up-old-values">
-<h2>Cleaning Up Old Values<a class="headerlink" href="#cleaning-up-old-values" title="Permalink to this headline">¶</a></h2>
+<h2>Cleaning Up Old Values<a class="headerlink" href="#cleaning-up-old-values" title="Permalink to this headline"></a></h2>
 <p>Since we are doing away with historical transactions, we can clean up
 old values. We are still allowing long running read transactions, but we
 should cap them so they can only run for a couple days or weeks. This
@@ -308,7 +212,7 @@ to hard delete and we may want to force a cleanup sooner and allow these
 long running reads to fail in the name of hard delete.</p>
 </section>
 <section id="cleaning-up-old-nonce-values">
-<h2>Cleaning up old nonce values<a class="headerlink" href="#cleaning-up-old-nonce-values" title="Permalink to this headline">¶</a></h2>
+<h2>Cleaning up old nonce values<a class="headerlink" href="#cleaning-up-old-nonce-values" title="Permalink to this headline"></a></h2>
 <p>Part of doing cleanup is writing an empty value at a negative timestamp
 for some cell. This works to prevent old read only transactions from
 reading empty value when really they should have read a cleaned value.
@@ -322,7 +226,7 @@ build indexes with status variables and be able to delete old values
 completely and still support range scans.</p>
 </section>
 <section id="read-write-conflicts">
-<h2>Read/Write Conflicts<a class="headerlink" href="#read-write-conflicts" title="Permalink to this headline">¶</a></h2>
+<h2>Read/Write Conflicts<a class="headerlink" href="#read-write-conflicts" title="Permalink to this headline"></a></h2>
 <p>The transaction protocol has write/write conflicts built into it. If two
 transactions touch the same cell, one will be rolled back (as long as the
 table does write/write conflict detection (which is the default)). What
@@ -363,7 +267,7 @@ get CAS semantics. This isn’t a big deal because using a counter is the
 most common way to use this type of exclusion anyway.</p>
 </section>
 <section id="proof-of-correctness">
-<h2>Proof of Correctness<a class="headerlink" href="#proof-of-correctness" title="Permalink to this headline">¶</a></h2>
+<h2>Proof of Correctness<a class="headerlink" href="#proof-of-correctness" title="Permalink to this headline"></a></h2>
 <p>If we want to prove that this protocol works this means that we need to
 show that we read precisely the data committed before the start of our
 transaction. We proceed by showing that:</p>
@@ -374,7 +278,7 @@ transaction. We proceed by showing that:</p>
 <li><p>We do not read any writes from a failed transaction.</p></li>
 </ol>
 <section id="reading-all-writes-before-transaction-start">
-<h3>Reading All Writes Before Transaction Start<a class="headerlink" href="#reading-all-writes-before-transaction-start" title="Permalink to this headline">¶</a></h3>
+<h3>Reading All Writes Before Transaction Start<a class="headerlink" href="#reading-all-writes-before-transaction-start" title="Permalink to this headline"></a></h3>
 <p>We must ensure writes committed before our start are read. If we look at
 the write protocol then we know that all writes are complete to the KV
 store THEN get a commit timestamp and THEN verify our locks are still
@@ -384,7 +288,7 @@ will already have these rows written. We require that the underlying KV
 store has durable writes so these rows will be read.</p>
 </section>
 <section id="lock-timeouts-after-validation">
-<h3>Lock Timeouts After Validation<a class="headerlink" href="#lock-timeouts-after-validation" title="Permalink to this headline">¶</a></h3>
+<h3>Lock Timeouts After Validation<a class="headerlink" href="#lock-timeouts-after-validation" title="Permalink to this headline"></a></h3>
 <p>What if locks time out after we do the check that they are still valid?
 If locks time out while writing to the transaction table we depend on
 the putUnlessExists to arbitrate whether a transaction is committed or
@@ -399,7 +303,7 @@ to use a write ahead log to know what has/hasn’t been committed.
 Bookkeeper is an example of a project that implements this kind of log.</p>
 </section>
 <section id="ignoring-writes-committed-after-transaction-start">
-<h3>Ignoring Writes Committed After Transaction Start<a class="headerlink" href="#ignoring-writes-committed-after-transaction-start" title="Permalink to this headline">¶</a></h3>
+<h3>Ignoring Writes Committed After Transaction Start<a class="headerlink" href="#ignoring-writes-committed-after-transaction-start" title="Permalink to this headline"></a></h3>
 <p>We need to ensure that writes committed after our startTs are not read.
 If we get back a row from the KV store then we know that the txn that
 wrote it has a startTs less than ours, but it may still be in progress
@@ -413,16 +317,16 @@ usually we just throw and retry the current transaction if there is a
 remoting failure.</p>
 </section>
 <section id="ignoring-failed-transactions">
-<h3>Ignoring Failed Transactions<a class="headerlink" href="#ignoring-failed-transactions" title="Permalink to this headline">¶</a></h3>
+<h3>Ignoring Failed Transactions<a class="headerlink" href="#ignoring-failed-transactions" title="Permalink to this headline"></a></h3>
 <p>This is achieved because we post-filter all reads through the
 transaction table. If we find that transaction is rolled back, then we
 just delete it and retry the read.</p>
 </section>
 </section>
 <section id="non-obvious-semantics">
-<h2>Non-Obvious Semantics<a class="headerlink" href="#non-obvious-semantics" title="Permalink to this headline">¶</a></h2>
+<h2>Non-Obvious Semantics<a class="headerlink" href="#non-obvious-semantics" title="Permalink to this headline"></a></h2>
 <section id="read-rollbacks">
-<h3>Read Rollbacks<a class="headerlink" href="#read-rollbacks" title="Permalink to this headline">¶</a></h3>
+<h3>Read Rollbacks<a class="headerlink" href="#read-rollbacks" title="Permalink to this headline"></a></h3>
 <p>Reads must rollback transactions they find that are uncommitted. If a
 read doesn’t go out of its way to roll back an uncommitted row and just
 skips it and keeps looking in the past for a committed row, then it
@@ -435,7 +339,7 @@ skip past it.</p>
 </section>
 </section>
 <section id="serializable-isolation">
-<h2>Serializable Isolation<a class="headerlink" href="#serializable-isolation" title="Permalink to this headline">¶</a></h2>
+<h2>Serializable Isolation<a class="headerlink" href="#serializable-isolation" title="Permalink to this headline"></a></h2>
 <p>AtlasDB can be extended to have serializable isolation semantics.
 Basically instead of looking at your write set and detecting writes that
 commit in between your start and commit timestamps we should look at the
@@ -471,50 +375,33 @@ write hot rows not have a huge read set that needs to be verified.</p>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="life_of_a_transaction.html" class="btn btn-neutral float-right" title="Life of a Transaction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="performance_ideas.html" class="btn btn-neutral float-left" title="Performance Ideas" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="life_of_a_transaction.html" class="btn btn-neutral float-right" title="Life of a Transaction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Reverse Migration &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
         <script src="../../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
-    
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Developing a product to use the timelock service" href="product-changes.html" />
     <link rel="prev" title="Manual Migration to Timelock Server" href="manual-migration.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
@@ -122,79 +70,34 @@
 <li class="toctree-l1"><a class="reference internal" href="../../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="../index.html">Services</a> &raquo;</li>
-        
           <li><a href="index.html">External Timelock Service</a> &raquo;</li>
-        
       <li>Reverse Migration</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/timelock_service/reverse-migration.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="reverse-migration">
-<span id="timelock-reverse-migration"></span><h1>Reverse Migration<a class="headerlink" href="#reverse-migration" title="Permalink to this headline">¶</a></h1>
+<span id="timelock-reverse-migration"></span><h1>Reverse Migration<a class="headerlink" href="#reverse-migration" title="Permalink to this headline"></a></h1>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Many Atlas clients switched to using TimeLock by default many versions after it was first reasonable to use Atlas with TimeLock.
@@ -220,13 +123,13 @@ Throughout this document, we assume the AtlasDB client you are trying to reverse
 <li><p>Start your AtlasDB clients.</p></li>
 </ol>
 <section id="step-1-shut-down-atlasdb-clients">
-<h2>Step 1: Shut Down AtlasDB Clients<a class="headerlink" href="#step-1-shut-down-atlasdb-clients" title="Permalink to this headline">¶</a></h2>
+<h2>Step 1: Shut Down AtlasDB Clients<a class="headerlink" href="#step-1-shut-down-atlasdb-clients" title="Permalink to this headline"></a></h2>
 <p>Make sure that your AtlasDB clients for <code class="docutils literal notranslate"><span class="pre">client</span></code> are shut down. Failure to do this can result in severe data
 corruption, because we cannot guarantee that the Timelock Server and the embedded AtlasDB timestamp services will
 together issue monotonically increasing timestamps.</p>
 </section>
 <section id="step-2-take-a-restore-timestamp">
-<h2>Step 2: Take a Restore Timestamp<a class="headerlink" href="#step-2-take-a-restore-timestamp" title="Permalink to this headline">¶</a></h2>
+<h2>Step 2: Take a Restore Timestamp<a class="headerlink" href="#step-2-take-a-restore-timestamp" title="Permalink to this headline"></a></h2>
 <p>Obtain a fresh timestamp for <code class="docutils literal notranslate"><span class="pre">client</span></code> from the TimeLock servers. This is important to ensure that the sequence
 of timestamps across TimeLock and the key-value service backed services is monotonically increasing.</p>
 <p>This can be obtained using <code class="docutils literal notranslate"><span class="pre">curl</span></code> as follows. Note that if you obtain an HTTP 503 error, this is because you curled a
@@ -240,17 +143,17 @@ node that was not the leader; please try the other nodes.</p>
 <p>Note down the value returned from this call; we’ll refer to it as <code class="docutils literal notranslate"><span class="pre">TS</span></code> from here on.</p>
 </section>
 <section id="step-3-revert-atlasdb-client-configurations">
-<h2>Step 3: Revert AtlasDB Client Configurations<a class="headerlink" href="#step-3-revert-atlasdb-client-configurations" title="Permalink to this headline">¶</a></h2>
+<h2>Step 3: Revert AtlasDB Client Configurations<a class="headerlink" href="#step-3-revert-atlasdb-client-configurations" title="Permalink to this headline"></a></h2>
 <p>Remove the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block from your AtlasDB client configurations. For more detail on options
 for using embedded timestamp and lock services, please consult <a class="reference internal" href="../../configuration/leader_config.html#leader-config"><span class="std std-ref">Leader Config</span></a>.</p>
 </section>
 <section id="step-4-start-your-timelock-servers">
-<h2>Step 4: Start your TimeLock Servers<a class="headerlink" href="#step-4-start-your-timelock-servers" title="Permalink to this headline">¶</a></h2>
+<h2>Step 4: Start your TimeLock Servers<a class="headerlink" href="#step-4-start-your-timelock-servers" title="Permalink to this headline"></a></h2>
 <p>Start your TimeLock servers. Other services that were still dependent on TimeLock (if any) should now
 work normally. This step is placed here to minimise downtime for other services that may be running against TimeLock.</p>
 </section>
 <section id="step-5-update-your-key-value-service">
-<h2>Step 5: Update your Key-Value Service<a class="headerlink" href="#step-5-update-your-key-value-service" title="Permalink to this headline">¶</a></h2>
+<h2>Step 5: Update your Key-Value Service<a class="headerlink" href="#step-5-update-your-key-value-service" title="Permalink to this headline"></a></h2>
 <p>Update the timestamp table in your key value service, such that it is valid and has the bound set to <code class="docutils literal notranslate"><span class="pre">TS</span></code> .
 This will vary depending on your choice of key-value service:</p>
 <ul>
@@ -315,7 +218,7 @@ you will first want to rename the column back to its original name.</p>
 </ul>
 </section>
 <section id="step-6-start-your-atlasdb-clients">
-<h2>Step 6: Start your AtlasDB Clients<a class="headerlink" href="#step-6-start-your-atlasdb-clients" title="Permalink to this headline">¶</a></h2>
+<h2>Step 6: Start your AtlasDB Clients<a class="headerlink" href="#step-6-start-your-atlasdb-clients" title="Permalink to this headline"></a></h2>
 <p>Finally, start your AtlasDB clients. At this point, it may be useful to perform a simple smoke test to verify that your
 clients work properly or curl the embedded timestamp service to confirm timestamps are greater than your restore
 timestamp from above.</p>
@@ -331,50 +234,33 @@ timestamp from above.</p>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="product-changes.html" class="btn btn-neutral float-right" title="Developing a product to use the timelock service" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="manual-migration.html" class="btn btn-neutral float-left" title="Manual Migration to Timelock Server" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="product-changes.html" class="btn btn-neutral float-right" title="Developing a product to use the timelock service" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

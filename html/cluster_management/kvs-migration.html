@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>KVS Migration &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="AtlasDB Sweep" href="sweep.html" />
     <link rel="prev" title="Console" href="console.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
@@ -114,77 +62,33 @@
 <li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="index.html">Cluster Management</a> &raquo;</li>
-        
       <li>KVS Migration</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/kvs-migration.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="kvs-migration">
-<span id="id1"></span><h1>KVS Migration<a class="headerlink" href="#kvs-migration" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>KVS Migration<a class="headerlink" href="#kvs-migration" title="Permalink to this headline"></a></h1>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>Ensure you have backups before attempting a KVS migration.
@@ -192,7 +96,7 @@ Double check that <code class="docutils literal notranslate"><span class="pre">m
 dropped.</p>
 </div>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
 <p>KVS migration involves moving all transactional data from one KVS which we call the <em>source KVS</em> to another, which
 we call the <em>destination KVS</em>. Generally speaking, this includes all user data.</p>
 <p>There are some AtlasDB internal tables which will not be migrated, for various reasons:</p>
@@ -234,9 +138,9 @@ the start timestamp. As data is copied over, we also update a checkpoint table, 
 migration without starting from scratch.</p>
 </section>
 <section id="running-a-kvs-migration">
-<h2>Running a KVS Migration<a class="headerlink" href="#running-a-kvs-migration" title="Permalink to this headline">¶</a></h2>
+<h2>Running a KVS Migration<a class="headerlink" href="#running-a-kvs-migration" title="Permalink to this headline"></a></h2>
 <section id="preconditions">
-<h3>Preconditions<a class="headerlink" href="#preconditions" title="Permalink to this headline">¶</a></h3>
+<h3>Preconditions<a class="headerlink" href="#preconditions" title="Permalink to this headline"></a></h3>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>Read this section carefully before performing any migrations! The KVS migration CLI makes some assumptions;
@@ -251,7 +155,7 @@ obtain migration timestamps.</p>
 configuration for the purposes of migration.</p>
 </section>
 <section id="migration-cli">
-<h3>Migration CLI<a class="headerlink" href="#migration-cli" title="Permalink to this headline">¶</a></h3>
+<h3>Migration CLI<a class="headerlink" href="#migration-cli" title="Permalink to this headline"></a></h3>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>If you are migrating to/from Oracle KVS and are using a version of AtlasDB before 0.240.10, the standard AtlasDB
@@ -289,7 +193,7 @@ you restart your service with the new KVS.</p>
 </div>
 </section>
 <section id="setup">
-<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h3>
+<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline"></a></h3>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>All tables in the destination KVS will be dropped as part of setup! Please ensure that data there may be safely
@@ -304,7 +208,7 @@ Then, for each table in the source KVS except atomic tables and Cassandra hidden
 metadata is created in the target KVS.</p>
 </section>
 <section id="migrate">
-<h3>Migrate<a class="headerlink" href="#migrate" title="Permalink to this headline">¶</a></h3>
+<h3>Migrate<a class="headerlink" href="#migrate" title="Permalink to this headline"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --migrate
 </pre></div>
 </div>
@@ -325,7 +229,7 @@ Running setup at this point will reset the migration state and force a fresh mig
 </div>
 </section>
 <section id="validate">
-<h3>Validate<a class="headerlink" href="#validate" title="Permalink to this headline">¶</a></h3>
+<h3>Validate<a class="headerlink" href="#validate" title="Permalink to this headline"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --validate
 </pre></div>
 </div>
@@ -348,50 +252,33 @@ fails, care should be taken to identify which step failed before further actions
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="sweep.html" class="btn btn-neutral float-right" title="AtlasDB Sweep" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="console.html" class="btn btn-neutral float-left" title="Console" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sweep.html" class="btn btn-neutral float-right" title="AtlasDB Sweep" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

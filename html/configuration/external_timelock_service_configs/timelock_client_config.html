@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Timelock Client Configuration &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
         <script src="../../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
-    
+    <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Cassandra Configuration" href="../cassandra_config.html" />
     <link rel="prev" title="Timelock Server Configuration" href="timelock_server_config.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
@@ -122,85 +70,40 @@
 <li class="toctree-l1"><a class="reference internal" href="../../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="../index.html">Configuration</a> &raquo;</li>
-        
           <li><a href="index.html">External Timelock Service Configurations</a> &raquo;</li>
-        
       <li>Timelock Client Configuration</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/external_timelock_service_configs/timelock_client_config.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="timelock-client-configuration">
-<span id="id1"></span><h1>Timelock Client Configuration<a class="headerlink" href="#timelock-client-configuration" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Timelock Client Configuration<a class="headerlink" href="#timelock-client-configuration" title="Permalink to this headline"></a></h1>
 <p>You will need to update your AtlasDB configuration in order to have said clients request timestamps and locks from
 external Timelock Servers as opposed to their embedded services. This is an extension of the leader block configuration
 options discussed at <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
 <p>TimeLock client configuration spans both <code class="docutils literal notranslate"><span class="pre">install</span></code> and <code class="docutils literal notranslate"><span class="pre">runtime</span></code> configuration.</p>
 <section id="install-time-configuration">
-<h2>Install-Time Configuration<a class="headerlink" href="#install-time-configuration" title="Permalink to this headline">¶</a></h2>
+<h2>Install-Time Configuration<a class="headerlink" href="#install-time-configuration" title="Permalink to this headline"></a></h2>
 <p>Instead of configuring a <code class="docutils literal notranslate"><span class="pre">leader</span></code> block, or both a <code class="docutils literal notranslate"><span class="pre">timestamp</span></code> and <code class="docutils literal notranslate"><span class="pre">lock</span></code> block, one must instead specify a
 single <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block if your product uses the Timelock Server. The <code class="docutils literal notranslate"><span class="pre">leader</span></code> block and the <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>/<code class="docutils literal notranslate"><span class="pre">lock</span></code>
 blocks must be absent from the config if you are using the Timelock Server.</p>
@@ -273,7 +176,7 @@ library.</p></td>
 </table>
 </section>
 <section id="runtime-configuration">
-<h2>Runtime Configuration<a class="headerlink" href="#runtime-configuration" title="Permalink to this headline">¶</a></h2>
+<h2>Runtime Configuration<a class="headerlink" href="#runtime-configuration" title="Permalink to this headline"></a></h2>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>Although we support live-reloading of the server configuration, AtlasDB needs to know at install time that it
@@ -319,7 +222,7 @@ library.</p></td>
 </tbody>
 </table>
 <section id="semantics-for-live-reloading">
-<span id="id2"></span><h3>Semantics for Live Reloading<a class="headerlink" href="#semantics-for-live-reloading" title="Permalink to this headline">¶</a></h3>
+<span id="id2"></span><h3>Semantics for Live Reloading<a class="headerlink" href="#semantics-for-live-reloading" title="Permalink to this headline"></a></h3>
 <p>Feign and OkHttp do not appear to come with out-of-the-box for live reloading of proxy endpoints. Thus, when we
 detect that the runtime config has changed, we create a new dynamic proxy.</p>
 <p>Creating this proxy is a two step process. We first <em>resolve</em> the <code class="docutils literal notranslate"><span class="pre">serversList</span></code> configuration to be used - if there
@@ -340,7 +243,7 @@ continue to retry on nodes which have been removed from the cluster owing to tra
 </section>
 </section>
 <section id="timelock-configuration-examples">
-<span id="timelock-config-examples"></span><h2>Timelock Configuration Examples<a class="headerlink" href="#timelock-configuration-examples" title="Permalink to this headline">¶</a></h2>
+<span id="timelock-config-examples"></span><h2>Timelock Configuration Examples<a class="headerlink" href="#timelock-configuration-examples" title="Permalink to this headline"></a></h2>
 <p>Here is an example of an AtlasDB configuration with the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -349,7 +252,7 @@ If you are using another key-value-service, then you MUST ensure that you have m
 adding a <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block to the config.</p>
 </div>
 <section id="install-configuration">
-<h3>Install Configuration<a class="headerlink" href="#install-configuration" title="Permalink to this headline">¶</a></h3>
+<h3>Install Configuration<a class="headerlink" href="#install-configuration" title="Permalink to this headline"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In versions of AtlasDB before 0.74.0, you will need to specify an empty <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block as a child of the
@@ -381,7 +284,7 @@ adding a <code class="docutils literal notranslate"><span class="pre">timelock</
 We don’t know the URLs of the TimeLock servers nor how we will talk to them, but that is okay.</p>
 </section>
 <section id="id3">
-<h3>Runtime Configuration<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<h3>Runtime Configuration<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In versions of AtlasDB before 0.74.0, if the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block was absent in the install configuration, then this
@@ -412,50 +315,33 @@ asynchronously in the background. Once the <code class="docutils literal notrans
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="../cassandra_config.html" class="btn btn-neutral float-right" title="Cassandra Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="timelock_server_config.html" class="btn btn-neutral float-left" title="Timelock Server Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../cassandra_config.html" class="btn btn-neutral float-right" title="Cassandra Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

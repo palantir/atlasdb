@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>Life of a Transaction &mdash; OSS AtlasDB develop documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Configuration" href="../configuration/index.html" />
     <link rel="prev" title="Transaction Protocol" href="transaction_protocol.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../index.html" class="icon icon-home"> OSS AtlasDB
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 develop
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
@@ -113,81 +61,37 @@
 <li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">OSS AtlasDB</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="index.html">Transactions</a> &raquo;</li>
-        
       <li>Life of a Transaction</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
-            
               <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/transactions/life_of_a_transaction.rst" class="fa fa-github"> Edit on GitHub</a>
-            
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <section id="life-of-a-transaction">
-<span id="id1"></span><h1>Life of a Transaction<a class="headerlink" href="#life-of-a-transaction" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Life of a Transaction<a class="headerlink" href="#life-of-a-transaction" title="Permalink to this headline"></a></h1>
 <p>This document seeks to outline the efficiency of our implementation of the AtlasDB protocol.
 We do this by establishing a strict ordering on the steps of the protocol.</p>
 <section id="stages-of-a-write-transaction">
-<h2>Stages of a Write Transaction<a class="headerlink" href="#stages-of-a-write-transaction" title="Permalink to this headline">¶</a></h2>
+<h2>Stages of a Write Transaction<a class="headerlink" href="#stages-of-a-write-transaction" title="Permalink to this headline"></a></h2>
 <p>A user can run a <code class="docutils literal notranslate"><span class="pre">TransactionTask</span></code> through a <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>. Running the user’s task in a transaction can be
 seen as a four step process.</p>
 <ol class="arabic simple">
@@ -197,7 +101,7 @@ seen as a four step process.</p>
 <li><p>Cleanup resources used by the transaction.</p></li>
 </ol>
 <section id="startup">
-<h3>Startup<a class="headerlink" href="#startup" title="Permalink to this headline">¶</a></h3>
+<h3>Startup<a class="headerlink" href="#startup" title="Permalink to this headline"></a></h3>
 <p>When a write transaction is created, we first need to perform some setup work. This involves locking the immutable
 timestamp and then getting a fresh timestamp. The ordering here is significant - if we get a fresh timestamp and then
 lock the immutable timestamp, our transaction’s timestamp is smaller than the immutable timestamp. This is dangerous
@@ -208,7 +112,7 @@ then we may or may not read it.</p>
 is using external TimeLock services.</p>
 </section>
 <section id="user-task">
-<h3>User Task<a class="headerlink" href="#user-task" title="Permalink to this headline">¶</a></h3>
+<h3>User Task<a class="headerlink" href="#user-task" title="Permalink to this headline"></a></h3>
 <p>A <code class="docutils literal notranslate"><span class="pre">TransactionTask</span></code> is an arbitrary <code class="docutils literal notranslate"><span class="pre">Function&lt;Transaction,</span> <span class="pre">T&gt;</span></code> that can throw a pre-defined checked exception <code class="docutils literal notranslate"><span class="pre">E</span></code>.
 In practice, users will use this task to read from the database and buffer up writes (though these are only executed
 at commit time). The task has access to the lock and timestamp services and may have side effects.</p>
@@ -217,7 +121,7 @@ The transaction task must precede committing, as that opens with constraint chec
 were performed.</p>
 </section>
 <section id="commit">
-<h3>Commit<a class="headerlink" href="#commit" title="Permalink to this headline">¶</a></h3>
+<h3>Commit<a class="headerlink" href="#commit" title="Permalink to this headline"></a></h3>
 <p>Committing a write transaction is a multi-stage process:</p>
 <ol class="arabic simple">
 <li><p>Check constraints if applicable.</p></li>
@@ -268,7 +172,7 @@ example, so it is important that we handle this before the final lock check.</p>
 we can’t be certain we still have locks.</p></li>
 </ol>
 <section id="read-only-variant">
-<h4>Read-Only Variant<a class="headerlink" href="#read-only-variant" title="Permalink to this headline">¶</a></h4>
+<h4>Read-Only Variant<a class="headerlink" href="#read-only-variant" title="Permalink to this headline"></a></h4>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This section looks at write transactions that perform only reads (as opposed to pure read transactions).
@@ -285,7 +189,7 @@ can be run in parallel (though we haven’t implemented this as the expected gai
 </section>
 </section>
 <section id="cleanup">
-<h3>Cleanup<a class="headerlink" href="#cleanup" title="Permalink to this headline">¶</a></h3>
+<h3>Cleanup<a class="headerlink" href="#cleanup" title="Permalink to this headline"></a></h3>
 <p>We need to unlock row/cell locks and the immutable timestamp lock. This need not be strictly immediate, though
 should be fast to avoid contention on future writes. Also, note that if we fail to do this (e.g. our server crashes),
 the locks will time-out (by default after 2 minutes).</p>
@@ -294,9 +198,9 @@ more detailed discussion.</p>
 </section>
 </section>
 <section id="minimising-timelock-rpcs">
-<h2>Minimising TimeLock RPCs<a class="headerlink" href="#minimising-timelock-rpcs" title="Permalink to this headline">¶</a></h2>
+<h2>Minimising TimeLock RPCs<a class="headerlink" href="#minimising-timelock-rpcs" title="Permalink to this headline"></a></h2>
 <section id="principles">
-<h3>Principles<a class="headerlink" href="#principles" title="Permalink to this headline">¶</a></h3>
+<h3>Principles<a class="headerlink" href="#principles" title="Permalink to this headline"></a></h3>
 <ol class="arabic simple">
 <li><p>Synchronous RPCs are expensive, so we seek to minimise them.</p></li>
 <li><p>A sequence of exclusively TimeLock operations can be batched as a single call to TimeLock, even if there is an
@@ -306,7 +210,7 @@ Then, E1 and E3 cannot be batched together.</p></li>
 </ol>
 </section>
 <section id="write-transactions">
-<h3>Write Transactions<a class="headerlink" href="#write-transactions" title="Permalink to this headline">¶</a></h3>
+<h3>Write Transactions<a class="headerlink" href="#write-transactions" title="Permalink to this headline"></a></h3>
 <p>The write transaction protocol requires several calls to timestamp and lock services:</p>
 <ol class="arabic simple">
 <li><p>Startup: 3 calls (get immutable timestamp, lock immutable timestamp, get start timestamp)</p></li>
@@ -324,7 +228,7 @@ Our current implementation has:</p>
 </ol>
 </section>
 <section id="efficiency">
-<h3>Efficiency<a class="headerlink" href="#efficiency" title="Permalink to this headline">¶</a></h3>
+<h3>Efficiency<a class="headerlink" href="#efficiency" title="Permalink to this headline"></a></h3>
 <p>We claim that for the current AtlasDB protocol, the remaining four synchronous RPCs must be separate.
 We show that each successive pair of timestamp calls has an event that must happen after the first call but before
 the second, thus splitting up the calls. Following principle 3, the calls must then be distinct.</p>
@@ -354,50 +258,33 @@ one another after acquiring locks, preventing a successful commit.</p>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="../configuration/index.html" class="btn btn-neutral float-right" title="Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="transaction_protocol.html" class="btn btn-neutral float-left" title="Transaction Protocol" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../configuration/index.html" class="btn btn-neutral float-right" title="Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017, Palantir Technologies.
-
-    </p>
+    <p>&#169; Copyright 2017, Palantir Technologies.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>
