@@ -1424,26 +1424,29 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         });
 
         assertThatThrownBy(() -> manager.runTaskThrowOnConflict(tx -> {
-            long myTs = tx.getTimestamp();
-            tx.get(TEST_TABLE_SERIALIZABLE, ImmutableSet.of(CELL_ONE));
+                    long myTs = tx.getTimestamp();
+                    tx.get(TEST_TABLE_SERIALIZABLE, ImmutableSet.of(CELL_ONE));
 
-            // This write is done to ensure that the transaction actually has writes that need to commit
-            tx.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_TWO, BYTES_TWO));
+                    // This write is done to ensure that the transaction actually has writes that need to commit
+                    tx.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_TWO, BYTES_TWO));
 
-            // This orchestrates a transaction that writes "B" to the cell
-            keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_TWO), myTs + 1);
-            transactionService.putUnlessExists(myTs + 1, myTs + 2);
+                    // This orchestrates a transaction that writes "B" to the cell
+                    keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_TWO), myTs + 1);
+                    transactionService.putUnlessExists(myTs + 1, myTs + 2);
 
-            // This primes the timestamp service to give us a known commit timestamp.
-            long commitTimestamp = myTs + 1_000_000;
-            timestampManagementService.fastForwardTimestamp(commitTimestamp - 1);
+                    // This primes the timestamp service to give us a known commit timestamp.
+                    long commitTimestamp = myTs + 1_000_000;
+                    timestampManagementService.fastForwardTimestamp(commitTimestamp - 1);
 
-            // This orchestrates a transaction that writes "A" back to the cell, BUT it commits at commitTimestamp + 1
-            // It is imperative that we do NOT read this transaction's writes!
-            keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_ONE), commitTimestamp - 1);
-            transactionService.putUnlessExists(commitTimestamp - 1, commitTimestamp + 1);
-            return null;
-        })).isInstanceOf(TransactionSerializableConflictException.class)
+                    // This orchestrates a transaction that writes "A" back to the cell, BUT it commits at
+                    // commitTimestamp + 1
+                    // It is imperative that we do NOT read this transaction's writes!
+                    keyValueService.put(
+                            TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_ONE), commitTimestamp - 1);
+                    transactionService.putUnlessExists(commitTimestamp - 1, commitTimestamp + 1);
+                    return null;
+                }))
+                .isInstanceOf(TransactionSerializableConflictException.class)
                 .hasMessageContaining("There was a read-write conflict");
     }
 
