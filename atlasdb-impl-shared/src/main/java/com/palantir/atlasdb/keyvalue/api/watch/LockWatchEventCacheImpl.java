@@ -116,15 +116,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .endVersion(currentVersion)
                 .build();
 
-        ClientLogEvents events = eventLog.getEventsBetweenVersions(versionBounds);
-        CommitUpdate transactionCommitUpdate = events.toCommitUpdate(startVersion.get(), commitInfo);
-        CommitUpdate spanningCommitUpdate =
-                events.toCommitUpdate(startVersion.get(), CommitInfo.of(commitInfo.commitLockToken(), currentVersion));
-
-        return SpanningCommitUpdate.builder()
-                .transactionCommitUpdate(transactionCommitUpdate)
-                .spanningCommitUpdate(spanningCommitUpdate)
-                .build();
+        return eventLog.getEventsBetweenVersions(versionBounds)
+                .toSpanningCommitUpdate(startVersion.get(), commitInfo, currentVersion);
     }
 
     @Override

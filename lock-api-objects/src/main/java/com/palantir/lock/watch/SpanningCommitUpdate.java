@@ -30,4 +30,11 @@ public interface SpanningCommitUpdate {
     static TransactionCommitUpdateBuildStage builder() {
         return ImmutableSpanningCommitUpdate.builder();
     }
+
+    static SpanningCommitUpdate invalidateAll() {
+        return SpanningCommitUpdate.builder()
+                .transactionCommitUpdate(CommitUpdate.invalidateAll())
+                .spanningCommitUpdate(CommitUpdate.invalidateAll())
+                .build();
+    }
 }
