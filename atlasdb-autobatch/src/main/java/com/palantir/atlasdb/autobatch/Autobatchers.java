@@ -278,7 +278,7 @@ public final class Autobatchers {
     }
 
     @FunctionalInterface
-    interface TimeoutHandler {
+    public interface TimeoutHandler {
         RuntimeException handle(TimeoutException exception);
     }
 }
