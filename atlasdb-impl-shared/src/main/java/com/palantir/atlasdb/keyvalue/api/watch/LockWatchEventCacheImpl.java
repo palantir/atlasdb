@@ -26,6 +26,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
+import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Collection;
@@ -95,6 +96,35 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .build();
 
         return eventLog.getEventsBetweenVersions(versionBounds).toCommitUpdate(startVersion.get(), commitInfo);
+    }
+
+    @Override
+    public SpanningCommitUpdate getSpanningCommitUpdate(long startTs) {
+        Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
+        Optional<CommitInfo> maybeCommitInfo = timestampStateStore.getCommitInfo(startTs);
+
+        assertTrue(
+                maybeCommitInfo.isPresent()
+                        && startVersion.isPresent()
+                        && eventLog.getLatestKnownVersion().isPresent(),
+                "start or commit info not processed for start timestamp");
+
+        LockWatchVersion currentVersion = eventLog.getLatestKnownVersion().get();
+        CommitInfo commitInfo = maybeCommitInfo.get();
+        VersionBounds versionBounds = VersionBounds.builder()
+                .startVersion(startVersion)
+                .endVersion(currentVersion)
+                .build();
+
+        ClientLogEvents events = eventLog.getEventsBetweenVersions(versionBounds);
+        CommitUpdate transactionCommitUpdate = events.toCommitUpdate(startVersion.get(), commitInfo);
+        CommitUpdate spanningCommitUpdate =
+                events.toCommitUpdate(startVersion.get(), CommitInfo.of(commitInfo.commitLockToken(), currentVersion));
+
+        return SpanningCommitUpdate.builder()
+                .transactionCommitUpdate(transactionCommitUpdate)
+                .spanningCommitUpdate(spanningCommitUpdate)
+                .build();
     }
 
     @Override

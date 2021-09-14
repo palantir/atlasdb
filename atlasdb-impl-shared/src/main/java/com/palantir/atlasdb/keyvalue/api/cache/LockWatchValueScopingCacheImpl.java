@@ -28,11 +28,11 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Comparator;
 import java.util.List;
@@ -131,10 +131,10 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             return;
         }
 
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
-        cacheStore.createReadOnlyCache(startTs, commitUpdate);
+        SpanningCommitUpdate spanningCommitUpdate = eventCache.getSpanningCommitUpdate(startTimestamp);
+        cacheStore.createReadOnlyCache(startTs, spanningCommitUpdate.transactionCommitUpdate());
 
-        commitUpdate.accept(new Visitor<Void>() {
+        spanningCommitUpdate.spanningCommitUpdate().accept(new Visitor<Void>() {
             @Override
             public Void invalidateAll() {
                 // This might happen due to an election or if we exceeded the maximum number of events held in

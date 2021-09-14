@@ -22,13 +22,14 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 
-class DuplicatingLockWatchEventCache implements LockWatchEventCache {
+final class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     private final LockWatchEventCache mainCache;
     private final LockWatchEventCache secondaryCache;
 
@@ -65,6 +66,11 @@ class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     @Override
     public CommitUpdate getCommitUpdate(long startTs) {
         return mainCache.getCommitUpdate(startTs);
+    }
+
+    @Override
+    public SpanningCommitUpdate getSpanningCommitUpdate(long startTs) {
+        return mainCache.getSpanningCommitUpdate(startTs);
     }
 
     @Override
