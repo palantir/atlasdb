@@ -27,7 +27,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
@@ -197,8 +196,9 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
                         + "is a corruption bug in the caching logic",
                 args);
         failureCallback.run();
-        throw new TransactionLockWatchFailedException(
-                "Failed lock watch cache validation - will retry without caching");
+        throw new RuntimeException("Absolute failure");
+        // throw new TransactionLockWatchFailedException(
+        //         "Failed lock watch cache validation - will retry without caching");
     }
 
     private static Map<Cell, byte[]> getCells(Map<Cell, byte[]> remoteReads, Set<Cell> cells) {

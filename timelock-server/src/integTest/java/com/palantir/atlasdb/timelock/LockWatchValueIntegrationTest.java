@@ -54,7 +54,13 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -92,6 +98,14 @@ public final class LockWatchValueIntegrationTest {
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
     private TransactionManager txnManager;
+    public static final byte[] ROW_1 = PtBytes.toBytes("final");
+    public static final byte[] ROW_2 = PtBytes.toBytes("destination");
+    public static final byte[] ROW_3 = PtBytes.toBytes("awaits");
+    public static final byte[][] ROWS = new byte[][] {ROW_1, ROW_2, ROW_3};
+    public static final byte[] COL_1 = PtBytes.toBytes("parthenon");
+    public static final byte[] COL_2 = PtBytes.toBytes("had");
+    public static final byte[] COL_3 = PtBytes.toBytes("columns");
+    public static final byte[][] COLS = new byte[][] {COL_1, COL_2, COL_3};
 
     @Before
     public void before() {
@@ -378,6 +392,67 @@ public final class LockWatchValueIntegrationTest {
             assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
             return read;
         });
+    }
+
+    @Test
+    public void stressTestTheHeckOutOfEverything() {
+        createTransactionManager(1.0);
+
+        ExecutorService executor = Executors.newFixedThreadPool(500);
+
+        for (int i = 0; i < 200_000; ++i) {
+            executor.submit(this::randomTask);
+        }
+
+        try {
+            executor.shutdown();
+            executor.awaitTermination(600, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void randomTask() {
+        txnManager.runTaskThrowOnConflict(txn -> {
+            while (chance()) {
+                txn.put(TABLE_REF, ImmutableMap.of(randomCell(), randomData()));
+            }
+
+            while (chance()) {
+                txn.delete(TABLE_REF, ImmutableSet.of(randomCell()));
+            }
+
+            while (chance()) {
+                txn.get(TABLE_REF, ImmutableSet.of(randomCell()));
+            }
+
+            while (chance()) {
+                txn.getRows(
+                        TABLE_REF,
+                        Stream.of(ROWS).filter(_unused -> chance()).collect(Collectors.toSet()),
+                        ColumnSelection.create(
+                                Stream.of(COLS).filter(_unused -> chance()).collect(Collectors.toSet())));
+            }
+
+            return null;
+        });
+    }
+
+    private Cell randomCell() {
+        return Cell.create(ROWS[random()], COLS[random()]);
+    }
+
+    private int random() {
+        return ThreadLocalRandom.current().nextInt(0, 3);
+    }
+
+    private boolean chance() {
+        return ThreadLocalRandom.current().nextDouble() < 0.5;
+    }
+
+    private byte[] randomData() {
+        return PtBytes.toBytes(ThreadLocalRandom.current().nextLong(0, 1_000_000));
     }
 
     private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {
