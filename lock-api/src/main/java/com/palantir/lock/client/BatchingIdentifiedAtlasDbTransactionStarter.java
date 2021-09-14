@@ -48,6 +48,7 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
                 Autobatchers.independent(consumer(lockLeaseService, cache))
                         .safeLoggablePurpose("transaction-starter")
                         .batchFunctionTimeout(Duration.ofSeconds(30))
+                        .timeoutHandler(exception -> new TFRE)
                         .build();
         return new BatchingIdentifiedAtlasDbTransactionStarter(autobatcher);
     }

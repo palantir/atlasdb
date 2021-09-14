@@ -132,7 +132,7 @@ public final class Autobatchers {
                         "Autobatcher timed out and request had to be interrupted",
                         SafeArg.of("safeLoggablePurpose", safeLoggablePurpose),
                         e);
-                throw new RuntimeException(e);
+                throw context.timeoutHandler().handle(e);
             } catch (UncheckedExecutionException e) {
                 throw com.palantir.common.base.Throwables.throwCauseAsUnchecked(e);
             }
@@ -153,7 +153,7 @@ public final class Autobatchers {
                         "Autobatcher timed out and request had to be interrupted",
                         SafeArg.of("safeLoggablePurpose", safeLoggablePurpose),
                         e);
-                throw new RuntimeException(e);
+                throw context.timeoutHandler().handle(e);
             } catch (ExecutionException | UncheckedExecutionException e) {
                 throw com.palantir.common.base.Throwables.throwCauseAsUnchecked(e);
             }
@@ -168,6 +168,7 @@ public final class Autobatchers {
         private Observability observability = Observability.UNDECIDED;
         private OptionalInt bufferSize = OptionalInt.empty();
         private Optional<Duration> batchFunctionTimeout = Optional.empty();
+        private Optional<TimeoutHandler> timeoutHandler = Optional.empty();
         private Optional<WaitStrategy> waitStrategy = Optional.empty();
 
         @Nullable
@@ -207,17 +208,26 @@ public final class Autobatchers {
             return this;
         }
 
+        public AutobatcherBuilder<I, O> timeoutHandler(TimeoutHandler timeoutHandler) {
+            this.timeoutHandler = Optional.of(timeoutHandler);
+            return this;
+        }
+
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
 
             ImmutableEventHandlerParameters.Builder parametersBuilder = ImmutableEventHandlerParameters.builder();
             bufferSize.ifPresent(parametersBuilder::batchSize);
             parametersBuilder.safeLoggablePurpose(purpose);
-            Optional<TimeoutOrchestrationContext> timeoutOrchestrationContext =
-                    batchFunctionTimeout.map(timeout -> ImmutableTimeoutOrchestrationContext.builder()
-                            .batchFunctionTimeout(timeout)
-                            .exclusiveExecutor(PTExecutors.newCachedThreadPool("autobatcher." + purpose + "-timeout"))
-                            .build());
+            Optional<TimeoutOrchestrationContext> timeoutOrchestrationContext = batchFunctionTimeout.map(timeout -> {
+                ImmutableTimeoutOrchestrationContext.Builder timeoutContextBuilder =
+                        ImmutableTimeoutOrchestrationContext.builder()
+                                .batchFunctionTimeout(timeout)
+                                .exclusiveExecutor(
+                                        PTExecutors.newCachedThreadPool("autobatcher." + purpose + "-timeout"));
+                timeoutHandler.ifPresent(timeoutContextBuilder::timeoutHandler);
+                return timeoutContextBuilder.build();
+            });
             timeoutOrchestrationContext.ifPresent(parametersBuilder::batchFunctionTimeoutContext);
             EventHandlerParameters parameters = parametersBuilder.build();
 
@@ -260,5 +270,15 @@ public final class Autobatchers {
          * the autobatcher is no longer needed.
          */
         ExecutorService exclusiveExecutor();
+
+        @Value.Default
+        default TimeoutHandler timeoutHandler() {
+            return RuntimeException::new;
+        }
+    }
+
+    @FunctionalInterface
+    interface TimeoutHandler {
+        RuntimeException handle(TimeoutException exception);
     }
 }
