@@ -4,7 +4,8 @@ fix:
     when performing read-write conflict checking. Previously, they may have done so,
     which runs a data corruption risk where an ABA conflict may be obscured. Note
     that this risk is extremely small (owing to this requiring a very specific interleaving
-    of execution, _transactions2, and in _most_ cases serializability is still preserved
-    even though the strict serializability AtlasDB normally offers may not be).
+    of execution, _transactions2, and in _most_ cases serializability still being
+    preserved even though the strict serializability AtlasDB normally offers may not
+    be).
   links:
   - https://github.com/palantir/atlasdb/pull/5637
