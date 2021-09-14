@@ -163,7 +163,7 @@ public final class LockWatchValueScopingCacheImplTest {
         // there was an election)
         assertThatThrownBy(() -> valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_1)))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
-                .hasMessage("start or commit info not processed for start timestamp");
+                .hasMessage("start or commit info not processed for start timestamp, or current version missing");
     }
 
     @Test
