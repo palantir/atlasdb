@@ -354,6 +354,7 @@ public final class LockWatchValueScopingCacheImplTest {
         verify(metrics, times(1)).registerHits(0);
         verify(metrics, times(1)).registerMisses(2);
 
+        // Simulate the case where the transaction gets a commit timestamp but has not yet committed
         eventCache.processStartTransactionsUpdate(
                 ImmutableSet.of(TIMESTAMP_2), LockWatchStateUpdate.success(LEADER, 1L, ImmutableList.of(LOCK_EVENT)));
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));
@@ -363,13 +364,15 @@ public final class LockWatchValueScopingCacheImplTest {
         verify(metrics, times(2)).registerHits(0);
         verify(metrics, times(2)).registerMisses(2);
 
-        processCommitTimestamp(TIMESTAMP_2, 1L);
+        // Finally, the first transaction commits, but only after a lock has been taken out on one of the cached cells
         valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_1));
 
+        // Confirm that the read only cache ignores the new lock, since it happened after commit time
         TransactionScopedCache readOnlyCache1 = valueCache.getReadOnlyTransactionScopedCacheForCommit(TIMESTAMP_1);
         assertThat(getRemotelyReadCells(readOnlyCache1, TABLE, CELL_1, CELL_3)).isEmpty();
         valueCache.removeTransactionState(TIMESTAMP_1);
 
+        // New transaction caches should have CELL_3 which was never locked, but CELL_1 should have been filtered out
         eventCache.processStartTransactionsUpdate(
                 ImmutableSet.of(TIMESTAMP_3), LockWatchStateUpdate.success(LEADER, 1L, ImmutableList.of(UNLOCK_EVENT)));
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_3));
