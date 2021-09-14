@@ -1434,14 +1434,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
             keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_TWO), myTs + 1);
             transactionService.putUnlessExists(myTs + 1, myTs + 2);
 
-            // This primes the commit timestamp to be exactly futureTimestamp + 1.
-            long futureTimestamp = myTs + 1_000_000;
-            timestampManagementService.fastForwardTimestamp(futureTimestamp);
+            // This primes the timestamp service to give us a known commit timestamp.
+            long commitTimestamp = myTs + 1_000_000;
+            timestampManagementService.fastForwardTimestamp(commitTimestamp - 1);
 
-            // This orchestrates a transaction that writes "A" back to the cell, BUT it commits at futureTimestamp + 2
+            // This orchestrates a transaction that writes "A" back to the cell, BUT it commits at commitTimestamp + 1
             // It is imperative that we do NOT read this transaction's writes!
-            keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_ONE), futureTimestamp);
-            transactionService.putUnlessExists(futureTimestamp, futureTimestamp + 2);
+            keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_ONE), commitTimestamp - 1);
+            transactionService.putUnlessExists(commitTimestamp - 1, commitTimestamp + 1);
             return null;
         })).isInstanceOf(TransactionSerializableConflictException.class)
                 .hasMessageContaining("There was a read-write conflict");
