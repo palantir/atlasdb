@@ -354,7 +354,8 @@ public final class LockWatchValueScopingCacheImplTest {
         verify(metrics, times(1)).registerHits(0);
         verify(metrics, times(1)).registerMisses(2);
 
-        // Simulate the case where the transaction gets a commit timestamp but has not yet committed
+        // Simulate the case where the transaction gets a commit timestamp but has not yet committed. This start
+        // transactions update introduces the lock taken out on CELL_1
         eventCache.processStartTransactionsUpdate(
                 ImmutableSet.of(TIMESTAMP_2), LockWatchStateUpdate.success(LEADER, 1L, ImmutableList.of(LOCK_EVENT)));
         valueCache.processStartTransactions(ImmutableSet.of(TIMESTAMP_2));

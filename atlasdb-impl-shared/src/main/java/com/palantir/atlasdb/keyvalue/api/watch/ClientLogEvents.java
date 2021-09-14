@@ -81,22 +81,6 @@ interface ClientLogEvents {
                 .build();
     }
 
-    default CommitUpdate toCommitUpdate(LockWatchVersion startVersion, CommitInfo commitInfo) {
-        if (clearCache()) {
-            return CommitUpdate.invalidateAll();
-        }
-
-        // We want to ensure that we do not miss any versions, but we do not care about the event with the same version
-        // as the start version.
-        verifyReturnedEventsEnclosesTransactionVersions(
-                startVersion.version() + 1, commitInfo.commitVersion().version());
-
-        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
-        Set<LockDescriptor> locksTakenOut = new HashSet<>();
-        events().events().forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
-        return CommitUpdate.invalidateSome(locksTakenOut);
-    }
-
     default SpanningCommitUpdate toSpanningCommitUpdate(
             LockWatchVersion startVersion, CommitInfo commitInfo, LockWatchVersion endVersion) {
         if (clearCache()) {
