@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -47,7 +48,14 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
+import com.palantir.lock.AtlasCellLockDescriptor;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockWatchCache;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
+import com.palantir.lock.watch.TransactionUpdate;
+import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -55,6 +63,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -394,6 +403,66 @@ public final class LockWatchValueIntegrationTest {
         });
 
         awaitUnlock();
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            long startTimestamp = txn.getTimestamp();
+
+            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_1));
+            long commitTimestamp = startTimestamp + 1_000_000;
+            txnManager.getTimestampManagementService().fastForwardTimestamp(commitTimestamp - 1);
+
+            txnManager.getKeyValueService()
+                    .put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4), commitTimestamp - 1);
+            txnManager.getTransactionService()
+                    .putUnlessExists(commitTimestamp - 1, commitTimestamp + 1);
+            LockWatchCache cache = ((LockWatchManagerInternal) txnManager.getLockWatchManager())
+                    .getCache();
+            LockWatchVersion lastKnownVersion = cache.getEventCache().lastKnownVersion().get();
+
+            LockToken lockToken = LockToken.of(UUID.randomUUID());
+            cache.processStartTransactionsUpdate(ImmutableSet.of(commitTimestamp - 1), LockWatchStateUpdate.success(
+                    lastKnownVersion.id(), lastKnownVersion.version() + 1,
+                    ImmutableList.of(LockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(TABLE,
+                                    CELL_1.getRowName(), CELL_1.getColumnName())), lockToken)
+                            .build(lastKnownVersion.version() + 1))
+            ));
+            cache.processCommitTimestampsUpdate(ImmutableSet.of(TransactionUpdate.builder().startTs(
+                    commitTimestamp - 1
+            ).commitTs(commitTimestamp + 1).writesToken(lockToken).build()), LockWatchStateUpdate.success(
+                    lastKnownVersion.id(), lastKnownVersion.version() + 2,
+                    ImmutableList.of(UnlockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(TABLE,
+                                    CELL_1.getRowName(), CELL_1.getColumnName())))
+                            .build(lastKnownVersion.version() + 2))
+            ));
+
+
+                        /*
+            long myTs = tx.getTimestamp();
+                    tx.get(TEST_TABLE_SERIALIZABLE, ImmutableSet.of(CELL_ONE));
+
+                    // This write is done to ensure that the transaction actually has writes that need to commit
+                    tx.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_TWO, BYTES_TWO));
+
+                    // This orchestrates a transaction that writes "B" to the cell
+                    keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_TWO), myTs + 1);
+                    transactionService.putUnlessExists(myTs + 1, myTs + 2);
+
+                    // This primes the timestamp service to give us a known commit timestamp.
+                    long commitTimestamp = myTs + 1_000_000;
+                    timestampManagementService.fastForwardTimestamp(commitTimestamp - 1);
+
+                    // This orchestrates a transaction that writes "A" back to the cell, BUT it commits at
+                    // commitTimestamp + 1
+                    // It is imperative that we do NOT read this transaction's writes!
+                    keyValueService.put(
+                            TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_ONE), commitTimestamp - 1);
+                    transactionService.putUnlessExists(commitTimestamp - 1, commitTimestamp + 1);
+                    return null;
+             */
+
+            return null;
+        });
 
         CountDownLatch withinCommit = new CountDownLatch(1);
         CountDownLatch commitMayFinish = new CountDownLatch(1);
