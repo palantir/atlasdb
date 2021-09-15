@@ -167,6 +167,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1462,12 +1463,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
                         .collectToSetMultimap();
                 try {
-                    deleteExecutor.execute(() -> keyValueService.delete(table, sentinels));
+                    runTaskOnDeleteExecutor(kvs -> kvs.delete(table, sentinels));
                 } catch (Throwable th) {
                     // best effort
                 }
             }
         });
+    }
+
+    /**
+     * This method exists to ensure that tasks run on the delete executor do not have references to the
+     * SnapshotTransaction that spawned the task (so that it can be garbage collected, which may be significant as
+     * large write or serializable read transactions may have allocated a lot of memory).
+     */
+    private void runTaskOnDeleteExecutor(Consumer<KeyValueService> task) {
+        // Do not inline this without thinking carefully about exactly what this means
+        KeyValueService theKeyValueService = keyValueService;
+        deleteExecutor.execute(() -> task.accept(theKeyValueService));
     }
 
     private static boolean isSweepSentinel(Value value) {
@@ -2170,7 +2182,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         try {
-            deleteExecutor.execute(() -> deleteCells(keyValueService, tableRef, keysToDelete));
+            runTaskOnDeleteExecutor(kvs -> deleteCells(kvs, tableRef, keysToDelete));
         } catch (RejectedExecutionException rejected) {
             log.info(
                     "Could not delete keys {} for table {}, because the delete executor's queue was full."
@@ -2182,10 +2194,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return true;
     }
 
-    /**
-     * This method is made static so it loses reference to the SnapshotTransaction reference when passed to
-     * deleteExecutor::execute in a lambda reducing its retained memory size.
-     */
     private static void deleteCells(
             KeyValueService keyValueService, TableReference tableRef, Map<Cell, Long> keysToDelete) {
         try {
