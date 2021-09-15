@@ -41,6 +41,7 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -54,6 +55,10 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import org.awaitility.Awaitility;
 import org.junit.Before;
@@ -174,16 +179,16 @@ public final class LockWatchValueIntegrationTest {
         // Nested transactions are normally discouraged, but it is easier to create a conflict this way (compared to
         // using executors, which is much more heavy-handed).
         assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
-                    txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-                    txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_2));
+            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_2));
 
-                    txnManager.runTaskThrowOnConflict(txn2 -> {
-                        txn2.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
-                        return null;
-                    });
-                    awaitUnlock();
-                    return null;
-                }))
+            txnManager.runTaskThrowOnConflict(txn2 -> {
+                txn2.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
+                return null;
+            });
+            awaitUnlock();
+            return null;
+        }))
                 .isExactlyInstanceOf(TransactionSerializableConflictException.class)
                 .hasMessageContaining("There was a read-write conflict on table");
     }
@@ -194,10 +199,10 @@ public final class LockWatchValueIntegrationTest {
         loadValue();
 
         assertThatCode(() -> txnManager.runTaskThrowOnConflict(txn -> {
-                    txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-                    txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
-                    return null;
-                }))
+            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
+            return null;
+        }))
                 .doesNotThrowAnyException();
     }
 
@@ -269,10 +274,10 @@ public final class LockWatchValueIntegrationTest {
         loadValue();
 
         assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
-                    overwriteValueViaKvs(txn, ImmutableMap.of(CELL_1, DATA_2));
-                    txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-                    return null;
-                }))
+            overwriteValueViaKvs(txn, ImmutableMap.of(CELL_1, DATA_2));
+            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            return null;
+        }))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("Failed lock watch cache validation - will retry without caching");
 
@@ -374,10 +379,61 @@ public final class LockWatchValueIntegrationTest {
                     txn,
                     ImmutableSet.of(
                             CellReference.of(TABLE_REF, CELL_2), CellReference.of(TABLE_REF, CELL_3), TABLE_CELL_4));
-            // we weren't able to cache our own write so we look this up
+            // we weren't able to cache our own write, so we look this up
             assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
             return read;
         });
+    }
+
+    @Test
+    public void nearbyCommitsDoNotAffectResultsPresentInCache() {
+        createTransactionManager(1.0);
+        txnManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2, CELL_3, DATA_3));
+            return null;
+        });
+
+        awaitUnlock();
+
+        CountDownLatch withinCommit = new CountDownLatch(1);
+        CountDownLatch commitMayFinish = new CountDownLatch(1);
+        AtomicLong startTimestamp = new AtomicLong(-1L);
+        AtomicLong commitTimestamp = new AtomicLong(-1L);
+        PreCommitCondition blockingCommit = timestamp -> {
+            if (timestamp != startTimestamp.get()) {
+                commitTimestamp.set(timestamp);
+                withinCommit.countDown();
+                awaitLatch(commitMayFinish);
+            }
+        };
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(() -> {
+            txnManager.runTaskThrowOnConflict(txn -> {
+                txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4));
+                awaitLatch(withinCommit);
+                txnManager.getTimestampManagementService().fastForwardTimestamp(commitTimestamp.get());
+                return null;
+            });
+            commitMayFinish.countDown();
+        });
+
+        txnManager.runTaskWithConditionThrowOnConflict(blockingCommit, (txn, _condition) -> {
+            startTimestamp.set(txn.getTimestamp());
+
+            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_1));
+            txnManager.getTimestampManagementService().fastForwardTimestamp(startTimestamp.get() + 999_999);
+            return null;
+        });
+    }
+
+    private static void awaitLatch(CountDownLatch commitMayFinish) {
+        try {
+            commitMayFinish.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {

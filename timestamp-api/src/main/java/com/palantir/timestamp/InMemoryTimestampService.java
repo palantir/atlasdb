@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * production code, but primarily this should only be used in test code.
  *
  * @author bdorne
- *
  */
 public class InMemoryTimestampService implements ManagedTimestampService {
     private final AtomicLong counter = new AtomicLong(0);
