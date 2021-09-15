@@ -36,6 +36,7 @@ import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -85,6 +86,8 @@ public abstract class TransactionTestSetup {
             TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table");
     protected static final TableReference TEST_TABLE_THOROUGH =
             TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table_thorough");
+    protected static final TableReference TEST_TABLE_SERIALIZABLE =
+            TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table_serializable");
 
     private final KvsManager kvsManager;
     private final TransactionManagerManager tmManager;
@@ -135,10 +138,20 @@ public abstract class TransactionTestSetup {
                         .negativeLookups(true)
                         .sweepStrategy(SweepStrategy.NOTHING)
                         .build()
+                        .persistToBytes(),
+                TEST_TABLE_SERIALIZABLE,
+                TableMetadata.builder()
+                        .rangeScanAllowed(true)
+                        .explicitCompressionBlockSizeKB(4)
+                        .negativeLookups(true)
+                        .conflictHandler(ConflictHandler.SERIALIZABLE)
+                        .sweepStrategy(SweepStrategy.NOTHING)
+                        .build()
                         .persistToBytes()));
         TransactionTables.createTables(keyValueService);
         TransactionTables.truncateTables(keyValueService);
         keyValueService.truncateTable(TEST_TABLE);
+        keyValueService.truncateTable(TEST_TABLE_SERIALIZABLE);
 
         InMemoryTimestampService ts = new InMemoryTimestampService();
         timestampService = ts;
