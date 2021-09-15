@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -69,6 +70,7 @@ import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
@@ -81,6 +83,11 @@ import org.junit.Test;
 
 @SuppressWarnings("CheckReturnValue")
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
+
+    private static final Cell CELL_ONE = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c1"));
+    private static final Cell CELL_TWO = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c2"));
+    private static final byte[] BYTES_ONE = PtBytes.toBytes("a");
+    private static final byte[] BYTES_TWO = PtBytes.toBytes("b");
 
     public AbstractSerializableTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
@@ -1076,6 +1083,52 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         // Because a read was done, we do not redo lock checks
         t1.commit();
+    }
+
+    @Test
+    public void testShouldNotReadValuesAtSuccessorTimestamp() {
+        TransactionManager manager = createManager();
+
+        manager.runTaskThrowOnConflict(tx -> {
+            tx.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_ONE));
+            return null;
+        });
+
+        assertThatThrownBy(() -> manager.runTaskThrowOnConflict(tx -> {
+                    long myTs = tx.getTimestamp();
+                    tx.get(TEST_TABLE_SERIALIZABLE, ImmutableSet.of(CELL_ONE));
+
+                    // This write is done to ensure that the transaction actually has writes that need to commit
+                    tx.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_TWO, BYTES_TWO));
+
+                    // This orchestrates a transaction that writes "B" to the cell
+                    keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_TWO), myTs + 1);
+                    transactionService.putUnlessExists(myTs + 1, myTs + 2);
+
+                    // This primes the timestamp service to give us a known commit timestamp.
+                    long commitTimestamp = myTs + 1_000_000;
+                    timestampManagementService.fastForwardTimestamp(commitTimestamp - 1);
+
+                    // This orchestrates a transaction that writes "A" back to the cell, BUT it commits at
+                    // commitTimestamp + 1
+                    // It is imperative that we do NOT read this transaction's writes!
+                    keyValueService.put(
+                            TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_ONE), commitTimestamp - 1);
+                    transactionService.putUnlessExists(commitTimestamp - 1, commitTimestamp + 1);
+                    return null;
+                }))
+                .isInstanceOf(TransactionSerializableConflictException.class)
+                .hasMessageContaining("There was a read-write conflict");
+    }
+
+    @Test
+    public void testReadMyOwnWritesShouldNotConflict() {
+        createManager().runTaskThrowOnConflict(tx -> {
+            tx.get(TEST_TABLE_SERIALIZABLE, ImmutableSet.of(CELL_ONE));
+            tx.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_ONE));
+            tx.get(TEST_TABLE_SERIALIZABLE, ImmutableSet.of(CELL_ONE));
+            return null;
+        });
     }
 
     private void testMarkTableInvolvedForcesPreCommitConditionCheckingOnCommit(TableReference table) {
