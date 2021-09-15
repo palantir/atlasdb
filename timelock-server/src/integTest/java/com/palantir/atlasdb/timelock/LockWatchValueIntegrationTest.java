@@ -42,7 +42,6 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -65,9 +64,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import org.awaitility.Awaitility;
 import org.junit.Before;
@@ -423,7 +419,7 @@ public final class LockWatchValueIntegrationTest {
             LockToken lockToken = LockToken.of(UUID.randomUUID());
             cache.processStartTransactionsUpdate(ImmutableSet.of(commitTimestamp - 1), LockWatchStateUpdate.success(
                     lastKnownVersion.id(), lastKnownVersion.version() + 1,
-                    ImmutableList.of(LockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(TABLE,
+                    ImmutableList.of(LockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(),
                                     CELL_1.getRowName(), CELL_1.getColumnName())), lockToken)
                             .build(lastKnownVersion.version() + 1))
             ));
@@ -431,68 +427,10 @@ public final class LockWatchValueIntegrationTest {
                     commitTimestamp - 1
             ).commitTs(commitTimestamp + 1).writesToken(lockToken).build()), LockWatchStateUpdate.success(
                     lastKnownVersion.id(), lastKnownVersion.version() + 2,
-                    ImmutableList.of(UnlockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(TABLE,
+                    ImmutableList.of(UnlockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(),
                                     CELL_1.getRowName(), CELL_1.getColumnName())))
                             .build(lastKnownVersion.version() + 2))
             ));
-
-
-                        /*
-            long myTs = tx.getTimestamp();
-                    tx.get(TEST_TABLE_SERIALIZABLE, ImmutableSet.of(CELL_ONE));
-
-                    // This write is done to ensure that the transaction actually has writes that need to commit
-                    tx.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_TWO, BYTES_TWO));
-
-                    // This orchestrates a transaction that writes "B" to the cell
-                    keyValueService.put(TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_TWO), myTs + 1);
-                    transactionService.putUnlessExists(myTs + 1, myTs + 2);
-
-                    // This primes the timestamp service to give us a known commit timestamp.
-                    long commitTimestamp = myTs + 1_000_000;
-                    timestampManagementService.fastForwardTimestamp(commitTimestamp - 1);
-
-                    // This orchestrates a transaction that writes "A" back to the cell, BUT it commits at
-                    // commitTimestamp + 1
-                    // It is imperative that we do NOT read this transaction's writes!
-                    keyValueService.put(
-                            TEST_TABLE_SERIALIZABLE, ImmutableMap.of(CELL_ONE, BYTES_ONE), commitTimestamp - 1);
-                    transactionService.putUnlessExists(commitTimestamp - 1, commitTimestamp + 1);
-                    return null;
-             */
-
-            return null;
-        });
-
-        CountDownLatch withinCommit = new CountDownLatch(1);
-        CountDownLatch commitMayFinish = new CountDownLatch(1);
-        AtomicLong startTimestamp = new AtomicLong(-1L);
-        AtomicLong commitTimestamp = new AtomicLong(-1L);
-        PreCommitCondition blockingCommit = timestamp -> {
-            if (timestamp != startTimestamp.get()) {
-                commitTimestamp.set(timestamp);
-                withinCommit.countDown();
-                awaitLatch(commitMayFinish);
-            }
-        };
-
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.submit(() -> {
-            txnManager.runTaskThrowOnConflict(txn -> {
-                txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4));
-                awaitLatch(withinCommit);
-                txnManager.getTimestampManagementService().fastForwardTimestamp(commitTimestamp.get());
-                return null;
-            });
-            commitMayFinish.countDown();
-        });
-
-        txnManager.runTaskWithConditionThrowOnConflict(blockingCommit, (txn, _condition) -> {
-            startTimestamp.set(txn.getTimestamp());
-
-            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-            txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_1));
-            txnManager.getTimestampManagementService().fastForwardTimestamp(startTimestamp.get() + 999_999);
             return null;
         });
     }
@@ -576,7 +514,7 @@ public final class LockWatchValueIntegrationTest {
     private void awaitLockWatches(Predicate<Long> versionPredicate) {
         LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager();
         Awaitility.await()
-                .atMost(Duration.ofSeconds(5))
+                .atMost(Duration.ofSeconds(500))
                 .pollDelay(Duration.ofMillis(100))
                 .until(() -> {
                     // Empty transaction will still get an update for lock watches
