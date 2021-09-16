@@ -432,7 +432,7 @@ public final class LockWatchValueIntegrationTest {
 
         lwCache.get()
                 .processStartTransactionsUpdate(
-                        ImmutableSet.of(timestamp - 1), getLockSuccessUpdate(lockToken, lastKnownVersion));
+                        ImmutableSet.of(timestamp - 1), createLockSuccessUpdate(lockToken, lastKnownVersion));
         lwCache.get()
                 .processCommitTimestampsUpdate(
                         ImmutableSet.of(TransactionUpdate.builder()
@@ -440,31 +440,10 @@ public final class LockWatchValueIntegrationTest {
                                 .commitTs(timestamp + 1)
                                 .writesToken(lockToken)
                                 .build()),
-                        getUnlockSuccessUpdate(lastKnownVersion));
+                        createUnlockSuccessUpdate(lastKnownVersion));
 
         txnManager.getKeyValueService().put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4), timestamp - 1);
         txnManager.getTransactionService().putUnlessExists(timestamp - 1, timestamp + 1);
-    }
-
-    private static LockWatchStateUpdate.Success getUnlockSuccessUpdate(LockWatchVersion lastKnownVersion) {
-        return LockWatchStateUpdate.success(
-                lastKnownVersion.id(),
-                lastKnownVersion.version() + 2,
-                ImmutableList.of(UnlockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(
-                                TABLE_REF.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())))
-                        .build(lastKnownVersion.version() + 2)));
-    }
-
-    private static LockWatchStateUpdate.Success getLockSuccessUpdate(
-            LockToken lockToken, LockWatchVersion lastKnownVersion) {
-        return LockWatchStateUpdate.success(
-                lastKnownVersion.id(),
-                lastKnownVersion.version() + 1,
-                ImmutableList.of(LockEvent.builder(
-                                ImmutableSet.of(AtlasCellLockDescriptor.of(
-                                        TABLE_REF.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())),
-                                lockToken)
-                        .build(lastKnownVersion.version() + 1)));
     }
 
     private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {
@@ -578,6 +557,27 @@ public final class LockWatchValueIntegrationTest {
                         Optional.empty(),
                         createSchema())
                 .transactionManager();
+    }
+
+    private static LockWatchStateUpdate.Success createUnlockSuccessUpdate(LockWatchVersion lastKnownVersion) {
+        return LockWatchStateUpdate.success(
+                lastKnownVersion.id(),
+                lastKnownVersion.version() + 2,
+                ImmutableList.of(UnlockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(
+                                TABLE_REF.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())))
+                        .build(lastKnownVersion.version() + 2)));
+    }
+
+    private static LockWatchStateUpdate.Success createLockSuccessUpdate(
+            LockToken lockToken, LockWatchVersion lastKnownVersion) {
+        return LockWatchStateUpdate.success(
+                lastKnownVersion.id(),
+                lastKnownVersion.version() + 1,
+                ImmutableList.of(LockEvent.builder(
+                                ImmutableSet.of(AtlasCellLockDescriptor.of(
+                                        TABLE_REF.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())),
+                                lockToken)
+                        .build(lastKnownVersion.version() + 1)));
     }
 
     private static Schema createSchema() {
