@@ -379,20 +379,17 @@ public final class LockWatchValueIntegrationTest {
         // truncate the table to verify we are really using the cached values
         truncateTable();
 
-        assertThatCode(() -> txnManager.runTaskThrowOnConflict(txn -> {
-                    NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
-                    // we read the values previously cached values
-                    assertHitValues(
-                            txn,
-                            ImmutableSet.of(
-                                    CellReference.of(TABLE_REF, CELL_2),
-                                    CellReference.of(TABLE_REF, CELL_3),
-                                    TABLE_CELL_4));
-                    // we weren't able to cache our own write, so we look this up
-                    assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
-                    return read;
-                }))
-                .doesNotThrowAnyException();
+        txnManager.runTaskThrowOnConflict(txn -> {
+            NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
+            // we read the values previously cached values
+            assertHitValues(
+                    txn,
+                    ImmutableSet.of(
+                            CellReference.of(TABLE_REF, CELL_2), CellReference.of(TABLE_REF, CELL_3), TABLE_CELL_4));
+            // we weren't able to cache our own write, so we look this up
+            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
+            return read;
+        });
     }
 
     @Test
@@ -413,16 +410,17 @@ public final class LockWatchValueIntegrationTest {
             }
         };
 
-        txnManager.runTaskWithConditionThrowOnConflict(condition, (txn, _unused) -> {
-            startTs.set(txn.getTimestamp());
-            lwCache.set(((LockWatchManagerInternal) txnManager.getLockWatchManager()).getCache());
+        assertThatCode(() -> txnManager.runTaskWithConditionThrowOnConflict(condition, (txn, _unused) -> {
+                    startTs.set(txn.getTimestamp());
+                    lwCache.set(((LockWatchManagerInternal) txnManager.getLockWatchManager()).getCache());
 
-            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-            // A write forces this to go through serializable conflict checking
-            txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_1));
+                    txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+                    // A write forces this to go through serializable conflict checking
+                    txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_1));
 
-            return null;
-        });
+                    return null;
+                }))
+                .doesNotThrowAnyException();
     }
 
     private void simulateTransaction(AtomicReference<LockWatchCache> lwCache, long timestamp) {
