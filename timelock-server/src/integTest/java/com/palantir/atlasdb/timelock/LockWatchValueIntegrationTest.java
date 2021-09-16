@@ -430,7 +430,6 @@ public final class LockWatchValueIntegrationTest {
         LockWatchVersion lastKnownVersion =
                 lwCache.get().getEventCache().lastKnownVersion().get();
 
-        // Simulate running a transaction that starts committing after this one, but completes before
         lwCache.get()
                 .processStartTransactionsUpdate(
                         ImmutableSet.of(timestamp - 1), getLockSuccessUpdate(lockToken, lastKnownVersion));
