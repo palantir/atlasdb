@@ -379,17 +379,20 @@ public final class LockWatchValueIntegrationTest {
         // truncate the table to verify we are really using the cached values
         truncateTable();
 
-        txnManager.runTaskThrowOnConflict(txn -> {
-            NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
-            // we read the values previously cached values
-            assertHitValues(
-                    txn,
-                    ImmutableSet.of(
-                            CellReference.of(TABLE_REF, CELL_2), CellReference.of(TABLE_REF, CELL_3), TABLE_CELL_4));
-            // we weren't able to cache our own write, so we look this up
-            assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
-            return read;
-        });
+        assertThatCode(() -> txnManager.runTaskThrowOnConflict(txn -> {
+                    NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
+                    // we read the values previously cached values
+                    assertHitValues(
+                            txn,
+                            ImmutableSet.of(
+                                    CellReference.of(TABLE_REF, CELL_2),
+                                    CellReference.of(TABLE_REF, CELL_3),
+                                    TABLE_CELL_4));
+                    // we weren't able to cache our own write, so we look this up
+                    assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
+                    return read;
+                }))
+                .doesNotThrowAnyException();
     }
 
     @Test
