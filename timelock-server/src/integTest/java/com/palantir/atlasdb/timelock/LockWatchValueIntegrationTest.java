@@ -42,6 +42,7 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -63,7 +64,8 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import org.awaitility.Awaitility;
 import org.junit.Before;
@@ -184,16 +186,16 @@ public final class LockWatchValueIntegrationTest {
         // Nested transactions are normally discouraged, but it is easier to create a conflict this way (compared to
         // using executors, which is much more heavy-handed).
         assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
-            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-            txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_2));
+                    txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+                    txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_2));
 
-            txnManager.runTaskThrowOnConflict(txn2 -> {
-                txn2.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
-                return null;
-            });
-            awaitUnlock();
-            return null;
-        }))
+                    txnManager.runTaskThrowOnConflict(txn2 -> {
+                        txn2.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
+                        return null;
+                    });
+                    awaitUnlock();
+                    return null;
+                }))
                 .isExactlyInstanceOf(TransactionSerializableConflictException.class)
                 .hasMessageContaining("There was a read-write conflict on table");
     }
@@ -204,10 +206,10 @@ public final class LockWatchValueIntegrationTest {
         loadValue();
 
         assertThatCode(() -> txnManager.runTaskThrowOnConflict(txn -> {
-            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
-            return null;
-        }))
+                    txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+                    txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_3));
+                    return null;
+                }))
                 .doesNotThrowAnyException();
     }
 
@@ -279,10 +281,10 @@ public final class LockWatchValueIntegrationTest {
         loadValue();
 
         assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
-            overwriteValueViaKvs(txn, ImmutableMap.of(CELL_1, DATA_2));
-            txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
-            return null;
-        }))
+                    overwriteValueViaKvs(txn, ImmutableMap.of(CELL_1, DATA_2));
+                    txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+                    return null;
+                }))
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("Failed lock watch cache validation - will retry without caching");
 
@@ -400,47 +402,67 @@ public final class LockWatchValueIntegrationTest {
 
         awaitUnlock();
 
-        txnManager.runTaskThrowOnConflict(txn -> {
-            long startTimestamp = txn.getTimestamp();
+        AtomicLong startTs = new AtomicLong(-1L);
+        AtomicReference<LockWatchCache> lwCache = new AtomicReference<>(null);
+        PreCommitCondition condition = timestamp -> {
+            if (timestamp != startTs.get()) {
+                simulateTransaction(lwCache, timestamp);
+            }
+        };
+
+        txnManager.runTaskWithConditionThrowOnConflict(condition, (txn, _unused) -> {
+            startTs.set(txn.getTimestamp());
+            lwCache.set(((LockWatchManagerInternal) txnManager.getLockWatchManager()).getCache());
 
             txn.get(TABLE_REF, ImmutableSet.of(CELL_1));
+            // A write forces this to go through serializable conflict checking
             txn.put(TABLE_REF, ImmutableMap.of(CELL_2, DATA_1));
-            long commitTimestamp = startTimestamp + 1_000_000;
-            txnManager.getTimestampManagementService().fastForwardTimestamp(commitTimestamp - 1);
 
-            txnManager.getKeyValueService()
-                    .put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4), commitTimestamp - 1);
-            txnManager.getTransactionService()
-                    .putUnlessExists(commitTimestamp - 1, commitTimestamp + 1);
-            LockWatchCache cache = ((LockWatchManagerInternal) txnManager.getLockWatchManager())
-                    .getCache();
-            LockWatchVersion lastKnownVersion = cache.getEventCache().lastKnownVersion().get();
-
-            LockToken lockToken = LockToken.of(UUID.randomUUID());
-            cache.processStartTransactionsUpdate(ImmutableSet.of(commitTimestamp - 1), LockWatchStateUpdate.success(
-                    lastKnownVersion.id(), lastKnownVersion.version() + 1,
-                    ImmutableList.of(LockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(),
-                                    CELL_1.getRowName(), CELL_1.getColumnName())), lockToken)
-                            .build(lastKnownVersion.version() + 1))
-            ));
-            cache.processCommitTimestampsUpdate(ImmutableSet.of(TransactionUpdate.builder().startTs(
-                    commitTimestamp - 1
-            ).commitTs(commitTimestamp + 1).writesToken(lockToken).build()), LockWatchStateUpdate.success(
-                    lastKnownVersion.id(), lastKnownVersion.version() + 2,
-                    ImmutableList.of(UnlockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(),
-                                    CELL_1.getRowName(), CELL_1.getColumnName())))
-                            .build(lastKnownVersion.version() + 2))
-            ));
             return null;
         });
     }
 
-    private static void awaitLatch(CountDownLatch commitMayFinish) {
-        try {
-            commitMayFinish.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+    private void simulateTransaction(AtomicReference<LockWatchCache> lwCache, long timestamp) {
+        LockToken lockToken = LockToken.of(UUID.randomUUID());
+        LockWatchVersion lastKnownVersion =
+                lwCache.get().getEventCache().lastKnownVersion().get();
+
+        // Simulate running a transaction that starts committing after this one, but completes before
+        lwCache.get()
+                .processStartTransactionsUpdate(
+                        ImmutableSet.of(timestamp - 1), getLockSuccessUpdate(lockToken, lastKnownVersion));
+        lwCache.get()
+                .processCommitTimestampsUpdate(
+                        ImmutableSet.of(TransactionUpdate.builder()
+                                .startTs(timestamp - 1)
+                                .commitTs(timestamp + 1)
+                                .writesToken(lockToken)
+                                .build()),
+                        getUnlockSuccessUpdate(lastKnownVersion));
+
+        txnManager.getKeyValueService().put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4), timestamp - 1);
+        txnManager.getTransactionService().putUnlessExists(timestamp - 1, timestamp + 1);
+    }
+
+    private static LockWatchStateUpdate.Success getUnlockSuccessUpdate(LockWatchVersion lastKnownVersion) {
+        return LockWatchStateUpdate.success(
+                lastKnownVersion.id(),
+                lastKnownVersion.version() + 2,
+                ImmutableList.of(UnlockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(
+                                TABLE_REF.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())))
+                        .build(lastKnownVersion.version() + 2)));
+    }
+
+    private static LockWatchStateUpdate.Success getLockSuccessUpdate(
+            LockToken lockToken, LockWatchVersion lastKnownVersion) {
+        return LockWatchStateUpdate.success(
+                lastKnownVersion.id(),
+                lastKnownVersion.version() + 1,
+                ImmutableList.of(LockEvent.builder(
+                                ImmutableSet.of(AtlasCellLockDescriptor.of(
+                                        TABLE_REF.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())),
+                                lockToken)
+                        .build(lastKnownVersion.version() + 1)));
     }
 
     private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {
