@@ -538,7 +538,7 @@ public final class LockWatchValueIntegrationTest {
     private void awaitLockWatches(Predicate<Long> versionPredicate) {
         LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager();
         Awaitility.await()
-                .atMost(Duration.ofSeconds(500))
+                .atMost(Duration.ofSeconds(5))
                 .pollDelay(Duration.ofMillis(100))
                 .until(() -> {
                     // Empty transaction will still get an update for lock watches
