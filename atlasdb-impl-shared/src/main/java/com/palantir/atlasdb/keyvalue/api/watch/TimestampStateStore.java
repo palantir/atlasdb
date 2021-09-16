@@ -50,13 +50,11 @@ final class TimestampStateStore {
     void putCommitUpdates(Collection<TransactionUpdate> transactionUpdates, LockWatchVersion newVersion) {
         transactionUpdates.forEach(transactionUpdate -> {
             StartTimestamp startTimestamp = StartTimestamp.of(transactionUpdate.startTs());
-            MapEntry previousEntry = timestampMap.get(startTimestamp);
-            if (previousEntry == null) {
-                throw new TransactionLockWatchFailedException("start timestamp missing from map");
-            }
+            MapEntry previousEntry = Optional.ofNullable(timestampMap.get(startTimestamp))
+                    .orElseThrow(() -> new TransactionLockWatchFailedException("start timestamp missing from map"));
 
             Preconditions.checkArgument(
-                    !previousEntry.commitInfo().isPresent(), "Commit info already present for given timestamp");
+                    previousEntry.commitInfo().isEmpty(), "Commit info already present for given timestamp");
 
             timestampMap.replace(
                     startTimestamp,
