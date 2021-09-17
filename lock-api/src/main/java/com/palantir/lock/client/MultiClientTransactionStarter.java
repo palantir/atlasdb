@@ -16,7 +16,6 @@
 
 package com.palantir.lock.client;
 
-import static com.palantir.lock.client.ConjureLockRequests.fromConjure;
 import static com.palantir.lock.client.ConjureLockRequests.toConjure;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -117,8 +116,9 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
             responseHandlers
                     .computeIfAbsent(
                             namespace,
-                            _unused ->
-                                    new ResponseHandler(requestParams.params().lockCleanupService()))
+                            _unused -> new ResponseHandler(
+                                    requestParams.params().lockCleanupService(),
+                                    requestParams.params().cache()))
                     .addPendingFuture(SettableResponse.of(requestParams.params().numTransactions(), element.result()));
         }
 
@@ -148,9 +148,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
             Namespace namespace = entry.getKey();
             ConjureStartTransactionsResponse response = entry.getValue();
             TransactionStarterHelper.updateCacheWithStartTransactionResponse(
-                    originalRequestMap.get(namespace).cache(),
-                    fromConjure(requests.get(namespace).getLastKnownVersion()),
-                    response);
+                    originalRequestMap.get(namespace).cache(), response);
             processedResult.put(namespace, TransactionStarterHelper.split(response));
         }
         return processedResult;
@@ -273,8 +271,10 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         private final Queue<SettableResponse> pendingFutures;
         private final Queue<StartIdentifiedAtlasDbTransactionResponse> transientResponseList;
         private final LockCleanupService lockCleanupService;
+        private final LockWatchCache cache;
 
-        ResponseHandler(LockCleanupService lockCleanupService) {
+        ResponseHandler(LockCleanupService lockCleanupService, LockWatchCache cache) {
+            this.cache = cache;
             this.pendingFutures = new ArrayDeque<>();
             this.transientResponseList = new ArrayDeque<>();
             this.lockCleanupService = lockCleanupService;
@@ -307,6 +307,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
         @Override
         public void close() {
             if (!transientResponseList.isEmpty()) {
+                TransactionStarterHelper.cleanUpCaches(cache, transientResponseList);
                 TransactionStarterHelper.unlock(
                         transientResponseList.stream()
                                 .map(response -> response.immutableTimestamp().getLock())

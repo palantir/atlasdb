@@ -86,9 +86,10 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
                         cache.getEventCache().lastKnownVersion();
                 ConjureStartTransactionsResponse response = lockLeaseService.startTransactionsWithWatches(
                         requestedVersion, numberOfTransactions - result.size());
-                TransactionStarterHelper.updateCacheWithStartTransactionResponse(cache, requestedVersion, response);
+                TransactionStarterHelper.updateCacheWithStartTransactionResponse(cache, response);
                 result.addAll(TransactionStarterHelper.split(response));
             } catch (Throwable t) {
+                TransactionStarterHelper.cleanUpCaches(cache, result);
                 TransactionStarterHelper.unlock(
                         result.stream()
                                 .map(response -> response.immutableTimestamp().getLock())
