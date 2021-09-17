@@ -154,7 +154,6 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
             List<Long> commitTimestamps = getCommitTimestampValues(commitTimestampsResponse);
 
             processLockWatchUpdate(commitTimestamps, commitTimestampsResponse.getLockWatchUpdate());
-            LockWatchLogUtility.logTransactionEvents(lastKnownVersion, commitTimestampsResponse.getLockWatchUpdate());
 
             for (Long commitTimestamp : commitTimestamps) {
                 pendingRequestQueue.poll().result().set(commitTimestamp);

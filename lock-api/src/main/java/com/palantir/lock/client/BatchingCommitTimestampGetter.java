@@ -73,7 +73,6 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
                 GetCommitTimestampsResponse response =
                         leaseService.getCommitTimestamps(requestedVersion, count - commitTimestamps.size());
                 commitTimestamps.addAll(process(batch.subList(commitTimestamps.size(), count), response, cache));
-                LockWatchLogUtility.logTransactionEvents(requestedVersion, response.getLockWatchUpdate());
             }
 
             for (int i = 0; i < count; i++) {
