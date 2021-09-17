@@ -137,6 +137,12 @@ public class MultiClientTransactionStarterTest {
         LockCleanupService relevantLockCleanupService = LOCK_CLEANUP_SERVICE_MAP.get(namespace);
         verify(relevantLockCleanupService).refreshLockLeases(any());
         verify(relevantLockCleanupService).unlock(any());
+
+        /*
+         * For one space, all requests are accumulated, and we attempt to fetch as many respones as possible from the
+         * server. Concretely, the queue here contains 25 demands for a response. The first one succeeds, but the
+         * next four fail (and each batch size is five), and thus we get four calls to clean up.
+         */
         verify(NAMESPACE_CACHE_MAP.get(namespace), times(4)).removeTransactionStateFromCache(anyLong());
     }
 
@@ -170,6 +176,8 @@ public class MultiClientTransactionStarterTest {
         verify(LOCK_CLEANUP_SERVICE_MAP.get(beta)).refreshLockLeases(any());
         verify(LOCK_CLEANUP_SERVICE_MAP.get(beta)).unlock(any());
         verify(NAMESPACE_CACHE_MAP.get(alpha), never()).removeTransactionStateFromCache(anyLong());
+
+        // The size of each batch is 5 here, and thus for a single batch we need to clean up five times
         verify(NAMESPACE_CACHE_MAP.get(beta), times(5)).removeTransactionStateFromCache(anyLong());
     }
 
