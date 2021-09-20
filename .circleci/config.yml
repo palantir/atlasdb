@@ -67,7 +67,7 @@ jobs:
               sudo ln -s /opt/java/zulu*/ /opt/java8
       - run:
           command: ./scripts/circle-ci/run-circle-tests.sh
-          no_output_timeout: 600
+          no_output_timeout: 30m
       - run: ./scripts/circle-ci/ensure-repo-clean.sh
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
       - run:
