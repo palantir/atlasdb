@@ -138,11 +138,11 @@ public class DefaultCqlClientFactory implements CqlClientFactory {
         // Refuse to talk to nodes twice as (latency-wise) slow as the best one, over a timescale of 100ms,
         // and every 10s try to re-evaluate ignored nodes performance by giving them queries again.
         //
-        // We are using the DCAware RR policy specifically to support "datacenter switch"-style Cassandra,
-        // migrations (see https://thelastpickle.com/blog/2019/02/26/data-center-switch.html),
-        // and don't expect the policy to be helpful for latency improvements.
+        // The DCAware RR policy prevents auto-discovery of remote datacenter contact points in a multi-DC setup,
+        // which we are using to orchestrate migrations across datacenters.  We don't expect the policy to be helpful
+        // for latency improvements.
         //
-        // We don't specify the local DC, so it will get set based on the contact points we provide.
+        // Since the local DC isn't specified, it will get set based on the contact points we provide.
         LoadBalancingPolicy policy = LatencyAwarePolicy.builder(
                         DCAwareRoundRobinPolicy.builder().build())
                 .build();
