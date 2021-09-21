@@ -61,4 +61,6 @@ public interface LockWatchEventCache {
      * still-held version, and therefore may trigger retention in the underlying event log.
      */
     void removeTransactionStateFromCache(long startTimestamp);
+
+    CommitUpdate getEventUpdate(long startTimestamp);
 }

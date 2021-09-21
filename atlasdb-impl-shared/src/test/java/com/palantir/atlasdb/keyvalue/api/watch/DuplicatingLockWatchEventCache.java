@@ -78,6 +78,11 @@ class DuplicatingLockWatchEventCache implements LockWatchEventCache {
         mainCache.removeTransactionStateFromCache(startTimestamp);
     }
 
+    @Override
+    public CommitUpdate getEventUpdate(long startTimestamp) {
+        return mainCache.getEventUpdate(startTimestamp);
+    }
+
     private void validateVersionEquality() {
         assertThat(mainCache.lastKnownVersion()).isEqualTo(secondaryCache.lastKnownVersion());
     }

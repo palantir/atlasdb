@@ -37,14 +37,16 @@ public interface LockWatchValueScopingCache extends LockWatchValueCache {
     void processStartTransactions(Set<Long> startTimestamps);
 
     /**
-     * This does *not* remove state from the cache - {@link #removeTransactionState(long)} must be called at the end
+     * This does *not* remove state from the cache - {@link #ensureStateRemoved(long)} must be called at the end
      * of the transaction to do so, or else there will be a memory leak.
      */
     @Override
-    void updateCacheOnCommit(Set<Long> startTimestamps);
+    void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps);
 
     @Override
-    void removeTransactionState(long startTimestamp);
+    void ensureStateRemoved(long startTimestamp);
+
+    void onSuccessfulCommit(long startTimestamp);
 
     TransactionScopedCache getTransactionScopedCache(long startTs);
 

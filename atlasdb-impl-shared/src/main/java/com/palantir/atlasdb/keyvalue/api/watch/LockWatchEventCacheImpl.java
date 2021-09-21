@@ -94,7 +94,25 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .endVersion(commitInfo.commitVersion())
                 .build();
 
-        return eventLog.getEventsBetweenVersions(versionBounds).toCommitUpdate(startVersion.get(), commitInfo);
+        return eventLog.getEventsBetweenVersions(versionBounds)
+                .toCommitUpdate(startVersion.get(), endVersion, commitInfo);
+    }
+
+    @Override
+    public CommitUpdate getEventUpdate(long startTs) {
+        Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
+        Optional<LockWatchVersion> currentVersion = eventLog.getLatestKnownVersion();
+
+        assertTrue(
+                currentVersion.isPresent() && startVersion.isPresent(), "essential information missing for timestamp");
+
+        VersionBounds versionBounds = VersionBounds.builder()
+                .startVersion(startVersion)
+                .endVersion(currentVersion.get())
+                .build();
+
+        return eventLog.getEventsBetweenVersions(versionBounds)
+                .toCommitUpdate(startVersion.get(), endVersion, currentVersion.get());
     }
 
     @Override

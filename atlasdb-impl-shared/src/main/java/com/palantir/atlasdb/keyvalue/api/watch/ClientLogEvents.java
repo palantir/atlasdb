@@ -80,7 +80,8 @@ interface ClientLogEvents {
                 .build();
     }
 
-    default CommitUpdate toCommitUpdate(LockWatchVersion startVersion, CommitInfo commitInfo) {
+    default CommitUpdate toCommitUpdate(
+            LockWatchVersion startVersion, LockWatchVersion endVersion, Optional<CommitInfo> commitInfo) {
         if (clearCache()) {
             return CommitUpdate.invalidateAll();
         }

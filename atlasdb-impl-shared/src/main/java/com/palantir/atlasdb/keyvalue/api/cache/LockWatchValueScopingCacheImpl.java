@@ -29,7 +29,6 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -100,41 +99,29 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public synchronized void updateCacheOnCommit(Set<Long> startTimestamps) {
+    public synchronized void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps) {
         startTimestamps.forEach(this::processCommitUpdate);
     }
 
     @Override
-    public synchronized void removeTransactionState(long startTimestamp) {
+    public synchronized void ensureStateRemoved(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         snapshotStore.removeTimestamp(startTs);
         cacheStore.removeCache(startTs);
     }
 
     @Override
-    public TransactionScopedCache getTransactionScopedCache(long startTs) {
-        return cacheStore.getCache(StartTimestamp.of(startTs));
-    }
-
-    @Override
-    public TransactionScopedCache getReadOnlyTransactionScopedCacheForCommit(long startTs) {
-        return cacheStore.getReadOnlyCache(StartTimestamp.of(startTs));
-    }
-
-    private synchronized void processCommitUpdate(long startTimestamp) {
+    public synchronized void onSuccessfulCommit(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         TransactionScopedCache cache = cacheStore.getCache(startTs);
-        cache.finalise();
 
         Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
         if (cachedValues.isEmpty()) {
             return;
         }
 
-        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
-        cacheStore.createReadOnlyCache(startTs, commitUpdate);
-
-        commitUpdate.accept(new Visitor<Void>() {
+        CommitUpdate commitUpdate = eventCache.getEventUpdate(startTimestamp);
+        commitUpdate.accept(new CommitUpdate.Visitor<Void>() {
             @Override
             public Void invalidateAll() {
                 // This might happen due to an election or if we exceeded the maximum number of events held in
@@ -155,6 +142,25 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 return null;
             }
         });
+        ensureStateRemoved(startTimestamp);
+    }
+
+    @Override
+    public TransactionScopedCache getTransactionScopedCache(long startTs) {
+        return cacheStore.getCache(StartTimestamp.of(startTs));
+    }
+
+    @Override
+    public TransactionScopedCache getReadOnlyTransactionScopedCacheForCommit(long startTs) {
+        return cacheStore.getReadOnlyCache(StartTimestamp.of(startTs));
+    }
+
+    private synchronized void processCommitUpdate(long startTimestamp) {
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        TransactionScopedCache cache = cacheStore.getCache(startTs);
+        cache.finalise();
+        CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
+        cacheStore.createReadOnlyCache(startTs, commitUpdate);
     }
 
     /**
