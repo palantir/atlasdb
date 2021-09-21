@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Enabling Cassandra Tracing &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Enabling Cassandra Tracing &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -91,10 +89,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="enabling-cassandra-tracing">
-<span id="id1"></span><h1>Enabling Cassandra Tracing<a class="headerlink" href="#enabling-cassandra-tracing" title="Permalink to this headline"></a></h1>
-<section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
+  <div class="section" id="enabling-cassandra-tracing">
+<span id="id1"></span><h1>Enabling Cassandra Tracing<a class="headerlink" href="#enabling-cassandra-tracing" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>Sometimes in order to do deeper performance analysis of queries hitting
 your Cassandra cluster, you’ll want to enable tracing.  To learn more
 about tracing itself check out DataStax’s <a class="reference external" href="http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2">Request tracing in Cassandra
@@ -105,45 +103,45 @@ Java process, which is the directory from which java was executed.</p>
 <p>When a query is traced, you will see the following line your log file:
 <code class="docutils literal notranslate"><span class="pre">Traced</span> <span class="pre">a</span> <span class="pre">call</span> <span class="pre">to</span> <span class="pre">&lt;table-name&gt;</span> <span class="pre">that</span> <span class="pre">took</span> <span class="pre">&lt;duration&gt;</span> <span class="pre">ms.</span> <span class="pre">It</span> <span class="pre">will</span> <span class="pre">appear</span> <span class="pre">in</span> <span class="pre">system_traces</span> <span class="pre">with</span> <span class="pre">UUID=&lt;session-id-of-trace&gt;</span></code></p>
 <div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Trace logging is meant to be a temporary tool for performance analysis.
+<p class="first admonition-title">Warning</p>
+<p class="last">Trace logging is meant to be a temporary tool for performance analysis.
 Leaving tracing enabled on a production instance is not recommended due to performance implications.
 Ensure you disable tracing after your performance profiling is completed.</p>
 </div>
-</section>
-<section id="the-prefs-file">
-<h2>The Prefs File<a class="headerlink" href="#the-prefs-file" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="the-prefs-file">
+<h2>The Prefs File<a class="headerlink" href="#the-prefs-file" title="Permalink to this headline">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">atlas_tracing.prefs</span></code> is a standard java properties file with
 the following parameters:</p>
-<div class="highlight-properties notranslate"><div class="highlight"><pre><span></span><span class="c"># enables tracing</span>
-<span class="c"># this will cause a significant performance hit while enabled</span>
-<span class="c"># ensure you disable tracing after your performance profiling is completed</span>
-<span class="na">tracing_enabled</span><span class="o">:</span> <span class="s">true</span>
+<div class="code properties highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># enables tracing</span>
+<span class="c1"># this will cause a significant performance hit while enabled</span>
+<span class="c1"># ensure you disable tracing after your performance profiling is completed</span>
+<span class="n">tracing_enabled</span><span class="p">:</span> <span class="n">true</span>
 
-<span class="c"># the probability we trace an eligible query</span>
-<span class="c"># this is a pre-filter and a good tool to use to ensure you&#39;re not tracing</span>
-<span class="c"># frequently enough to incur performance degradation</span>
-<span class="na">trace_probability</span><span class="o">:</span> <span class="s">1.0</span>
+<span class="c1"># the probability we trace an eligible query</span>
+<span class="c1"># this is a pre-filter and a good tool to use to ensure you&#39;re not tracing</span>
+<span class="c1"># frequently enough to incur performance degradation</span>
+<span class="n">trace_probability</span><span class="p">:</span> <span class="mf">1.0</span>
 
-<span class="c"># a comma-separated list of tables whose queries are eligible for tracing</span>
-<span class="c"># for namespaced tables the table entry must be &lt;namespace&gt;.&lt;table&gt;</span>
-<span class="c"># like &quot;trace_probability&quot;, this is also a pre-filter</span>
-<span class="na">tables_to_trace</span><span class="o">:</span> <span class="s">_transactions,namespaceOne.table_7,namespaceTwo.table_3</span>
+<span class="c1"># a comma-separated list of tables whose queries are eligible for tracing</span>
+<span class="c1"># for namespaced tables the table entry must be &lt;namespace&gt;.&lt;table&gt;</span>
+<span class="c1"># like &quot;trace_probability&quot;, this is also a pre-filter</span>
+<span class="n">tables_to_trace</span><span class="p">:</span> <span class="n">_transactions</span><span class="p">,</span><span class="n">namespaceOne</span><span class="o">.</span><span class="n">table_7</span><span class="p">,</span><span class="n">namespaceTwo</span><span class="o">.</span><span class="n">table_3</span>
 
-<span class="c"># the minimum amount of time a traced query has to take to actually be logged</span>
-<span class="c"># this is a post-filter and so the trace is still done (and thus still incurs</span>
-<span class="c"># a performance hit) even if you do not log it</span>
-<span class="na">min_duration_to_log_ms</span><span class="o">:</span> <span class="s">1000</span>
+<span class="c1"># the minimum amount of time a traced query has to take to actually be logged</span>
+<span class="c1"># this is a post-filter and so the trace is still done (and thus still incurs</span>
+<span class="c1"># a performance hit) even if you do not log it</span>
+<span class="n">min_duration_to_log_ms</span><span class="p">:</span> <span class="mi">1000</span>
 </pre></div>
 </div>
-</section>
-<section id="understanding-namespaced-tables-in-cassandra">
-<h2>Understanding Namespaced Tables in Cassandra<a class="headerlink" href="#understanding-namespaced-tables-in-cassandra" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="understanding-namespaced-tables-in-cassandra">
+<h2>Understanding Namespaced Tables in Cassandra<a class="headerlink" href="#understanding-namespaced-tables-in-cassandra" title="Permalink to this headline">¶</a></h2>
 <p>In Cassandra, an AtlasDB namespaced table will look like <code class="docutils literal notranslate"><span class="pre">&lt;keyspace&gt;.&lt;namespace&gt;__&lt;table-name&gt;</span></code>.
 As described in the prefs file’s comment, to trace said table you would want to
 write it in the form of <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;.&lt;table-name&gt;</span></code> in the comma-separated list.</p>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

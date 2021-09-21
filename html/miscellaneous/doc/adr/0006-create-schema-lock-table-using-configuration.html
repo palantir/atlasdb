@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>6. Create schema lock table using configuration &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <title>6. Create schema lock table using configuration &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
-        <script src="../../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -106,39 +104,59 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="create-schema-lock-table-using-configuration">
-<h1>6. Create schema lock table using configuration<a class="headerlink" href="#create-schema-lock-table-using-configuration" title="Permalink to this headline"></a></h1>
+  <div class="section" id="create-schema-lock-table-using-configuration">
+<h1>6. Create schema lock table using configuration<a class="headerlink" href="#create-schema-lock-table-using-configuration" title="Permalink to this headline">¶</a></h1>
 <p>Date: 18/07/2016</p>
-<p>## Status</p>
+<div class="section" id="status">
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
-<p>Supersedes [4. Create schema lock table via a one off CLI command](0004-create-schema-lock-table-via-a-one-off-cli-command.md)</p>
-<p>Superseded by [PR #3620: Use CQL to create tables](<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3620">https://github.com/palantir/atlasdb/pull/3620</a>).</p>
-<p>## Context</p>
-<p>Due to [table creation issue](0002-prevent-tables-from-being-creating-simultaneously-in-cassandra-via-a-locks-table.md) we need to be able to safely create _lock table as a one off operation for each keyspace that atlas uses. The discussed options include:</p>
+<p>Supersedes <a class="reference internal" href="0004-create-schema-lock-table-via-a-one-off-cli-command.html"><span class="doc">4. Create schema lock table via a one off CLI command</span></a></p>
+<p>Superseded by <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3620">PR #3620: Use CQL to create tables</a>.</p>
+</div>
+<div class="section" id="context">
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<p>Due to <a class="reference internal" href="0002-prevent-tables-from-being-creating-simultaneously-in-cassandra-via-a-locks-table.html"><span class="doc">table creation issue</span></a> we need to be able to safely create _lock table as a one off operation for each keyspace that atlas uses. The discussed options include:</p>
 <ul class="simple">
-<li><p>Have Atlas clients refuse to start if the _locks table is missing and provide a CLI to create it.
-- This does require manual interview for whoever is handling operations
-- Is very, very hard to get wrong
-- Should be easily automatable in most setups, removing the manual step</p></li>
-<li><p>Use the lock service for locking rather than the _locks table, then we don’t have to create it.
-- Completely automatic and removes code
-- Leaves open the possibility of locks failing and operations never realising that the issue has been triggered</p></li>
-<li><p>Have each node create a unique table, then run paxos to decide which one is the winner
-- This requires a bunch of extra, error prone code</p></li>
-<li><p>Create an additional entry in the configuration, lockLeader, to denote which host is responsible for creating the locks table.
-- The host whose name is the same as lockLeader will create the lock table, others will wait until the lockLeader is up.
-- Requires all hosts to have the same configuration for lock leader</p></li>
+<li>Have Atlas clients refuse to start if the _locks table is missing and provide a CLI to create it.<ul>
+<li>This does require manual interview for whoever is handling operations</li>
+<li>Is very, very hard to get wrong</li>
+<li>Should be easily automatable in most setups, removing the manual step</li>
 </ul>
-<p>## Decision</p>
-<p>We decided to use an extra item of configuration, because:
-1. Internal tools enable us to be confident that different Atlas servers on the same cluster are configured consistently.
-2. Running paxos to decide which table is the winner was more complex than anticipated.</p>
-<p>## Consequences</p>
+</li>
+<li>Use the lock service for locking rather than the _locks table, then we don’t have to create it.<ul>
+<li>Completely automatic and removes code</li>
+<li>Leaves open the possibility of locks failing and operations never realising that the issue has been triggered</li>
+</ul>
+</li>
+<li>Have each node create a unique table, then run paxos to decide which one is the winner<ul>
+<li>This requires a bunch of extra, error prone code</li>
+</ul>
+</li>
+<li>Create an additional entry in the configuration, lockLeader, to denote which host is responsible for creating the locks table.<ul>
+<li>The host whose name is the same as lockLeader will create the lock table, others will wait until the lockLeader is up.</li>
+<li>Requires all hosts to have the same configuration for lock leader</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<p>We decided to use an extra item of configuration, because:</p>
+<ol class="simple">
+<li>Internal tools enable us to be confident that different Atlas servers on the same cluster are configured consistently.</li>
+<li>Running paxos to decide which table is the winner was more complex than anticipated.</li>
+</ol>
+</div>
+<div class="section" id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <p>On first-time startup, servers can now be started concurrently, but they must have consistent configuration.
-There are two failure modes that can be caused by inconsistent configuration or failure of the lock leader:
-1. No node believes that it is the lock leader - then all nodes will wait forever.
-2. More than one node believes itself to be the lock table - then we will have duplicate lock tables and still be vulnerable to the initial issue.</p>
-</section>
+There are two failure modes that can be caused by inconsistent configuration or failure of the lock leader:</p>
+<ol class="simple">
+<li>No node believes that it is the lock leader - then all nodes will wait forever.</li>
+<li>More than one node believes itself to be the lock table - then we will have duplicate lock tables and still be vulnerable to the initial issue.</li>
+</ol>
+</div>
+</div>
 
 
            </div>

@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>5. stop allowing embedded lock and timestamp services in production &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <title>5. stop allowing embedded lock and timestamp services in production &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
-        <script src="../../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -106,25 +104,33 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="stop-allowing-embedded-lock-and-timestamp-services-in-production">
-<h1>5. stop allowing embedded lock and timestamp services in production<a class="headerlink" href="#stop-allowing-embedded-lock-and-timestamp-services-in-production" title="Permalink to this headline"></a></h1>
+  <div class="section" id="stop-allowing-embedded-lock-and-timestamp-services-in-production">
+<h1>5. stop allowing embedded lock and timestamp services in production<a class="headerlink" href="#stop-allowing-embedded-lock-and-timestamp-services-in-production" title="Permalink to this headline">¶</a></h1>
 <p>Date: 13/04/2016</p>
-<p>## Status</p>
+<div class="section" id="status">
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
-<p>## Context</p>
+</div>
+<div class="section" id="context">
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>Currently a completely normal way to set up AtlasDB is to run an embedded lock and timestamp service that only your atlas client talks to in Java. If this happens with 2 different clients, then they can easily clash with each other and cause undefined issues in the KVS. It also stops CLIs that require knowledge of lock and timestamp being able to run against these atlas clients.</p>
 <p>There is no reason for this situation to arise in production. Lock and Timestamp services can still be deployed in a sensible fashion without spinning up a separate service by registering the lock and timestamp server endpoints in your application, and having your own nodes act as the servers. Alternatively, you can spin up an completely external lock and timestamp service whose whole reason for existence is to perform these roles.</p>
-<p>## Decision</p>
-<ol class="arabic simple">
-<li><p>Remove the ability to run embedded lock and timestamp services in configuration</p></li>
-<li><p>Provide an easy to run Timelock Server which provides lock and timestamp services to applications</p></li>
-<li><p>Provide a sensible development story for testing against a TimelockServer that can be started from Java.</p></li>
+</div>
+<div class="section" id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<ol class="simple">
+<li>Remove the ability to run embedded lock and timestamp services in configuration</li>
+<li>Provide an easy to run Timelock Server which provides lock and timestamp services to applications</li>
+<li>Provide a sensible development story for testing against a TimelockServer that can be started from Java.</li>
 </ol>
-<p>## Consequences</p>
-<ol class="arabic simple">
-<li><p>We have to support a new, standalone server and all related considerations (e.g. versioning, healthchecks)</p></li>
+</div>
+<div class="section" id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<ol class="simple">
+<li>We have to support a new, standalone server and all related considerations (e.g. versioning, healthchecks)</li>
 </ol>
-</section>
+</div>
+</div>
 
 
            </div>

@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using The AtlasDB Perf Cli &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Using The AtlasDB Perf Cli &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -85,43 +83,43 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="using-the-atlasdb-perf-cli">
-<span id="perf-cli"></span><h1>Using The AtlasDB Perf Cli<a class="headerlink" href="#using-the-atlasdb-perf-cli" title="Permalink to this headline"></a></h1>
+  <div class="section" id="using-the-atlasdb-perf-cli">
+<span id="perf-cli"></span><h1>Using The AtlasDB Perf Cli<a class="headerlink" href="#using-the-atlasdb-perf-cli" title="Permalink to this headline">¶</a></h1>
 <ol class="arabic simple">
-<li><p>Follow the steps provided in <a class="reference internal" href="../overview/getting_started.html#running-from-source"><span class="std std-ref">Running from Source</span></a>.</p></li>
+<li>Follow the steps provided in <a class="reference internal" href="../overview/getting_started.html#running-from-source"><span class="std std-ref">Running from Source</span></a>.</li>
 </ol>
 <div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The Cassandra container in the above instructions has resource constraints and is not suitable for performance testing without modification. The heap size has been manually decreased in <code class="code docutils literal notranslate"><span class="pre">cassandra-env.sh</span></code>. Replace the line <code class="code docutils literal notranslate"><span class="pre">MAX_HEAP_SIZE=&quot;128M&quot;`with</span> <span class="pre">the</span> <span class="pre">commented</span> <span class="pre">line</span> <span class="pre">directly</span> <span class="pre">above</span> <span class="pre">it</span> <span class="pre">and</span> <span class="pre">delete</span> <span class="pre">the</span> <span class="pre">line</span> <span class="pre">:code:`HEAP_NEWSIZE=&quot;24M&quot;</span></code> to get more natural behavior.</p>
+<p class="first admonition-title">Note</p>
+<p class="last">The Cassandra container in the above instructions has resource constraints and is not suitable for performance testing without modification. The heap size has been manually decreased in <code class="code docutils literal notranslate"><span class="pre">cassandra-env.sh</span></code>. Replace the line <code class="code docutils literal notranslate"><span class="pre">MAX_HEAP_SIZE=&quot;128M&quot;`with</span> <span class="pre">the</span> <span class="pre">commented</span> <span class="pre">line</span> <span class="pre">directly</span> <span class="pre">above</span> <span class="pre">it</span> <span class="pre">and</span> <span class="pre">delete</span> <span class="pre">the</span> <span class="pre">line</span> <span class="pre">:code:`HEAP_NEWSIZE=&quot;24M&quot;</span></code> to get more natural behavior.</p>
 </div>
-<section id="running-from-command-line">
-<h2>Running from Command Line<a class="headerlink" href="#running-from-command-line" title="Permalink to this headline"></a></h2>
+<div class="section" id="running-from-command-line">
+<h2>Running from Command Line<a class="headerlink" href="#running-from-command-line" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic" start="2">
-<li><p>Build the performance cli:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./gradlew atlasdb-perf:installDist
+<li><p class="first">Build the performance cli:</p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">gradlew</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span><span class="p">:</span><span class="n">installDist</span>
 </pre></div>
 </div>
 </li>
-<li><p>Run the performance cli:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> atlasdb-perf/build/install/atlasdb-perf/bin
-./atlasdb-perf --help
+<li><p class="first">Run the performance cli:</p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span><span class="o">/</span><span class="n">build</span><span class="o">/</span><span class="n">install</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span><span class="o">/</span><span class="nb">bin</span>
+<span class="o">./</span><span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span> <span class="o">--</span><span class="n">help</span>
 </pre></div>
 </div>
 </li>
 </ol>
-</section>
-<section id="running-in-an-ide">
-<h2>Running in an IDE<a class="headerlink" href="#running-in-an-ide" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="running-in-an-ide">
+<h2>Running in an IDE<a class="headerlink" href="#running-in-an-ide" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
-<li><p>Generate the configuration files your your IDE (either <cite>./gradlew idea</cite> or <cite>./gradlew eclipse</cite>).</p></li>
-<li><p>Run <cite>AtlasDbPerfCli.java</cite> (run with <cite>–help</cite> option for help).  You may need to add enviornment variables to the run configuration when using the <cite>–backend</cite> option to allow the program to communicate with a local docker instance.</p></li>
+<li>Generate the configuration files your your IDE (either <cite>./gradlew idea</cite> or <cite>./gradlew eclipse</cite>).</li>
+<li>Run <cite>AtlasDbPerfCli.java</cite> (run with <cite>–help</cite> option for help).  You may need to add enviornment variables to the run configuration when using the <cite>–backend</cite> option to allow the program to communicate with a local docker instance.</li>
 </ol>
 <div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>If you are getting unexpected behavior from your benchmark when running in an IDE, try deleting the generated_src directory and rebuilding. These files are not always automatically cleaned out when they should be.</p>
+<p class="first admonition-title">Note</p>
+<p class="last">If you are getting unexpected behavior from your benchmark when running in an IDE, try deleting the generated_src directory and rebuilding. These files are not always automatically cleaned out when they should be.</p>
 </div>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

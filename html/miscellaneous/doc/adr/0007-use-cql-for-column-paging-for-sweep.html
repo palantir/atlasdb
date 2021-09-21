@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>7. Use CQL for column paging for sweep &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <title>7. Use CQL for column paging for sweep &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
-        <script src="../../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -106,35 +104,45 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="use-cql-for-column-paging-for-sweep">
-<h1>7. Use CQL for column paging for sweep<a class="headerlink" href="#use-cql-for-column-paging-for-sweep" title="Permalink to this headline"></a></h1>
+  <div class="section" id="use-cql-for-column-paging-for-sweep">
+<h1>7. Use CQL for column paging for sweep<a class="headerlink" href="#use-cql-for-column-paging-for-sweep" title="Permalink to this headline">¶</a></h1>
 <p>Date: 22/08/2016</p>
-<p>## Status</p>
+<div class="section" id="status">
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Proposed</p>
-<p>## Context</p>
+</div>
+<div class="section" id="context">
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>As of version 0.12.0, our implementation of sweep for Cassandra relied upon the getPageWithRangeCreator method of
 CassandraKeyValueService, which fetches values for all columns and timestamps from Cassandra. In cases where a cell with
 a large value was overwritten (with other large values) many times, this caused Cassandra to run out of memory, even
 if only a single row was fetched. (internal issue 44272).</p>
 <p>We needed a way to run sweep without Cassandra running out of memory in such cases.</p>
-<p>## Decision</p>
+</div>
+<div class="section" id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>We are unaware of any way to fetch columns and timestamps without also temporarily loading values into memory (within
 Cassandra). Therefore, to avoid running out of memory, we needed to make it possible to fetch only a certain number of
 cells (rather than rows) from Cassandra at once.</p>
 <p>We decided to introduce a more granular batching solution. In particular, we decided to page through the
-columns for each row. Briefly, the algorithm implemented is as follows:
-1. Fetch a number of rows equal to the row batch size (but only one column per row).
-2. Use CQL queries with limits to collect the &lt;column, timestamp&gt; pairs.</p>
+columns for each row. Briefly, the algorithm implemented is as follows:</p>
+<ol class="simple">
+<li>Fetch a number of rows equal to the row batch size (but only one column per row).</li>
+<li>Use CQL queries with limits to collect the &lt;column, timestamp&gt; pairs.</li>
+</ol>
 <p>Further, since performing a number of additional CQL queries for every row will be less efficient, and unnecessary for
 most users, we decided to add an optional parameter, timestampsGetterBatchSize, in CassandraKVSConfig, and use the method
 described above only if this parameter is set.</p>
 <p>We chose CQL queries over thrift because CQL queries are simpler to write, and have been empirically shown to have
 higher throughput.</p>
-<p>## Consequences</p>
+</div>
+<div class="section" id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <p>There is an additional parameter, timestampsGetterBatchSize, in CassandraKVSConfig. If the user sets this parameter and then
 runs sweep, the sweeper will page through the columns of each row while searching for timestamps, resulting in a process
 that is possibly less efficient, but is also more flexible, and less likely to cause Cassandra to run out of memory.</p>
-</section>
+</div>
+</div>
 
 
            </div>

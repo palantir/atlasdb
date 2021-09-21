@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Developing a product to use the timelock service &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <title>Developing a product to use the timelock service &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -96,14 +94,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="developing-a-product-to-use-the-timelock-service">
-<span id="product-changes"></span><h1>Developing a product to use the timelock service<a class="headerlink" href="#developing-a-product-to-use-the-timelock-service" title="Permalink to this headline"></a></h1>
+  <div class="section" id="developing-a-product-to-use-the-timelock-service">
+<span id="product-changes"></span><h1>Developing a product to use the timelock service<a class="headerlink" href="#developing-a-product-to-use-the-timelock-service" title="Permalink to this headline">¶</a></h1>
 <p>All products deploying against the AtlasDB Timelock service should adhere to the following checklist.</p>
 <ol class="arabic simple">
-<li><p>Ensure that the AtlasDB client config contains the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">config block</span></a>.</p></li>
-<li><p>All users of the product should <a class="reference internal" href="migration.html#timelock-migration"><span class="std std-ref">migrate</span></a> from embedded timestamp/lock services to the timelock server post-upgrade.</p></li>
+<li>Ensure that the AtlasDB client config contains the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">config block</span></a>.</li>
+<li>All users of the product should <a class="reference internal" href="migration.html#timelock-migration"><span class="std std-ref">migrate</span></a> from embedded timestamp/lock services to the timelock server post-upgrade.</li>
 </ol>
-</section>
+</div>
 
 
            </div>

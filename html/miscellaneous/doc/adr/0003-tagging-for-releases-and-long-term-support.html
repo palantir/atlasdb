@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3. Tagging for releases and long-term support &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <title>3. Tagging for releases and long-term support &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
-        <script src="../../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -106,26 +104,38 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="tagging-for-releases-and-long-term-support">
-<h1>3. Tagging for releases and long-term support<a class="headerlink" href="#tagging-for-releases-and-long-term-support" title="Permalink to this headline"></a></h1>
+  <div class="section" id="tagging-for-releases-and-long-term-support">
+<h1>3. Tagging for releases and long-term support<a class="headerlink" href="#tagging-for-releases-and-long-term-support" title="Permalink to this headline">¶</a></h1>
 <p>Date: 20/05/2016</p>
-<p>## Status</p>
+<div class="section" id="status">
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
-<p>## Context</p>
+</div>
+<div class="section" id="context">
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>Atlas needs to provide long-term support (LTS) to internal users and also iterate quickly and have frequent releases.  We need some agreed versioning and release scheme so users and developers know what is supported and what will be supported in the future.</p>
-<p>## Decision</p>
+</div>
+<div class="section" id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>Atlas is versioned with tags of the form X.Y.Z.  For the purpose of discussion let A.B.C be the lexigraphically largest version of atlas and let a.b.c be them most recent version of atlas on your branch (these are the same if you are on <strong>develop</strong> but are different if you are working on an <strong>LTS branch</strong>).</p>
-<p>### To Publish A New Release of AtlasDB</p>
+<div class="section" id="to-publish-a-new-release-of-atlasdb">
+<h3>To Publish A New Release of AtlasDB<a class="headerlink" href="#to-publish-a-new-release-of-atlasdb" title="Permalink to this headline">¶</a></h3>
 <p>If you are on <strong>develop</strong> then you tag with <strong>a.b+1.0</strong> (which is the same as <strong>A.B+1.0</strong>) otherwise tag with <strong>a.b.c+1</strong>.  The patch version will be primarily incremented when backporting fixes to an old branch of AtlasDB.</p>
-<p>### When Publishing A Release with Long-Term Support</p>
-<ol class="arabic simple">
-<li><p>From the tip of develop create a new protected branch on Github called <strong>A.B+1.x</strong> (e.g. “0.6.x”, x here is literally the character ‘x’)</p></li>
-<li><p>Tag the forking point of that branch with <strong>A.B+1.0</strong> (e.g. “0.6.0”)</p></li>
+</div>
+<div class="section" id="when-publishing-a-release-with-long-term-support">
+<h3>When Publishing A Release with Long-Term Support<a class="headerlink" href="#when-publishing-a-release-with-long-term-support" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>From the tip of develop create a new protected branch on Github called <strong>A.B+1.x</strong> (e.g. “0.6.x”, x here is literally the character ‘x’)</li>
+<li>Tag the forking point of that branch with <strong>A.B+1.0</strong> (e.g. “0.6.0”)</li>
 </ol>
 <p>The <strong>A.B.x</strong> branch serves as an LTS branch and all further critical changes needed go on that branch and get a new tag (following the previous rule).</p>
-<p>## Consequences</p>
+</div>
+</div>
+<div class="section" id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <p>Lock-step changes with internal code will always require a minor version bump irregardless of our desire to release.</p>
-</section>
+</div>
+</div>
 
 
            </div>

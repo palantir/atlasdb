@@ -1,5 +1,4 @@
-8. Adding Heartbeat for Schema Lock Holders
-*******************************************
+# 8. Adding Heartbeat for Schema Lock Holders
 
 Date: 27/09/2016
 
@@ -20,7 +19,7 @@ where the lock holder dies without releasing the lock.
 However, we think this has caused a lot of unnecessary exceptions since the threshold is static. We believe we could
 avoid a lot of timeouts if we have some way of informing anyone trying to acquire the lock if the lock holder is alive
 or dead. Once we have that information, we can keep retrying as long as we know that the lock holder is alive without
-timing out needlessly. 
+ timing out needlessly. 
 
 ## Decision
 

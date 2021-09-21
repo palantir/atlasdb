@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Understanding Performance Benchmarking &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Understanding Performance Benchmarking &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -85,46 +83,46 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="understanding-performance-benchmarking">
-<span id="understanding"></span><h1>Understanding Performance Benchmarking<a class="headerlink" href="#understanding-performance-benchmarking" title="Permalink to this headline"></a></h1>
+  <div class="section" id="understanding-performance-benchmarking">
+<span id="understanding"></span><h1>Understanding Performance Benchmarking<a class="headerlink" href="#understanding-performance-benchmarking" title="Permalink to this headline">¶</a></h1>
 <p>AtlasDB includes a project dedicated to performance benchmarking. The goal is to prevent developers from regressing AtlasDB performance during development, but it can also be used to gather insight into how a code change or environment affects the performance of AtlasDB.</p>
 <p>Performance benchmarking can be a compelling, powerful development tool, but it is easy to misuse. There are many variables that can have a dramatic effect on a benchmark’s results. Just because you are recieving output from our benchmarking tools does not mean you are gathering the information you think you are. This section summarizes some important considerations regarding performance testing and should not be skipped.</p>
 <p>The output of the AtlasDB-Performance Command Line Interface (AtlasDB-Perf CLI) is a function of the code, runtime environment, and benchmark design. The goal is to run an experiment where two of the three input variables are fixed in order to gain insight into how the third impacts performance.</p>
-<section id="environment">
-<h2>Environment<a class="headerlink" href="#environment" title="Permalink to this headline"></a></h2>
+<div class="section" id="environment">
+<h2>Environment<a class="headerlink" href="#environment" title="Permalink to this headline">¶</a></h2>
 <p>The AtlasDB-Perf CLI does not assume anything about the environment it is run in and makes no efforts to restrict or configure it. It is crucial that you make careful, educated choices about where you are running the CLI and the database container it is connecting to. In general, you should attempt to simulate an environment as similar as possible to one a customer will be using.</p>
 <p>For the very best results:</p>
 <ol class="arabic">
-<li><p>Beware of running locally.</p>
+<li><p class="first">Beware of running locally.</p>
 <blockquote>
 <div><p>Running the CLI on your local computer opens you up to a lot of interference. Other applications, background processes, and the network can create a lot of variance. It is also possible that you will encounter a different bottleneck than customers due to the very different hardware and resources on your local computer. If you optimize performance for your local setup, you might be regressing performance on customer hardware in a non-obvious way.</p>
 </div></blockquote>
 </li>
-<li><p>Be aware of the AWS VM type you are running on.</p>
+<li><p class="first">Be aware of the AWS VM type you are running on.</p>
 <blockquote>
 <div><p>A regression on an i2 instance can appear as a perf improvement on a m3.xlarge instance. The main consideration is i/o vs processor power. In general, try to run on AWS machines that are representative of what customers might be running on.</p>
 </div></blockquote>
 </li>
-<li><p>Do not run the CLI on the same VM as the the database unless you are simulating a co-located Client and server scenario.</p>
+<li><p class="first">Do not run the CLI on the same VM as the the database unless you are simulating a co-located Client and server scenario.</p>
 <blockquote>
 <div><p>Not only does this setup ignore network considerations, it is also likely that the benchmark application will influence the performance of the database. In this case, changing non-benchmarked code in the benchmarking framework might have an unintended impact on your test results.</p>
 </div></blockquote>
 </li>
-<li><p>Consider running the CLI several times on multiple AWS VMs.</p>
+<li><p class="first">Consider running the CLI several times on multiple AWS VMs.</p>
 <blockquote>
 <div><p>Amazon does not make strict performance guarantees for a given VM type. That is to say, not all m4.xlarge VMs will have the exact same clock speed, hdd access speed, etc. If you want the most representative data possible, you should run the same set of tests on multiple new boxes.</p>
 </div></blockquote>
 </li>
 </ol>
-</section>
-<section id="benchmark-design">
-<h2>Benchmark Design<a class="headerlink" href="#benchmark-design" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="benchmark-design">
+<h2>Benchmark Design<a class="headerlink" href="#benchmark-design" title="Permalink to this headline">¶</a></h2>
 <p>When writing or using a benchmark, take a moment to carefully consider what exactly it is testing. A given operation or API endpoint may have many cases that exhibit different performance characteristics. It may be that 99% of cases perform very well but 1% of cases are bad enough that the end user notices. In this instance, it may be worthwhile to compromise on the performance of the bulk of cases to improve the 1%. Most benchmarks only test a single case, so it is important to be fully aware which case that is. Gathering information on how exactly a feature is used before writing tests for it is often worthwhile.</p>
 <p>Benchmarks in AtlasDB perform operations against tables that are created before the test using JMH State objects. We have attempted to create tables with characteristics that exercise various cases for AtlasDB’s API. Some benchmarks run against relatively clean tables, while others run against tables with many rewrites. Some tests run against wide (many column) tables, and others run against narrow tables.</p>
 <p>Because we want our tests to run quickly and frequently, we have decided not to exhaustively run every operation against every table type on every backing KVS. Instead, we have hand-picked pairs of operations and table types to be run against each specified backing KVS.</p>
 <p>Please take a moment to read and understand some of the benchmarks before running them.</p>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

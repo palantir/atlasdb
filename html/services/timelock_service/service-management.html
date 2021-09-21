@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Service Management &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <title>Service Management &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -96,13 +94,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="service-management">
-<span id="timelock-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this headline"></a></h1>
-<section id="namespace-changes">
-<h2>Namespace Changes<a class="headerlink" href="#namespace-changes" title="Permalink to this headline"></a></h2>
+  <div class="section" id="service-management">
+<span id="timelock-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="namespace-changes">
+<h2>Namespace Changes<a class="headerlink" href="#namespace-changes" title="Permalink to this headline">¶</a></h2>
 <div class="admonition danger">
-<p class="admonition-title">Danger</p>
-<p>Be careful when changing namespaces - doing this process incorrectly may result in <strong>SEVERE DATA CORRUPTION</strong>.
+<p class="first admonition-title">Danger</p>
+<p class="last">Be careful when changing namespaces - doing this process incorrectly may result in <strong>SEVERE DATA CORRUPTION</strong>.
 This guide also <strong>ONLY</strong> covers the steps for migrating a TimeLock client - AtlasDB clients, separately, must also
 migrate the data in their key-value services to the new namespace. Internal users should consult internal
 documentation for how to do this; external users can use <a class="reference internal" href="../../cluster_management/kvs-migration.html#kvs-migration"><span class="std std-ref">KVS Migration</span></a>.</p>
@@ -110,29 +108,29 @@ documentation for how to do this; external users can use <a class="reference int
 <p>When a TimeLock client wants to switch its namespace (while preserving its data), care must be taken to ensure that the
 old timestamp bound is carried over to the new namespace. This is to preserve the guarantee of the timestamp service
 that timestamps must be increasing.</p>
-<section id="step-1-shut-down-clients">
-<h3>Step 1: Shut Down Clients<a class="headerlink" href="#step-1-shut-down-clients" title="Permalink to this headline"></a></h3>
+<div class="section" id="step-1-shut-down-clients">
+<h3>Step 1: Shut Down Clients<a class="headerlink" href="#step-1-shut-down-clients" title="Permalink to this headline">¶</a></h3>
 <p>Shut down all instances of the TimeLock client for which you wish to change the namespace.
 This is done to ensure that the timestamp bound does not advance further while we are doing the other steps.
 Leave TimeLock running; you’ll need it for the remaining steps.</p>
-</section>
-<section id="step-2-get-a-fresh-timestamp-for-the-old-namespace">
-<h3>Step 2: Get a Fresh Timestamp for the Old Namespace<a class="headerlink" href="#step-2-get-a-fresh-timestamp-for-the-old-namespace" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="step-2-get-a-fresh-timestamp-for-the-old-namespace">
+<h3>Step 2: Get a Fresh Timestamp for the Old Namespace<a class="headerlink" href="#step-2-get-a-fresh-timestamp-for-the-old-namespace" title="Permalink to this headline">¶</a></h3>
 <p>If we get a fresh timestamp for the old namespace, we know that all timestamps old clients have seen must be strictly
 less than the fresh timestamp. This may be obtained through the fresh timestamp endpoint.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -iXPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/old_namespace <span class="se">\</span>
-  --data <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> -H <span class="s2">&quot;Authorization: Bearer q&quot;</span> -H <span class="s2">&quot;Content-Type: application/json&quot;</span>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">iXPOST</span> <span class="o">&lt;</span><span class="n">protocol</span><span class="o">&gt;</span><span class="p">:</span><span class="o">//&lt;</span><span class="n">host</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">port</span><span class="o">&gt;/</span><span class="n">timelock</span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">tl</span><span class="o">/</span><span class="n">ts</span><span class="o">/</span><span class="n">old_namespace</span> \
+  <span class="o">--</span><span class="n">data</span> <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Authorization: Bearer q&quot;</span> <span class="o">-</span><span class="n">H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span>
 </pre></div>
 </div>
 <p>A cluster of TimeLock servers elects a single leader, so if you contact a node that is not the leader you’ll receive
 either a HTTP 503 or 308. In this case, try the same request on other nodes until you find the leader.</p>
 <p>Note down the value of the timestamp returned. From here on out, we’ll refer to this as <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
-</section>
-<section id="step-3-fast-forward-on-the-new-namespace">
-<h3>Step 3: Fast Forward on the New Namespace<a class="headerlink" href="#step-3-fast-forward-on-the-new-namespace" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="step-3-fast-forward-on-the-new-namespace">
+<h3>Step 3: Fast Forward on the New Namespace<a class="headerlink" href="#step-3-fast-forward-on-the-new-namespace" title="Permalink to this headline">¶</a></h3>
 <p>We now want to fast forward the new namespace to <code class="docutils literal notranslate"><span class="pre">TS</span></code>. This may be done through the timestamp management endpoints
 on TimeLock.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST &lt;protocol&gt;://&lt;host:&lt;port&gt;/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>curl -XPOST &lt;protocol&gt;://&lt;host:&lt;port&gt;/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp=TS
 </pre></div>
 </div>
 <p>As before, this command needs to be run on the TimeLock leader.
@@ -141,12 +139,12 @@ the fast forward was successful (following the steps in Step 2, but using the ne
 a value strictly larger than <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
 <p>Timestamps serviced for the new namespace will now return values greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code>, meaning that the guarantees
 of the timestamp service as far as clients are concerned have been preserved.</p>
-</section>
-<section id="step-4-optional-cleanup-on-timelock">
-<h3>Step 4 (Optional): Cleanup on TimeLock<a class="headerlink" href="#step-4-optional-cleanup-on-timelock" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="step-4-optional-cleanup-on-timelock">
+<h3>Step 4 (Optional): Cleanup on TimeLock<a class="headerlink" href="#step-4-optional-cleanup-on-timelock" title="Permalink to this headline">¶</a></h3>
 <div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>This section is written under the assumption you are using Paxos for timestamp bound persistence.</p>
+<p class="first admonition-title">Warning</p>
+<p class="last">This section is written under the assumption you are using Paxos for timestamp bound persistence.</p>
 </div>
 <p>TimeLock will continue to hold references to the old client in memory until it is next bounced, and the logs for
 previous rounds of the Paxos protocol will be preserved. Generally, these have a very small footprint and it’s thus
@@ -155,9 +153,9 @@ okay to leave them around.</p>
 <code class="docutils literal notranslate"><span class="pre">var/data/paxos</span></code>) if needed. These will be found in the subdirectory corresponding to <code class="docutils literal notranslate"><span class="pre">old_namespace</span></code>.
 Please exercise extreme caution when doing this, as deleting the logs for an active client may, of course,
 result in <strong>SEVERE DATA CORRUPTION</strong>.</p>
-</section>
-</section>
-</section>
+</div>
+</div>
+</div>
 
 
            </div>

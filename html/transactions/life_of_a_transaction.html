@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Life of a Transaction &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Life of a Transaction &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -86,22 +84,22 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="life-of-a-transaction">
-<span id="id1"></span><h1>Life of a Transaction<a class="headerlink" href="#life-of-a-transaction" title="Permalink to this headline"></a></h1>
+  <div class="section" id="life-of-a-transaction">
+<span id="id1"></span><h1>Life of a Transaction<a class="headerlink" href="#life-of-a-transaction" title="Permalink to this headline">¶</a></h1>
 <p>This document seeks to outline the efficiency of our implementation of the AtlasDB protocol.
 We do this by establishing a strict ordering on the steps of the protocol.</p>
-<section id="stages-of-a-write-transaction">
-<h2>Stages of a Write Transaction<a class="headerlink" href="#stages-of-a-write-transaction" title="Permalink to this headline"></a></h2>
+<div class="section" id="stages-of-a-write-transaction">
+<h2>Stages of a Write Transaction<a class="headerlink" href="#stages-of-a-write-transaction" title="Permalink to this headline">¶</a></h2>
 <p>A user can run a <code class="docutils literal notranslate"><span class="pre">TransactionTask</span></code> through a <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>. Running the user’s task in a transaction can be
 seen as a four step process.</p>
 <ol class="arabic simple">
-<li><p>Start an AtlasDB transaction.</p></li>
-<li><p>Execute the user’s transaction task within the transaction.</p></li>
-<li><p>Commit the transaction.</p></li>
-<li><p>Cleanup resources used by the transaction.</p></li>
+<li>Start an AtlasDB transaction.</li>
+<li>Execute the user’s transaction task within the transaction.</li>
+<li>Commit the transaction.</li>
+<li>Cleanup resources used by the transaction.</li>
 </ol>
-<section id="startup">
-<h3>Startup<a class="headerlink" href="#startup" title="Permalink to this headline"></a></h3>
+<div class="section" id="startup">
+<h3>Startup<a class="headerlink" href="#startup" title="Permalink to this headline">¶</a></h3>
 <p>When a write transaction is created, we first need to perform some setup work. This involves locking the immutable
 timestamp and then getting a fresh timestamp. The ordering here is significant - if we get a fresh timestamp and then
 lock the immutable timestamp, our transaction’s timestamp is smaller than the immutable timestamp. This is dangerous
@@ -110,137 +108,137 @@ If there is a cell that has a commit timestamp in between our start timestamp an
 then we may or may not read it.</p>
 <p>However, the operations can be batched as a single request to TimeLock - this improves performance particularly if one
 is using external TimeLock services.</p>
-</section>
-<section id="user-task">
-<h3>User Task<a class="headerlink" href="#user-task" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="user-task">
+<h3>User Task<a class="headerlink" href="#user-task" title="Permalink to this headline">¶</a></h3>
 <p>A <code class="docutils literal notranslate"><span class="pre">TransactionTask</span></code> is an arbitrary <code class="docutils literal notranslate"><span class="pre">Function&lt;Transaction,</span> <span class="pre">T&gt;</span></code> that can throw a pre-defined checked exception <code class="docutils literal notranslate"><span class="pre">E</span></code>.
 In practice, users will use this task to read from the database and buffer up writes (though these are only executed
 at commit time). The task has access to the lock and timestamp services and may have side effects.</p>
 <p>In terms of ordering, the start timestamp must precede the task since we need to know what timestamp to read values at.
 The transaction task must precede committing, as that opens with constraint checking which needs to know what writes
 were performed.</p>
-</section>
-<section id="commit">
-<h3>Commit<a class="headerlink" href="#commit" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="commit">
+<h3>Commit<a class="headerlink" href="#commit" title="Permalink to this headline">¶</a></h3>
 <p>Committing a write transaction is a multi-stage process:</p>
 <ol class="arabic simple">
-<li><p>Check constraints if applicable.</p></li>
-<li><p>Lock rows or cells (depending on the table conflict handler) for a given table.</p></li>
-<li><p>Check for write/write conflicts.</p></li>
-<li><p>Persist information about writes to the targeted sweep queue.</p></li>
-<li><p>Persist key-value pairs that were written to the database.</p></li>
-<li><p>Get the commit timestamp.</p></li>
-<li><p>For serializable transactions, check that the state of the world at commit time is same as that at start time.
-Please see <a class="reference internal" href="isolation_levels.html#isolation-levels"><span class="std std-ref">Isolation Levels</span></a> for more details.</p></li>
-<li><p>Verify user-specified pre-commit conditions (if applicable).</p></li>
-<li><p>Verify that locks are still valid.</p></li>
-<li><p>Atomically putUnlessExists into the transactions table.</p></li>
+<li>Check constraints if applicable.</li>
+<li>Lock rows or cells (depending on the table conflict handler) for a given table.</li>
+<li>Check for write/write conflicts.</li>
+<li>Persist information about writes to the targeted sweep queue.</li>
+<li>Persist key-value pairs that were written to the database.</li>
+<li>Get the commit timestamp.</li>
+<li>For serializable transactions, check that the state of the world at commit time is same as that at start time.
+Please see <a class="reference internal" href="isolation_levels.html#isolation-levels"><span class="std std-ref">Isolation Levels</span></a> for more details.</li>
+<li>Verify user-specified pre-commit conditions (if applicable).</li>
+<li>Verify that locks are still valid.</li>
+<li>Atomically putUnlessExists into the transactions table.</li>
 </ol>
 <p>After we have successfully written to the transactions table, the transaction is considered committed.</p>
 <p>The ordering of these steps is important:</p>
 <ol class="arabic simple">
-<li><p>Checking constraints must be done before putUnlessExists. These constraints do not depend on the rows being locked,
-so we should do this before acquiring locks (generally we want to minimise critical sections).</p></li>
-<li><p>If we check for write/write conflicts before acquiring locks, another transaction could write a conflicting value
+<li>Checking constraints must be done before putUnlessExists. These constraints do not depend on the rows being locked,
+so we should do this before acquiring locks (generally we want to minimise critical sections).</li>
+<li>If we check for write/write conflicts before acquiring locks, another transaction could write a conflicting value
 after we perform the check, but before we acquire locks. This should cause a write-write conflict, but we will miss
 it. Taking locks first means that this is only possible if we’ve lost our locks before the check - but if that is
-the case then we will not commit as we will fail when we check our locks (step 8).</p></li>
-<li><p>Checking for write/write conflicts must be done before checking that locks are still valid (step 8), as we could
+the case then we will not commit as we will fail when we check our locks (step 8).</li>
+<li>Checking for write/write conflicts must be done before checking that locks are still valid (step 8), as we could
 otherwise lose the lock and have a thorough sweep clear out all evidence of spanning/dominating writes.
-It may be possible to postpone this, though we would be doing unnecessary work.</p></li>
-<li><p>If we write to the database before writing to the targeted sweep queue, we may write values to the database and
+It may be possible to postpone this, though we would be doing unnecessary work.</li>
+<li>If we write to the database before writing to the targeted sweep queue, we may write values to the database and
 then crash. We then have no knowledge of these uncommitted values, meaning that we’ll permanently have cruft
 lying around. It’s possible that Background Sweep can be used to clear any such values, but that may take a very
-long time.</p></li>
-<li><p>If we get the commit timestamp before we write key-value pairs to the database, another transaction could start
+long time.</li>
+<li>If we get the commit timestamp before we write key-value pairs to the database, another transaction could start
 after we commit, and may read cells that we have written to. Our own writes may not have been made. The AtlasDB
 protocol is that writes take place at commit time, so our writes must be observable to the other transaction
-if it has a higher start timestamp than our commit timestamp, which is possible here.</p></li>
-<li><p>The serializable commit check requires us to know the commit timestamp.</p></li>
-<li><p>For conservatively swept tables, the ordering of the serializable conflict check and lock check is not critical
+if it has a higher start timestamp than our commit timestamp, which is possible here.</li>
+<li>The serializable commit check requires us to know the commit timestamp.</li>
+<li>For conservatively swept tables, the ordering of the serializable conflict check and lock check is not critical
 (consider that our check must not pass when it should fail, and once we read a value at the commit timestamp we
 will always read the same value).
 For thoroughly swept tables, there is an edge case. Suppose we read no data for some key, but someone wrote to it
 in between our start and commit, and someone else deleted the value after our commit. If we pass our lock check, but
 then lose our locks and have a very long GC, Thorough Sweep might clear all evidence of the conflict, meaning that
-we miss a read-write conflict. This would be safe for conservative sweep because of the deletion sentinel.</p></li>
-<li><p>We need to check that the pre-commit conditions, if any, still hold. Given that these checks are user defined and
+we miss a read-write conflict. This would be safe for conservative sweep because of the deletion sentinel.</li>
+<li>We need to check that the pre-commit conditions, if any, still hold. Given that these checks are user defined and
 could involve transactional reads to the database, they require the same protections as the read-write conflict
 checks in the prior step. An alternative implementation of those checks could be done as a pre-commit condition, for
-example, so it is important that we handle this before the final lock check.</p></li>
-<li><p>The lock check must be run strictly before writing to the transactions table, as we cannot finish our commit if
-we can’t be certain we still have locks.</p></li>
+example, so it is important that we handle this before the final lock check.</li>
+<li>The lock check must be run strictly before writing to the transactions table, as we cannot finish our commit if
+we can’t be certain we still have locks.</li>
 </ol>
-<section id="read-only-variant">
-<h4>Read-Only Variant<a class="headerlink" href="#read-only-variant" title="Permalink to this headline"></a></h4>
+<div class="section" id="read-only-variant">
+<h4>Read-Only Variant<a class="headerlink" href="#read-only-variant" title="Permalink to this headline">¶</a></h4>
 <div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This section looks at write transactions that perform only reads (as opposed to pure read transactions).
+<p class="first admonition-title">Note</p>
+<p class="last">This section looks at write transactions that perform only reads (as opposed to pure read transactions).
 This is motivated by a shift towards thoroughly swept tables which can have better performance characteristics,
 especially for workflows involving row or dynamic column range scans.</p>
 </div>
 <p>Transactions that do not write have a much simpler commit stage:</p>
 <ol class="arabic simple">
-<li><p>Verify user-specified pre-commit conditions (if applicable).</p></li>
-<li><p>Verify that the immutable timestamp lock is still held.</p></li>
+<li>Verify user-specified pre-commit conditions (if applicable).</li>
+<li>Verify that the immutable timestamp lock is still held.</li>
 </ol>
 <p>Notice that these are analogous to the lock and pre-commit condition checks for transactions that write. They
 can be run in parallel (though we haven’t implemented this as the expected gain is currently not large).</p>
-</section>
-</section>
-<section id="cleanup">
-<h3>Cleanup<a class="headerlink" href="#cleanup" title="Permalink to this headline"></a></h3>
+</div>
+</div>
+<div class="section" id="cleanup">
+<h3>Cleanup<a class="headerlink" href="#cleanup" title="Permalink to this headline">¶</a></h3>
 <p>We need to unlock row/cell locks and the immutable timestamp lock. This need not be strictly immediate, though
 should be fast to avoid contention on future writes. Also, note that if we fail to do this (e.g. our server crashes),
 the locks will time-out (by default after 2 minutes).</p>
 <p>We unlock these locks asynchronously, placing them on a queue and periodically clearing them out. See ADR 15 for a
 more detailed discussion.</p>
-</section>
-</section>
-<section id="minimising-timelock-rpcs">
-<h2>Minimising TimeLock RPCs<a class="headerlink" href="#minimising-timelock-rpcs" title="Permalink to this headline"></a></h2>
-<section id="principles">
-<h3>Principles<a class="headerlink" href="#principles" title="Permalink to this headline"></a></h3>
+</div>
+</div>
+<div class="section" id="minimising-timelock-rpcs">
+<h2>Minimising TimeLock RPCs<a class="headerlink" href="#minimising-timelock-rpcs" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="principles">
+<h3>Principles<a class="headerlink" href="#principles" title="Permalink to this headline">¶</a></h3>
 <ol class="arabic simple">
-<li><p>Synchronous RPCs are expensive, so we seek to minimise them.</p></li>
-<li><p>A sequence of exclusively TimeLock operations can be batched as a single call to TimeLock, even if there is an
-ordering constraint on these operations (because TimeLock can enforce them).</p></li>
-<li><p>Suppose E1, E2 and E3 are three events that must occur in that order. E1 and E3 are TimeLock calls; E2 is not.
-Then, E1 and E3 cannot be batched together.</p></li>
+<li>Synchronous RPCs are expensive, so we seek to minimise them.</li>
+<li>A sequence of exclusively TimeLock operations can be batched as a single call to TimeLock, even if there is an
+ordering constraint on these operations (because TimeLock can enforce them).</li>
+<li>Suppose E1, E2 and E3 are three events that must occur in that order. E1 and E3 are TimeLock calls; E2 is not.
+Then, E1 and E3 cannot be batched together.</li>
 </ol>
-</section>
-<section id="write-transactions">
-<h3>Write Transactions<a class="headerlink" href="#write-transactions" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="write-transactions">
+<h3>Write Transactions<a class="headerlink" href="#write-transactions" title="Permalink to this headline">¶</a></h3>
 <p>The write transaction protocol requires several calls to timestamp and lock services:</p>
 <ol class="arabic simple">
-<li><p>Startup: 3 calls (get immutable timestamp, lock immutable timestamp, get start timestamp)</p></li>
-<li><p>User task: 0 calls by default, though user code can call for timestamps or locks directly</p></li>
-<li><p>Commit: 3 calls (lock rows/cells, get commit timestamp, check locks)</p></li>
-<li><p>Cleanup: 2 calls (unlock rows, unlock immutable timestamp)</p></li>
+<li>Startup: 3 calls (get immutable timestamp, lock immutable timestamp, get start timestamp)</li>
+<li>User task: 0 calls by default, though user code can call for timestamps or locks directly</li>
+<li>Commit: 3 calls (lock rows/cells, get commit timestamp, check locks)</li>
+<li>Cleanup: 2 calls (unlock rows, unlock immutable timestamp)</li>
 </ol>
 <p>However, some of these calls can be batched together, and others can be executed asynchronously.
 Our current implementation has:</p>
 <ol class="arabic simple">
-<li><p>Startup: 1 call (startAtlasDbTransaction, which executes the three steps in order)</p></li>
-<li><p>User tasks: 0 calls</p></li>
-<li><p>Commit: 3 calls (lock rows/cells, get commit timestamp, check locks)</p></li>
-<li><p>Cleanup: 0 synchronous calls; &lt;=2 asynchronous calls</p></li>
+<li>Startup: 1 call (startAtlasDbTransaction, which executes the three steps in order)</li>
+<li>User tasks: 0 calls</li>
+<li>Commit: 3 calls (lock rows/cells, get commit timestamp, check locks)</li>
+<li>Cleanup: 0 synchronous calls; &lt;=2 asynchronous calls</li>
 </ol>
-</section>
-<section id="efficiency">
-<h3>Efficiency<a class="headerlink" href="#efficiency" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="efficiency">
+<h3>Efficiency<a class="headerlink" href="#efficiency" title="Permalink to this headline">¶</a></h3>
 <p>We claim that for the current AtlasDB protocol, the remaining four synchronous RPCs must be separate.
 We show that each successive pair of timestamp calls has an event that must happen after the first call but before
 the second, thus splitting up the calls. Following principle 3, the calls must then be distinct.</p>
 <ol class="arabic simple">
-<li><p>The startup call must run before the user task; this guarantees that sweep won’t remove values that were read
+<li>The startup call must run before the user task; this guarantees that sweep won’t remove values that were read
 before we commit or fail, and also gives us a start timestamp which the user is allowed to use in the task.
-Locking rows or cells must take place after the task (otherwise we don’t know which locks to acquire).</p></li>
-<li><p>Locking rows or cells must happen before writing to the database, which must happen before we get the commit
-timestamp (see the Commit section above).</p></li>
-<li><p>Getting the commit timestamp must happen before the serializable commit check, which must happen before
+Locking rows or cells must take place after the task (otherwise we don’t know which locks to acquire).</li>
+<li>Locking rows or cells must happen before writing to the database, which must happen before we get the commit
+timestamp (see the Commit section above).</li>
+<li>Getting the commit timestamp must happen before the serializable commit check, which must happen before
 we check our locks (see the Commit section above). Interestingly, for snapshot transactions it appears possible to
-merge these last two calls (since the serializable check is a no-op).</p></li>
+merge these last two calls (since the serializable check is a no-op).</li>
 </ol>
 <p>Also, these four calls have to be synchronous. In current AtlasDB usage, running a transaction task is synchronous.
 The last timelock call (checking locks) must happen before putUnlessExists which marks the end of the task, so we need
@@ -252,9 +250,9 @@ implemented).</p>
 <p>There is scope for reducing the number of asynchronous calls. In particular, locks could be released immediately after
 verification. However, we have avoided this for now because there is a risk of livelock where transactions roll back
 one another after acquiring locks, preventing a successful commit.</p>
-</section>
-</section>
-</section>
+</div>
+</div>
+</div>
 
 
            </div>

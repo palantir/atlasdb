@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Internal Schema Configuration &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Internal Schema Configuration &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -91,60 +89,60 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="internal-schema-configuration">
-<span id="id1"></span><h1>Internal Schema Configuration<a class="headerlink" href="#internal-schema-configuration" title="Permalink to this headline"></a></h1>
+  <div class="section" id="internal-schema-configuration">
+<span id="id1"></span><h1>Internal Schema Configuration<a class="headerlink" href="#internal-schema-configuration" title="Permalink to this headline">¶</a></h1>
 <p>This document covers configuration pertaining to settings about the internal schema that AtlasDB uses for storing
 some of its state. These settings should be specified under the <code class="docutils literal notranslate"><span class="pre">internalSchema</span></code> key in an
 <code class="docutils literal notranslate"><span class="pre">AtlasDbRuntimeConfiguration</span></code>.</p>
 <p>For a full list of the configurations available at this block, see
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/internalschema/InternalSchemaConfig.java">InternalSchemaConfig.java</a>.</p>
-<section id="target-transactions-schema-version">
-<h2>Target Transactions Schema Version<a class="headerlink" href="#target-transactions-schema-version" title="Permalink to this headline"></a></h2>
+<div class="section" id="target-transactions-schema-version">
+<h2>Target Transactions Schema Version<a class="headerlink" href="#target-transactions-schema-version" title="Permalink to this headline">¶</a></h2>
 <div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>_transactions2 is currently only supported for Cassandra and In-Memory KVSes.</p>
+<p class="first admonition-title">Warning</p>
+<p class="last">_transactions2 is currently only supported for Cassandra and In-Memory KVSes.</p>
 </div>
 <p>AtlasDB needs to persist information about the start and commit timestamps of transactions that have committed.
 This may be done in various ways, and is configurable. We currently support two strategies:</p>
 <ul class="simple">
-<li><p>version 1, which variable-length encodes the start and commit timestamps and stores them in the <code class="docutils literal notranslate"><span class="pre">_transactions</span></code>
-table.</p></li>
-<li><p>version 2, which variable-length encodes the start and commit timestamps following the
+<li>version 1, which variable-length encodes the start and commit timestamps and stores them in the <code class="docutils literal notranslate"><span class="pre">_transactions</span></code>
+table.</li>
+<li>version 2, which variable-length encodes the start and commit timestamps following the
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/transaction/encoding/TicketsEncodingStrategy.java">TicketsEncodingStrategy</a>,
-storing them in the <code class="docutils literal notranslate"><span class="pre">_transactions2</span></code> table.</p></li>
+storing them in the <code class="docutils literal notranslate"><span class="pre">_transactions2</span></code> table.</li>
 </ul>
 <p>If specified, this AtlasDB client will attempt to install the provided transaction schema version. This parameter is
 optional; if it is not specified, this AtlasDB client will not install any new transaction schema versions, and will
 run with whatever version is already installed (1 by default).</p>
 <p>New versions can be specified in a live fashion without downtime, though there are two caveats to be aware of:</p>
 <ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">TransactionSchemaInstaller</span></code> which installs new versions of transactions schemas only reads the configuration once every 10 minutes.
+<li>The <code class="docutils literal notranslate"><span class="pre">TransactionSchemaInstaller</span></code> which installs new versions of transactions schemas only reads the configuration once every 10 minutes.
 If a faster installation is required, you can bounce one service node, as this is read on startup. In HA configurations, this will not
-require any downtime. After installation is done, a log message of the following form will be logged:</p></li>
+require any downtime. After installation is done, a log message of the following form will be logged:</li>
 </ul>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&quot;We attempted to install the transactions schema version {}, and this was successful. This version will take effect no later than timestamp {}. (newVersion: 2, timestamp: 25161223)&quot;
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>The AtlasDB timestamp still needs to progress forward to that point before we use the new transactions schema version.
+<li>The AtlasDB timestamp still needs to progress forward to that point before we use the new transactions schema version.
 If needed, one can force the new version to be used by fast-forwarding the timestamp to that point. To do this, see
-<a class="reference internal" href="../services/timestamp_service/management.html#timestamp-service-management"><span class="std std-ref">Timestamp Service Management</span></a>.</p></li>
+<a class="reference internal" href="../services/timestamp_service/management.html#timestamp-service-management"><span class="std std-ref">Timestamp Service Management</span></a>.</li>
 </ul>
 <p>Users can also consider the metrics produced in <code class="docutils literal notranslate"><span class="pre">MetadataCoordinationServiceMetrics</span></code> - currently, the following
 metrics are available:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">eventualTransactionsSchemaVersion</span></code> which should change to the target version after the intention to upgrade the
+<li><code class="docutils literal notranslate"><span class="pre">eventualTransactionsSchemaVersion</span></code> which should change to the target version after the intention to upgrade the
 transactions schema version has been installed by the coordination service. Note that the AtlasDB timestamp
-still needs to progress to the point where the new version actually comes into effect.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">currentTransactionsSchemaVersion</span></code> which, at the time the metric measurement was taken, yields the schema version at
+still needs to progress to the point where the new version actually comes into effect.</li>
+<li><code class="docutils literal notranslate"><span class="pre">currentTransactionsSchemaVersion</span></code> which, at the time the metric measurement was taken, yields the schema version at
 a fresh timestamp. Note that this value may be cached (by default for up to 10 seconds) and metrics readings may only
-be taken at an interval, so it may be slightly out of sync, though it should be close.</p></li>
+be taken at an interval, so it may be slightly out of sync, though it should be close.</li>
 </ul>
 <p>The AtlasDB <code class="docutils literal notranslate"><span class="pre">CoordinationStore</span></code>, <code class="docutils literal notranslate"><span class="pre">CoordinationService</span></code> and <code class="docutils literal notranslate"><span class="pre">TransactionService</span></code> interfaces are also instrumented with
 standard histograms for endpoint call rates and service times. Also, if using Cassandra KVS, it may be useful to
 consider Cassandra metrics for the <code class="docutils literal notranslate"><span class="pre">_coordination</span></code> table.</p>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

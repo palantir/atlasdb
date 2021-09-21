@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Isolation Levels &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Isolation Levels &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -86,41 +84,37 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="isolation-levels">
-<span id="id1"></span><h1>Isolation Levels<a class="headerlink" href="#isolation-levels" title="Permalink to this headline"></a></h1>
-<section id="snapshot-vs-serializable-vs-no-conflict">
-<h2>Snapshot vs Serializable vs No Conflict<a class="headerlink" href="#snapshot-vs-serializable-vs-no-conflict" title="Permalink to this headline"></a></h2>
+  <div class="section" id="isolation-levels">
+<span id="id1"></span><h1>Isolation Levels<a class="headerlink" href="#isolation-levels" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="snapshot-vs-serializable-vs-no-conflict">
+<h2>Snapshot vs Serializable vs No Conflict<a class="headerlink" href="#snapshot-vs-serializable-vs-no-conflict" title="Permalink to this headline">¶</a></h2>
 <p>Transaction types (snapshot or serializable) provide different
 transactional properties.</p>
 <ul class="simple">
-<li><p>Serializable</p>
-<ul>
-<li><p>Read and Writes to this table both happen at commit time</p></li>
-<li><p>Implemented by checking that reads made at startTs return the
-same results at commitTs. ABA scenarios are permitted.</p></li>
+<li>Serializable<ul>
+<li>Read and Writes to this table both happen at commit time</li>
+<li>Implemented by checking that reads made at startTs return the
+same results at commitTs. ABA scenarios are permitted.</li>
 </ul>
 </li>
-<li><p>Snapshot</p>
-<ul>
-<li><p>Reads happen at the startTs</p></li>
-<li><p>Writes happen at the commitTs</p></li>
-<li><p>Possibly has write skew</p></li>
+<li>Snapshot<ul>
+<li>Reads happen at the startTs</li>
+<li>Writes happen at the commitTs</li>
+<li>Possibly has write skew</li>
 </ul>
 </li>
-<li><p>No Conflict</p>
-<ul>
-<li><p>Reads happen at the startTs</p></li>
-<li><p>Writes happen at the commitTs, with the caveat that when there are
+<li>No Conflict<ul>
+<li>Reads happen at the startTs</li>
+<li>Writes happen at the commitTs, with the caveat that when there are
 concurrent transactions sometimes the earlier committing
 transactions value is kept instead of the later committing
-transaction</p></li>
-<li><p>This means that writes may appear to be lost if they happen
-concurrently with a transaction that overwrites them.</p></li>
+transaction</li>
+<li>This means that writes may appear to be lost if they happen
+concurrently with a transaction that overwrites them.</li>
 </ul>
 </li>
-<li><p>Read only</p>
-<ul>
-<li><p>All reads happen at startTs</p></li>
+<li>Read only<ul>
+<li>All reads happen at startTs</li>
 </ul>
 </li>
 </ul>
@@ -128,9 +122,9 @@ concurrently with a transaction that overwrites them.</p></li>
 behavior where some tables read and write at commitTs, but other tables
 are reading at startTs and the states are incompatible because
 transactions have committed in between these times.</p>
-</section>
-<section id="serializable-transactions-theory">
-<h2>Serializable Transactions Theory<a class="headerlink" href="#serializable-transactions-theory" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="serializable-transactions-theory">
+<h2>Serializable Transactions Theory<a class="headerlink" href="#serializable-transactions-theory" title="Permalink to this headline">¶</a></h2>
 <p>The Serializable Transactions in AtlasDB are built using a few
 techniques developed in the last decade.</p>
 <p>The main papers used to figure out the best approach for this are</p>
@@ -166,8 +160,8 @@ difficult. Instead we simplify and abort any transaction which may block
 on a startTs which is greater than their startTs. This situation is
 almost always going to be a r/w conflict unless there is a write
 failure. This will surely break the deadlock and also is easy to check.</p>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

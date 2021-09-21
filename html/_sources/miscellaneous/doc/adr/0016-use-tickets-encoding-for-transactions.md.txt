@@ -1,5 +1,4 @@
-16. Use the tickets encoding for the transactions table (_transactions2)
-************************************************************************
+# 16. Use the tickets encoding for the transactions table (_transactions2)
 
 Date: 05/04/2019
 
@@ -18,7 +17,7 @@ mapping of longs to longs, with a special value of ``-1`` meaning that the trans
 are in-flight and have yet to either commit or abort will not have an entry in the table.
 
 | startTimestamp | commitTimestamp |
-| -------------- | --------------- |
+|---------------:|----------------:|
 |             20 |              33 |
 |             28 |              42 |
 |             37 |              -1 |
@@ -26,16 +25,16 @@ are in-flight and have yet to either commit or abort will not have an entry in t
 
 This table is accessed via the ``TransactionService`` class in AtlasDB, which offers a simple interface:
 
-.. code-block:: Java
-
-  public interface TransactionService {
+```java
+public interface TransactionService {
     @CheckForNull
     Long get(long startTimestamp);
 
     Map<Long, Long> get(Iterable<Long> startTimestamps);
 
     void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException;
-  }
+}
+```
 
 In practice, calling both the single and multi-timestamp versions of ``get`` may read from this table, though
 non-null results may be cached. ``putUnlessExists`` performs a put-unless-exists operation to the table - this
@@ -48,10 +47,8 @@ All AtlasDB tables have a similar schema in Cassandra:
 
 - there is a blob partition key used to store rows, called the ``key``
 - the clustering key has two more components:
-
   - a blob for columns, called ``column1``
   - a big-integer for the timestamp, called ``column2``
-
 - blob values.
 
 In the ``_transactions`` table, ``column1`` is always a single byte corresponding to the string ``t``, and
@@ -62,7 +59,7 @@ is similarly a VAR_LONG encoding of the commit timestamp.
 The Cassandra representation of the ``_transactions`` table introduced above may look as follows.
 
 |        key | column1 | column2 |                  value |
-| ---------- | ------- | ------- | ---------------------- |
+|-----------:|--------:|--------:|-----------------------:|
 |       0x14 |    0x74 |      -1 |                   0x21 |
 |       0x1c |    0x74 |      -1 |                   0x2a |
 |       0x25 |    0x74 |      -1 | 0xff80ffffffffffffffff |
@@ -89,9 +86,9 @@ However, our choice of encoding also has some issues. Two particularly relevant 
 2. VAR_LONG encoding is not particularly efficient for our purposes in that it fails to exploit some characteristics
    of the distribution of our data. In particular:
    1. The special value ``-1`` is particularly large; under VAR_LONG encoding, negative longs will always encode to 10
-   bytes.
+      bytes.
    2. Storing the full value of the commit timestamp is also wasteful, given that we know that it is generally slightly
-   higher than the value of the start timestamp.
+      higher than the value of the start timestamp.
 
 ### Principles for a Good Transaction Service
 
@@ -157,13 +154,13 @@ Cassandra.
 Given that we want to avoid hot-spotting and ensure horizontal scalability, we need to ensure that the rows we may
 be writing data to are distributed differently in byte-space. We thus reverse the bits of each row before encoding it.
 
-.. code-block:: Java
-
-  private static byte[] encodeRowName(long startTimestamp) {
+```java
+private static byte[] encodeRowName(long startTimestamp) {
     long row = (startTimestamp / PARTITIONING_QUANTUM) * ROWS_PER_QUANTUM
             + (startTimestamp % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM;
     return PtBytes.toBytes(Long.reverse(row));
-  }
+}
+```
 
 We are using a fixed-long encoding here, which uses a constant 8 bytes (instead of variable between 1 and 9). This was
 chosen to ensure that range scans are supported, as the reversed forms of variable length encodings tend to not be
@@ -211,17 +208,15 @@ start-commit timestamp pairs in a single row, and in practice values are likely 
 The putUnlessExists operation is performed at a serial consistency level in Cassandra, meaning that reads and writes
 go through Paxos for consensus. Thrift exposes a check-and-set operation on its APIs.
 
-
-.. code-block:: Java
-
-  CASResult cas(1:required binary key,
+```
+CASResult cas(1:required binary key,
               2:required string column_family,
               3:list<Column> expected,
               4:list<Column> updates,
               5:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
               6:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
   throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
-
+```
 
 This was sufficient in the original transactions schema, because each row key only stores information about one
 start timestamp; a putUnlessExists operation is then a CAS from an empty row to a row that has one column.
@@ -236,14 +231,14 @@ We thus decided to extend the Thrift interface to add support for a multi-column
 has the semantics we want. This is different from CAS from an empty list, in that this succeeds as long as any of
 the existing columns in the column family for the provided key do not overlap with the set of columns being added.
 
-.. code-block:: Java
-
-  CASResult put_unless_exists(1:required binary key,
+```
+CASResult put_unless_exists(1:required binary key,
                             2:required string column_family,
                             3:list<Column> updates,
                             4:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
                             5:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
   throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+```
 
 #### Multinode Contention and Residues
 
@@ -321,7 +316,7 @@ We ran several benchmarks on an internal testing stack, with different levels of
 for the transactions table. For these benchmarks, we ensured that we actually performed disk operations to evaluate
 performance. This was done by using ``sstableloader`` to ingest billions of timestamp pairs into the test stack, and
 the ``stress`` tool to consume almost all of the free memory outside of Cassandra's heap (to avoid operating system
-page caches). We also had to create fresh ``TransactionService`` s on each benchmark run to circumvent application-level
+page caches). We also had to create fresh ``TransactionService``s on each benchmark run to circumvent application-level
 caching.
 
 The following benchmarks were run with a 100% hit rate (every timestamp queried for corresponded to an existing
@@ -335,7 +330,7 @@ transaction). We attempted to run the tests using various configurations of the 
 - ``CK[n]`` refers to explicit configuration of ``chunk_length_kb`` to ``n``.
 
 | Concurrency | Metric |    tx1 |    tx2 | tx2 + BF | tx2 + BFII | tx2 + BFIICK[16] | tx2 + BFIICK[64] |
-| ----------- | ------ | ------ | ------ | -------- | ---------- | ---------------- | ---------------- |
+|------------:|-------:|-------:|-------:|---------:|-----------:|-----------------:|-----------------:|
 |         100 |    p50 |  2.263 |  2.549 |    2.733 |      2.705 |            2.702 |            2.362 |
 |         100 |    p95 |  9.161 |  9.742 |    8.092 |      9.404 |            8.495 |            9.020 |
 |         100 |    p99 | 15.687 | 16.424 |   15.502 |     15.850 |           15.096 |           15.983 |
@@ -351,7 +346,7 @@ The next set of benchmarks were run with a 50% hit rate. Note that this is rare 
 miss we will try to roll back the transaction by inserting a -1 entry into the transactions table.
 
 | Concurrency | Metric |    tx1 |    tx2 | tx2 + BF | tx2 + BFII | tx2 + BFIICK[16] | tx2 + BFIICK[64] |
-| ----------- | ------ | ------ | ------ | -------- | ---------- | ---------------- | ---------------- |
+|------------:|-------:|-------:|-------:|---------:|-----------:|-----------------:|-----------------:|
 |         100 |    p50 |  2.319 |  3.386 |    3.456 |      3.548 |            3.685 |            3.383 |
 |         100 |    p95 | 10.667 | 10.093 |    9.170 |      9.124 |            8.607 |           10.247 |
 |         100 |    p99 | 16.652 | 16.886 |   15.235 |     15.374 |           14.337 |           15.926 |
@@ -373,13 +368,13 @@ that this is unlikely to be a steady state.
 
 AtlasDB loads most of its data through the ``multiget_slice`` Cassandra endpoint.
 
-.. code-block:: Java
-
-  map<binary,list<ColumnOrSuperColumn>> multiget_slice(1:required list<binary> keys,
+```
+map<binary,list<ColumnOrSuperColumn>> multiget_slice(1:required list<binary> keys,
                                                      2:required ColumnParent column_parent,
                                                      3:required SlicePredicate predicate,
                                                      4:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
   throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+```
 
 A ``SlicePredicate`` is a Cassandra struct that allows clients to specify which columns they want to read - these
 columns are loaded for each of the keys presented. Notice that this method supports multiple keys but just one
@@ -407,17 +402,17 @@ resources from the Cassandra connection pool; they also incur a lot of overhead 
 We want to be able to batch these calls together. To do this, we added another endpoint to the Thrift interface that
 Palantir's fork of Cassandra provides:
 
-.. code-block:: Java
-
-  struct KeyPredicate {
+```
+struct KeyPredicate {
     1: optional binary key,
     2: optional SlicePredicate predicate,
-  }
+}
 
-  map<binary,list<list<ColumnOrSuperColumn>>> multiget_multislice(1:required list<KeyPredicate> request,
+map<binary,list<list<ColumnOrSuperColumn>>> multiget_multislice(1:required list<KeyPredicate> request,
                                                                 2:required ColumnParent column_parent,
                                                                 3:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
   throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+```
 
 Implementing this endpoint on the Cassandra side was not too difficult. It may seem a little wasteful in that this may
 require keys and predicates to be specified more than once, but for transactions2 these would likely be mostly
@@ -460,7 +455,7 @@ For example, supposing one has cells partitioned by column, such that the number
 follows. Further suppose that ``CC = 100`` and ``SQ = 300``.
 
 | Column | # Cells |
-| ------ | ------- |
+|-------:|--------:|
 |      A |      80 |
 |      B |     200 |
 |      C |      70 |
@@ -494,7 +489,7 @@ We first ran the benchmarks with a single thread against the aforementioned work
 SQ = 200; the dynamic columns are random and are unlikely to have overlaps. Times are reported in milliseconds.
 
 | Rows |     Columns | Metric | CellLoader 1 | Full Batching  | CellLoader 2 |
-| ---- | ----------- | ------ | ------------ | -------------- | ------------ |
+|-----:|------------:|-------:|-------------:|---------------:|-------------:|
 |  100 |  100 static |    p50 |        124.2 |          164.4 |        118.9 |
 |  100 |  100 static |    p95 |        169.7 |          204.0 |        163.5 |
 |  100 |  100 static |    p99 |        204.1 |          237.2 |        195.2 |
@@ -525,7 +520,7 @@ best overall.
 We also ran the benchmarks with 10 concurrent readers on the same workflows. Times are reported in milliseconds.
 
 | Rows |     Columns | Metric | CellLoader 1 | Full Batching  | CellLoader 2 |
-| ---- | ----------- | ------ | ------------ | -------------- | ------------ |
+|-----:|------------:|-------:|-------------:|---------------:|-------------:|
 |  100 |  100 static |    p50 |       1042.0 |         1248.5 |       1027.4 |
 |  100 |  100 static |    p95 |       1355.2 |         1636.1 |       1365.1 |
 |  100 |  100 static |    p99 |       1530.6 |         1783.2 |       1530.8 |

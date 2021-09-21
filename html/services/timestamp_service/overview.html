@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Overview &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <title>Overview &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -92,49 +90,49 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="overview">
-<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h1>
+  <div class="section" id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
 <p>The Timestamp Service exposes an API that allows for clients to request fresh timestamps, which are required by the
 AtlasDB transaction protocol. These timestamps are <em>logical timestamps</em> (that is, they have no relationship to actual
 wall-clock time), and are returned as signed 64-bit integers.</p>
-<section id="guarantees">
-<h2>Guarantees<a class="headerlink" href="#guarantees" title="Permalink to this headline"></a></h2>
+<div class="section" id="guarantees">
+<h2>Guarantees<a class="headerlink" href="#guarantees" title="Permalink to this headline">¶</a></h2>
 <p>We guarantee that a request for a fresh timestamp will return a strictly greater timestamp than any other timestamp
 already returned by an earlier request. In particular, this does <em>not</em> mean that the timestamps clients
 see will necessarily be monotonically increasing. The following sequence of events is allowed:</p>
 <ol class="arabic simple">
-<li><p>Node A is the Leader</p></li>
-<li><p>Node A receives request for timestamp</p></li>
-<li><p>Node A enters bad GC cycle / JVM goes to sleep etc.</p></li>
-<li><p>Node B becomes the Leader</p></li>
-<li><p>Node B receives request for timestamp</p></li>
-<li><p>Node B hands out timestamp X+1 and its client receives it</p></li>
-<li><p>Node A becomes functional again</p></li>
-<li><p>Node A hands out timestamp X and its client receives it</p></li>
+<li>Node A is the Leader</li>
+<li>Node A receives request for timestamp</li>
+<li>Node A enters bad GC cycle / JVM goes to sleep etc.</li>
+<li>Node B becomes the Leader</li>
+<li>Node B receives request for timestamp</li>
+<li>Node B hands out timestamp X+1 and its client receives it</li>
+<li>Node A becomes functional again</li>
+<li>Node A hands out timestamp X and its client receives it</li>
 </ol>
 <p>However, we guarantee the following sequence of events will not happen:</p>
 <ol class="arabic simple">
-<li><p>Node A is the Leader</p></li>
-<li><p>Node A receives request for timestamp</p></li>
-<li><p>Node A hands out timestamp X+1 and its client receives it</p></li>
-<li><p>Node B becomes the Leader</p></li>
-<li><p>Node B receives request for timestamp</p></li>
-<li><p>Node B hands out timestamp X and its client receives it</p></li>
+<li>Node A is the Leader</li>
+<li>Node A receives request for timestamp</li>
+<li>Node A hands out timestamp X+1 and its client receives it</li>
+<li>Node B becomes the Leader</li>
+<li>Node B receives request for timestamp</li>
+<li>Node B hands out timestamp X and its client receives it</li>
 </ol>
 <p>Furthermore, there are also no guarantees that the timestamps issued will be consecutive.</p>
 <p>We guarantee the above ordering across system restarts as well.</p>
-</section>
-<section id="contiguous-blocks">
-<h2>Contiguous Blocks<a class="headerlink" href="#contiguous-blocks" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="contiguous-blocks">
+<h2>Contiguous Blocks<a class="headerlink" href="#contiguous-blocks" title="Permalink to this headline">¶</a></h2>
 <p>Users are allowed to make requests for contiguous blocks of timestamps using the <code class="docutils literal notranslate"><span class="pre">getFreshTimestamps</span></code> endpoint.
 This may be useful if one knows it is the only client and/or wishes to have bespoke complex concurrency semantics.</p>
 <p>The endpoint will return a contiguous block of timestamps; this is indicated by a lower and upper bound (inclusive
 on both ends). We guarantee that the range returned will consist of at least 1 timestamp, and will have <em>at most</em>
 as many timestamps as the number requested. However, we do not guarantee that the size of the timestamp range will be
 equal to the number of timestamps requested for; the onus to check this is on the client.</p>
-</section>
-<section id="caching">
-<h2>Caching<a class="headerlink" href="#caching" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="caching">
+<h2>Caching<a class="headerlink" href="#caching" title="Permalink to this headline">¶</a></h2>
 <p>To guarantee that timestamps still increase across system restarts, we need to persist some kind of a record of
 what timestamps we’ve issued to stable storage. However, doing this on each timestamp request is unperformant, as
 we would need a database operation, and in clustered mode we would also need to achieve distributed consensus.</p>
@@ -143,8 +141,8 @@ timestamps (currently 1,000,000) and update the bound to be the end of that rang
 Timestamp Service, it will issue timestamps from the range it knows it has, requesting more if necessary. We thus only
 have one “persist” action every million timestamps. This can lead to there being gaps in timestamps when servers
 are restarted and/or there is a leadership change in clustered mode, but that’s allowed by our guarantees.</p>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

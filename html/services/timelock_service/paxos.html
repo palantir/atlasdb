@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Paxos and AtlasDB &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <title>Paxos and AtlasDB &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -96,48 +94,48 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="paxos-and-atlasdb">
-<span id="timelock-paxos"></span><h1>Paxos and AtlasDB<a class="headerlink" href="#paxos-and-atlasdb" title="Permalink to this headline"></a></h1>
-<section id="the-paxos-algorithm">
-<h2>The Paxos Algorithm<a class="headerlink" href="#the-paxos-algorithm" title="Permalink to this headline"></a></h2>
+  <div class="section" id="paxos-and-atlasdb">
+<span id="timelock-paxos"></span><h1>Paxos and AtlasDB<a class="headerlink" href="#paxos-and-atlasdb" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="the-paxos-algorithm">
+<h2>The Paxos Algorithm<a class="headerlink" href="#the-paxos-algorithm" title="Permalink to this headline">¶</a></h2>
 <p><a class="reference external" href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/paxos-simple-Copy.pdf">Paxos</a> is an algorithm
 for <em>distributed consensus</em> - that is, getting servers to agree on a value that some server <em>proposes</em>, in the presence
 of communication and server failures. Its guarantees include:</p>
 <ol class="arabic simple">
-<li><p>Safety: All servers will agree on the same value.</p></li>
-<li><p>Nontriviality: The value must have been <em>proposed</em> by at least one of the servers.</p></li>
-<li><p>Liveness: If a majority of servers are up and able to communicate, then the protocol can make progress.</p></li>
+<li>Safety: All servers will agree on the same value.</li>
+<li>Nontriviality: The value must have been <em>proposed</em> by at least one of the servers.</li>
+<li>Liveness: If a majority of servers are up and able to communicate, then the protocol can make progress.</li>
 </ol>
 <p>Paxos is a symmetric consensus protocol; technically speaking, each server (which plays all of the proposer, acceptor
 and learner roles) behaves in the same way. However, this can potentially lead to a situation known as the
 <em>dueling proposers</em> problem, where servers behave as follows:</p>
 <ol class="arabic simple">
-<li><p>Server A proposes a value V1, with term (1, A)</p></li>
-<li><p>It receives a majority of promises not to accept values with terms greater than (1, A)</p></li>
-<li><p>Server B proposes a value V2, with term (1, B)</p></li>
-<li><p>It receives a majority of promises for (1, B)</p></li>
-<li><p>Server A requests servers to accept V1; servers reject</p></li>
-<li><p>Server A proposes V1 with term (2, A)</p></li>
-<li><p>It receives a majority of promises for (2, A)</p></li>
-<li><p>Server B requests servers to accept V2; servers reject</p></li>
+<li>Server A proposes a value V1, with term (1, A)</li>
+<li>It receives a majority of promises not to accept values with terms greater than (1, A)</li>
+<li>Server B proposes a value V2, with term (1, B)</li>
+<li>It receives a majority of promises for (1, B)</li>
+<li>Server A requests servers to accept V1; servers reject</li>
+<li>Server A proposes V1 with term (2, A)</li>
+<li>It receives a majority of promises for (2, A)</li>
+<li>Server B requests servers to accept V2; servers reject</li>
 </ol>
 <p>This can be (and is in AtlasDB) mitigated by having a random backoff between proposals.</p>
-</section>
-<section id="how-we-use-paxos">
-<h2>How we use Paxos<a class="headerlink" href="#how-we-use-paxos" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="how-we-use-paxos">
+<h2>How we use Paxos<a class="headerlink" href="#how-we-use-paxos" title="Permalink to this headline">¶</a></h2>
 <p>The TimeLock servers may use a Paxos based algorithm for two purposes:</p>
 <ol class="arabic simple">
-<li><p><strong>Leadership election:</strong> We choose who will be the leader in the TimeLock cluster. The leader is the only server capable
+<li><strong>Leadership election:</strong> We choose who will be the leader in the TimeLock cluster. The leader is the only server capable
 of responding to lock and timestamp requests. Leader election is often preferable for performance reasons confirming
-you are the leader is more efficient than choosing the value to respond with.</p></li>
-<li><p><strong>Timestamp bound:</strong> TimeLock needs to store upper bounds on timestamps that the leader is allowed to hand out.
-If configured to use Paxos timestamp persistence, TimeLock chooses this bound via Paxos.</p></li>
+you are the leader is more efficient than choosing the value to respond with.</li>
+<li><strong>Timestamp bound:</strong> TimeLock needs to store upper bounds on timestamps that the leader is allowed to hand out.
+If configured to use Paxos timestamp persistence, TimeLock chooses this bound via Paxos.</li>
 </ol>
 <p>It is worth noting that the Paxos implementations differ slightly for choosing a leader and choosing a timestamp bound.
 When choosing a leader, all servers can propose leadership and have the potential to be elected. However, once a leader
 is established, only that server is allowed to propose timestamp bounds.</p>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

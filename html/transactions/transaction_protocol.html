@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Transaction Protocol &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Transaction Protocol &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -86,11 +84,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="transaction-protocol">
-<span id="id1"></span><h1>Transaction Protocol<a class="headerlink" href="#transaction-protocol" title="Permalink to this headline"></a></h1>
+  <div class="section" id="transaction-protocol">
+<span id="id1"></span><h1>Transaction Protocol<a class="headerlink" href="#transaction-protocol" title="Permalink to this headline">¶</a></h1>
 <div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The AtlasDB transaction protocol is inspired by, but different from
+<p class="first admonition-title">Note</p>
+<p class="last">The AtlasDB transaction protocol is inspired by, but different from
 Google’s Percolator transaction protocol. For additional reading,
 please see <a class="reference external" href="http://research.google.com/pubs/pub36726.html">Percolator</a>.</p>
 </div>
@@ -100,40 +98,43 @@ have a commit timestamp less than your start timestamp. You will get a
 write-write conflict for any cells that you write that were modified in transactions
 that committed at a timestamp between your start timestamp and your
 commit timestamp.</p>
-<section id="write-protocol">
-<h2>Write Protocol<a class="headerlink" href="#write-protocol" title="Permalink to this headline"></a></h2>
+<div class="section" id="write-protocol">
+<h2>Write Protocol<a class="headerlink" href="#write-protocol" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
-<li><p>Complete all reads using the transaction’s start timestamp.  This is necessary to
+<li>Complete all reads using the transaction’s start timestamp.  This is necessary to
 determine the writes required by the transaction. Buffer writes in memory
-until commit time.</p></li>
-<li><p>At commit time we grab
+until commit time.</li>
+<li>At commit time we grab
 row locks for all the rows we are about to write (this is to detect
 write/write conflicts). We also grab the start timestamp row lock for
-the Transaction table.</p></li>
-<li><p>Now that we have our locks we check for write/write conflicts. If any
+the Transaction table.</li>
+<li>Now that we have our locks we check for write/write conflicts. If any
 cell has been modified by a transaction that committed after our
-startTs then we have a write conflict.</p></li>
-<li><p>Write the data to the KV store with TS = startTs.</p></li>
-<li><p>Now we get a fresh commit timestamp.</p></li>
-<li><p>Then (this is important) we make sure our locks are still valid. If
+startTs then we have a write conflict.</li>
+<li>Write the data to the KV store with TS = startTs.</li>
+<li>Now we get a fresh commit timestamp.</li>
+<li>Then (this is important) we make sure our locks are still valid. If
 our locks expire after this point that is ok, but they have to be
-valid now.</p></li>
-<li><p>Then we atomically do a “putUnlessExists” into the transaction table
-with our commit timestamp.</p></li>
-<li><p>Unlock the locks.</p></li>
+valid now.</li>
+<li>Then we atomically do a “putUnlessExists” into the transaction table
+with our commit timestamp.</li>
+<li>Unlock the locks.</li>
 </ol>
-</section>
-<section id="read-protocol">
-<h2>Read Protocol<a class="headerlink" href="#read-protocol" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="read-protocol">
+<h2>Read Protocol<a class="headerlink" href="#read-protocol" title="Permalink to this headline">¶</a></h2>
 <p>Let’s assume we are reading Cell c.</p>
 <ol class="arabic">
-<li><p>Read from the KV store and get the most recent data with TS &lt;
-startTs.</p></li>
-<li><p>Get a read lock on the transaction row for c.startTs (not needed if
+<li><p class="first">Read from the KV store and get the most recent data with TS &lt;
+startTs.</p>
+</li>
+<li><p class="first">Get a read lock on the transaction row for c.startTs (not needed if
 c.startTs is less than immutableTs). This is to wait to make sure
-the transaction that wrote it is done.</p></li>
-<li><p>Read the transaction table for the commitTs.</p></li>
-<li><p>One of two actions:</p>
+the transaction that wrote it is done.</p>
+</li>
+<li><p class="first">Read the transaction table for the commitTs.</p>
+</li>
+<li><p class="first">One of two actions:</p>
 <p>a. If commitTs doesn’t exist, try to roll back this transaction and
 start over. If it is -1 (been rolled back), delete the associated data
 and start over.</p>
@@ -141,9 +142,9 @@ and start over.</p>
 next highest TS for the cell.</p>
 </li>
 </ol>
-</section>
-<section id="immutable-timestamp">
-<h2>Immutable Timestamp<a class="headerlink" href="#immutable-timestamp" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="immutable-timestamp">
+<h2>Immutable Timestamp<a class="headerlink" href="#immutable-timestamp" title="Permalink to this headline">¶</a></h2>
 <p>The point in time right before the oldest currently executing
 transaction is referred to as the immutable timestamp. This is because
 nothing before this point in time will change. (All writes are available
@@ -164,13 +165,13 @@ time. Normally clients don’t need the absolute most recent
 ImmutableTs, but just a relatively modern one.</p>
 <p>Tricky points regarding the immutable timestamp:</p>
 <ul class="simple">
-<li><p>A transaction with startTs &lt; immutableTs may be stuck on the
+<li>A transaction with startTs &lt; immutableTs may be stuck on the
 putUnlessExists part of its commit (its locks are timed out,
 otherwise immutableTs &lt; startTs). This is ok because if we read
 any of its values we will try to roll back their transaction and we
 will either see it as committed or failed, but either way it will be
-complete.</p></li>
-<li><p>The immutable timestamp is not guaranteed to be strictly increasing.
+complete.</li>
+<li>The immutable timestamp is not guaranteed to be strictly increasing.
 This is because the action of grabbing PRE_START_TS and the action
 of locking it are not performed together atomically. This doesn’t
 cause correctness issues, though, since we wait until we have locked
@@ -179,11 +180,11 @@ the current immutable timestamp is immutableTs1 and transaction T
 locks in a lower value immutableTs0, then T’s startTs must be
 greater than immutableTs1, so any readers who grabbed
 immutableTs1 will still grab locks when trying to read rows
-written by T.</p></li>
+written by T.</li>
 </ul>
-</section>
-<section id="cleaning-up-old-values">
-<h2>Cleaning Up Old Values<a class="headerlink" href="#cleaning-up-old-values" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="cleaning-up-old-values">
+<h2>Cleaning Up Old Values<a class="headerlink" href="#cleaning-up-old-values" title="Permalink to this headline">¶</a></h2>
 <p>Since we are doing away with historical transactions, we can clean up
 old values. We are still allowing long running read transactions, but we
 should cap them so they can only run for a couple days or weeks. This
@@ -210,9 +211,9 @@ in” which will ensure old values won’t get cleaned up out from under it
 for another day or so. Note this cleanup has implications with respect
 to hard delete and we may want to force a cleanup sooner and allow these
 long running reads to fail in the name of hard delete.</p>
-</section>
-<section id="cleaning-up-old-nonce-values">
-<h2>Cleaning up old nonce values<a class="headerlink" href="#cleaning-up-old-nonce-values" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="cleaning-up-old-nonce-values">
+<h2>Cleaning up old nonce values<a class="headerlink" href="#cleaning-up-old-nonce-values" title="Permalink to this headline">¶</a></h2>
 <p>Part of doing cleanup is writing an empty value at a negative timestamp
 for some cell. This works to prevent old read only transactions from
 reading empty value when really they should have read a cleaned value.
@@ -224,9 +225,9 @@ the KV store, but at the cost of never being able to read this table in
 a read-only transaction. This seems like a good trade-off and lets us
 build indexes with status variables and be able to delete old values
 completely and still support range scans.</p>
-</section>
-<section id="read-write-conflicts">
-<h2>Read/Write Conflicts<a class="headerlink" href="#read-write-conflicts" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="read-write-conflicts">
+<h2>Read/Write Conflicts<a class="headerlink" href="#read-write-conflicts" title="Permalink to this headline">¶</a></h2>
 <p>The transaction protocol has write/write conflicts built into it. If two
 transactions touch the same cell, one will be rolled back (as long as the
 table does write/write conflict detection (which is the default)). What
@@ -265,20 +266,20 @@ successful commit and not all commits after your start time. The
 downside if you don’t get true read/write exclusion, you basically just
 get CAS semantics. This isn’t a big deal because using a counter is the
 most common way to use this type of exclusion anyway.</p>
-</section>
-<section id="proof-of-correctness">
-<h2>Proof of Correctness<a class="headerlink" href="#proof-of-correctness" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="proof-of-correctness">
+<h2>Proof of Correctness<a class="headerlink" href="#proof-of-correctness" title="Permalink to this headline">¶</a></h2>
 <p>If we want to prove that this protocol works this means that we need to
 show that we read precisely the data committed before the start of our
 transaction. We proceed by showing that:</p>
 <ol class="arabic simple">
-<li><p>We read data from any writes that committed before our transaction started.</p></li>
-<li><p>We do not read any writes that commit after our transaction started
-(even if the relevant transactions started before our transaction started).</p></li>
-<li><p>We do not read any writes from a failed transaction.</p></li>
+<li>We read data from any writes that committed before our transaction started.</li>
+<li>We do not read any writes that commit after our transaction started
+(even if the relevant transactions started before our transaction started).</li>
+<li>We do not read any writes from a failed transaction.</li>
 </ol>
-<section id="reading-all-writes-before-transaction-start">
-<h3>Reading All Writes Before Transaction Start<a class="headerlink" href="#reading-all-writes-before-transaction-start" title="Permalink to this headline"></a></h3>
+<div class="section" id="reading-all-writes-before-transaction-start">
+<h3>Reading All Writes Before Transaction Start<a class="headerlink" href="#reading-all-writes-before-transaction-start" title="Permalink to this headline">¶</a></h3>
 <p>We must ensure writes committed before our start are read. If we look at
 the write protocol then we know that all writes are complete to the KV
 store THEN get a commit timestamp and THEN verify our locks are still
@@ -286,9 +287,9 @@ valid. Then it proceeds to putUnlessExists to the transaction table.</p>
 <p>This means that if a commitTs is less than our startTs then the KV store
 will already have these rows written. We require that the underlying KV
 store has durable writes so these rows will be read.</p>
-</section>
-<section id="lock-timeouts-after-validation">
-<h3>Lock Timeouts After Validation<a class="headerlink" href="#lock-timeouts-after-validation" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="lock-timeouts-after-validation">
+<h3>Lock Timeouts After Validation<a class="headerlink" href="#lock-timeouts-after-validation" title="Permalink to this headline">¶</a></h3>
 <p>What if locks time out after we do the check that they are still valid?
 If locks time out while writing to the transaction table we depend on
 the putUnlessExists to arbitrate whether a transaction is committed or
@@ -301,9 +302,9 @@ consistency guarantees, but the rest of the system only has to have
 durable writes. The standard way of getting this level of consistency is
 to use a write ahead log to know what has/hasn’t been committed.
 Bookkeeper is an example of a project that implements this kind of log.</p>
-</section>
-<section id="ignoring-writes-committed-after-transaction-start">
-<h3>Ignoring Writes Committed After Transaction Start<a class="headerlink" href="#ignoring-writes-committed-after-transaction-start" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="ignoring-writes-committed-after-transaction-start">
+<h3>Ignoring Writes Committed After Transaction Start<a class="headerlink" href="#ignoring-writes-committed-after-transaction-start" title="Permalink to this headline">¶</a></h3>
 <p>We need to ensure that writes committed after our startTs are not read.
 If we get back a row from the KV store then we know that the txn that
 wrote it has a startTs less than ours, but it may still be in progress
@@ -315,18 +316,18 @@ retry. If our rollback fails because txn did actually commit then we
 read that value and carry on. We can retry until the value is there, but
 usually we just throw and retry the current transaction if there is a
 remoting failure.</p>
-</section>
-<section id="ignoring-failed-transactions">
-<h3>Ignoring Failed Transactions<a class="headerlink" href="#ignoring-failed-transactions" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="ignoring-failed-transactions">
+<h3>Ignoring Failed Transactions<a class="headerlink" href="#ignoring-failed-transactions" title="Permalink to this headline">¶</a></h3>
 <p>This is achieved because we post-filter all reads through the
 transaction table. If we find that transaction is rolled back, then we
 just delete it and retry the read.</p>
-</section>
-</section>
-<section id="non-obvious-semantics">
-<h2>Non-Obvious Semantics<a class="headerlink" href="#non-obvious-semantics" title="Permalink to this headline"></a></h2>
-<section id="read-rollbacks">
-<h3>Read Rollbacks<a class="headerlink" href="#read-rollbacks" title="Permalink to this headline"></a></h3>
+</div>
+</div>
+<div class="section" id="non-obvious-semantics">
+<h2>Non-Obvious Semantics<a class="headerlink" href="#non-obvious-semantics" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="read-rollbacks">
+<h3>Read Rollbacks<a class="headerlink" href="#read-rollbacks" title="Permalink to this headline">¶</a></h3>
 <p>Reads must rollback transactions they find that are uncommitted. If a
 read doesn’t go out of its way to roll back an uncommitted row and just
 skips it and keeps looking in the past for a committed row, then it
@@ -336,10 +337,10 @@ write protocol. If this is the case, we can’t be sure that transaction
 isn’t going to have a commit timestamp before our start timestamp, so we
 have to make sure this transaction will be failed for sure before we can
 skip past it.</p>
-</section>
-</section>
-<section id="serializable-isolation">
-<h2>Serializable Isolation<a class="headerlink" href="#serializable-isolation" title="Permalink to this headline"></a></h2>
+</div>
+</div>
+<div class="section" id="serializable-isolation">
+<h2>Serializable Isolation<a class="headerlink" href="#serializable-isolation" title="Permalink to this headline">¶</a></h2>
 <p>AtlasDB can be extended to have serializable isolation semantics.
 Basically instead of looking at your write set and detecting writes that
 commit in between your start and commit timestamps we should look at the
@@ -370,8 +371,8 @@ transaction would wait is if it could have a read-write conflict. This
 means that the waiting may result in a rollback anyway so waiting isn’t
 a huge hit. To mitigate this issue we should make transactions that
 write hot rows not have a huge read set that needs to be verified.</p>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

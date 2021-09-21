@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Logging Configuration &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Logging Configuration &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -91,10 +89,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="logging-configuration">
-<span id="id1"></span><h1>Logging Configuration<a class="headerlink" href="#logging-configuration" title="Permalink to this headline"></a></h1>
-<section id="profiling-a-key-value-service">
-<h2>Profiling a Key Value Service<a class="headerlink" href="#profiling-a-key-value-service" title="Permalink to this headline"></a></h2>
+  <div class="section" id="logging-configuration">
+<span id="id1"></span><h1>Logging Configuration<a class="headerlink" href="#logging-configuration" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="profiling-a-key-value-service">
+<h2>Profiling a Key Value Service<a class="headerlink" href="#profiling-a-key-value-service" title="Permalink to this headline">¶</a></h2>
 <p>All Key Value Services created using <code class="docutils literal notranslate"><span class="pre">TransactionManagers.create()</span></code> will
 be wrapped in a <code class="docutils literal notranslate"><span class="pre">ProfilingKeyValueService</span></code>.  This service will log out timing
 and metadata for requests made against the underlying KVS.  In order to activate
@@ -102,27 +100,27 @@ the logging, simply enable <code class="docutils literal notranslate"><span clas
 <code class="docutils literal notranslate"><span class="pre">com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService</span></code>.</p>
 <p>If you are using <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueService</span></code>, you can use additional tracing for deeper analysis.
 For more information, see <a class="reference internal" href="enabling_cassandra_tracing.html#enabling-cassandra-tracing"><span class="std std-ref">Enabling Cassandra Tracing</span></a>.</p>
-</section>
-<section id="debug-logging-for-multiple-timestamp-services-error">
-<span id="debug-logging"></span><h2>Debug Logging for Multiple Timestamp Services Error<a class="headerlink" href="#debug-logging-for-multiple-timestamp-services-error" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="debug-logging-for-multiple-timestamp-services-error">
+<span id="debug-logging"></span><h2>Debug Logging for Multiple Timestamp Services Error<a class="headerlink" href="#debug-logging-for-multiple-timestamp-services-error" title="Permalink to this headline">¶</a></h2>
 <p>This logging is available from version 0.23.0.  It is intended for targeted use only
 (read: when you have consistent reproduction) as it is particularly verbose.
 Due to the volume, it is recommended that you send logging related to the timestamp service to a separate appender.</p>
 <p>To do this, add the following to your logging configuration:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">logging</span><span class="p">:</span>
-  <span class="nt">loggers</span><span class="p">:</span>
-    <span class="nt">com.palantir.timestamp</span><span class="p">:</span>
-      <span class="nt">level</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">TRACE</span>
-      <span class="nt">additive</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
-      <span class="nt">appenders</span><span class="p">:</span>
-        <span class="p p-Indicator">-</span> <span class="nt">archivedFileCount</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">5</span>
-          <span class="nt">archivedLogFilenamePattern</span><span class="p">:</span> <span class="s">&#39;{{service_home}}/var/log/timestamps-%d.log.gz&#39;</span>
-          <span class="nt">currentLogFilename</span><span class="p">:</span> <span class="s">&#39;{{service_home}}/var/log/timestamps.log&#39;</span>
-          <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">file</span>
+<div class="code yaml highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">logging</span><span class="p">:</span>
+  <span class="n">loggers</span><span class="p">:</span>
+    <span class="n">com</span><span class="o">.</span><span class="n">palantir</span><span class="o">.</span><span class="n">timestamp</span><span class="p">:</span>
+      <span class="n">level</span><span class="p">:</span> <span class="n">TRACE</span>
+      <span class="n">additive</span><span class="p">:</span> <span class="n">false</span>
+      <span class="n">appenders</span><span class="p">:</span>
+        <span class="o">-</span> <span class="n">archivedFileCount</span><span class="p">:</span> <span class="mi">5</span>
+          <span class="n">archivedLogFilenamePattern</span><span class="p">:</span> <span class="s1">&#39;{{service_home}}/var/log/timestamps-</span><span class="si">%d</span><span class="s1">.log.gz&#39;</span>
+          <span class="n">currentLogFilename</span><span class="p">:</span> <span class="s1">&#39;{{service_home}}/var/log/timestamps.log&#39;</span>
+          <span class="nb">type</span><span class="p">:</span> <span class="n">file</span>
 </pre></div>
 </div>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

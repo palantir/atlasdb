@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DB KVS (Postgres) Configuration &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <title>DB KVS (Postgres) Configuration &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -97,10 +95,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="db-kvs-postgres-configuration">
-<span id="postgres-configuration"></span><h1>DB KVS (Postgres) Configuration<a class="headerlink" href="#db-kvs-postgres-configuration" title="Permalink to this headline"></a></h1>
-<section id="enabling-postgres-for-your-application">
-<h2>Enabling Postgres for your Application<a class="headerlink" href="#enabling-postgres-for-your-application" title="Permalink to this headline"></a></h2>
+  <div class="section" id="db-kvs-postgres-configuration">
+<span id="postgres-configuration"></span><h1>DB KVS (Postgres) Configuration<a class="headerlink" href="#db-kvs-postgres-configuration" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="enabling-postgres-for-your-application">
+<h2>Enabling Postgres for your Application<a class="headerlink" href="#enabling-postgres-for-your-application" title="Permalink to this headline">¶</a></h2>
 <p>To enable your application to be backed by postgres, you just need to add DB KVS as a runtime dependency. In gradle this looks like:</p>
 <div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:&lt;atlas version&gt;&#39;</span>
 </pre></div>
@@ -109,12 +107,12 @@
 <div class="highlight-groovy notranslate"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.7.0&#39;</span>
 </pre></div>
 </div>
-</section>
-<section id="configuring-a-running-application-to-use-postgres">
-<h2>Configuring a Running Application to Use Postgres<a class="headerlink" href="#configuring-a-running-application-to-use-postgres" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="configuring-a-running-application-to-use-postgres">
+<h2>Configuring a Running Application to Use Postgres<a class="headerlink" href="#configuring-a-running-application-to-use-postgres" title="Permalink to this headline">¶</a></h2>
 <div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>If you have multiple products using the same Postgres instance, they <em>must</em> use different databases.</p>
+<p class="first admonition-title">Warning</p>
+<p class="last">If you have multiple products using the same Postgres instance, they <em>must</em> use different databases.</p>
 </div>
 <p>A minimal AtlasDB configuration for running against postgres will look like :</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
@@ -147,53 +145,53 @@
 </pre></div>
 </div>
 <p>For more details on the leader block, see <a class="reference internal" href="../leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
-<section id="hikari-connection-parameters">
-<h3>Hikari Connection parameters<a class="headerlink" href="#hikari-connection-parameters" title="Permalink to this headline"></a></h3>
+<div class="section" id="hikari-connection-parameters">
+<h3>Hikari Connection parameters<a class="headerlink" href="#hikari-connection-parameters" title="Permalink to this headline">¶</a></h3>
 <p>We also provide the following options, which are mapped to <a class="reference external" href="https://github.com/brettwooldridge/HikariCP#configuration-knobs-baby">Hikari connection options</a>:</p>
-<table class="colwidths-given docutils align-default">
+<table border="1" class="colwidths-given docutils">
 <colgroup>
-<col style="width: 14%" />
-<col style="width: 14%" />
-<col style="width: 14%" />
-<col style="width: 57%" />
+<col width="14%" />
+<col width="14%" />
+<col width="14%" />
+<col width="57%" />
 </colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Option</p></th>
-<th class="head"><p>Default</p></th>
-<th class="head"><p>Hikari config equivalent</p></th>
-<th class="head"><p>Description</p></th>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Option</th>
+<th class="head">Default</th>
+<th class="head">Hikari config equivalent</th>
+<th class="head">Description</th>
 </tr>
 </thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">minConnections</span></code></p></td>
-<td><p>8</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">minimumIdle</span></code></p></td>
-<td><p>The number of connections in an idle Hikari pool.</p></td>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">minConnections</span></code></td>
+<td>8</td>
+<td><code class="docutils literal notranslate"><span class="pre">minimumIdle</span></code></td>
+<td>The number of connections in an idle Hikari pool.</td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">maxConnections</span></code></p></td>
-<td><p>256</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">maximumPoolSize</span></code></p></td>
-<td><p>The maximum size the pool is allowed to reach.</p></td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">maxConnections</span></code></td>
+<td>256</td>
+<td><code class="docutils literal notranslate"><span class="pre">maximumPoolSize</span></code></td>
+<td>The maximum size the pool is allowed to reach.</td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">maxConnectionAge</span></code></p></td>
-<td><p>888</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">maxLifetime</span></code></p></td>
-<td><p>The maximum lifetime, in seconds, of a connection in the pool. <code class="docutils literal notranslate"><span class="pre">maxLifetime</span></code> is in <code class="docutils literal notranslate"><span class="pre">ms</span></code>, so we multiply the provided value by 1000.  STIG O121-C2-016500 and Fedramp requires idle connections are closed within 15 mins. Because typically minimum pool sizes are &gt; 0, we may create connections that are never used. Hence, this setting needs to be &lt; 15 min - “a few seconds” (recommended in Hikari docs to allow for client side latency): 900 - a dozen = 888.</p></td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">maxConnectionAge</span></code></td>
+<td>1800</td>
+<td><code class="docutils literal notranslate"><span class="pre">maxLifetime</span></code></td>
+<td>The maximum lifetime, in seconds, of a connection in the pool. <code class="docutils literal notranslate"><span class="pre">maxLifetime</span></code> is in <code class="docutils literal notranslate"><span class="pre">ms</span></code>, so we multiply the provided value by 1000.</td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">maxIdleTime</span></code></p></td>
-<td><p>600</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">idleTimeout</span></code></p></td>
-<td><p>The maximum time, in seconds, a connection may sit idle in the pool. <code class="docutils literal notranslate"><span class="pre">idleTimeout</span></code> is in <code class="docutils literal notranslate"><span class="pre">ms</span></code>, so we multiply the provided value by 1000.</p></td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">maxIdleTime</span></code></td>
+<td>600</td>
+<td><code class="docutils literal notranslate"><span class="pre">idleTimeout</span></code></td>
+<td>The maximum time, in seconds, a connection may sit idle in the pool. <code class="docutils literal notranslate"><span class="pre">idleTimeout</span></code> is in <code class="docutils literal notranslate"><span class="pre">ms</span></code>, so we multiply the provided value by 1000.</td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">unreturnedConnectionTimeout</span></code></p></td>
-<td><p>0 (Disabled)</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">leakDetectionThreshold</span></code></p></td>
-<td><p>The time that a connection can be out of the pool before a message indicating a possible connection leak is logged. Lowest acceptable value is 2000 (ms).</p></td>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">unreturnedConnectionTimeout</span></code></td>
+<td>0 (Disabled)</td>
+<td><code class="docutils literal notranslate"><span class="pre">leakDetectionThreshold</span></code></td>
+<td>The time that a connection can be out of the pool before a message indicating a possible connection leak is logged. Lowest acceptable value is 2000 (ms).</td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">checkoutTimeout</span></code></p></td>
-<td><p>30000</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">connectionTimeout</span></code></p></td>
-<td><p>The maximum time, <strong>in milliseconds</strong>, we wait for a connection from the pool.</p></td>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">checkoutTimeout</span></code></td>
+<td>30000</td>
+<td><code class="docutils literal notranslate"><span class="pre">connectionTimeout</span></code></td>
+<td>The maximum time, <strong>in milliseconds</strong>, we wait for a connection from the pool.</td>
 </tr>
 </tbody>
 </table>
@@ -207,9 +205,9 @@
       <span class="nt">maxConnections</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">512</span>
 </pre></div>
 </div>
-</section>
-<section id="jdbc-connection-parameters">
-<h3>JDBC Connection parameters<a class="headerlink" href="#jdbc-connection-parameters" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="jdbc-connection-parameters">
+<h3>JDBC Connection parameters<a class="headerlink" href="#jdbc-connection-parameters" title="Permalink to this headline">¶</a></h3>
 <p>If you would like to customise the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal notranslate"><span class="pre">connection</span></code> section of the <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config.
 An example is shown below; for full documentation on which parameters are available, check out <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a>.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
@@ -222,9 +220,9 @@ An example is shown below; for full documentation on which parameters are availa
         <span class="nt">ssl</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span> <span class="c1"># specify if using postgres with ssl enabled</span>
 </pre></div>
 </div>
-</section>
-</section>
-</section>
+</div>
+</div>
+</div>
 
 
            </div>

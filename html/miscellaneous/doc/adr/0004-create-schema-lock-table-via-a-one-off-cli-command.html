@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>4. Create schema lock table via a one off CLI command &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <title>4. Create schema lock table via a one off CLI command &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/jquery.js"></script>
-        <script src="../../../_static/underscore.js"></script>
-        <script src="../../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
@@ -106,35 +104,49 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="create-schema-lock-table-via-a-one-off-cli-command">
-<h1>4. Create schema lock table via a one off CLI command<a class="headerlink" href="#create-schema-lock-table-via-a-one-off-cli-command" title="Permalink to this headline"></a></h1>
+  <div class="section" id="create-schema-lock-table-via-a-one-off-cli-command">
+<h1>4. Create schema lock table via a one off CLI command<a class="headerlink" href="#create-schema-lock-table-via-a-one-off-cli-command" title="Permalink to this headline">¶</a></h1>
 <p>Date: 18/05/2016</p>
-<p>## Status</p>
+<div class="section" id="status">
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
-<p>Superseded by [6. Create schema lock table using configuration](0006-create-schema-lock-table-using-configuration.md)</p>
-<p>## Context</p>
-<p>Due to [table creation issue](0002-prevent-tables-from-being-creating-simultaneously-in-cassandra-via-a-locks-table.md) we need to be able to safely create _lock table as a one off operation for each keyspace that atlas uses. The discussed options include:</p>
+<p>Superseded by <a class="reference internal" href="0006-create-schema-lock-table-using-configuration.html"><span class="doc">6. Create schema lock table using configuration</span></a></p>
+</div>
+<div class="section" id="context">
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<p>Due to <a class="reference internal" href="0002-prevent-tables-from-being-creating-simultaneously-in-cassandra-via-a-locks-table.html"><span class="doc">table creation issue</span></a> we need to be able to safely create _lock table as a one off operation for each keyspace that atlas uses. The discussed options include:</p>
 <ul class="simple">
-<li><p>Have Atlas clients refuse to start if the _locks table is missing and provide a CLI to create it.
-- This does require manual interview for whoever is handling operations
-- Is very, very hard to get wrong
-- Should be easily automatable in most setups, removing the manual step</p></li>
-<li><p>Use the lock service for locking rather than the _locks table, then we don’t have to create it.
-- Completely automatic and removes code
-- Leaves open the possibility of locks failing and operations never realising that the issue has been triggered</p></li>
-<li><p>Have each node create a unique table, then run paxos to decide which one is the winner
-- This requires a bunch of extra, error prone code</p></li>
+<li>Have Atlas clients refuse to start if the _locks table is missing and provide a CLI to create it.<ul>
+<li>This does require manual interview for whoever is handling operations</li>
+<li>Is very, very hard to get wrong</li>
+<li>Should be easily automatable in most setups, removing the manual step</li>
 </ul>
-<p>## Decision</p>
+</li>
+<li>Use the lock service for locking rather than the _locks table, then we don’t have to create it.<ul>
+<li>Completely automatic and removes code</li>
+<li>Leaves open the possibility of locks failing and operations never realising that the issue has been triggered</li>
+</ul>
+</li>
+<li>Have each node create a unique table, then run paxos to decide which one is the winner<ul>
+<li>This requires a bunch of extra, error prone code</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>We will implement the CLI based solution as:</p>
 <ul class="simple">
-<li><p>It is safe</p></li>
-<li><p>Requires a very simple set of code changes</p></li>
-<li><p>Should have minimal drawbacks if people can automate it</p></li>
+<li>It is safe</li>
+<li>Requires a very simple set of code changes</li>
+<li>Should have minimal drawbacks if people can automate it</li>
 </ul>
-<p>## Consequences</p>
+</div>
+<div class="section" id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <p>Deployers of atlas will have to run a CLI once on initial service installation.</p>
-</section>
+</div>
+</div>
 
 
            </div>

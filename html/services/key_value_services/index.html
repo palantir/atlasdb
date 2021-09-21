@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Key Value Services &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <title>Key Value Services &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -86,96 +84,96 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="key-value-services">
-<h1>Key Value Services<a class="headerlink" href="#key-value-services" title="Permalink to this headline"></a></h1>
-<section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
+  <div class="section" id="key-value-services">
+<h1>Key Value Services<a class="headerlink" href="#key-value-services" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>This matrix details the current state of available Key Value Services supported by the AtlasDB development staff.</p>
-<table class="colwidths-given docutils align-default">
+<table border="1" class="colwidths-given docutils">
 <colgroup>
-<col style="width: 5%" />
-<col style="width: 5%" />
-<col style="width: 5%" />
-<col style="width: 5%" />
-<col style="width: 80%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="80%" />
 </colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Key Value Service</p></th>
-<th class="head"><p>State</p></th>
-<th class="head"><p>KVS Versions Supported</p></th>
-<th class="head"><p>Recommended Versions</p></th>
-<th class="head"><p>Errata</p></th>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Key Value Service</th>
+<th class="head">State</th>
+<th class="head">KVS Versions Supported</th>
+<th class="head">Recommended Versions</th>
+<th class="head">Errata</th>
 </tr>
 </thead>
-<tbody>
-<tr class="row-even"><td><p><a class="reference internal" href="../../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">Cassandra KVS</span></a></p></td>
-<td><p>Supported</p></td>
-<td><p>2.2.9+</p></td>
-<td><p>2.2.9</p></td>
-<td></td>
+<tbody valign="top">
+<tr class="row-even"><td><a class="reference internal" href="../../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">Cassandra KVS</span></a></td>
+<td>Supported</td>
+<td>2.2.9+</td>
+<td>2.2.9</td>
+<td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../../configuration/key_value_service_configs/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">DB KVS (Postgres)</span></a></p></td>
-<td><p>Supported</p></td>
-<td><p>9.2+</p></td>
-<td><p>9.3.4</p></td>
-<td><p>Amazon RDS explicitly supported, other HA postgres variants not currently supported</p></td>
+<tr class="row-odd"><td><a class="reference internal" href="../../configuration/key_value_service_configs/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">DB KVS (Postgres)</span></a></td>
+<td>Supported</td>
+<td>9.2+</td>
+<td>9.3.4</td>
+<td>Amazon RDS explicitly supported, other HA postgres variants not currently supported</td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../../configuration/key_value_service_configs/oracle_key_value_service_config.html#oracle-configuration"><span class="std std-ref">DB KVS (Oracle)</span></a></p></td>
-<td><p>Beta Support</p></td>
-<td><p>11g+</p></td>
-<td><p>12c</p></td>
-<td><p>Amazon RDS explicitly supported, RAC not currently supported</p></td>
+<tr class="row-even"><td><a class="reference internal" href="../../configuration/key_value_service_configs/oracle_key_value_service_config.html#oracle-configuration"><span class="std std-ref">DB KVS (Oracle)</span></a></td>
+<td>Beta Support</td>
+<td>11g+</td>
+<td>12c</td>
+<td>Amazon RDS explicitly supported, RAC not currently supported</td>
 </tr>
-<tr class="row-odd"><td><p>CQL KVS</p></td>
-<td><p>Unsupported</p></td>
-<td></td>
-<td></td>
-<td></td>
+<tr class="row-odd"><td>CQL KVS</td>
+<td>Unsupported</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
 </tr>
-<tr class="row-even"><td><p>JDBC KVS</p></td>
-<td><p>Unsupported</p></td>
-<td></td>
-<td></td>
-<td></td>
+<tr class="row-even"><td>JDBC KVS</td>
+<td>Unsupported</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
 </tr>
 </tbody>
 </table>
-</section>
-<section id="details">
-<h2>Details<a class="headerlink" href="#details" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="details">
+<h2>Details<a class="headerlink" href="#details" title="Permalink to this headline">¶</a></h2>
 <div class="contents local topic" id="contents">
 <ul class="simple">
-<li><p><a class="reference internal" href="#cassandra-kvs" id="id5">Cassandra KVS</a></p></li>
-<li><p><a class="reference internal" href="#db-kvs" id="id6">DB KVS</a></p></li>
-<li><p><a class="reference internal" href="#cql-kvs" id="id7">CQL KVS</a></p></li>
-<li><p><a class="reference internal" href="#jdbc-kvs" id="id8">JDBC KVS</a></p></li>
+<li><a class="reference internal" href="#cassandra-kvs" id="id5">Cassandra KVS</a></li>
+<li><a class="reference internal" href="#db-kvs" id="id6">DB KVS</a></li>
+<li><a class="reference internal" href="#cql-kvs" id="id7">CQL KVS</a></li>
+<li><a class="reference internal" href="#jdbc-kvs" id="id8">JDBC KVS</a></li>
 </ul>
 </div>
-<section id="cassandra-kvs">
-<span id="id1"></span><h3><a class="toc-backref" href="#id5">Cassandra KVS</a><a class="headerlink" href="#cassandra-kvs" title="Permalink to this headline"></a></h3>
+<div class="section" id="cassandra-kvs">
+<span id="id1"></span><h3><a class="toc-backref" href="#id5">Cassandra KVS</a><a class="headerlink" href="#cassandra-kvs" title="Permalink to this headline">¶</a></h3>
 <p>The Cassandra KVS allows AtlasDB to use <a class="reference external" href="http://cassandra.apache.org/">Apache Cassandra</a> as it’s backing key value service.
 For it to be sole backing KVS for AtlasDB needs Cassandra Lightweight Transactions, otherwise earlier version of Cassandra can be used to back AtlasDB.</p>
-</section>
-<section id="db-kvs">
-<span id="id2"></span><h3><a class="toc-backref" href="#id6">DB KVS</a><a class="headerlink" href="#db-kvs" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="db-kvs">
+<span id="id2"></span><h3><a class="toc-backref" href="#id6">DB KVS</a><a class="headerlink" href="#db-kvs" title="Permalink to this headline">¶</a></h3>
 <p>DB KVS allows AtlasDB to use Postgres and Oracle as a backing store.</p>
-</section>
-<section id="cql-kvs">
-<span id="id3"></span><h3><a class="toc-backref" href="#id7">CQL KVS</a><a class="headerlink" href="#cql-kvs" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="cql-kvs">
+<span id="id3"></span><h3><a class="toc-backref" href="#id7">CQL KVS</a><a class="headerlink" href="#cql-kvs" title="Permalink to this headline">¶</a></h3>
 <p>CQL KVS is not currently supported, but we plan on supporting this KVS eventually.</p>
-</section>
-<section id="jdbc-kvs">
-<span id="id4"></span><h3><a class="toc-backref" href="#id8">JDBC KVS</a><a class="headerlink" href="#jdbc-kvs" title="Permalink to this headline"></a></h3>
+</div>
+<div class="section" id="jdbc-kvs">
+<span id="id4"></span><h3><a class="toc-backref" href="#id8">JDBC KVS</a><a class="headerlink" href="#jdbc-kvs" title="Permalink to this headline">¶</a></h3>
 <p>JDBC KVS existed prior to DB KVS and was the primary means for deploying applications on Postgres.
 JDBC KVS has been deprecated in favor of DB KVS.</p>
-</section>
-</section>
-<section id="deleted">
-<h2>Deleted<a class="headerlink" href="#deleted" title="Permalink to this headline"></a></h2>
+</div>
+</div>
+<div class="section" id="deleted">
+<h2>Deleted<a class="headerlink" href="#deleted" title="Permalink to this headline">¶</a></h2>
 <p>ClusterKeyValueService.java - Intended to be run on top of a MySQL/Cluster
 RocksDbKVS - Removed in 0.44</p>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

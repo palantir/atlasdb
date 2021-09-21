@@ -1,5 +1,4 @@
-11. Retry long-running locks via BlockingTimeoutException
-*********************************************************
+# 11. Retry long-running locks via BlockingTimeoutException
 
 Date: 08/05/2017
 
@@ -110,7 +109,7 @@ that timeout is configured on the server side.
 
 #### 6. Implement a "magic" HTTP status code or header to ask clients to retry
 
-An alternative to serializing exceptions into `SerializableError` s could be defining a specific HTTP status code
+An alternative to serializing exceptions into `SerializableError`s could be defining a specific HTTP status code
 and/or custom header to indicate that a blocking timeout has occurred and/or clients should retry. This is used
 in practice e.g. in nginx, where a 495 indicates an error with a client's SSL certificates.
 

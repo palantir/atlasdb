@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AtlasDB Metrics &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>AtlasDB Metrics &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -87,12 +85,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="atlasdb-metrics">
-<span id="dropwizard-metrics"></span><h1>AtlasDB Metrics<a class="headerlink" href="#atlasdb-metrics" title="Permalink to this headline"></a></h1>
+  <div class="section" id="atlasdb-metrics">
+<span id="dropwizard-metrics"></span><h1>AtlasDB Metrics<a class="headerlink" href="#atlasdb-metrics" title="Permalink to this headline">¶</a></h1>
 <p>AtlasDB makes use of the Dropwizard <a class="reference external" href="http://metrics.dropwizard.io/">Metrics library</a> to
 expose a global <code class="docutils literal notranslate"><span class="pre">MetricRegistry</span></code> called <code class="docutils literal notranslate"><span class="pre">AtlasDbRegistry</span></code>. Users of AtlasDB should use <code class="docutils literal notranslate"><span class="pre">AtlasDbMetrics.setMetricRegistry</span></code>
 to inject their own <code class="docutils literal notranslate"><span class="pre">MetricRegistry</span></code> for their application prior to initializing the AtlasDB transaction manager.</p>
-</section>
+</div>
 
 
            </div>

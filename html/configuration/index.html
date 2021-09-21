@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Configuration &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Configuration &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -90,8 +88,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="configuration">
-<span id="atlas-config"></span><h1>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline"></a></h1>
+  <div class="section" id="configuration">
+<span id="atlas-config"></span><h1>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="key_value_service_configs/index.html">Key Value Service Configurations</a></li>
@@ -105,8 +103,8 @@
 <li class="toctree-l1"><a class="reference internal" href="internal_schemas.html">Internal Schema Configuration</a></li>
 </ul>
 </div>
-<section id="atlasdb-configuration">
-<h2>AtlasDB Configuration<a class="headerlink" href="#atlasdb-configuration" title="Permalink to this headline"></a></h2>
+<div class="section" id="atlasdb-configuration">
+<h2>AtlasDB Configuration<a class="headerlink" href="#atlasdb-configuration" title="Permalink to this headline">¶</a></h2>
 <p>AtlasDB uses a YAML based configuration file with a default root configuration block denoted by <code class="docutils literal notranslate"><span class="pre">atlasdb</span></code>.</p>
 <p>The primary config block for your AtlasDB client will be <code class="docutils literal notranslate"><span class="pre">keyValueServiceConfig</span></code>. This is where all of the KVS specific
 parameters will go. Please see <a class="reference internal" href="key_value_service_configs/index.html#key-value-service-configs"><span class="std std-ref">Key Value Service Configurations</span></a> for details on specific KVS configurations.</p>
@@ -126,9 +124,9 @@ Parameters concerning batching of timestamp requests may also be configured; see
 Some of the KeyValueService parameters can be live-reloadable if specified in this block under the <code class="docutils literal notranslate"><span class="pre">keyValueService</span></code> config.
 For a full list of the configurations available at this block, see
 <a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java">AtlasDbRuntimeConfig.java</a>.</p>
-</section>
-<section id="example-configuration">
-<h2>Example Configuration<a class="headerlink" href="#example-configuration" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="example-configuration">
+<h2>Example Configuration<a class="headerlink" href="#example-configuration" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
   <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">yourapp</span>
 
@@ -175,8 +173,8 @@ For a full list of the configurations available at this block, see
     <span class="nt">targetTransactionsSchemaVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
 </pre></div>
 </div>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

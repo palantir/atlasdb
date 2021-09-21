@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting Started &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Getting Started &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -85,71 +83,71 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="getting-started">
-<span id="id1"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h1>
-<section id="running-from-source">
-<span id="id2"></span><h2>Running from Source<a class="headerlink" href="#running-from-source" title="Permalink to this headline"></a></h2>
+  <div class="section" id="getting-started">
+<span id="id1"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="running-from-source">
+<span id="id2"></span><h2>Running from Source<a class="headerlink" href="#running-from-source" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
-<li><p>Clone the git repository:
-<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</p></li>
-<li><p>Generate IDE configuration: <code class="docutils literal notranslate"><span class="pre">./gradlew</span> <span class="pre">eclipse</span></code> or
-<code class="docutils literal notranslate"><span class="pre">./gradlew</span> <span class="pre">idea</span></code>.</p></li>
-<li><p>Import projects into Eclipse/Intellij.</p></li>
+<li>Clone the git repository:
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:palantir/atlasdb.git;</span> <span class="pre">cd</span> <span class="pre">atlasdb</span></code>.</li>
+<li>Generate IDE configuration: <code class="docutils literal notranslate"><span class="pre">./gradlew</span> <span class="pre">eclipse</span></code> or
+<code class="docutils literal notranslate"><span class="pre">./gradlew</span> <span class="pre">idea</span></code>.</li>
+<li>Import projects into Eclipse/Intellij.</li>
 </ol>
 <p>There are some examples of how to write queries in the <a class="reference external" href="https://github.com/palantir/atlasdb/tree/develop/examples">github examples
 directory</a>.</p>
-</section>
-<section id="running-tests-locally">
-<h2>Running Tests Locally<a class="headerlink" href="#running-tests-locally" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="running-tests-locally">
+<h2>Running Tests Locally<a class="headerlink" href="#running-tests-locally" title="Permalink to this headline">¶</a></h2>
 <p>Running atlas tests requires <code class="docutils literal notranslate"><span class="pre">docker</span></code> and <code class="docutils literal notranslate"><span class="pre">docker-compose</span></code> to be installed on the machine where they are running. Instructions for different operating systems can be found <a class="reference external" href="https://docs.docker.com/engine/installation/">here</a></p>
-<section id="instructions-for-macos">
-<h3>Instructions for MacOS<a class="headerlink" href="#instructions-for-macos" title="Permalink to this headline"></a></h3>
+<div class="section" id="instructions-for-macos">
+<h3>Instructions for MacOS<a class="headerlink" href="#instructions-for-macos" title="Permalink to this headline">¶</a></h3>
 <p>Mac users will need to install <cite>docker-machine</cite> and a virtualization environment as well to be able to run docker. Virtualbox is used in this example. Simplified set-up instructions are as follows:</p>
 <ol class="arabic">
-<li><p>Install <code class="docutils literal notranslate"><span class="pre">docker-machine</span></code>, <code class="docutils literal notranslate"><span class="pre">docker</span></code> and <code class="docutils literal notranslate"><span class="pre">docker-compose</span></code></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>brew install docker docker-machine docker-compose
+<li><p class="first">Install <code class="docutils literal notranslate"><span class="pre">docker-machine</span></code>, <code class="docutils literal notranslate"><span class="pre">docker</span></code> and <code class="docutils literal notranslate"><span class="pre">docker-compose</span></code></p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">brew</span> <span class="n">install</span> <span class="n">docker</span> <span class="n">docker</span><span class="o">-</span><span class="n">machine</span> <span class="n">docker</span><span class="o">-</span><span class="n">compose</span>
 </pre></div>
 </div>
 </li>
-<li><p>Set up a <code class="docutils literal notranslate"><span class="pre">docker-machine</span></code> for Virtualbox (named <code class="docutils literal notranslate"><span class="pre">atlas</span></code> in the example, name can be chosen freely by the user)</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker-machine create atlas --driver virtualbox
+<li><p class="first">Set up a <code class="docutils literal notranslate"><span class="pre">docker-machine</span></code> for Virtualbox (named <code class="docutils literal notranslate"><span class="pre">atlas</span></code> in the example, name can be chosen freely by the user)</p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">machine</span> <span class="n">create</span> <span class="n">atlas</span> <span class="o">--</span><span class="n">driver</span> <span class="n">virtualbox</span>
 </pre></div>
 </div>
 </li>
-<li><p>Set up the environment:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">eval</span> <span class="k">$(</span>docker-machine env atlas<span class="k">)</span>
+<li><p class="first">Set up the environment:</p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>eval $(docker-machine env atlas)
 </pre></div>
 </div>
 <p>These environment variables need to always be set before running the tests through <cite>gradle</cite>, or set manually as environment variables for the launch configurations in any IDE.</p>
 </li>
 </ol>
-</section>
-</section>
-<section id="depending-on-published-artifacts">
-<h2>Depending on Published Artifacts<a class="headerlink" href="#depending-on-published-artifacts" title="Permalink to this headline"></a></h2>
+</div>
+</div>
+<div class="section" id="depending-on-published-artifacts">
+<h2>Depending on Published Artifacts<a class="headerlink" href="#depending-on-published-artifacts" title="Permalink to this headline">¶</a></h2>
 <p>AtlasDB is <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">hosted on
 bintray</a>. To
 include in a gradle project:</p>
 <ol class="arabic">
-<li><p>Add bintray to your repository list:</p>
-<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="nx">repositories</span> <span class="p">{</span>
-    <span class="nx">maven</span> <span class="p">{</span>
-        <span class="nx">url</span> <span class="s1">&#39;https://dl.bintray.com/palantir/releases/&#39;</span>
+<li><p class="first">Add bintray to your repository list:</p>
+<div class="code javascript highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">repositories</span> <span class="p">{</span>
+    <span class="n">maven</span> <span class="p">{</span>
+        <span class="n">url</span> <span class="s1">&#39;https://dl.bintray.com/palantir/releases/&#39;</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </li>
-<li><p>Add the atlasdb-client dependency to projects using AtlasDB:</p>
-<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="nx">dependencies</span> <span class="p">{</span>
-    <span class="nx">compile</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-client:0.3.3&#39;</span>
+<li><p class="first">Add the atlasdb-client dependency to projects using AtlasDB:</p>
+<div class="code javascript highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dependencies</span> <span class="p">{</span>
+    <span class="nb">compile</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-client:0.3.3&#39;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </li>
 </ol>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

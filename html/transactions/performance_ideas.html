@@ -1,22 +1,20 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html4" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Performance Ideas &mdash; OSS AtlasDB develop documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>Performance Ideas &mdash; OSS AtlasDB develop documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
       <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -86,38 +84,38 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="performance-ideas">
-<h1>Performance Ideas<a class="headerlink" href="#performance-ideas" title="Permalink to this headline"></a></h1>
-<section id="intended-use">
-<h2>Intended Use<a class="headerlink" href="#intended-use" title="Permalink to this headline"></a></h2>
+  <div class="section" id="performance-ideas">
+<h1>Performance Ideas<a class="headerlink" href="#performance-ideas" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="intended-use">
+<h2>Intended Use<a class="headerlink" href="#intended-use" title="Permalink to this headline">¶</a></h2>
 <p>AtlasDB is designed to be an OLTP distributed transactional DB. This
 means that it is good at writing small chunks of work very quickly with
 full ACID support. Below are some ideas of how to design your write path
 to get the most out of AtlasDB.</p>
-</section>
-<section id="short-lived-writes">
-<h2>Short-Lived Writes<a class="headerlink" href="#short-lived-writes" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="short-lived-writes">
+<h2>Short-Lived Writes<a class="headerlink" href="#short-lived-writes" title="Permalink to this headline">¶</a></h2>
 <p>A long lived writing transaction may cause problems in the following
 cases</p>
 <ul class="simple">
-<li><p>Consistent backups cannot advance past the start time of this
-transaction</p></li>
-<li><p>If we do any sort of cross data center replication it can’t advance
-past this open transaction</p></li>
-<li><p>We may be doing a bunch of work that will be rolled back at commit
-time due to a write/write conflict</p></li>
-<li><p>If you grabbed locks before starting the transaction, other users
-could be blocking on these locks</p></li>
-<li><p>Our locks may have timed out and we won’t find out until commit time
-and have to retry all this work</p></li>
+<li>Consistent backups cannot advance past the start time of this
+transaction</li>
+<li>If we do any sort of cross data center replication it can’t advance
+past this open transaction</li>
+<li>We may be doing a bunch of work that will be rolled back at commit
+time due to a write/write conflict</li>
+<li>If you grabbed locks before starting the transaction, other users
+could be blocking on these locks</li>
+<li>Our locks may have timed out and we won’t find out until commit time
+and have to retry all this work</li>
 </ul>
 <p>The general theme here is that you are blocking others and you may have
 to be rolled back and redo all the work. AtlasDB just buffers up writes
 and doesn’t check for conflicts/expired locks until commit time. If your
 transaction takes tens of seconds, it’s time to break it up.</p>
-</section>
-<section id="advisory-locking-prevents-write-write-conflicts">
-<h2>Advisory Locking Prevents Write/Write Conflicts<a class="headerlink" href="#advisory-locking-prevents-write-write-conflicts" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="advisory-locking-prevents-write-write-conflicts">
+<h2>Advisory Locking Prevents Write/Write Conflicts<a class="headerlink" href="#advisory-locking-prevents-write-write-conflicts" title="Permalink to this headline">¶</a></h2>
 <p>If you want to ensure that your transaction doesn’t run into a conflict
 then advisory locking is for you. The main reason you would want this is
 when the input into your transaction is not immutable. An example of
@@ -133,50 +131,50 @@ transaction commits successfully this means that no other transaction
 concurrently held these locks and committed successfully. (Concurrently
 means that either your commitTs falls between their startTs and commitTs
 or vice versa)</p>
-</section>
-<section id="limit-write-size">
-<h2>Limit Write Size<a class="headerlink" href="#limit-write-size" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="limit-write-size">
+<h2>Limit Write Size<a class="headerlink" href="#limit-write-size" title="Permalink to this headline">¶</a></h2>
 <p>The entirety of the write set is buffered in memory before you commit.
 You will trigger warn and error logging at 10MB and 100MB respectively
 if you write too much data. If you keep a transaction under 10MB, you
 should be good to go.</p>
-</section>
-<section id="limit-row-size">
-<h2>Limit Row Size<a class="headerlink" href="#limit-row-size" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="limit-row-size">
+<h2>Limit Row Size<a class="headerlink" href="#limit-row-size" title="Permalink to this headline">¶</a></h2>
 <p>Every row should be able to be loaded into memory. A good rule of thumb
 is to make sure that no row will be bigger than 10MB. If you imagine
 that your rows will become bigger than this then you should maybe use
 range scans instead of dynamic columns to store your data. This is the
 total row size across all the cells possibly stored in many different
 transactions.</p>
-</section>
-<section id="prefilter-columns-when-possible">
-<h2>Prefilter Columns When Possible<a class="headerlink" href="#prefilter-columns-when-possible" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="prefilter-columns-when-possible">
+<h2>Prefilter Columns When Possible<a class="headerlink" href="#prefilter-columns-when-possible" title="Permalink to this headline">¶</a></h2>
 <p>When we query the underlying data store for a getRow call for a named
 table, usually we issue a bunch of getCell calls instead for each column
 name in the table. getCell usually has to load less data off disk so
 this is an IO optimization. This means that if you don’t actually expect
 those cells to be there, you should restrict the columns you are
 selecting by using a ColumnSelection.</p>
-</section>
-<section id="lookups-may-be-faster-than-range-scans">
-<h2>Lookups May Be Faster Than Range Scans<a class="headerlink" href="#lookups-may-be-faster-than-range-scans" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="lookups-may-be-faster-than-range-scans">
+<h2>Lookups May Be Faster Than Range Scans<a class="headerlink" href="#lookups-may-be-faster-than-range-scans" title="Permalink to this headline">¶</a></h2>
 <p>Some data stores have optimizations for doing an explicit lookup of a
 row name like using bloom filters. These bloom filters are useless when
 doing a range scan. This means that you may have to do more disk reads
 to do a range scan than a lookup.</p>
-</section>
-<section id="highly-overwritten-dynamic-columns-need-garbage-collection">
-<h2>Highly Overwritten Dynamic Columns Need Garbage Collection<a class="headerlink" href="#highly-overwritten-dynamic-columns-need-garbage-collection" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="highly-overwritten-dynamic-columns-need-garbage-collection">
+<h2>Highly Overwritten Dynamic Columns Need Garbage Collection<a class="headerlink" href="#highly-overwritten-dynamic-columns-need-garbage-collection" title="Permalink to this headline">¶</a></h2>
 <p>This one is a little tricky to explain. On some data stores
 (hem…Cassandra…hmm) loading a row for a dynamic table basically
 means loading the whole row across all history. This means that if you
 do a lot of overwrites, you will be loading old values off disk and then
 filtering them away. If you minimize overwrites (or you clean up old
 values frequently) then you can avoid this extra I/O.</p>
-</section>
-<section id="snapshot-isolation">
-<h2>Snapshot Isolation<a class="headerlink" href="#snapshot-isolation" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="snapshot-isolation">
+<h2>Snapshot Isolation<a class="headerlink" href="#snapshot-isolation" title="Permalink to this headline">¶</a></h2>
 <p>This isn’t a performance consideration, but is worth noting that
 snapshot isolation only detects and throws on WRITE/WRITE conflicts.
 This means that if you need to ensure that a value has not changed, you
@@ -200,16 +198,16 @@ it’s the same.</p>
 and what your invariants are. Then you need to enforce these invariants
 using “materialized conflicts” or “advisory locking” or Serializable
 depending on which is best for you.</p>
-</section>
-<section id="transactions-should-have-immutable-inputs">
-<h2>Transactions Should Have Immutable Inputs<a class="headerlink" href="#transactions-should-have-immutable-inputs" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="transactions-should-have-immutable-inputs">
+<h2>Transactions Should Have Immutable Inputs<a class="headerlink" href="#transactions-should-have-immutable-inputs" title="Permalink to this headline">¶</a></h2>
 <p>If your input is immutable it means that your transaction can be retried
 easily. This is just good programming practice and ensures you are using
 transactions correctly. If you are porting legacy code and this isn’t
 possible then see above section about advisory locking.</p>
-</section>
-<section id="ignore-conflicts-when-possible">
-<h2>Ignore Conflicts When Possible<a class="headerlink" href="#ignore-conflicts-when-possible" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="ignore-conflicts-when-possible">
+<h2>Ignore Conflicts When Possible<a class="headerlink" href="#ignore-conflicts-when-possible" title="Permalink to this headline">¶</a></h2>
 <p>The cost of doing conflict detection is an extra read done at commit
 time to ensure that no one has written a newer value to that cell.</p>
 <p>Here is an example of where I can safely use IGNORE_ALL. Let’s say that
@@ -218,9 +216,9 @@ index on A. I don’t need write/write conflicts on the index because the
 every time there is a conflict on B, there is also a conflict on A. So I
 can just use <code class="docutils literal notranslate"><span class="pre">TableConflictHandler.RETRY_ON_WRITE_WRITE</span></code> for A, and
 <code class="docutils literal notranslate"><span class="pre">IGNORE_ALL</span></code> for table B.</p>
-</section>
-<section id="tombstones-and-range-scans">
-<h2>Tombstones and Range Scans<a class="headerlink" href="#tombstones-and-range-scans" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="tombstones-and-range-scans">
+<h2>Tombstones and Range Scans<a class="headerlink" href="#tombstones-and-range-scans" title="Permalink to this headline">¶</a></h2>
 <p>Since each delete is a tombstone that lives in the db if a table
 contains 99% deletes then range queries will have to keep paging through
 these deleted values before it finds any non-deleted values. This may
@@ -234,9 +232,9 @@ bug where you use <em>limit</em> and <em>offset</em> on an <em>order by</em> que
 doesn’t have an index with that order.</p>
 <p>We may allow removing sufficiently old tombstones at some point in the
 future, but this is not currently planned.</p>
-</section>
-<section id="conflict-detection">
-<h2>Conflict Detection<a class="headerlink" href="#conflict-detection" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="conflict-detection">
+<h2>Conflict Detection<a class="headerlink" href="#conflict-detection" title="Permalink to this headline">¶</a></h2>
 <p>Conflicts are at the cell level, but write locking is at the row level
 Normally lock contention in atlasdb is very low. If two transactions
 write to the same cell there will be a small amount of lock contention
@@ -248,8 +246,8 @@ row but different cells.</p>
 <hr class="docutils" />
 <p>Note: It is a good practice to call <code class="docutils literal notranslate"><span class="pre">TransactionManager.close()</span></code> to
 free up the underlying resources when you intend to no longer run transactions.</p>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>
