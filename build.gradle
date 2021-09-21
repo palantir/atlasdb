@@ -47,7 +47,7 @@ def sanitizeVersion() {
     def pluginReportedVersion = gitVersion()
 
     if (isClean && pluginReportedVersion.endsWith(".dirty")) {
-        return pluginReportedVersion.dropRight(".dirty".length())
+        return pluginReportedVersion.substring(0, pluginReportedVersion.length() - ".dirty".length())
     }
     return pluginReportedVersion
 }
