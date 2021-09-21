@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.timelock;
 
-import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -41,6 +36,7 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -48,18 +44,25 @@ import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictExcep
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
+import org.awaitility.Awaitility;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
-import org.awaitility.Awaitility;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
+
+import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public final class LockWatchValueIntegrationTest {
     private static final String TEST_PACKAGE = "package";
@@ -377,6 +380,55 @@ public final class LockWatchValueIntegrationTest {
             // we weren't able to cache our own write so we look this up
             assertLoadedValues(txn, ImmutableMap.of(TABLE_CELL_1, CacheValue.empty()));
             return read;
+        });
+    }
+
+    @Test
+    public void lateAbortingTransactionDoesNotFlushValuesToCentralCache() {
+        txnManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2, CELL_3, DATA_3));
+            return null;
+        });
+
+        awaitUnlock();
+
+        AtomicLong startTimestamp = new AtomicLong(-1L);
+        PreCommitCondition commitFailingCondition = timestamp -> {
+            if (timestamp != startTimestamp.get()) {
+                throw new RuntimeException("Transaction failed at commit time");
+            }
+        };
+        try {
+            txnManager.runTaskWithConditionThrowOnConflict(commitFailingCondition, (txn, _unused) -> {
+                startTimestamp.set(txn.getTimestamp());
+                txn.put(TABLE_REF, ImmutableMap.of(CELL_4, DATA_4));
+                txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2, CELL_3));
+                return null;
+            });
+        } catch (Exception e) {
+            // no-op
+        }
+
+        awaitUnlock();
+
+        txnManager.runTaskThrowOnConflict(txn -> {
+            // Confirm that the previous transaction did not commit writes
+            assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_4))).isEmpty();
+            txn.get(TABLE_REF, ImmutableSet.of(CELL_1, CELL_2, CELL_3));
+
+            assertLoadedValues(
+                    txn,
+                    ImmutableMap.of(
+                            TABLE_CELL_1,
+                            CacheValue.of(DATA_1),
+                            TABLE_CELL_2,
+                            CacheValue.of(DATA_2),
+                            TABLE_CELL_3,
+                            CacheValue.of(DATA_3),
+                            TABLE_CELL_4,
+                            CacheValue.empty()));
+            assertHitValues(txn, ImmutableSet.of());
+            return null;
         });
     }
 
