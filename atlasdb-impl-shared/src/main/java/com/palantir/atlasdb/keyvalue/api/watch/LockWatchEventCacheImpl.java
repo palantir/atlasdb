@@ -26,7 +26,6 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
-import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Collection;
@@ -81,29 +80,21 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public synchronized CommitUpdate getCommitUpdate(long startTs) {
-        return getSpanningCommitUpdate(startTs).transactionCommitUpdate();
-    }
-
-    @Override
-    public SpanningCommitUpdate getSpanningCommitUpdate(long startTs) {
         Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
         Optional<CommitInfo> maybeCommitInfo = timestampStateStore.getCommitInfo(startTs);
 
         assertTrue(
-                maybeCommitInfo.isPresent()
-                        && startVersion.isPresent()
-                        && eventLog.getLatestKnownVersion().isPresent(),
-                "start or commit info not processed for start timestamp, or current version missing");
+                maybeCommitInfo.isPresent() && startVersion.isPresent(),
+                "start or commit info not processed for start timestamp");
 
-        LockWatchVersion currentVersion = eventLog.getLatestKnownVersion().get();
         CommitInfo commitInfo = maybeCommitInfo.get();
+
         VersionBounds versionBounds = VersionBounds.builder()
                 .startVersion(startVersion)
-                .endVersion(currentVersion)
+                .endVersion(commitInfo.commitVersion())
                 .build();
 
-        return eventLog.getEventsBetweenVersions(versionBounds)
-                .toSpanningCommitUpdate(startVersion.get(), commitInfo, currentVersion);
+        return eventLog.getEventsBetweenVersions(versionBounds).toCommitUpdate(startVersion.get(), commitInfo);
     }
 
     @Override

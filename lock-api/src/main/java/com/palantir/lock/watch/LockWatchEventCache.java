@@ -42,25 +42,13 @@ public interface LockWatchEventCache {
             Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update);
 
     /**
-     * Calculates the {@link CommitUpdate} taking into account all changes to lock watch state since the start of the
-     * transaction, excluding the transaction's own commit locks.
+     * Updates the cache with the update, and calculates the {@link CommitUpdate} taking into account all changes to
+     * lock watch state since the start of the transaction, excluding the transaction's own commit locks.
      *
      * @param startTs start timestamp of the transaction
      * @return the commit update for this transaction's precommit condition
      */
     CommitUpdate getCommitUpdate(long startTs);
-
-    /**
-     * Computes a {@link SpanningCommitUpdate}, which is essentially two regular commit updates. The former is the
-     * same as the result from {@link LockWatchEventCache#getCommitUpdate(long)}, but the latter also includes locks
-     * taken out between commit time and the present. This is critical for flushing values to the central cache, as
-     * the central cache may be on a later version than the commit time of the transaction.
-     *
-     * @param startTs start timestamp of the transaction
-     * @return a spanning commit update, which contains the commit update for this transaction, as well as a commit
-     * update which contains all lock descriptors from the start of the transaction until **now**.
-     */
-    SpanningCommitUpdate getSpanningCommitUpdate(long startTs);
 
     /**
      * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since
