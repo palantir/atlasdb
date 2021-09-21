@@ -17,14 +17,22 @@
 package com.palantir.atlasdb.timelock;
 
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.*;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
@@ -32,7 +40,12 @@ import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.*;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
@@ -396,6 +409,8 @@ public final class LockWatchValueIntegrationTest {
             // no-op
         }
 
+        awaitUnlock();
+
         txnManager.runTaskThrowOnConflict(txn -> {
             // Confirm that the previous transaction did not commit writes
             assertThat(txn.get(TABLE_REF, ImmutableSet.of(CELL_4))).isEmpty();
@@ -409,7 +424,9 @@ public final class LockWatchValueIntegrationTest {
                             TABLE_CELL_2,
                             CacheValue.of(DATA_2),
                             TABLE_CELL_3,
-                            CacheValue.of(DATA_3)));
+                            CacheValue.of(DATA_3),
+                            TABLE_CELL_4,
+                            CacheValue.empty()));
             assertHitValues(txn, ImmutableSet.of());
             return null;
         });

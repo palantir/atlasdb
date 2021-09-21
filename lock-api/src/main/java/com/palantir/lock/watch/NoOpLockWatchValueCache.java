@@ -31,4 +31,7 @@ public class NoOpLockWatchValueCache implements LockWatchValueCache {
 
     @Override
     public void removeTransactionState(long startTimestamp) {}
+
+    @Override
+    public void onSuccess(long startTimestamp) {}
 }

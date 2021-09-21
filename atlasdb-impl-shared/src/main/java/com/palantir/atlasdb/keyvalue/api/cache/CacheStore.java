@@ -18,13 +18,14 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.lock.watch.CommitUpdate;
+import java.util.function.Consumer;
 
 interface CacheStore {
     void createCache(StartTimestamp timestamp);
 
     TransactionScopedCache getCache(StartTimestamp timestamp);
 
-    void removeCache(StartTimestamp timestamp);
+    void removeCache(StartTimestamp timestamp, Consumer<TransactionScopedCache> cacheTask);
 
     void reset();
 

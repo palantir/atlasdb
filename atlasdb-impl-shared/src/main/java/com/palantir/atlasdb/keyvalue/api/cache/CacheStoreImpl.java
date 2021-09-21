@@ -25,6 +25,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
 
@@ -76,8 +77,9 @@ final class CacheStoreImpl implements CacheStore {
     }
 
     @Override
-    public void removeCache(StartTimestamp timestamp) {
-        cacheMap.remove(timestamp);
+    public void removeCache(StartTimestamp timestamp, Consumer<TransactionScopedCache> cacheTask) {
+        Caches caches = cacheMap.remove(timestamp);
+        cacheTask.accept(caches.mainCache());
     }
 
     @Override

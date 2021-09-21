@@ -24,6 +24,8 @@ public abstract class LockWatchManagerInternal extends LockWatchManager implemen
 
     public abstract void removeTransactionStateFromCache(long startTs);
 
+    public abstract void onSuccess(long startTs);
+
     public abstract TransactionScopedCache getTransactionScopedCache(long startTs);
 
     public abstract TransactionScopedCache getReadOnlyTransactionScopedCache(long startTs);

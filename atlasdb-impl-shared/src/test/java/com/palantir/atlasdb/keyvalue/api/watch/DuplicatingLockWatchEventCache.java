@@ -18,13 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.SpanningCommitUpdate;
-import com.palantir.lock.watch.TransactionUpdate;
-import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.lock.watch.*;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -69,8 +63,8 @@ final class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public SpanningCommitUpdate getSpanningCommitUpdate(long startTs) {
-        return mainCache.getSpanningCommitUpdate(startTs);
+    public CommitUpdate getUpdateForFlush(long startTs) {
+        return mainCache.getUpdateForFlush(startTs);
     }
 
     @Override

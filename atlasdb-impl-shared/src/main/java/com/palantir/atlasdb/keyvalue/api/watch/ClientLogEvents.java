@@ -23,15 +23,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.LeasedLockToken;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.SpanningCommitUpdate;
-import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.lock.watch.*;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -79,6 +71,27 @@ interface ClientLogEvents {
                 .events(events().events())
                 .clearCache(clearCache())
                 .build();
+    }
+
+    default CommitUpdate toCommitUpdate(
+            LockWatchVersion startVersion, LockWatchVersion endVersion, Optional<CommitInfo> commitInfo) {
+        if (clearCache()) {
+            return CommitUpdate.invalidateAll();
+        }
+
+        // We want to ensure that we do not miss any versions, but we do not care about the event with the same version
+        // as the start version.
+        verifyReturnedEventsEnclosesTransactionVersions(startVersion.version() + 1, endVersion.version());
+
+        LockEventVisitor eventVisitor = new LockEventVisitor(
+                commitInfo.map(CommitInfo::commitLockToken).orElseGet(() -> LockToken.of(UUID.randomUUID())));
+        Set<LockDescriptor> spanningLocks = new HashSet<>();
+        events().events().forEach(event -> {
+            Set<LockDescriptor> descriptors = event.accept(eventVisitor);
+            spanningLocks.addAll(descriptors);
+        });
+
+        return CommitUpdate.invalidateSome(spanningLocks);
     }
 
     default SpanningCommitUpdate toSpanningCommitUpdate(

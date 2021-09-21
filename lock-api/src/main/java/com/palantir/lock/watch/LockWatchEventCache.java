@@ -60,7 +60,7 @@ public interface LockWatchEventCache {
      * @return a spanning commit update, which contains the commit update for this transaction, as well as a commit
      * update which contains all lock descriptors from the start of the transaction until **now**.
      */
-    SpanningCommitUpdate getSpanningCommitUpdate(long startTs);
+    CommitUpdate getUpdateForFlush(long startTs);
 
     /**
      * Given a set of start timestamps, and a lock watch state version, returns a list of all events that occurred since

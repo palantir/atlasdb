@@ -26,7 +26,6 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.NoOpLockWatchEventCache;
-import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Collection;
@@ -81,11 +80,6 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public synchronized CommitUpdate getCommitUpdate(long startTs) {
-        return getSpanningCommitUpdate(startTs).transactionCommitUpdate();
-    }
-
-    @Override
-    public SpanningCommitUpdate getSpanningCommitUpdate(long startTs) {
         Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
         Optional<CommitInfo> maybeCommitInfo = timestampStateStore.getCommitInfo(startTs);
 
@@ -95,15 +89,30 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                         && eventLog.getLatestKnownVersion().isPresent(),
                 "start or commit info not processed for start timestamp, or current version missing");
 
+        return getUpdateBetweenVersions(
+                startVersion.get(), maybeCommitInfo.get().commitVersion(), maybeCommitInfo);
+    }
+
+    @Override
+    public CommitUpdate getUpdateForFlush(long startTs) {
+        Optional<LockWatchVersion> startVersion = timestampStateStore.getStartVersion(startTs);
+
+        assertTrue(
+                startVersion.isPresent() && eventLog.getLatestKnownVersion().isPresent(),
+                "start or current version not present");
+
         LockWatchVersion currentVersion = eventLog.getLatestKnownVersion().get();
-        CommitInfo commitInfo = maybeCommitInfo.get();
-        VersionBounds versionBounds = VersionBounds.builder()
+        return getUpdateBetweenVersions(startVersion.get(), currentVersion, Optional.empty());
+    }
+
+    private CommitUpdate getUpdateBetweenVersions(
+            LockWatchVersion startVersion, LockWatchVersion endVersion, Optional<CommitInfo> commitUpdate) {
+        VersionBounds bounds = VersionBounds.builder()
                 .startVersion(startVersion)
-                .endVersion(currentVersion)
+                .endVersion(endVersion)
                 .build();
 
-        return eventLog.getEventsBetweenVersions(versionBounds)
-                .toSpanningCommitUpdate(startVersion.get(), commitInfo, currentVersion);
+        return eventLog.getEventsBetweenVersions(bounds).toCommitUpdate(startVersion, endVersion, commitUpdate);
     }
 
     @Override

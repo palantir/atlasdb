@@ -28,11 +28,11 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.SpanningCommitUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import java.util.Comparator;
 import java.util.List;
@@ -108,7 +108,42 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     public synchronized void removeTransactionState(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         snapshotStore.removeTimestamp(startTs);
-        cacheStore.removeCache(startTs);
+        cacheStore.removeCache(startTs, _unused -> {});
+    }
+
+    @Override
+    public void onSuccess(long startTimestamp) {
+        TransactionScopedCache cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
+        cache.finalise();
+
+        Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
+        if (cachedValues.isEmpty()) {
+            return;
+        }
+
+        eventCache.getUpdateForFlush(startTimestamp).accept(new Visitor<Void>() {
+            @Override
+            public Void invalidateAll() {
+                // This might happen due to an election or if we exceeded the maximum number of events held
+                // in
+                // memory. Either way, the values are just not pushed to the central cache. If it needs to
+                // throw
+                // because of read-write conflicts, that is handled in the PreCommitCondition.
+                return null;
+            }
+
+            @Override
+            public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                Set<CellReference> invalidatedCells = invalidatedLocks.stream()
+                        .map(AtlasLockDescriptorUtils::candidateCells)
+                        .flatMap(List::stream)
+                        .collect(Collectors.toSet());
+                KeyedStream.stream(cachedValues)
+                        .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
+                        .forEach(valueStore::putValue);
+                return null;
+            }
+        });
     }
 
     @Override
@@ -131,30 +166,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             return;
         }
 
-        SpanningCommitUpdate spanningCommitUpdate = eventCache.getSpanningCommitUpdate(startTimestamp);
-        cacheStore.createReadOnlyCache(startTs, spanningCommitUpdate.transactionCommitUpdate());
-
-        spanningCommitUpdate.spanningCommitUpdate().accept(new Visitor<Void>() {
-            @Override
-            public Void invalidateAll() {
-                // This might happen due to an election or if we exceeded the maximum number of events held in
-                // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
-                // because of read-write conflicts, that is handled in the PreCommitCondition.
-                return null;
-            }
-
-            @Override
-            public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-                Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                        .map(AtlasLockDescriptorUtils::candidateCells)
-                        .flatMap(List::stream)
-                        .collect(Collectors.toSet());
-                KeyedStream.stream(cachedValues)
-                        .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
-                        .forEach(valueStore::putValue);
-                return null;
-            }
-        });
+        CommitUpdate spanningCommitUpdate = eventCache.getCommitUpdate(startTimestamp);
+        cacheStore.createReadOnlyCache(startTs, spanningCommitUpdate);
     }
 
     /**

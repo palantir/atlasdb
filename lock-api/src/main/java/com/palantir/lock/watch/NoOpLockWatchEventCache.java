@@ -60,8 +60,8 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public SpanningCommitUpdate getSpanningCommitUpdate(long startTs) {
-        return SpanningCommitUpdate.invalidateAll();
+    public CommitUpdate getUpdateForFlush(long startTs) {
+        return CommitUpdate.invalidateAll();
     }
 
     @Override
