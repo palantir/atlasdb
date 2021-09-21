@@ -28,7 +28,7 @@ import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.okhttp.NoOpHostEventsSink;
-import com.palantir.util.CachedTransformingSupplier;
+import com.palantir.refreshable.Refreshable;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -76,19 +76,23 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
 
     @Override
     public <T> InstanceAndVersion<T> createLiveReloadingProxyWithFailover(
-            Supplier<ServerListConfig> serverListConfigSupplier,
+            Refreshable<ServerListConfig> serverListConfigRefreshable,
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         ClientOptions options = getClientOptionsForFailoverProxy(parameters);
-        Supplier<T> clientSupplier = new CachedTransformingSupplier<>(
-                serverListConfigSupplier,
-                serverListConfig -> JaxRsClient.create(
-                        type,
-                        addAtlasDbRemotingAgent(parameters.userAgent()),
-                        NoOpHostEventsSink.INSTANCE,
-                        options.serverListToClient(serverListConfig)));
-
-        return decorateFailoverProxy(type, clientSupplier);
+        // this whole thing is awful, but we cannot use Refreshable.map() to create the client because that creates
+        // an always-equal HardCodedTarget object so the client will not refresh
+        com.palantir.conjure.java.ext.refresh.Refreshable<ClientConfiguration> deprecatedRefreshable =
+                com.palantir.conjure.java.ext.refresh.Refreshable.of(
+                        options.serverListToClient(serverListConfigRefreshable.current()));
+        serverListConfigRefreshable.subscribe(
+                serverList -> deprecatedRefreshable.set(options.serverListToClient(serverList)));
+        T client = JaxRsClient.create(
+                type,
+                addAtlasDbRemotingAgent(parameters.userAgent()),
+                NoOpHostEventsSink.INSTANCE,
+                deprecatedRefreshable);
+        return decorateFailoverProxy(type, () -> client);
     }
 
     public <T> InstanceAndVersion<T> createProxyWithQuickFailoverForTesting(
