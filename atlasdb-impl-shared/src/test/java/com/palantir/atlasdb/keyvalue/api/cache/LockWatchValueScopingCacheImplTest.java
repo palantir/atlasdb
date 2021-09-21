@@ -367,7 +367,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
         // Finally, the first transaction commits, but only after a lock has been taken out on one of the cached cells
         valueCache.updateCacheOnCommit(ImmutableSet.of(TIMESTAMP_1));
-
+        valueCache.onSuccess(TIMESTAMP_1);
         // Confirm that the read only cache ignores the new lock, since it happened after commit time
         TransactionScopedCache readOnlyCache1 = valueCache.getReadOnlyTransactionScopedCacheForCommit(TIMESTAMP_1);
         assertThat(getRemotelyReadCells(readOnlyCache1, TABLE, CELL_1, CELL_3)).isEmpty();
