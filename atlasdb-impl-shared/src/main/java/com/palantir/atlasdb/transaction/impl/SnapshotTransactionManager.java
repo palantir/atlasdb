@@ -53,7 +53,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
-import com.palantir.lock.client.StartTimestampFailedException;
+import com.palantir.lock.client.StartTransactionFailedException;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
@@ -186,7 +186,7 @@ import javax.validation.constraints.NotNull;
         final List<StartIdentifiedAtlasDbTransactionResponse> responses;
         try {
             responses = timelockService.startIdentifiedAtlasDbTransactionBatch(conditions.size());
-        } catch (StartTimestampFailedException e) {
+        } catch (StartTransactionFailedException e) {
             throw new TransactionFailedRetriableException("Failed to start a batch of transactions", e);
         }
 

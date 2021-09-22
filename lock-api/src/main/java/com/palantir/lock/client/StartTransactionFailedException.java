@@ -16,12 +16,12 @@
 
 package com.palantir.lock.client;
 
-public final class StartTimestampFailedException extends RuntimeException {
-    public StartTimestampFailedException(String message, Throwable cause) {
+public final class StartTransactionFailedException extends RuntimeException {
+    public StartTransactionFailedException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public StartTimestampFailedException(String message) {
+    public StartTransactionFailedException(String message) {
         super(message);
     }
 }
