@@ -406,7 +406,7 @@ public final class LockWatchValueIntegrationTest {
         AtomicReference<LockWatchCache> lwCache = new AtomicReference<>(null);
         PreCommitCondition condition = timestamp -> {
             if (timestamp != startTs.get()) {
-                simulateSpanningWriteTransaction(lwCache, timestamp);
+                simulateOverlappingWriteTransaction(lwCache, timestamp);
             }
         };
 
@@ -423,25 +423,27 @@ public final class LockWatchValueIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
-    private void simulateSpanningWriteTransaction(AtomicReference<LockWatchCache> lwCache, long timestamp) {
+    private void simulateOverlappingWriteTransaction(
+            AtomicReference<LockWatchCache> lwCache, long theirCommitTimestamp) {
         LockToken lockToken = LockToken.of(UUID.randomUUID());
         LockWatchVersion lastKnownVersion =
                 lwCache.get().getEventCache().lastKnownVersion().get();
 
         lwCache.get()
                 .processStartTransactionsUpdate(
-                        ImmutableSet.of(timestamp - 1), createLockSuccessUpdate(lockToken, lastKnownVersion));
+                        ImmutableSet.of(theirCommitTimestamp - 1),
+                        createLockSuccessUpdate(lockToken, lastKnownVersion));
         lwCache.get()
                 .processCommitTimestampsUpdate(
                         ImmutableSet.of(TransactionUpdate.builder()
-                                .startTs(timestamp - 1)
-                                .commitTs(timestamp + 1)
+                                .startTs(theirCommitTimestamp - 1)
+                                .commitTs(theirCommitTimestamp + 1)
                                 .writesToken(lockToken)
                                 .build()),
                         createUnlockSuccessUpdate(lastKnownVersion));
 
-        txnManager.getKeyValueService().put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4), timestamp - 1);
-        txnManager.getTransactionService().putUnlessExists(timestamp - 1, timestamp + 1);
+        txnManager.getKeyValueService().put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4), theirCommitTimestamp - 1);
+        txnManager.getTransactionService().putUnlessExists(theirCommitTimestamp - 1, theirCommitTimestamp + 1);
     }
 
     private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {
