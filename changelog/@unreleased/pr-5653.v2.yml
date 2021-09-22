@@ -1,6 +1,6 @@
 type: feature
 feature:
   description: There is now the option to shut down TimeLock server i.e. stop the
-    server from talking to peer nodes or serve requests.
+    server from talking to peer nodes or serving requests.
   links:
   - https://github.com/palantir/atlasdb/pull/5653
