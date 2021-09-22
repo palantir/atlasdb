@@ -90,11 +90,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createV1TransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
-        PersistentLockManager persistentLockManager = new PersistentLockManager(
-                metricsManager,
-                SweepTestUtils.getPersistentLockService(kvs),
-                AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
-        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
+        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,
                 AbstractBackgroundSweeperIntegrationTest::getTimestamp,
