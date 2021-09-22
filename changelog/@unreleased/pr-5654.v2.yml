@@ -1,0 +1,8 @@
+type: break
+break:
+  description: Persistent Lock and the related atlasdb-persistent-lock-api project
+    have been removed from AtlasDB. This was used to enable some backup workflows
+    in presence of legacy sweep, but given targeted sweep's ubiquitousness and lack
+    of support, users are unlikely to rely on it.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5654
