@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: We now expose an endpoint that kills TimeLock server.
+  links:
+  - https://github.com/palantir/atlasdb/pull/5653
