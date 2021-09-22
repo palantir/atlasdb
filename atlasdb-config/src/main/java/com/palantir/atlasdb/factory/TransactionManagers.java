@@ -935,7 +935,7 @@ public abstract class TransactionManagers {
         }
         return Callback.noOp();
     }
-    atlasdb-config/src/main/java/com/palantir/atlasdb/factory/TransactionManagers.java
+
     private static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
         return atlasDbConfig.timelock().isPresent()
                 || runtimeConfig.timelockRuntime().isPresent();
