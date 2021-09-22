@@ -208,8 +208,8 @@ public final class Autobatchers {
             return this;
         }
 
-        public AutobatcherBuilder<I, O> timeoutHandler(TimeoutHandler timeoutHandler) {
-            this.timeoutHandler = Optional.of(timeoutHandler);
+        public AutobatcherBuilder<I, O> timeoutHandler(TimeoutHandler timeoutHandlerParam) {
+            this.timeoutHandler = Optional.of(timeoutHandlerParam);
             return this;
         }
 
