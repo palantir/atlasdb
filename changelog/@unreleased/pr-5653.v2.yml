@@ -1,5 +1,6 @@
 type: feature
 feature:
-  description: We now expose an endpoint that kills TimeLock server.
+  description: There is now the option to shut down the TimeLock server i.e. stop
+    the server from talking to peer nodes or serve requests.
   links:
   - https://github.com/palantir/atlasdb/pull/5653
