@@ -80,19 +80,12 @@ public final class ConjureJavaRuntimeTargetFactory implements TargetFactory {
             Class<T> type,
             AuxiliaryRemotingParameters parameters) {
         ClientOptions options = getClientOptionsForFailoverProxy(parameters);
-        // this whole thing is awful, but we cannot use Refreshable.map() to create the client because that creates
-        // an always-equal HardCodedTarget object so the client will not refresh
-        com.palantir.conjure.java.ext.refresh.Refreshable<ClientConfiguration> deprecatedRefreshable =
-                com.palantir.conjure.java.ext.refresh.Refreshable.of(
-                        options.serverListToClient(serverListConfigRefreshable.current()));
-        serverListConfigRefreshable.subscribe(
-                serverList -> deprecatedRefreshable.set(options.serverListToClient(serverList)));
-        T client = JaxRsClient.create(
+        Refreshable<T> refreshableClient = serverListConfigRefreshable.map(serverListConfig -> JaxRsClient.create(
                 type,
                 addAtlasDbRemotingAgent(parameters.userAgent()),
                 NoOpHostEventsSink.INSTANCE,
-                deprecatedRefreshable);
-        return decorateFailoverProxy(type, () -> client);
+                options.serverListToClient(serverListConfig)));
+        return decorateFailoverProxy(type, refreshableClient);
     }
 
     public <T> InstanceAndVersion<T> createProxyWithQuickFailoverForTesting(
