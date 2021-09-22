@@ -381,7 +381,7 @@ public final class LockWatchValueIntegrationTest {
 
         txnManager.runTaskThrowOnConflict(txn -> {
             NavigableMap<byte[], RowResult<byte[]>> read = txn.getRows(TABLE_REF, rows, columns);
-            // we read the values previously cached values
+            // these values were cached in the previous transaction, so we confirm that they are recorded as hits
             assertHitValues(
                     txn,
                     ImmutableSet.of(
@@ -406,7 +406,7 @@ public final class LockWatchValueIntegrationTest {
         AtomicReference<LockWatchCache> lwCache = new AtomicReference<>(null);
         PreCommitCondition condition = timestamp -> {
             if (timestamp != startTs.get()) {
-                simulateTransaction(lwCache, timestamp);
+                simulateSpanningWriteTransaction(lwCache, timestamp);
             }
         };
 
@@ -423,7 +423,7 @@ public final class LockWatchValueIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
-    private void simulateTransaction(AtomicReference<LockWatchCache> lwCache, long timestamp) {
+    private void simulateSpanningWriteTransaction(AtomicReference<LockWatchCache> lwCache, long timestamp) {
         LockToken lockToken = LockToken.of(UUID.randomUUID());
         LockWatchVersion lastKnownVersion =
                 lwCache.get().getEventCache().lastKnownVersion().get();
