@@ -102,6 +102,12 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         });
     }
 
+    @Override
+    public ListenableFuture<Void> forceKillTimeLockServer(AuthHeader authHeader) {
+        System.exit(0);
+        return Futures.immediateVoidFuture();
+    }
+
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
         return exceptionHandler.handleExceptions(supplier);
     }
@@ -140,6 +146,11 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         @Override
         public void invalidateResources(AuthHeader authHeader, Set<String> namespaces) {
             unwrap(resource.invalidateResources(authHeader, namespaces));
+        }
+
+        @Override
+        public void forceKillTimeLockServer(AuthHeader authHeader) {
+            unwrap(resource.forceKillTimeLockServer(authHeader));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
