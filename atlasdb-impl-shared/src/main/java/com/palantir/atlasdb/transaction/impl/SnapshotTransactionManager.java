@@ -202,6 +202,7 @@ import javax.validation.constraints.NotNull;
 
                                 Transaction transaction = createTransaction(
                                         immutableTs, startTimestampSupplier, immutableTsLock, condition);
+                                transaction.onSuccess(() -> lockWatchManager.onSuccess(transaction.getTimestamp()));
                                 return new OpenTransactionImpl(transaction, immutableTsLock);
                             })
                     .collect(Collectors.toList());

@@ -43,10 +43,21 @@ public interface LockWatchValueScopingCache extends LockWatchValueCache {
     @Override
     void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps);
 
+    /**
+     * Guarantees that all relevant state for the given transaction has been removed. If the state is already gone (by
+     * calling {@link LockWatchValueScopingCache#onSuccessfulCommit(long)}, this will be a no-op. Failure to call this
+     * method may result in memory leaks (particularly for aborting transactions).
+     */
     @Override
-    void ensureStateRemoved(long startTimestamp);
+    void ensureStateRemoved(long startTs);
 
-    void onSuccessfulCommit(long startTimestamp);
+    /**
+     * Performs final cleanup for a given transaction (identified by its start timestamp). This removes state associated
+     * with a transaction, and flushes values to the central value cache. Calling this method before a transaction is
+     * fully committed may result in incorrect values being cached.
+     */
+    @Override
+    void onSuccessfulCommit(long startTs);
 
     TransactionScopedCache getTransactionScopedCache(long startTs);
 

@@ -24,4 +24,6 @@ public interface LockWatchValueCache {
     void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps);
 
     void ensureStateRemoved(long startTimestamp);
+
+    void onSuccessfulCommit(long startTimestamp);
 }

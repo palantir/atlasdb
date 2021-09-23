@@ -28,15 +28,8 @@ import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
-import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.LockWatchCache;
-import com.palantir.lock.watch.LockWatchCacheImpl;
-import com.palantir.lock.watch.LockWatchEventCache;
-import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.*;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
-import com.palantir.lock.watch.LockWatchReferencesVisitor;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -130,6 +123,11 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     @Override
     public void removeTransactionStateFromCache(long startTs) {
         lockWatchCache.removeTransactionStateFromCache(startTs);
+    }
+
+    @Override
+    public void onSuccess(long startTs) {
+        lockWatchCache.onSuccess(startTs);
     }
 
     @Override

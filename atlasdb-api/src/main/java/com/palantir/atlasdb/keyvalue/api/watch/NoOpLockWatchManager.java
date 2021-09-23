@@ -18,12 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.palantir.atlasdb.keyvalue.api.cache.NoOpTransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
-import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.LockWatchCache;
-import com.palantir.lock.watch.LockWatchCacheImpl;
-import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.lock.watch.*;
 import java.util.Optional;
 import java.util.Set;
 
@@ -61,6 +56,11 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     @Override
     public void removeTransactionStateFromCache(long startTs) {
         cache.removeTransactionStateFromCache(startTs);
+    }
+
+    @Override
+    public void onSuccess(long startTs) {
+        cache.onSuccess(startTs);
     }
 
     @Override

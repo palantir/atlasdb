@@ -31,4 +31,7 @@ public class NoOpLockWatchValueCache implements LockWatchValueCache {
 
     @Override
     public void ensureStateRemoved(long startTimestamp) {}
+
+    @Override
+    public void onSuccessfulCommit(long startTimestamp) {}
 }

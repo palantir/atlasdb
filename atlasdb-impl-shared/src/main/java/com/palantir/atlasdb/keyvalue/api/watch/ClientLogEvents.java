@@ -23,14 +23,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.LeasedLockToken;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.CommitUpdate;
-import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
-import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
-import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.lock.watch.TransactionsLockWatchUpdate;
-import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.lock.watch.*;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -88,10 +81,9 @@ interface ClientLogEvents {
 
         // We want to ensure that we do not miss any versions, but we do not care about the event with the same version
         // as the start version.
-        verifyReturnedEventsEnclosesTransactionVersions(
-                startVersion.version() + 1, commitInfo.commitVersion().version());
+        verifyReturnedEventsEnclosesTransactionVersions(startVersion.version() + 1, endVersion.version());
 
-        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.commitLockToken());
+        LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.map(CommitInfo::commitLockToken));
         Set<LockDescriptor> locksTakenOut = new HashSet<>();
         events().events().forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
         return CommitUpdate.invalidateSome(locksTakenOut);
@@ -119,13 +111,15 @@ interface ClientLogEvents {
     final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         private final Optional<UUID> commitRequestId;
 
-        private LockEventVisitor(LockToken commitLocksToken) {
-            if (commitLocksToken instanceof LeasedLockToken) {
-                commitRequestId = Optional.of(
-                        ((LeasedLockToken) commitLocksToken).serverToken().getRequestId());
-            } else {
-                commitRequestId = Optional.empty();
-            }
+        private LockEventVisitor(Optional<LockToken> commitLocksToken) {
+            commitRequestId = commitLocksToken.flatMap(lockToken -> {
+                if (lockToken instanceof LeasedLockToken) {
+                    return Optional.of(
+                            ((LeasedLockToken) lockToken).serverToken().getRequestId());
+                } else {
+                    return Optional.empty();
+                }
+            });
         }
 
         @Override

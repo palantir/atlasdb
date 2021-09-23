@@ -95,7 +95,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .build();
 
         return eventLog.getEventsBetweenVersions(versionBounds)
-                .toCommitUpdate(startVersion.get(), endVersion, commitInfo);
+                .toCommitUpdate(startVersion.get(), commitInfo.commitVersion(), maybeCommitInfo);
     }
 
     @Override
@@ -112,7 +112,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
                 .build();
 
         return eventLog.getEventsBetweenVersions(versionBounds)
-                .toCommitUpdate(startVersion.get(), endVersion, currentVersion.get());
+                .toCommitUpdate(startVersion.get(), currentVersion.get(), Optional.empty());
     }
 
     @Override
