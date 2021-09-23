@@ -6333,7 +6333,7 @@ This should make distinguishing AtlasDB request logs from application request lo
 </tr>
 <tr class="row-even"><td><p><span class="changetype changetype-new">NEW</span></p></td>
 <td><p>Sweep now takes out a lock to ensure data is not corrupted during online backups.</p>
-<p>Users performing <a class="reference internal" href="../cluster_management/backup-restore.html#backup-restore"><span class="std std-ref">live backups</span></a> should grab this lock before performing a backup of the underlying KVS, and then release the lock once the backup is complete.
+<p>Users performing live backups should grab this lock before performing a backup of the underlying KVS, and then release the lock once the backup is complete.
 This enables the backup to safely run alongside either the <a class="reference internal" href="../cluster_management/sweep/standard/background-sweep.html#background-sweep"><span class="std std-ref">background sweeper</span></a> or the <a class="reference internal" href="../cluster_management/sweep/standard/sweep-cli.html#atlasdb-sweep-cli"><span class="std std-ref">sweep CLI</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1509">Pull Request</a>)</p>
 </td>
@@ -7466,7 +7466,7 @@ Note: If you are initializing the KVS post-Dropwizard initialization, then your 
 </tr>
 <tr class="row-odd"><td><p><span class="changetype changetype-new">NEW</span></p></td>
 <td><p>There is now a Dropwizard bundle which can be added to Dropwizard applications.
-This will add startup commands to launch the AtlasDB console and <a class="reference internal" href="../cluster_management/clis.html#clis"><span class="std std-ref">CLIs</span></a> suchs as <code class="docutils literal notranslate"><span class="pre">sweep</span></code> and <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, which is needed to perform <a class="reference internal" href="../cluster_management/backup-restore.html#backup-restore"><span class="std std-ref">live backups</span></a>.
+This will add startup commands to launch the AtlasDB console and <a class="reference internal" href="../cluster_management/clis.html#clis"><span class="std std-ref">CLIs</span></a> suchs as <code class="docutils literal notranslate"><span class="pre">sweep</span></code> and <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, which is needed to perform backup-restore.
 These commands will only work if the server is started with a leader block in its configuration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/629">Pull Request 1</a> and <a class="reference external" href="https://github.com/palantir/atlasdb/pull/696">Pull Request 2</a>)</p></td>
 </tr>
