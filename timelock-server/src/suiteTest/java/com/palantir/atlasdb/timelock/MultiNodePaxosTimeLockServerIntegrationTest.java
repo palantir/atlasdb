@@ -82,11 +82,14 @@ import java.util.stream.Stream;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.MethodSorters;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
+@FixMethodOrder(MethodSorters.NAME_ASCENDING) // This test flakes in parallel execution, the ordering should fix it
 public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @ClassRule

@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -181,7 +180,7 @@ public class TransactionPostMortemRunner {
 
     private static LockDiagnosticInfoService createRpcClient(
             AtlasDbConfig config, Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        Supplier<ServerListConfig> serverListConfigSupplier =
+        Refreshable<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
         timelockNamespace(config);
@@ -199,7 +198,7 @@ public class TransactionPostMortemRunner {
         return OptionalResolver.resolve(config.timelock().flatMap(TimeLockClientConfig::client), config.namespace());
     }
 
-    private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
+    private static Refreshable<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config, Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         TimeLockClientConfig clientConfig = config.timelock()
                 .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());
