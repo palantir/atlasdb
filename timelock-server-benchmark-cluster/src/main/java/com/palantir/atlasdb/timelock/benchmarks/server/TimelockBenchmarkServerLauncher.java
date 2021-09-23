@@ -61,6 +61,7 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
                 environment.jersey()::register,
                 Optional.empty(),
                 OrderableSlsVersion.valueOf("0.0.0"),
-                ObjectMappers.newServerObjectMapper());
+                ObjectMappers.newServerObjectMapper(),
+                () -> System.exit(0));
     }
 }

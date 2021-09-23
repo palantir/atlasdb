@@ -111,7 +111,8 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 registrar,
                 Optional.empty(),
                 OrderableSlsVersion.valueOf("0.0.0"),
-                environment.getObjectMapper());
+                environment.getObjectMapper(),
+                () -> System.exit(0));
 
         environment.lifecycle().manage(new Managed() {
             @Override
