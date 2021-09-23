@@ -35,7 +35,6 @@ dependencies {
   implementation project(':atlasdb-client-protobufs')
   implementation project(':atlasdb-commons')
   implementation project(':atlasdb-impl-shared')
-  implementation project(':atlasdb-persistent-lock-api')
   implementation project(':atlasdb-remoting-api')
   implementation project(':commons-executors')
   implementation project(':lock-api')

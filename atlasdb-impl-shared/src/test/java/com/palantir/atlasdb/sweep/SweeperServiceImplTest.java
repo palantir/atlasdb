@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.util.DropwizardClientRule;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
 import com.palantir.conjure.java.api.errors.RemoteException;
@@ -59,7 +58,6 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Rule
     public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
             new SweeperServiceImpl(getSpecificTableSweeperService(), sweepBatchConfigSource),
-            new CheckAndSetExceptionMapper(),
             ConjureJerseyFeature.INSTANCE);
 
     @Override

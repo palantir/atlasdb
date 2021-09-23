@@ -81,10 +81,6 @@ import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
-import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
-import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
-import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
-import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
@@ -95,7 +91,6 @@ import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
-import com.palantir.atlasdb.sweep.PersistentLockManager;
 import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -471,8 +466,6 @@ public abstract class TransactionManagers {
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
-        PersistentLockService persistentLockService =
-                createAndRegisterPersistentLockService(keyValueService, registrar(), config().initializeAsync());
 
         TransactionComponents components = createTransactionComponents(
                 closeables, metricsManager, lockAndTimestampServices, keyValueService, runtime);
@@ -564,12 +557,6 @@ public abstract class TransactionManagers {
                 .ifPresent(installer -> transactionManager.registerClosingCallback(installer::close));
         transactionManager.registerClosingCallback(targetedSweep::close);
 
-        PersistentLockManager persistentLockManager = initializeCloseable(
-                () -> new PersistentLockManager(
-                        metricsManager, persistentLockService, config().getSweepPersistentLockWaitMillis()),
-                closeables);
-        transactionManager.registerClosingCallback(persistentLockManager::close);
-
         initializeCloseable(
                 () -> initializeSweepEndpointAndBackgroundProcess(
                         metricsManager,
@@ -581,7 +568,6 @@ public abstract class TransactionManagers {
                         sweepStrategyManager,
                         follower,
                         transactionManager,
-                        persistentLockManager,
                         runBackgroundSweepProcess()),
                 closeables);
         initializeCloseable(
@@ -848,10 +834,8 @@ public abstract class TransactionManagers {
             SweepStrategyManager sweepStrategyManager,
             CleanupFollower follower,
             TransactionManager transactionManager,
-            PersistentLockManager persistentLockManager,
             boolean runInBackground) {
-        CellsSweeper cellsSweeper =
-                new CellsSweeper(transactionManager, kvs, persistentLockManager, ImmutableList.of(follower));
+        CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower));
 
         LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
 
@@ -927,18 +911,6 @@ public abstract class TransactionManagers {
                         sweepConfig.candidateBatchHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
                 .deleteBatchSize(sweepConfig.deleteBatchHint())
                 .build();
-    }
-
-    private static PersistentLockService createAndRegisterPersistentLockService(
-            KeyValueService kvs, Consumer<Object> env, boolean initializeAsync) {
-        if (!kvs.supportsCheckAndSet()) {
-            return new NoOpPersistentLockService();
-        }
-
-        PersistentLockService pls = KvsBackedPersistentLockService.create(kvs, initializeAsync);
-        env.accept(pls);
-        env.accept(new CheckAndSetExceptionMapper());
-        return pls;
     }
 
     private static Callback<TransactionManager> timelockConsistencyCheckCallback(
